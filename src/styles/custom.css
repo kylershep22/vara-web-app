@@ -1,0 +1,115 @@
+/* src/styles/custom.css */
+
+/* CSS Variables for Colors */
+:root {
+  --evergreen-teal: #1B5E57;
+  --silver-sage: #B8CDBA;
+  --sunrise-amber: #F4C542;
+  --golden-apricot: #F5B971;
+  --warm-clay: #E4BFA1;
+  --mist-white: #FAFAF6;
+  --soft-charcoal: #3E3E3E;
+  --dew-sage: #D5E3D1;
+  --olive-sage: #9AAE8C;
+}
+
+/* Buttons */
+.button {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+/* Log In Button */
+.btn-login {
+  background-color: var(--sunrise-amber); /* Login button color */
+  color: white;
+  border: 2px solid transparent;
+}
+
+.btn-login:hover {
+  background-color: var(--golden-apricot); /* Hover effect */
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.btn-login:active {
+  transform: translateY(2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Sign Up Button */
+.btn-signup {
+  background-color: var(--soft-charcoal); /* Sign up button color */
+  color: white;
+  border: 2px solid transparent;
+}
+
+.btn-signup:hover {
+  background-color: var(--olive-sage); /* Hover effect */
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.btn-signup:active {
+  transform: translateY(2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* General Styling */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--mist-white);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(27, 94, 87, 0.1);
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--evergreen-teal), var(--silver-sage));
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2.5em;
+  font-weight: 300;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.content {
+  padding: 40px;
+}
+
+.section {
+  margin-bottom: 50px;
+}
+
+.section h2 {
+  color: var(--evergreen-teal);
+  font-size: 1.8em;
+  margin-bottom: 25px;
+  border-bottom: 3px solid var(--silver-sage);
+  padding-bottom: 10px;
+}
+
+/* Buttons Grid */
+.buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+/* Hover effect for the buttons */
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
