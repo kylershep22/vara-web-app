@@ -1,57 +1,48 @@
-// AIBasedSuggestions.jsx - Smart habit suggestions linked to a selected goal
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
+import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 
-export default function AIBasedSuggestions({ userId }) {
-  const { user } = useAuth();
-  const [goals, setGoals] = useState([]);
-  const [selectedGoalId, setSelectedGoalId] = useState('');
+export default function AIBasedSuggestions({ goal, userId }) {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showPromptInput, setShowPromptInput] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState('');
 
-  useEffect(() => {
-    const fetchGoals = async () => {
-      if (!userId) return;
-      const q = query(collection(db, 'goals'), where('userId', '==', userId));
-      const snapshot = await getDocs(q);
-      const goalList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setGoals(goalList);
-    };
-    fetchGoals();
-  }, [userId]);
-
-  const fetchSuggestions = async () => {
-    if (!selectedGoalId) return;
-    const goal = goals.find(g => g.id === selectedGoalId);
-    if (!goal) return;
-
+  const getAISuggestions = async (additionalPrompt = '') => {
+    if (!goal || !userId) return;
     setLoading(true);
+    setSuggestions([]);
     try {
-      const prompt = `Suggest 5 daily wellness habits that help achieve this goal: "${goal.title}" in the category of ${goal.category}. Respond with a JSON array of short phrases.`;
-      const response = await axios.post('/api/openai', { prompt });
-      const parsed = JSON.parse(response.data.text || '[]');
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/openai`, {
+        goal,
+        modifier: additionalPrompt
+      });
+
+      const parsed = JSON.parse(res.data.text || '[]');
       setSuggestions(parsed);
     } catch (err) {
-      console.error('AI Suggestion Error:', err);
+      console.error('Error fetching suggestions:', err);
       setSuggestions([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleAddHabit = async (text) => {
+  const handleAddHabit = async (habit) => {
     try {
       await addDoc(collection(db, 'habits'), {
         userId,
-        goalId: selectedGoalId,
-        title: text,
-        createdAt: new Date(),
+        goalId: goal.id,
+        title: habit.title,
+        type: habit.type,
+        frequency: habit.frequency,
+        trigger: habit.trigger,
+        reward: habit.reward,
+        active: true,
         completions: [],
         streak: 0,
-        active: true,
+        createdAt: Timestamp.now()
       });
       alert('Habit added successfully!');
     } catch (err) {
@@ -60,48 +51,66 @@ export default function AIBasedSuggestions({ userId }) {
   };
 
   return (
-    <div className="bg-white border border-[#D5E3D1] rounded-xl p-4 shadow">
-      <h2 className="text-lg font-semibold text-[#1B5E57] mb-2">Smart Habit Suggestions</h2>
-      <select
-        className="w-full border border-[#D5E3D1] rounded-lg px-3 py-2 mb-4"
-        value={selectedGoalId}
-        onChange={(e) => setSelectedGoalId(e.target.value)}
-      >
-        <option value="">Select a goal...</option>
-        {goals.map((goal) => (
-          <option key={goal.id} value={goal.id}>
-            {goal.title} ({goal.category})
-          </option>
-        ))}
-      </select>
+    <div className="bg-[#F9FAF8] border border-[#D5E3D1] rounded-xl p-4 space-y-4">
       <button
-        onClick={fetchSuggestions}
-        disabled={!selectedGoalId || loading}
+        onClick={() => getAISuggestions()}
+        disabled={loading}
         className="bg-[#1B5E57] text-white px-4 py-2 rounded hover:bg-[#164e48] transition"
       >
-        {loading ? 'Loading...' : 'Get Habit Suggestions'}
+        {loading ? 'Generating...' : 'Get AI Habit Suggestions'}
       </button>
 
       {suggestions.length > 0 && (
-        <ul className="mt-4 space-y-3">
-          {suggestions.map((habit, idx) => (
-            <li
-              key={idx}
-              className="flex items-center justify-between bg-[#F9FAF8] border border-[#D5E3D1] px-3 py-2 rounded-lg"
-            >
-              <span className="text-sm text-[#3E3E3E]">{habit}</span>
-              <button
-                onClick={() => handleAddHabit(habit)}
-                className="text-[#1B5E57] text-sm underline hover:font-semibold"
-              >
-                Add
-              </button>
-            </li>
+        <div className="space-y-3">
+          {suggestions.map((sug, idx) => (
+            <div key={idx} className="bg-white border border-[#D5E3D1] p-3 rounded">
+              <p className="text-[#3E3E3E] font-semibold">{sug.title}</p>
+              <p className="text-sm text-gray-600">Type: {sug.type} | Frequency: {sug.frequency}</p>
+              <p className="text-sm text-gray-500">Trigger: {sug.trigger}</p>
+              <p className="text-sm text-gray-500">Reward: {sug.reward}</p>
+              <div className="flex gap-4 mt-2">
+                <button
+                  onClick={() => handleAddHabit(sug)}
+                  className="text-sm text-green-600 hover:underline"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => setShowPromptInput(true)}
+                  className="text-sm text-yellow-700 hover:underline"
+                >
+                  Decline & Improve
+                </button>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
+      )}
+
+      {showPromptInput && (
+        <div className="space-y-2">
+          <textarea
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            placeholder="What would make this habit more helpful for you?"
+            className="w-full p-2 border rounded"
+          />
+          <button
+            onClick={() => {
+              getAISuggestions(customPrompt);
+              setShowPromptInput(false);
+              setCustomPrompt('');
+            }}
+            className="text-sm px-4 py-2 bg-[#B8CDBA] text-white rounded hover:bg-[#9AAE8C]"
+          >
+            Submit Feedback & Regenerate
+          </button>
+        </div>
       )}
     </div>
   );
 }
+
+
 
 

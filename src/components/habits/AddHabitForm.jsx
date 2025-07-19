@@ -5,7 +5,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 
-export default function AddHabitForm({ onHabitAdded }) {
+export default function AddHabitForm({ goalId, onHabitAdded }) {
   const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [type, setType] = useState('build');
@@ -16,12 +16,13 @@ export default function AddHabitForm({ onHabitAdded }) {
 
   const handleAddHabit = async (e) => {
     e.preventDefault();
-    if (!user || !title.trim()) return;
+    if (!user || !title.trim() || !goalId) return;
 
     try {
       setLoading(true);
       await addDoc(collection(db, 'habits'), {
         userId: user.uid,
+        goalId, // ✅ Attach habit to the correct goal
         title: title.trim(),
         type,
         frequency,

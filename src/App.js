@@ -8,20 +8,19 @@ import Dashboard from './pages/Dashboard';
 import SetGoalFlow from './components/goalFlow/SetGoalFlow';
 import ProtectedRoute from './components/ProtectedRoute';
 
-import Goals from './pages/Goals';
 import DailyWellness from './pages/DailyWellness';
 import WellnessLibrary from './pages/WellnessLibrary';
 import SleepRecovery from './pages/SleepRecovery';
 import Journal from './pages/Journal';
 import AICompanion from './pages/AICompanion';
 import Profile from './pages/Profile';
-import Habits from './pages/Habits';
 import CommunityPage from './pages/Community/CommunityPage';
 import GroupPage from './pages/Community/GroupPage';
 import Notifications from './pages/Notifications';
 import Breathwork from './pages/library/Breathwork';
 import Sleep from './pages/library/Sleep';
 import Movement from './pages/library/Movement';
+import GoalsHabits from './pages/GoalsHabits';
 
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import { VideoPlayerProvider } from './context/VideoPlayerContext';
@@ -54,10 +53,10 @@ function App() {
             }
           />
           <Route
-            path="/goals"
+            path="/goals-habits"
             element={
               <ProtectedRoute>
-                <Goals />
+                <GoalsHabits />
               </ProtectedRoute>
             }
           />
@@ -106,14 +105,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/habits"
-            element={
-              <ProtectedRoute>
-                <Habits />
               </ProtectedRoute>
             }
           />
@@ -172,7 +163,7 @@ function App() {
                 <UserProfileForm />
               </ProtectedRoute>
             }
-         />
+          />
         </Routes>
 
         {/* Persistent Media Bars */}
@@ -184,6 +175,7 @@ function App() {
 }
 
 export default App;
+
 
 
 

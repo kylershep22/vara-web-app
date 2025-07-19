@@ -2,15 +2,14 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Home,
-  Target,
-  Repeat,
   Heart,
   Brain,
   Moon,
   BookOpen,
   Bot,
   User,
-  Users
+  Users,
+  Compass
 } from "lucide-react";
 import NotificationBell from "../notifications/NotificationBell";
 import VaraLogo from "../../assets/logo/vara-logo.png"; // ✅ Logo import
@@ -21,8 +20,7 @@ export default function SidebarLayout({ children }) {
 
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: Home },
-    { path: "/goals", label: "Goals", icon: Target },
-    { path: "/habits", label: "Habits", icon: Repeat },
+    { path: "/goals-habits", label: "Life Design", icon: Compass },
     { path: "/daily", label: "Daily Wellness", icon: Heart },
     { path: "/library", label: "Wellness Library", icon: Brain },
     { path: "/sleep", label: "Sleep & Recovery", icon: Moon },
@@ -102,6 +100,7 @@ export default function SidebarLayout({ children }) {
     </div>
   );
 }
+
 
 
 
