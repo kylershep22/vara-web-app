@@ -7,7 +7,7 @@ const openai = new OpenAI({
 });
 
 module.exports = async function generateHabitSuggestions(goal, modifier = '') {
-  const prompt = `You are a supportive wellness coach. Based on the following goal data, suggest 3 specific daily wellness habits.
+  var prompt = `You are a supportive wellness coach. Based on the following goal data, suggest 3 specific daily wellness habits.
 Return a JSON array of objects where each object includes: title, type, frequency, trigger, and reward.
 
 Goal Title: ${goal.title}
