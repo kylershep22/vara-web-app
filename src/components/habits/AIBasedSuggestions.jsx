@@ -13,8 +13,9 @@ export default function AIBasedSuggestions({ goal, userId }) {
     if (!goal || !userId) return;
     setLoading(true);
     setSuggestions([]);
+
     try {
-      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/openai`, {
+      const res = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/openai`, {
         goal,
         modifier: additionalPrompt
       });
@@ -110,6 +111,7 @@ export default function AIBasedSuggestions({ goal, userId }) {
     </div>
   );
 }
+
 
 
 
