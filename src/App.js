@@ -16,11 +16,13 @@ import AICompanion from './pages/AICompanion';
 import Profile from './pages/Profile';
 import CommunityPage from './pages/Community/CommunityPage';
 import GroupPage from './pages/Community/GroupPage';
+import GroupDetailPage from './pages/GroupDetailPage';
 import Notifications from './pages/Notifications';
 import Breathwork from './pages/library/Breathwork';
 import Sleep from './pages/library/Sleep';
 import Movement from './pages/library/Movement';
 import GoalsHabits from './pages/GoalsHabits';
+import GroupForumPage from './pages/Community/GroupForumPage';
 
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import { VideoPlayerProvider } from './context/VideoPlayerContext';
@@ -125,6 +127,14 @@ function App() {
             }
           />
           <Route
+            path="/group/:groupId/details"
+            element={
+              <ProtectedRoute>
+                <GroupDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/notifications"
             element={
               <ProtectedRoute>
@@ -161,6 +171,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <UserProfileForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/group/:groupId/forum"
+            element={
+              <ProtectedRoute>
+                <GroupForumPage />
               </ProtectedRoute>
             }
           />
