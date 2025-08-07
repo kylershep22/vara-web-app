@@ -5,8 +5,10 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 
-export default function AddHabitForm({ goalId, onHabitAdded }) {
-  const { user } = useAuth();
+export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: externalUserId }) {
+  const { user: authUser } = useAuth();
+  const userId = externalUserId || authUser?.uid;
+
   const [title, setTitle] = useState('');
   const [type, setType] = useState('build');
   const [frequency, setFrequency] = useState('daily');
@@ -16,13 +18,13 @@ export default function AddHabitForm({ goalId, onHabitAdded }) {
 
   const handleAddHabit = async (e) => {
     e.preventDefault();
-    if (!user || !title.trim() || !goalId) return;
+    if (!userId || !title.trim()) return;
 
     try {
       setLoading(true);
-      await addDoc(collection(db, 'habits'), {
-        userId: user.uid,
-        goalId, // ✅ Attach habit to the correct goal
+
+      const newHabit = {
+        userId,
         title: title.trim(),
         type,
         frequency,
@@ -32,12 +34,19 @@ export default function AddHabitForm({ goalId, onHabitAdded }) {
         createdAt: serverTimestamp(),
         streak: 0,
         completions: [],
-      });
+        ...(goalId ? { goalIds: [goalId] } : {}) // support linking to a goal if passed
+      };
 
+      const docRef = await addDoc(collection(db, 'habits'), newHabit);
+
+      // Reset fields
       setTitle('');
       setTrigger('');
       setReward('');
+
+      // Callbacks
       if (onHabitAdded) onHabitAdded();
+      if (onSuccess) onSuccess(docRef.id); // ✅ Enables modal behavior
     } catch (err) {
       console.error('Error adding habit:', err);
     } finally {
@@ -57,6 +66,7 @@ export default function AddHabitForm({ goalId, onHabitAdded }) {
           onChange={(e) => setTitle(e.target.value)}
           className="mt-1 w-full border rounded-lg p-2"
           placeholder="Drink more water"
+          required
         />
       </div>
 
@@ -112,3 +122,4 @@ export default function AddHabitForm({ goalId, onHabitAdded }) {
     </form>
   );
 }
+

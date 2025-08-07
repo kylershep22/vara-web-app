@@ -22,16 +22,20 @@ app.use(express.json());
 // Routes
 app.use('/api/generate-daily-plan', dailyPlanRoute);
 
-// ✅ Habit Suggestions
+// ✅ AI Suggestions for Goals, Habits, or Tasks
 app.post('/api/openai', async (req, res) => {
-  const { goal, modifier = '' } = req.body;
+  const { type, context, modifier = '' } = req.body;
+
+  if (!type || !context) {
+    return res.status(400).json({ error: 'Missing required fields: type and context' });
+  }
 
   try {
-    const text = await generateHabitSuggestions(goal, modifier);
+    const text = await generateHabitSuggestions(type, context, modifier);
     res.status(200).json({ text });
   } catch (err) {
     console.error('OpenAI suggestion error:', err);
-    res.status(500).json({ error: 'Failed to generate habit suggestions' });
+    res.status(500).json({ error: 'Failed to generate AI suggestions' });
   }
 });
 
@@ -59,7 +63,7 @@ app.post('/api/journal-prompt', async (req, res) => {
   }
 });
 
-// ✅ Journal Weekly Summary (New Route)
+// ✅ Journal Weekly Summary
 app.post('/api/journal-summary', async (req, res) => {
   const { entries } = req.body;
 
@@ -99,5 +103,6 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });
+
 
 
