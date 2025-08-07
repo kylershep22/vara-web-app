@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyB_RQJh0cMU3ruEm3vAY1uSKIk7vPlY6lc",
@@ -20,3 +21,6 @@ export const auth = getAuth(app);
 
 // Firestore
 export const db = getFirestore(app); // ✅ this line fixes the error
+
+// Storage
+export const storage = getStorage(app);

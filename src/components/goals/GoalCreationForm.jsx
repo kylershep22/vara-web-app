@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Sparkles, CheckCircle } from 'lucide-react';
+import { Sparkles, CheckCircle, Plus } from 'lucide-react';
+import AddHabitForm from '../habits/AddHabitForm';
 
 const focusOptions = [
   'Mental Wellness',
@@ -16,8 +17,10 @@ const targetTypes = ['Duration', 'Frequency', 'Streak', 'Milestone'];
 const measurements = ['Minutes', 'Days', 'Sessions', 'Repetitions'];
 const timeframes = ['2 Weeks', '1 Month', '3 Months', 'Ongoing'];
 
-export default function GoalCreationForm({ onSave }) {
+export default function GoalCreationForm({ onSave, userId, userHabits, onNewHabitCreated, onCancel }) {
   const [step, setStep] = useState(1);
+  const [showHabitModal, setShowHabitModal] = useState(false);
+
   const [goalData, setGoalData] = useState({
     focus: '',
     customFocus: '',
@@ -26,7 +29,7 @@ export default function GoalCreationForm({ onSave }) {
     measurement: '',
     frequency: '',
     timeframe: '',
-    habits: [],
+    habitIds: [],
   });
 
   const handleNext = () => setStep(step + 1);
@@ -36,14 +39,13 @@ export default function GoalCreationForm({ onSave }) {
     setGoalData(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleHabitChange = (index, value) => {
-    const habits = [...goalData.habits];
-    habits[index] = value;
-    setGoalData(prev => ({ ...prev, habits }));
-  };
-
-  const addHabit = () => {
-    setGoalData(prev => ({ ...prev, habits: [...prev.habits, ''] }));
+  const handleAddHabitId = (habitId) => {
+    if (!goalData.habitIds.includes(habitId)) {
+      setGoalData(prev => ({
+        ...prev,
+        habitIds: [...prev.habitIds, habitId],
+      }));
+    }
   };
 
   const renderStep = () => {
@@ -134,20 +136,34 @@ export default function GoalCreationForm({ onSave }) {
         return (
           <div className="mb-4">
             <h2 className="text-xl font-semibold mb-2">Link Habits</h2>
-            {goalData.habits.map((habit, index) => (
-              <input
-                key={index}
-                className="w-full p-2 border border-gray-300 rounded mb-2"
-                placeholder="e.g. 10 min guided meditation"
-                value={habit}
-                onChange={e => handleHabitChange(index, e.target.value)}
-              />
-            ))}
-            <button
-              className="mt-2 px-4 py-2 bg-[#B8CDBA] text-white rounded hover:bg-[#9AAE8C]"
-              onClick={addHabit}
+            <div className="space-y-2 mb-3">
+              {goalData.habitIds.map((habitId, index) => {
+                const habit = userHabits.find(h => h.id === habitId);
+                return (
+                  <div key={habitId} className="text-sm bg-[#D5E3D1] text-[#1B5E57] px-3 py-2 rounded">
+                    {habit?.title || `Habit ID: ${habitId}`}
+                  </div>
+                );
+              })}
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded mb-2"
+              onChange={e => handleAddHabitId(e.target.value)}
+              value=""
             >
-              + Add Habit
+              <option value="">Select from existing habits</option>
+              {userHabits.map(habit => (
+                <option key={habit.id} value={habit.id}>
+                  {habit.title}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setShowHabitModal(true)}
+              className="mt-2 px-4 py-2 bg-[#B8CDBA] text-white rounded hover:bg-[#9AAE8C] flex items-center gap-1"
+            >
+              <Plus size={16} /> Create New Habit
             </button>
           </div>
         );
@@ -163,14 +179,25 @@ export default function GoalCreationForm({ onSave }) {
             <p><strong>Timeframe:</strong> {goalData.timeframe}</p>
             <p><strong>Habits:</strong></p>
             <ul className="list-disc ml-6">
-              {goalData.habits.map((h, i) => <li key={i}>{h}</li>)}
+              {goalData.habitIds.map(hId => {
+                const h = userHabits.find(habit => habit.id === hId);
+                return <li key={hId}>{h?.name || hId}</li>;
+              })}
             </ul>
-            <button
-              className="mt-4 px-4 py-2 bg-[#1B5E57] text-white rounded hover:bg-[#3E3E3E]"
-              onClick={() => onSave(goalData)}
-            >
-              Save Goal
-            </button>
+            <div className="mt-4 flex gap-2">
+              <button
+                className="px-4 py-2 bg-[#1B5E57] text-white rounded hover:bg-[#3E3E3E]"
+                onClick={() => onSave(goalData)}
+              >
+                Save Goal
+              </button>
+              <button
+                onClick={onCancel}
+                className="px-4 py-2 border border-gray-400 text-gray-700 rounded hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         );
       default:
@@ -199,7 +226,31 @@ export default function GoalCreationForm({ onSave }) {
           </button>
         )}
       </div>
+
+      {/* Modal for creating new habit */}
+      {showHabitModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+              onClick={() => setShowHabitModal(false)}
+            >
+              ✕
+            </button>
+            <h3 className="text-lg font-semibold text-[#1B5E57] mb-4">Create a New Habit</h3>
+            <AddHabitForm
+              userId={userId}
+              onSuccess={(newHabitId) => {
+                handleAddHabitId(newHabitId);
+                if (onNewHabitCreated) onNewHabitCreated(newHabitId);
+                setShowHabitModal(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
