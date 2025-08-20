@@ -19,6 +19,8 @@
 .env.production.local
 backend/serviceAccountKey.json
 backend/.env
+scripts/serviceAccountKey.json:1
+scripts/serviceAccountKey.json
 
 npm-debug.log*
 yarn-debug.log*
