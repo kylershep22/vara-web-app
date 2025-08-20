@@ -7,8 +7,8 @@
   },
   "functions": [
     {
-      "source": "functions",
-      "codebase": "default",
+      "source": "functions-notifications",
+      "codebase": "notifications",
       "ignore": [
         "node_modules",
         ".git",
@@ -29,7 +29,9 @@
       ".git",
       "firebase-debug.log",
       "firebase-debug.*.log",
-      "functions"
+      "functions",
+      "functions-notifications"
     ]
   }
 }
+

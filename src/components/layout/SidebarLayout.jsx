@@ -1,3 +1,4 @@
+// src/components/layout/SidebarLayout.jsx
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -6,29 +7,51 @@ import {
   Brain,
   Moon,
   BookOpen,
-  Bot,
   User,
   Users,
-  Compass
+  Compass,
+  Settings as SettingsIcon
 } from "lucide-react";
 import NotificationBell from "../notifications/NotificationBell";
 import VaraLogo from "../../assets/logo/vara-logo.png"; // ✅ Logo import
+import AIChatWidget from "../ai/AIChatWidget";
 
 export default function SidebarLayout({ children }) {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
   const navItems = [
-    { path: "/dashboard", label: "Dashboard", icon: Home },
-    { path: "/goals-habits", label: "Life Design", icon: Compass },
-    { path: "/daily", label: "Daily Wellness", icon: Heart },
-    { path: "/library", label: "Wellness Library", icon: Brain },
-    { path: "/sleep", label: "Sleep & Recovery", icon: Moon },
-    { path: "/journal", label: "Journal", icon: BookOpen },
-    { path: "/ai", label: "AI Companion", icon: Bot },
-    { path: "/community", label: "Community", icon: Users },
-    { path: "/profile", label: "Profile", icon: User }
+    { path: "/dashboard",    label: "Dashboard",        icon: Home },
+    { path: "/goals-habits", label: "Life Design",      icon: Compass },
+    { path: "/daily",        label: "Daily Wellness",   icon: Heart },
+    { path: "/library",      label: "Wellness Library", icon: Brain },
+    { path: "/sleep",        label: "Sleep & Recovery", icon: Moon },
+    { path: "/journal",      label: "Journal",          icon: BookOpen },
+
+    // Community hub (People discovery will live inside Community > Discover tile)
+    { path: "/community",    label: "Community",        icon: Users },
+
+    // Profile & Settings
+    { path: "/profile/edit", label: "My Profile",       icon: User },
+    { path: "/settings",     label: "Settings",         icon: SettingsIcon }
   ];
+
+  // Precise active behavior for a better UX
+  const isActive = (pathname, itemPath) => {
+    if (itemPath === "/community") {
+      // Community is active for /community and any /community/*
+      return pathname === "/community" || pathname.startsWith("/community/");
+    }
+    if (itemPath === "/profile") {
+      // Only highlight on exactly /profile (not /profile/:uid or /profile/edit)
+      return pathname === "/profile";
+    }
+    if (itemPath === "/profile/edit") {
+      return pathname.startsWith("/profile/edit");
+    }
+    // Default: exact or prefix match
+    return pathname === itemPath || pathname.startsWith(itemPath + "/");
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -61,16 +84,17 @@ export default function SidebarLayout({ children }) {
           <ul className="space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const active = isActive(location.pathname, item.path);
               return (
                 <li key={item.path}>
                   <Link
                     to={item.path}
                     className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
-                      isActive
+                      active
                         ? "bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white shadow-lg"
                         : "text-[#3E3E3E] hover:bg-[#D5E3D1] hover:text-[#1B5E57]"
                     }`}
+                    aria-current={active ? "page" : undefined}
                   >
                     <Icon size={20} />
                     {!collapsed && (
@@ -87,9 +111,10 @@ export default function SidebarLayout({ children }) {
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-[#D5E3D1] transition-colors"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <span className="text-sm text-[#1B5E57] font-medium">
-              {collapsed ? ">" : "<"}
+              {collapsed ? "›" : "‹"}
             </span>
           </button>
         </div>
@@ -97,9 +122,15 @@ export default function SidebarLayout({ children }) {
 
       {/* Main Content */}
       <main className="flex-1 bg-[#F3F4EF] overflow-auto">{children}</main>
+
+      {/* 🔽 Global AI chat widget (floats bottom-right on every page) */}
+      <AIChatWidget />
     </div>
   );
 }
+
+
+
 
 
 

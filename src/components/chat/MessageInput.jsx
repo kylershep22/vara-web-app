@@ -1,36 +1,53 @@
+// src/components/common/MessageInput.jsx
 import React, { useState } from 'react';
 import { Smile, Send } from 'lucide-react';
-import Picker from '@emoji-mart/react';
-import data from '@emoji-mart/data';
 
 export default function MessageInput({ onSend }) {
   const [text, setText] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showEmojiBar, setShowEmojiBar] = useState(false);
+
+  const EMOJIS = ['👍', '🎯', '✨', '💪', '😊', '🧘'];
 
   const handleSend = () => {
-    if (!text.trim()) return;
-    onSend(text);
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    onSend(trimmed);
     setText('');
-    setShowEmojiPicker(false);
+    setShowEmojiBar(false);
   };
 
   const handleEmojiSelect = (emoji) => {
-    setText((prev) => prev + emoji.native);
+    setText((prev) => `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}${emoji}`);
   };
 
   return (
     <div className="relative">
-      {showEmojiPicker && (
-        <div className="absolute bottom-12 left-0 z-10">
-          <Picker data={data} onEmojiSelect={handleEmojiSelect} theme="light" />
+      {/* Optional mini emoji bar (no external libs) */}
+      {showEmojiBar && (
+        <div className="absolute bottom-12 left-0 z-10 bg-white border border-[#D5E3D1] rounded-xl shadow-lg p-2">
+          <div className="flex flex-wrap gap-2">
+            {EMOJIS.map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => handleEmojiSelect(e)}
+                className="px-2 py-1 rounded-lg hover:bg-[#D5E3D1]/40"
+                aria-label={`Insert ${e}`}
+              >
+                <span className="text-lg">{e}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => setShowEmojiPicker((prev) => !prev)}
-          className="text-gray-500 hover:text-gray-700"
+          onClick={() => setShowEmojiBar((prev) => !prev)}
+          className="text-[#3E3E3E]/70 hover:text-[#1B5E57]"
+          aria-label="Toggle emoji bar"
+          title="Toggle emoji bar (Tip: Win + . or ⌃⌘Space for OS emoji)"
         >
           <Smile className="w-5 h-5" />
         </button>
@@ -40,15 +57,22 @@ export default function MessageInput({ onSend }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-400"
+          className="flex-1 border border-[#D5E3D1] rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-[#B8CDBA] bg-white"
           onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSend();
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
           }}
+          aria-label="Message text"
         />
 
         <button
+          type="button"
           onClick={handleSend}
-          className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 text-sm font-semibold"
+          className="bg-gradient-to-br from-[#1B5E57] to-[#B8CDBA] text-white px-4 py-2 rounded-lg hover:opacity-95 text-sm font-semibold disabled:opacity-50"
+          disabled={!text.trim()}
+          aria-label="Send message"
         >
           <Send className="w-4 h-4" />
         </button>

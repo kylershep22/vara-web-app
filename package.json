@@ -2,9 +2,8 @@
   "name": "wellness-app",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:5001",
   "dependencies": {
-    "@emoji-mart/data": "^1.2.1",
-    "@emoji-mart/react": "^1.1.1",
     "@headlessui/react": "^2.2.7",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
@@ -16,10 +15,10 @@
     "cors": "^2.8.5",
     "date-fns": "^2.30.0",
     "dotenv": "^17.0.1",
-    "emoji-mart": "^5.6.0",
     "express": "^5.1.0",
     "firebase": "^11.9.1",
     "firebase-admin": "^13.4.0",
+    "framer-motion": "^11.0.0",
     "lucide-react": "^0.525.0",
     "openai": "^5.8.2",
     "react": "^19.1.0",
@@ -60,6 +59,7 @@
     "concurrently": "^9.2.0",
     "nodemon": "^3.1.10",
     "postcss": "^8.5.6",
+    "prettier": "^3.3.3",
     "tailwindcss": "^3.4.0"
   }
 }

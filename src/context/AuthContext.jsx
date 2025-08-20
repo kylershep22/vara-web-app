@@ -1,4 +1,3 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
@@ -9,42 +8,55 @@ import {
 import { auth } from "../firebase";
 
 const AuthContext = createContext();
-
 export const useAuth = () => useContext(AuthContext);
+
+/** --- Tiny external store for non-hook consumers --- **/
+let _snapshot = { user: null, isAuthReady: false };
+const _listeners = new Set();
+
+const notify = () => {
+  for (const l of _listeners) l(_snapshot);
+};
+
+export const authStore = {
+  getState: () => _snapshot,
+  subscribe: (listener) => {
+    _listeners.add(listener);
+    return () => _listeners.delete(listener);
+  }
+};
+/** --------------------------------------------------- **/
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
       setIsAuthReady(true);
-    });
 
+      // keep the external store in sync
+      _snapshot = { user: u, isAuthReady: true };
+      notify();
+    });
     return () => unsubscribe();
   }, []);
 
-  // ✅ Add these methods
-  const signup = (email, password) => {
-    return createUserWithEmailAndPassword(auth, email, password);
-  };
+  const signup = (email, password) =>
+    createUserWithEmailAndPassword(auth, email, password);
 
-  const login = (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
-  };
+  const login = (email, password) =>
+    signInWithEmailAndPassword(auth, email, password);
 
-  const logout = () => {
-    return signOut(auth);
-  };
+  const logout = () => signOut(auth);
 
   return (
-    <AuthContext.Provider
-      value={{ user, isAuthReady, signup, login, logout }}
-    >
+    <AuthContext.Provider value={{ user, isAuthReady, signup, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
 
 

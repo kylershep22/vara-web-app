@@ -13,7 +13,7 @@ import WellnessLibrary from './pages/WellnessLibrary';
 import SleepRecovery from './pages/SleepRecovery';
 import Journal from './pages/Journal';
 import AICompanion from './pages/AICompanion';
-import Profile from './pages/Profile';
+import Settings from "./pages/Settings/Settings";
 import CommunityPage from './pages/Community/CommunityPage';
 import GroupPage from './pages/Community/GroupPage';
 import GroupDetailPage from './pages/GroupDetailPage';
@@ -29,6 +29,12 @@ import { VideoPlayerProvider } from './context/VideoPlayerContext';
 import NowPlayingBar from './components/audio/NowPlayingBar';
 import VideoPlayerBar from './components/video/VideoPlayerBar';
 import UserProfileForm from './components/onboarding/UserProfileForm';
+import EditProfile from './pages/Profile/EditProfile';
+import PeopleSearchPage from './pages/Community/PeopleSearchPage';
+import SeedTagsTool from "./dev/SeedTagsTool";
+import UserProfilePage from "./pages/Profile/UserProfilePage";
+import MyProfileRedirect from './pages/Profile/MyProfileRedirect';
+import LegacyProfileRedirect from './pages/Profile/LegacyProfileRedirect';
 
 import './styles/tailwind.css';
 
@@ -103,10 +109,10 @@ function App() {
             }
           />
           <Route
-            path="/profile"
+            path="/settings"
             element={
               <ProtectedRoute>
-                <Profile />
+                <Settings />
               </ProtectedRoute>
             }
           />
@@ -181,6 +187,62 @@ function App() {
                 <GroupForumPage />
               </ProtectedRoute>
             }
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <MyProfileRedirect />
+              </ProtectedRoute>
+            } 
+          />
+          <Route
+            path="/profile/edit"
+            element={
+              <ProtectedRoute>
+                <EditProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:uid"
+            element={
+              <ProtectedRoute>
+                <LegacyProfileRedirect />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community/people"
+            element={
+              <ProtectedRoute>
+                <PeopleSearchPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dev/seed-tags"
+            element={
+              <ProtectedRoute>
+                <SeedTagsTool />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/u/:uid"
+            element={
+              <ProtectedRoute>
+                <UserProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <MyProfileRedirect />
+              </ProtectedRoute>
+            } 
           />
         </Routes>
 
