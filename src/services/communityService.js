@@ -1,23 +1,106 @@
-import { db } from '../../src/firebase';
+// src/services/communityService.js
 import {
+  collection,
   addDoc,
-  getDoc,
   getDocs,
-  setDoc,
+  getDoc,
+  doc,
   updateDoc,
   deleteDoc,
-  collection,
-  doc,
+  arrayUnion,
+  arrayRemove,
   query,
   where,
   orderBy,
   Timestamp,
-  arrayUnion,
-  arrayRemove
-} from 'firebase/firestore';
+  serverTimestamp
+} from "firebase/firestore";
+import { db } from "../firebase";
 
-// Create a new community post
-export const createPost = async ({ authorId, content, images = [], groupId = null }) => {
+/**
+ * Helper: normalize a group record so the UI can rely on consistent fields.
+ * - Ensures `isPublic` boolean exists (derived from `type`)
+ * - Ensures `members` is an array and `memberCount` is a number
+ */
+const normalizeGroup = (raw, id) => {
+  const members = Array.isArray(raw?.members) ? raw.members : [];
+  const isPublic =
+    typeof raw?.isPublic === "boolean"
+      ? raw.isPublic
+      : (raw?.type || "").toLowerCase() === "public";
+
+  return {
+    id,
+    ...raw,
+    isPublic,
+    members,
+    memberCount:
+      typeof raw?.memberCount === "number" ? raw.memberCount : members.length
+  };
+};
+
+/**
+ * Helper: batch-fetch minimal profiles and return a map { userId: profile }
+ * We only read users that aren't already present in the map.
+ */
+const getProfilesMap = async (userIds) => {
+  const unique = Array.from(new Set(userIds.filter(Boolean)));
+  const out = {};
+  await Promise.all(
+    unique.map(async (uid) => {
+      try {
+        const snap = await getDoc(doc(db, "users", uid));
+        if (snap.exists()) {
+          out[uid] = { id: snap.id, ...snap.data() };
+        }
+      } catch (e) {
+        console.warn("getProfilesMap() failed for", uid, e);
+      }
+    })
+  );
+  return out;
+};
+
+/**
+ * Helper: decide if viewer can see an author's public feed post based on profile privacy.
+ * Supports:
+ *   - profile.privacy in {"public","connections","private"}
+ *   - legacy profile.visibility == "public"
+ */
+const canViewAuthorPublicPost = (authorProfile, viewerId, connectionIds) => {
+  // Viewer can always see their own posts
+  if (authorProfile?.id && viewerId && authorProfile.id === viewerId) return true;
+
+  // Legacy: visibility === "public"
+  if (authorProfile?.visibility === "public") return true;
+
+  const privacy = authorProfile?.privacy || "public";
+  if (privacy === "public") return true;
+
+  const isConnected = Array.isArray(connectionIds)
+    ? connectionIds.includes(authorProfile?.id)
+    : false;
+
+  // For both "connections" and "private", only show if connected.
+  // (You can tighten "private" later if you never want these to appear in feeds.)
+  if (privacy === "connections" || privacy === "private") {
+    return isConnected;
+  }
+
+  // Default safe fallback
+  return false;
+};
+
+// ------------------------
+// POSTS
+// ------------------------
+
+export const createPost = async ({
+  authorId,
+  content,
+  images = [],
+  groupId = null
+}) => {
   const postData = {
     authorId,
     content,
@@ -25,109 +108,388 @@ export const createPost = async ({ authorId, content, images = [], groupId = nul
     groupId, // null = public
     likes: [],
     comments: [],
-    timestamp: Timestamp.now()
+    // Prefer serverTimestamp for consistency across clients
+    timestamp: serverTimestamp()
   };
 
-  const docRef = await addDoc(collection(db, 'posts'), postData);
+  const docRef = await addDoc(collection(db, "posts"), postData);
   return docRef.id;
 };
 
-// Fetch community posts for a user's feed
-export const fetchFeedPosts = async ({ userId, joinedGroupIds = [], connectionIds = [] }) => {
-  const postsRef = collection(db, 'posts');
-  const q = query(postsRef, orderBy('timestamp', 'desc'));
-  const snapshot = await getDocs(q);
+/**
+ * Fetch posts for the feed with privacy enforcement:
+ *   - Group posts (post.groupId): visible if the viewer has joined that group (client passes joinedGroupIds)
+ *   - Public posts (post.groupId == null): visible if:
+ *        * author === viewer, OR
+ *        * authorProfile.privacy === "public", OR
+ *        * authorProfile.privacy in {"connections","private"} AND author is in viewer's connectionIds
+ */
+export const fetchFeedPosts = async ({
+  userId,
+  joinedGroupIds = [],
+  connectionIds = []
+}) => {
+  const postsRef = collection(db, "posts");
+  const qPosts = query(postsRef, orderBy("timestamp", "desc"));
+  const snapshot = await getDocs(qPosts);
 
-  const allPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const allPosts = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-  return allPosts.filter(post =>
-    (post.groupId && joinedGroupIds.includes(post.groupId)) ||
-    (!post.groupId && connectionIds.includes(post.authorId))
+  // Collect authors to enforce privacy on public posts
+  const authorIds = Array.from(
+    new Set(
+      allPosts
+        .filter((p) => !p.groupId) // only public posts need privacy checks here
+        .map((p) => p.authorId)
+        .filter(Boolean)
+    )
   );
+
+  const profilesById = await getProfilesMap(authorIds);
+
+  // Filter with both membership (for group posts) and privacy (for public posts)
+  const filtered = allPosts.filter((post) => {
+    // Group posts: viewer must be in that group
+    if (post.groupId) {
+      return (
+        Array.isArray(joinedGroupIds) && joinedGroupIds.includes(post.groupId)
+      );
+    }
+
+    // Public (no groupId): must pass profile privacy check
+    const authorProfile = profilesById[post.authorId] || { id: post.authorId };
+    return (
+      post.authorId === userId ||
+      canViewAuthorPublicPost(authorProfile, userId, connectionIds)
+    );
+  });
+
+  return filtered;
 };
 
-// Create a new group
-export const createGroup = async ({ name, description, emoji, isPublic, createdBy }) => {
-  const newGroup = {
+// ------------------------
+// COMMENTS
+// ------------------------
+
+export const addCommentToPost = async (postId, comment) => {
+  if (!postId) return;
+
+  const postRef = doc(db, "posts", postId);
+  const postSnap = await getDoc(postRef);
+  if (!postSnap.exists()) return;
+
+  const postData = postSnap.data();
+  const updatedComments = [...(postData.comments || []), comment];
+
+  await updateDoc(postRef, {
+    comments: updatedComments
+  });
+};
+
+export const toggleCommentLike = async (postId, commentIndex, userId) => {
+  if (!postId) return;
+
+  const postRef = doc(db, "posts", postId);
+  const postSnap = await getDoc(postRef);
+  if (!postSnap.exists()) return;
+
+  const postData = postSnap.data();
+  const comments = Array.isArray(postData.comments)
+    ? [...postData.comments]
+    : [];
+
+  if (!comments[commentIndex]) return;
+
+  const likes = new Set(comments[commentIndex].likes || []);
+  if (likes.has(userId)) {
+    likes.delete(userId);
+  } else {
+    likes.add(userId);
+  }
+
+  comments[commentIndex].likes = Array.from(likes);
+
+  await updateDoc(postRef, {
+    comments
+  });
+};
+
+// ------------------------
+// GROUPS
+// ------------------------
+
+export const createGroup = async ({
+  name,
+  description,
+  type = "public",
+  creatorId
+}) => {
+  const groupData = {
     name,
     description,
-    emoji,
-    isPublic,
-    createdBy,
-    members: [createdBy],
-    memberCount: 1,
-    timestamp: Timestamp.now()
+    type, // "public" or "private"
+    creatorId,
+    members: [creatorId],
+    createdAt: serverTimestamp()
   };
 
-  const docRef = await addDoc(collection(db, 'groups'), newGroup);
+  const docRef = await addDoc(collection(db, "groups"), groupData);
   return docRef.id;
 };
 
-// Join or leave a group
-export const updateGroupMembership = async (groupId, userId, join = true) => {
-  const groupRef = doc(db, 'groups', groupId);
-  await updateDoc(groupRef, {
-    members: join ? arrayUnion(userId) : arrayRemove(userId)
-  });
-};
-
-// Fetch all groups the user is a member of
 export const fetchUserGroups = async (userId) => {
-  const groupsRef = collection(db, 'groups');
-  const q = query(groupsRef, where('members', 'array-contains', userId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const qUserGroups = query(
+    collection(db, "groups"),
+    where("members", "array-contains", userId)
+  );
+  const snapshot = await getDocs(qUserGroups);
+
+  return snapshot.docs.map((d) => normalizeGroup(d.data(), d.id));
 };
 
-// Fetch all public groups
 export const fetchPublicGroups = async () => {
-  const groupsRef = collection(db, 'groups');
-  const q = query(groupsRef, where('isPublic', '==', true));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // Data layer stores `type: "public"`, but UI expects `isPublic`
+  const qPublic = query(collection(db, "groups"), where("type", "==", "public"));
+  const snapshot = await getDocs(qPublic);
+
+  return snapshot.docs.map((d) => normalizeGroup(d.data(), d.id));
 };
 
-// Fetch all connections for a user
-export const fetchUserConnections = async (userId) => {
-  const snapshot = await getDocs(query(
-    collection(db, 'connections'),
-    where('participants', 'array-contains', userId)
-  ));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+export const joinGroup = async (groupId, userId) => {
+  const groupRef = doc(db, "groups", groupId);
+  await updateDoc(groupRef, {
+    members: arrayUnion(userId)
+  });
 };
 
-// Accept or decline a group invitation
-export const respondToInvitation = async (invitationId, accept = true, userId, groupId) => {
-  const inviteRef = doc(db, 'invitations', invitationId);
-  if (accept) {
-    // Add user to group
-    await updateGroupMembership(groupId, userId, true);
+export const leaveGroup = async (groupId, userId) => {
+  const groupRef = doc(db, "groups", groupId);
+  await updateDoc(groupRef, {
+    members: arrayRemove(userId)
+  });
+};
+
+export const getGroupInfo = async (groupId) => {
+  const groupRef = doc(db, "groups", groupId);
+  const snapshot = await getDoc(groupRef);
+  if (snapshot.exists()) {
+    return normalizeGroup(snapshot.data(), snapshot.id);
   }
-  // Delete invitation after response
-  await deleteDoc(inviteRef);
+  return null;
 };
 
-// Create user document on first signup
-export const createUserProfile = async (userId, data) => {
-  const userRef = doc(db, 'users', userId);
-  await setDoc(userRef, {
-    ...data,
-    createdAt: Timestamp.now()
-  });
-};
+// ------------------------
+// USERS
+// ------------------------
 
-// Fetch a single user by ID
 export const getUserById = async (userId) => {
-  const userRef = doc(db, 'users', userId);
+  const userRef = doc(db, "users", userId);
   const snapshot = await getDoc(userRef);
-  return snapshot.exists() ? { id: userId, ...snapshot.data() } : null;
+  if (snapshot.exists()) {
+    return { id: snapshot.id, ...snapshot.data() };
+  }
+  return null;
 };
 
-// Persist Comments in the Feed
-export const addCommentToPost = async (postId, commentObj) => {
-  const postRef = doc(db, 'posts', postId);
+// ------------------------
+// POST LIKES
+// ------------------------
+
+export const togglePostLike = async (postId, userId) => {
+  if (!postId) return;
+
+  const postRef = doc(db, "posts", postId);
+  const postSnap = await getDoc(postRef);
+  if (!postSnap.exists()) return;
+
+  const postData = postSnap.data();
+  const currentLikes = new Set(postData.likes || []);
+
+  if (currentLikes.has(userId)) {
+    currentLikes.delete(userId);
+  } else {
+    currentLikes.add(userId);
+  }
+
   await updateDoc(postRef, {
-    comments: arrayUnion(commentObj)
+    likes: Array.from(currentLikes)
   });
 };
+
+// ------------------------
+// CONNECTIONS
+// ------------------------
+
+/**
+ * Fetch a user's connections.
+ * Expected schema for a "connections" doc:
+ * {
+ *   members: [userIdA, userIdB], // bi-directional via members array
+ *   createdAt: Timestamp
+ * }
+ */
+export const fetchUserConnections = async (userId) => {
+  try {
+    const qConn = query(
+      collection(db, "connections"),
+      where("members", "array-contains", userId)
+    );
+    const snapshot = await getDocs(qConn);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.error("Error fetching user connections:", error);
+    return [];
+  }
+};
+
+/**
+ * Connection Requests model
+ * Collection: connectionRequests
+ * Doc fields:
+ * {
+ *   fromUserId: string,
+ *   toUserId: string,
+ *   status: 'pending' | 'accepted' | 'declined',
+ *   createdAt: Timestamp,
+ *   respondedAt?: Timestamp
+ * }
+ */
+
+// Incoming requests sent TO this user and still pending
+export const fetchIncomingConnectionRequests = async (userId) => {
+  const qReq = query(
+    collection(db, "connectionRequests"),
+    where("toUserId", "==", userId),
+    where("status", "==", "pending")
+  );
+  const snap = await getDocs(qReq);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
+// Outgoing requests sent BY this user and still pending
+export const fetchSentConnectionRequests = async (userId) => {
+  const qReq = query(
+    collection(db, "connectionRequests"),
+    where("fromUserId", "==", userId),
+    where("status", "==", "pending")
+  );
+  const snap = await getDocs(qReq);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
+// Accept a pending request and create a connection doc
+export const acceptConnectionRequest = async (request) => {
+  const { id: requestId, fromUserId, toUserId } = request;
+
+  // 1) Update request status
+  await updateDoc(doc(db, "connectionRequests", requestId), {
+    status: "accepted",
+    respondedAt: serverTimestamp()
+  });
+
+  // 2) Create a connection (single doc with both members)
+  await addDoc(collection(db, "connections"), {
+    members: [fromUserId, toUserId],
+    createdAt: serverTimestamp()
+  });
+
+  return true;
+};
+
+// Decline a pending request
+export const declineConnectionRequest = async (requestId) => {
+  await updateDoc(doc(db, "connectionRequests", requestId), {
+    status: "declined",
+    respondedAt: serverTimestamp()
+  });
+  return true;
+};
+
+// Cancel (delete) a sent pending request
+export const cancelConnectionRequest = async (requestId) => {
+  await deleteDoc(doc(db, "connectionRequests", requestId));
+  return true;
+};
+
+// Remove an existing connection
+export const removeConnection = async (connectionId) => {
+  await deleteDoc(doc(db, "connections", connectionId));
+  return true;
+};
+
+/**
+ * Send a new connection request, with guardrails:
+ * - Prevent self-requests
+ * - No duplicate pending requests in either direction
+ * - No request if already connected
+ *
+ * @returns {Promise<{status: 'created'|'already_connected'|'already_pending'|'invalid', requestId?: string}>}
+ */
+export const sendConnectionRequest = async (fromUserId, toUserId) => {
+  try {
+    if (!fromUserId || !toUserId) {
+      return { status: "invalid" };
+    }
+    if (fromUserId === toUserId) {
+      return { status: "invalid" };
+    }
+
+    // 1) Check if already connected
+    const qConns = query(
+      collection(db, "connections"),
+      where("members", "array-contains", fromUserId)
+    );
+    const connsSnap = await getDocs(qConns);
+    const alreadyConnected = connsSnap.docs.some((d) => {
+      const data = d.data();
+      return Array.isArray(data?.members) && data.members.includes(toUserId);
+    });
+    if (alreadyConnected) {
+      return { status: "already_connected" };
+    }
+
+    // 2) Check for existing pending request in either direction
+    const qPendingOut = query(
+      collection(db, "connectionRequests"),
+      where("fromUserId", "==", fromUserId),
+      where("toUserId", "==", toUserId),
+      where("status", "==", "pending")
+    );
+    const qPendingIn = query(
+      collection(db, "connectionRequests"),
+      where("fromUserId", "==", toUserId),
+      where("toUserId", "==", fromUserId),
+      where("status", "==", "pending")
+    );
+    const [outSnap, inSnap] = await Promise.all([getDocs(qPendingOut), getDocs(qPendingIn)]);
+
+    if (!outSnap.empty) {
+      return { status: "already_pending", requestId: outSnap.docs[0].id };
+    }
+    if (!inSnap.empty) {
+      // There's already a pending incoming request from the other user.
+      // Your UI can surface this and let the current user accept it instead of creating a new one.
+      return { status: "already_pending", requestId: inSnap.docs[0].id };
+    }
+
+    // 3) Create new pending request
+    const reqRef = await addDoc(collection(db, "connectionRequests"), {
+      fromUserId,
+      toUserId,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+
+    return { status: "created", requestId: reqRef.id };
+  } catch (e) {
+    console.error("sendConnectionRequest() error:", e);
+    // Keep the return signature predictable for UI handling
+    return { status: "invalid" };
+  }
+};
+
+
+
+
+
 

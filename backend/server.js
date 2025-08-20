@@ -12,12 +12,20 @@ const OpenAI = require('openai');
 // Load environment variables
 dotenv.config();
 
+// ---- Safety checks ----
+if (!process.env.OPENAI_API_KEY) {
+  console.warn('⚠️  OPENAI_API_KEY is not set. AI routes will fail until this is configured.');
+}
+
 const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '2mb' })); // bump a bit for journal text + chat context
+
+// ---- OpenAI client (single instance) ----
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Routes
 app.use('/api/generate-daily-plan', dailyPlanRoute);
@@ -44,13 +52,12 @@ app.post('/api/journal-prompt', async (req, res) => {
   const { prompt } = req.body;
 
   try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
     const response = await openai.chat.completions.create({
-      model: 'gpt-4',
+      // Lightweight + capable; adjust if you prefer a different model.
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a thoughtful journaling assistant.' },
-        { role: 'user', content: prompt }
+        { role: 'user', content: prompt || 'Give me a reflective journal prompt focused on mindfulness and gratitude.' }
       ],
       temperature: 0.7
     });
@@ -67,20 +74,24 @@ app.post('/api/journal-prompt', async (req, res) => {
 app.post('/api/journal-summary', async (req, res) => {
   const { entries } = req.body;
 
-  if (!entries || entries.trim().length === 0) {
+  if (!entries || (typeof entries === 'string' && entries.trim().length === 0)) {
     return res.status(400).json({ error: 'No journal entries provided.' });
   }
 
   try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
     const response = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a wellness journal assistant that summarizes weekly reflections.' },
         {
           role: 'user',
-          content: `Here are my journal entries from the past week:\n\n${entries}\n\nPlease summarize the main themes, emotions, and any meaningful insights or patterns you notice. Keep it encouraging and brief.`
+          content:
+`Here are my journal entries from the past week:
+
+${typeof entries === 'string' ? entries : JSON.stringify(entries, null, 2)}
+
+Please summarize the main themes, emotions, and any meaningful insights or patterns you notice. 
+Keep it encouraging and brief (4–6 sentences max), with 1–3 actionable nudges for next week.`
         }
       ],
       temperature: 0.7
@@ -94,6 +105,60 @@ app.post('/api/journal-summary', async (req, res) => {
   }
 });
 
+// ✅ AI Chat (non-streaming) — used by the floating AI Companion widget
+// Expects: { messages: [{role, content}], context: { page: {path,label}, userSummary: {goals:[], habits:[]}} }
+app.post('/api/ai-chat', async (req, res) => {
+  try {
+    const { messages = [], context = {} } = req.body || {};
+    const { page, userSummary } = context || {};
+
+    const systemPrompt = `
+You are Vara, an empathetic, strengths-based wellness coach.
+Be concise, encouraging, and specific. Offer practical next steps users can do today.
+Avoid medical claims or diagnoses.
+
+Context:
+- Current page: ${page?.label || 'Unknown'} (path: ${page?.path || '/'})
+- User summary (short):
+  - Goals: ${
+    (userSummary?.goals || [])
+      .map(g => `${g.title || 'Untitled goal'}${g.category ? ` [${g.category}]` : ''}${typeof g.progress === 'number' ? ` (${g.progress}% done)` : ''}`)
+      .slice(0, 5)
+      .join('; ') || 'None on file'
+  }
+  - Habits: ${
+    (userSummary?.habits || [])
+      .map(h => `${h.title || 'Untitled habit'}${h.cadence ? ` [${h.cadence}]` : ''}${typeof h.streak === 'number' ? ` (streak ${h.streak})` : ''}`)
+      .slice(0, 8)
+      .join('; ') || 'None on file'
+  }
+
+Guidelines:
+- Prefer small, achievable steps over long lectures.
+- Offer at most 1–3 options.
+- If user asks for a plan, give time-boxed steps (e.g., "10 minutes today").
+- If a query is missing info, ask a single clarifying question.
+    `.trim();
+
+    const history = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map(m => ({ role: m.role, content: m.content })),
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.7,
+      messages: history
+    });
+
+    const reply = completion?.choices?.[0]?.message?.content?.trim() || "I couldn't find the right words — try again?";
+    return res.status(200).json({ reply });
+  } catch (err) {
+    console.error('ai-chat error:', err);
+    return res.status(500).json({ error: 'AI chat failed' });
+  }
+});
+
 // Health check
 app.get('/', (req, res) => {
   res.send('Wellness AI backend is running ✅');
@@ -103,6 +168,7 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });
+
 
 
 

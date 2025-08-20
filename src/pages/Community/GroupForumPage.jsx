@@ -31,6 +31,7 @@ import {
   Camera,
   Users
 } from 'lucide-react';
+import { toggleCommentLike } from '../../services/communityService';
 
 export default function GroupForumPage() {
   const { groupId } = useParams();
@@ -283,23 +284,36 @@ export default function GroupForumPage() {
     });
   };
 
-  const handleCommentLike = async (postId, commentIndex, currentLikes) => {
-    const postRef = doc(db, 'groupPosts', postId);
-    const postSnapshot = await getDoc(postRef);
-    const postData = postSnapshot.data();
-    const updatedComments = [...(postData.comments || [])];
-    const comment = updatedComments[commentIndex];
+  const handleCommentLike = async (postId, commentIndex) => {
+  try {
+    await toggleCommentLike(postId, commentIndex, user.uid);
 
-    if (currentLikes.includes(user.uid)) {
-      comment.likes = comment.likes.filter(uid => uid !== user.uid);
-    } else {
-      comment.likes.push(user.uid);
-    }
+    // Update local UI
+    setPosts(prev =>
+      prev.map(post => {
+        if (post.id !== postId) return post;
 
-    await updateDoc(postRef, {
-      comments: updatedComments
-    });
-  };
+        const updatedComments = [...(post.comments || [])];
+        const likes = new Set(updatedComments[commentIndex]?.likes || []);
+
+        if (likes.has(user.uid)) {
+          likes.delete(user.uid);
+        } else {
+          likes.add(user.uid);
+        }
+
+        updatedComments[commentIndex].likes = Array.from(likes);
+
+        return {
+          ...post,
+          comments: updatedComments
+        };
+      })
+    );
+  } catch (err) {
+    console.error('Error toggling comment like:', err);
+  }
+};
 
   const toggleComments = (postId) => {
     setShowComments(prev => ({ ...prev, [postId]: !prev[postId] }));
@@ -620,12 +634,16 @@ export default function GroupForumPage() {
                                             [`${post.id}_${index}`]: e.target.value
                                           }))}
                                           placeholder="Write a reply..."
-                                          onKeyPress={(e) => e.key === 'Enter' && handleReplySubmit(post.id, index)}
+                                          onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleReplySubmit(post.id, index, replyText[`${post.id}_${index}`]);
+                                            }
+                                          }}
                                           className="flex-1 bg-gray-100 rounded-full px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                                         />
                                         <button
                                           className="text-emerald-600 hover:text-emerald-700 p-1"
-                                          onClick={() => handleReplySubmit(post.id, index)}
+                                          onClick={() => handleReplySubmit(post.id, index, replyText[`${post.id}_${index}`])}
                                         >
                                           <Send className="w-3 h-3" />
                                         </button>
