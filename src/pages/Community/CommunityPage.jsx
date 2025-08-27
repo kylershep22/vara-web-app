@@ -33,8 +33,8 @@ import {
   // Connections
   fetchUserConnections,
   fetchIncomingConnectionRequests,
-  acceptConnectionRequest,
-  declineConnectionRequest,
+  acceptConnection,
+  declineConnection,
   cancelConnectionRequest,
   // Posts
   fetchFeedPosts,
@@ -512,7 +512,7 @@ const CommunityPage = () => {
 
   const handleAcceptRequest = async (connectionId) => {
     try {
-      await acceptConnectionRequest(connectionId, user.uid);
+      await acceptConnection(connectionId, user.uid);
       await refreshConnectionsAndRequests();
     } catch (e) {
       console.error('acceptConnectionRequest failed:', e);
@@ -521,7 +521,7 @@ const CommunityPage = () => {
 
   const handleDeclineRequest = async (connectionId) => {
     try {
-      await declineConnectionRequest(connectionId, user.uid);
+      await declineConnection(connectionId, user.uid);
       await refreshConnectionsAndRequests();
     } catch (e) {
       console.error('declineConnectionRequest failed:', e);

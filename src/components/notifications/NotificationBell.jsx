@@ -1,41 +1,76 @@
-import React, { useEffect, useState } from 'react';
-import { Bell } from 'lucide-react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '../../firebase';
-import NotificationDropdown from './NotificationDropdown';
+// src/components/notifications/NotificationBell.jsx
+import React, { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
+import { db, auth } from "../../firebase";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  orderBy,
+  limit,
+} from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import NotificationDropdown from "./NotificationDropdown";
 
-const NotificationBell = () => {
+export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
+    let unsubAuth;
+    let unsubBell;
 
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', user.uid),
-      where('read', '==', false)
-    );
+    unsubAuth = onAuthStateChanged(auth, (user) => {
+      // Cleanup previous listener when auth changes
+      if (unsubBell) { unsubBell(); unsubBell = undefined; }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setUnreadCount(snapshot.docs.length);
+      if (!user) {
+        setUnreadCount(0);
+        return;
+      }
+
+      // ✅ Rules-aligned: only recipientId == uid (no legacy listener here)
+      const q = query(
+        collection(db, "notifications"),
+        where("recipientId", "==", user.uid),
+        where("read", "==", false),
+        orderBy("createdAt", "desc"),
+        limit(25)
+      );
+
+      unsubBell = onSnapshot(
+        q,
+        (snap) => {
+          setUnreadCount(snap.size);
+        },
+        (err) => {
+          // Suppress noisy permission/index logs in prod
+          if (process.env.NODE_ENV !== "production") {
+            console.debug("[NotificationBell] listener suppressed error:", err?.code || err);
+          }
+          setUnreadCount(0);
+        }
+      );
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubAuth) unsubAuth();
+      if (unsubBell) unsubBell();
+    };
   }, []);
-
-  const toggleDropdown = () => {
-    setIsOpen((prev) => !prev);
-  };
 
   return (
     <div className="relative">
-      <button onClick={toggleDropdown} className="relative p-2 hover:text-emerald-700">
-        <Bell size={24} />
+      <button
+        aria-label="Notifications"
+        onClick={() => setIsOpen((v) => !v)}
+        className="relative inline-flex items-center justify-center h-10 w-10 rounded-xl hover:bg-[#D5E3D1] transition-colors"
+      >
+        <Bell size={20} className="text-[#1B5E57]" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-            {unreadCount}
+          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-[#1B5E57] text-white text-[10px] leading-none flex items-center justify-center">
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
@@ -43,7 +78,7 @@ const NotificationBell = () => {
       <NotificationDropdown isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
   );
-};
+}
 
-export default NotificationBell;
+
 
