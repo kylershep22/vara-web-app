@@ -317,22 +317,52 @@ export const togglePostLike = async (postId, userId) => {
 };
 
 // ------------------------
-// CONNECTIONS
+// CONNECTIONS  (single `connections` collection, status-based)
 // ------------------------
-
 /**
- * Fetch a user's connections.
- * Expected schema for a "connections" doc:
+ * connections/{id} doc shape:
  * {
- *   members: [userIdA, userIdB], // bi-directional via members array
- *   createdAt: Timestamp
+ *   requesterId: string,
+ *   addresseeId: string,
+ *   participants: [requesterId, addresseeId], // exactly 2
+ *   status: 'pending' | 'accepted' | 'declined' | 'canceled',
+ *   createdAt: serverTimestamp()
  * }
+ *
+ * Firestore rules allow:
+ * - create by requester only
+ * - read by participants only
+ * - update: ONLY `status` while the request is pending,
+ *   - addressee -> 'accepted' | 'declined'
+ *   - requester -> 'canceled'
+ * - delete: not allowed from client
  */
+
+// --- Helpers ---
+
+/** Find an existing connection doc between two users (any status). */
+const findConnectionBetween = async (uidA, uidB) => {
+  const qA = query(
+    collection(db, "connections"),
+    where("participants", "array-contains", uidA)
+  );
+  const snap = await getDocs(qA);
+  const match = snap.docs.find((d) => {
+    const data = d.data();
+    return Array.isArray(data?.participants) && data.participants.includes(uidB);
+  });
+  return match ? { id: match.id, ...match.data() } : null;
+};
+
+// --- Queries ---
+
+/** Accepted connections where user participates. */
 export const fetchUserConnections = async (userId) => {
   try {
     const qConn = query(
       collection(db, "connections"),
-      where("members", "array-contains", userId)
+      where("participants", "array-contains", userId),
+      where("status", "==", "accepted")
     );
     const snapshot = await getDocs(qConn);
     return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -342,151 +372,113 @@ export const fetchUserConnections = async (userId) => {
   }
 };
 
-/**
- * Connection Requests model
- * Collection: connectionRequests
- * Doc fields:
- * {
- *   fromUserId: string,
- *   toUserId: string,
- *   status: 'pending' | 'accepted' | 'declined',
- *   createdAt: Timestamp,
- *   respondedAt?: Timestamp
- * }
- */
-
-// Incoming requests sent TO this user and still pending
+/** Pending requests addressed *to* user (they can accept/decline). */
 export const fetchIncomingConnectionRequests = async (userId) => {
   const qReq = query(
-    collection(db, "connectionRequests"),
-    where("toUserId", "==", userId),
+    collection(db, "connections"),
+    where("addresseeId", "==", userId),
     where("status", "==", "pending")
   );
   const snap = await getDocs(qReq);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
-// Outgoing requests sent BY this user and still pending
+/** Pending requests created *by* user (they can cancel). */
 export const fetchSentConnectionRequests = async (userId) => {
   const qReq = query(
-    collection(db, "connectionRequests"),
-    where("fromUserId", "==", userId),
+    collection(db, "connections"),
+    where("requesterId", "==", userId),
     where("status", "==", "pending")
   );
   const snap = await getDocs(qReq);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
-// Accept a pending request and create a connection doc
-export const acceptConnectionRequest = async (request) => {
-  const { id: requestId, fromUserId, toUserId } = request;
+// --- Mutations (status-only updates) ---
 
-  // 1) Update request status
-  await updateDoc(doc(db, "connectionRequests", requestId), {
-    status: "accepted",
-    respondedAt: serverTimestamp()
-  });
-
-  // 2) Create a connection (single doc with both members)
-  await addDoc(collection(db, "connections"), {
-    members: [fromUserId, toUserId],
-    createdAt: serverTimestamp()
-  });
-
-  return true;
-};
-
-// Decline a pending request
-export const declineConnectionRequest = async (requestId) => {
-  await updateDoc(doc(db, "connectionRequests", requestId), {
-    status: "declined",
-    respondedAt: serverTimestamp()
-  });
-  return true;
-};
-
-// Cancel (delete) a sent pending request
-export const cancelConnectionRequest = async (requestId) => {
-  await deleteDoc(doc(db, "connectionRequests", requestId));
-  return true;
-};
-
-// Remove an existing connection
-export const removeConnection = async (connectionId) => {
-  await deleteDoc(doc(db, "connections", connectionId));
-  return true;
-};
-
-/**
- * Send a new connection request, with guardrails:
- * - Prevent self-requests
- * - No duplicate pending requests in either direction
- * - No request if already connected
- *
- * @returns {Promise<{status: 'created'|'already_connected'|'already_pending'|'invalid', requestId?: string}>}
- */
-export const sendConnectionRequest = async (fromUserId, toUserId) => {
+/** Create a new pending connection request (requester -> addressee). */
+export const sendConnectionRequest = async (requesterId, addresseeId) => {
   try {
-    if (!fromUserId || !toUserId) {
+    if (!requesterId || !addresseeId) {
       return { status: "invalid" };
     }
-    if (fromUserId === toUserId) {
+    if (requesterId === addresseeId) {
       return { status: "invalid" };
     }
 
-    // 1) Check if already connected
-    const qConns = query(
-      collection(db, "connections"),
-      where("members", "array-contains", fromUserId)
-    );
-    const connsSnap = await getDocs(qConns);
-    const alreadyConnected = connsSnap.docs.some((d) => {
-      const data = d.data();
-      return Array.isArray(data?.members) && data.members.includes(toUserId);
-    });
-    if (alreadyConnected) {
-      return { status: "already_connected" };
+    // 1) Is there any existing connection doc between these users?
+    const existing = await findConnectionBetween(requesterId, addresseeId);
+    if (existing) {
+      // If already accepted, treat as connected
+      if (existing.status === "accepted") {
+        return { status: "already_connected", connectionId: existing.id };
+      }
+      // If there's a pending request in either direction, surface it
+      if (existing.status === "pending") {
+        return { status: "already_pending", connectionId: existing.id };
+      }
+      // If declined/canceled exists, you may choose to create a *new* request.
+      // We'll allow creating a fresh one below to restart the flow.
     }
 
-    // 2) Check for existing pending request in either direction
-    const qPendingOut = query(
-      collection(db, "connectionRequests"),
-      where("fromUserId", "==", fromUserId),
-      where("toUserId", "==", toUserId),
-      where("status", "==", "pending")
-    );
-    const qPendingIn = query(
-      collection(db, "connectionRequests"),
-      where("fromUserId", "==", toUserId),
-      where("toUserId", "==", fromUserId),
-      where("status", "==", "pending")
-    );
-    const [outSnap, inSnap] = await Promise.all([getDocs(qPendingOut), getDocs(qPendingIn)]);
-
-    if (!outSnap.empty) {
-      return { status: "already_pending", requestId: outSnap.docs[0].id };
-    }
-    if (!inSnap.empty) {
-      // There's already a pending incoming request from the other user.
-      // Your UI can surface this and let the current user accept it instead of creating a new one.
-      return { status: "already_pending", requestId: inSnap.docs[0].id };
-    }
-
-    // 3) Create new pending request
-    const reqRef = await addDoc(collection(db, "connectionRequests"), {
-      fromUserId,
-      toUserId,
+    // 2) Create new pending request (must match rules exactly)
+    const ref = await addDoc(collection(db, "connections"), {
+      requesterId,
+      addresseeId,
+      participants: [requesterId, addresseeId],
       status: "pending",
       createdAt: serverTimestamp()
     });
 
-    return { status: "created", requestId: reqRef.id };
+    return { status: "created", connectionId: ref.id };
   } catch (e) {
     console.error("sendConnectionRequest() error:", e);
-    // Keep the return signature predictable for UI handling
     return { status: "invalid" };
   }
 };
+
+/** Accept a pending request (only the addressee can do this per rules). */
+export const acceptConnection = async (connectionId) => {
+  await updateDoc(doc(db, "connections", connectionId), { status: "accepted" });
+  return true;
+};
+
+/** Decline a pending request (only the addressee can do this per rules). */
+export const declineConnection = async (connectionId) => {
+  await updateDoc(doc(db, "connections", connectionId), { status: "declined" });
+  return true;
+};
+
+/** Cancel a pending request (only the requester can do this per rules). */
+export const cancelConnectionRequest = async (connectionId) => {
+  await updateDoc(doc(db, "connections", connectionId), { status: "canceled" });
+  return true;
+};
+
+/**
+ * Remove an existing connection
+ * NOTE: Client-side delete is disabled by rules. If you need a "disconnect" feature,
+ * you can implement a Cloud Function or add an authorized admin path.
+ */
+export const removeConnection = async (_connectionId) => {
+  throw new Error(
+    "Client-side delete of connections is not allowed by security rules. Consider an admin action or Cloud Function."
+  );
+};
+
+// ------------------------
+// (Legacy) CLEANUPS from old model
+// ------------------------
+/**
+ * Your old code used:
+ *  - connections: { members: [A, B] }
+ *  - connectionRequests collection
+ * Both are now replaced by the single `connections` collection above.
+ * Ensure any UI calls that referenced connectionRequests are updated to the new functions:
+ *   - fetchIncomingConnectionRequests, fetchSentConnectionRequests
+ *   - sendConnectionRequest, acceptConnection, declineConnection, cancelConnectionRequest
+ */
+
 
 
 

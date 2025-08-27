@@ -4,8 +4,8 @@ import {
   fetchIncomingConnectionRequests,
   fetchSentConnectionRequests,
   fetchUserConnections,
-  acceptConnectionRequest,
-  declineConnectionRequest,
+  acceptConnection,
+  declineConnection,
   cancelConnectionRequest,
   removeConnection,
   getUserById,
@@ -104,11 +104,11 @@ export default function ConnectionsModal({ userId, open, onClose }) {
                     key={req.id}
                     req={req}
                     onAccept={async () => {
-                      await acceptConnectionRequest(req);
+                      await acceptConnection(req);
                       await refresh();
                     }}
                     onDecline={async () => {
-                      await declineConnectionRequest(req.id);
+                      await declineConnection(req.id);
                       await refresh();
                     }}
                   />
