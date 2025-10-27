@@ -35,6 +35,7 @@ import SeedTagsTool from "./dev/SeedTagsTool";
 import UserProfilePage from "./pages/Profile/UserProfilePage";
 import MyProfileRedirect from './pages/Profile/MyProfileRedirect';
 import LegacyProfileRedirect from './pages/Profile/LegacyProfileRedirect';
+import Reflections from "./pages/Reflections";
 
 import './styles/tailwind.css';
 
@@ -236,6 +237,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route 
+            path="/reflections" 
+            element={
+              <ProtectedRoute>
+                <Reflections />
+              </ProtectedRoute>
+            }
+          /> 
           <Route 
             path="/profile" 
             element={

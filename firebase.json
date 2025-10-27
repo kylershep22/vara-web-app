@@ -6,6 +6,10 @@
     "indexes": "firestore.indexes.json"
   },
 
+  "storage": {
+    "rules": "storage.rules"
+  },
+
   "functions": [
     {
       "source": "functions",
@@ -63,6 +67,13 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "function": {
+          "functionId": "api",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/journalPrompt",
         "function": {
           "functionId": "journalPrompt",
@@ -89,6 +100,8 @@
     ]
   }
 }
+
+
 
 
 

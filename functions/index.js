@@ -5,6 +5,7 @@
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { defineSecret } = require("firebase-functions/params");
+const { onObjectFinalized, onObjectDeleted } = require("firebase-functions/v2/storage");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
@@ -25,6 +26,19 @@ async function makeOpenAI() {
   const { default: OpenAI } = await import("openai");
   return new OpenAI({ apiKey });
 }
+
+function slugify(s) {
+  return String(s)
+    .toLowerCase()
+    .replace(/\.[^/.]+$/, "")   // strip file extension
+    .replace(/[_\s]+/g, "-")    // spaces/underscores -> hyphens
+    .replace(/[^a-z0-9-]/g, "") // safe chars only
+    .slice(0, 80);
+}
+
+/* ======================================================================
+ * AI Callables / HTTP
+ * ====================================================================*/
 
 /**
  * Callable: generateHabitSuggestions
@@ -101,9 +115,7 @@ exports.generateDailyPlan = onCall(
       .join("\n");
 
     const moodDescription = mood
-      ? `${mood.emoji ?? ""} (${mood.label ?? "Unknown"})${
-          mood.note ? " - " + mood.note : ""
-        }`
+      ? `${mood.emoji ?? ""} (${mood.label ?? "Unknown"})${mood.note ? " - " + mood.note : ""}`
       : "No mood check-in yet.";
 
     const modifierText = modifier ? `User added instruction: ${modifier}` : "";
@@ -147,10 +159,6 @@ Provide 3–5 short, motivating tasks for the day. Keep tone ${tone}. Format as 
  * HTTPS: journalPrompt
  * POST body: { prompt: string }
  * Response: { text, usage }
- *
- * NOTE:
- * - Add a Hosting rewrite to route /journalPrompt to this function, or call the full function URL.
- * - You can enforce App Check by adding `enforceAppCheck: true` in the options once your client uses it.
  */
 exports.journalPrompt = onRequest(
   {
@@ -190,6 +198,84 @@ exports.journalPrompt = onRequest(
     }
   }
 );
+
+/* ======================================================================
+ * Storage Triggers: sleep-audio -> wellnessLibrary
+ * ====================================================================*/
+
+/**
+ * Create or update a wellnessLibrary doc whenever a file is uploaded/overwritten
+ * under sleep-audio/.
+ */
+exports.ingestSleepAudio = onObjectFinalized(async (event) => {
+  const path = event.data.name || ""; // e.g., "sleep-audio/DeltaWaves.mp3"
+  if (!path.startsWith("sleep-audio/")) return;
+
+  const contentType = event.data.contentType || "";
+  if (contentType && !contentType.startsWith("audio/")) {
+    // Only ingest audio content types (safety check)
+    logger.info("Skipping non-audio object:", { path, contentType });
+    return;
+  }
+
+  const fileName = path.split("/").pop() || "untitled";
+  const title = fileName
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const docId = slugify(title);
+  const ref = admin.firestore().collection("wellnessLibrary").doc(docId);
+  const snap = await ref.get();
+
+  const now = admin.firestore.FieldValue.serverTimestamp();
+
+  const base = {
+    title,                  // "Delta Waves"
+    description: "",        // fill later via an admin UI
+    category: "sleep",      // queried by Sleep & Recovery
+    type: "audio",          // audio | video | article | tool
+    subtype: "sound",       // can change to "story" | "meditation"
+    tags: ["sleep"],
+    storagePath: path,      // clients resolve to URL with getDownloadURL(storagePath)
+    duration: null,         // minutes; fill later
+    popularity: 0,
+    published: true,        // default to visible so it shows up immediately
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  if (!snap.exists) {
+    await ref.set(base);
+    logger.info("Created wellnessLibrary doc from upload", { docId, path });
+  } else {
+    await ref.set({ storagePath: path, updatedAt: now }, { merge: true });
+    logger.info("Updated wellnessLibrary doc for upload", { docId, path });
+  }
+});
+
+/**
+ * Remove the wellnessLibrary doc if a file under sleep-audio/ is deleted.
+ */
+exports.pruneSleepAudioDoc = onObjectDeleted(async (event) => {
+  const path = event.data.name || "";
+  if (!path.startsWith("sleep-audio/")) return;
+
+  const fileName = path.split("/").pop() || "untitled";
+  const docId = slugify(fileName);
+
+  await admin.firestore().collection("wellnessLibrary").doc(docId).delete().catch((err) => {
+    // Ignore not-found; log others
+    if (err && err.code !== 5) {
+      logger.error("Failed to delete wellnessLibrary doc on prune", { docId, path, err });
+    }
+  });
+
+  logger.info("Pruned wellnessLibrary doc after delete", { docId, path });
+});
+
+
 
 
 
