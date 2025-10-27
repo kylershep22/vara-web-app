@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "vara-4a99f"
-  }
+    "default": "vara-4a99f",
+    "staging": "vara-staging",
+    "prod": "vara-4a99f"
+  },
+  "targets": {},
+  "etags": {}
 }

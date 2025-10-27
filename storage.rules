@@ -1,0 +1,34 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    /* -------- Helpers -------- */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    /* -------- Avatars --------
+       Each user may read/write their own avatar files. */
+    match /avatars/{userId}/{fileName} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    /* -------- Sleep Audio --------
+       Clients may read (stream) when signed in.
+       Only admins may upload/overwrite/delete. */
+    match /sleep-audio/{allPaths=**} {
+      // Change to 'true' if you want public streaming before login
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    /* -------- Default deny -------- */
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

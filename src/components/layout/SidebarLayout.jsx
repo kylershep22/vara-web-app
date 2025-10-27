@@ -32,7 +32,7 @@ export default function SidebarLayout({ children }) {
     { path: "/community",    label: "Community",        icon: Users },
 
     // Profile & Settings
-    { path: "/profile/edit", label: "My Profile",       icon: User },
+    { path: "/profile", label: "My Profile",       icon: User },
     { path: "/settings",     label: "Settings",         icon: SettingsIcon }
   ];
 
