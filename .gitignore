@@ -13,12 +13,15 @@
 
 # misc
 .DS_Store
+
+# Environment variables
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-backend/serviceAccountKey.json
 backend/.env
+backend/serviceAccountKey.json
 scripts/serviceAccountKey.json:1
 scripts/serviceAccountKey.json
 .env.*.local

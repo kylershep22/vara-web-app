@@ -1,8 +1,340 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+
+    // ========== HELPER FUNCTIONS ==========
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user is the owner of a resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if two users are connected (accepted connection)
+    // NOTE: This function cannot work with the current data model because connections
+    // use random document IDs with a members array, and Firestore rules cannot query.
+    // For now, users with "connections" privacy will be treated as public.
+    // To fix this, either:
+    // 1. Change connections to use predictable IDs (pairId pattern)
+    // 2. Use "public" or "private" privacy only
+    function areConnected(otherUserId) {
+      return true; // Temporarily allow - connections privacy acts like public
+    }
+
+    // Check if user can read a profile based on privacy settings
+    function canReadProfile(userId) {
+      let profile = get(/databases/$(database)/documents/users/$(userId));
+      let privacy = profile.data.privacy;
+
+      // Owner can always read their own profile
+      return request.auth.uid == userId
+        // Default to public if privacy is not set
+        || (privacy == null || privacy == 'public')
+        // Connections-only: check if they're connected
+        || (privacy == 'connections' && areConnected(userId));
+        // Private: only owner can read (covered by first condition)
+    }
+
+    // Check if user is a member of a group
+    function isGroupMember(groupId) {
+      let group = get(/databases/$(database)/documents/groups/$(groupId));
+      return request.auth.uid in group.data.members;
+    }
+
+    // Check if user is the group owner
+    function isGroupOwner(groupId) {
+      let group = get(/databases/$(database)/documents/groups/$(groupId));
+      return request.auth.uid == group.data.ownerId;
+    }
+
+    // Check if group is public
+    function isPublicGroup(groupId) {
+      let group = get(/databases/$(database)/documents/groups/$(groupId));
+      return group.data.visibility == 'public' || group.data.type == 'public';
+    }
+
+    // ========== USER PROFILES ==========
+
+    match /users/{userId} {
+      // Read: Allow any authenticated user to read profiles
+      // Privacy filtering would need to happen client-side or use a different data model
+      // This is a security trade-off to make the Community page functional
+      allow read: if isAuthenticated();
+
+      // Users can only create/update their own profile
+      allow create: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId;
+
+      // Users cannot delete their profile (use Cloud Function if needed)
+      allow delete: if false;
+
+      // Sub-collection: moods
+      match /moods/{moodId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+
+      // Sub-collection: goals (legacy pattern)
+      match /goals/{goalId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+    }
+
+    // ========== PERSONAL DATA COLLECTIONS ==========
+
+    // Goals (top-level collection)
+    match /goals/{goalId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Habits
+    match /habits/{habitId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+
+      // Sub-collection: completions (habit check-ins)
+      match /completions/{completionId} {
+        // Allow users to read/write completions for habits they own
+        allow read, write: if isAuthenticated() && isOwner(get(/databases/$(database)/documents/habits/$(habitId)).data.userId);
+      }
+    }
+
+    // Tasks
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Journal Entries
+    match /journalEntries/{entryId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Sleep Logs
+    match /sleepLogs/{logId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Sleep Routines (document ID is userId)
+    match /sleepRoutines/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Sleep Routine Runs (completion tracking)
+    match /sleepRoutineRuns/{runId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // ========== COMMUNITY FEATURES ==========
+
+    // Groups
+    match /groups/{groupId} {
+      // Read: public groups by anyone, private groups only by members
+      // Check resource.data directly for queries to work
+      allow read: if isAuthenticated() && (
+        resource.data.visibility == 'public' ||
+        resource.data.type == 'public' ||
+        request.auth.uid in resource.data.members
+      );
+
+      // Create: any authenticated user can create a group
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.ownerId;
+
+      // Update: only group owner or members can update (for join/leave)
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.ownerId ||
+        request.auth.uid in resource.data.members
+      );
+
+      // Delete: only group owner
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.ownerId;
+    }
+
+    // Posts (group forum posts)
+    match /posts/{postId} {
+      // Read: Allow any authenticated user to read posts
+      // Group membership filtering happens client-side in fetchFeedPosts
+      // This is a security trade-off to allow queries to work
+      allow read: if isAuthenticated();
+
+      // Create: if user is a group member and is the author
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.authorId &&
+        (
+          // If it's a group post, user must be a member
+          !request.resource.data.groupId ||
+          request.resource.data.groupId == null ||
+          (exists(/databases/$(database)/documents/groups/$(request.resource.data.groupId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.members)
+        );
+
+      // Update: only post author
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.authorId;
+
+      // Delete: post author or group owner (if group post)
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.authorId ||
+        (resource.data.groupId &&
+         exists(/databases/$(database)/documents/groups/$(resource.data.groupId)) &&
+         request.auth.uid == get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.ownerId)
+      );
+    }
+
+    // ========== CONNECTIONS ==========
+
+    // Connections (using members OR participants array - both field names exist in codebase)
+    match /connections/{connectionId} {
+      // Read: if user is one of the members/participants
+      allow read: if isAuthenticated() && (
+        request.auth.uid in resource.data.members ||
+        request.auth.uid in resource.data.participants
+      );
+
+      // Create: if user is one of the members/participants
+      allow create: if isAuthenticated() && (
+        request.auth.uid in request.resource.data.members ||
+        request.auth.uid in request.resource.data.participants
+      );
+
+      // Update: if user is one of the members/participants
+      allow update: if isAuthenticated() && (
+        request.auth.uid in resource.data.members ||
+        request.auth.uid in resource.data.participants
+      );
+
+      // Delete: if user is one of the members/participants
+      allow delete: if isAuthenticated() && (
+        request.auth.uid in resource.data.members ||
+        request.auth.uid in resource.data.participants
+      );
+    }
+
+    // Connection Requests
+    match /connectionRequests/{requestId} {
+      // Read: if user is sender or recipient
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.fromUserId ||
+        request.auth.uid == resource.data.toUserId
+      );
+
+      // Create: if user is the sender
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.fromUserId;
+
+      // Update: if user is the recipient (to accept/decline)
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.toUserId;
+
+      // Delete: if user is sender or recipient (to cancel)
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.fromUserId ||
+        request.auth.uid == resource.data.toUserId
+      );
+    }
+
+    // Connection Invites (triggers Cloud Function)
+    match /connectionInvites/{inviteId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.from ||
+        request.auth.uid == resource.data.to
+      );
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.from;
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.to;
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.from ||
+        request.auth.uid == resource.data.to
+      );
+    }
+
+    // ========== MESSAGING ==========
+
+    // Conversations
+    match /conversations/{conversationId} {
+      // Read: if user is a participant
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
+
+      // Create: if user is one of the participants
+      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participants;
+
+      // Update: if user is a participant (for lastMessage update)
+      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+
+      // Delete: not allowed (use Cloud Function if needed)
+      allow delete: if false;
+    }
+
+    // Direct Messages
+    match /directMessages/{messageId} {
+      // Read: if user is sender or receiver
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.senderId ||
+        request.auth.uid == resource.data.receiverId
+      );
+
+      // Create: if user is the sender
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.senderId;
+
+      // Update/Delete: messages are immutable
+      allow update, delete: if false;
+    }
+
+    // ========== NOTIFICATIONS ==========
+
+    // Notifications
+    match /notifications/{notificationId} {
+      // Read: only the recipient (userId field in old code, recipientId in new)
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.recipientId
+      );
+
+      // Create: Cloud Functions create notifications (no direct user creation)
+      allow create: if false;
+
+      // Update: only recipient can update (to mark as read)
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.recipientId
+      );
+
+      // Delete: only recipient can delete
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.recipientId
+      );
+    }
+
+    // ========== SHARED CONTENT ==========
+
+    // Wellness Library (sleep sounds, meditation, movement content)
+    match /wellnessLibrary/{itemId} {
+      // Read: all authenticated users can read library content
+      allow read: if isAuthenticated();
+
+      // Write: content is managed by admins only
+      // For now, allow no direct writes from clients
+      allow write: if false;
+    }
+
+    // Tags (for interests, skills, etc.)
+    match /tags/{tagId} {
+      // Read: all authenticated users can read tags
+      allow read: if isAuthenticated();
+
+      // Write: tags are managed by admins only (via Cloud Functions or admin dashboard)
+      // For now, allow no direct writes from clients
+      allow write: if false;
     }
   }
 }
