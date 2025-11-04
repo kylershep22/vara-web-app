@@ -51,7 +51,7 @@ import {
 } from 'firebase/firestore';
 
 import { useAuth } from '../context/AuthContext';
-import { urlFromStoragePath } from '../utils/storage';
+import { urlFromStoragePath } from '../lib/storage';
 
 const TEAL = '#1B5E57';
 const CHARCOAL = '#3E3E3E';
@@ -1556,4 +1556,7 @@ function TrendChip({ label, value, muted = false }) {
     </div>
   );
 }
+
+
+
 

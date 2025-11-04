@@ -8,44 +8,93 @@ import {
   onSnapshot,
   doc,
   updateDoc,
+  orderBy,
 } from 'firebase/firestore';
 import SidebarLayout from '../components/layout/SidebarLayout';
 import { useNavigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
+    let unsubAuth;
+    let unsubPrimary;
+    let unsubLegacy;
 
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', user.uid)
-    );
+    unsubAuth = onAuthStateChanged(auth, (user) => {
+      // Tear down old listeners when the user changes/logs out
+      if (unsubPrimary) { unsubPrimary(); unsubPrimary = undefined; }
+      if (unsubLegacy) { unsubLegacy(); unsubLegacy = undefined; }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notifs = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setNotifications(
-        notifs.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
+      if (!user) {
+        setNotifications([]);
+        return;
+      }
+
+      const base = collection(db, 'notifications');
+
+      // Primary (rules-aligned) query: recipientId == uid
+      const qPrimary = query(
+        base,
+        where('recipientId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      );
+
+      // Legacy support: userId == uid
+      const qLegacy = query(
+        base,
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      );
+
+      const aggregateAndSet = (primaryDocs = [], legacyDocs = []) => {
+        const byId = new Map();
+        [...primaryDocs, ...legacyDocs].forEach((d) => byId.set(d.id, d));
+        const merged = Array.from(byId.values()).sort((a, b) => {
+          const aTs = a.createdAt?.seconds ?? 0;
+          const bTs = b.createdAt?.seconds ?? 0;
+          return bTs - aTs;
+        });
+        setNotifications(merged);
+      };
+
+      let primaryBuffer = [];
+      let legacyBuffer = [];
+
+      unsubPrimary = onSnapshot(
+        qPrimary,
+        (snap) => {
+          primaryBuffer = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          aggregateAndSet(primaryBuffer, legacyBuffer);
+        },
+        (err) => {
+          console.warn('[notifications page] primary listener error:', err);
+        }
+      );
+
+      unsubLegacy = onSnapshot(
+        qLegacy,
+        (snap) => {
+          legacyBuffer = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          aggregateAndSet(primaryBuffer, legacyBuffer);
+        },
+        (err) => {
+          console.warn('[notifications page] legacy listener error:', err);
+        }
       );
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubAuth) unsubAuth();
+    };
   }, []);
 
   const markAsRead = async (notif) => {
     try {
-      await updateDoc(doc(db, 'notifications', notif.id), {
-        read: true,
-      });
-      if (notif.link) {
-        navigate(notif.link);
-      }
+      await updateDoc(doc(db, 'notifications', notif.id), { read: true });
+      if (notif.link) navigate(notif.link);
     } catch (error) {
       console.error('Failed to update notification:', error);
     }
@@ -72,7 +121,9 @@ const Notifications = () => {
                       : 'You have a new notification.')}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {notif.createdAt?.toDate().toLocaleString()}
+                {notif.createdAt?.toDate
+                  ? notif.createdAt.toDate().toLocaleString()
+                  : ''}
               </p>
             </li>
           ))}
@@ -86,3 +137,5 @@ const Notifications = () => {
 };
 
 export default Notifications;
+
+
