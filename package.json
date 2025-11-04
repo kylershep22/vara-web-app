@@ -32,6 +32,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:rules": "firebase emulators:exec --only firestore \"jest firestore.rules.test.js --testEnvironment=node\"",
+    "test:rules:ui": "firebase emulators:start --only firestore,auth,ui",
+    "emulators": "firebase emulators:start",
     "eject": "react-scripts eject",
     "server": "nodemon backend/server.js",
     "dev": "concurrently \"npm run start\" \"npm run server\""
@@ -55,6 +58,7 @@
     ]
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.0",
     "nodemon": "^3.1.10",

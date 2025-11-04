@@ -59,9 +59,8 @@ const Notifications = () => {
           {notifications.map((notif) => (
             <li
               key={notif.id}
-              className={`p-4 border rounded-md shadow-sm cursor-pointer hover:bg-gray-50 ${
-                !notif.read ? 'bg-emerald-50' : 'bg-white'
-              }`}
+              className={`p-4 border rounded-md shadow-sm cursor-pointer hover:bg-gray-50 ${!notif.read ? 'bg-emerald-50' : 'bg-white'
+                }`}
               onClick={() => markAsRead(notif)}
             >
               <p className="text-sm">
@@ -69,8 +68,8 @@ const Notifications = () => {
                   (notif.type === 'group_invite'
                     ? 'You were invited to join a group.'
                     : notif.type === 'daily_plan'
-                    ? 'Your new daily wellness plan is ready.'
-                    : 'You have a new notification.')}
+                      ? 'Your new daily wellness plan is ready.'
+                      : 'You have a new notification.')}
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 {notif.createdAt?.toDate().toLocaleString()}

@@ -4,14 +4,38 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
+// Firebase configuration from environment variables
+// IMPORTANT: All React environment variables must start with REACT_APP_
 const firebaseConfig = {
-  apiKey: "AIzaSyB_RQJh0cMU3ruEm3vAY1uSKIk7vPlY6lc",
-  authDomain: "vara-4a99f.firebaseapp.com",
-  projectId: "vara-4a99f",
-  storageBucket: "vara-4a99f.firebasestorage.app",
-  messagingSenderId: "621980275569",
-  appId: "1:621980275569:web:d7a0d5fe6c024fd3575cd0"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
+
+// Validate required environment variables
+const requiredEnvVars = [
+  'REACT_APP_FIREBASE_API_KEY',
+  'REACT_APP_FIREBASE_AUTH_DOMAIN',
+  'REACT_APP_FIREBASE_PROJECT_ID',
+  'REACT_APP_FIREBASE_STORAGE_BUCKET',
+  'REACT_APP_FIREBASE_MESSAGING_SENDER_ID',
+  'REACT_APP_FIREBASE_APP_ID'
+];
+
+const missingEnvVars = requiredEnvVars.filter(
+  (varName) => !process.env[varName]
+);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:');
+  missingEnvVars.forEach((varName) => console.error(`   - ${varName}`));
+  console.error('\n📝 Please check your .env file and ensure all variables are set.');
+  console.error('   See .env.example for a template.\n');
+  throw new Error('Missing required Firebase environment variables');
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -20,7 +44,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // Firestore
-export const db = getFirestore(app); // ✅ this line fixes the error
+export const db = getFirestore(app);
 
 // Storage
 export const storage = getStorage(app);
