@@ -119,6 +119,20 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // Habit Completions (top-level collection for tracking)
+    match /habitCompletions/{completionId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Joy Moments (gratitude and positive moments)
+    match /joyMoments/{momentId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
     // Sleep Logs
     match /sleepLogs/{logId} {
       allow read: if isAuthenticated() && isOwner(resource.data.userId);
