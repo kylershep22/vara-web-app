@@ -1,5 +1,5 @@
 // src/pages/Profile/ProfilePage.jsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   User,
   Edit3,
@@ -18,10 +18,23 @@ import {
   Lock,
   Globe,
   Settings,
-  AlertCircle
+  AlertCircle,
+  Heart,
+  MessageSquare,
+  TrendingUp,
+  Calendar,
+  Award,
+  Target,
+  Activity,
+  Bookmark,
+  Share2,
+  MoreHorizontal,
+  ChevronDown,
+  Image as ImageIcon,
+  Link as LinkIcon,
 } from 'lucide-react';
 
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 
 import { db } from '../../firebase';
 import {
@@ -36,14 +49,15 @@ import {
   orderBy,
   startAt,
   endAt,
+  startAfter,
   limit,
   getDocs,
   serverTimestamp,
+  Timestamp,
 } from 'firebase/firestore';
 
 import SidebarLayout from '../../components/layout/SidebarLayout';
 import { useAuth } from '../../context/AuthContext';
-import { Link } from 'react-router-dom';
 
 // ---------- helpers ----------
 const useAuthLazily = () => {
@@ -72,7 +86,7 @@ const defaultProfile = {
   interests: [],
   goals: [],
   location: '',
-  privacy: 'public',        // "public" | "connections" | "private"
+  privacy: 'public',
   searchable: true,
   avatarUrl: '',
   bannerUrl: '',
@@ -81,7 +95,24 @@ const defaultProfile = {
 const avatarFor = (name) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=10b981&color=fff`;
 
-// ---------- Firestore ops (kept local for now) ----------
+const formatDate = (timestamp) => {
+  if (!timestamp) return '';
+  const date = timestamp?.toDate?.() || new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (seconds < 60) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+};
+
+// ---------- Firestore ops ----------
 async function readUser(uid) {
   const snap = await getDoc(doc(db, 'users', uid));
   return snap.exists() ? { id: uid, ...snap.data() } : null;
@@ -91,14 +122,13 @@ async function writeUser(uid, partial) {
   const ref = doc(db, 'users', uid);
   const snap = await getDoc(ref);
   if (snap.exists()) {
-    await updateDoc(ref, partial);
+    await updateDoc(ref, { ...partial, updatedAt: serverTimestamp() });
   } else {
-    await setDoc(ref, { ...defaultProfile, ...partial });
+    await setDoc(ref, { ...defaultProfile, ...partial, createdAt: serverTimestamp() });
   }
 }
 
 async function sendConnectionInvite(fromUid, toUid) {
-  // prevents duplicate outgoing pending invites
   const q = query(
     collection(db, 'connectionInvites'),
     where('from', '==', fromUid),
@@ -139,13 +169,11 @@ async function listOutgoingInvites(uid) {
 
 async function acceptInvite(invite, actingUid) {
   if (invite.to !== actingUid) throw new Error('Only recipient can accept');
-  // 1) create connection
   await addDoc(collection(db, 'connections'), {
     participants: [invite.from, invite.to],
     createdAt: serverTimestamp(),
     status: 'active',
   });
-  // 2) mark invite accepted
   await updateDoc(doc(db, 'connectionInvites', invite.id), { status: 'accepted' });
 }
 
@@ -155,10 +183,8 @@ async function declineInvite(invite, actingUid) {
 }
 
 async function peopleSearch({ term, currentUid }) {
-  // Only show searchable users and not yourself
   const trimmed = (term || '').trim();
 
-  // Attempt 1: keyword index if you add it later
   if (trimmed.length >= 2) {
     const kw = trimmed.toLowerCase();
     const q1 = query(
@@ -175,11 +201,10 @@ async function peopleSearch({ term, currentUid }) {
           .filter(u => u.id !== currentUid);
       }
     } catch {
-      // fall through to prefix search if index not present
+      // fall through to prefix search
     }
   }
 
-  // Attempt 2: prefix search on displayName
   const q2 = query(
     collection(db, 'users'),
     where('searchable', '==', true),
@@ -195,7 +220,6 @@ async function peopleSearch({ term, currentUid }) {
 }
 
 async function findOrCreateConversation(a, b) {
-  // naive find by participants; you can add composite index later
   const q1 = query(
     collection(db, 'conversations'),
     where('participants', 'array-contains', a),
@@ -225,14 +249,12 @@ async function sendDirectMessage({ conversationId, from, to, text }) {
     text,
     createdAt: serverTimestamp(),
   });
-  // update conversation preview
   await updateDoc(doc(db, 'conversations', conversationId), {
     lastMessageAt: serverTimestamp(),
     lastMessageText: text.slice(0, 200),
   });
 }
 
-// ----- Minimal service-name wrappers to match earlier suggestion -----
 async function getUserProfile(uid) {
   return readUser(uid);
 }
@@ -246,7 +268,6 @@ async function requestConnection(fromUid, toUid) {
 }
 
 async function areConnected(a, b) {
-  // Query connections where "a" participates & status active, then check if "b" is also a participant
   const q1 = query(
     collection(db, 'connections'),
     where('participants', 'array-contains', a),
@@ -260,22 +281,237 @@ async function areConnected(a, b) {
   });
 }
 
+async function getProfileStats(userId) {
+  try {
+    // Fetch counts for posts, connections, and goals
+    const [postsSnap, connectionsSnap, goalsSnap, habitsSnap] = await Promise.all([
+      getDocs(query(collection(db, 'posts'), where('authorId', '==', userId))),
+      getDocs(query(collection(db, 'connections'), where('participants', 'array-contains', userId), where('status', '==', 'active'))),
+      getDocs(query(collection(db, 'goals'), where('userId', '==', userId))),
+      getDocs(query(collection(db, 'habits'), where('userId', '==', userId), where('status', '==', 'active'))),
+    ]);
+
+    return {
+      posts: postsSnap.size,
+      connections: connectionsSnap.size,
+      goals: goalsSnap.size,
+      habits: habitsSnap.size,
+    };
+  } catch (e) {
+    console.error('Error fetching stats:', e);
+    return { posts: 0, connections: 0, goals: 0, habits: 0 };
+  }
+}
+
+async function fetchUserPosts(userId, lastDoc = null, limitCount = 10) {
+  try {
+    let q = query(
+      collection(db, 'posts'),
+      where('authorId', '==', userId),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+
+    if (lastDoc) {
+      q = query(
+        collection(db, 'posts'),
+        where('authorId', '==', userId),
+        orderBy('createdAt', 'desc'),
+        startAfter(lastDoc),
+        limit(limitCount)
+      );
+    }
+
+    const snap = await getDocs(q);
+    const posts = snap.docs.map(d => ({ id: d.id, ...d.data(), _doc: d }));
+
+    // Fetch group names for each post
+    const postsWithGroups = await Promise.all(
+      posts.map(async (post) => {
+        if (post.groupId) {
+          try {
+            const groupSnap = await getDoc(doc(db, 'groups', post.groupId));
+            return { ...post, groupName: groupSnap.exists() ? groupSnap.data().name : 'Unknown Group' };
+          } catch {
+            return { ...post, groupName: 'Unknown Group' };
+          }
+        }
+        return { ...post, groupName: 'Community Feed' };
+      })
+    );
+
+    return {
+      posts: postsWithGroups,
+      lastDoc: snap.docs[snap.docs.length - 1],
+      hasMore: snap.docs.length === limitCount,
+    };
+  } catch (e) {
+    console.error('Error fetching posts:', e);
+    return { posts: [], lastDoc: null, hasMore: false };
+  }
+}
+
 // small util
-const Pill = ({ children }) => (
-  <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium">
+const Pill = ({ children, className = '' }) => (
+  <span className={`inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium ${className}`}>
     {children}
   </span>
 );
 
 // ---------------------------------------
-// PAGE
+// ACTIVITY FEED TAB OPTIONS
+// ---------------------------------------
+const ActivityTab = ({ active, label, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+      active
+        ? 'border-emerald-600 text-emerald-600'
+        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+    }`}
+  >
+    {label}
+  </button>
+);
+
+// ---------------------------------------
+// PROFILE STATS CARD
+// ---------------------------------------
+const ProfileStatsCard = ({ stats, isMe }) => (
+  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <h3 className="text-sm font-semibold text-gray-700 mb-4">Profile Stats</h3>
+    <div className="grid grid-cols-2 gap-4">
+      <div className="text-center">
+        <div className="text-2xl font-bold text-emerald-600">{stats.posts}</div>
+        <div className="text-xs text-gray-600 mt-1">Posts</div>
+      </div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-emerald-600">{stats.connections}</div>
+        <div className="text-xs text-gray-600 mt-1">Connections</div>
+      </div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-emerald-600">{stats.goals}</div>
+        <div className="text-xs text-gray-600 mt-1">Goals</div>
+      </div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-emerald-600">{stats.habits}</div>
+        <div className="text-xs text-gray-600 mt-1">Active Habits</div>
+      </div>
+    </div>
+  </div>
+);
+
+// ---------------------------------------
+// POST CARD COMPONENT
+// ---------------------------------------
+const PostCard = ({ post, authorProfile, onLike, onComment, isMe }) => {
+  const [showComments, setShowComments] = useState(false);
+  const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
+  const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0;
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+      {/* Post Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <img
+            src={authorProfile?.avatarUrl || avatarFor(authorProfile?.displayName)}
+            alt={authorProfile?.displayName}
+            className="w-10 h-10 rounded-full object-cover"
+          />
+          <div>
+            <div className="font-semibold text-gray-900">{authorProfile?.displayName || 'User'}</div>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>{formatDate(post.createdAt)}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                {post.groupName}
+              </span>
+            </div>
+          </div>
+        </div>
+        <button className="p-2 rounded-lg hover:bg-gray-100">
+          <MoreHorizontal className="w-5 h-5 text-gray-400" />
+        </button>
+      </div>
+
+      {/* Post Content */}
+      <div className="mb-4">
+        <p className="text-gray-800 whitespace-pre-wrap">{post.content || post.body}</p>
+      </div>
+
+      {/* Post Image (if any) */}
+      {post.imageUrl && (
+        <div className="mb-4 rounded-xl overflow-hidden">
+          <img src={post.imageUrl} alt="Post" className="w-full h-auto" />
+        </div>
+      )}
+
+      {/* Engagement Bar */}
+      <div className="flex items-center justify-between py-3 border-t border-gray-100">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={onLike}
+            className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors"
+          >
+            <Heart className={`w-5 h-5 ${likesCount > 0 ? 'fill-emerald-600 text-emerald-600' : ''}`} />
+            <span className="text-sm font-medium">{likesCount}</span>
+          </button>
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors"
+          >
+            <MessageSquare className="w-5 h-5" />
+            <span className="text-sm font-medium">{commentsCount}</span>
+          </button>
+          <button className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors">
+            <Share2 className="w-5 h-5" />
+          </button>
+        </div>
+        <button className="text-gray-600 hover:text-emerald-600">
+          <Bookmark className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Comments Section */}
+      {showComments && commentsCount > 0 && (
+        <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+          {post.comments?.slice(0, 3).map((comment, idx) => (
+            <div key={idx} className="flex gap-2">
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="font-medium text-sm text-gray-900">{comment.authorName || 'User'}</div>
+                  <p className="text-sm text-gray-700 mt-1">{comment.text}</p>
+                </div>
+                <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 ml-2">
+                  <span>{formatDate(comment.createdAt)}</span>
+                  <button className="hover:underline">Like</button>
+                  <button className="hover:underline">Reply</button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {commentsCount > 3 && (
+            <button className="text-sm text-emerald-600 hover:underline ml-10">
+              View all {commentsCount} comments
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---------------------------------------
+// MAIN PAGE COMPONENT
 // ---------------------------------------
 const ProfilePage = () => {
   const { user, isAuthReady } = useAuthLazily();
   const { uid: routeUid } = useParams();
   const navigate = useNavigate();
 
-  // Which profile are we viewing?
   const viewedUserId = routeUid || user?.uid || null;
   const isMe = !!user?.uid && !!viewedUserId && user.uid === viewedUserId;
 
@@ -283,22 +519,27 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
 
-  // connection state when viewing others
   const [isConnected, setIsConnected] = useState(false);
-
-  // invites & connections UX (only when viewing self)
   const [incoming, setIncoming] = useState([]);
   const [outgoing, setOutgoing] = useState([]);
 
-  // people search (only when viewing self)
   const [searchTerm, setSearchTerm] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
+  const [quickMsg, setQuickMsg] = useState({});
 
-  // DM quick send (search results rows)
-  const [quickMsg, setQuickMsg] = useState({}); // {userId: 'hello'}
+  // Profile Stats
+  const [stats, setStats] = useState({ posts: 0, connections: 0, goals: 0, habits: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
 
-  // "Preview as others"
+  // Activity Feed
+  const [activeTab, setActiveTab] = useState('posts'); // posts, about, connections
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const observerTarget = useRef(null);
+
   const publicView = useMemo(() => {
     const { displayName, bio, interests, goals, location, privacy, searchable, avatarUrl } = profile;
     return {
@@ -313,18 +554,21 @@ const ProfilePage = () => {
     };
   }, [profile]);
 
-  // Load viewed profile (+ self-only panels)
+  // Load profile + stats
   useEffect(() => {
     if (!isAuthReady || !viewedUserId) return;
 
     (async () => {
       setLoading(true);
+      setStatsLoading(true);
       try {
-        // 1) Load the profile we're viewing
         const p = await getUserProfile(viewedUserId);
         if (p) setProfile(prev => ({ ...prev, ...p }));
 
-        // 2) If viewing self, load requests; otherwise check connection status
+        // Load stats
+        const profileStats = await getProfileStats(viewedUserId);
+        setStats(profileStats);
+
         if (user?.uid) {
           if (user.uid !== viewedUserId) {
             const connected = await areConnected(user.uid, viewedUserId);
@@ -339,32 +583,76 @@ const ProfilePage = () => {
           }
         }
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error('Profile load error', e);
       } finally {
         setLoading(false);
+        setStatsLoading(false);
       }
     })();
   }, [isAuthReady, user?.uid, viewedUserId]);
+
+  // Load initial posts
+  useEffect(() => {
+    if (!viewedUserId || activeTab !== 'posts') return;
+
+    (async () => {
+      setPostsLoading(true);
+      try {
+        const result = await fetchUserPosts(viewedUserId, null, 10);
+        setPosts(result.posts);
+        setLastDoc(result.lastDoc);
+        setHasMore(result.hasMore);
+      } catch (e) {
+        console.error('Error loading posts:', e);
+      } finally {
+        setPostsLoading(false);
+      }
+    })();
+  }, [viewedUserId, activeTab]);
+
+  // Infinite scroll observer
+  const loadMorePosts = useCallback(async () => {
+    if (postsLoading || !hasMore || !lastDoc || activeTab !== 'posts') return;
+
+    setPostsLoading(true);
+    try {
+      const result = await fetchUserPosts(viewedUserId, lastDoc, 10);
+      setPosts(prev => [...prev, ...result.posts]);
+      setLastDoc(result.lastDoc);
+      setHasMore(result.hasMore);
+    } catch (e) {
+      console.error('Error loading more posts:', e);
+    } finally {
+      setPostsLoading(false);
+    }
+  }, [viewedUserId, lastDoc, hasMore, postsLoading, activeTab]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !postsLoading) {
+          loadMorePosts();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [loadMorePosts, hasMore, postsLoading]);
 
   const upsertProfile = async (e) => {
     e?.preventDefault?.();
     if (!user?.uid) return;
     await upsertUserProfile(user.uid, profile);
     setEditOpen(false);
-  };
-
-  const handleChipInput = (value, listKey) => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    setProfile(p => {
-      const setArr = new Set([...(p[listKey] || []), trimmed]);
-      return { ...p, [listKey]: Array.from(setArr).slice(0, 20) };
-    });
-  };
-
-  const removeChip = (item, listKey) => {
-    setProfile(p => ({ ...p, [listKey]: (p[listKey] || []).filter(x => x !== item) }));
   };
 
   const doSearch = async () => {
@@ -374,23 +662,19 @@ const ProfilePage = () => {
       const res = await peopleSearch({ term: searchTerm, currentUid: user.uid });
       setResults(res);
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error(e);
     } finally {
       setSearching(false);
     }
   };
 
-  // ---- New: minimal action handlers to match your spec ----
   async function onConnect() {
     if (!user?.uid || !viewedUserId || isMe) return;
     try {
       await requestConnection(user.uid, viewedUserId);
-      // Optimistic: not connected yet, but invite sent
       setIsConnected(false);
       alert('Connection request sent.');
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error('requestConnection error', e);
     }
   }
@@ -399,22 +683,12 @@ const ProfilePage = () => {
     if (!user?.uid || !viewedUserId) return;
     try {
       const id = await findOrCreateConversation(user.uid, viewedUserId);
-      // Navigate to your messages route if available
-      // Example: navigate(`/messages/${id}`);
       alert('Opening conversation… (wire your /messages route)');
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error('findOrCreateConversation error', e);
     }
   }
 
-  async function onSaveProfile(patch) {
-    if (!user?.uid) return;
-    await upsertUserProfile(user.uid, patch);
-    setProfile(prev => ({ ...prev, ...patch }));
-  }
-
-  // existing handlers (search/requests)
   const handleConnect = async (targetUserId) => {
     if (!user?.uid) return;
     try {
@@ -425,7 +699,6 @@ const ProfilePage = () => {
         return [{ id: `local_${Date.now()}`, from: user.uid, to: targetUserId, status: 'pending' }, ...prev];
       });
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error('Invite error', e);
     }
   };
@@ -436,7 +709,6 @@ const ProfilePage = () => {
       await acceptInvite(invite, user.uid);
       setIncoming(prev => prev.filter(i => i.id !== invite.id));
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error('Accept error', e);
     }
   };
@@ -447,7 +719,6 @@ const ProfilePage = () => {
       await declineInvite(invite, user.uid);
       setIncoming(prev => prev.filter(i => i.id !== invite.id));
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error('Decline error', e);
     }
   };
@@ -461,11 +732,8 @@ const ProfilePage = () => {
         await sendDirectMessage({ conversationId: convId, from: user.uid, to: toUser.id, text });
         setQuickMsg(s => ({ ...s, [toUser.id]: '' }));
       }
-      // If you have a /messages route, navigate here:
-      // navigate(`/messages/${convId}`)
       alert('Conversation ready! (Wire to your Messages route)');
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error('DM error', e);
     }
   };
@@ -507,7 +775,7 @@ const ProfilePage = () => {
               </div>
             </div>
 
-            {/* Right-side banner actions: either Edit/Preview (me) or Connect/Message (others) */}
+            {/* Right-side banner actions */}
             <div className="absolute right-6 -bottom-6 flex items-center gap-2">
               {isMe ? (
                 <>
@@ -517,13 +785,6 @@ const ProfilePage = () => {
                   >
                     <Edit3 className="w-4 h-4" /> Edit Profile
                   </button>
-                  {/* Optional: quick link to view as others – scrolls to preview card */}
-                  <a
-                    href="#preview-as-others"
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-900 text-white hover:bg-black"
-                  >
-                    <Eye className="w-4 h-4" /> Preview as others
-                  </a>
                 </>
               ) : (
                 <>
@@ -546,79 +807,52 @@ const ProfilePage = () => {
 
           {/* Main grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-10">
-            {/* Left: About / Edit / Preview */}
-            <div className="lg:col-span-2 space-y-6">
+            {/* Left Sidebar: About + Stats */}
+            <div className="space-y-6">
               {/* About card */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">About</h2>
+                  <h2 className="text-lg font-bold text-gray-900">About</h2>
                   {isMe && (
                     <button
                       onClick={() => setEditOpen(true)}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                      className="p-2 rounded-lg hover:bg-gray-100"
                     >
-                      <Edit3 className="w-4 h-4" /> Edit Profile
+                      <Edit3 className="w-4 h-4 text-gray-600" />
                     </button>
                   )}
                 </div>
-                <p className="text-gray-800 whitespace-pre-wrap">{profile.bio || (isMe ? 'Tell the community about your wellness journey…' : '')}</p>
+                <p className="text-gray-800 text-sm whitespace-pre-wrap">{profile.bio || (isMe ? 'Tell the community about your wellness journey…' : '')}</p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {(profile.interests || []).map((i) => (
-                    <span key={i} className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs">{i}</span>
+                  {(profile.interests || []).slice(0, 6).map((i) => (
+                    <span key={i} className="px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs">{i}</span>
                   ))}
                   {(profile.interests || []).length === 0 && isMe && (
-                    <span className="text-gray-500 text-sm">Add interests to get better suggestions</span>
+                    <span className="text-gray-500 text-xs">Add interests to connect with others</span>
                   )}
                 </div>
 
-                {profile.goals?.length ? (
-                  <div className="mt-6">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Top Goals</h3>
+                {profile.goals?.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                      <Target className="w-3 h-3" /> Top Goals
+                    </h3>
                     <div className="flex flex-wrap gap-2">
-                      {profile.goals.slice(0, 5).map((g) => (
-                        <span key={g} className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">{g}</span>
+                      {profile.goals.slice(0, 3).map((g) => (
+                        <span key={g} className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">{g}</span>
                       ))}
                     </div>
                   </div>
-                ) : null}
+                )}
               </div>
 
-              {/* Preview as others (self only) */}
-              {isMe && (
-                <div id="preview-as-others" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-gray-900">Preview as others</h2>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Eye className="w-4 h-4" />
-                      Visible by: {publicView.privacy === 'public' ? 'Everyone' : publicView.privacy === 'connections' ? 'Connections' : 'Only you'}
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <img
-                      src={publicView.avatarUrl || avatarFor(publicView.displayName)}
-                      alt="preview"
-                      className="w-16 h-16 rounded-xl object-cover ring-2 ring-white shadow-sm"
-                    />
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{publicView.displayName || 'Name hidden until set'}</p>
-                      <p className="text-gray-600 text-sm">{publicView.bio || '—'}</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {(publicView.interests || []).map((i) => (
-                          <span key={i} className="px-2 py-1 rounded-md bg-gray-100 text-gray-700 text-xs">{i}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+              {/* Stats Card */}
+              {!statsLoading && <ProfileStatsCard stats={stats} isMe={isMe} />}
 
-            {/* Right: Requests + People search (self only) */}
-            <div className="space-y-6">
+              {/* Requests + People search (self only) */}
               {isMe && (
                 <>
-                  {/* Requests panel */}
                   <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-bold text-gray-900">Requests</h3>
@@ -651,7 +885,6 @@ const ProfilePage = () => {
                     )}
                   </div>
 
-                  {/* People search + suggestions */}
                   <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                     <h3 className="font-bold text-gray-900 mb-3">Find people</h3>
                     <div className="relative mb-3">
@@ -660,7 +893,7 @@ const ProfilePage = () => {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && doSearch()}
-                        placeholder="Search by name or interest…"
+                        placeholder="Search by name…"
                         className="w-full pl-9 pr-24 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                       <button
@@ -674,7 +907,7 @@ const ProfilePage = () => {
 
                     {results.length === 0 && !searching ? (
                       <div className="text-sm text-gray-500">
-                        Suggestions update as you set <span className="font-medium">interests</span> and <span className="font-medium">goals</span>.
+                        Search for people in your wellness community
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -695,21 +928,109 @@ const ProfilePage = () => {
                   </div>
                 </>
               )}
+            </div>
 
-              {/* Small settings pointer */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <Settings className="w-5 h-5 text-gray-600" />
-                  <div>
-                    <p className="font-semibold text-gray-900">App settings</p>
-                    <p className="text-sm text-gray-600">Global preferences live in Settings (notifications, theme, etc.).</p>
-                  </div>
+            {/* Right: Activity Feed (2 columns) */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Tab Navigation */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+                <div className="border-b border-gray-100 flex">
+                  <ActivityTab active={activeTab === 'posts'} label="Posts" onClick={() => setActiveTab('posts')} />
+                  <ActivityTab active={activeTab === 'about'} label="About" onClick={() => setActiveTab('about')} />
+                </div>
+
+                {/* Tab Content */}
+                <div className="p-6">
+                  {activeTab === 'posts' && (
+                    <div className="space-y-6">
+                      {postsLoading && posts.length === 0 ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader className="w-8 h-8 animate-spin text-emerald-600" />
+                        </div>
+                      ) : posts.length === 0 ? (
+                        <div className="text-center py-12">
+                          <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                          <p className="text-gray-600">{isMe ? 'You haven\'t posted anything yet' : 'No posts yet'}</p>
+                          {isMe && (
+                            <button
+                              onClick={() => navigate('/community')}
+                              className="mt-4 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                            >
+                              Share your first post
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          {posts.map((post) => (
+                            <PostCard
+                              key={post.id}
+                              post={post}
+                              authorProfile={profile}
+                              onLike={() => {}}
+                              onComment={() => {}}
+                              isMe={isMe}
+                            />
+                          ))}
+                          {hasMore && (
+                            <div ref={observerTarget} className="flex justify-center py-4">
+                              {postsLoading && <Loader className="w-6 h-6 animate-spin text-emerald-600" />}
+                            </div>
+                          )}
+                          {!hasMore && posts.length > 0 && (
+                            <div className="text-center py-4 text-sm text-gray-500">
+                              You've reached the end
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'about' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-700 mb-3">Full Bio</h3>
+                        <p className="text-gray-800 whitespace-pre-wrap">
+                          {profile.bio || (isMe ? 'Share your wellness journey with the community…' : 'No bio yet')}
+                        </p>
+                      </div>
+
+                      {profile.interests && profile.interests.length > 0 && (
+                        <div className="pt-6 border-t border-gray-100">
+                          <h3 className="text-sm font-semibold text-gray-700 mb-3">Interests</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {profile.interests.map((i) => (
+                              <span key={i} className="px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 text-sm">
+                                {i}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {profile.goals && profile.goals.length > 0 && (
+                        <div className="pt-6 border-t border-gray-100">
+                          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                            <Target className="w-4 h-4" /> Wellness Goals
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {profile.goals.map((g) => (
+                              <span key={g} className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm">
+                                {g}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Edit Drawer / Modal */}
+          {/* Edit Modal */}
           {editOpen && isMe && (
             <EditProfileModal
               profile={profile}
@@ -744,7 +1065,7 @@ const InviteRow = ({ invite, onAccept, onDecline }) => {
         className="w-9 h-9 rounded-lg object-cover"
       />
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 truncate">{fromUser?.displayName || 'Someone'}</p>
+        <p className="font-medium text-gray-900 truncate text-sm">{fromUser?.displayName || 'Someone'}</p>
         <p className="text-xs text-gray-500">wants to connect</p>
       </div>
       <div className="flex gap-1">
@@ -791,7 +1112,6 @@ const UserResultRow = ({ me, user, outgoing, onConnect, quickMsg, setQuickMsg, o
   return (
     <div className="p-3 rounded-xl border border-gray-100 hover:shadow-sm transition bg-white">
       <div className="flex items-start gap-3">
-        {/* Make avatar and name link to profile */}
         <Link to={`/profile/${user.id}`} className="shrink-0">
           <img
             src={user.avatarUrl || avatarFor(user.displayName)}
@@ -802,7 +1122,7 @@ const UserResultRow = ({ me, user, outgoing, onConnect, quickMsg, setQuickMsg, o
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <Link to={`/profile/${user.id}`} className="font-semibold text-gray-900 truncate hover:underline">
+            <Link to={`/profile/${user.id}`} className="font-semibold text-gray-900 text-sm truncate hover:underline">
               {user.displayName || 'User'}
             </Link>
             <span className="text-xs text-gray-500">{user.location}</span>
@@ -810,50 +1130,34 @@ const UserResultRow = ({ me, user, outgoing, onConnect, quickMsg, setQuickMsg, o
 
           {user.bio && <p className="text-sm text-gray-700 line-clamp-2 mt-0.5">{user.bio}</p>}
 
-          <div className="mt-2 flex flex-wrap gap-2">
-            {(user.interests || []).slice(0, 6).map((i) => (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {(user.interests || []).slice(0, 3).map((i) => (
               <span key={i} className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-xs">{i}</span>
             ))}
           </div>
 
-          {/* Actions: Connect here, or View Profile to message/connect there */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               disabled={pending}
               onClick={onConnect}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition
                 ${pending ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
             >
-              <UserPlus className="w-4 h-4" /> {pending ? 'Requested' : 'Connect'}
+              <UserPlus className="w-3 h-3" /> {pending ? 'Requested' : 'Connect'}
             </button>
 
             <Link
               to={`/profile/${user.id}`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 hover:bg-gray-50"
             >
               View Profile
             </Link>
-
-            {/* (Optional) keep your quick message for power users */}
-            <div className="flex-1 min-w-[200px] flex items-center gap-2">
-              <input
-                value={quickMsg}
-                onChange={(e) => setQuickMsg(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && onMessage()}
-                placeholder="Say hi…"
-                className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <button onClick={onMessage} className="px-3 py-1.5 rounded-lg bg-gray-900 text-white hover:bg-black">
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
 
 const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
   const [interestInput, setInterestInput] = useState('');
@@ -878,7 +1182,7 @@ const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
           </button>
         </div>
 
-        <form onSubmit={onSave} className="p-6 space-y-5">
+        <form onSubmit={onSave} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
             <input
@@ -935,7 +1239,6 @@ const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
             </div>
           </div>
 
-          {/* Interests */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Interests</label>
             <div className="flex items-center gap-2">
@@ -972,7 +1275,6 @@ const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
             </div>
           </div>
 
-          {/* Goals */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Goals</label>
             <div className="flex items-center gap-2">
@@ -1014,16 +1316,8 @@ const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
               Cancel
             </button>
             <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
-              Save
+              Save Changes
             </button>
-          </div>
-
-          <div className="mt-3 flex items-start gap-2 text-xs text-gray-500">
-            <AlertCircle className="w-4 h-4 mt-0.5" />
-            <p>
-              Tip: later you can add a <code>keywords</code> array field (lowercased tokens from name & interests)
-              for faster fuzzy search. This UI already tries that if present.
-            </p>
           </div>
         </form>
       </div>
@@ -1032,5 +1326,3 @@ const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
 };
 
 export default ProfilePage;
-
-
