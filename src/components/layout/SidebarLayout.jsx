@@ -23,7 +23,6 @@ export default function SidebarLayout({ children }) {
   const navItems = [
     { path: "/dashboard",    label: "Dashboard",        icon: Home },
     { path: "/goals-habits", label: "Life Design",      icon: Compass },
-    { path: "/daily",        label: "Daily Wellness",   icon: Heart },
     { path: "/library",      label: "Wellness Library", icon: Brain },
     { path: "/sleep",        label: "Sleep & Recovery", icon: Moon },
     { path: "/journal",      label: "Journal",          icon: BookOpen },

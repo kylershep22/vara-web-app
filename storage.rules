@@ -17,6 +17,27 @@ service firebase.storage {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
+    /* -------- User Profile Images (avatars and banners) --------
+       Each user may read/write their own profile images. */
+    match /users/{userId}/{fileName} {
+      allow read: if isSignedIn(); // Anyone signed in can view profile images
+      allow write: if isSignedIn() && request.auth.uid == userId; // Only owner can upload
+    }
+
+    /* -------- Post Images --------
+       Users can upload images for their posts. */
+    match /posts/{userId}/{fileName} {
+      allow read: if isSignedIn(); // Anyone signed in can view post images
+      allow write: if isSignedIn() && request.auth.uid == userId; // Only owner can upload
+    }
+
+    /* -------- Group Post Images --------
+       Users can upload images for group posts. */
+    match /groupPosts/{groupId}/{fileName} {
+      allow read: if isSignedIn(); // Anyone signed in can view group post images
+      allow write: if isSignedIn(); // Any signed in user can upload to groups they're in
+    }
+
     /* -------- Sleep Audio --------
        Clients may read (stream) when signed in.
        Only admins may upload/overwrite/delete. */

@@ -209,30 +209,32 @@ service cloud.firestore {
 
     // ========== CONNECTIONS ==========
 
-    // Connections (using members OR participants array - both field names exist in codebase)
+    // Connections (unified collection for requests and accepted connections)
+    // Data model: { requesterId, addresseeId, participants: [requesterId, addresseeId], status: 'pending'|'accepted'|'declined'|'canceled' }
     match /connections/{connectionId} {
-      // Read: if user is one of the members/participants
+      // Read: if user is requester, addressee, or in participants array
       allow read: if isAuthenticated() && (
-        request.auth.uid in resource.data.members ||
+        request.auth.uid == resource.data.requesterId ||
+        request.auth.uid == resource.data.addresseeId ||
         request.auth.uid in resource.data.participants
       );
 
-      // Create: if user is one of the members/participants
+      // Create: if user is the requester and is in participants
       allow create: if isAuthenticated() && (
-        request.auth.uid in request.resource.data.members ||
+        request.auth.uid == request.resource.data.requesterId &&
         request.auth.uid in request.resource.data.participants
       );
 
-      // Update: if user is one of the members/participants
+      // Update: if user is requester or addressee (for status changes)
       allow update: if isAuthenticated() && (
-        request.auth.uid in resource.data.members ||
-        request.auth.uid in resource.data.participants
+        request.auth.uid == resource.data.requesterId ||
+        request.auth.uid == resource.data.addresseeId
       );
 
-      // Delete: if user is one of the members/participants
+      // Delete: if user is requester or addressee
       allow delete: if isAuthenticated() && (
-        request.auth.uid in resource.data.members ||
-        request.auth.uid in resource.data.participants
+        request.auth.uid == resource.data.requesterId ||
+        request.auth.uid == resource.data.addresseeId
       );
     }
 

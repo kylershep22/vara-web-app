@@ -1425,45 +1425,6 @@ export default function GoalsHabits() {
               </div>
             )}
 
-            {editingGoal && (
-              <div className="bg-white border border-[#B8CDBA] rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-[#1B5E57]">Edit Goal</h3>
-                  <button onClick={() => setEditingGoal(null)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X size={18} className="text-gray-500" />
-                  </button>
-                </div>
-                <GoalCreationForm
-                  userId={user.uid}
-                  userHabits={habits}
-                  initialData={{
-                    title: editingGoal.title,
-                    focus: editingGoal.category,
-                    targetType: editingGoal.target,
-                    measurement: editingGoal.unit,
-                    frequency: editingGoal.frequency,
-                    habitIds: editingGoal.habitIds || [],
-                    timeframe: editingGoal.timeframe,
-                    status: editingGoal.status,
-                    progress: editingGoal.progress,
-                    milestones: editingGoal.milestones || []
-                  }}
-                  onSave={(data) => handleUpdateGoal(editingGoal.id, {
-                    title: data.goalText ?? data.title,
-                    category: data.focus === 'custom' ? data.customFocus : (data.focus ?? editingGoal.category),
-                    target: data.targetType ?? editingGoal.target,
-                    unit: data.measurement ?? editingGoal.unit,
-                    frequency: data.frequency ?? editingGoal.frequency,
-                    habitIds: data.habitIds ?? editingGoal.habitIds ?? [],
-                    timeframe: data.timeframe ?? editingGoal.timeframe,
-                    status: data.status ?? editingGoal.status,
-                    progress: typeof data.progress === 'number' ? data.progress : editingGoal.progress,
-                    milestones: data.milestones ?? editingGoal.milestones
-                  })}
-                  onCancel={() => setEditingGoal(null)}
-                />
-              </div>
-            )}
 
             <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
               {filteredGoals.length === 0 ? (
@@ -1520,47 +1481,6 @@ export default function GoalsHabits() {
               </div>
             )}
 
-            {editingHabit && (
-              <div className="bg-white border border-[#B8CDBA] rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-[#1B5E57]">Edit Habit</h3>
-                  <button onClick={() => setEditingHabit(null)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X size={18} className="text-gray-500" />
-                  </button>
-                </div>
-                <AddHabitForm
-                  userId={user.uid}
-                  goals={goals}
-                  connectedApps={connectedApps.filter((app) => app.connected)}
-                  initialData={{
-                    id: editingHabit.id,
-                    // expose both so form can bind either field
-                    title: editingHabit.title ?? editingHabit.name,
-                    name: editingHabit.name ?? editingHabit.title,
-                    type: editingHabit.type,
-                    frequency: editingHabit.frequency,
-                    goalIds: editingHabit.goalIds || [],
-                    trigger: editingHabit.trigger || '',
-                    reward: editingHabit.reward || '',
-                    integrations: editingHabit.integrations || []
-                  }}
-                  onSave={(data) =>
-                    handleUpdateHabit(editingHabit.id, {
-                      // if form returns either title or name we'll sync both in updater
-                      title: data.title ?? data.name ?? editingHabit.title ?? editingHabit.name,
-                      name: data.name ?? data.title ?? editingHabit.name ?? editingHabit.title,
-                      type: data.type ?? editingHabit.type,
-                      frequency: data.frequency ?? editingHabit.frequency,
-                      goalIds: data.goalIds ?? editingHabit.goalIds,
-                      trigger: data.trigger ?? editingHabit.trigger,
-                      reward: data.reward ?? editingHabit.reward,
-                      integrations: data.integrations ?? editingHabit.integrations
-                    })
-                  }
-                  onCancel={() => setEditingHabit(null)}
-                />
-              </div>
-            )}
 
             <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : 'space-y-3'}>
               {filteredHabits.length === 0 ? (
@@ -1679,6 +1599,102 @@ export default function GoalsHabits() {
             onClose={() => setSelectedGoal(null)}
             onDelete={handleDeleteGoal}
           />
+        )}
+
+        {/* Edit Goal Modal */}
+        {editingGoal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-[#D5E3D1] px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-[#1B5E57]">Edit Goal</h3>
+                <button
+                  onClick={() => setEditingGoal(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-gray-500" />
+                </button>
+              </div>
+              <div className="p-6">
+                <GoalCreationForm
+                  userId={user.uid}
+                  userHabits={habits}
+                  initialData={{
+                    title: editingGoal.title,
+                    focus: editingGoal.category,
+                    targetType: editingGoal.target,
+                    measurement: editingGoal.unit,
+                    frequency: editingGoal.frequency,
+                    habitIds: editingGoal.habitIds || [],
+                    timeframe: editingGoal.timeframe,
+                    status: editingGoal.status,
+                    progress: editingGoal.progress,
+                    milestones: editingGoal.milestones || []
+                  }}
+                  onSave={(data) => handleUpdateGoal(editingGoal.id, {
+                    title: data.goalText ?? data.title,
+                    category: data.focus === 'custom' ? data.customFocus : (data.focus ?? editingGoal.category),
+                    target: data.targetType ?? editingGoal.target,
+                    unit: data.measurement ?? editingGoal.unit,
+                    frequency: data.frequency ?? editingGoal.frequency,
+                    habitIds: data.habitIds ?? editingGoal.habitIds ?? [],
+                    timeframe: data.timeframe ?? editingGoal.timeframe,
+                    status: data.status ?? editingGoal.status,
+                    progress: typeof data.progress === 'number' ? data.progress : editingGoal.progress,
+                    milestones: data.milestones ?? editingGoal.milestones
+                  })}
+                  onCancel={() => setEditingGoal(null)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Habit Modal */}
+        {editingHabit && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-[#D5E3D1] px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-[#1B5E57]">Edit Habit</h3>
+                <button
+                  onClick={() => setEditingHabit(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-gray-500" />
+                </button>
+              </div>
+              <div className="p-6">
+                <AddHabitForm
+                  userId={user.uid}
+                  goals={goals}
+                  connectedApps={connectedApps.filter((app) => app.connected)}
+                  initialData={{
+                    id: editingHabit.id,
+                    title: editingHabit.title ?? editingHabit.name,
+                    name: editingHabit.name ?? editingHabit.title,
+                    type: editingHabit.type,
+                    frequency: editingHabit.frequency,
+                    goalIds: editingHabit.goalIds || [],
+                    trigger: editingHabit.trigger || '',
+                    reward: editingHabit.reward || '',
+                    integrations: editingHabit.integrations || []
+                  }}
+                  onSave={(data) =>
+                    handleUpdateHabit(editingHabit.id, {
+                      title: data.title ?? data.name ?? editingHabit.title ?? editingHabit.name,
+                      name: data.name ?? data.title ?? editingHabit.name ?? editingHabit.title,
+                      type: data.type ?? editingHabit.type,
+                      frequency: data.frequency ?? editingHabit.frequency,
+                      goalIds: data.goalIds ?? editingHabit.goalIds,
+                      trigger: data.trigger ?? editingHabit.trigger,
+                      reward: data.reward ?? editingHabit.reward,
+                      integrations: data.integrations ?? editingHabit.integrations
+                    })
+                  }
+                  onCancel={() => setEditingHabit(null)}
+                />
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Minimal Habit Details Modal */}

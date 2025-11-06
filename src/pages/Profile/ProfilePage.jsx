@@ -32,11 +32,12 @@ import {
   ChevronDown,
   Image as ImageIcon,
   Link as LinkIcon,
+  Camera,
 } from 'lucide-react';
 
 import { useParams, useNavigate, Link } from 'react-router-dom';
 
-import { db } from '../../firebase';
+import { db, storage } from '../../firebase';
 import {
   doc,
   getDoc,
@@ -55,6 +56,7 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import SidebarLayout from '../../components/layout/SidebarLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -283,23 +285,23 @@ async function areConnected(a, b) {
 
 async function getProfileStats(userId) {
   try {
-    // Fetch counts for posts, connections, and goals
-    const [postsSnap, connectionsSnap, goalsSnap, habitsSnap] = await Promise.all([
+    // Fetch counts for posts, connections, groups, and goals
+    const [postsSnap, connectionsSnap, groupsSnap, goalsSnap] = await Promise.all([
       getDocs(query(collection(db, 'posts'), where('authorId', '==', userId))),
       getDocs(query(collection(db, 'connections'), where('participants', 'array-contains', userId), where('status', '==', 'active'))),
+      getDocs(query(collection(db, 'groups'), where('members', 'array-contains', userId))),
       getDocs(query(collection(db, 'goals'), where('userId', '==', userId))),
-      getDocs(query(collection(db, 'habits'), where('userId', '==', userId), where('status', '==', 'active'))),
     ]);
 
     return {
       posts: postsSnap.size,
       connections: connectionsSnap.size,
+      groups: groupsSnap.size,
       goals: goalsSnap.size,
-      habits: habitsSnap.size,
     };
   } catch (e) {
     console.error('Error fetching stats:', e);
-    return { posts: 0, connections: 0, goals: 0, habits: 0 };
+    return { posts: 0, connections: 0, groups: 0, goals: 0 };
   }
 }
 
@@ -308,7 +310,7 @@ async function fetchUserPosts(userId, lastDoc = null, limitCount = 10) {
     let q = query(
       collection(db, 'posts'),
       where('authorId', '==', userId),
-      orderBy('createdAt', 'desc'),
+      orderBy('timestamp', 'desc'),
       limit(limitCount)
     );
 
@@ -316,7 +318,7 @@ async function fetchUserPosts(userId, lastDoc = null, limitCount = 10) {
       q = query(
         collection(db, 'posts'),
         where('authorId', '==', userId),
-        orderBy('createdAt', 'desc'),
+        orderBy('timestamp', 'desc'),
         startAfter(lastDoc),
         limit(limitCount)
       );
@@ -377,29 +379,48 @@ const ActivityTab = ({ active, label, onClick }) => (
 // ---------------------------------------
 // PROFILE STATS CARD
 // ---------------------------------------
-const ProfileStatsCard = ({ stats, isMe }) => (
-  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-    <h3 className="text-sm font-semibold text-gray-700 mb-4">Profile Stats</h3>
-    <div className="grid grid-cols-2 gap-4">
-      <div className="text-center">
-        <div className="text-2xl font-bold text-emerald-600">{stats.posts}</div>
-        <div className="text-xs text-gray-600 mt-1">Posts</div>
-      </div>
-      <div className="text-center">
-        <div className="text-2xl font-bold text-emerald-600">{stats.connections}</div>
-        <div className="text-xs text-gray-600 mt-1">Connections</div>
-      </div>
-      <div className="text-center">
-        <div className="text-2xl font-bold text-emerald-600">{stats.goals}</div>
-        <div className="text-xs text-gray-600 mt-1">Goals</div>
-      </div>
-      <div className="text-center">
-        <div className="text-2xl font-bold text-emerald-600">{stats.habits}</div>
-        <div className="text-xs text-gray-600 mt-1">Active Habits</div>
+const ProfileStatsCard = ({ stats, isMe }) => {
+  const statItems = [
+    { value: stats.posts, label: 'Posts', link: null }, // No link - posts are visible on this page
+    { value: stats.connections, label: 'Connections', link: '/community/people' },
+    { value: stats.groups || stats.habits, label: 'Groups', link: '/community' },
+    { value: stats.goals, label: 'Active Goals', link: '/goals-habits' },
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <h3 className="text-sm font-semibold text-gray-700 mb-4">Profile Stats</h3>
+      <div className="grid grid-cols-2 gap-4">
+        {statItems.map((item, idx) => {
+          const content = (
+            <>
+              <div className="text-2xl font-bold text-emerald-600">{item.value}</div>
+              <div className="text-xs text-gray-600 mt-1">{item.label}</div>
+            </>
+          );
+
+          if (item.link) {
+            return (
+              <Link
+                key={idx}
+                to={item.link}
+                className="text-center hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer"
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          return (
+            <div key={idx} className="text-center p-2">
+              {content}
+            </div>
+          );
+        })}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ---------------------------------------
 // POST CARD COMPONENT
@@ -422,7 +443,7 @@ const PostCard = ({ post, authorProfile, onLike, onComment, isMe }) => {
           <div>
             <div className="font-semibold text-gray-900">{authorProfile?.displayName || 'User'}</div>
             <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span>{formatDate(post.createdAt)}</span>
+              <span>{formatDate(post.timestamp)}</span>
               <span>•</span>
               <span className="flex items-center gap-1">
                 <Users className="w-3 h-3" />
@@ -441,10 +462,23 @@ const PostCard = ({ post, authorProfile, onLike, onComment, isMe }) => {
         <p className="text-gray-800 whitespace-pre-wrap">{post.content || post.body}</p>
       </div>
 
-      {/* Post Image (if any) */}
-      {post.imageUrl && (
-        <div className="mb-4 rounded-xl overflow-hidden">
-          <img src={post.imageUrl} alt="Post" className="w-full h-auto" />
+      {/* Post Images (if any) */}
+      {post.images && post.images.length > 0 && (
+        <div className={`mb-4 grid gap-2 ${
+          post.images.length === 1 ? 'grid-cols-1' :
+          post.images.length === 2 ? 'grid-cols-2' :
+          post.images.length === 3 ? 'grid-cols-3' :
+          'grid-cols-2'
+        }`}>
+          {post.images.map((imageUrl, idx) => (
+            <div key={idx} className="rounded-xl overflow-hidden">
+              <img
+                src={imageUrl}
+                alt={`Post image ${idx + 1}`}
+                className="w-full h-auto object-cover"
+              />
+            </div>
+          ))}
         </div>
       )}
 
@@ -529,7 +563,7 @@ const ProfilePage = () => {
   const [quickMsg, setQuickMsg] = useState({});
 
   // Profile Stats
-  const [stats, setStats] = useState({ posts: 0, connections: 0, goals: 0, habits: 0 });
+  const [stats, setStats] = useState({ posts: 0, connections: 0, groups: 0, goals: 0 });
   const [statsLoading, setStatsLoading] = useState(true);
 
   // Activity Feed
@@ -539,6 +573,11 @@ const ProfilePage = () => {
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const observerTarget = useRef(null);
+
+  // File upload refs
+  const bannerInputRef = useRef(null);
+  const avatarInputRef = useRef(null);
+  const [uploading, setUploading] = useState({ banner: false, avatar: false });
 
   const publicView = useMemo(() => {
     const { displayName, bio, interests, goals, location, privacy, searchable, avatarUrl } = profile;
@@ -668,6 +707,48 @@ const ProfilePage = () => {
     }
   };
 
+  // Banner upload handler
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.uid) return;
+
+    setUploading(prev => ({ ...prev, banner: true }));
+    try {
+      const storageRef = ref(storage, `users/${user.uid}/banner_${Date.now()}`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      await updateDoc(doc(db, 'users', user.uid), { bannerUrl: downloadURL });
+      setProfile(prev => ({ ...prev, bannerUrl: downloadURL }));
+    } catch (error) {
+      console.error('Error uploading banner:', error);
+      alert('Failed to upload banner. Please try again.');
+    } finally {
+      setUploading(prev => ({ ...prev, banner: false }));
+    }
+  };
+
+  // Avatar upload handler
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.uid) return;
+
+    setUploading(prev => ({ ...prev, avatar: true }));
+    try {
+      const storageRef = ref(storage, `users/${user.uid}/avatar_${Date.now()}`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      await updateDoc(doc(db, 'users', user.uid), { avatarUrl: downloadURL });
+      setProfile(prev => ({ ...prev, avatarUrl: downloadURL }));
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      alert('Failed to upload avatar. Please try again.');
+    } finally {
+      setUploading(prev => ({ ...prev, avatar: false }));
+    }
+  };
+
   async function onConnect() {
     if (!user?.uid || !viewedUserId || isMe) return;
     try {
@@ -755,13 +836,79 @@ const ProfilePage = () => {
         <div className="max-w-7xl mx-auto p-6">
           {/* Header / Banner */}
           <div className="relative mb-6">
-            <div className="h-44 md:h-56 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600" />
+            {/* Banner with fun gradient pattern */}
+            <div className="relative h-44 md:h-56 rounded-2xl overflow-hidden">
+              {profile.bannerUrl ? (
+                <img
+                  src={profile.bannerUrl}
+                  alt="Profile banner"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 relative">
+                  {/* Decorative circles */}
+                  <div className="absolute top-4 right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                  <div className="absolute bottom-10 left-16 w-40 h-40 bg-emerald-300/20 rounded-full blur-3xl" />
+                  <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-teal-300/15 rounded-full blur-2xl" />
+                </div>
+              )}
+
+              {/* Banner edit button (only for own profile) */}
+              {isMe && (
+                <>
+                  <input
+                    type="file"
+                    ref={bannerInputRef}
+                    onChange={handleBannerUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => bannerInputRef.current?.click()}
+                    disabled={uploading.banner}
+                    className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm transition-all"
+                  >
+                    {uploading.banner ? (
+                      <Loader className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Camera className="w-5 h-5" />
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
+
             <div className="absolute -bottom-8 left-6 flex items-end gap-4">
-              <img
-                src={profile.avatarUrl || avatarFor(profile.displayName)}
-                alt="avatar"
-                className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white shadow-md bg-white"
-              />
+              {/* Avatar with edit button */}
+              <div className="relative">
+                <img
+                  src={profile.avatarUrl || avatarFor(profile.displayName)}
+                  alt="avatar"
+                  className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white shadow-md bg-white"
+                />
+                {isMe && (
+                  <>
+                    <input
+                      type="file"
+                      ref={avatarInputRef}
+                      onChange={handleAvatarUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={uploading.avatar}
+                      className="absolute bottom-0 right-0 p-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all"
+                    >
+                      {uploading.avatar ? (
+                        <Loader className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
               <div className="pb-2">
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold text-gray-900">{profile.displayName || 'User'}</h1>

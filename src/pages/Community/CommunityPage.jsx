@@ -52,8 +52,9 @@ import {
   sendDirectMessage
 } from '../../services/messagingService';
 
-import { db } from '../../firebase';
+import { db, storage } from '../../firebase';
 import { getDoc, doc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import SidebarLayout from '../../components/layout/SidebarLayout';
 import { useAuth } from '../../context/AuthContext';
 import ConnectionsModal from "../../components/community/ConnectionsModal";
@@ -287,10 +288,24 @@ const CommunityPage = () => {
     setIsPosting(true);
 
     try {
+      // Upload images to Firebase Storage and get download URLs
+      const uploadedImageUrls = [];
+      if (selectedImages.length > 0) {
+        for (const file of selectedImages) {
+          const timestamp = Date.now();
+          const fileName = `posts/${user.uid}/${timestamp}_${file.name}`;
+          const storageRef = ref(storage, fileName);
+
+          await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(storageRef);
+          uploadedImageUrls.push(downloadURL);
+        }
+      }
+
       const postId = await createPost({
         authorId: user.uid,
         content: newPost.trim(),
-        images: imagePreview, // replace with uploaded URLs when wired
+        images: uploadedImageUrls,
         groupId: selectedGroupId
       });
 
@@ -302,7 +317,7 @@ const CommunityPage = () => {
         id: postId,
         authorId: user.uid,
         content: newPost.trim(),
-        images: imagePreview,
+        images: uploadedImageUrls,
         groupId: selectedGroupId,
         groupInfo,
         likes: [],

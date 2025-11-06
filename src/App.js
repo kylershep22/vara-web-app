@@ -8,7 +8,6 @@ import Dashboard from './pages/Dashboard';
 import SetGoalFlow from './components/goalFlow/SetGoalFlow';
 import ProtectedRoute from './components/ProtectedRoute';
 
-import DailyWellness from './pages/DailyWellness';
 import WellnessLibrary from './pages/WellnessLibrary';
 import SleepRecovery from './pages/SleepRecovery';
 import Journal from './pages/Journal';
@@ -66,14 +65,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <GoalsHabits />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/daily"
-            element={
-              <ProtectedRoute>
-                <DailyWellness />
               </ProtectedRoute>
             }
           />
