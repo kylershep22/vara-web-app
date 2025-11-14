@@ -1,9 +1,11 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import Welcome from './pages/Welcome';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import SetGoalFlow from './components/goalFlow/SetGoalFlow';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -23,6 +25,13 @@ import Movement from './pages/library/Movement';
 import GoalsHabits from './pages/GoalsHabits';
 import GroupForumPage from './pages/Community/GroupForumPage';
 
+// New Brain Health pages
+import MentalResilience from './pages/MentalResilience';
+import Focus from './pages/Focus';
+import FuelRecovery from './pages/FuelRecovery';
+import Insights from './pages/Insights';
+import Masterclass from './pages/Masterclass';
+
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import { VideoPlayerProvider } from './context/VideoPlayerContext';
 import NowPlayingBar from './components/audio/NowPlayingBar';
@@ -35,6 +44,8 @@ import UserProfilePage from "./pages/Profile/UserProfilePage";
 import MyProfileRedirect from './pages/Profile/MyProfileRedirect';
 import LegacyProfileRedirect from './pages/Profile/LegacyProfileRedirect';
 import Reflections from "./pages/Reflections";
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 
 import './styles/tailwind.css';
 
@@ -47,6 +58,9 @@ function App() {
           <Route path="/" element={<Welcome />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
 
           {/* Onboarding Flow */}
           <Route path="/onboarding/set-goal" element={<SetGoalFlow />} />
@@ -56,15 +70,73 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <ErrorBoundary level="feature" featureName="Dashboard">
+                  <Dashboard />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* New Brain Health Routes */}
+          <Route
+            path="/mental-resilience"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Mental Resilience">
+                  <MentalResilience />
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />
           <Route
+            path="/focus"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Focus">
+                  <Focus />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fuel-recovery"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Fuel & Recovery">
+                  <FuelRecovery />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/insights"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Insights">
+                  <Insights />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/masterclass"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Masterclass">
+                  <Masterclass />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Legacy route - keep for backward compatibility */}
+          <Route
             path="/goals-habits"
             element={
               <ProtectedRoute>
-                <GoalsHabits />
+                <ErrorBoundary level="feature" featureName="Goals & Habits">
+                  <GoalsHabits />
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />
@@ -72,7 +144,9 @@ function App() {
             path="/library"
             element={
               <ProtectedRoute>
-                <WellnessLibrary />
+                <ErrorBoundary level="feature" featureName="Wellness Library">
+                  <WellnessLibrary />
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />
@@ -88,7 +162,9 @@ function App() {
             path="/journal"
             element={
               <ProtectedRoute>
-                <Journal />
+                <ErrorBoundary level="feature" featureName="Journal">
+                  <Journal />
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />
@@ -96,7 +172,9 @@ function App() {
             path="/ai"
             element={
               <ProtectedRoute>
-                <AICompanion />
+                <ErrorBoundary level="feature" featureName="AI Companion">
+                  <AICompanion />
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />
@@ -104,7 +182,9 @@ function App() {
             path="/settings"
             element={
               <ProtectedRoute>
-                <Settings />
+                <ErrorBoundary level="feature" featureName="Settings">
+                  <Settings />
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />
@@ -112,7 +192,9 @@ function App() {
             path="/community"
             element={
               <ProtectedRoute>
-                <CommunityPage />
+                <ErrorBoundary level="feature" featureName="Community">
+                  <CommunityPage />
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />

@@ -119,6 +119,13 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // Journal Entries (reflections) - snake_case version
+    match /journal_entries/{entryId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
     // Habit Completions (top-level collection for tracking)
     match /habitCompletions/{completionId} {
       allow read: if isAuthenticated() && isOwner(resource.data.userId);
@@ -351,6 +358,146 @@ service cloud.firestore {
       // Write: tags are managed by admins only (via Cloud Functions or admin dashboard)
       // For now, allow no direct writes from clients
       allow write: if false;
+    }
+
+    // ========== BRAIN HEALTH COLLECTIONS ==========
+
+    // Puzzles (read-only, admin-created content)
+    match /puzzles/{puzzleId} {
+      // Read: all authenticated users can read puzzles
+      allow read: if isAuthenticated();
+      // Write: admin only (no client writes)
+      allow write: if false;
+    }
+
+    // Puzzle Completions (user owns their own completions)
+    match /puzzleCompletions/{completionId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Focus Sessions (Pomodoro timer data)
+    match /focusSessions/{sessionId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Routines (morning, evening, Sunday routines)
+    match /routines/{routineId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Weekly Recaps (4-3-2-1 framework)
+    match /weeklyRecaps/{recapId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Wheel of Life assessments
+    match /wheelOfLife/{assessmentId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Reflections (deep purpose/values journaling)
+    match /reflections/{reflectionId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Educational Content (admin-created, read-only)
+    match /educationalContent/{contentId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin only
+    }
+
+    // Masterclasses (admin-created, read-only)
+    match /masterclasses/{masterclassId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin only
+    }
+
+    // Masterclass Progress (user's learning progress)
+    match /masterclassProgress/{progressId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Audio Library (binaural beats, admin-created)
+    match /audioLibrary/{audioId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin only
+    }
+
+    // Audio Listens (user's listening history)
+    match /audioListens/{listenId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Social Connections (meaningful social interactions tracking)
+    match /socialConnections/{connectionId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Nature Exposure (outdoor time tracking)
+    match /natureExposure/{exposureId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Energy Check-ins (cognitive load monitoring)
+    match /energyCheckins/{checkinId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Gratitude Entries
+    match /gratitudeEntries/{entryId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Digital Wellbeing (screen time, break tracking)
+    match /digitalWellbeing/{recordId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Brain Health Scores (composite metric)
+    match /brainHealthScores/{scoreId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // ========== SYSTEM DATA ==========
+
+    // Rate Limits (managed by Cloud Functions only)
+    match /rateLimits/{userId} {
+      // Users cannot read or write their rate limit data
+      // Only Cloud Functions can manage this
+      allow read, write: if false;
+
+      // Subcollection for individual endpoint requests
+      match /requests/{endpoint} {
+        allow read, write: if false;
+      }
     }
   }
 }

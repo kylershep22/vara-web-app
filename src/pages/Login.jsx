@@ -1,45 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { Eye, EyeOff } from 'lucide-react';
+import { getAuthErrorMessage, getFirebaseErrorCode } from '../utils/authErrors';
+import logger from '../utils/logger';
 import VaraLogo from "../assets/logo/vara-logo-hr.png";
 import "../styles/custom.css";
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
-  const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError(null);
+    setLoading(true);
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
+      // Log successful login
+      logger.info('User logged in', { userId: user.uid, email: user.email });
+
+      // Check if user document exists
       const firestore = getFirestore();
       const userRef = doc(firestore, "users", user.uid);
       const userDoc = await getDoc(userRef);
 
-      if (userDoc.exists()) {
-        setUserName(userDoc.data().name);
-      } else {
-        setError("User data not found.");
+      if (!userDoc.exists()) {
+        setError("Account setup incomplete. Please contact support.");
+        logger.warn('User document not found after login', { userId: user.uid });
+        setLoading(false);
+        return;
       }
 
+      // Navigate to dashboard
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message);
+      const errorCode = getFirebaseErrorCode(err);
+      const friendlyMessage = getAuthErrorMessage(errorCode);
+      setError(friendlyMessage);
+
+      // Log error for debugging
+      logger.error('Login failed', err, {
+        email,
+        errorCode,
+        friendlyMessage
+      });
+
+      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (auth.currentUser) {
-      const user = auth.currentUser;
-      setUserName(user.displayName || "User");
-    }
-  }, []);
 
   return (
     <div
@@ -66,40 +84,60 @@ export default function Login() {
           “Each mindful breath is a step forward.”
         </p>
 
-        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-
-        <input
-          className="w-full px-4 py-3 mb-4 border border-[#D5E3D1] rounded-lg bg-[#D5E3D1] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent"
-          type="email"
-          placeholder="Email"
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          className="w-full px-4 py-3 mb-6 border border-[#D5E3D1] rounded-lg bg-[#D5E3D1] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent"
-          type="password"
-          placeholder="Password"
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-
-        <button
-          className="w-full py-3 mb-4 bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold rounded-lg hover:brightness-105 transition-all ease-in-out duration-300"
-        >
-          Log In
-        </button>
-
-        {userName && (
-          <p className="mt-4 text-sm text-[#1B5E57]">
-            Logged in as: <span className="font-semibold">{userName}</span>
-          </p>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
         )}
 
-        <p className="mt-4 text-sm">
-          <a href="/forgot-password" className="text-[#1B5E57] underline">
+        <div className="space-y-4">
+          <input
+            className="w-full px-4 py-3 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+            required
+          />
+
+          <div className="relative">
+            <input
+              className="w-full px-4 py-3 pr-12 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition"
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+              disabled={loading}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 mt-6 bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold rounded-lg hover:brightness-105 transition-all ease-in-out duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Logging in...' : 'Log In'}
+        </button>
+
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <Link to="/forgot-password" className="text-[#1B5E57] hover:underline transition">
             Forgot Password?
-          </a>
-        </p>
+          </Link>
+          <Link to="/signup" className="text-[#1B5E57] hover:underline transition">
+            Create Account
+          </Link>
+        </div>
       </form>
     </div>
   );
