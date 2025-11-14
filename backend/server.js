@@ -159,6 +159,61 @@ Guidelines:
   }
 });
 
+// ✅ Week Recap AI Suggestions (Phase 2)
+app.post('/api/week-recap-suggestions', async (req, res) => {
+  const { userId, weekData, currentRecap } = req.body;
+
+  if (!userId || !weekData) {
+    return res.status(400).json({ error: 'Missing required fields: userId and weekData' });
+  }
+
+  try {
+    const { goals = [], habits = [], recentJournals = [] } = weekData;
+
+    const systemPrompt = `
+You are Vara, an empathetic wellness coach helping users reflect on their week.
+Based on the user's goals, habits, and recent journal entries, suggest thoughtful responses for their 4-3-2-1 week recap:
+- 4 moments of joy
+- 3 ways they fueled their mind or body
+
+Be specific and personalized based on their actual activities. Keep suggestions concise and positive.
+Return only a JSON object with "momentsOfJoy" (array of 4 strings) and "mindBodyFuel" (array of 3 strings).
+    `.trim();
+
+    const userPrompt = `
+User's Week Context:
+- Goals: ${goals.join(', ') || 'None'}
+- Habits: ${habits.map(h => `${h.name} (${h.streak || 0} day streak)`).join(', ') || 'None'}
+- Recent Journal Entries: ${recentJournals.join(' | ') || 'None'}
+
+Current Recap (if any):
+${JSON.stringify(currentRecap, null, 2)}
+
+Based on this information, suggest:
+1. 4 moments of joy they might have experienced
+2. 3 ways they likely fueled their mind or body
+
+Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}
+    `.trim();
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.7,
+      response_format: { type: 'json_object' }
+    });
+
+    const suggestions = JSON.parse(response.choices?.[0]?.message?.content || '{}');
+    res.status(200).json(suggestions);
+  } catch (err) {
+    console.error('Week recap AI suggestions error:', err);
+    res.status(500).json({ error: 'Failed to generate suggestions' });
+  }
+});
+
 // Health check
 app.get('/', (req, res) => {
   res.send('Wellness AI backend is running ✅');

@@ -44,6 +44,12 @@ import TaskQuickAdd from "../components/tasks/TaskQuickAdd";
 import TaskCard from "../components/tasks/TaskCard";
 import TaskSection from "../components/tasks/TaskSection";
 
+// Import Phase 2 components
+import TimeFilter from "../components/dashboard/TimeFilter";
+import HabitTrackerWeekly from "../components/dashboard/HabitTrackerWeekly";
+import CommunityHighlights from "../components/dashboard/CommunityHighlights";
+import WeekRecap from "../components/dashboard/WeekRecap";
+
 /* ==================== HELPER FUNCTIONS ==================== */
 
 const todayYMD = () => {
@@ -166,6 +172,29 @@ export default function Dashboard() {
   const [isPlanExpanded, setIsPlanExpanded] = useState(false);
   const [showAllHabits, setShowAllHabits] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Phase 2: Time view state
+  const [timeView, setTimeView] = useState('weekly'); // daily, weekly, monthly, yearly
+
+  // Helper: Get current week range
+  const getCurrentWeekRange = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 (Sun) - 6 (Sat)
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)); // Get Monday
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    return {
+      start: monday.toISOString().split('T')[0],
+      end: sunday.toISOString().split('T')[0]
+    };
+  };
+
+  const currentWeekRange = getCurrentWeekRange();
 
   /* ==================== DATA FETCHING ==================== */
 
@@ -451,10 +480,16 @@ export default function Dashboard() {
 
         {/* ==================== HEADER ==================== */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {getTimeBasedGreeting()}, {userName}
-          </h1>
-          <p className="text-gray-600">{getMotivationalInsight()}</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {getTimeBasedGreeting()}, {userName}
+              </h1>
+              <p className="text-gray-600">{getMotivationalInsight()}</p>
+            </div>
+            {/* Phase 2: Time Filter */}
+            <TimeFilter currentView={timeView} onViewChange={setTimeView} />
+          </div>
         </div>
 
         {/* ==================== HERO STATS ==================== */}
@@ -632,89 +667,20 @@ export default function Dashboard() {
           )}
         </SectionCard>
 
-        {/* ==================== TODAY'S HABITS SECTION ==================== */}
+        {/* ==================== PHASE 2: HABIT TRACKER (WEEKLY) ==================== */}
         <SectionCard
-          title="Today's Habits"
+          title="Habit Tracker"
           action={
             <span className="text-sm text-gray-600">
-              {todaysCompletions.size}/{habitsDueToday.length} completed
+              {todaysCompletions.size}/{habitsDueToday.length} completed today
             </span>
           }
         >
-          {habitsDueToday.length > 0 ? (
-            <div className="space-y-3">
-              {(showAllHabits ? habitsDueToday : habitsDueToday.slice(0, 5)).map(habit => {
-                const isCompleted = todaysCompletions.has(habit.id);
-                return (
-                  <div
-                    key={habit.id}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
-                  >
-                    {/* Checkbox */}
-                    <button
-                      onClick={() => handleCompleteHabit(habit.id)}
-                      className={`flex-shrink-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                        isCompleted
-                          ? 'bg-[#1B5E57] border-[#1B5E57]'
-                          : 'border-gray-300 hover:border-[#1B5E57]'
-                      }`}
-                    >
-                      {isCompleted && <Check size={16} className="text-white" />}
-                    </button>
-
-                    {/* Habit Info */}
-                    <div className="flex-1">
-                      <p className={`font-medium ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                        {habit.name}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {habit.streak > 0 && (
-                          <span className="text-xs text-orange-600 font-semibold flex items-center gap-1">
-                            <Flame size={12} /> {habit.streak}
-                          </span>
-                        )}
-                        {/* Last 7 days visualization */}
-                        <div className="flex gap-0.5">
-                          {[...Array(7)].map((_, i) => {
-                            const d = new Date();
-                            d.setDate(d.getDate() - (6 - i));
-                            const dateKey = ymd(d);
-                            const completed = (habitCompletions[habit.id] || []).includes(dateKey);
-                            return (
-                              <div
-                                key={i}
-                                className={`w-2 h-2 rounded-full ${
-                                  completed ? 'bg-green-500' : 'bg-gray-200'
-                                }`}
-                                title={dateKey}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {habitsDueToday.length > 5 && (
-                <button
-                  onClick={() => setShowAllHabits(!showAllHabits)}
-                  className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors flex items-center justify-center gap-1"
-                >
-                  {showAllHabits ? (
-                    <>Show Less <ChevronUp size={16} /></>
-                  ) : (
-                    <>Show {habitsDueToday.length - 5} More <ChevronDown size={16} /></>
-                  )}
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No habits scheduled for today</p>
-            </div>
-          )}
+          <HabitTrackerWeekly
+            habits={habits}
+            habitCompletions={habitCompletions}
+            onComplete={handleCompleteHabit}
+          />
         </SectionCard>
 
         {/* ==================== TASK COMMAND CENTER ==================== */}
@@ -849,6 +815,28 @@ export default function Dashboard() {
             </div>
           )}
         </SectionCard>
+
+        {/* ==================== PHASE 2: COMMUNITY HIGHLIGHTS ==================== */}
+        <SectionCard
+          title="Community Highlights"
+          action={
+            <button
+              onClick={() => navigate('/community')}
+              className="text-sm text-[#1B5E57] hover:text-[#174C46] font-medium"
+            >
+              View Community →
+            </button>
+          }
+        >
+          <CommunityHighlights timeView={timeView} />
+        </SectionCard>
+
+        {/* ==================== PHASE 2: WEEK RECAP (4-3-2-1 FRAMEWORK) ==================== */}
+        {timeView === 'weekly' && (
+          <SectionCard>
+            <WeekRecap userId={user?.uid} currentWeekRange={currentWeekRange} />
+          </SectionCard>
+        )}
 
       </div>
     </SidebarLayout>
