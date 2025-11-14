@@ -8,8 +8,9 @@ import {
   addDoc, collection, getDocs, query, where, Timestamp, doc, updateDoc, deleteDoc, orderBy, serverTimestamp
 } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { Editor } from '@tinymce/tinymce-react';
+import RichTextEditor from '../components/RichTextEditor';
 import axios from 'axios';
+import DOMPurify from 'dompurify';
 
 export default function Journal() {
   const { user } = useAuth();
@@ -488,16 +489,11 @@ export default function Journal() {
         {activeTab === 'journal' && (
           <>
             <div className="bg-white border border-[#D5E3D1] rounded-xl p-6 space-y-4 shadow">
-              <Editor
-                apiKey={process.env.REACT_APP_TINYMCE_API_KEY}
+              <RichTextEditor
                 value={newEntry}
-                init={{
-                  height: 220,
-                  menubar: false,
-                  plugins: 'lists link emoticons',
-                  toolbar: 'undo redo | bold italic underline | bullist numlist | link emoticons',
-                }}
-                onEditorChange={setNewEntry}
+                onChange={setNewEntry}
+                placeholder="Write about your day, thoughts, or feelings..."
+                minHeight={220}
               />
 
               <div className="flex flex-wrap gap-2 items-center">
@@ -629,16 +625,11 @@ export default function Journal() {
                 </div>
               </div>
 
-              <Editor
-                apiKey={process.env.REACT_APP_TINYMCE_API_KEY}
+              <RichTextEditor
                 value={refHtml}
-                init={{
-                  height: 160,
-                  menubar: false,
-                  plugins: 'lists link emoticons',
-                  toolbar: 'undo redo | bold italic underline | bullist numlist | link emoticons',
-                }}
-                onEditorChange={setRefHtml}
+                onChange={setRefHtml}
+                placeholder="Quick AM intention or PM reflection..."
+                minHeight={160}
               />
 
               <div className="flex flex-wrap gap-2 items-center">
@@ -886,7 +877,12 @@ export default function Journal() {
                 {entry.isHtml ? (
                   <div
                     className="text-[#3E3E3E] text-sm"
-                    dangerouslySetInnerHTML={{ __html: entry.text }}
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(entry.text, {
+                        ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li'],
+                        ALLOWED_ATTR: []
+                      })
+                    }}
                   />
                 ) : (
                   <p className="text-[#3E3E3E] text-sm whitespace-pre-wrap">{entry.text}</p>

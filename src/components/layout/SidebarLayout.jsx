@@ -2,37 +2,43 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  Home,
-  Heart,
+  LayoutDashboard,
   Brain,
-  Moon,
-  BookOpen,
-  User,
+  Target,
+  Heart,
+  Lightbulb,
   Users,
-  Compass,
-  Settings as SettingsIcon
+  GraduationCap,
+  BookOpen,
+  Bot,
+  Bell,
+  Settings as SettingsIcon,
+  User
 } from "lucide-react";
 import NotificationBell from "../notifications/NotificationBell";
 import VaraLogo from "../../assets/logo/vara-logo.png"; // ✅ Logo import
 import AIChatWidget from "../ai/AIChatWidget";
+import Footer from "./Footer";
 
 export default function SidebarLayout({ children }) {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
   const navItems = [
-    { path: "/dashboard",    label: "Dashboard",        icon: Home },
-    { path: "/goals-habits", label: "Life Design",      icon: Compass },
-    { path: "/library",      label: "Wellness Library", icon: Brain },
-    { path: "/sleep",        label: "Sleep & Recovery", icon: Moon },
-    { path: "/journal",      label: "Journal",          icon: BookOpen },
+    // Main brain health sections
+    { path: "/dashboard",         label: "Weekly Dashboard",   icon: LayoutDashboard },
+    { path: "/mental-resilience", label: "Mental Resilience",  icon: Brain },
+    { path: "/focus",             label: "Focus",              icon: Target },
+    { path: "/fuel-recovery",     label: "Fuel & Recovery",    icon: Heart },
+    { path: "/insights",          label: "Insights",           icon: Lightbulb },
+    { path: "/community",         label: "Community",          icon: Users },
+    { path: "/masterclass",       label: "Masterclass",        icon: GraduationCap },
+    { path: "/journal",           label: "Journal",            icon: BookOpen },
+    { path: "/ai",                label: "AI Companion",       icon: Bot },
 
-    // Community hub (People discovery will live inside Community > Discover tile)
-    { path: "/community",    label: "Community",        icon: Users },
-
-    // Profile & Settings
-    { path: "/profile", label: "My Profile",       icon: User },
-    { path: "/settings",     label: "Settings",         icon: SettingsIcon }
+    // Divider in UI (bottom section)
+    { path: "/profile",           label: "My Profile",         icon: User },
+    { path: "/settings",          label: "Settings",           icon: SettingsIcon }
   ];
 
   // Precise active behavior for a better UX
@@ -71,7 +77,7 @@ export default function SidebarLayout({ children }) {
               {!collapsed && (
                 <div>
                   <h1 className="text-xl font-bold text-[#3E3E3E]">Vara</h1>
-                  <p className="text-sm text-[#9AAE8C]">Your journey</p>
+                  <p className="text-sm text-[#9AAE8C]">Brain Health</p>
                 </div>
               )}
             </div>
@@ -120,7 +126,12 @@ export default function SidebarLayout({ children }) {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 bg-[#F3F4EF] overflow-auto">{children}</main>
+      <main className="flex-1 bg-[#F3F4EF] overflow-auto flex flex-col">
+        <div className="flex-1">
+          {children}
+        </div>
+        <Footer />
+      </main>
 
       {/* 🔽 Global AI chat widget (floats bottom-right on every page) */}
       <AIChatWidget />

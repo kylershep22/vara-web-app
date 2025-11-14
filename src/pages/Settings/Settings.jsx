@@ -1,5 +1,6 @@
 // src/pages/Settings/Settings.jsx
 import React, { useEffect, useRef, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import SidebarLayout from "../../components/layout/SidebarLayout";
 import {
   User,
@@ -15,9 +16,12 @@ import {
   Link,
   Database,
   Trash2,
+  FileText,
 } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
+import logger from "../../utils/logger";
 import { db } from "../../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import {
@@ -31,6 +35,7 @@ const tzGuess = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 export default function Settings() {
   const { user } = useAuth();
+  const toast = useToast();
   const fileInputRef = useRef();
 
   const [formData, setFormData] = useState({
@@ -109,7 +114,7 @@ export default function Settings() {
           }));
         }
       } catch (e) {
-        console.error("Failed to load settings", e);
+        logger.error("Failed to load settings", e, { userId: user.uid });
       } finally {
         setLoading(false);
       }
@@ -139,9 +144,11 @@ export default function Settings() {
       await uploadBytes(avatarRef, file);
       const downloadURL = await getDownloadURL(avatarRef);
       setFormData((prev) => ({ ...prev, avatarUrl: downloadURL }));
+      toast.success("Avatar uploaded successfully!");
+      logger.info("Avatar uploaded", { userId: user.uid, fileName: file.name });
     } catch (err) {
-      console.error("❌ Avatar upload failed:", err);
-      alert("Failed to upload avatar. Please try again.");
+      logger.error("Avatar upload failed", err, { userId: user.uid });
+      toast.error("Failed to upload avatar. Please try again.");
     }
   };
 
@@ -155,11 +162,11 @@ export default function Settings() {
         ...formData,
         // keep only fields that belong here if you later need stricter control
       });
-      // No redirect — this stays on Settings
-      alert("Settings saved!");
+      toast.success("Settings saved successfully!");
+      logger.info("Settings saved", { userId: user.uid });
     } catch (err) {
-      console.error("❌ Error saving settings:", err);
-      alert("Failed to save settings. Please try again.");
+      logger.error("Failed to save settings", err, { userId: user.uid });
+      toast.error("Failed to save settings. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -550,6 +557,28 @@ export default function Settings() {
             >
               Request data export
             </button>
+          </SectionCard>
+
+          {/* Legal */}
+          <SectionCard
+            icon={<FileText className="w-5 h-5 text-[#1B5E57]" />}
+            title="Legal"
+            subtitle="Review our policies and terms."
+          >
+            <div className="flex flex-col sm:flex-row gap-3">
+              <RouterLink
+                to="/privacy"
+                className="px-4 py-2 rounded-lg border border-[#D5E3D1] hover:bg-[#F3F4EF] text-center text-sm font-medium text-[#3E3E3E] transition"
+              >
+                Privacy Policy
+              </RouterLink>
+              <RouterLink
+                to="/terms"
+                className="px-4 py-2 rounded-lg border border-[#D5E3D1] hover:bg-[#F3F4EF] text-center text-sm font-medium text-[#3E3E3E] transition"
+              >
+                Terms of Service
+              </RouterLink>
+            </div>
           </SectionCard>
 
           {/* Danger Zone (stub) */}
