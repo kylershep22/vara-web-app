@@ -68,17 +68,11 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "function": {
-          "functionId": "api",
-          "region": "us-central1"
-        }
+        "function": "api"
       },
       {
         "source": "/journalPrompt",
-        "function": {
-          "functionId": "journalPrompt",
-          "region": "us-central1"
-        }
+        "function": "journalPrompt"
       },
       {
         "source": "**",
