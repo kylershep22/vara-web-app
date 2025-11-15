@@ -39,6 +39,9 @@ const RATE_LIMITS = {
   "/journal-summary": {maxRequests: 10, windowMs: 60 * 60 * 1000}, // 10 per hour
   "/ai-chat": {maxRequests: 20, windowMs: 60 * 60 * 1000}, // 20 per hour
   "/openai": {maxRequests: 30, windowMs: 60 * 60 * 1000}, // 30 per hour
+  "/api/journal-summary": {maxRequests: 10, windowMs: 60 * 60 * 1000}, // 10 per hour
+  "/api/ai-chat": {maxRequests: 20, windowMs: 60 * 60 * 1000}, // 20 per hour
+  "/api/openai": {maxRequests: 30, windowMs: 60 * 60 * 1000}, // 30 per hour
 };
 
 /**
@@ -419,11 +422,11 @@ exports.api = onRequest(
         }
 
         // Route to appropriate handler
-        if (path === "/journal-summary") {
+        if (path === "/api/journal-summary" || path === "/journal-summary") {
           return await handleJournalSummary(req, res);
-        } else if (path === "/ai-chat") {
+        } else if (path === "/api/ai-chat" || path === "/ai-chat") {
           return await handleAIChat(req, res);
-        } else if (path === "/openai") {
+        } else if (path === "/api/openai" || path === "/openai") {
           return await handleOpenAISuggestions(req, res);
         } else {
           return res.status(404).json({error: `Route not found: ${path}`});
