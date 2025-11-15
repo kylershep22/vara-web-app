@@ -1,10 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import SidebarLayout from '../components/layout/SidebarLayout';
-import { Target, Clock, Music, Calendar } from 'lucide-react';
+import { Target, Clock, Music, Calendar, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import PomodoroTimer from '../components/focus/PomodoroTimer';
+import FocusSessionHistory from '../components/focus/FocusSessionHistory';
+import BinauraBeatsLibrary from '../components/focus/BinauraBeatsLibrary';
 
 export default function Focus() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('timer'); // 'timer' | 'history' | 'music' | 'routines'
+  const [sessionsRefreshKey, setSessionsRefreshKey] = useState(0);
+
+  const handleSessionComplete = (duration) => {
+    // Refresh session history when a new session completes
+    setSessionsRefreshKey(prev => prev + 1);
+  };
 
   return (
     <SidebarLayout>
@@ -20,71 +30,132 @@ export default function Focus() {
           </p>
         </div>
 
-        {/* Content Sections - Placeholder */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('timer')}
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 ${
+              activeTab === 'timer'
+                ? 'border-[#1B5E57] text-[#1B5E57]'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+            }`}
+          >
+            <Clock size={20} />
+            Pomodoro Timer
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 ${
+              activeTab === 'history'
+                ? 'border-[#1B5E57] text-[#1B5E57]'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+            }`}
+          >
+            <BarChart3 size={20} />
+            Session History
+          </button>
+          <button
+            onClick={() => setActiveTab('music')}
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 ${
+              activeTab === 'music'
+                ? 'border-[#1B5E57] text-[#1B5E57]'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+            }`}
+          >
+            <Music size={20} />
+            Focus Music
+          </button>
+          <button
+            onClick={() => setActiveTab('routines')}
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 ${
+              activeTab === 'routines'
+                ? 'border-[#1B5E57] text-[#1B5E57]'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+            }`}
+          >
+            <Calendar size={20} />
+            Routines
+          </button>
+        </div>
 
-          {/* Pomodoro Timer */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <Clock className="text-[#1B5E57]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">Pomodoro Timer</h2>
+        {/* Tab Content */}
+        <div className="mt-6">
+          {/* Pomodoro Timer Tab */}
+          {activeTab === 'timer' && (
+            <div className="max-w-2xl mx-auto">
+              <PomodoroTimer userId={user?.uid} onSessionComplete={handleSessionComplete} />
             </div>
-            <p className="text-[#6B7280] mb-4">
-              Stay focused with customizable work sessions. Choose 10, 25, 60, or 90-minute intervals.
-            </p>
-            <button className="bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white px-4 py-2 rounded-lg hover:shadow-lg transition-shadow">
-              Start Focus Session
-            </button>
-          </div>
+          )}
 
-          {/* Binaural Beats */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <Music className="text-[#F59E0B]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">Focus Music</h2>
+          {/* Session History Tab */}
+          {activeTab === 'history' && (
+            <div>
+              <FocusSessionHistory key={sessionsRefreshKey} userId={user?.uid} />
             </div>
-            <p className="text-[#6B7280] mb-4">
-              Listen to binaural beats and focus-enhancing music to boost concentration.
-            </p>
-            <button className="text-[#1B5E57] font-medium hover:underline">
-              Browse Music Library →
-            </button>
-          </div>
+          )}
 
-          {/* Routine Designer */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <Calendar className="text-[#8B5CF6]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">Routine Designer</h2>
+          {/* Focus Music Tab */}
+          {activeTab === 'music' && (
+            <div>
+              <BinauraBeatsLibrary userId={user?.uid} />
             </div>
-            <p className="text-[#6B7280] mb-4">
-              Design your ideal morning, evening, and Sunday routines for optimal productivity.
-            </p>
-            <button className="text-[#1B5E57] font-medium hover:underline">
-              Create Routine →
-            </button>
-          </div>
+          )}
 
+          {/* Routines Tab */}
+          {activeTab === 'routines' && (
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <Calendar className="text-[#8B5CF6]" size={32} />
+                  <h2 className="text-2xl font-semibold text-[#3E3E3E]">Routine Designer</h2>
+                </div>
+                <p className="text-[#6B7280] mb-6">
+                  Design your ideal morning, evening, and Sunday planning routines for optimal productivity and well-being.
+                </p>
+
+                {/* Placeholder for Routine Designer */}
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-dashed border-purple-200 rounded-lg p-12 text-center">
+                  <Calendar className="mx-auto mb-4 text-purple-300" size={64} />
+                  <h3 className="text-xl font-semibold text-purple-900 mb-2">Coming Soon</h3>
+                  <p className="text-purple-700 mb-4">
+                    Visual routine designer with drag-and-drop time blocks
+                  </p>
+                  <ul className="text-sm text-purple-600 space-y-1 max-w-md mx-auto">
+                    <li>✓ Morning routine templates</li>
+                    <li>✓ Evening wind-down routines</li>
+                    <li>✓ Sunday weekly planning sessions</li>
+                    <li>✓ Custom activities and time blocks</li>
+                    <li>✓ Reminders and adherence tracking</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Focus Tips Section */}
         <div className="mt-8 bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6">
-          <h3 className="text-xl font-semibold text-[#3E3E3E] mb-4">Tips for Staying Focused</h3>
-          <ul className="space-y-2 text-[#6B7280]">
-            <li>• Eliminate distractions before starting your focus session</li>
-            <li>• Use the Pomodoro Technique to maintain sustainable concentration</li>
-            <li>• Take regular breaks to prevent mental fatigue</li>
-            <li>• Create a dedicated workspace for deep work</li>
-            <li>• Match your most challenging tasks to your peak energy hours</li>
-          </ul>
-        </div>
-
-        {/* Coming Soon Notice */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-2">Coming Soon</h3>
-          <p className="text-blue-700">
-            Pomodoro timer, binaural beats library, routine designer, focus session tracking, and productivity analytics are currently in development.
-          </p>
+          <h3 className="text-xl font-semibold text-[#3E3E3E] mb-4">Tips for Deep Focus</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Before You Start:</h4>
+              <ul className="space-y-1 text-[#6B7280] text-sm">
+                <li>• Close unnecessary browser tabs and apps</li>
+                <li>• Turn off notifications on your devices</li>
+                <li>• Have water and snacks within reach</li>
+                <li>• Set a clear intention for the session</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">During Your Session:</h4>
+              <ul className="space-y-1 text-[#6B7280] text-sm">
+                <li>• Work on ONE task at a time</li>
+                <li>• Take breaks to prevent burnout</li>
+                <li>• Use the 20-20-20 rule for eye strain</li>
+                <li>• Track your peak performance hours</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </SidebarLayout>
