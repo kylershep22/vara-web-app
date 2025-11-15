@@ -1,11 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import SidebarLayout from '../components/layout/SidebarLayout';
-import { Heart, Moon, Wind, Activity, Apple, Zap } from 'lucide-react';
+import { Leaf, Moon, Wind, Brain, Apple, BookOpen, Dumbbell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import SleepSection from '../components/fuelRecovery/SleepSection';
+import BreathworkSection from '../components/fuelRecovery/BreathworkSection';
+import StressManagementSection from '../components/fuelRecovery/StressManagementSection';
+import MovementSection from '../components/fuelRecovery/MovementSection';
+import NutritionSection from '../components/fuelRecovery/NutritionSection';
+import WellnessVault from '../components/fuelRecovery/WellnessVault';
 
 export default function FuelRecovery() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('sleep'); // 'sleep' | 'breathwork' | 'stress' | 'movement' | 'nutrition' | 'vault'
+
+  const tabs = [
+    { id: 'sleep', label: 'Sleep', icon: Moon },
+    { id: 'breathwork', label: 'Breathwork', icon: Wind },
+    { id: 'stress', label: 'Stress Management', icon: Brain },
+    { id: 'movement', label: 'Movement', icon: Dumbbell },
+    { id: 'nutrition', label: 'Nutrition', icon: Apple },
+    { id: 'vault', label: 'Wellness Vault', icon: BookOpen }
+  ];
 
   return (
     <SidebarLayout>
@@ -13,140 +28,43 @@ export default function FuelRecovery() {
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Heart className="text-[#1B5E57]" size={32} />
+            <Leaf className="text-[#1B5E57]" size={32} />
             <h1 className="text-3xl font-bold text-[#3E3E3E]">Fuel & Recovery</h1>
           </div>
           <p className="text-[#6B7280]">
-            Optimize your physical and mental recovery for peak brain performance
+            Essential resources for rest, recovery, and sustainable high performance
           </p>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-          {/* Sleep */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <Moon className="text-[#1B5E57]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">Sleep</h2>
-            </div>
-            <p className="text-[#6B7280] mb-4">
-              Build healthy sleep routines, track your sleep quality, and learn the science of restorative rest.
-            </p>
-            <Link
-              to="/library/sleep"
-              className="text-[#1B5E57] font-medium hover:underline"
-            >
-              Explore Sleep Resources →
-            </Link>
-          </div>
-
-          {/* Breathwork */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <Wind className="text-[#10B981]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">Breathwork</h2>
-            </div>
-            <p className="text-[#6B7280] mb-4">
-              Practice guided breathwork sessions for relaxation, focus, and energy.
-            </p>
-            <Link
-              to="/library/breathwork"
-              className="text-[#1B5E57] font-medium hover:underline"
-            >
-              Start Breathwork →
-            </Link>
-          </div>
-
-          {/* Stress Management */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <Zap className="text-[#F59E0B]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">Stress Management</h2>
-            </div>
-            <p className="text-[#6B7280] mb-4">
-              Learn why stress isn't the enemy and discover tools for building resilience.
-            </p>
-            <button className="text-[#1B5E57] font-medium hover:underline">
-              Learn More →
-            </button>
-          </div>
-
-          {/* Movement */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <Activity className="text-[#8B5CF6]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">Movement</h2>
-            </div>
-            <p className="text-[#6B7280] mb-4">
-              Explore movement practices that support brain health and overall vitality.
-            </p>
-            <Link
-              to="/library/movement"
-              className="text-[#1B5E57] font-medium hover:underline"
-            >
-              Movement Library →
-            </Link>
-          </div>
-
-          {/* Nutrition */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <Apple className="text-[#EF4444]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">Nutrition</h2>
-            </div>
-            <p className="text-[#6B7280] mb-4">
-              Discover how nutrition impacts brain health and cognitive performance.
-            </p>
-            <button className="text-[#1B5E57] font-medium hover:underline">
-              Coming Soon →
-            </button>
-          </div>
-
-          {/* Wellness Vault */}
-          <div className="bg-gradient-to-br from-[#1B5E57] to-[#B8CDBA] rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow text-white">
-            <div className="flex items-center gap-3 mb-4">
-              <Heart className="text-white" size={24} />
-              <h2 className="text-xl font-semibold">Wellness Vault</h2>
-            </div>
-            <p className="mb-4 opacity-90">
-              Access our complete library of videos, articles, and resources on brain health topics.
-            </p>
-            <button className="bg-white text-[#1B5E57] px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-shadow">
-              Browse Vault
-            </button>
-          </div>
-
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto border-b border-gray-200 pb-0">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'border-[#1B5E57] text-[#1B5E57]'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                }`}
+              >
+                <Icon size={20} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Educational Section */}
-        <div className="mt-8 bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6">
-          <h3 className="text-xl font-semibold text-[#3E3E3E] mb-4">Recovery is Brain Health</h3>
-          <p className="text-[#6B7280] mb-4">
-            Your brain's ability to perform at its best depends on how well you fuel and recover it. Sleep, nutrition, stress management, and movement aren't just about physical health—they're essential for cognitive performance, mental clarity, and long-term brain resilience.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div className="border-l-4 border-[#1B5E57] pl-4">
-              <h4 className="font-semibold text-[#3E3E3E] mb-2">Sleep & Cognitive Reserve</h4>
-              <p className="text-sm text-[#6B7280]">
-                Quality sleep consolidates memories, clears brain toxins, and builds cognitive reserve.
-              </p>
-            </div>
-            <div className="border-l-4 border-[#10B981] pl-4">
-              <h4 className="font-semibold text-[#3E3E3E] mb-2">Stress as a Tool</h4>
-              <p className="text-sm text-[#6B7280]">
-                Acute stress can enhance performance. Learning to manage and recover from stress builds resilience.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Coming Soon Notice */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-2">Coming Soon</h3>
-          <p className="text-blue-700">
-            Sleep routine designer, stress tracking, nutrition guides, wellness vault with curated content, and masterclasses on gut health, hormones, and longevity.
-          </p>
+        {/* Tab Content */}
+        <div className="mt-6">
+          {activeTab === 'sleep' && <SleepSection userId={user?.uid} />}
+          {activeTab === 'breathwork' && <BreathworkSection userId={user?.uid} />}
+          {activeTab === 'stress' && <StressManagementSection userId={user?.uid} />}
+          {activeTab === 'movement' && <MovementSection userId={user?.uid} />}
+          {activeTab === 'nutrition' && <NutritionSection userId={user?.uid} />}
+          {activeTab === 'vault' && <WellnessVault userId={user?.uid} />}
         </div>
       </div>
     </SidebarLayout>

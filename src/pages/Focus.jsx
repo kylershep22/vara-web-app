@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import PomodoroTimer from '../components/focus/PomodoroTimer';
 import FocusSessionHistory from '../components/focus/FocusSessionHistory';
 import BinauraBeatsLibrary from '../components/focus/BinauraBeatsLibrary';
+import RoutineDesigner from '../components/focus/RoutineDesigner';
 
 export default function Focus() {
   const { user } = useAuth();
@@ -103,32 +104,8 @@ export default function Focus() {
 
           {/* Routines Tab */}
           {activeTab === 'routines' && (
-            <div className="max-w-4xl mx-auto">
-              <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <Calendar className="text-[#8B5CF6]" size={32} />
-                  <h2 className="text-2xl font-semibold text-[#3E3E3E]">Routine Designer</h2>
-                </div>
-                <p className="text-[#6B7280] mb-6">
-                  Design your ideal morning, evening, and Sunday planning routines for optimal productivity and well-being.
-                </p>
-
-                {/* Placeholder for Routine Designer */}
-                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-dashed border-purple-200 rounded-lg p-12 text-center">
-                  <Calendar className="mx-auto mb-4 text-purple-300" size={64} />
-                  <h3 className="text-xl font-semibold text-purple-900 mb-2">Coming Soon</h3>
-                  <p className="text-purple-700 mb-4">
-                    Visual routine designer with drag-and-drop time blocks
-                  </p>
-                  <ul className="text-sm text-purple-600 space-y-1 max-w-md mx-auto">
-                    <li>✓ Morning routine templates</li>
-                    <li>✓ Evening wind-down routines</li>
-                    <li>✓ Sunday weekly planning sessions</li>
-                    <li>✓ Custom activities and time blocks</li>
-                    <li>✓ Reminders and adherence tracking</li>
-                  </ul>
-                </div>
-              </div>
+            <div>
+              <RoutineDesigner userId={user?.uid} />
             </div>
           )}
         </div>
