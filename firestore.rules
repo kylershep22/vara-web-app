@@ -479,6 +479,27 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // Bedtime Routines (sleep routine tracking)
+    match /bedtimeRoutines/{routineId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Emotional Check-ins (mood and emotion tracking)
+    match /emotionalCheckins/{checkinId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Cognitive Reframes (CBT thought records)
+    match /cognitiveReframes/{reframeId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
     // Digital Wellbeing (screen time, break tracking)
     match /digitalWellbeing/{recordId} {
       allow read: if isAuthenticated() && isOwner(resource.data.userId);

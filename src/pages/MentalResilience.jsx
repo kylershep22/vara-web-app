@@ -1,10 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import SidebarLayout from '../components/layout/SidebarLayout';
-import { Brain, Puzzle, BookOpen, TrendingUp } from 'lucide-react';
+import { Heart, Smile, Brain, TrendingUp, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import GratitudePractice from '../components/resilience/GratitudePractice';
+import MindfulnessExercises from '../components/resilience/MindfulnessExercises';
+import EmotionalCheckin from '../components/resilience/EmotionalCheckin';
+import CognitiveReframing from '../components/resilience/CognitiveReframing';
+import ResilienceTracker from '../components/resilience/ResilienceTracker';
 
 export default function MentalResilience() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('gratitude'); // 'gratitude' | 'mindfulness' | 'emotions' | 'reframing' | 'tracker'
+
+  const tabs = [
+    { id: 'gratitude', label: 'Gratitude', icon: Heart },
+    { id: 'mindfulness', label: 'Mindfulness', icon: Sparkles },
+    { id: 'emotions', label: 'Emotional Check-In', icon: Smile },
+    { id: 'reframing', label: 'Cognitive Reframing', icon: Brain },
+    { id: 'tracker', label: 'Resilience Tracker', icon: TrendingUp }
+  ];
 
   return (
     <SidebarLayout>
@@ -12,67 +26,42 @@ export default function MentalResilience() {
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Brain className="text-[#1B5E57]" size={32} />
+            <Heart className="text-[#1B5E57]" size={32} />
             <h1 className="text-3xl font-bold text-[#3E3E3E]">Mental Resilience</h1>
           </div>
           <p className="text-[#6B7280]">
-            Build cognitive reserve through daily puzzles and brain-healthy practices
+            Build emotional strength, practice gratitude, and develop tools for navigating life's challenges
           </p>
         </div>
 
-        {/* Content Sections - Placeholder */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-          {/* Cognitive Reserve Education */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <BookOpen className="text-[#1B5E57]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">What is Cognitive Reserve?</h2>
-            </div>
-            <p className="text-[#6B7280] mb-4">
-              Learn about the science behind cognitive reserve and why it matters for brain health.
-            </p>
-            <button className="text-[#1B5E57] font-medium hover:underline">
-              Learn More →
-            </button>
-          </div>
-
-          {/* Daily Puzzle */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <Puzzle className="text-[#F59E0B]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">Daily Puzzle</h2>
-            </div>
-            <p className="text-[#6B7280] mb-4">
-              Challenge your brain with today's puzzle. Choose from Sudoku, patterns, memory games, and more.
-            </p>
-            <button className="bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white px-4 py-2 rounded-lg hover:shadow-lg transition-shadow">
-              Start Today's Puzzle
-            </button>
-          </div>
-
-          {/* Brain-Building Activities */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-4">
-              <TrendingUp className="text-[#10B981]" size={24} />
-              <h2 className="text-xl font-semibold text-[#3E3E3E]">Brain-Building Activities</h2>
-            </div>
-            <p className="text-[#6B7280] mb-4">
-              Discover activities and strategies to build cognitive reserve in your daily life.
-            </p>
-            <button className="text-[#1B5E57] font-medium hover:underline">
-              Explore Activities →
-            </button>
-          </div>
-
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto border-b border-gray-200 pb-0">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'border-[#1B5E57] text-[#1B5E57]'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                }`}
+              >
+                <Icon size={20} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Coming Soon Notice */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-2">Coming Soon</h3>
-          <p className="text-blue-700">
-            Daily puzzles, interactive brain games, cognitive reserve education, and personalized brain-building recommendations are currently in development.
-          </p>
+        {/* Tab Content */}
+        <div className="mt-6">
+          {activeTab === 'gratitude' && <GratitudePractice userId={user?.uid} />}
+          {activeTab === 'mindfulness' && <MindfulnessExercises userId={user?.uid} />}
+          {activeTab === 'emotions' && <EmotionalCheckin userId={user?.uid} />}
+          {activeTab === 'reframing' && <CognitiveReframing userId={user?.uid} />}
+          {activeTab === 'tracker' && <ResilienceTracker userId={user?.uid} />}
         </div>
       </div>
     </SidebarLayout>
