@@ -340,9 +340,21 @@ const CommunityPage = () => {
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      setSelectedImages((prev) => [...prev, ...files].slice(0, 4));
-      const previews = files.map((file) => URL.createObjectURL(file));
-      setImagePreview((prev) => [...prev, ...previews].slice(0, 4));
+      // Filter out HEIC files (not supported in most browsers)
+      const validFiles = files.filter(file => {
+        const ext = file.name.toLowerCase().split('.').pop();
+        if (ext === 'heic' || ext === 'heif') {
+          alert(`${file.name} is in HEIC format which isn't supported. Please convert to JPEG or PNG first.`);
+          return false;
+        }
+        return true;
+      });
+
+      if (validFiles.length > 0) {
+        setSelectedImages((prev) => [...prev, ...validFiles].slice(0, 4));
+        const previews = validFiles.map((file) => URL.createObjectURL(file));
+        setImagePreview((prev) => [...prev, ...previews].slice(0, 4));
+      }
     }
   };
 
