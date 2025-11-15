@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import SidebarLayout from '../components/layout/SidebarLayout';
-import { BarChart3, TrendingUp, Target, Zap, Moon, Brain } from 'lucide-react';
+import { BarChart3, TrendingUp, Target, Zap, Moon, Brain, Circle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import OverviewDashboard from '../components/insights/OverviewDashboard';
 import HabitsAnalytics from '../components/insights/HabitsAnalytics';
@@ -8,6 +8,7 @@ import GoalsProgress from '../components/insights/GoalsProgress';
 import FocusAnalytics from '../components/insights/FocusAnalytics';
 import SleepAnalytics from '../components/insights/SleepAnalytics';
 import AIInsights from '../components/insights/AIInsights';
+import WheelOfLife from '../components/insights/WheelOfLife';
 
 export default function Insights() {
   const { user } = useAuth();
@@ -19,6 +20,7 @@ export default function Insights() {
     { id: 'goals', label: 'Goals', icon: Target },
     { id: 'focus', label: 'Focus', icon: Zap },
     { id: 'sleep', label: 'Sleep', icon: Moon },
+    { id: 'wheel', label: 'Life Balance', icon: Circle },
     { id: 'ai', label: 'AI Insights', icon: Brain }
   ];
 
@@ -64,6 +66,7 @@ export default function Insights() {
           {activeTab === 'goals' && <GoalsProgress userId={user?.uid} />}
           {activeTab === 'focus' && <FocusAnalytics userId={user?.uid} />}
           {activeTab === 'sleep' && <SleepAnalytics userId={user?.uid} />}
+          {activeTab === 'wheel' && <WheelOfLife userId={user?.uid} />}
           {activeTab === 'ai' && <AIInsights userId={user?.uid} />}
         </div>
       </div>
