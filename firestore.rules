@@ -444,6 +444,13 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // Audio Favorites (user's favorited tracks)
+    match /audioFavorites/{favoriteId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
     // Social Connections (meaningful social interactions tracking)
     match /socialConnections/{connectionId} {
       allow read: if isAuthenticated() && isOwner(resource.data.userId);
