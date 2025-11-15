@@ -95,7 +95,7 @@ export default function GroupForumPage() {
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPosts(postsData);
-      
+
       // Fetch user data for all unique authors and commenters
       const userIds = new Set();
       postsData.forEach(post => {
@@ -105,7 +105,7 @@ export default function GroupForumPage() {
           comment.replies?.forEach(reply => userIds.add(reply.authorId));
         });
       });
-      
+
       // Fetch missing user data
       userIds.forEach(userId => {
         if (!users[userId]) {
@@ -116,6 +116,17 @@ export default function GroupForumPage() {
 
     return () => unsubscribe();
   }, [groupId, users]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      imagePreview.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {}
+      });
+    };
+  }, [imagePreview]);
 
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files);
