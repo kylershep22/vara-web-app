@@ -32,6 +32,7 @@ import {
   CalendarClock,
   Inbox,
   Archive,
+  Edit2,
 } from "lucide-react";
 
 // Import new reusable components
@@ -591,6 +592,7 @@ export default function Dashboard() {
                   frequency={habit.frequency?.type || habit.type}
                   completed={false}
                   onComplete={() => handleCompleteHabit(habit.id)}
+                  onEdit={() => navigate('/goals-habits')}
                 />
               ))}
 
@@ -625,13 +627,22 @@ export default function Dashboard() {
                 return (
                   <div key={goal.id} className="group">
                     <div className="flex items-center justify-between mb-2">
-                      <button
-                        onClick={() => navigate('/goals-habits')}
-                        className="font-medium text-gray-900 hover:text-[#1B5E57] text-left transition-colors"
-                      >
-                        {goal.title}
-                      </button>
-                      <span className="text-sm font-semibold text-[#1B5E57]">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <button
+                          onClick={() => navigate('/goals-habits')}
+                          className="font-medium text-gray-900 hover:text-[#1B5E57] text-left transition-colors truncate"
+                        >
+                          {goal.title}
+                        </button>
+                        <button
+                          onClick={() => navigate('/goals-habits')}
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-all flex-shrink-0"
+                          title="Edit goal"
+                        >
+                          <Edit2 size={14} className="text-gray-500" />
+                        </button>
+                      </div>
+                      <span className="text-sm font-semibold text-[#1B5E57] flex-shrink-0">
                         {Math.round(pct)}%
                       </span>
                     </div>
