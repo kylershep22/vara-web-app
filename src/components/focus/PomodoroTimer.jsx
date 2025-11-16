@@ -87,8 +87,20 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
   };
 
   const playNotificationSound = () => {
+    // Use browser notification instead of audio file
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Timer Complete!', {
+        body: sessionType === 'focus' ? 'Great work! Time for a break.' : 'Break is over! Ready to focus?',
+        icon: '/logo192.png',
+        tag: 'pomodoro-timer'
+      });
+    }
+
+    // Fallback: try to play audio if ref exists (optional)
     if (audioRef.current) {
-      audioRef.current.play().catch(err => console.log('Audio play failed:', err));
+      audioRef.current.play().catch(() => {
+        // Silently fail if audio not available
+      });
     }
   };
 
@@ -308,8 +320,8 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
         </div>
       )}
 
-      {/* Hidden Audio Element for Notification Sound */}
-      <audio ref={audioRef} src="/notification.mp3" preload="auto" />
+      {/* Hidden Audio Element for Notification Sound (optional - no file currently) */}
+      <audio ref={audioRef} preload="none" />
 
       {/* Tips */}
       <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm">
