@@ -161,7 +161,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   // Habits hook
-  const { habits, habitCompletions, markHabitComplete } = useHabits(user?.uid);
+  const { habits, habitCompletions, logHabitToday } = useHabits(user?.uid);
 
   // State - significantly reduced from original 68 variables
   const [goals, setGoals] = useState([]);
@@ -370,7 +370,10 @@ export default function Dashboard() {
   /* ==================== HANDLERS ==================== */
 
   const handleCompleteHabit = async (habitId) => {
-    await markHabitComplete(habitId);
+    const habit = habits.find(h => h.id === habitId);
+    if (habit) {
+      await logHabitToday(habit);
+    }
   };
 
   const handleToggleTask = async (taskId) => {
