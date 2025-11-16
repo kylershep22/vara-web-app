@@ -514,6 +514,16 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // ========== LIBRARY CONTENT ==========
+
+    // Movement Content (videos/audio for movement library)
+    match /movementContent/{contentId} {
+      // Authenticated users can read all movement content
+      allow read: if isAuthenticated();
+      // Only admins/backend can write (not enforced here, managed via admin SDK)
+      allow write: if false;
+    }
+
     // ========== SYSTEM DATA ==========
 
     // Rate Limits (managed by Cloud Functions only)
