@@ -2,10 +2,10 @@
 /* eslint-disable require-jsdoc */
 /* eslint-disable max-len */
 
-const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
-const { setGlobalOptions } = require("firebase-functions/v2");
-const { defineSecret } = require("firebase-functions/params");
-const { onObjectFinalized, onObjectDeleted } = require("firebase-functions/v2/storage");
+const {onCall, onRequest, HttpsError} = require("firebase-functions/v2/https");
+const {setGlobalOptions} = require("firebase-functions/v2");
+const {defineSecret} = require("firebase-functions/params");
+const {onObjectFinalized, onObjectDeleted} = require("firebase-functions/v2/storage");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
@@ -23,8 +23,8 @@ const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 async function makeOpenAI() {
   const apiKey = OPENAI_API_KEY.value();
   if (!apiKey) throw new Error("OPENAI_API_KEY missing");
-  const { default: OpenAI } = await import("openai");
-  return new OpenAI({ apiKey });
+  const {default: OpenAI} = await import("openai");
+  return new OpenAI({apiKey});
 }
 
 /* ======================================================================
@@ -36,9 +36,12 @@ async function makeOpenAI() {
  * Format: { endpoint: { maxRequests: number, windowMs: number } }
  */
 const RATE_LIMITS = {
-  "/journal-summary": { maxRequests: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
-  "/ai-chat": { maxRequests: 20, windowMs: 60 * 60 * 1000 }, // 20 per hour
-  "/openai": { maxRequests: 30, windowMs: 60 * 60 * 1000 }, // 30 per hour
+  "/journal-summary": {maxRequests: 10, windowMs: 60 * 60 * 1000}, // 10 per hour
+  "/ai-chat": {maxRequests: 20, windowMs: 60 * 60 * 1000}, // 20 per hour
+  "/openai": {maxRequests: 30, windowMs: 60 * 60 * 1000}, // 30 per hour
+  "/api/journal-summary": {maxRequests: 10, windowMs: 60 * 60 * 1000}, // 10 per hour
+  "/api/ai-chat": {maxRequests: 20, windowMs: 60 * 60 * 1000}, // 20 per hour
+  "/api/openai": {maxRequests: 30, windowMs: 60 * 60 * 1000}, // 30 per hour
 };
 
 /**
@@ -49,13 +52,13 @@ async function checkRateLimit(userId, endpoint) {
   if (!userId) {
     // If no userId (shouldn't happen), allow but log
     logger.warn("Rate limit check called without userId");
-    return { allowed: true, remaining: 999, resetAt: Date.now() };
+    return {allowed: true, remaining: 999, resetAt: Date.now()};
   }
 
   const limit = RATE_LIMITS[endpoint];
   if (!limit) {
     // No rate limit configured for this endpoint
-    return { allowed: true, remaining: 999, resetAt: Date.now() };
+    return {allowed: true, remaining: 999, resetAt: Date.now()};
   }
 
   const now = Date.now();
@@ -108,9 +111,9 @@ async function checkRateLimit(userId, endpoint) {
       resetAt: now + limit.windowMs,
     };
   } catch (err) {
-    logger.error("Rate limit check failed", { userId, endpoint, error: err.message });
+    logger.error("Rate limit check failed", {userId, endpoint, error: err.message});
     // On error, allow the request (fail open)
-    return { allowed: true, remaining: 999, resetAt: Date.now() };
+    return {allowed: true, remaining: 999, resetAt: Date.now()};
   }
 }
 
@@ -120,11 +123,11 @@ async function checkRateLimit(userId, endpoint) {
 
 function slugify(s) {
   return String(s)
-    .toLowerCase()
-    .replace(/\.[^/.]+$/, "")   // strip file extension
-    .replace(/[_\s]+/g, "-")    // spaces/underscores -> hyphens
-    .replace(/[^a-z0-9-]/g, "") // safe chars only
-    .slice(0, 80);
+      .toLowerCase()
+      .replace(/\.[^/.]+$/, "") // strip file extension
+      .replace(/[_\s]+/g, "-") // spaces/underscores -> hyphens
+      .replace(/[^a-z0-9-]/g, "") // safe chars only
+      .slice(0, 80);
 }
 
 /* ======================================================================
@@ -137,49 +140,49 @@ function slugify(s) {
  * Output: { suggestions: string[] }
  */
 exports.generateHabitSuggestions = onCall(
-  { secrets: [OPENAI_API_KEY] },
-  async (request) => {
-    const { goal } = request.data || {};
+    {secrets: [OPENAI_API_KEY]},
+    async (request) => {
+      const {goal} = request.data || {};
 
-    if (typeof goal !== "string" || !goal.trim()) {
-      throw new HttpsError("invalid-argument", "Goal must be a string.");
-    }
+      if (typeof goal !== "string" || !goal.trim()) {
+        throw new HttpsError("invalid-argument", "Goal must be a string.");
+      }
 
-    try {
-      const openai = await makeOpenAI();
-
-      const prompt = [
-        `A user has the wellness goal: "${goal}".`,
-        "Suggest 5 simple daily or weekly habits that will help.",
-        "Be specific and encouraging. Return as a JSON array of short strings.",
-      ].join(" ");
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-      });
-
-      const text = completion.choices?.[0]?.message?.content ?? "";
-
-      let habits;
       try {
-        habits = JSON.parse(text);
-      } catch (e) {
-        logger.error("OpenAI response was not valid JSON:", text);
-        throw new Error("Invalid response format from OpenAI.");
-      }
+        const openai = await makeOpenAI();
 
-      if (!Array.isArray(habits)) {
-        throw new Error("Expected an array of habits.");
-      }
+        const prompt = [
+          `A user has the wellness goal: "${goal}".`,
+          "Suggest 5 simple daily or weekly habits that will help.",
+          "Be specific and encouraging. Return as a JSON array of short strings.",
+        ].join(" ");
 
-      return { suggestions: habits };
-    } catch (err) {
-      logger.error("generateHabitSuggestions error:", err);
-      throw new HttpsError("internal", "Failed to generate suggestions.");
-    }
-  }
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{role: "user", content: prompt}],
+          temperature: 0.7,
+        });
+
+        const text = completion.choices?.[0]?.message?.content ?? "";
+
+        let habits;
+        try {
+          habits = JSON.parse(text);
+        } catch (e) {
+          logger.error("OpenAI response was not valid JSON:", text);
+          throw new Error("Invalid response format from OpenAI.");
+        }
+
+        if (!Array.isArray(habits)) {
+          throw new Error("Expected an array of habits.");
+        }
+
+        return {suggestions: habits};
+      } catch (err) {
+        logger.error("generateHabitSuggestions error:", err);
+        throw new HttpsError("internal", "Failed to generate suggestions.");
+      }
+    },
 );
 
 /**
@@ -188,30 +191,30 @@ exports.generateHabitSuggestions = onCall(
  * Output: { plan: string } (bullet list)
  */
 exports.generateDailyPlan = onCall(
-  { secrets: [OPENAI_API_KEY] },
-  async (request) => {
-    const { name, preferences, mood, goals, modifier } = request.data || {};
+    {secrets: [OPENAI_API_KEY]},
+    async (request) => {
+      const {name, preferences, mood, goals, modifier} = request.data || {};
 
-    if (!Array.isArray(goals)) {
-      throw new HttpsError("invalid-argument", "`goals` must be an array.");
-    }
+      if (!Array.isArray(goals)) {
+        throw new HttpsError("invalid-argument", "`goals` must be an array.");
+      }
 
-    const tone = preferences?.tone || "gentle";
-    const intensity = preferences?.intensity || "standard";
-    const hour = new Date().getHours();
-    const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
+      const tone = preferences?.tone || "gentle";
+      const intensity = preferences?.intensity || "standard";
+      const hour = new Date().getHours();
+      const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
 
-    const readableGoals = goals
-      .map((g) => `${g.title}: ${g.progress}/${g.target} ${g.unit}`)
-      .join("\n");
+      const readableGoals = goals
+          .map((g) => `${g.title}: ${g.progress}/${g.target} ${g.unit}`)
+          .join("\n");
 
-    const moodDescription = mood
-      ? `${mood.emoji ?? ""} (${mood.label ?? "Unknown"})${mood.note ? " - " + mood.note : ""}`
-      : "No mood check-in yet.";
+      const moodDescription = mood ?
+      `${mood.emoji ?? ""} (${mood.label ?? "Unknown"})${mood.note ? " - " + mood.note : ""}` :
+      "No mood check-in yet.";
 
-    const modifierText = modifier ? `User added instruction: ${modifier}` : "";
+      const modifierText = modifier ? `User added instruction: ${modifier}` : "";
 
-    const userPrompt = `You are a compassionate and encouraging wellness coach named Vara.
+      const userPrompt = `You are a compassionate and encouraging wellness coach named Vara.
 Generate a personalized daily wellness plan for a user based on their goals, mood, and preferences.
 
 User: ${name ?? "Anonymous"}
@@ -225,25 +228,25 @@ ${modifierText}
 
 Provide 3–5 short, motivating tasks for the day. Keep tone ${tone}. Format as a bullet list.`;
 
-    try {
-      const openai = await makeOpenAI();
+      try {
+        const openai = await makeOpenAI();
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: "You are a supportive, empathetic wellness coach." },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.7,
-      });
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {role: "system", content: "You are a supportive, empathetic wellness coach."},
+            {role: "user", content: userPrompt},
+          ],
+          temperature: 0.7,
+        });
 
-      const plan = completion.choices?.[0]?.message?.content || "";
-      return { plan };
-    } catch (err) {
-      logger.error("generateDailyPlan error:", err);
-      throw new HttpsError("internal", "Failed to generate daily plan.");
-    }
-  }
+        const plan = completion.choices?.[0]?.message?.content || "";
+        return {plan};
+      } catch (err) {
+        logger.error("generateDailyPlan error:", err);
+        throw new HttpsError("internal", "Failed to generate daily plan.");
+      }
+    },
 );
 
 /**
@@ -252,42 +255,42 @@ Provide 3–5 short, motivating tasks for the day. Keep tone ${tone}. Format as 
  * Response: { text, usage }
  */
 exports.journalPrompt = onRequest(
-  {
-    cors: true,
-    secrets: [OPENAI_API_KEY],
-    timeoutSeconds: 120,
-  },
-  async (req, res) => {
-    try {
-      if (req.method !== "POST") {
-        res.status(405).send("Method Not Allowed");
-        return;
+    {
+      cors: true,
+      secrets: [OPENAI_API_KEY],
+      timeoutSeconds: 120,
+    },
+    async (req, res) => {
+      try {
+        if (req.method !== "POST") {
+          res.status(405).send("Method Not Allowed");
+          return;
+        }
+
+        const {prompt} = req.body || {};
+        if (typeof prompt !== "string" || !prompt.trim()) {
+          res.status(400).json({error: "prompt (string) is required"});
+          return;
+        }
+
+        const openai = await makeOpenAI();
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {role: "system", content: "You are a thoughtful journaling assistant."},
+            {role: "user", content: prompt},
+          ],
+          temperature: 0.7,
+        });
+
+        const text = completion.choices?.[0]?.message?.content || "";
+        res.json({text, usage: completion.usage ?? null});
+      } catch (err) {
+        logger.error("journalPrompt error:", err);
+        res.status(500).json({error: "AI prompt failed"});
       }
-
-      const { prompt } = req.body || {};
-      if (typeof prompt !== "string" || !prompt.trim()) {
-        res.status(400).json({ error: "prompt (string) is required" });
-        return;
-      }
-
-      const openai = await makeOpenAI();
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "You are a thoughtful journaling assistant." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-      });
-
-      const text = completion.choices?.[0]?.message?.content || "";
-      res.json({ text, usage: completion.usage ?? null });
-    } catch (err) {
-      logger.error("journalPrompt error:", err);
-      res.status(500).json({ error: "AI prompt failed" });
-    }
-  }
+    },
 );
 
 /* ======================================================================
@@ -305,16 +308,16 @@ exports.ingestSleepAudio = onObjectFinalized(async (event) => {
   const contentType = event.data.contentType || "";
   if (contentType && !contentType.startsWith("audio/")) {
     // Only ingest audio content types (safety check)
-    logger.info("Skipping non-audio object:", { path, contentType });
+    logger.info("Skipping non-audio object:", {path, contentType});
     return;
   }
 
   const fileName = path.split("/").pop() || "untitled";
   const title = fileName
-    .replace(/\.[^/.]+$/, "")
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
   const docId = slugify(title);
   const ref = admin.firestore().collection("wellnessLibrary").doc(docId);
@@ -323,26 +326,26 @@ exports.ingestSleepAudio = onObjectFinalized(async (event) => {
   const now = admin.firestore.FieldValue.serverTimestamp();
 
   const base = {
-    title,                  // "Delta Waves"
-    description: "",        // fill later via an admin UI
-    category: "sleep",      // queried by Sleep & Recovery
-    type: "audio",          // audio | video | article | tool
-    subtype: "sound",       // can change to "story" | "meditation"
+    title, // "Delta Waves"
+    description: "", // fill later via an admin UI
+    category: "sleep", // queried by Sleep & Recovery
+    type: "audio", // audio | video | article | tool
+    subtype: "sound", // can change to "story" | "meditation"
     tags: ["sleep"],
-    storagePath: path,      // clients resolve to URL with getDownloadURL(storagePath)
-    duration: null,         // minutes; fill later
+    storagePath: path, // clients resolve to URL with getDownloadURL(storagePath)
+    duration: null, // minutes; fill later
     popularity: 0,
-    published: true,        // default to visible so it shows up immediately
+    published: true, // default to visible so it shows up immediately
     createdAt: now,
     updatedAt: now,
   };
 
   if (!snap.exists) {
     await ref.set(base);
-    logger.info("Created wellnessLibrary doc from upload", { docId, path });
+    logger.info("Created wellnessLibrary doc from upload", {docId, path});
   } else {
-    await ref.set({ storagePath: path, updatedAt: now }, { merge: true });
-    logger.info("Updated wellnessLibrary doc for upload", { docId, path });
+    await ref.set({storagePath: path, updatedAt: now}, {merge: true});
+    logger.info("Updated wellnessLibrary doc for upload", {docId, path});
   }
 });
 
@@ -359,11 +362,11 @@ exports.pruneSleepAudioDoc = onObjectDeleted(async (event) => {
   await admin.firestore().collection("wellnessLibrary").doc(docId).delete().catch((err) => {
     // Ignore not-found; log others
     if (err && err.code !== 5) {
-      logger.error("Failed to delete wellnessLibrary doc on prune", { docId, path, err });
+      logger.error("Failed to delete wellnessLibrary doc on prune", {docId, path, err});
     }
   });
 
-  logger.info("Pruned wellnessLibrary doc after delete", { docId, path });
+  logger.info("Pruned wellnessLibrary doc after delete", {docId, path});
 });
 
 /* ======================================================================
@@ -376,63 +379,63 @@ exports.pruneSleepAudioDoc = onObjectDeleted(async (event) => {
  * Accessible at: app.varawellness.co/api/*
  */
 exports.api = onRequest(
-  {
-    cors: true,
-    secrets: [OPENAI_API_KEY],
-    timeoutSeconds: 120,
-  },
-  async (req, res) => {
+    {
+      cors: true,
+      secrets: [OPENAI_API_KEY],
+      timeoutSeconds: 120,
+    },
+    async (req, res) => {
     // Set CORS headers for mobile apps
-    res.set("Access-Control-Allow-Origin", "*");
-    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      res.set("Access-Control-Allow-Origin", "*");
+      res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-    // Handle preflight
-    if (req.method === "OPTIONS") {
-      return res.status(204).send("");
-    }
+      // Handle preflight
+      if (req.method === "OPTIONS") {
+        return res.status(204).send("");
+      }
 
-    const path = req.path; // e.g., "/journal-summary", "/ai-chat"
+      const path = req.path; // e.g., "/journal-summary", "/ai-chat"
 
-    try {
+      try {
       // Extract userId from request body (all AI endpoints send userId)
-      const userId = req.body?.userId;
+        const userId = req.body?.userId;
 
-      // Check rate limit if userId is present
-      if (userId && RATE_LIMITS[path]) {
-        const rateLimit = await checkRateLimit(userId, path);
+        // Check rate limit if userId is present
+        if (userId && RATE_LIMITS[path]) {
+          const rateLimit = await checkRateLimit(userId, path);
 
-        // Add rate limit headers
-        res.set("X-RateLimit-Limit", RATE_LIMITS[path].maxRequests.toString());
-        res.set("X-RateLimit-Remaining", rateLimit.remaining.toString());
-        res.set("X-RateLimit-Reset", new Date(rateLimit.resetAt).toISOString());
+          // Add rate limit headers
+          res.set("X-RateLimit-Limit", RATE_LIMITS[path].maxRequests.toString());
+          res.set("X-RateLimit-Remaining", rateLimit.remaining.toString());
+          res.set("X-RateLimit-Reset", new Date(rateLimit.resetAt).toISOString());
 
-        if (!rateLimit.allowed) {
-          logger.warn("Request blocked by rate limit", { userId, path });
-          return res.status(429).json({
-            error: "Too many requests",
-            message: "You've exceeded the rate limit. Please try again later.",
-            retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000), // seconds
-            resetAt: new Date(rateLimit.resetAt).toISOString(),
-          });
+          if (!rateLimit.allowed) {
+            logger.warn("Request blocked by rate limit", {userId, path});
+            return res.status(429).json({
+              error: "Too many requests",
+              message: "You've exceeded the rate limit. Please try again later.",
+              retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000), // seconds
+              resetAt: new Date(rateLimit.resetAt).toISOString(),
+            });
+          }
         }
-      }
 
-      // Route to appropriate handler
-      if (path === "/journal-summary") {
-        return await handleJournalSummary(req, res);
-      } else if (path === "/ai-chat") {
-        return await handleAIChat(req, res);
-      } else if (path === "/openai") {
-        return await handleOpenAISuggestions(req, res);
-      } else {
-        return res.status(404).json({ error: `Route not found: ${path}` });
+        // Route to appropriate handler
+        if (path === "/api/journal-summary" || path === "/journal-summary") {
+          return await handleJournalSummary(req, res);
+        } else if (path === "/api/ai-chat" || path === "/ai-chat") {
+          return await handleAIChat(req, res);
+        } else if (path === "/api/openai" || path === "/openai") {
+          return await handleOpenAISuggestions(req, res);
+        } else {
+          return res.status(404).json({error: `Route not found: ${path}`});
+        }
+      } catch (err) {
+        logger.error("API error:", {path, error: err.message});
+        return res.status(500).json({error: "Internal server error"});
       }
-    } catch (err) {
-      logger.error("API error:", { path, error: err.message });
-      return res.status(500).json({ error: "Internal server error" });
-    }
-  }
+    },
 );
 
 /**
@@ -441,13 +444,13 @@ exports.api = onRequest(
  */
 async function handleJournalSummary(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({error: "Method not allowed"});
   }
 
-  const { entries, type, guardrails, instruction } = req.body || {};
+  const {entries, type, guardrails, instruction} = req.body || {};
 
   if (!entries || (typeof entries === "string" && entries.trim().length === 0)) {
-    return res.status(400).json({ error: "No journal entries provided." });
+    return res.status(400).json({error: "No journal entries provided."});
   }
 
   try {
@@ -459,9 +462,9 @@ ${typeof entries === "string" ? entries : JSON.stringify(entries, null, 2)}
 
 Please summarize the main themes, emotions, and any meaningful insights or patterns you notice.`;
 
-    const finalPrompt = instruction
-      ? `${basePrompt}\n\nAdditional instructions: ${instruction}`
-      : `${basePrompt}\n\nKeep it encouraging and brief (4–6 sentences max), with 1–3 actionable nudges for next week.`;
+    const finalPrompt = instruction ?
+      `${basePrompt}\n\nAdditional instructions: ${instruction}` :
+      `${basePrompt}\n\nKeep it encouraging and brief (4–6 sentences max), with 1–3 actionable nudges for next week.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -470,16 +473,16 @@ Please summarize the main themes, emotions, and any meaningful insights or patte
           role: "system",
           content: "You are a wellness journal assistant that summarizes weekly reflections.",
         },
-        { role: "user", content: finalPrompt },
+        {role: "user", content: finalPrompt},
       ],
       temperature: 0.7,
     });
 
     const text = response.choices?.[0]?.message?.content || "";
-    return res.status(200).json({ text });
+    return res.status(200).json({text});
   } catch (err) {
     logger.error("Journal summary error:", err);
-    return res.status(500).json({ error: "Failed to generate journal summary" });
+    return res.status(500).json({error: "Failed to generate journal summary"});
   }
 }
 
@@ -489,12 +492,12 @@ Please summarize the main themes, emotions, and any meaningful insights or patte
  */
 async function handleAIChat(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({error: "Method not allowed"});
   }
 
   try {
-    const { messages = [], context = {} } = req.body || {};
-    const { page, userSummary } = context || {};
+    const {messages = [], context = {}} = req.body || {};
+    const {page, userSummary} = context || {};
 
     const systemPrompt = `
 You are Vara, an empathetic, strengths-based wellness coach.
@@ -506,25 +509,25 @@ Context:
 - User summary (short):
   - Goals: ${
   (userSummary?.goals || [])
-    .map(
-      (g) =>
-        `${g.title || "Untitled goal"}${g.category ? ` [${g.category}]` : ""}${
+      .map(
+          (g) =>
+            `${g.title || "Untitled goal"}${g.category ? ` [${g.category}]` : ""}${
           typeof g.progress === "number" ? ` (${g.progress}% done)` : ""
-        }`
-    )
-    .slice(0, 5)
-    .join("; ") || "None on file"
+            }`,
+      )
+      .slice(0, 5)
+      .join("; ") || "None on file"
 }
   - Habits: ${
   (userSummary?.habits || [])
-    .map(
-      (h) =>
-        `${h.title || "Untitled habit"}${h.cadence ? ` [${h.cadence}]` : ""}${
+      .map(
+          (h) =>
+            `${h.title || "Untitled habit"}${h.cadence ? ` [${h.cadence}]` : ""}${
           typeof h.streak === "number" ? ` (streak ${h.streak})` : ""
-        }`
-    )
-    .slice(0, 8)
-    .join("; ") || "None on file"
+            }`,
+      )
+      .slice(0, 8)
+      .join("; ") || "None on file"
 }
 
 Guidelines:
@@ -535,8 +538,8 @@ Guidelines:
     `.trim();
 
     const history = [
-      { role: "system", content: systemPrompt },
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
+      {role: "system", content: systemPrompt},
+      ...messages.map((m) => ({role: m.role, content: m.content})),
     ];
 
     const openai = await makeOpenAI();
@@ -551,10 +554,10 @@ Guidelines:
       completion?.choices?.[0]?.message?.content?.trim() ||
       "I couldn't find the right words — try again?";
 
-    return res.status(200).json({ reply });
+    return res.status(200).json({reply});
   } catch (err) {
     logger.error("ai-chat error:", err);
-    return res.status(500).json({ error: "AI chat failed" });
+    return res.status(500).json({error: "AI chat failed"});
   }
 }
 
@@ -564,13 +567,13 @@ Guidelines:
  */
 async function handleOpenAISuggestions(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({error: "Method not allowed"});
   }
 
-  const { type, context, modifier = "" } = req.body || {};
+  const {type, context, modifier = ""} = req.body || {};
 
   if (!type || !context) {
-    return res.status(400).json({ error: "Missing required fields: type and context" });
+    return res.status(400).json({error: "Missing required fields: type and context"});
   }
 
   try {
@@ -595,20 +598,17 @@ async function handleOpenAISuggestions(req, res) {
           role: "system",
           content: "You are a supportive wellness coach providing practical suggestions.",
         },
-        { role: "user", content: prompt },
+        {role: "user", content: prompt},
       ],
       temperature: 0.7,
     });
 
     const text = response.choices?.[0]?.message?.content || "";
-    return res.status(200).json({ text });
+    return res.status(200).json({text});
   } catch (err) {
     logger.error("OpenAI suggestion error:", err);
-    return res.status(500).json({ error: "Failed to generate AI suggestions" });
+    return res.status(500).json({error: "Failed to generate AI suggestions"});
   }
 }
-
-
-
 
 

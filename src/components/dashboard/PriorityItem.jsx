@@ -1,6 +1,6 @@
 // src/components/dashboard/PriorityItem.jsx
 import React from 'react';
-import { Check, Flame } from 'lucide-react';
+import { Check, Flame, Edit2 } from 'lucide-react';
 
 /**
  * PriorityItem - Unified component for displaying habits and tasks
@@ -12,6 +12,7 @@ import { Check, Flame } from 'lucide-react';
  * @param {string} goalBadge - Linked goal name (optional)
  * @param {boolean} completed - Completion status
  * @param {function} onComplete - Callback when checkbox clicked
+ * @param {function} onEdit - Callback when edit button clicked (optional)
  * @param {string} frequency - Habit frequency display (optional)
  */
 const PriorityItem = ({
@@ -22,11 +23,12 @@ const PriorityItem = ({
   goalBadge,
   completed,
   onComplete,
+  onEdit,
   frequency
 }) => {
   return (
     <div
-      className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
+      className={`group flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
         completed
           ? 'border-green-200 bg-green-50'
           : 'border-gray-200 bg-white hover:border-[#1B5E57] hover:shadow-md'
@@ -99,6 +101,17 @@ const PriorityItem = ({
           )}
         </div>
       </div>
+
+      {/* Edit Button (optional) */}
+      {onEdit && (
+        <button
+          onClick={onEdit}
+          className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-2 hover:bg-gray-100 rounded-lg transition-all"
+          title="Edit"
+        >
+          <Edit2 size={16} className="text-gray-500" />
+        </button>
+      )}
     </div>
   );
 };

@@ -95,7 +95,7 @@ export default function GroupForumPage() {
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPosts(postsData);
-      
+
       // Fetch user data for all unique authors and commenters
       const userIds = new Set();
       postsData.forEach(post => {
@@ -105,7 +105,7 @@ export default function GroupForumPage() {
           comment.replies?.forEach(reply => userIds.add(reply.authorId));
         });
       });
-      
+
       // Fetch missing user data
       userIds.forEach(userId => {
         if (!users[userId]) {
@@ -117,14 +117,37 @@ export default function GroupForumPage() {
     return () => unsubscribe();
   }, [groupId, users]);
 
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      imagePreview.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {}
+      });
+    };
+  }, [imagePreview]);
+
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
-      setSelectedImages(prev => [...prev, ...files].slice(0, 4)); // Max 4 images
-      
-      // Create preview URLs
-      const previews = files.map(file => URL.createObjectURL(file));
-      setImagePreview(prev => [...prev, ...previews].slice(0, 4));
+      // Filter out HEIC files (not supported in most browsers)
+      const validFiles = files.filter(file => {
+        const ext = file.name.toLowerCase().split('.').pop();
+        if (ext === 'heic' || ext === 'heif') {
+          alert(`${file.name} is in HEIC format which isn't supported. Please convert to JPEG or PNG first.`);
+          return false;
+        }
+        return true;
+      });
+
+      if (validFiles.length > 0) {
+        setSelectedImages(prev => [...prev, ...validFiles].slice(0, 4)); // Max 4 images
+
+        // Create preview URLs
+        const previews = validFiles.map(file => URL.createObjectURL(file));
+        setImagePreview(prev => [...prev, ...previews].slice(0, 4));
+      }
     }
   };
 

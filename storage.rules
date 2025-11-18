@@ -38,6 +38,13 @@ service firebase.storage {
       allow write: if isSignedIn(); // Any signed in user can upload to groups they're in
     }
 
+    /* -------- Community Post Images --------
+       Users can upload images for community posts. */
+    match /communityPosts/{userId}/{fileName} {
+      allow read: if isSignedIn(); // Anyone signed in can view community post images
+      allow write: if isSignedIn() && request.auth.uid == userId; // Only owner can upload
+    }
+
     /* -------- Sleep Audio --------
        Clients may read (stream) when signed in.
        Only admins may upload/overwrite/delete. */

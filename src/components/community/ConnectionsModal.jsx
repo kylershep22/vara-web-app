@@ -220,7 +220,7 @@ function ConnectionRow({ conn, selfId, onRemove }) {
   const [other, setOther] = useState(null);
 
   useEffect(() => {
-    const otherId = conn.members?.find((m) => m !== selfId);
+    const otherId = conn.participants?.find((m) => m !== selfId);
     if (otherId) (async () => setOther(await getUserById(otherId)))();
   }, [conn, selfId]);
 

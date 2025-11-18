@@ -31,6 +31,13 @@ import {
   ExternalLink,
 } from "lucide-react";
 
+// Import new connections service
+import {
+  sendConnectionRequest,
+  getPendingSentRequests,
+  getAcceptedConnections
+} from "../../services/db/connections.service";
+
 // ------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------
@@ -40,52 +47,34 @@ const avatarFor = (name) =>
     name || "User"
   )}&background=10b981&color=fff`;
 
+// Get pending sent requests (using new connections service)
 async function getOutgoingInvites(uid) {
-  const q1 = query(
-    collection(db, "connectionInvites"),
-    where("from", "==", uid),
-    where("status", "==", "pending"),
-    limit(100)
-  );
-  const snap = await getDocs(q1);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return await getPendingSentRequests(uid);
 }
 
+// Get accepted connections (using new connections service)
 async function getConnections(uid) {
-  const q1 = query(
-    collection(db, "connections"),
-    where("participants", "array-contains", uid),
-    limit(100)
-  );
-  const snap = await getDocs(q1);
+  const connections = await getAcceptedConnections(uid);
   const set = new Set();
-  snap.docs.forEach((d) => {
-    const arr = d.data().participants || [];
-    const other = arr.find((x) => x !== uid);
+  connections.forEach((conn) => {
+    const other = conn.participants.find((x) => x !== uid);
     if (other) set.add(other);
   });
   return set; // Set<userId>
 }
 
+// Send connection invite (using new connections service)
 async function sendConnectionInvite(fromUid, toUid) {
-  // Avoid duplicate outgoing pending invites
-  const q = query(
-    collection(db, "connectionInvites"),
-    where("from", "==", fromUid),
-    where("to", "==", toUid),
-    where("status", "==", "pending"),
-    limit(1)
-  );
-  const existing = await getDocs(q);
-  if (!existing.empty) return existing.docs[0].id;
-
-  const newDoc = await addDoc(collection(db, "connectionInvites"), {
-    from: fromUid,
-    to: toUid,
-    status: "pending",
-    createdAt: serverTimestamp(),
-  });
-  return newDoc.id;
+  try {
+    const connectionId = await sendConnectionRequest(fromUid, toUid);
+    return connectionId;
+  } catch (error) {
+    // If error says connection already exists, that's okay
+    if (error.message.includes('already exists')) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 async function findOrCreateConversation(a, b) {
@@ -358,7 +347,7 @@ export default function PeopleSearchPage() {
   };
 
   const isPendingTo = (userId) =>
-    outgoing.some((i) => i.to === userId && i.status === "pending");
+    outgoing.some((i) => i.addresseeId === userId && i.status === "pending");
 
   const isConnectedTo = (userId) => connectedSet.has(userId);
 
@@ -366,17 +355,18 @@ export default function PeopleSearchPage() {
     if (!user?.uid) return;
     try {
       await sendConnectionInvite(user.uid, targetUserId);
-      // optimistic UI
+      // optimistic UI - use new field names
       setOutgoing((prev) => {
         const exists = prev.find(
-          (i) => i.to === targetUserId && i.status === "pending"
+          (i) => i.addresseeId === targetUserId && i.status === "pending"
         );
         if (exists) return prev;
         return [
           {
             id: `local_${Date.now()}`,
-            from: user.uid,
-            to: targetUserId,
+            requesterId: user.uid,
+            addresseeId: targetUserId,
+            participants: [user.uid, targetUserId],
             status: "pending",
           },
           ...prev,

@@ -1,9 +1,11 @@
 // src/components/dashboard/HabitTrackerWeekly.jsx
 
 import React from 'react';
-import { Flame, Check, X } from 'lucide-react';
+import { Flame, Check, X, Edit2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete }) => {
+const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) => {
+  const navigate = useNavigate();
   // Generate last 7 days
   const getLast7Days = () => {
     const days = [];
@@ -61,18 +63,31 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete }) => {
           activeHabits.map(habit => {
             const streak = habit.streak || 0;
             return (
-              <div key={habit.id} className="grid grid-cols-8 gap-2 items-center">
-                {/* Habit Name with Streak */}
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm font-medium text-gray-900 truncate" title={habit.name}>
-                    {habit.name}
-                  </span>
-                  {streak > 0 && (
-                    <span className="flex items-center gap-1 text-xs text-orange-600 font-semibold whitespace-nowrap">
-                      <Flame size={12} />
-                      {streak}
+              <div key={habit.id} className="grid grid-cols-8 gap-2 items-center group">
+                {/* Habit Name with Streak and Edit */}
+                <div className="flex items-center gap-1 min-w-0">
+                  <button
+                    onClick={() => onEdit ? onEdit(habit) : navigate('/goals-habits')}
+                    className="flex items-center gap-2 min-w-0 flex-1 hover:text-[#1B5E57] transition-colors"
+                    title="Click to edit habit"
+                  >
+                    <span className="text-sm font-medium truncate">
+                      {habit.name}
                     </span>
-                  )}
+                    {streak > 0 && (
+                      <span className="flex items-center gap-1 text-xs text-orange-600 font-semibold whitespace-nowrap">
+                        <Flame size={12} />
+                        {streak}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => onEdit ? onEdit(habit) : navigate('/goals-habits')}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-all"
+                    title="Edit habit"
+                  >
+                    <Edit2 size={14} className="text-gray-500" />
+                  </button>
                 </div>
 
                 {/* 7-day Grid */}
