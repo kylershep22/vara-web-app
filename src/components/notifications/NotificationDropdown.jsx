@@ -1,18 +1,10 @@
 // src/components/notifications/NotificationDropdown.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { db, auth } from "../../firebase";
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  updateDoc,
-  doc,
-  orderBy,
-  limit,
-} from "firebase/firestore";
+import { auth } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { markNotificationAsRead } from "../../services/db/notifications.service";
+import { subscribeToAllNotifications } from "../../services/db/notifications.service";
 
 const NotificationDropdown = ({ isOpen, onClose }) => {
   const [notifications, setNotifications] = useState([]);
@@ -30,128 +22,43 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  // Load latest notifications with progressive fallback (primary -> legacy)
+  // Load latest notifications
   useEffect(() => {
     let unsubAuth;
-    let unsubPrimary;
-    let unsubLegacy;
-    let triedLegacy = false;     // ensure we attach legacy at most once
-    let sawPrimaryOnce = false;  // know when we evaluated primary at least once
+    let unsubNotifications;
 
     unsubAuth = onAuthStateChanged(auth, (user) => {
-      // Cleanup previous listeners whenever auth changes
-      if (unsubPrimary) { unsubPrimary(); unsubPrimary = undefined; }
-      if (unsubLegacy) { unsubLegacy(); unsubLegacy = undefined; }
-      triedLegacy = false;
-      sawPrimaryOnce = false;
+      // Cleanup previous listener when auth changes
+      if (unsubNotifications) {
+        unsubNotifications();
+        unsubNotifications = undefined;
+      }
 
       if (!user) {
         setNotifications([]);
         return;
       }
 
-      const base = collection(db, "notifications");
-
-      // Primary (rules-aligned): recipientId == uid
-      const qPrimary = query(
-        base,
-        where("recipientId", "==", user.uid),
-        orderBy("createdAt", "desc"),
-        limit(5)
-      );
-
-      unsubPrimary = onSnapshot(
-        qPrimary,
-        (snap) => {
-          sawPrimaryOnce = true;
-
-          const primaryDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          if (primaryDocs.length > 0) {
-            // We have primary data — no need to try legacy
-            setNotifications(primaryDocs);
-            // If a legacy listener was attached previously, turn it off
-            if (unsubLegacy) { unsubLegacy(); unsubLegacy = undefined; }
-            return;
-          }
-
-          // Primary returned empty: try legacy *once* if not already done
-          if (!triedLegacy && !unsubLegacy) {
-            triedLegacy = true;
-            const qLegacy = query(
-              base,
-              where("userId", "==", user.uid),
-              orderBy("createdAt", "desc"),
-              limit(5)
-            );
-            unsubLegacy = onSnapshot(
-              qLegacy,
-              (legacySnap) => {
-                const legacyDocs = legacySnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-                setNotifications(legacyDocs);
-              },
-              (err) => {
-                // Silences expected permission/index noise from legacy path
-                if (process.env.NODE_ENV !== "production") {
-                  console.debug("[notifications dropdown] legacy listener suppressed error:", err?.code || err);
-                }
-              }
-            );
-          } else {
-            // No primary data and we won't (or can't) use legacy
-            setNotifications([]);
-          }
-        },
-        (err) => {
-          // Silences expected permission/index noise from primary path
-          if (process.env.NODE_ENV !== "production") {
-            console.debug("[notifications dropdown] primary listener suppressed error:", err?.code || err);
-          }
-          // If primary listener itself fails at startup, we can still attempt legacy once.
-          if (!sawPrimaryOnce && !triedLegacy && !unsubLegacy && user) {
-            triedLegacy = true;
-            const qLegacy = query(
-              base,
-              where("userId", "==", user.uid),
-              orderBy("createdAt", "desc"),
-              limit(5)
-            );
-            unsubLegacy = onSnapshot(
-              qLegacy,
-              (legacySnap) => {
-                const legacyDocs = legacySnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-                setNotifications(legacyDocs);
-              },
-              (legacyErr) => {
-                if (process.env.NODE_ENV !== "production") {
-                  console.debug("[notifications dropdown] legacy listener suppressed error:", legacyErr?.code || legacyErr);
-                }
-                setNotifications([]);
-              }
-            );
-          } else {
-            setNotifications([]);
-          }
-        }
-      );
+      // Subscribe to all notifications (limited to 5 most recent)
+      unsubNotifications = subscribeToAllNotifications(user.uid, (notifs) => {
+        // Show only 5 most recent
+        setNotifications(notifs.slice(0, 5));
+      }, 5);
     });
 
     return () => {
       if (unsubAuth) unsubAuth();
-      if (unsubPrimary) unsubPrimary();
-      if (unsubLegacy) unsubLegacy();
+      if (unsubNotifications) unsubNotifications();
     };
   }, []);
 
   const handleNotificationClick = async (notif) => {
     try {
-      await updateDoc(doc(db, "notifications", notif.id), { read: true });
+      await markNotificationAsRead(notif.id);
       onClose();
       if (notif.link) navigate(notif.link);
     } catch (error) {
-      // Keep quiet here as well; failed updates (permissions) shouldn’t break UX
-      if (process.env.NODE_ENV !== "production") {
-        console.debug("[notifications dropdown] markAsRead suppressed error:", error?.code || error);
-      }
+      console.error("Error marking notification as read:", error);
     }
   };
 
@@ -172,7 +79,7 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
               !notif.read ? "bg-emerald-50 font-medium" : "bg-white"
             }`}
           >
-            {notif.text ||
+            {notif.body || notif.text ||
               (notif.type === "group_invite"
                 ? "You were invited to join a group."
                 : notif.type === "daily_plan"

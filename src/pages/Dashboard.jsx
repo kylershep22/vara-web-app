@@ -33,6 +33,7 @@ import {
   Inbox,
   Archive,
   Edit2,
+  Plus,
 } from "lucide-react";
 
 // Import new reusable components
@@ -50,6 +51,11 @@ import TimeFilter from "../components/dashboard/TimeFilter";
 import HabitTrackerWeekly from "../components/dashboard/HabitTrackerWeekly";
 import CommunityHighlights from "../components/dashboard/CommunityHighlights";
 import WeekRecap from "../components/dashboard/WeekRecap";
+
+// Import Edit Modals
+import HabitEditModal from "../components/dashboard/HabitEditModal";
+import GoalEditModal from "../components/dashboard/GoalEditModal";
+import GoalProgressModal from "../components/dashboard/GoalProgressModal";
 
 /* ==================== HELPER FUNCTIONS ==================== */
 
@@ -162,7 +168,20 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   // Habits hook
-  const { habits, habitCompletions, logHabitToday } = useHabits(user?.uid);
+  const { habits, habitCompletions: habitCompletionsArray, logHabitToday } = useHabits(user?.uid);
+
+  // Transform habitCompletions array into a map for easier lookup
+  const habitCompletions = useMemo(() => {
+    const map = {};
+    if (Array.isArray(habitCompletionsArray)) {
+      habitCompletionsArray.forEach(completion => {
+        const { habitId, dateISO } = completion;
+        if (!map[habitId]) map[habitId] = [];
+        map[habitId].push(dateISO);
+      });
+    }
+    return map;
+  }, [habitCompletionsArray]);
 
   // State - significantly reduced from original 68 variables
   const [goals, setGoals] = useState([]);
@@ -176,6 +195,11 @@ export default function Dashboard() {
 
   // Phase 2: Time view state
   const [timeView, setTimeView] = useState('weekly'); // daily, weekly, monthly, yearly
+
+  // Modal states for editing
+  const [editingHabit, setEditingHabit] = useState(null);
+  const [editingGoal, setEditingGoal] = useState(null);
+  const [progressGoal, setProgressGoal] = useState(null);
 
   // Helper: Get current week range
   const getCurrentWeekRange = () => {
@@ -199,29 +223,28 @@ export default function Dashboard() {
 
   /* ==================== DATA FETCHING ==================== */
 
-  useEffect(() => {
+  const fetchDashboardData = async () => {
     if (!user?.uid) return;
+    setLoading(true);
+    try {
+      // Fetch all data in parallel
+      const [goalsSnap, tasksSnap, userSnap] = await Promise.all([
+        getDocs(query(collection(db, 'goals'), where('userId', '==', user.uid))),
+        getDocs(query(collection(db, 'tasks'), where('userId', '==', user.uid))),
+        getDoc(doc(db, 'users', user.uid))
+      ]);
 
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      try {
-        // Fetch all data in parallel
-        const [goalsSnap, tasksSnap, userSnap] = await Promise.all([
-          getDocs(query(collection(db, 'goals'), where('userId', '==', user.uid))),
-          getDocs(query(collection(db, 'tasks'), where('userId', '==', user.uid))),
-          getDoc(doc(db, 'users', user.uid))
-        ]);
+      setGoals(goalsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setTasks(tasksSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setUserName(userSnap.data()?.displayName || 'there');
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setGoals(goalsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setTasks(tasksSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setUserName(userSnap.data()?.displayName || 'there');
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     fetchDashboardData();
   }, [user?.uid]);
 
@@ -533,7 +556,7 @@ export default function Dashboard() {
               disabled={isLoadingPlan}
               className="px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm font-medium transition-colors disabled:opacity-50"
             >
-              {isLoadingPlan ? '...' : '↻ Regenerate'}
+              {isLoadingPlan ? '...' : '↻ Generate'}
             </button>
           }
         >
@@ -561,7 +584,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <p className="text-gray-500 text-center py-4">
-              Click 'Regenerate' to get your personalized plan...
+              Click 'Generate' to get your personalized plan...
             </p>
           )}
         </SectionCard>
@@ -581,7 +604,6 @@ export default function Dashboard() {
           <div className="space-y-3">
             {/* Habits due today that aren't completed */}
             {habitsDueToday
-              .filter(h => !todaysCompletions.has(h.id))
               .slice(0, 5)
               .map(habit => (
                 <PriorityItem
@@ -590,9 +612,9 @@ export default function Dashboard() {
                   title={habit.name}
                   streak={habit.streak || 0}
                   frequency={habit.frequency?.type || habit.type}
-                  completed={false}
+                  completed={todaysCompletions.has(habit.id)}
                   onComplete={() => handleCompleteHabit(habit.id)}
-                  onEdit={() => navigate('/goals-habits')}
+                  onEdit={() => setEditingHabit(habit)}
                 />
               ))}
 
@@ -629,18 +651,30 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <button
-                          onClick={() => navigate('/goals-habits')}
+                          onClick={() => setEditingGoal(goal)}
                           className="font-medium text-gray-900 hover:text-[#1B5E57] text-left transition-colors truncate"
                         >
                           {goal.title}
                         </button>
-                        <button
-                          onClick={() => navigate('/goals-habits')}
-                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-all flex-shrink-0"
-                          title="Edit goal"
-                        >
-                          <Edit2 size={14} className="text-gray-500" />
-                        </button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProgressGoal(goal);
+                            }}
+                            className="p-1 hover:bg-green-50 rounded transition-all flex-shrink-0"
+                            title="Mark progress"
+                          >
+                            <Plus size={14} className="text-green-600" />
+                          </button>
+                          <button
+                            onClick={() => setEditingGoal(goal)}
+                            className="p-1 hover:bg-gray-100 rounded transition-all flex-shrink-0"
+                            title="Edit goal"
+                          >
+                            <Edit2 size={14} className="text-gray-500" />
+                          </button>
+                        </div>
                       </div>
                       <span className="text-sm font-semibold text-[#1B5E57] flex-shrink-0">
                         {Math.round(pct)}%
@@ -694,6 +728,7 @@ export default function Dashboard() {
             habits={habits}
             habitCompletions={habitCompletions}
             onComplete={handleCompleteHabit}
+            onEdit={(habit) => setEditingHabit(habit)}
           />
         </SectionCard>
 
@@ -853,6 +888,31 @@ export default function Dashboard() {
         )}
 
       </div>
+
+      {/* Edit Modals */}
+      {editingHabit && (
+        <HabitEditModal
+          habit={editingHabit}
+          onClose={() => setEditingHabit(null)}
+          onSave={fetchDashboardData}
+        />
+      )}
+
+      {editingGoal && (
+        <GoalEditModal
+          goal={editingGoal}
+          onClose={() => setEditingGoal(null)}
+          onSave={fetchDashboardData}
+        />
+      )}
+
+      {progressGoal && (
+        <GoalProgressModal
+          goal={progressGoal}
+          onClose={() => setProgressGoal(null)}
+          onSave={fetchDashboardData}
+        />
+      )}
     </SidebarLayout>
   );
 }

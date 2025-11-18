@@ -87,12 +87,29 @@ export function useHabits(userId) {
     const today = isoToday();
     const already = habitCompletions.find(c => c.habitId === habit.id && c.dateISO === today);
     if (already) return;
-    await addDoc(collection(db, 'habitCompletions'), {
-      userId, habitId: habit.id, dateISO: today, createdAt: serverTimestamp()
-    });
-    // streaks recompute automatically from listener
-    // optional: also persist streaks on the habit doc
-    await recomputeStreaksForHabit(habit.id);
+
+    try {
+      await addDoc(collection(db, 'habitCompletions'), {
+        userId, habitId: habit.id, dateISO: today, createdAt: serverTimestamp()
+      });
+
+      // Recompute streaks with the new date included
+      const dates = habitCompletions
+        .filter(c => c.habitId === habit.id)
+        .map(c => c.dateISO)
+        .concat(today); // Include today's new completion
+
+      const [current, best] = getConsecutiveStreak(new Set(dates));
+
+      await updateDoc(doc(db, 'habits', habit.id), {
+        streak: current,
+        bestStreak: best,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Error logging habit completion:', error);
+      // Don't throw - allow the UI to continue working even if there's an error
+    }
   };
 
   const recomputeStreaksForHabit = async (habitId) => {

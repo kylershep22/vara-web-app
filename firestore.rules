@@ -216,6 +216,31 @@ service cloud.firestore {
 
     // ========== CONNECTIONS ==========
 
+    // Connection Invites (pending connection requests)
+    // Data model: { from, to, status: 'pending'|'accepted'|'declined' }
+    match /connectionInvites/{inviteId} {
+      // Read: if user is sender or recipient
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.from ||
+        request.auth.uid == resource.data.to
+      );
+
+      // Create: if user is the sender
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.from;
+
+      // Update: if user is sender or recipient (for status changes)
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.from ||
+        request.auth.uid == resource.data.to
+      );
+
+      // Delete: if user is sender or recipient
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.from ||
+        request.auth.uid == resource.data.to
+      );
+    }
+
     // Connections (unified collection for requests and accepted connections)
     // Data model: { requesterId, addresseeId, participants: [requesterId, addresseeId], status: 'pending'|'accepted'|'declined'|'canceled' }
     match /connections/{connectionId} {
@@ -245,47 +270,12 @@ service cloud.firestore {
       );
     }
 
-    // Connection Requests
-    match /connectionRequests/{requestId} {
-      // Read: if user is sender or recipient
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.fromUserId ||
-        request.auth.uid == resource.data.toUserId
-      );
-
-      // Create: if user is the sender
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.fromUserId;
-
-      // Update: if user is the recipient (to accept/decline)
-      allow update: if isAuthenticated() && request.auth.uid == resource.data.toUserId;
-
-      // Delete: if user is sender or recipient (to cancel)
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.fromUserId ||
-        request.auth.uid == resource.data.toUserId
-      );
-    }
-
-    // Connection Invites (triggers Cloud Function)
-    match /connectionInvites/{inviteId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.from ||
-        request.auth.uid == resource.data.to
-      );
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.from;
-      allow update: if isAuthenticated() && request.auth.uid == resource.data.to;
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.from ||
-        request.auth.uid == resource.data.to
-      );
-    }
-
     // ========== MESSAGING ==========
 
     // Conversations
     match /conversations/{conversationId} {
-      // Read: if user is a participant
-      allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      // Read: if document doesn't exist (checking before create) OR user is a participant
+      allow read: if isAuthenticated() && (resource == null || request.auth.uid in resource.data.participants);
 
       // Create: if user is one of the participants
       allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participants;
@@ -299,14 +289,16 @@ service cloud.firestore {
 
     // Direct Messages
     match /directMessages/{messageId} {
-      // Read: if user is sender or receiver
+      // Read: if user is a participant in the conversation
       allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.senderId ||
-        request.auth.uid == resource.data.receiverId
+        resource == null ||
+        request.auth.uid in get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.participants
       );
 
-      // Create: if user is the sender
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.senderId;
+      // Create: if user is the sender AND a participant in the conversation
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.senderId &&
+        request.auth.uid in get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data.participants;
 
       // Update/Delete: messages are immutable
       allow update, delete: if false;

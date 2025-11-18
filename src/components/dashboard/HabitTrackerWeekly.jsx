@@ -4,7 +4,7 @@ import React from 'react';
 import { Flame, Check, X, Edit2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete }) => {
+const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) => {
   const navigate = useNavigate();
   // Generate last 7 days
   const getLast7Days = () => {
@@ -67,9 +67,9 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete }) => {
                 {/* Habit Name with Streak and Edit */}
                 <div className="flex items-center gap-1 min-w-0">
                   <button
-                    onClick={() => navigate('/goals-habits')}
+                    onClick={() => onEdit ? onEdit(habit) : navigate('/goals-habits')}
                     className="flex items-center gap-2 min-w-0 flex-1 hover:text-[#1B5E57] transition-colors"
-                    title="Click to edit in Goals & Habits page"
+                    title="Click to edit habit"
                   >
                     <span className="text-sm font-medium truncate">
                       {habit.name}
@@ -82,7 +82,7 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete }) => {
                     )}
                   </button>
                   <button
-                    onClick={() => navigate('/goals-habits')}
+                    onClick={() => onEdit ? onEdit(habit) : navigate('/goals-habits')}
                     className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-all"
                     title="Edit habit"
                   >

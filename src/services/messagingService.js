@@ -52,7 +52,7 @@ export function subscribeMessages(conversationId, cb) {
   );
 }
 
-/** Send a text message. Also updates conversation’s lastMessage + updatedAt. */
+/** Send a text message. Also updates conversation's lastMessage + updatedAt. */
 export async function sendDirectMessage(conversationId, senderId, text) {
   const trimmed = (text || "").trim();
   if (!trimmed) return;
@@ -68,5 +68,41 @@ export async function sendDirectMessage(conversationId, senderId, text) {
     lastMessage: { text: trimmed, senderId, createdAt: serverTimestamp() },
     updatedAt: serverTimestamp(),
   });
+}
+
+/** Mark a conversation as read by the current user */
+export async function markConversationAsRead(conversationId, userId) {
+  try {
+    const convRef = doc(db, "conversations", conversationId);
+    await updateDoc(convRef, {
+      [`lastReadBy.${userId}`]: serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Error marking conversation as read:", error);
+  }
+}
+
+/** Check if a conversation has unread messages */
+export function hasUnreadMessages(conversation, userId) {
+  if (!conversation || !userId) return false;
+
+  const lastReadBy = conversation.lastReadBy || {};
+  const lastReadTimestamp = lastReadBy[userId];
+  const lastMessage = conversation.lastMessage;
+
+  // No last message, no unread
+  if (!lastMessage) return false;
+
+  // If the last message is from the current user, not unread
+  if (lastMessage.senderId === userId) return false;
+
+  // Never read and there's a message from someone else
+  if (!lastReadTimestamp) return true;
+
+  // Compare last message time with last read time
+  const lastReadDate = lastReadTimestamp.toDate ? lastReadTimestamp.toDate() : new Date(lastReadTimestamp);
+  const lastMsgDate = lastMessage.createdAt?.toDate ? lastMessage.createdAt.toDate() : new Date(lastMessage.createdAt);
+
+  return lastMsgDate > lastReadDate;
 }
 

@@ -1,16 +1,9 @@
 // src/components/notifications/NotificationBell.jsx
 import React, { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
-import { db, auth } from "../../firebase";
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  orderBy,
-  limit,
-} from "firebase/firestore";
+import { auth } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { subscribeToUnreadNotifications } from "../../services/db/notifications.service";
 import NotificationDropdown from "./NotificationDropdown";
 
 export default function NotificationBell() {
@@ -30,28 +23,10 @@ export default function NotificationBell() {
         return;
       }
 
-      // ✅ Rules-aligned: only recipientId == uid (no legacy listener here)
-      const q = query(
-        collection(db, "notifications"),
-        where("recipientId", "==", user.uid),
-        where("read", "==", false),
-        orderBy("createdAt", "desc"),
-        limit(25)
-      );
-
-      unsubBell = onSnapshot(
-        q,
-        (snap) => {
-          setUnreadCount(snap.size);
-        },
-        (err) => {
-          // Suppress noisy permission/index logs in prod
-          if (process.env.NODE_ENV !== "production") {
-            console.debug("[NotificationBell] listener suppressed error:", err?.code || err);
-          }
-          setUnreadCount(0);
-        }
-      );
+      // Subscribe to unread notifications using service
+      unsubBell = subscribeToUnreadNotifications(user.uid, (notifications) => {
+        setUnreadCount(notifications.length);
+      });
     });
 
     return () => {

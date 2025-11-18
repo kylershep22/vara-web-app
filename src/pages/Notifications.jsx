@@ -1,18 +1,10 @@
 // src/pages/Notifications.jsx
 import React, { useEffect, useState } from 'react';
-import { db, auth } from '../firebase';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  doc,
-  updateDoc,
-  orderBy,
-} from 'firebase/firestore';
+import { auth } from '../firebase';
 import SidebarLayout from '../components/layout/SidebarLayout';
 import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
+import { subscribeToAllNotifications, markNotificationAsRead } from '../services/db/notifications.service';
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -20,80 +12,35 @@ const Notifications = () => {
 
   useEffect(() => {
     let unsubAuth;
-    let unsubPrimary;
-    let unsubLegacy;
+    let unsubNotifications;
 
     unsubAuth = onAuthStateChanged(auth, (user) => {
-      // Tear down old listeners when the user changes/logs out
-      if (unsubPrimary) { unsubPrimary(); unsubPrimary = undefined; }
-      if (unsubLegacy) { unsubLegacy(); unsubLegacy = undefined; }
+      // Cleanup previous listener when auth changes
+      if (unsubNotifications) {
+        unsubNotifications();
+        unsubNotifications = undefined;
+      }
 
       if (!user) {
         setNotifications([]);
         return;
       }
 
-      const base = collection(db, 'notifications');
-
-      // Primary (rules-aligned) query: recipientId == uid
-      const qPrimary = query(
-        base,
-        where('recipientId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-
-      // Legacy support: userId == uid
-      const qLegacy = query(
-        base,
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-
-      const aggregateAndSet = (primaryDocs = [], legacyDocs = []) => {
-        const byId = new Map();
-        [...primaryDocs, ...legacyDocs].forEach((d) => byId.set(d.id, d));
-        const merged = Array.from(byId.values()).sort((a, b) => {
-          const aTs = a.createdAt?.seconds ?? 0;
-          const bTs = b.createdAt?.seconds ?? 0;
-          return bTs - aTs;
-        });
-        setNotifications(merged);
-      };
-
-      let primaryBuffer = [];
-      let legacyBuffer = [];
-
-      unsubPrimary = onSnapshot(
-        qPrimary,
-        (snap) => {
-          primaryBuffer = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          aggregateAndSet(primaryBuffer, legacyBuffer);
-        },
-        (err) => {
-          console.warn('[notifications page] primary listener error:', err);
-        }
-      );
-
-      unsubLegacy = onSnapshot(
-        qLegacy,
-        (snap) => {
-          legacyBuffer = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          aggregateAndSet(primaryBuffer, legacyBuffer);
-        },
-        (err) => {
-          console.warn('[notifications page] legacy listener error:', err);
-        }
-      );
+      // Subscribe to all notifications using service
+      unsubNotifications = subscribeToAllNotifications(user.uid, (notifs) => {
+        setNotifications(notifs);
+      }, 100); // Limit to 100 notifications
     });
 
     return () => {
       if (unsubAuth) unsubAuth();
+      if (unsubNotifications) unsubNotifications();
     };
   }, []);
 
-  const markAsRead = async (notif) => {
+  const handleNotificationClick = async (notif) => {
     try {
-      await updateDoc(doc(db, 'notifications', notif.id), { read: true });
+      await markNotificationAsRead(notif.id);
       if (notif.link) navigate(notif.link);
     } catch (error) {
       console.error('Failed to update notification:', error);
@@ -110,10 +57,10 @@ const Notifications = () => {
               key={notif.id}
               className={`p-4 border rounded-md shadow-sm cursor-pointer hover:bg-gray-50 ${!notif.read ? 'bg-emerald-50' : 'bg-white'
                 }`}
-              onClick={() => markAsRead(notif)}
+              onClick={() => handleNotificationClick(notif)}
             >
               <p className="text-sm">
-                {notif.text ||
+                {notif.body || notif.text ||
                   (notif.type === 'group_invite'
                     ? 'You were invited to join a group.'
                     : notif.type === 'daily_plan'

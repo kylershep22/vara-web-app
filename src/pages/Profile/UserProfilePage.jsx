@@ -315,22 +315,36 @@ async function areConnected(a, b) {
   });
 }
 
-async function getProfileStats(userId) {
+async function getProfileStats(userId, currentUserId) {
   try {
-    // Fetch counts for posts, connections, groups, and goals
-    const [postsSnap, connectionsSnap, groupsSnap, goalsSnap] = await Promise.all([
-      getDocs(query(collection(db, 'posts'), where('authorId', '==', userId))),
-      getDocs(query(collection(db, 'connections'), where('participants', 'array-contains', userId), where('status', '==', 'active'))),
-      getDocs(query(collection(db, 'groups'), where('members', 'array-contains', userId))),
-      getDocs(query(collection(db, 'goals'), where('userId', '==', userId))),
-    ]);
+    const isOwnProfile = userId === currentUserId;
 
-    return {
-      posts: postsSnap.size,
-      connections: connectionsSnap.size,
-      groups: groupsSnap.size,
-      goals: goalsSnap.size,
-    };
+    // Posts are always queryable (public)
+    const postsSnap = await getDocs(query(collection(db, 'posts'), where('authorId', '==', userId)));
+
+    // Only query personal data if viewing own profile
+    if (isOwnProfile) {
+      const [connectionsSnap, groupsSnap, goalsSnap] = await Promise.all([
+        getDocs(query(collection(db, 'connections'), where('participants', 'array-contains', userId), where('status', '==', 'active'))),
+        getDocs(query(collection(db, 'groups'), where('members', 'array-contains', userId))),
+        getDocs(query(collection(db, 'goals'), where('userId', '==', userId))),
+      ]);
+
+      return {
+        posts: postsSnap.size,
+        connections: connectionsSnap.size,
+        groups: groupsSnap.size,
+        goals: goalsSnap.size,
+      };
+    } else {
+      // For other users' profiles, only show post count
+      return {
+        posts: postsSnap.size,
+        connections: 0,
+        groups: 0,
+        goals: 0,
+      };
+    }
   } catch (e) {
     console.error('Error fetching stats:', e);
     return { posts: 0, connections: 0, groups: 0, goals: 0 };
@@ -637,7 +651,7 @@ const ProfilePage = () => {
         if (p) setProfile(prev => ({ ...prev, ...p }));
 
         // Load stats
-        const profileStats = await getProfileStats(viewedUserId);
+        const profileStats = await getProfileStats(viewedUserId, user?.uid);
         setStats(profileStats);
 
         if (user?.uid) {
