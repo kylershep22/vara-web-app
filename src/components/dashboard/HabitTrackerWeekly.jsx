@@ -1,23 +1,36 @@
 // src/components/dashboard/HabitTrackerWeekly.jsx
 
-import React from 'react';
-import { Flame, Check, X, Edit2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Flame, Circle, CheckCircle2, Edit2, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { doc, addDoc, collection, serverTimestamp, deleteDoc, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
+import HabitCreateModal from './HabitCreateModal';
+import { useAuth } from '../../context/AuthContext';
 
 const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) => {
   const navigate = useNavigate();
-  // Generate last 7 days
-  const getLast7Days = () => {
+  const { user } = useAuth();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Get current week (Mon-Sun)
+  const getCurrentWeek = () => {
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+    // Adjust to start week on Monday
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+
     const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + mondayOffset + i);
       days.push({
         date: date,
         dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
         dayNumber: date.getDate(),
         dateKey: formatDateKey(date),
-        isToday: i === 0
+        isToday: formatDateKey(date) === formatDateKey(new Date())
       });
     }
     return days;
@@ -30,7 +43,7 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
     return `${year}-${month}-${day}`;
   };
 
-  const days = getLast7Days();
+  const days = getCurrentWeek();
   const activeHabits = habits.filter(h => h.active !== false);
 
   const isHabitCompleted = (habitId, dateKey) => {
@@ -38,19 +51,64 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
     return completions.includes(dateKey);
   };
 
-  const todayKey = formatDateKey(new Date());
+  const handleToggleCompletion = async (habit, dateKey) => {
+    const completed = isHabitCompleted(habit.id, dateKey);
+
+    if (completed) {
+      // Find and delete the completion
+      const q = query(
+        collection(db, 'habitCompletions'),
+        where('habitId', '==', habit.id),
+        where('dateISO', '==', dateKey)
+      );
+      const snapshot = await getDocs(q);
+      snapshot.forEach(async (doc) => {
+        await deleteDoc(doc.ref);
+      });
+    } else {
+      // Add completion
+      await addDoc(collection(db, 'habitCompletions'), {
+        userId: habit.userId,
+        habitId: habit.id,
+        dateISO: dateKey,
+        createdAt: serverTimestamp()
+      });
+    }
+
+    // Trigger parent refresh
+    if (onComplete) {
+      onComplete(habit.id);
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Header - Days of the week */}
-      <div className="grid grid-cols-8 gap-2 text-center mb-2">
-        <div className="text-xs font-medium text-gray-500">Habit</div>
+    <>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        {/* Create Button Row */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+          <span className="text-sm text-gray-600">
+            Track your habits for the week
+          </span>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1B5E57] text-white rounded-lg text-sm font-medium hover:bg-[#164e48] transition-colors"
+          >
+            <Plus size={16} />
+            Create Habit
+          </button>
+        </div>
+
+        {/* Header Row */}
+        <div className="grid gap-px bg-gray-200 border-b border-gray-200" style={{ gridTemplateColumns: '1fr repeat(7, 56px)' }}>
+          <div className="bg-white px-4 py-3">
+            <span className="text-xs font-semibold text-gray-600 uppercase">Habit</span>
+          </div>
         {days.map((day, idx) => (
-          <div key={idx} className="text-xs">
-            <div className={`font-semibold ${day.isToday ? 'text-[#1B5E57]' : 'text-gray-700'}`}>
+          <div key={idx} className={`px-1 py-3 text-center ${day.isToday ? 'bg-emerald-100/80' : 'bg-white'}`}>
+            <div className={`text-xs font-semibold ${day.isToday ? 'text-emerald-700' : 'text-gray-700'}`}>
               {day.dayName}
             </div>
-            <div className={`text-xs ${day.isToday ? 'text-[#1B5E57]' : 'text-gray-500'}`}>
+            <div className={`text-xs ${day.isToday ? 'text-emerald-600' : 'text-gray-500'}`}>
               {day.dayNumber}
             </div>
           </div>
@@ -58,20 +116,20 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
       </div>
 
       {/* Habit Rows */}
-      <div className="space-y-3">
-        {activeHabits.length > 0 ? (
-          activeHabits.map(habit => {
+      {activeHabits.length > 0 ? (
+        <div className="divide-y divide-gray-200">
+          {activeHabits.map((habit, habitIdx) => {
             const streak = habit.streak || 0;
             return (
-              <div key={habit.id} className="grid grid-cols-8 gap-2 items-center group">
-                {/* Habit Name with Streak and Edit */}
-                <div className="flex items-center gap-1 min-w-0">
-                  <button
-                    onClick={() => onEdit ? onEdit(habit) : navigate('/goals-habits')}
-                    className="flex items-center gap-2 min-w-0 flex-1 hover:text-[#1B5E57] transition-colors"
-                    title="Click to edit habit"
-                  >
-                    <span className="text-sm font-medium truncate">
+              <div
+                key={habit.id}
+                className="grid gap-px bg-gray-200 hover:bg-gray-100 transition-colors group"
+                style={{ gridTemplateColumns: '1fr repeat(7, 56px)' }}
+              >
+                {/* Habit Name Column */}
+                <div className="bg-white px-4 py-3 flex items-center justify-between min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="text-sm font-medium text-gray-800 truncate">
                       {habit.name}
                     </span>
                     {streak > 0 && (
@@ -80,77 +138,86 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
                         {streak}
                       </span>
                     )}
-                  </button>
+                  </div>
                   <button
                     onClick={() => onEdit ? onEdit(habit) : navigate('/goals-habits')}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-gray-100 rounded transition-opacity"
                     title="Edit habit"
                   >
                     <Edit2 size={14} className="text-gray-500" />
                   </button>
                 </div>
 
-                {/* 7-day Grid */}
-                {days.map((day, idx) => {
+                {/* Day Dots */}
+                {days.map((day, dayIdx) => {
                   const completed = isHabitCompleted(habit.id, day.dateKey);
-                  const isToday = day.dateKey === todayKey;
-
                   return (
-                    <button
-                      key={idx}
-                      onClick={() => isToday && onComplete(habit.id)}
-                      disabled={!isToday}
-                      className={`
-                        aspect-square rounded-lg flex items-center justify-center transition-all
-                        ${completed
-                          ? 'bg-green-500 hover:bg-green-600 shadow-sm'
-                          : isToday
-                          ? 'bg-gray-100 border-2 border-dashed border-gray-300 hover:border-[#1B5E57] hover:bg-[#1B5E57]/5'
-                          : 'bg-gray-50 border border-gray-200'
-                        }
-                        ${isToday && !completed ? 'cursor-pointer' : 'cursor-default'}
-                      `}
-                      title={`${habit.name} - ${day.dayName} ${day.dayNumber}`}
+                    <div
+                      key={dayIdx}
+                      className={`px-1 py-3 flex items-center justify-center ${day.isToday ? 'bg-emerald-100/80' : 'bg-white'}`}
                     >
-                      {completed ? (
-                        <Check size={16} className="text-white" />
-                      ) : (
-                        isToday && <div className="w-2 h-2 rounded-full bg-gray-400" />
-                      )}
-                    </button>
+                      <button
+                        onClick={() => handleToggleCompletion(habit, day.dateKey)}
+                        className="group/dot transition-transform hover:scale-125"
+                        title={`${habit.name} - ${day.dayName} ${day.dayNumber}`}
+                      >
+                        {completed ? (
+                          <CheckCircle2
+                            size={24}
+                            className="text-emerald-600 fill-emerald-600 transition-colors"
+                          />
+                        ) : (
+                          <Circle
+                            size={24}
+                            className={`${day.isToday ? 'text-emerald-500' : 'text-gray-300'} group-hover/dot:text-emerald-500 transition-colors`}
+                          />
+                        )}
+                      </button>
+                    </div>
                   );
                 })}
               </div>
             );
-          })
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <p>No active habits yet</p>
-            <p className="text-sm mt-1">Create habits to start tracking</p>
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-12 text-gray-500 bg-white">
+          <p className="text-sm">No active habits yet</p>
+          <button
+            onClick={() => navigate('/goals-habits')}
+            className="text-sm text-emerald-600 hover:text-emerald-700 font-medium mt-2"
+          >
+            Create your first habit →
+          </button>
+        </div>
+      )}
+
+        {/* Legend */}
+        <div className="flex items-center gap-6 px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-emerald-600 fill-emerald-600" />
+            <span className="text-gray-600">Completed</span>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <Circle size={16} className="text-gray-300" />
+            <span className="text-gray-600">Not completed</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-emerald-100/80 border border-emerald-300 rounded" />
+            <span className="text-gray-600">Today's column</span>
+          </div>
+        </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 pt-4 border-t border-gray-100 text-xs text-gray-600">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-green-500 flex items-center justify-center">
-            <Check size={12} className="text-white" />
-          </div>
-          <span>Completed</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-          </div>
-          <span>Today (click to complete)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-gray-50 border border-gray-200" />
-          <span>Missed</span>
-        </div>
-      </div>
-    </div>
+      {/* Create Habit Modal */}
+      {showCreateModal && (
+        <HabitCreateModal
+          userId={user?.uid}
+          onClose={() => setShowCreateModal(false)}
+          onSave={onComplete}
+        />
+      )}
+    </>
   );
 };
 

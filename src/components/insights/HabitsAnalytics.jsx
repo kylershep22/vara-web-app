@@ -30,6 +30,7 @@ const HabitsAnalytics = ({ userId }) => {
       const habitsSnapshot = await getDocs(habitsQuery);
       const habitsData = habitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+      console.log('Fetched habits:', habitsData);
       setHabits(habitsData);
 
       // Calculate stats for each habit
@@ -37,16 +38,35 @@ const HabitsAnalytics = ({ userId }) => {
       const dailyCompletions = {};
 
       for (const habit of habitsData) {
-        // Fetch completions
-        const completionsSnapshot = await getDocs(
-          collection(db, `habits/${habit.id}/completions`)
+        // Fetch completions from the habitCompletions collection (new pattern)
+        const completionsQuery = query(
+          collection(db, 'habitCompletions'),
+          where('habitId', '==', habit.id)
         );
+        const completionsSnapshot = await getDocs(completionsQuery);
 
-        const completions = completionsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          date: doc.data().date?.toDate ? doc.data().date.toDate() : new Date(doc.data().date)
-        }));
+        const completions = completionsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          // Handle both dateISO string and createdAt timestamp
+          let date;
+          if (data.dateISO) {
+            date = new Date(data.dateISO);
+          } else if (data.createdAt?.toDate) {
+            date = data.createdAt.toDate();
+          } else if (data.date?.toDate) {
+            date = data.date.toDate();
+          } else {
+            date = new Date();
+          }
+
+          return {
+            id: doc.id,
+            ...data,
+            date
+          };
+        });
+
+        console.log(`Completions for ${habit.name || habit.title}:`, completions.length);
 
         // Filter by time range
         const now = new Date();
@@ -71,7 +91,7 @@ const HabitsAnalytics = ({ userId }) => {
 
         stats.push({
           habitId: habit.id,
-          habitName: habit.name,
+          habitName: habit.name || habit.title || 'Unnamed Habit',
           streak: habit.streak || 0,
           completionRate,
           totalCompletions: recentCompletions.length,
@@ -82,6 +102,7 @@ const HabitsAnalytics = ({ userId }) => {
       // Sort by completion rate
       stats.sort((a, b) => b.completionRate - a.completionRate);
 
+      console.log('Habit stats:', stats);
       setHabitStats(stats);
 
       // Generate weekly heatmap data
@@ -231,19 +252,27 @@ const HabitsAnalytics = ({ userId }) => {
           {bestHabits.length > 0 ? (
             <div className="space-y-3">
               {bestHabits.map((habit, idx) => (
-                <div key={habit.habitId} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-900">
-                      #{idx + 1}
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{habit.habitName}</div>
-                      <div className="text-xs text-gray-600">
-                        {habit.streak} day streak • {habit.totalCompletions} completions
+                <div key={habit.habitId} className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center font-bold text-white text-sm">
+                        #{idx + 1}
                       </div>
+                      <span className="text-lg font-bold text-gray-900">{habit.habitName}</span>
+                    </div>
+                    <div className="text-2xl font-bold text-green-700">{habit.completionRate}%</div>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1 text-gray-700">
+                      <Flame size={14} className="text-orange-500" />
+                      <span className="font-semibold">{habit.streak}</span>
+                      <span className="text-gray-600">day streak</span>
+                    </div>
+                    <div className="text-gray-700">
+                      <span className="font-semibold">{habit.totalCompletions}</span>
+                      <span className="text-gray-600"> completions</span>
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-green-900">{habit.completionRate}%</div>
                 </div>
               ))}
             </div>
@@ -262,14 +291,22 @@ const HabitsAnalytics = ({ userId }) => {
           {worstHabits.length > 0 ? (
             <div className="space-y-3">
               {worstHabits.map((habit) => (
-                <div key={habit.habitId} className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <div>
-                    <div className="font-medium text-gray-900">{habit.habitName}</div>
-                    <div className="text-xs text-gray-600">
-                      {habit.streak} day streak • {habit.totalCompletions} completions
+                <div key={habit.habitId} className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-lg font-bold text-gray-900">{habit.habitName}</span>
+                    <div className="text-2xl font-bold text-orange-700">{habit.completionRate}%</div>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1 text-gray-700">
+                      <Flame size={14} className="text-orange-500" />
+                      <span className="font-semibold">{habit.streak}</span>
+                      <span className="text-gray-600">day streak</span>
+                    </div>
+                    <div className="text-gray-700">
+                      <span className="font-semibold">{habit.totalCompletions}</span>
+                      <span className="text-gray-600"> completions</span>
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-orange-900">{habit.completionRate}%</div>
                 </div>
               ))}
             </div>
@@ -286,24 +323,25 @@ const HabitsAnalytics = ({ userId }) => {
         {habitStats.length > 0 ? (
           <div className="space-y-3">
             {habitStats.map(habit => (
-              <div key={habit.habitId} className="p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
+              <div key={habit.habitId} className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+                {/* Habit Name and Completion Rate */}
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="font-semibold text-gray-900">{habit.habitName}</div>
+                    <span className="text-lg font-bold text-gray-900">{habit.habitName}</span>
                     {habit.streak > 0 && (
-                      <div className="flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                      <div className="flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-semibold">
                         <Flame size={12} />
                         {habit.streak} days
                       </div>
                     )}
                   </div>
-                  <div className="text-lg font-bold text-gray-900">{habit.completionRate}%</div>
+                  <div className="text-2xl font-bold text-gray-900">{habit.completionRate}%</div>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
                   <div
-                    className={`h-2 rounded-full ${
+                    className={`h-3 rounded-full transition-all ${
                       habit.completionRate >= 80 ? 'bg-green-600' :
                       habit.completionRate >= 60 ? 'bg-blue-600' :
                       habit.completionRate >= 40 ? 'bg-yellow-600' :
@@ -313,8 +351,16 @@ const HabitsAnalytics = ({ userId }) => {
                   ></div>
                 </div>
 
-                <div className="mt-2 text-xs text-gray-600">
-                  {habit.totalCompletions} completions in last {timeRange} days
+                {/* Stats */}
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="text-gray-700">
+                    <span className="font-semibold">{habit.totalCompletions}</span>
+                    <span className="text-gray-600"> completions</span>
+                  </div>
+                  <span className="text-gray-400">•</span>
+                  <div className="text-gray-600">
+                    Last {timeRange} days
+                  </div>
                 </div>
               </div>
             ))}

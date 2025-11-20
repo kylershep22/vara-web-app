@@ -601,44 +601,22 @@ export default function Dashboard() {
           )}
         </SectionCard>
 
-        {/* ==================== FOCUS RIGHT NOW SECTION ==================== */}
+        {/* ==================== HABIT TRACKER (WEEKLY) ==================== */}
         <SectionCard
-          gradient="from-red-50 to-orange-50"
-          headerClassName="border-b border-red-100"
-          icon={<AlertTriangle size={24} className="text-red-600" />}
-          title="Focus Right Now"
+          title="Habit Tracker"
+          icon={<Flame size={24} className="text-orange-600" />}
           action={
             <span className="text-sm text-gray-600">
-              {habitsDueToday.filter(h => !todaysCompletions.has(h.id)).length} habits
+              {todaysCompletions.size}/{habitsDueToday.length} completed today
             </span>
           }
         >
-          <div className="space-y-3">
-            {/* Habits due today that aren't completed */}
-            {habitsDueToday
-              .slice(0, 5)
-              .map(habit => (
-                <PriorityItem
-                  key={habit.id}
-                  type="habit"
-                  title={habit.name}
-                  streak={habit.streak || 0}
-                  frequency={habit.frequency?.type || habit.type}
-                  completed={todaysCompletions.has(habit.id)}
-                  onComplete={() => handleCompleteHabit(habit.id)}
-                  onEdit={() => setEditingHabit(habit)}
-                />
-              ))}
-
-            {/* Empty State */}
-            {habitsDueToday.filter(h => !todaysCompletions.has(h.id)).length === 0 && (
-              <div className="text-center py-8">
-                <CheckCircle className="mx-auto mb-2 text-green-500" size={48} />
-                <p className="font-medium text-gray-700">All caught up! Great work!</p>
-                <p className="text-sm text-gray-500 mt-1">You've completed all your priority habits for today</p>
-              </div>
-            )}
-          </div>
+          <HabitTrackerWeekly
+            habits={habits}
+            habitCompletions={habitCompletions}
+            onComplete={handleCompleteHabit}
+            onEdit={(habit) => setEditingHabit(habit)}
+          />
         </SectionCard>
 
         {/* ==================== ACTIVE GOALS SECTION ==================== */}
@@ -725,23 +703,6 @@ export default function Dashboard() {
               </button>
             </div>
           )}
-        </SectionCard>
-
-        {/* ==================== PHASE 2: HABIT TRACKER (WEEKLY) ==================== */}
-        <SectionCard
-          title="Habit Tracker"
-          action={
-            <span className="text-sm text-gray-600">
-              {todaysCompletions.size}/{habitsDueToday.length} completed today
-            </span>
-          }
-        >
-          <HabitTrackerWeekly
-            habits={habits}
-            habitCompletions={habitCompletions}
-            onComplete={handleCompleteHabit}
-            onEdit={(habit) => setEditingHabit(habit)}
-          />
         </SectionCard>
 
         {/* ==================== TASK COMMAND CENTER ==================== */}
