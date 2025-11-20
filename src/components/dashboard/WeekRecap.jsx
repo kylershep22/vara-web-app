@@ -95,7 +95,7 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
         .slice(0, 5);
 
       // Call AI backend for suggestions
-      const response = await fetch('http://localhost:5001/api/week-recap-suggestions', {
+      const response = await fetch('/api/week-recap-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

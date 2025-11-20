@@ -17,7 +17,7 @@ export default function AIBasedSuggestions({ type, userId, context }) {
     setSuggestions([]);
 
     try {
-      const res = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/openai`, {
+      const res = await axios.post('/api/openai', {
         type, // 'goals', 'habits', or 'tasks'
         userId,
         customPrompt: additionalPrompt,
