@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import {
   collection,
   getDocs,
@@ -260,23 +261,34 @@ export default function Dashboard() {
 
     setIsLoadingPlan(true);
     try {
-      const response = await fetch('/api/generate-daily-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uid: user.uid,  // Backend expects 'uid', not 'userId'
-          forceNew: true, // Always generate a new plan when clicking Regenerate
-        }),
+      // Get user profile for name
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userName = userDoc.data()?.displayName || user.displayName || 'there';
+
+      // Prepare goals data
+      const goalsData = goals.map(g => ({
+        title: g.title || 'Untitled Goal',
+        progress: g.progress || 0,
+        target: g.target || 100,
+        unit: g.unit || '%'
+      }));
+
+      // Call Firebase callable function
+      const functions = getFunctions();
+      const generateDailyPlanFn = httpsCallable(functions, 'generateDailyPlan');
+
+      const result = await generateDailyPlanFn({
+        name: userName,
+        preferences: {
+          tone: 'gentle',
+          intensity: 'standard'
+        },
+        mood: null, // Could be enhanced to fetch today's mood
+        goals: goalsData,
+        modifier: null
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setDailyPlan(data.plan || data.message || '');
-      } else {
-        // Handle non-200 responses gracefully
-        console.warn('Daily plan generation returned status:', response.status);
-        setDailyPlan('AI plan is temporarily unavailable. Click Regenerate to try again.');
-      }
+      setDailyPlan(result.data.plan || 'No plan generated');
     } catch (error) {
       console.error('Error fetching daily plan:', error);
       setDailyPlan('AI plan is temporarily unavailable. Click Regenerate to try again.');
