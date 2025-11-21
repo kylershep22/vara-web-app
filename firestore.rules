@@ -48,7 +48,9 @@ service cloud.firestore {
     // Check if user is the group owner
     function isGroupOwner(groupId) {
       let group = get(/databases/$(database)/documents/groups/$(groupId));
-      return request.auth.uid == group.data.ownerId;
+      return request.auth.uid == group.data.ownerId
+        || request.auth.uid == group.data.createdBy
+        || request.auth.uid == group.data.creatorId;
     }
 
     // Check if group is public
@@ -165,23 +167,38 @@ service cloud.firestore {
     match /groups/{groupId} {
       // Read: public groups by anyone, private groups only by members
       // Check resource.data directly for queries to work
+      // Support both old (visibility/type) and new (isPublic) field formats
       allow read: if isAuthenticated() && (
         resource.data.visibility == 'public' ||
         resource.data.type == 'public' ||
+        resource.data.isPublic == true ||
         request.auth.uid in resource.data.members
       );
 
       // Create: any authenticated user can create a group
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.ownerId;
+      // Support createdBy, ownerId, and creatorId fields for backwards compatibility
+      allow create: if isAuthenticated() && (
+        request.auth.uid == request.resource.data.ownerId ||
+        request.auth.uid == request.resource.data.createdBy ||
+        request.auth.uid == request.resource.data.creatorId
+      );
 
       // Update: only group owner or members can update (for join/leave)
+      // Support createdBy, ownerId, and creatorId fields
       allow update: if isAuthenticated() && (
         request.auth.uid == resource.data.ownerId ||
+        request.auth.uid == resource.data.createdBy ||
+        request.auth.uid == resource.data.creatorId ||
         request.auth.uid in resource.data.members
       );
 
       // Delete: only group owner
-      allow delete: if isAuthenticated() && request.auth.uid == resource.data.ownerId;
+      // Support createdBy, ownerId, and creatorId fields
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.ownerId ||
+        request.auth.uid == resource.data.createdBy ||
+        request.auth.uid == resource.data.creatorId
+      );
     }
 
     // Posts (group forum posts)

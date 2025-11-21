@@ -57,6 +57,7 @@ import WeekRecap from "../components/dashboard/WeekRecap";
 import HabitEditModal from "../components/dashboard/HabitEditModal";
 import GoalEditModal from "../components/dashboard/GoalEditModal";
 import GoalProgressModal from "../components/dashboard/GoalProgressModal";
+import GoalCreateModal from "../components/dashboard/GoalCreateModal";
 
 /* ==================== HELPER FUNCTIONS ==================== */
 
@@ -201,6 +202,24 @@ export default function Dashboard() {
   const [editingHabit, setEditingHabit] = useState(null);
   const [editingGoal, setEditingGoal] = useState(null);
   const [progressGoal, setProgressGoal] = useState(null);
+  const [showCreateGoalModal, setShowCreateGoalModal] = useState(false);
+
+  // Collapse state for sections
+  const [collapsedSections, setCollapsedSections] = useState({
+    aiPlan: false,
+    habits: false,
+    goals: false,
+    tasks: false,
+    community: false,
+    weekRecap: false
+  });
+
+  const toggleSection = (section) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   // Helper: Get current week range
   const getCurrentWeekRange = () => {
@@ -403,6 +422,10 @@ export default function Dashboard() {
     return Math.round((totalCompleted / totalExpected) * 100);
   }, [habits, habitCompletions]);
 
+  // Section counts for collapsed view
+  const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'completed'), [tasks]);
+  const totalActiveTasks = activeTasks.length;
+
   /* ==================== HANDLERS ==================== */
 
   const handleCompleteHabit = async (habitId) => {
@@ -562,6 +585,10 @@ export default function Dashboard() {
         <SectionCard
           icon={<Brain size={24} className="text-purple-600" />}
           title="Today's AI Plan"
+          collapsible={true}
+          isCollapsed={collapsedSections.aiPlan}
+          onToggleCollapse={() => toggleSection('aiPlan')}
+          count={dailyPlan ? "Generated" : "Not generated"}
           action={
             <button
               onClick={fetchDailyPlan}
@@ -605,6 +632,10 @@ export default function Dashboard() {
         <SectionCard
           title="Habit Tracker"
           icon={<Flame size={24} className="text-orange-600" />}
+          collapsible={true}
+          isCollapsed={collapsedSections.habits}
+          onToggleCollapse={() => toggleSection('habits')}
+          count={`${habits.filter(h => h.active !== false).length} active`}
           action={
             <span className="text-sm text-gray-600">
               {todaysCompletions.size}/{habitsDueToday.length} completed today
@@ -623,13 +654,26 @@ export default function Dashboard() {
         <SectionCard
           icon={<Target size={24} className="text-[#1B5E57]" />}
           title="Active Goals"
+          collapsible={true}
+          isCollapsed={collapsedSections.goals}
+          onToggleCollapse={() => toggleSection('goals')}
+          count={`${activeGoals.length} active`}
           action={
-            <button
-              onClick={() => navigate('/goals-habits')}
-              className="text-sm text-[#1B5E57] hover:text-[#174C46] font-medium"
-            >
-              View All →
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowCreateGoalModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1B5E57] text-white rounded-lg text-sm font-medium hover:bg-[#164e48] transition-colors"
+              >
+                <Plus size={16} />
+                Create Goal
+              </button>
+              <button
+                onClick={() => navigate('/goals-habits')}
+                className="text-sm text-[#1B5E57] hover:text-[#174C46] font-medium"
+              >
+                View All →
+              </button>
+            </div>
           }
         >
           {activeGoals.length > 0 ? (
@@ -696,7 +740,7 @@ export default function Dashboard() {
             <div className="text-center py-8">
               <p className="text-gray-500 mb-4">No active goals yet</p>
               <button
-                onClick={() => navigate('/goals-habits')}
+                onClick={() => setShowCreateGoalModal(true)}
                 className="px-4 py-2 rounded-lg bg-[#1B5E57] text-white hover:bg-[#174C46] transition-colors"
               >
                 Create Your First Goal
@@ -709,6 +753,10 @@ export default function Dashboard() {
         <SectionCard
           title="Task Command Center"
           icon={<Target size={24} className="text-[#1B5E57]" />}
+          collapsible={true}
+          isCollapsed={collapsedSections.tasks}
+          onToggleCollapse={() => toggleSection('tasks')}
+          count={`${totalActiveTasks} active`}
           action={
             <button
               onClick={() => navigate('/goals-habits')}
@@ -841,6 +889,9 @@ export default function Dashboard() {
         {/* ==================== PHASE 2: COMMUNITY HIGHLIGHTS ==================== */}
         <SectionCard
           title="Community Highlights"
+          collapsible={true}
+          isCollapsed={collapsedSections.community}
+          onToggleCollapse={() => toggleSection('community')}
           action={
             <button
               onClick={() => navigate('/community')}
@@ -855,7 +906,12 @@ export default function Dashboard() {
 
         {/* ==================== PHASE 2: WEEK RECAP (4-3-2-1 FRAMEWORK) ==================== */}
         {timeView === 'weekly' && (
-          <SectionCard>
+          <SectionCard
+            title="Week Recap"
+            collapsible={true}
+            isCollapsed={collapsedSections.weekRecap}
+            onToggleCollapse={() => toggleSection('weekRecap')}
+          >
             <WeekRecap userId={user?.uid} currentWeekRange={currentWeekRange} />
           </SectionCard>
         )}
@@ -883,6 +939,14 @@ export default function Dashboard() {
         <GoalProgressModal
           goal={progressGoal}
           onClose={() => setProgressGoal(null)}
+          onSave={fetchDashboardData}
+        />
+      )}
+
+      {showCreateGoalModal && (
+        <GoalCreateModal
+          userId={user?.uid}
+          onClose={() => setShowCreateGoalModal(false)}
           onSave={fetchDashboardData}
         />
       )}

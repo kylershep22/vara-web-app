@@ -50,6 +50,7 @@ import {
   fetchPublicGroups,
   joinGroup,
   leaveGroup,
+  createGroup,
   // Posts
   fetchFeedPosts,
   getUserById,
@@ -1029,34 +1030,61 @@ const CommunityPage = () => {
 
     const handleSubmit = async (e) => {
       e.preventDefault();
-      const newGroup = {
-        id: `group${Date.now()}`,
-        name: groupName,
-        description: groupDescription,
-        icon: groupIcon,
-        isPublic,
-        memberCount: 1,
-        createdBy: user.uid,
-        members: [user.uid],
-        category,
-        tags,
-        color: groupColor,
-        createdAt: new Date()
-      };
 
-      setGroups((prev) => [newGroup, ...prev]);
+      try {
+        // Save to Firestore using the service
+        const groupId = await createGroup({
+          name: groupName,
+          description: groupDescription,
+          type: isPublic ? 'public' : 'private',
+          creatorId: user.uid
+        });
 
-      // Reset form
-      setGroupName('');
-      setGroupDescription('');
-      setGroupIcon('Users');
-      setIsPublic(true);
-      setCategory('general');
-      setTags([]);
-      setNewTag('');
-      setGroupColor('emerald');
-      toast.success('Group created successfully!');
-      onClose();
+        // Create the full group object with additional UI fields
+        const newGroup = {
+          id: groupId,
+          name: groupName,
+          description: groupDescription,
+          icon: groupIcon,
+          isPublic,
+          memberCount: 1,
+          createdBy: user.uid,
+          members: [user.uid],
+          category,
+          tags,
+          color: groupColor,
+          type: isPublic ? 'public' : 'private',
+          creatorId: user.uid,
+          createdAt: new Date()
+        };
+
+        // Update UI fields in Firestore
+        await updateDoc(doc(db, 'groups', groupId), {
+          icon: groupIcon,
+          category,
+          tags,
+          color: groupColor
+        });
+
+        // Add to local state
+        setGroups((prev) => [newGroup, ...prev]);
+
+        // Reset form
+        setGroupName('');
+        setGroupDescription('');
+        setGroupIcon('Users');
+        setIsPublic(true);
+        setCategory('general');
+        setTags([]);
+        setNewTag('');
+        setGroupColor('emerald');
+
+        toast.success('Group created successfully!');
+        onClose();
+      } catch (error) {
+        console.error('Error creating group:', error);
+        toast.error('Failed to create group. Please try again.');
+      }
     };
 
     const icons = [

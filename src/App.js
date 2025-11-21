@@ -40,6 +40,7 @@ import UserProfileForm from './components/onboarding/UserProfileForm';
 import EditProfile from './pages/Profile/EditProfile';
 import PeopleSearchPage from './pages/Community/PeopleSearchPage';
 import SeedTagsTool from "./dev/SeedTagsTool";
+import MigrationAdmin from "./pages/MigrationAdmin";
 import UserProfilePage from "./pages/Profile/UserProfilePage";
 import MyProfileRedirect from './pages/Profile/MyProfileRedirect';
 import LegacyProfileRedirect from './pages/Profile/LegacyProfileRedirect';
@@ -299,6 +300,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SeedTagsTool />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/migration-admin"
+            element={
+              <ProtectedRoute>
+                <MigrationAdmin />
               </ProtectedRoute>
             }
           />

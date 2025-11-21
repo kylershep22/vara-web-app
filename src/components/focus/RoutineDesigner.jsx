@@ -36,15 +36,22 @@ import {
   Check
 } from 'lucide-react';
 
-const RoutineDesigner = ({ userId }) => {
+const RoutineDesigner = ({ userId, initialRoutineType }) => {
   const [routines, setRoutines] = useState([]);
-  const [selectedRoutineType, setSelectedRoutineType] = useState('morning');
+  const [selectedRoutineType, setSelectedRoutineType] = useState(initialRoutineType || 'morning');
   const [editingRoutine, setEditingRoutine] = useState(null);
   const [routineName, setRoutineName] = useState('');
   const [activities, setActivities] = useState([]);
   const [reminderTime, setReminderTime] = useState('');
   const [showActivityLibrary, setShowActivityLibrary] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Update selected routine type when initialRoutineType changes
+  useEffect(() => {
+    if (initialRoutineType) {
+      setSelectedRoutineType(initialRoutineType);
+    }
+  }, [initialRoutineType]);
 
   // Activity Library
   const activityLibrary = {
@@ -59,6 +66,20 @@ const RoutineDesigner = ({ userId }) => {
       { name: 'Cold Shower', duration: 5, icon: 'Droplets', color: 'blue' },
       { name: 'Stretching', duration: 10, icon: 'Dumbbell', color: 'green' },
       { name: 'Goal Review', duration: 10, icon: 'Check', color: 'teal' }
+    ],
+    bedtime: [
+      { name: 'Dim the lights', duration: 5, icon: 'Moon', color: 'indigo' },
+      { name: 'Set phone to Do Not Disturb', duration: 2, icon: 'Moon', color: 'purple' },
+      { name: 'Meditation or breathwork', duration: 10, icon: 'Brain', color: 'purple' },
+      { name: 'Journal gratitude', duration: 10, icon: 'BookOpen', color: 'blue' },
+      { name: 'Read a book', duration: 20, icon: 'BookOpen', color: 'indigo' },
+      { name: 'Gentle stretching', duration: 10, icon: 'Dumbbell', color: 'green' },
+      { name: 'Herbal tea', duration: 5, icon: 'Coffee', color: 'orange' },
+      { name: 'Listen to sleep sounds', duration: 30, icon: 'Music', color: 'pink' },
+      { name: 'Cool room temperature', duration: 2, icon: 'Droplets', color: 'cyan' },
+      { name: 'Eye mask and earplugs', duration: 2, icon: 'Moon', color: 'indigo' },
+      { name: 'No screens 1hr before bed', duration: 60, icon: 'Moon', color: 'purple' },
+      { name: 'Skincare routine', duration: 10, icon: 'Heart', color: 'red' }
     ],
     evening: [
       { name: 'Evening Walk', duration: 20, icon: 'Dumbbell', color: 'green' },
@@ -253,8 +274,9 @@ const RoutineDesigner = ({ userId }) => {
 
   const routineTypes = [
     { value: 'morning', label: 'Morning', icon: Sun, color: 'orange' },
-    { value: 'evening', label: 'Evening', icon: Moon, color: 'indigo' },
-    { value: 'sunday', label: 'Sunday', icon: CalendarIcon, color: 'purple' }
+    { value: 'bedtime', label: 'Bedtime', icon: Moon, color: 'indigo' },
+    { value: 'evening', label: 'Evening', icon: Moon, color: 'purple' },
+    { value: 'sunday', label: 'Sunday', icon: CalendarIcon, color: 'gray' }
   ];
 
   const currentRoutine = getCurrentRoutine();

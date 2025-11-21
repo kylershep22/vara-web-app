@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import SidebarLayout from '../components/layout/SidebarLayout';
 import { Target, Clock, Music, Calendar, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -9,8 +10,20 @@ import RoutineDesigner from '../components/focus/RoutineDesigner';
 
 export default function Focus() {
   const { user } = useAuth();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('timer'); // 'timer' | 'history' | 'music' | 'routines'
   const [sessionsRefreshKey, setSessionsRefreshKey] = useState(0);
+  const [initialRoutineType, setInitialRoutineType] = useState(null);
+
+  // Handle deep linking from other pages (e.g., Sleep section)
+  useEffect(() => {
+    if (location.state?.tab) {
+      setActiveTab(location.state.tab);
+    }
+    if (location.state?.routineType) {
+      setInitialRoutineType(location.state.routineType);
+    }
+  }, [location.state]);
 
   const handleSessionComplete = (duration) => {
     // Refresh session history when a new session completes
@@ -105,7 +118,7 @@ export default function Focus() {
           {/* Routines Tab */}
           {activeTab === 'routines' && (
             <div>
-              <RoutineDesigner userId={user?.uid} />
+              <RoutineDesigner userId={user?.uid} initialRoutineType={initialRoutineType} />
             </div>
           )}
         </div>

@@ -228,8 +228,12 @@ export const createGroup = async ({
     name,
     description,
     type, // "public" or "private"
+    isPublic: type === "public", // Add boolean for UI compatibility
     creatorId,
+    createdBy: creatorId, // Add for backwards compatibility
+    ownerId: creatorId, // Add for backwards compatibility
     members: [creatorId],
+    memberCount: 1,
     createdAt: serverTimestamp()
   };
 

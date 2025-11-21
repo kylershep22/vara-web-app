@@ -226,20 +226,31 @@ export default function GoalsHabits() {
   const handleSaveGoal = async (goalData) => {
     if (!user?.uid) return;
     try {
+      // Handle both old and new goal creation formats
       const mappedGoal = {
         title: goalData.goalText ?? goalData.title,
-        category: goalData.focus === 'custom' ? goalData.customFocus : (goalData.focus ?? goalData.category),
+        // Support new streamlined flow (primaryFocus) and old flow (focus/category)
+        category: goalData.primaryFocus ?? (goalData.focus === 'custom' ? goalData.customFocus : (goalData.focus ?? goalData.category)),
+        // Support both old (targetType/measurement) and new (target/unit) formats
         target: goalData.targetType ?? goalData.target,
         unit: goalData.measurement ?? goalData.unit,
-        frequency: goalData.frequency,
-        habitIds: goalData.habitIds ?? [],
         timeframe: goalData.timeframe,
         status: goalData.status ?? 'active',
         progress: goalData.progress ?? 0,
+        habitIds: goalData.habitIds ?? [],
         milestones: goalData.milestones || [],
         userId: user.uid,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
+
+      // Only add optional fields if they have values (avoid Firestore undefined errors)
+      if (goalData.primaryFocus) mappedGoal.primaryFocus = goalData.primaryFocus;
+      if (goalData.refinedFocus) mappedGoal.refinedFocus = goalData.refinedFocus;
+      if (goalData.action) mappedGoal.action = goalData.action;
+      if (goalData.why) mappedGoal.why = goalData.why;
+      if (goalData.frequency) mappedGoal.frequency = goalData.frequency;
+
       await addDoc(collection(db, 'goals'), mappedGoal);
       await fetchGoals();
       setCreatingGoal(false);

@@ -1,17 +1,19 @@
 // src/components/fuelRecovery/SleepSection.jsx
 
 import React, { useState, useEffect } from 'react';
-import { Moon, Play, Pause, Heart, Clock, TrendingUp, Calendar, Plus, Trash2 } from 'lucide-react';
+import { Moon, Play, Pause, Heart, Clock, TrendingUp, Calendar, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 
 const SleepSection = ({ userId }) => {
   const { track, isPlaying, playTrack, togglePlay } = useAudioPlayer();
-  const [activeSubTab, setActiveSubTab] = useState('sounds'); // 'sounds' | 'routine' | 'tracker'
+  const navigate = useNavigate();
+  const [activeSubTab, setActiveSubTab] = useState('sounds'); // 'sounds' | 'tracker'
   const [favorites, setFavorites] = useState([]);
   const [sleepLogs, setSleepLogs] = useState([]);
-  const [bedtimeRoutine, setBedtimeRoutine] = useState([]);
+  const [bedtimeRoutine, setBedtimeRoutine] = useState(null);
   const [showLogForm, setShowLogForm] = useState(false);
   const [logForm, setLogForm] = useState({
     hoursSlept: 7,
@@ -45,20 +47,6 @@ const SleepSection = ({ userId }) => {
       type: 'Nature Sounds',
       audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vara-4a99f.appspot.com/o/audio%2Fforest-night.mp3?alt=media'
     }
-  ];
-
-  // Bedtime routine activity library
-  const routineActivities = [
-    { name: 'Dim the lights', duration: 5, icon: 'Moon' },
-    { name: 'Set phone to Do Not Disturb', duration: 2, icon: 'Moon' },
-    { name: 'Meditation or breathwork', duration: 10, icon: 'Moon' },
-    { name: 'Journal gratitude', duration: 10, icon: 'Moon' },
-    { name: 'Read a book', duration: 20, icon: 'Moon' },
-    { name: 'Gentle stretching', duration: 10, icon: 'Moon' },
-    { name: 'Herbal tea', duration: 5, icon: 'Moon' },
-    { name: 'Listen to sleep sounds', duration: 30, icon: 'Moon' },
-    { name: 'Cool room temperature', duration: 2, icon: 'Moon' },
-    { name: 'Eye mask and earplugs', duration: 2, icon: 'Moon' }
   ];
 
   useEffect(() => {
@@ -102,13 +90,17 @@ const SleepSection = ({ userId }) => {
   const fetchBedtimeRoutine = async () => {
     try {
       const routineQuery = query(
-        collection(db, 'bedtimeRoutines'),
-        where('userId', '==', userId)
+        collection(db, 'routines'),
+        where('userId', '==', userId),
+        where('type', '==', 'bedtime'),
+        where('active', '==', true)
       );
       const snapshot = await getDocs(routineQuery);
       if (!snapshot.empty) {
         const routineDoc = snapshot.docs[0];
-        setBedtimeRoutine(routineDoc.data().activities || []);
+        setBedtimeRoutine({ id: routineDoc.id, ...routineDoc.data() });
+      } else {
+        setBedtimeRoutine(null);
       }
     } catch (error) {
       console.error('Error fetching bedtime routine:', error);
@@ -158,39 +150,6 @@ const SleepSection = ({ userId }) => {
     }
   };
 
-  const addToRoutine = (activity) => {
-    setBedtimeRoutine(prev => [...prev, { ...activity, id: Date.now() }]);
-  };
-
-  const removeFromRoutine = (activityId) => {
-    setBedtimeRoutine(prev => prev.filter(a => a.id !== activityId));
-  };
-
-  const saveRoutine = async () => {
-    if (!userId) return;
-
-    try {
-      // Delete existing routine
-      const existingQuery = query(
-        collection(db, 'bedtimeRoutines'),
-        where('userId', '==', userId)
-      );
-      const snapshot = await getDocs(existingQuery);
-      snapshot.docs.forEach(doc => deleteDoc(doc.ref));
-
-      // Create new routine
-      await addDoc(collection(db, 'bedtimeRoutines'), {
-        userId,
-        activities: bedtimeRoutine,
-        createdAt: serverTimestamp()
-      });
-
-      alert('Bedtime routine saved!');
-    } catch (error) {
-      console.error('Error saving routine:', error);
-    }
-  };
-
   const logSleep = async () => {
     if (!userId) return;
 
@@ -228,6 +187,57 @@ const SleepSection = ({ userId }) => {
 
   return (
     <div className="space-y-6">
+      {/* Bedtime Routine Preview/Link Card */}
+      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border-2 border-indigo-200">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3 flex-1">
+            <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0">
+              <Moon className="text-white" size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-indigo-900 mb-1">Bedtime Routine</h3>
+              <p className="text-sm text-indigo-700 mb-3">
+                Build a consistent routine to improve your sleep quality
+              </p>
+
+              {bedtimeRoutine ? (
+                <div className="space-y-3">
+                  <div className="bg-white/60 rounded-lg p-3 border border-indigo-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-indigo-900">
+                        ✓ {bedtimeRoutine.name}
+                      </span>
+                      <span className="text-xs text-indigo-600">
+                        {bedtimeRoutine.activities?.length || 0} activities
+                      </span>
+                    </div>
+                    <div className="text-xs text-indigo-700">
+                      Total: {bedtimeRoutine.activities?.reduce((sum, a) => sum + (a.duration || 0), 0) || 0} minutes
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => navigate('/focus', { state: { tab: 'routines', routineType: 'bedtime' } })}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-medium text-sm"
+                  >
+                    View & Edit Routine
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => navigate('/focus', { state: { tab: 'routines', routineType: 'bedtime' } })}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-medium text-sm"
+                >
+                  <Plus size={16} />
+                  Create Bedtime Routine
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Sub-tab Navigation */}
       <div className="flex items-center gap-2 border-b border-gray-200">
         <button
@@ -239,16 +249,6 @@ const SleepSection = ({ userId }) => {
           }`}
         >
           Sleep Sounds
-        </button>
-        <button
-          onClick={() => setActiveSubTab('routine')}
-          className={`px-4 py-2 font-medium transition-all border-b-2 ${
-            activeSubTab === 'routine'
-              ? 'border-[#1B5E57] text-[#1B5E57]'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          Bedtime Routine
         </button>
         <button
           onClick={() => setActiveSubTab('tracker')}
@@ -344,95 +344,6 @@ const SleepSection = ({ userId }) => {
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Bedtime Routine Tab */}
-      {activeSubTab === 'routine' && (
-        <div className="space-y-6">
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <h3 className="font-semibold text-purple-900 mb-2">Build Your Bedtime Routine</h3>
-            <p className="text-sm text-purple-700">
-              A consistent bedtime routine signals to your brain that it's time to wind down. Create your ideal routine below.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Activity Library */}
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Activity Library</h3>
-              <div className="space-y-2">
-                {routineActivities.map((activity, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-                  >
-                    <div>
-                      <div className="font-medium text-gray-900">{activity.name}</div>
-                      <div className="text-sm text-gray-500">{activity.duration} min</div>
-                    </div>
-                    <button
-                      onClick={() => addToRoutine(activity)}
-                      className="p-2 bg-[#1B5E57] text-white rounded-lg hover:bg-[#174C46] transition"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Your Routine */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">Your Bedtime Routine</h3>
-                {bedtimeRoutine.length > 0 && (
-                  <button
-                    onClick={saveRoutine}
-                    className="px-4 py-2 bg-[#1B5E57] text-white text-sm rounded-lg hover:bg-[#174C46] transition"
-                  >
-                    Save Routine
-                  </button>
-                )}
-              </div>
-
-              {bedtimeRoutine.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                  <Moon className="mx-auto mb-3 text-gray-300" size={48} />
-                  <p className="font-medium text-gray-700 mb-1">No activities yet</p>
-                  <p className="text-sm text-gray-500">Add activities from the library</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {bedtimeRoutine.map((activity, idx) => (
-                    <div
-                      key={activity.id}
-                      className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg"
-                    >
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {idx + 1}. {activity.name}
-                        </div>
-                        <div className="text-sm text-gray-500">{activity.duration} min</div>
-                      </div>
-                      <button
-                        onClick={() => removeFromRoutine(activity.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-
-                  <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-                    <div className="text-sm font-semibold text-indigo-900">
-                      Total Duration: {bedtimeRoutine.reduce((sum, a) => sum + a.duration, 0)} minutes
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}

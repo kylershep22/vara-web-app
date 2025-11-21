@@ -76,6 +76,25 @@ const GroupPage = () => {
   const [showManageModal, setShowManageModal] = useState(false);
   const [manageTab, setManageTab] = useState('edit'); // edit | members | danger
 
+  // Helper to normalize group data
+  const normalizeGroup = (raw, id) => {
+    const members = Array.isArray(raw?.members) ? raw.members : [];
+    // Convert type to isPublic if isPublic doesn't exist
+    const isPublic =
+      typeof raw?.isPublic === "boolean"
+        ? raw.isPublic
+        : (raw?.type || "").toLowerCase() === "public";
+
+    return {
+      id,
+      ...raw,
+      isPublic,
+      members,
+      memberCount:
+        typeof raw?.memberCount === "number" ? raw.memberCount : members.length
+    };
+  };
+
   // Fetch group info
   useEffect(() => {
     if (!groupId) return;
@@ -85,21 +104,24 @@ const GroupPage = () => {
         const docRef = doc(db, 'groups', groupId);
         const snapshot = await getDoc(docRef);
         if (snapshot.exists()) {
-          setGroup({ id: snapshot.id, ...snapshot.data() });
+          // Use normalizeGroup to ensure isPublic is set correctly
+          const normalizedGroup = normalizeGroup(snapshot.data(), snapshot.id);
+          setGroup(normalizedGroup);
         } else {
-          toast.error('Group not found');
+          toast?.error('Group not found');
           navigate('/community');
         }
       } catch (error) {
         console.error('Error fetching group:', error);
-        toast.error('Failed to load group');
+        toast?.error('Failed to load group');
       } finally {
         setLoading(false);
       }
     };
 
     fetchGroup();
-  }, [groupId, navigate, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]); // Only re-run when groupId changes
 
   // Listen for posts in this group (using 'posts' collection, not 'groupPosts')
   useEffect(() => {
@@ -291,7 +313,10 @@ const GroupPage = () => {
   if (!group) return null;
 
   const isMember = group.members?.includes(user?.uid);
-  const isCreator = group.createdBy === user?.uid;
+  // Check all possible owner field names for backwards compatibility
+  const isCreator = group.createdBy === user?.uid ||
+                    group.ownerId === user?.uid ||
+                    group.creatorId === user?.uid;
 
   // Manage Group Modal Component
   const ManageGroupModal = () => {
@@ -344,7 +369,17 @@ const GroupPage = () => {
     const handleSaveChanges = async () => {
       setIsSaving(true);
       try {
-        await updateDoc(doc(db, 'groups', groupId), editForm);
+        // Ensure both isPublic and type fields are synchronized
+        const updateData = {
+          ...editForm,
+          type: editForm.isPublic ? 'public' : 'private' // Keep type in sync
+        };
+        await updateDoc(doc(db, 'groups', groupId), updateData);
+
+        // Update local state with normalized group data
+        const updatedGroup = normalizeGroup({ ...group, ...updateData }, groupId);
+        setGroup(updatedGroup);
+
         toast.success('Group updated successfully!');
         setShowManageModal(false);
       } catch (error) {
@@ -505,7 +540,7 @@ const GroupPage = () => {
                         <p className="text-sm text-gray-500">{member.email}</p>
                       </div>
                     </div>
-                    {member.id === group.createdBy ? (
+                    {(member.id === group.createdBy || member.id === group.ownerId || member.id === group.creatorId) ? (
                       <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-full">
                         Creator
                       </span>
@@ -725,7 +760,7 @@ const GroupPage = () => {
                       <p className="font-medium text-gray-900">{member.displayName || member.name || 'Anonymous'}</p>
                       <p className="text-sm text-gray-500">{member.email}</p>
                     </div>
-                    {member.id === group.createdBy && (
+                    {(member.id === group.createdBy || member.id === group.ownerId || member.id === group.creatorId) && (
                       <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
                         Creator
                       </span>
