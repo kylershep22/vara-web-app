@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
-import { colors, spacing } from '../constants';
+import { Colors as colors, Spacing as spacing } from '../constants';
 import { db } from '../config/firebase';
 import {
   collection,

@@ -7,11 +7,17 @@ export const Colors = {
   // Primary Colors
   evergreenTeal: '#1B5E57',
   silverSage: '#B8CDBA',
+  primary: '#1B5E57', // Alias for evergreenTeal
 
   // Secondary Colors
   sunriseAmber: '#F4C542',
   goldenApricot: '#F5B971',
   warmClay: '#E4BFA1',
+  secondary: {
+    amber: '#F4C542',
+    sage: '#B8CDBA',
+    apricot: '#F5B971',
+  },
 
   // Neutral Colors
   mistWhite: '#FAFAF6',
@@ -22,7 +28,10 @@ export const Colors = {
   oliveSage: '#9AAE8C',
 
   // Functional Colors
-  background: '#FAFAF6',
+  background: {
+    default: '#FAFAF6',
+    surface: '#FFFFFF',
+  },
   surface: '#FFFFFF',
   error: '#D32F2F',
   success: '#388E3C',
@@ -30,6 +39,12 @@ export const Colors = {
   info: '#1976D2',
 
   // Text Colors
+  text: {
+    primary: '#3E3E3E',
+    secondary: '#757575',
+    disabled: '#BDBDBD',
+    onPrimary: '#FFFFFF',
+  },
   textPrimary: '#3E3E3E',
   textSecondary: '#757575',
   textDisabled: '#BDBDBD',

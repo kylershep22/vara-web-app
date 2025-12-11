@@ -24,7 +24,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { colors, spacing } from '../constants';
+import { Colors as colors, Spacing as spacing } from '../constants';
 
 interface UserProfile {
   displayName: string;

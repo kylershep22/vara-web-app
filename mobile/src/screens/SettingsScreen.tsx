@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { colors, spacing } from '../constants';
+import { Colors as colors, Spacing as spacing } from '../constants';
 
 interface Settings {
   notificationsEnabled: boolean;
