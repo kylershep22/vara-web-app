@@ -208,9 +208,10 @@ service cloud.firestore {
       // This is a security trade-off to allow queries to work
       allow read: if isAuthenticated();
 
-      // Create: if user is a group member and is the author
+      // Create: if user is the author (support both userId and authorId fields)
       allow create: if isAuthenticated() &&
-        request.auth.uid == request.resource.data.authorId &&
+        (request.auth.uid == request.resource.data.userId ||
+         request.auth.uid == request.resource.data.authorId) &&
         (
           // If it's a group post, user must be a member
           !request.resource.data.groupId ||
@@ -219,11 +220,15 @@ service cloud.firestore {
            request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.members)
         );
 
-      // Update: only post author
-      allow update: if isAuthenticated() && request.auth.uid == resource.data.authorId;
+      // Update: only post author (support both userId and authorId fields)
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.authorId
+      );
 
       // Delete: post author or group owner (if group post)
       allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.authorId ||
         (resource.data.groupId &&
          exists(/databases/$(database)/documents/groups/$(resource.data.groupId)) &&
@@ -261,27 +266,36 @@ service cloud.firestore {
     // Connections (unified collection for requests and accepted connections)
     // Data model: { requesterId, addresseeId, participants: [requesterId, addresseeId], status: 'pending'|'accepted'|'declined'|'canceled' }
     match /connections/{connectionId} {
-      // Read: if user is requester, addressee, or in participants array
+      // Read: if user is one of the two people in the connection (a or b)
+      // Also support legacy fields (requesterId, addresseeId, participants)
       allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.a ||
+        request.auth.uid == resource.data.b ||
         request.auth.uid == resource.data.requesterId ||
         request.auth.uid == resource.data.addresseeId ||
         request.auth.uid in resource.data.participants
       );
 
-      // Create: if user is the requester and is in participants
+      // Create: if user is one of the participants
       allow create: if isAuthenticated() && (
-        request.auth.uid == request.resource.data.requesterId &&
+        request.auth.uid == request.resource.data.a ||
+        request.auth.uid == request.resource.data.b ||
+        request.auth.uid == request.resource.data.requesterId ||
         request.auth.uid in request.resource.data.participants
       );
 
-      // Update: if user is requester or addressee (for status changes)
+      // Update: if user is one of the two people in the connection
       allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.a ||
+        request.auth.uid == resource.data.b ||
         request.auth.uid == resource.data.requesterId ||
         request.auth.uid == resource.data.addresseeId
       );
 
-      // Delete: if user is requester or addressee
+      // Delete: if user is one of the two people in the connection
       allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.a ||
+        request.auth.uid == resource.data.b ||
         request.auth.uid == resource.data.requesterId ||
         request.auth.uid == resource.data.addresseeId
       );
