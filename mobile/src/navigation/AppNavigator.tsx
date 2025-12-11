@@ -25,6 +25,10 @@ import DashboardScreen from '../screens/DashboardScreen';
 import PlanScreen from '../screens/PlanScreen';
 import FocusScreen from '../screens/FocusScreen';
 import JournalScreen from '../screens/JournalScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import ConversationsScreen from '../screens/ConversationsScreen';
+import ChatScreen from '../screens/ChatScreen';
 import {
   CommunityScreen,
   GroupsScreen,
@@ -36,6 +40,8 @@ import {
 const AuthStack = createNativeStackNavigator();
 const AppStack = createNativeStackNavigator();
 const CommunityStack = createNativeStackNavigator();
+const MessagesStack = createNativeStackNavigator();
+const ProfileStack = createNativeStackNavigator();
 const BottomTabs = createBottomTabNavigator();
 
 /**
@@ -74,6 +80,92 @@ const CommunityNavigator = () => {
       <CommunityStack.Screen name="People" component={PeopleScreen} />
       <CommunityStack.Screen name="Messages" component={MessagesScreen} />
     </CommunityStack.Navigator>
+  );
+};
+
+/**
+ * Messages Stack Navigator
+ * Navigation for direct messaging
+ */
+const MessagesNavigator = () => {
+  return (
+    <MessagesStack.Navigator
+      screenOptions={{
+        animation: 'slide_from_right',
+      }}
+    >
+      <MessagesStack.Screen
+        name="Conversations"
+        component={ConversationsScreen}
+        options={{
+          title: 'Messages',
+          headerStyle: {
+            backgroundColor: Colors.evergreenTeal,
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: '700',
+          },
+        }}
+      />
+      <MessagesStack.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{
+          title: 'Chat',
+          headerStyle: {
+            backgroundColor: Colors.evergreenTeal,
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: '700',
+          },
+        }}
+      />
+    </MessagesStack.Navigator>
+  );
+};
+
+/**
+ * Profile Stack Navigator
+ * Navigation for profile and settings
+ */
+const ProfileNavigator = () => {
+  return (
+    <ProfileStack.Navigator
+      screenOptions={{
+        animation: 'slide_from_right',
+      }}
+    >
+      <ProfileStack.Screen
+        name="ProfileMain"
+        component={ProfileScreen}
+        options={{
+          title: 'Profile',
+          headerStyle: {
+            backgroundColor: Colors.evergreenTeal,
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: '700',
+          },
+        }}
+      />
+      <ProfileStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          title: 'Settings',
+          headerStyle: {
+            backgroundColor: Colors.evergreenTeal,
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: '700',
+          },
+        }}
+      />
+    </ProfileStack.Navigator>
   );
 };
 
@@ -149,6 +241,26 @@ const BottomTabsNavigator = () => {
           tabBarLabel: 'Community',
           tabBarIcon: ({ color, size }) => (
             <Icon name="account-group" size={size} color={color} />
+          ),
+        }}
+      />
+      <BottomTabs.Screen
+        name="Messages"
+        component={MessagesNavigator}
+        options={{
+          tabBarLabel: 'Messages',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="message-text" size={size} color={color} />
+          ),
+        }}
+      />
+      <BottomTabs.Screen
+        name="Profile"
+        component={ProfileNavigator}
+        options={{
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="account" size={size} color={color} />
           ),
         }}
       />
