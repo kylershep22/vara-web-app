@@ -3,9 +3,9 @@
  * Personal journaling with AI prompts and mood tracking
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert, TextInput as RNTextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, FAB, Portal, Modal, Button as PaperButton, Searchbar, Chip } from 'react-native-paper';
+import { Text, FAB, Portal, Modal, Button as PaperButton, Searchbar, Chip, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Input, Card, LoadingSpinner } from '../components';
 import { Colors, Spacing } from '../constants';
@@ -14,6 +14,7 @@ import { useJournal } from '../hooks';
 import { createJournalEntry, updateJournalEntry, deleteJournalEntry } from '../services/firebase';
 import { getJournalPrompt } from '../services/api';
 import { JournalEntry } from '../types';
+import { Ionicons } from '@expo/vector-icons';
 
 const MOODS = [
   { value: 'great', emoji: '😄', label: 'Great' },
@@ -27,6 +28,8 @@ const JournalScreen: React.FC = () => {
   const { user } = useAuth();
   const { entries, loading } = useJournal();
   const [modalVisible, setModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
@@ -37,6 +40,7 @@ const JournalScreen: React.FC = () => {
   const [tagInput, setTagInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingPrompt, setLoadingPrompt] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   // Filter entries by search query
   const filteredEntries = useMemo(() => {
@@ -171,49 +175,73 @@ const JournalScreen: React.FC = () => {
     );
   };
 
+  const handleVoiceInput = async () => {
+    Alert.alert(
+      'Voice Input',
+      'Voice-to-text feature is coming soon! This will allow you to dictate your journal entries using your device microphone.',
+      [{ text: 'OK' }]
+    );
+    // TODO: Implement voice recognition
+    // This would use expo-speech-recognition or @react-native-voice/voice
+  };
+
+  const handleViewEntry = (entry: JournalEntry) => {
+    setSelectedEntry(entry);
+    setDetailModalVisible(true);
+  };
+
   const getMoodEmoji = (mood: string) => {
     return MOODS.find((m) => m.value === mood)?.emoji || '😐';
   };
 
+  const truncateText = (text: string, maxLength: number = 150) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + '...';
+  };
+
   const renderEntry = (entry: JournalEntry) => (
-    <Card style={styles.entryCard} key={entry.id}>
-      <View style={styles.entryHeader}>
-        <Text style={styles.moodEmoji}>{getMoodEmoji(entry.mood)}</Text>
-        <Text variant="bodySmall" style={styles.entryTime}>
-          {new Date(entry.createdAt.seconds * 1000).toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-          })}
-        </Text>
-      </View>
-
-      <Text variant="bodyMedium" style={styles.entryContent}>
-        {entry.content}
-      </Text>
-
-      {entry.tags && entry.tags.length > 0 && (
-        <View style={styles.tagsContainer}>
-          {entry.tags.map((tag) => (
-            <Chip key={tag} style={styles.tag} textStyle={styles.tagText}>
-              #{tag}
-            </Chip>
-          ))}
+    <TouchableOpacity
+      key={entry.id}
+      onPress={() => handleViewEntry(entry)}
+      activeOpacity={0.7}
+    >
+      <Card style={styles.entryCard}>
+        <View style={styles.entryHeader}>
+          <Text style={styles.moodEmoji}>{getMoodEmoji(entry.mood)}</Text>
+          <Text variant="bodySmall" style={styles.entryTime}>
+            {new Date(entry.createdAt.seconds * 1000).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+            })}
+          </Text>
         </View>
-      )}
 
-      <View style={styles.entryActions}>
-        <Button variant="text" onPress={() => handleEditEntry(entry)} style={styles.actionButton}>
-          Edit
-        </Button>
-        <Button
-          variant="text"
-          onPress={() => handleDeleteEntry(entry.id)}
-          style={styles.deleteButton}
-        >
-          Delete
-        </Button>
-      </View>
-    </Card>
+        <Text variant="bodyMedium" style={styles.entryPreview} numberOfLines={3}>
+          {truncateText(entry.content)}
+        </Text>
+
+        {entry.tags && entry.tags.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {entry.tags.slice(0, 3).map((tag) => (
+              <Chip key={tag} style={styles.tag} textStyle={styles.tagText}>
+                #{tag}
+              </Chip>
+            ))}
+            {entry.tags.length > 3 && (
+              <Text variant="bodySmall" style={styles.moreTagsText}>
+                +{entry.tags.length - 3} more
+              </Text>
+            )}
+          </View>
+        )}
+
+        <View style={styles.entryFooter}>
+          <Text variant="bodySmall" style={styles.readMoreText}>
+            Tap to read more
+          </Text>
+        </View>
+      </Card>
+    </TouchableOpacity>
   );
 
   const renderDateSection = ({ item }: { item: [string, JournalEntry[]] }) => {
@@ -342,16 +370,33 @@ const JournalScreen: React.FC = () => {
                 Get AI Writing Prompt
               </PaperButton>
 
-              {/* Content Input */}
-              <Input
-                label="What's on your mind? *"
-                value={formData.content}
-                onChangeText={(text) => setFormData({ ...formData, content: text })}
-                placeholder="Write your thoughts..."
-                multiline
-                numberOfLines={8}
-                style={styles.contentInput}
-              />
+              {/* Content Input with Voice Button */}
+              <View style={styles.contentInputContainer}>
+                <Text variant="bodyMedium" style={styles.fieldLabel}>
+                  What's on your mind? *
+                </Text>
+                <View style={styles.textInputWithVoice}>
+                  <RNTextInput
+                    value={formData.content}
+                    onChangeText={(text) => setFormData({ ...formData, content: text })}
+                    placeholder="Write your thoughts or use voice input..."
+                    multiline
+                    numberOfLines={15}
+                    style={styles.largeTextInput}
+                    textAlignVertical="top"
+                  />
+                  <TouchableOpacity
+                    style={styles.voiceButton}
+                    onPress={handleVoiceInput}
+                  >
+                    <Ionicons
+                      name={isRecording ? 'mic' : 'mic-outline'}
+                      size={24}
+                      color={isRecording ? Colors.error : Colors.evergreenTeal}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
 
               {/* Tags Input */}
               <Text variant="bodyMedium" style={styles.fieldLabel}>
@@ -417,6 +462,92 @@ const JournalScreen: React.FC = () => {
           </KeyboardAvoidingView>
         </Modal>
       </Portal>
+
+      {/* Entry Detail Modal */}
+      <Portal>
+        <Modal
+          visible={detailModalVisible}
+          onDismiss={() => setDetailModalVisible(false)}
+          contentContainerStyle={styles.detailModal}
+        >
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {selectedEntry && (
+              <>
+                <View style={styles.detailHeader}>
+                  <View style={styles.detailMoodRow}>
+                    <Text style={styles.detailMoodEmoji}>{getMoodEmoji(selectedEntry.mood)}</Text>
+                    <View style={styles.detailDateContainer}>
+                      <Text variant="titleMedium" style={styles.detailDate}>
+                        {new Date(selectedEntry.createdAt.seconds * 1000).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </Text>
+                      <Text variant="bodySmall" style={styles.detailTime}>
+                        {new Date(selectedEntry.createdAt.seconds * 1000).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <Text variant="bodyLarge" style={styles.detailContent}>
+                  {selectedEntry.content}
+                </Text>
+
+                {selectedEntry.tags && selectedEntry.tags.length > 0 && (
+                  <View style={styles.detailTagsContainer}>
+                    {selectedEntry.tags.map((tag) => (
+                      <Chip key={tag} style={styles.detailTag} textStyle={styles.tagText}>
+                        #{tag}
+                      </Chip>
+                    ))}
+                  </View>
+                )}
+
+                <View style={styles.detailActions}>
+                  <PaperButton
+                    mode="outlined"
+                    onPress={() => {
+                      setDetailModalVisible(false);
+                      handleEditEntry(selectedEntry);
+                    }}
+                    style={styles.detailActionButton}
+                    icon="pencil"
+                  >
+                    Edit
+                  </PaperButton>
+                  <PaperButton
+                    mode="outlined"
+                    onPress={() => {
+                      setDetailModalVisible(false);
+                      handleDeleteEntry(selectedEntry.id);
+                    }}
+                    style={styles.detailActionButton}
+                    icon="delete"
+                    textColor={Colors.error}
+                  >
+                    Delete
+                  </PaperButton>
+                </View>
+
+                <PaperButton
+                  mode="contained"
+                  onPress={() => setDetailModalVisible(false)}
+                  style={styles.closeButton}
+                  buttonColor={Colors.evergreenTeal}
+                >
+                  Close
+                </PaperButton>
+              </>
+            )}
+          </ScrollView>
+        </Modal>
+      </Portal>
     </SafeAreaView>
   );
 };
@@ -477,6 +608,26 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.sm,
     lineHeight: 22,
+  },
+  entryPreview: {
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+    lineHeight: 22,
+  },
+  entryFooter: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+    paddingTop: Spacing.sm,
+    alignItems: 'center',
+  },
+  readMoreText: {
+    color: Colors.evergreenTeal,
+    fontWeight: '600',
+  },
+  moreTagsText: {
+    color: Colors.textSecondary,
+    alignSelf: 'center',
+    marginLeft: Spacing.xs,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -583,6 +734,42 @@ const styles = StyleSheet.create({
   contentInput: {
     marginBottom: Spacing.md,
   },
+  contentInputContainer: {
+    marginBottom: Spacing.md,
+  },
+  textInputWithVoice: {
+    position: 'relative',
+  },
+  largeTextInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: Spacing.md,
+    fontSize: 16,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.background,
+    minHeight: 200,
+    maxHeight: 300,
+  },
+  voiceButton: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    right: Spacing.sm,
+    backgroundColor: Colors.surface,
+    padding: Spacing.sm,
+    borderRadius: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
   tagInputContainer: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -619,6 +806,66 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
+  },
+  // Detail Modal Styles
+  detailModal: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.lg,
+    marginVertical: Spacing.xl * 2,
+    borderRadius: 16,
+    padding: Spacing.lg,
+    maxHeight: '85%',
+  },
+  detailHeader: {
+    marginBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  detailMoodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  detailMoodEmoji: {
+    fontSize: 48,
+  },
+  detailDateContainer: {
+    flex: 1,
+  },
+  detailDate: {
+    color: Colors.evergreenTeal,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  detailTime: {
+    color: Colors.textSecondary,
+  },
+  detailContent: {
+    color: Colors.textPrimary,
+    lineHeight: 26,
+    fontSize: 16,
+    marginBottom: Spacing.lg,
+  },
+  detailTagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.lg,
+  },
+  detailTag: {
+    backgroundColor: Colors.dewSage,
+  },
+  detailActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  detailActionButton: {
+    flex: 1,
+  },
+  closeButton: {
+    marginTop: Spacing.sm,
   },
 });
 
