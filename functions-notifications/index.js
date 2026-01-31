@@ -13,6 +13,7 @@ const {setGlobalOptions} = require("firebase-functions");
 const {onDocumentCreated} =
   require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
+const {Expo} = require("expo-server-sdk");
 
 setGlobalOptions({maxInstances: 10});
 
@@ -21,6 +22,9 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 const db = admin.firestore();
+
+// Initialize Expo SDK
+const expo = new Expo();
 
 /**
  * Get a user's display name (fallbacks to 'Someone').
@@ -76,6 +80,56 @@ async function createBellNotification(n) {
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   };
   await db.collection("notifications").add(payload);
+}
+
+/**
+ * Send an Expo push notification to a user's device.
+ * @param {string} toUid - The user ID to send notification to
+ * @param {string} title - Notification title
+ * @param {string} body - Notification body
+ * @param {object=} data - Additional data to send with notification
+ * @return {Promise<void>}
+ */
+async function sendPushNotification(toUid, title, body, data = {}) {
+  try {
+    // Get user's push token
+    const userSnap = await db.doc(`users/${toUid}`).get();
+    if (!userSnap.exists) {
+      console.log(`User ${toUid} not found for push notification`);
+      return;
+    }
+
+    const userData = userSnap.data();
+    const pushToken = userData.expoPushToken;
+
+    if (!pushToken) {
+      console.log(`No push token for user ${toUid}`);
+      return;
+    }
+
+    // Verify the token is valid
+    if (!Expo.isExpoPushToken(pushToken)) {
+      console.error(`Invalid push token for user ${toUid}: ${pushToken}`);
+      return;
+    }
+
+    // Construct the notification message
+    const message = {
+      to: pushToken,
+      sound: "default",
+      title,
+      body,
+      data,
+      priority: "high",
+      channelId: "default",
+    };
+
+    // Send the notification
+    const ticket = await expo.sendPushNotificationsAsync([message]);
+    console.log(`Push notification sent to ${toUid}:`, ticket);
+  } catch (error) {
+    console.error(`Error sending push notification to ${toUid}:`, error);
+  }
 }
 
 /**
@@ -165,6 +219,7 @@ exports.notifyOnDirectMessageCreated = onDocumentCreated(
 
       const toUid = data.receiverId;
       const fromUid = data.senderId;
+      const conversationId = data.conversationId;
       const text = (data.text || "").toString();
       if (!toUid || !fromUid) return;
 
@@ -173,6 +228,7 @@ exports.notifyOnDirectMessageCreated = onDocumentCreated(
       const title = "New message";
       const body = `${fromName}: ${text.slice(0, 120)}`;
 
+      // Create in-app notification
       await createBellNotification({
         recipientId: toUid,
         type: "message",
@@ -180,6 +236,18 @@ exports.notifyOnDirectMessageCreated = onDocumentCreated(
         body,
         link: "/community?tab=messages", // adjust to your messages route
       });
+
+      // Send push notification to user's device
+      await sendPushNotification(
+          toUid,
+          title,
+          body,
+          {
+            type: "message",
+            conversationId,
+            senderId: fromUid,
+          },
+      );
 
       // Optional email
       await sendEmailIfConfigured(

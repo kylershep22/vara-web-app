@@ -99,7 +99,7 @@ export const useConnections = () => {
   const getConnectionIds = (): string[] => {
     if (!user) return [];
 
-    return connections
+    const ids = connections
       .map((conn) => {
         // Service layer normalizes to a/b format
         if (conn.a && conn.b) {
@@ -108,6 +108,9 @@ export const useConnections = () => {
         return null;
       })
       .filter((id): id is string => id !== null);
+
+    // Remove duplicates using Set
+    return Array.from(new Set(ids));
   };
 
   const isConnected = (userId: string): boolean => {

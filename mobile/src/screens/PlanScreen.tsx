@@ -3,17 +3,28 @@
  * Consolidated screen for Goals, Habits, and Tasks
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, SegmentedButtons } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Spacing } from '../constants';
+import { useRoute } from '@react-navigation/native';
+import { Colors, Spacing, Typography } from '../constants';
 import GoalsScreen from './GoalsScreen';
 import HabitsScreen from './HabitsScreen';
 import TasksScreen from './TasksScreen';
+import InsightsScreen from './InsightsScreen';
 
 const PlanScreen: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('goals');
+  const route = useRoute();
+  const params = route.params as { tab?: string } | undefined;
+  const [activeTab, setActiveTab] = useState(params?.tab || 'goals');
+
+  // Update tab when route params change
+  useEffect(() => {
+    if (params?.tab) {
+      setActiveTab(params.tab);
+    }
+  }, [params?.tab]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -22,7 +33,7 @@ const PlanScreen: React.FC = () => {
           Plan
         </Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          Set goals, build habits, manage tasks
+          Manage your wellness journey
         </Text>
       </View>
 
@@ -35,6 +46,7 @@ const PlanScreen: React.FC = () => {
             { value: 'goals', label: 'Goals' },
             { value: 'habits', label: 'Habits' },
             { value: 'tasks', label: 'Tasks' },
+            { value: 'insights', label: 'Insights' },
           ]}
           style={styles.segmentedButtons}
         />
@@ -45,6 +57,7 @@ const PlanScreen: React.FC = () => {
         {activeTab === 'goals' && <GoalsScreen hideHeader />}
         {activeTab === 'habits' && <HabitsScreen hideHeader />}
         {activeTab === 'tasks' && <TasksScreen hideHeader />}
+        {activeTab === 'insights' && <InsightsScreen hideHeader />}
       </View>
     </SafeAreaView>
   );
@@ -61,7 +74,7 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     color: Colors.evergreenTeal,
-    fontWeight: '700',
+    fontWeight: Typography.fontWeight.bold,
   },
   subtitle: {
     color: Colors.textSecondary,

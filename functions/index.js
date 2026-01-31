@@ -428,6 +428,14 @@ exports.api = onRequest(
           return await handleAIChat(req, res);
         } else if (path === "/api/openai" || path === "/openai") {
           return await handleOpenAISuggestions(req, res);
+        } else if (path === "/api/journal-prompt" || path === "/journal-prompt") {
+          return await handleJournalPrompt(req, res);
+        } else if (path === "/api/generate-daily-plan" || path === "/generate-daily-plan") {
+          return await handleGenerateDailyPlan(req, res);
+        } else if (path === "/api/week-recap-suggestions" || path === "/week-recap-suggestions") {
+          return await handleWeekRecapSuggestions(req, res);
+        } else if (path === "/" || path === "/api" || path === "/api/") {
+          return res.status(200).send("Wellness AI backend is running ✅");
         } else {
           return res.status(404).json({error: `Route not found: ${path}`});
         }
@@ -497,15 +505,45 @@ async function handleAIChat(req, res) {
 
   try {
     const {messages = [], context = {}} = req.body || {};
-    const {page, userSummary} = context || {};
+    const {page, userSummary, brainMetrics} = context || {};
+
+    // Build brain health context section
+    let brainHealthContext = "";
+    if (brainMetrics) {
+      const {readinessScore, neuroplasticityCount, amccStreak, nervousSystemToolUses, lastCheckIn} = brainMetrics;
+
+      brainHealthContext = `
+Brain Health Status:
+  - Readiness Score: ${readinessScore || "Not checked today"} ${
+        readinessScore >= 75 ? "(Excellent - ready for peak performance)" :
+        readinessScore >= 50 ? "(Good - pace yourself)" :
+        readinessScore > 0 ? "(Low - brain needs extra care)" : ""
+      }
+  - Neuroplasticity signals this week: ${neuroplasticityCount || 0} ${
+        neuroplasticityCount === 0 ? "(encourage trying something uncomfortable/new)" : ""
+      }
+  - AMCC challenges streak: ${amccStreak || 0} days ${
+        amccStreak === 0 ? "(suggest a willpower-building challenge)" : ""
+      }
+  - Nervous system regulation tools used: ${nervousSystemToolUses || 0}
+  - Last check-in: ${lastCheckIn || "Never"}
+`;
+    }
 
     const systemPrompt = `
-You are Vara, an empathetic, strengths-based wellness coach.
+You are Vara, an empathetic, brain-first wellness coach focused on the 5 pillars of brain health:
+1. Neuroplasticity (growth through challenge)
+2. Neuroenergy (sleep, movement, nutrition)
+3. Neurofocus (attention, concentration)
+4. Neuroresilience (stress tolerance, recovery)
+5. Neurosocial (connection, belonging)
+
 Be concise, encouraging, and specific. Offer practical next steps users can do today.
 Avoid medical claims or diagnoses.
 
 Context:
 - Current page: ${page?.label || "Unknown"} (path: ${page?.path || "/"})
+${brainHealthContext}
 - User summary (short):
   - Goals: ${
   (userSummary?.goals || [])
@@ -531,10 +569,14 @@ Context:
 }
 
 Guidelines:
-- Prefer small, achievable steps over long lectures.
-- Offer at most 1–3 options.
-- If user asks for a plan, give time-boxed steps (e.g., "10 minutes today").
-- If a query is missing info, ask a single clarifying question.
+- Use brain health insights to tailor recommendations (e.g., low readiness = shorter focus sessions)
+- Suggest neuroplasticity signals when user hasn't had any recently
+- Encourage AMCC challenges (cold exposure, difficult movement, uncomfortable conversations)
+- Recommend nervous system tools when user seems stressed
+- Prefer small, achievable steps over long lectures
+- Offer at most 1–3 options
+- If user asks for a plan, give time-boxed steps (e.g., "10 minutes today")
+- If a query is missing info, ask a single clarifying question
     `.trim();
 
     const history = [
@@ -608,6 +650,158 @@ async function handleOpenAISuggestions(req, res) {
   } catch (err) {
     logger.error("OpenAI suggestion error:", err);
     return res.status(500).json({error: "Failed to generate AI suggestions"});
+  }
+}
+
+/**
+ * Handler: /api/journal-prompt
+ * Generates AI journal prompts with brain health focus
+ */
+async function handleJournalPrompt(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({error: "Method not allowed"});
+  }
+
+  const {prompt, brainFocused} = req.body || {};
+
+  try {
+    const openai = await makeOpenAI();
+
+    // Brain-focused system prompt
+    const systemContent = brainFocused ?
+      `You are a thoughtful journaling assistant focused on brain health and neuroplasticity.
+Your prompts encourage reflection on:
+- Growth through challenge (neuroplasticity)
+- What felt uncomfortable or new today
+- Learning and adaptation
+- Stress tolerance and recovery (resilience)
+- Connection and belonging (neurosocial health)
+
+Keep prompts open-ended, specific, and actionable.` :
+      "You are a thoughtful journaling assistant.";
+
+    // Default brain-focused prompts if no specific prompt provided
+    const userContent = prompt ||
+      (brainFocused ?
+        "Give me a reflective journal prompt focused on neuroplasticity and growth through challenge." :
+        "Give me a reflective journal prompt focused on mindfulness and gratitude.");
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {role: "system", content: systemContent},
+        {role: "user", content: userContent},
+      ],
+      temperature: 0.7,
+    });
+
+    const text = response.choices?.[0]?.message?.content || "";
+    return res.status(200).json({prompt: text});
+  } catch (err) {
+    logger.error("Journal prompt error:", err);
+    return res.status(500).json({error: "Failed to generate journal prompt"});
+  }
+}
+
+/**
+ * Handler: /api/generate-daily-plan
+ * Generates personalized daily plans
+ */
+async function handleGenerateDailyPlan(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({error: "Method not allowed"});
+  }
+
+  const {goals, habits, tasks, preferences} = req.body || {};
+
+  try {
+    const openai = await makeOpenAI();
+
+    const systemPrompt = `You are Vara, a supportive wellness coach creating personalized daily plans.
+Focus on realistic, achievable steps that align with the user's goals and habits.
+Keep suggestions practical and time-bound.`;
+
+    const userPrompt = `Create a daily plan for me based on:
+- Goals: ${JSON.stringify(goals || [])}
+- Habits: ${JSON.stringify(habits || [])}
+- Tasks: ${JSON.stringify(tasks || [])}
+- Preferences: ${JSON.stringify(preferences || {})}
+
+Provide a structured plan with morning, afternoon, and evening suggestions.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {role: "system", content: systemPrompt},
+        {role: "user", content: userPrompt},
+      ],
+      temperature: 0.7,
+    });
+
+    const plan = response.choices?.[0]?.message?.content || "";
+    return res.status(200).json({plan});
+  } catch (err) {
+    logger.error("Daily plan error:", err);
+    return res.status(500).json({error: "Failed to generate daily plan"});
+  }
+}
+
+/**
+ * Handler: /api/week-recap-suggestions
+ * Generates AI suggestions for week recap (4-3-2-1 format)
+ */
+async function handleWeekRecapSuggestions(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({error: "Method not allowed"});
+  }
+
+  const {userId, weekData, currentRecap} = req.body || {};
+
+  if (!userId || !weekData) {
+    return res.status(400).json({error: "Missing required fields: userId and weekData"});
+  }
+
+  try {
+    const openai = await makeOpenAI();
+    const {goals = [], habits = [], recentJournals = []} = weekData;
+
+    const systemPrompt = `You are Vara, an empathetic wellness coach helping users reflect on their week.
+Based on the user's goals, habits, and recent journal entries, suggest thoughtful responses for their 4-3-2-1 week recap:
+- 4 moments of joy
+- 3 ways they fueled their mind or body
+
+Be specific and personalized based on their actual activities. Keep suggestions concise and positive.
+Return only a JSON object with "momentsOfJoy" (array of 4 strings) and "mindBodyFuel" (array of 3 strings).`;
+
+    const userPrompt = `User's Week Context:
+- Goals: ${goals.join(", ") || "None"}
+- Habits: ${habits.map((h) => `${h.name || "Habit"} (${h.streak || 0} day streak)`).join(", ") || "None"}
+- Recent Journal Entries: ${recentJournals.join(" | ") || "None"}
+
+Current Recap (if any):
+${JSON.stringify(currentRecap, null, 2)}
+
+Based on this information, suggest:
+1. 4 moments of joy they might have experienced
+2. 3 ways they likely fueled their mind or body
+
+Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {role: "system", content: systemPrompt},
+        {role: "user", content: userPrompt},
+      ],
+      temperature: 0.7,
+      response_format: {type: "json_object"},
+    });
+
+    const suggestions = JSON.parse(response.choices?.[0]?.message?.content || "{}");
+    return res.status(200).json(suggestions);
+  } catch (err) {
+    logger.error("Week recap suggestions error:", err);
+    return res.status(500).json({error: "Failed to generate suggestions"});
   }
 }
 

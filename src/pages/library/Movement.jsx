@@ -74,11 +74,24 @@ export default function Movement() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <Dumbbell size={28} className="text-[#1B5E57]" />
-          <h1 className="text-2xl font-semibold text-[#3E3E3E]">Movement Library</h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-[#3E3E3E]">Movement Library</h1>
+            <p className="text-sm text-[#1B5E57] font-medium">Blood Flow Boost & Cognitive Priming</p>
+          </div>
         </div>
-        <p className="text-[#9AAE8C] mb-8 max-w-xl">
-          Light movement routines to improve flexibility, energy, and overall body awareness — no equipment needed.
+        <p className="text-[#9AAE8C] mb-4 max-w-2xl">
+          Movement is medicine for your brain. Physical activity increases blood flow to your brain, releases growth factors that build new neurons, and triggers osteocalcin - a bone hormone that enhances memory and learning.
         </p>
+        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 mb-8 max-w-2xl">
+          <h3 className="text-sm font-semibold text-emerald-900 mb-2">Brain Health Benefits of Movement</h3>
+          <ul className="text-sm text-emerald-800 space-y-1">
+            <li>• <strong>Increased Blood Flow:</strong> Delivers oxygen and nutrients to brain cells</li>
+            <li>• <strong>BDNF Release:</strong> Brain-Derived Neurotrophic Factor promotes neuron growth</li>
+            <li>• <strong>Osteocalcin:</strong> Bone-derived hormone that crosses blood-brain barrier to enhance cognition</li>
+            <li>• <strong>Mental Clarity:</strong> Improves focus, memory, and creative problem-solving</li>
+            <li>• <strong>Neurogenesis:</strong> Stimulates growth of new brain cells in hippocampus</li>
+          </ul>
+        </div>
 
         {/* Sections */}
         {Object.entries(groupedContent).map(([category, items]) =>

@@ -3,7 +3,7 @@
  * Email and password authentication
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -14,10 +14,12 @@ import {
 } from 'react-native';
 import { Text, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input } from '../../components';
-import { Colors, Spacing } from '../../constants';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { Button, Input, AuthHeader } from '../../components';
+import { Colors, Spacing, Typography } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { validateEmail, getAuthErrorMessage } from '../../utils/validation';
+import { auth as firebaseAuth, firebaseError } from '../../config/firebase';
 
 interface LoginScreenProps {
   navigation: any;
@@ -36,6 +38,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [passwordError, setPasswordError] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  // Check Firebase initialization on mount
+  const isFirebaseReady = !!firebaseAuth;
+
+  // Show error if Firebase failed to initialize
+  useEffect(() => {
+    if (!isFirebaseReady && firebaseError) {
+      console.error('Firebase initialization error:', firebaseError);
+      setSnackbarMessage('Unable to connect to services. Please check your internet connection and restart the app.');
+      setSnackbarVisible(true);
+    }
+  }, [isFirebaseReady]);
 
   /**
    * Handle login submission
@@ -63,7 +77,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await login(email.trim(), password);
       // Navigation will happen automatically via auth state change
     } catch (error: any) {
-      const errorMessage = getAuthErrorMessage(error.code);
+      // Log the full error for debugging
+      console.error('Login error details:', {
+        code: error?.code,
+        message: error?.message,
+        fullError: error,
+      });
+      const errorMessage = getAuthErrorMessage(error?.code, error?.message);
       setSnackbarMessage(errorMessage);
       setSnackbarVisible(true);
     }
@@ -80,14 +100,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
-          <View style={styles.header}>
-            <Text variant="displayMedium" style={styles.title}>
-              Welcome Back
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              Log in to continue your wellness journey
-            </Text>
-          </View>
+          <AuthHeader
+            title="Welcome Back"
+            subtitle="Log in to continue your wellness journey"
+          />
 
           {/* Form */}
           <View style={styles.form}>
@@ -104,7 +120,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               autoComplete="email"
               error={!!emailError}
               errorText={emailError}
-              left={<Text>📧</Text>}
+              left={<Icon name="email-outline" size={20} color={Colors.textSecondary} />}
               style={styles.input}
             />
 
@@ -121,10 +137,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               autoComplete="password"
               error={!!passwordError}
               errorText={passwordError}
-              left={<Text>🔒</Text>}
+              left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
               right={
                 <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
-                  <Text>{secureTextEntry ? '👁️' : '🙈'}</Text>
+                  <Icon
+                    name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={Colors.textSecondary}
+                  />
                 </TouchableOpacity>
               }
               style={styles.input}
@@ -145,7 +165,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               variant="primary"
               onPress={handleLogin}
               loading={isLoading}
-              disabled={isLoading}
+              disabled={isLoading || !isFirebaseReady}
               fullWidth
               style={styles.loginButton}
             >
@@ -187,7 +207,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   keyboardView: {
     flex: 1,
@@ -196,19 +216,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xl,
-  },
-  header: {
-    marginBottom: Spacing['2xl'],
-    alignItems: 'center',
-  },
-  title: {
-    color: Colors.evergreenTeal,
-    marginBottom: Spacing.sm,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: Colors.textSecondary,
-    textAlign: 'center',
   },
   form: {
     flex: 1,
@@ -222,7 +229,7 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     color: Colors.evergreenTeal,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   loginButton: {
     marginBottom: Spacing.lg,
@@ -237,7 +244,7 @@ const styles = StyleSheet.create({
   },
   signupLink: {
     color: Colors.evergreenTeal,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   snackbar: {
     backgroundColor: Colors.error,

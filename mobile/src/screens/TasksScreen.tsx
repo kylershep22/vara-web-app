@@ -7,8 +7,8 @@ import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, FAB, Portal, Modal, Button as PaperButton, Checkbox, SegmentedButtons } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card, LoadingSpinner } from '../components';
-import { Colors, Spacing } from '../constants';
+import { Button, Input, Card, LoadingSpinner, PriorityBadge } from '../components';
+import { Colors, Spacing, Typography, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { useTasks } from '../hooks';
 import { createTask, updateTask, deleteTask, toggleTaskComplete } from '../services/firebase';
@@ -108,32 +108,6 @@ const TasksScreen: React.FC<TasksScreenProps> = ({ hideHeader = false }) => {
     }
   };
 
-  const getPriorityColor = (priority?: string) => {
-    switch (priority || 'medium') {
-      case 'high':
-        return '#FFEBEE';
-      case 'medium':
-        return '#FFF3E0';
-      case 'low':
-        return '#E8F5E9';
-      default:
-        return '#FFF3E0';
-    }
-  };
-
-  const getPriorityTextColor = (priority?: string) => {
-    switch (priority || 'medium') {
-      case 'high':
-        return '#C62828';
-      case 'medium':
-        return '#E65100';
-      case 'low':
-        return '#2E7D32';
-      default:
-        return '#E65100';
-    }
-  };
-
   const renderTaskItem = ({ item }: { item: Task }) => (
     <Card style={styles.taskCard}>
       <View style={styles.taskContent}>
@@ -192,22 +166,7 @@ const TasksScreen: React.FC<TasksScreenProps> = ({ hideHeader = false }) => {
           </View>
 
           {/* Priority Badge */}
-          <View
-            style={[
-              styles.priorityBadge,
-              { backgroundColor: getPriorityColor(item.priority) },
-            ]}
-          >
-            <Text
-              variant="bodySmall"
-              style={[
-                styles.priorityText,
-                { color: getPriorityTextColor(item.priority) },
-              ]}
-            >
-              {(item.priority || 'medium').toUpperCase()}
-            </Text>
-          </View>
+          <PriorityBadge priority={item.priority || 'medium'} style={styles.priorityBadge} />
         </TouchableOpacity>
       </View>
 
@@ -315,7 +274,7 @@ const TasksScreen: React.FC<TasksScreenProps> = ({ hideHeader = false }) => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
             <ScrollView
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.scrollContent}
             >
               <Text variant="headlineSmall" style={styles.modalTitle}>
@@ -350,29 +309,10 @@ const TasksScreen: React.FC<TasksScreenProps> = ({ hideHeader = false }) => {
                     onPress={() => setFormData({ ...formData, priority })}
                     style={[
                       styles.priorityButton,
-                      {
-                        backgroundColor:
-                          formData.priority === priority
-                            ? getPriorityColor(priority)
-                            : Colors.borderLight,
-                        borderColor:
-                          formData.priority === priority
-                            ? getPriorityTextColor(priority)
-                            : Colors.border,
-                      },
+                      formData.priority === priority && styles[`priority${priority.charAt(0).toUpperCase() + priority.slice(1)}Active`],
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.priorityButtonText,
-                        {
-                          color:
-                            formData.priority === priority
-                              ? getPriorityTextColor(priority)
-                              : Colors.textSecondary,
-                        },
-                      ]}
-                    >
+                    <Text style={[styles.priorityButtonText, formData.priority === priority && styles.priorityButtonTextActive]}>
                       {priority.charAt(0).toUpperCase() + priority.slice(1)}
                     </Text>
                   </TouchableOpacity>
@@ -417,7 +357,7 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     color: Colors.evergreenTeal,
-    fontWeight: '700',
+    fontWeight: Typography.fontWeight.bold,
   },
   subtitle: {
     color: Colors.textSecondary,
@@ -448,7 +388,7 @@ const styles = StyleSheet.create({
   },
   taskTitle: {
     color: Colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     marginBottom: Spacing.xs,
   },
   taskDescription: {
@@ -464,24 +404,16 @@ const styles = StyleSheet.create({
   },
   timestampText: {
     color: Colors.textSecondary,
-    fontSize: 11,
-    marginBottom: 2,
+    fontSize: Typography.fontSize.xs - 1,
+    marginBottom: Spacing.xs / 2,
   },
   priorityBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 4,
     marginTop: Spacing.xs,
-  },
-  priorityText: {
-    fontSize: 10,
-    fontWeight: '600',
   },
   taskActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    borderTopWidth: 1,
+    borderTopWidth: Layout.borderWidth.thin,
     borderTopColor: Colors.borderLight,
     paddingTop: Spacing.sm,
   },
@@ -498,7 +430,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyIcon: {
-    fontSize: 64,
+    fontSize: Typography.fontSize['5xl'] + 16,
     marginBottom: Spacing.md,
   },
   emptyTitle: {
@@ -518,17 +450,19 @@ const styles = StyleSheet.create({
   modal: {
     backgroundColor: Colors.surface,
     marginHorizontal: Spacing.lg,
-    borderRadius: 12,
-    padding: Spacing.lg,
+    borderRadius: Layout.borderRadius.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
     maxHeight: '85%',
+    overflow: 'hidden',
   },
   scrollContent: {
-    paddingBottom: Spacing.md,
+    // No bottom padding needed - modalActions handles spacing
   },
   modalTitle: {
     color: Colors.evergreenTeal,
     marginBottom: Spacing.lg,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   input: {
     marginBottom: Spacing.md,
@@ -546,17 +480,36 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: 8,
-    borderWidth: 2,
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: Layout.borderWidth.medium,
+    borderColor: Colors.border,
+    backgroundColor: Colors.borderLight,
     alignItems: 'center',
   },
+  priorityLowActive: {
+    backgroundColor: Colors.priority.low,
+    borderColor: Colors.success,
+  },
+  priorityMediumActive: {
+    backgroundColor: Colors.priority.medium,
+    borderColor: Colors.sunriseAmber,
+  },
+  priorityHighActive: {
+    backgroundColor: Colors.priority.high,
+    borderColor: Colors.error,
+  },
   priorityButtonText: {
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textSecondary,
+  },
+  priorityButtonTextActive: {
+    color: Colors.textPrimary,
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
     gap: Spacing.sm,
   },
   modalButton: {

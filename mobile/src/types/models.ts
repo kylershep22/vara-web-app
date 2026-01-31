@@ -21,6 +21,18 @@ export interface UserProfile {
 }
 
 // ==========================================
+// BRAIN HEALTH MODELS
+// ==========================================
+
+// User-facing accessible names for brain health pillars
+export type BrainPillar =
+  | 'growth'      // Learning, adaptation, trying new things (neuroplasticity)
+  | 'energy'      // Sleep, nutrition, vitality (neuroenergy)
+  | 'focus'       // Attention, concentration, clarity (neurofocus)
+  | 'resilience'  // Stress management, recovery (neuroresilience)
+  | 'connection'; // Social bonds, belonging (neurosocial)
+
+// ==========================================
 // GOAL MODELS
 // ==========================================
 
@@ -34,6 +46,7 @@ export interface Goal {
   progress: number;
   milestones?: Milestone[];
   status: 'active' | 'completed' | 'paused';
+  brainPillars?: BrainPillar[]; // Brain health pillars this goal supports
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -59,6 +72,46 @@ export interface Habit {
   longestStreak: number;
   active: boolean;
   category?: string;
+  neurochemicalTags?: string[]; // Brain health neurochemical impacts (e.g., 'dopamine', 'serotonin', 'cortisol')
+
+  // ==========================================
+  // VARA HABITS ENHANCEMENTS
+  // Identity-based habit system
+  // ==========================================
+
+  // Who you're becoming (Vara's "Who Are You Becoming?" system)
+  identity?: string; // e.g., "A Runner", "Someone who writes", "A healthy eater"
+  identityStatement?: string; // e.g., "I'm becoming a person who runs daily"
+  outcomeGoal?: string; // Optional: traditional goal, de-emphasized (e.g., "Run a 5K")
+
+  // Quick Start System (Vara's scaling versions for flexibility)
+  fullVersion?: string; // The ideal/target completion (e.g., "Run 30 minutes")
+  quickStartVersion?: string; // 5-10 minute simplified version (e.g., "Run 10 minutes")
+  justShowUpVersion?: string; // 1-2 minute minimal version (e.g., "Put on shoes, step outside")
+  scalingPhase?: 'getting_started' | 'building_momentum' | 'committed' | 'established' | 'expert';
+
+  // Bounce Back System (Vara's "Never Miss Twice" tracking)
+  missedYesterday?: boolean; // Flag to trigger bounce back alerts
+  consecutiveMisses?: number; // Track consecutive misses to prevent spirals
+
+  // Your When/Where Plan (implementation intention)
+  cue?: {
+    type: 'time' | 'location' | 'after_habit' | 'emotion';
+    value: string;
+  };
+  implementationIntention?: string; // e.g., "When I finish coffee, I will run for 30 min"
+
+  // Context & Purpose
+  problem?: string; // What problem does this habit solve?
+  trigger?: string; // What situation/feeling triggers the need for this habit?
+
+  // Progress Tracking (Vara's "Steps Taken" system)
+  totalStepsTaken?: number; // Total completions (any version counts)
+  thisWeekSteps?: number; // Steps taken this week
+
+  // Build On What Works (habit stacking)
+  stackedAfter?: string; // Habit ID or routine name this is stacked after
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -70,6 +123,11 @@ export interface HabitCompletion {
   date: string; // YYYY-MM-DD format
   completed: boolean;
   completedAt: Timestamp;
+
+  // Vara Habits Enhancement: Track which version was completed
+  versionCompleted?: 'full' | 'quick_start' | 'just_show_up'; // Which version did they do?
+  satisfaction?: 'great' | 'good' | 'okay'; // How did they feel after?
+  quickNote?: string; // Optional 1-line reflection
 }
 
 // ==========================================
@@ -96,9 +154,55 @@ export interface Task {
 export interface JournalEntry {
   id: string;
   userId: string;
-  content: string;
+  content?: string; // Mobile app format
+  text?: string; // Web app format
   mood?: 'great' | 'good' | 'okay' | 'bad' | 'terrible';
   tags?: string[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ==========================================
+// 4-3-2-1 DAILY PRACTICE MODELS
+// ==========================================
+
+export type BodyFuelOption =
+  | 'healthy_meal'
+  | 'hydration'
+  | 'vitamins'
+  | 'fruits_veggies'
+  | 'protein'
+  | 'exercise'
+  | 'rest'
+  | 'stretch'
+  | 'other';
+
+export interface FourThreeTwoOneEntry {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD format for easy querying
+
+  // 4 minutes to yourself
+  fourMinutes: boolean;
+
+  // 3 wins from the day (optional to write)
+  threeWins: {
+    completed: boolean;
+    wins?: string[]; // Optional array of win descriptions
+  };
+
+  // 2 ways fueled body
+  twoFuel: {
+    completed: boolean;
+    options?: BodyFuelOption[]; // Selected fuel options
+  };
+
+  // 1 connection
+  oneConnection: boolean;
+
+  // Overall completion
+  completed: boolean; // True when all 4 parts are checked
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -237,4 +341,45 @@ export interface JournalSummaryRequest {
 export interface JournalSummaryResponse {
   summary: string;
   insights: string[];
+}
+
+// ==========================================
+// BRAIN HEALTH TRACKING MODELS
+// ==========================================
+
+export interface BrainMetrics {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD format
+  readinessScore: number; // 0-100 calculated score
+  sleepQuality: number; // 1-5 user input
+  hydrationChecks: number; // 0-8 glasses
+  stressLevel: number; // 1-5 user input
+  nervousSystemToolUses: number; // count of sigh + panoramic vision uses
+  amccCompleted: boolean; // Did One Hard Thing completed
+  amccType?: 'cold' | 'movement' | 'conversation' | 'skill';
+  neuroplasticityStimulus: boolean; // Did something uncomfortable
+  focusMinutes: number; // Total focus session time
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface NervousSystemSession {
+  id: string;
+  userId: string;
+  type: 'physiological-sigh' | 'panoramic-vision';
+  duration: number; // seconds
+  completedAt: Timestamp;
+}
+
+export interface AMCCChallenge {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD format
+  type: 'cold' | 'movement' | 'conversation' | 'skill';
+  description: string;
+  completed: boolean;
+  reflection?: string;
+  completedAt?: Timestamp;
+  createdAt: Timestamp;
 }

@@ -11,12 +11,16 @@ import {
   StyleSheet,
   Image,
   ActivityIndicator,
+  Keyboard,
+  InputAccessoryView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
-import { Colors as colors, Spacing as spacing } from '../constants';
+import { Colors as colors, Spacing as spacing, Typography, Layout } from '../constants';
 import { db } from '../config/firebase';
+
+const INPUT_ACCESSORY_VIEW_ID = 'chatInputAccessory';
 import {
   collection,
   query,
@@ -53,6 +57,15 @@ const ChatScreen = () => {
   useEffect(() => {
     loadOtherUser();
   }, [otherUserId]);
+
+  // Update navigation title with other user's name
+  useEffect(() => {
+    if (otherUser?.displayName) {
+      navigation.setOptions({
+        title: otherUser.displayName,
+      });
+    }
+  }, [otherUser, navigation]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -127,6 +140,7 @@ const ChatScreen = () => {
       await addDoc(collection(db, 'directMessages'), {
         conversationId,
         senderId: user.uid,
+        receiverId: otherUserId,
         text: messageText,
         createdAt: serverTimestamp(),
       });
@@ -252,6 +266,8 @@ const ChatScreen = () => {
           placeholder="Type a message..."
           multiline
           maxLength={1000}
+          inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
+          blurOnSubmit={false}
         />
         <TouchableOpacity
           style={[
@@ -268,6 +284,20 @@ const ChatScreen = () => {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Keyboard Accessory Toolbar (iOS) */}
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID={INPUT_ACCESSORY_VIEW_ID}>
+          <View style={styles.keyboardAccessory}>
+            <TouchableOpacity
+              onPress={() => Keyboard.dismiss()}
+              style={styles.keyboardAccessoryButton}
+            >
+              <Text style={styles.keyboardAccessoryButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -275,17 +305,17 @@ const ChatScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAF6',
+    backgroundColor: colors.background.default,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FAFAF6',
+    backgroundColor: colors.background.default,
   },
   loadingText: {
     marginTop: spacing.md,
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     color: colors.text.secondary,
   },
   messagesList: {
@@ -300,7 +330,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: spacing.md,
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     color: colors.text.secondary,
     textAlign: 'center',
   },
@@ -318,25 +348,25 @@ const styles = StyleSheet.create({
   messageAvatar: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Layout.borderRadius['2xl'],
     marginRight: spacing.xs,
   },
   messageBubble: {
     maxWidth: '75%',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: 18,
+    borderRadius: Layout.borderRadius.lg,
   },
   myMessageBubble: {
-    backgroundColor: colors.primary,
-    borderBottomRightRadius: 4,
+    backgroundColor: colors.evergreenTeal,
+    borderBottomRightRadius: Layout.borderRadius.sm,
   },
   theirMessageBubble: {
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 4,
+    backgroundColor: colors.surface,
+    borderBottomLeftRadius: Layout.borderRadius.sm,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
@@ -347,18 +377,18 @@ const styles = StyleSheet.create({
     }),
   },
   messageText: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: Typography.fontSize.base,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
     marginBottom: 2,
   },
   myMessageText: {
-    color: '#fff',
+    color: colors.textOnPrimary,
   },
   theirMessageText: {
     color: colors.text.primary,
   },
   messageTime: {
-    fontSize: 10,
+    fontSize: Typography.fontSize.xs,
   },
   myMessageTime: {
     color: 'rgba(255, 255, 255, 0.7)',
@@ -369,31 +399,54 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: spacing.md,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
+    backgroundColor: colors.surface,
+    borderTopWidth: Layout.borderWidth.thin,
+    borderTopColor: colors.borderLight,
     alignItems: 'flex-end',
   },
   input: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
+    backgroundColor: colors.inputBackground,
+    borderRadius: Layout.borderRadius['2xl'],
     paddingHorizontal: spacing.md,
     paddingVertical: Platform.OS === 'ios' ? spacing.sm : spacing.xs,
     marginRight: spacing.sm,
     maxHeight: 100,
-    fontSize: 15,
+    fontSize: Typography.fontSize.base,
+    color: colors.text.primary,
   },
   sendButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
+    borderRadius: Layout.borderRadius['2xl'],
+    backgroundColor: colors.evergreenTeal,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendButtonDisabled: {
     opacity: 0.5,
+  },
+  // Keyboard Accessory Toolbar
+  keyboardAccessory: {
+    backgroundColor: colors.surface,
+    borderTopWidth: Layout.borderWidth.thin,
+    borderTopColor: colors.borderLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  keyboardAccessoryButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.evergreenTeal,
+    borderRadius: Layout.borderRadius.md,
+  },
+  keyboardAccessoryButtonText: {
+    color: colors.textOnPrimary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });
 

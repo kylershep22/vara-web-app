@@ -14,8 +14,9 @@ import {
 } from 'react-native';
 import { Text, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input } from '../../components';
-import { Colors, Spacing } from '../../constants';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { Button, Input, AuthHeader } from '../../components';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { validateEmail, getAuthErrorMessage } from '../../utils/validation';
 
@@ -85,17 +86,15 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.icon}>🔐</Text>
-            <Text variant="displaySmall" style={styles.title}>
-              {emailSent ? 'Check Your Email' : 'Forgot Password?'}
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              {emailSent
+          <AuthHeader
+            title={emailSent ? 'Check Your Email' : 'Forgot Password?'}
+            subtitle={
+              emailSent
                 ? 'We sent a password reset link to your email address'
-                : 'Enter your email and we\'ll send you a link to reset your password'}
-            </Text>
-          </View>
+                : "Enter your email and we'll send you a link to reset your password"
+            }
+            icon={emailSent ? 'email-check' : 'lock-reset'}
+          />
 
           {/* Form */}
           {!emailSent ? (
@@ -113,7 +112,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
                 autoComplete="email"
                 error={!!emailError}
                 errorText={emailError}
-                left={<Text>📧</Text>}
+                left={<Icon name="email-outline" size={20} color={Colors.textSecondary} />}
                 style={styles.input}
               />
 
@@ -200,7 +199,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   keyboardView: {
     flex: 1,
@@ -210,24 +209,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xl,
     justifyContent: 'center',
-  },
-  header: {
-    marginBottom: Spacing['2xl'],
-    alignItems: 'center',
-  },
-  icon: {
-    fontSize: 64,
-    marginBottom: Spacing.md,
-  },
-  title: {
-    color: Colors.evergreenTeal,
-    marginBottom: Spacing.sm,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: Spacing.md,
   },
   form: {
     width: '100%',
@@ -244,23 +225,23 @@ const styles = StyleSheet.create({
   },
   backText: {
     color: Colors.evergreenTeal,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   successContainer: {
     width: '100%',
   },
   successBox: {
     backgroundColor: Colors.dewSage,
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
   },
   successText: {
     color: Colors.textPrimary,
-    lineHeight: 22,
+    lineHeight: Typography.lineHeight.normal,
   },
   emailHighlight: {
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     color: Colors.evergreenTeal,
   },
   resendButton: {

@@ -17,7 +17,7 @@ module.exports = async function generatePlan({ name, preferences, mood, goals, m
   const modifierText = modifier ? `User added instruction: ${modifier}` : '';
 
   const prompt = `You are a compassionate and encouraging wellness coach named Vara.
-Generate a personalized daily wellness plan for a user based on their goals, mood, and preferences.
+Generate a CONCISE personalized daily wellness plan for a user based on their goals, mood, and preferences.
 
 User: ${name}
 Tone: ${tone}
@@ -28,7 +28,14 @@ Goals:
 ${readableGoals}
 ${modifierText}
 
-Provide 3–5 short, motivating tasks for the day. Keep tone ${tone}. Format as a bullet list.`;
+IMPORTANT: Keep your response brief and scannable.
+- Provide 3-5 actionable tasks for today
+- Each task should be ONE LINE (max 15 words)
+- Use a simple bullet list format (•)
+- Total response should be under 150 words
+- Be encouraging but concise
+
+Keep tone ${tone}.`;
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o',

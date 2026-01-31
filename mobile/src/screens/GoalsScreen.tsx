@@ -7,19 +7,45 @@ import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, FAB, Portal, Modal, Button as PaperButton, SegmentedButtons, Menu } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card, LoadingSpinner } from '../components';
-import { Colors, Spacing } from '../constants';
+import { Button, Input, Card, LoadingSpinner, ProgressBar, BrainPillarBadge } from '../components';
+import { Colors, Spacing, Typography, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { useGoals } from '../hooks';
 import { createGoal, updateGoal, deleteGoal, updateGoalProgress } from '../services/firebase';
-import { Goal } from '../types';
+import { Goal, BrainPillar } from '../types';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-// Focus Area options from web app
+// Focus Area options with suggested brain health pillars
 const FOCUS_OPTIONS = [
-  { label: 'Physical Health & Fitness', value: 'Physical Health & Fitness' },
-  { label: 'Mental & Emotional Wellness', value: 'Mental & Emotional Wellness' },
-  { label: 'Lifestyle & Personal Growth', value: 'Lifestyle & Personal Growth' },
-  { label: 'Sleep & Recovery', value: 'Sleep & Recovery' },
+  {
+    label: 'Physical Health & Fitness',
+    value: 'Physical Health & Fitness',
+    suggestedPillars: ['energy', 'resilience'] as BrainPillar[],
+  },
+  {
+    label: 'Mental & Emotional Wellness',
+    value: 'Mental & Emotional Wellness',
+    suggestedPillars: ['resilience', 'focus'] as BrainPillar[],
+  },
+  {
+    label: 'Lifestyle & Personal Growth',
+    value: 'Lifestyle & Personal Growth',
+    suggestedPillars: ['growth', 'focus'] as BrainPillar[],
+  },
+  {
+    label: 'Sleep & Recovery',
+    value: 'Sleep & Recovery',
+    suggestedPillars: ['energy', 'resilience'] as BrainPillar[],
+  },
+];
+
+// All available brain health pillars for selection
+const BRAIN_PILLARS: { value: BrainPillar; label: string; description: string }[] = [
+  { value: 'growth', label: 'Growth', description: 'Learning & trying new things' },
+  { value: 'energy', label: 'Energy', description: 'Vitality & recharge' },
+  { value: 'focus', label: 'Focus', description: 'Attention & clarity' },
+  { value: 'resilience', label: 'Resilience', description: 'Recovery & strength' },
+  { value: 'connection', label: 'Connection', description: 'Relationships & belonging' },
 ];
 
 // Timeframe options from web app (research-backed)
@@ -38,7 +64,7 @@ interface GoalsScreenProps {
 
 const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
   const { user } = useAuth();
-  const { goals, loading } = useGoals();
+  const { goals, loading, error: goalsError } = useGoals();
   const [filter, setFilter] = useState('all');
   const [modalVisible, setModalVisible] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
@@ -47,6 +73,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
     primaryFocus: '',
     timeframe: '',
     progress: 0,
+    brainPillars: [] as BrainPillar[],
   });
   const [submitting, setSubmitting] = useState(false);
   const [focusMenuVisible, setFocusMenuVisible] = useState(false);
@@ -61,7 +88,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
 
   const handleCreateGoal = () => {
     setEditingGoal(null);
-    setFormData({ title: '', primaryFocus: '', timeframe: '', progress: 0 });
+    setFormData({ title: '', primaryFocus: '', timeframe: '', progress: 0, brainPillars: [] });
     setModalVisible(true);
   };
 
@@ -72,11 +99,38 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
       primaryFocus: goal.primaryFocus,
       timeframe: goal.timeframe,
       progress: goal.progress,
+      brainPillars: goal.brainPillars || [],
     });
     setModalVisible(true);
   };
 
+  const togglePillar = (pillar: BrainPillar) => {
+    setFormData(prev => ({
+      ...prev,
+      brainPillars: prev.brainPillars.includes(pillar)
+        ? prev.brainPillars.filter(p => p !== pillar)
+        : [...prev.brainPillars, pillar],
+    }));
+  };
+
+  const handleFocusChange = (focusValue: string) => {
+    const selectedOption = FOCUS_OPTIONS.find(opt => opt.value === focusValue);
+    setFormData(prev => ({
+      ...prev,
+      primaryFocus: focusValue,
+      // Auto-suggest pillars based on focus area
+      brainPillars: selectedOption?.suggestedPillars || prev.brainPillars,
+    }));
+    setFocusMenuVisible(false);
+  };
+
   const handleSubmit = async () => {
+    // Check user authentication first
+    if (!user || !user.uid) {
+      Alert.alert('Authentication Error', 'You must be logged in to create a goal. Please sign out and sign back in.');
+      return;
+    }
+
     if (!formData.title.trim() || !formData.primaryFocus.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
@@ -93,10 +147,14 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
         });
       }
       setModalVisible(false);
-      setFormData({ title: '', primaryFocus: '', timeframe: '', progress: 0 });
-    } catch (error) {
+      setFormData({ title: '', primaryFocus: '', timeframe: '', progress: 0, brainPillars: [] });
+    } catch (error: any) {
       console.error('Error saving goal:', error);
-      Alert.alert('Error', 'Failed to save goal. Please try again.');
+      const errorMessage = error?.message || 'Failed to save goal.';
+      Alert.alert(
+        'Unable to Save Goal',
+        `${errorMessage}\n\nPlease check your internet connection and try again. If the problem persists, try signing out and back in.`
+      );
     } finally {
       setSubmitting(false);
     }
@@ -182,6 +240,15 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
                 </Text>
               )}
             </View>
+
+            {/* Brain Health Pillars - Display if any pillars selected */}
+            {item.brainPillars && item.brainPillars.length > 0 && (
+              <View style={styles.pillarsDisplay}>
+                {item.brainPillars.map((pillar) => (
+                  <BrainPillarBadge key={pillar} pillar={pillar} style={styles.pillarBadge} />
+                ))}
+              </View>
+            )}
           </View>
           <View
             style={[
@@ -197,14 +264,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
         </View>
 
         {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${item.progress}%` }]} />
-          </View>
-          <Text variant="bodySmall" style={styles.progressText}>
-            {item.progress}%
-          </Text>
-        </View>
+        <ProgressBar progress={item.progress} style={styles.progressContainer} />
 
         {/* Progress Controls */}
         {item.status === 'active' && (
@@ -250,6 +310,26 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
 
   if (loading) {
     return <LoadingSpinner message="Loading goals..." />;
+  }
+
+  // Show error state if goals failed to load
+  if (goalsError) {
+    return (
+      <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
+        <View style={styles.emptyContainer}>
+          <Icon name="alert-circle" size={64} color={Colors.error} />
+          <Text variant="titleMedium" style={[styles.emptyTitle, { color: Colors.error }]}>
+            Unable to Load Goals
+          </Text>
+          <Text variant="bodyMedium" style={styles.emptyText}>
+            There was a problem loading your goals. Please check your connection and try again.
+          </Text>
+          <Text variant="bodySmall" style={[styles.emptyText, { marginTop: Spacing.sm }]}>
+            Error: {goalsError.message}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -319,7 +399,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
             <ScrollView
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.scrollContent}
             >
               <Text variant="headlineSmall" style={styles.modalTitle}>
@@ -356,10 +436,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
                 {FOCUS_OPTIONS.map((option) => (
                   <Menu.Item
                     key={option.value}
-                    onPress={() => {
-                      setFormData({ ...formData, primaryFocus: option.value });
-                      setFocusMenuVisible(false);
-                    }}
+                    onPress={() => handleFocusChange(option.value)}
                     title={option.label}
                   />
                 ))}
@@ -396,6 +473,28 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
                 ))}
               </Menu>
 
+              {/* Brain Health Pillars */}
+              <Text variant="bodyMedium" style={styles.fieldLabel}>
+                What does this goal support? (Optional)
+              </Text>
+              <Text variant="bodySmall" style={styles.helpText}>
+                Select the areas of wellness this goal will help you build
+              </Text>
+              <View style={styles.pillarsContainer}>
+                {BRAIN_PILLARS.map((pillar) => (
+                  <TouchableOpacity
+                    key={pillar.value}
+                    style={[
+                      styles.pillarChip,
+                      formData.brainPillars.includes(pillar.value) && styles.pillarChipSelected,
+                    ]}
+                    onPress={() => togglePillar(pillar.value)}
+                  >
+                    <BrainPillarBadge pillar={pillar.value} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
               <View style={styles.modalActions}>
                 <PaperButton
                   mode="outlined"
@@ -426,7 +525,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   header: {
     paddingHorizontal: Spacing.lg,
@@ -434,7 +533,7 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     color: Colors.evergreenTeal,
-    fontWeight: '700',
+    fontWeight: Typography.fontWeight.bold,
   },
   subtitle: {
     color: Colors.textSecondary,
@@ -465,7 +564,7 @@ const styles = StyleSheet.create({
   },
   goalTitle: {
     color: Colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     marginBottom: Spacing.xs,
   },
   goalMeta: {
@@ -482,8 +581,8 @@ const styles = StyleSheet.create({
   statusBadge: {
     backgroundColor: Colors.sunriseAmber,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: Spacing.xs,
+    borderRadius: Layout.borderRadius.lg,
   },
   statusCompleted: {
     backgroundColor: Colors.success,
@@ -493,28 +592,12 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: Colors.textOnPrimary,
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: Typography.fontSize.xs - 2,
+    fontWeight: Typography.fontWeight.semibold,
     textTransform: 'uppercase',
   },
   progressContainer: {
     marginBottom: Spacing.md,
-  },
-  progressBar: {
-    height: 12,
-    backgroundColor: Colors.borderLight,
-    borderRadius: 6,
-    overflow: 'hidden',
-    marginBottom: Spacing.xs,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.evergreenTeal,
-    borderRadius: 6,
-  },
-  progressText: {
-    color: Colors.textSecondary,
-    textAlign: 'right',
   },
   progressControls: {
     flexDirection: 'row',
@@ -526,16 +609,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dewSage,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-    borderRadius: 8,
+    borderRadius: Layout.borderRadius.md,
   },
   progressButtonText: {
     color: Colors.evergreenTeal,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   goalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    borderTopWidth: 1,
+    borderTopWidth: Layout.borderWidth.thin,
     borderTopColor: Colors.borderLight,
     paddingTop: Spacing.sm,
   },
@@ -552,7 +635,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyIcon: {
-    fontSize: 64,
+    fontSize: Typography.fontSize['5xl'] + 16,
     marginBottom: Spacing.md,
   },
   emptyTitle: {
@@ -572,17 +655,19 @@ const styles = StyleSheet.create({
   modal: {
     backgroundColor: Colors.surface,
     marginHorizontal: Spacing.lg,
-    borderRadius: 12,
-    padding: Spacing.lg,
+    borderRadius: Layout.borderRadius.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
     maxHeight: '85%',
+    overflow: 'hidden',
   },
   scrollContent: {
-    paddingBottom: Spacing.md,
+    // No bottom padding needed - modalActions handles spacing
   },
   modalTitle: {
     color: Colors.evergreenTeal,
     marginBottom: Spacing.lg,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   input: {
     marginBottom: Spacing.md,
@@ -598,34 +683,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    borderWidth: 1,
+    borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
-    borderRadius: 8,
+    borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.surface,
     marginBottom: Spacing.md,
   },
   dropdownText: {
     color: Colors.textPrimary,
-    fontSize: 16,
+    fontSize: Typography.fontSize.base,
     flex: 1,
   },
   dropdownPlaceholder: {
     color: Colors.textSecondary,
-    fontSize: 16,
+    fontSize: Typography.fontSize.base,
     flex: 1,
   },
   dropdownArrow: {
     color: Colors.textSecondary,
-    fontSize: 12,
+    fontSize: Typography.fontSize.xs,
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
     gap: Spacing.sm,
   },
   modalButton: {
     flex: 1,
+  },
+  helpText: {
+    color: Colors.textSecondary,
+    fontSize: Typography.fontSize.sm,
+    marginBottom: Spacing.sm,
+  },
+  pillarsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  pillarChip: {
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: Layout.borderWidth.thin,
+    borderColor: 'transparent',
+    opacity: 0.6,
+  },
+  pillarChipSelected: {
+    opacity: 1,
+    borderColor: Colors.evergreenTeal,
+  },
+  pillarsDisplay: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  pillarBadge: {
+    marginRight: 0,
   },
 });
 

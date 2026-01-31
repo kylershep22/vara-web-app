@@ -7,7 +7,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button } from 'react-native-paper';
-import { Colors, Spacing } from '../constants';
+import { Colors, Spacing, Typography, Layout } from '../constants';
 
 const WelcomeScreen: React.FC = () => {
   return (
@@ -81,12 +81,12 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     backgroundColor: Colors.surface,
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
     width: '100%',
     maxWidth: 400,
-    shadowColor: '#000',
+    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     color: Colors.evergreenTeal,
     marginBottom: Spacing.md,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   infoText: {
     color: Colors.textPrimary,

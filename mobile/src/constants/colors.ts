@@ -22,10 +22,13 @@ export const Colors = {
   // Neutral Colors
   mistWhite: '#FAFAF6',
   softCharcoal: '#3E3E3E',
+  white: '#FFFFFF',
+  black: '#000000',
 
   // Accent Colors
   dewSage: '#D5E3D1',
   oliveSage: '#9AAE8C',
+  lavenderMist: '#C7B8EA',
 
   // Functional Colors
   background: {
@@ -53,6 +56,29 @@ export const Colors = {
   // Border Colors
   border: '#E0E0E0',
   borderLight: '#F5F5F5',
+  borderDark: '#D0D0D0',
+
+  // Input Colors
+  inputBackground: '#F5F5F5',
+
+  // Shadow Color
+  shadow: '#000000',
+
+  // Priority Colors (for tasks)
+  priority: {
+    high: '#FFEBEE',
+    medium: '#FFF3E0',
+    low: '#E8F5E9',
+  },
+
+  // Brain Health Pillar Colors (Accessible naming)
+  brainPillars: {
+    growth: '#1B5E57',      // Evergreen Teal - learning, adaptation
+    energy: '#F4C542',      // Sunrise Amber - vitality, recharge
+    focus: '#B8CDBA',       // Silver Sage - attention, clarity
+    resilience: '#F5B971',  // Golden Apricot - recovery, strength
+    connection: '#C7B8EA',  // Lavender Mist - relationships, belonging
+  },
 
   // Overlay
   overlay: 'rgba(0, 0, 0, 0.5)',

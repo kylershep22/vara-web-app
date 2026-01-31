@@ -4,17 +4,25 @@ import React, { useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
+import { getAllHabitCategories, getNeurochemicalTags, getBrainPillars } from '../../constants/brainHealthMapping';
+import { NeurochemicalTagList, BrainPillarBadgeList } from '../shared/BrainPillarBadge';
 
 export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: externalUserId }) {
   const { user: authUser } = useAuth();
   const userId = externalUserId || authUser?.uid;
 
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('');
   const [type, setType] = useState('build');
   const [frequency, setFrequency] = useState('daily');
   const [trigger, setTrigger] = useState('');
   const [reward, setReward] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Get brain health info when category is selected
+  const neurochemicalTags = category ? getNeurochemicalTags(category) : [];
+  const brainPillars = category ? getBrainPillars(category) : [];
+  const availableCategories = getAllHabitCategories();
 
   const handleAddHabit = async (e) => {
     e.preventDefault();
@@ -26,6 +34,7 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
       const newHabit = {
         userId,
         title: title.trim(),
+        category: category || null,
         type,
         frequency,
         trigger: trigger.trim() || null,
@@ -41,6 +50,7 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
 
       // Reset fields
       setTitle('');
+      setCategory('');
       setTrigger('');
       setReward('');
 
@@ -69,6 +79,46 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
           required
         />
       </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-600">Category (Brain Health)</label>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="mt-1 w-full border rounded-lg p-2"
+        >
+          <option value="">Select a category...</option>
+          {availableCategories.map(cat => (
+            <option key={cat} value={cat}>
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-500">Choose a category to see brain health impacts</p>
+      </div>
+
+      {/* Brain Health Preview */}
+      {category && (neurochemicalTags.length > 0 || brainPillars.length > 0) && (
+        <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-blue-900">Brain Health Impact</h3>
+          {neurochemicalTags.length > 0 && (
+            <div>
+              <span className="text-xs font-medium text-blue-700 uppercase tracking-wide">Neurochemical Effects</span>
+              <div className="mt-2">
+                <NeurochemicalTagList impacts={neurochemicalTags} size="small" />
+              </div>
+            </div>
+          )}
+          {brainPillars.length > 0 && (
+            <div>
+              <span className="text-xs font-medium text-blue-700 uppercase tracking-wide">Supports Brain Pillars</span>
+              <div className="mt-2">
+                <BrainPillarBadgeList pillars={brainPillars} size="small" />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-4">
         <div className="flex-1">

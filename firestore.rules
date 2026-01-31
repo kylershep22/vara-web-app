@@ -103,7 +103,10 @@ service cloud.firestore {
       // Sub-collection: completions (habit check-ins)
       match /completions/{completionId} {
         // Allow users to read/write completions for habits they own
-        allow read, write: if isAuthenticated() && isOwner(get(/databases/$(database)/documents/habits/$(habitId)).data.userId);
+        // Use a simpler check that doesn't require fetching the parent document
+        allow read, write: if isAuthenticated() &&
+          (resource == null ||
+           request.auth.uid == get(/databases/$(database)/documents/habits/$(habitId)).data.userId);
       }
     }
 
@@ -137,6 +140,44 @@ service cloud.firestore {
 
     // Joy Moments (gratitude and positive moments)
     match /joyMoments/{momentId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // 4-3-2-1 Daily Practice Entries
+    match /fourThreeTwoOne/{entryId} {
+      // Allow read if document doesn't exist (for checking before create) OR if user owns it
+      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // ========== BRAIN HEALTH COLLECTIONS ==========
+
+    // Brain Metrics (daily readiness scores and check-ins)
+    match /brainMetrics/{metricId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Neuroplasticity Signals (daily "did something uncomfortable")
+    match /neuroplasticitySignals/{signalId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Nervous System Sessions (physiological sigh, panoramic vision)
+    match /nervousSystemSessions/{sessionId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // AMCC Challenges (daily "do one hard thing")
+    match /amccChallenges/{challengeId} {
       allow read: if isAuthenticated() && isOwner(resource.data.userId);
       allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
@@ -265,13 +306,15 @@ service cloud.firestore {
 
     // Connections (unified collection for requests and accepted connections)
     // Data model: { requesterId, addresseeId, participants: [requesterId, addresseeId], status: 'pending'|'accepted'|'declined'|'canceled' }
+    // Also supports mobile format: { requester, a, b }
     match /connections/{connectionId} {
       // Read: if user is one of the two people in the connection (a or b)
-      // Also support legacy fields (requesterId, addresseeId, participants)
+      // Also support legacy fields (requesterId, addresseeId, participants, requester)
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.a ||
         request.auth.uid == resource.data.b ||
         request.auth.uid == resource.data.requesterId ||
+        request.auth.uid == resource.data.requester ||
         request.auth.uid == resource.data.addresseeId ||
         request.auth.uid in resource.data.participants
       );
@@ -281,6 +324,7 @@ service cloud.firestore {
         request.auth.uid == request.resource.data.a ||
         request.auth.uid == request.resource.data.b ||
         request.auth.uid == request.resource.data.requesterId ||
+        request.auth.uid == request.resource.data.requester ||
         request.auth.uid in request.resource.data.participants
       );
 
@@ -289,6 +333,7 @@ service cloud.firestore {
         request.auth.uid == resource.data.a ||
         request.auth.uid == resource.data.b ||
         request.auth.uid == resource.data.requesterId ||
+        request.auth.uid == resource.data.requester ||
         request.auth.uid == resource.data.addresseeId
       );
 
@@ -297,6 +342,7 @@ service cloud.firestore {
         request.auth.uid == resource.data.a ||
         request.auth.uid == resource.data.b ||
         request.auth.uid == resource.data.requesterId ||
+        request.auth.uid == resource.data.requester ||
         request.auth.uid == resource.data.addresseeId
       );
     }

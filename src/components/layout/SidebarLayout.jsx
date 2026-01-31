@@ -27,7 +27,8 @@ export default function SidebarLayout({ children }) {
   const navItems = [
     // Main brain health sections
     { path: "/dashboard",         label: "Weekly Dashboard",   icon: LayoutDashboard },
-    { path: "/mental-resilience", label: "Mental Resilience",  icon: Brain },
+    { path: "/brain-health",      label: "Brain Health",       icon: Brain },
+    { path: "/mental-resilience", label: "Mental Resilience",  icon: Target },
     { path: "/focus",             label: "Focus",              icon: Target },
     { path: "/fuel-recovery",     label: "Fuel & Recovery",    icon: Heart },
     { path: "/insights",          label: "Insights",           icon: Lightbulb },

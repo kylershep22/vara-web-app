@@ -196,9 +196,10 @@ export const searchJournalEntries = async (
     // This is a simple implementation - for production, consider using Algolia or similar
     const entries = await listJournalEntries(userId);
 
-    return entries.filter((entry) =>
-      entry.content.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return entries.filter((entry) => {
+      const entryText = entry.text || entry.content || '';
+      return entryText.toLowerCase().includes(searchTerm.toLowerCase());
+    });
   } catch (error) {
     console.error('Error searching journal entries:', error);
     throw error;

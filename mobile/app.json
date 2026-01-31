@@ -6,8 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "scheme": "vara",
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -20,6 +19,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.vara.wellness",
       "buildNumber": "1.0.0",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "Vara needs access to your camera to upload profile pictures and content.",
         "NSPhotoLibraryUsageDescription": "Vara needs access to your photo library to upload images.",
@@ -34,10 +36,12 @@
         "backgroundColor": "#1B5E57"
       },
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "NOTIFICATIONS"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.NOTIFICATIONS",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -67,13 +71,16 @@
         {
           "photosPermission": "Allow Vara to access your photo library to upload images."
         }
-      ]
+      ],
+      "expo-video",
+      "sentry-expo",
+      "expo-asset"
     ],
+    "owner": "kylershep",
     "extra": {
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "63c2515a-00f1-454c-8400-2514781cade6"
       }
-    },
-    "owner": "YOUR_EXPO_USERNAME"
+    }
   }
 }

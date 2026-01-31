@@ -49,6 +49,8 @@ import AIBasedSuggestions from '../components/habits/AIBasedSuggestions';
 import GoalCreationForm from '../components/goals/GoalCreationForm';
 import GoalDetailsModal from '../components/goals/GoalDetailsModal';
 import { useHabits } from '../hooks/useHabits';
+import { BrainPillarBadgeList, NeurochemicalTagList } from '../components/shared/BrainPillarBadge';
+import { getNeurochemicalTags, getBrainPillars } from '../constants/brainHealthMapping';
 
 /** ---------- color tokens to match DS ---------- */
 const TEAL = '#1B5E57';
@@ -476,11 +478,14 @@ export default function GoalsHabits() {
     const attachedHabitsCount = habits.filter((h) => h.goalIds?.includes(goal.id)).length;
     const attachedTasksCount = tasks.filter((t) => t.goalId === goal.id).length;
 
+    // Get brain pillars if they exist on the goal
+    const brainPillars = goal.brainPillars || [];
+
     return (
       <div className="bg-white border border-[#D5E3D1] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <div className={`w-2.5 h-2.5 rounded-full ${goal.status === 'completed' ? 'bg-emerald-400' : 'bg-[#1B5E57]'}`} />
               <h3 className="text-lg font-semibold text-gray-900">{goal.title}</h3>
               <span
@@ -496,6 +501,14 @@ export default function GoalsHabits() {
             <p className="text-sm text-gray-600 mb-3">
               {goal.category} • {goal.target} {goal.unit} {goal.timeframe ? `• ${goal.timeframe}` : ''}
             </p>
+
+            {/* Brain Pillars */}
+            {brainPillars.length > 0 && (
+              <div className="mb-3">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 block">Brain Health Focus</span>
+                <BrainPillarBadgeList pillars={brainPillars} size="small" />
+              </div>
+            )}
 
             <div className="space-y-2 mb-4">
               <div className="flex justify-between items-center">
@@ -613,11 +626,15 @@ export default function GoalsHabits() {
   }
 
   const HabitCard = ({ habit, onLogHabitToday }) => {
-    // If you’re computing streaks in the parent via the hook, this uses that:
+    // If you're computing streaks in the parent via the hook, this uses that:
     const streak = habitStreaks.get(habit.id) || { current: 0, best: 0 };
 
     // Prefer Firestore title if present, then name, then a safe fallback
     const title = habit.title ?? habit.name ?? 'Untitled Habit';
+
+    // Get brain health info for this habit
+    const neurochemicalTags = habit.category ? getNeurochemicalTags(habit.category) : [];
+    const brainPillars = habit.category ? getBrainPillars(habit.category) : [];
 
     const handleLogToday = () => {
       if (onLogHabitToday) {
@@ -634,7 +651,7 @@ export default function GoalsHabits() {
       <div className="bg-white border border-[#D5E3D1] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all">
         <div className="px-6 pt-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <div
                 className={`w-2.5 h-2.5 rounded-full ${
                   habit.type === 'daily' ? 'bg-emerald-500' : habit.type === 'weekly' ? 'bg-blue-500' : 'bg-purple-500'
@@ -662,6 +679,24 @@ export default function GoalsHabits() {
               </div>
             </div>
           </div>
+
+          {/* Brain Health Impacts */}
+          {(neurochemicalTags.length > 0 || brainPillars.length > 0) && (
+            <div className="mt-3 space-y-2">
+              {neurochemicalTags.length > 0 && (
+                <div>
+                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 block">Brain Impact</span>
+                  <NeurochemicalTagList impacts={neurochemicalTags} size="small" maxDisplay={4} />
+                </div>
+              )}
+              {brainPillars.length > 0 && (
+                <div>
+                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 block">Brain Pillars</span>
+                  <BrainPillarBadgeList pillars={brainPillars} size="small" />
+                </div>
+              )}
+            </div>
+          )}
 
           {(habit.trigger || habit.reward) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">

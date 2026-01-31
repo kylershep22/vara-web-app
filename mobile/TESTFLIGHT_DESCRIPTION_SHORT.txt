@@ -1,0 +1,69 @@
+# Vara Wellness - Beta Test (Build 1.0.12)
+
+Thank you for testing Vara!
+
+## What's New
+✅ Fixed crash issues from previous build
+✅ Enhanced error handling and stability
+✅ New identity-based habit features (beta)
+✅ Better progress tracking
+
+## Critical Tests (Please do these!)
+
+1. **App Launch** (MOST IMPORTANT)
+   - Delete old app, install fresh from TestFlight
+   - Launch app
+   - Should open without crashing
+
+2. **Create Account/Login**
+   - Sign up or log in
+   - Complete onboarding
+   - Reach dashboard
+
+3. **Habits Feature** (NEW)
+   - Go to Habits tab
+   - Create new habit (try the new fields!)
+   - Check/uncheck to mark complete
+   - Make sure it doesn't crash
+
+4. **Navigation**
+   - Visit all 5 tabs: Home, Track, Focus, Community, More
+   - All should load without crashing
+
+5. **Background/Resume**
+   - Use app, press home, wait 30 sec
+   - Reopen app
+   - Should resume without crash
+
+## Optional Tests
+- Device rotation (iPad)
+- Offline mode (Airplane Mode)
+- Create multiple habits
+- 4-3-2-1 Daily Practice on dashboard
+
+## Report Issues
+Tap "Send Beta Feedback" in TestFlight with:
+- What you were doing
+- What happened vs. what you expected
+- Your device model
+- Screenshots if possible
+
+## Known Normal Behavior
+- First launch takes 2-3 seconds (Firebase initializing)
+- Empty states for new users (create content to see it!)
+- Streaks start at 0 (build up over days)
+
+## What We're Looking For
+✅ App launches reliably
+✅ No crashes during normal use
+✅ Can create/manage habits
+✅ Navigation works smoothly
+
+🚨 Report immediately: App crashes, can't log in, features broken, data loss
+
+Thank you for helping make Vara better! 🙏
+
+Questions? Use "Send Beta Feedback" feature.
+
+---
+Build: 1.0.12 | Date: Jan 7, 2026 | Fixed: Critical crash issues

@@ -17,10 +17,21 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db, firebaseError } from '../../config/firebase';
 import { Goal } from '../../types';
 
 const COLLECTION = 'goals';
+
+/**
+ * Check if Firestore is available
+ */
+const ensureFirestore = () => {
+  if (!db) {
+    const errorMessage = firebaseError?.message || 'Firestore is not initialized. Please check your Firebase configuration.';
+    throw new Error(errorMessage);
+  }
+  return db;
+};
 
 /**
  * Get all goals for a user
@@ -74,6 +85,13 @@ export const createGoal = async (
   data: Omit<Goal, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
 ): Promise<string> => {
   try {
+    const firestore = ensureFirestore();
+
+    // Validate userId
+    if (!userId || typeof userId !== 'string') {
+      throw new Error('Valid userId is required to create a goal');
+    }
+
     const goalData = {
       ...data,
       userId,
@@ -83,7 +101,7 @@ export const createGoal = async (
       updatedAt: serverTimestamp(),
     };
 
-    const docRef = await addDoc(collection(db, COLLECTION), goalData);
+    const docRef = await addDoc(collection(firestore, COLLECTION), goalData);
     return docRef.id;
   } catch (error) {
     console.error('Error creating goal:', error);

@@ -173,7 +173,11 @@ export const useFeed = () => {
     return () => unsubscribe();
   }, [user, connectionIds, groupIds]);
 
-  const handleCreatePost = async (content: string, groupId?: string) => {
+  const handleCreatePost = async (
+    content: string,
+    groupId?: string,
+    media?: Array<{ url: string; type: 'image' | 'video' }>
+  ) => {
     if (!user) return;
 
     try {
@@ -181,6 +185,7 @@ export const useFeed = () => {
         userId: user.uid,
         content,
         groupId,
+        media,
       });
     } catch (err) {
       console.error('Error creating post:', err);

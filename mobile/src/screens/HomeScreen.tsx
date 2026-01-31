@@ -8,7 +8,7 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card } from '../components';
-import { Colors, Spacing } from '../constants';
+import { Colors, Spacing, Typography, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
 
 const HomeScreen: React.FC = () => {
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: Colors.evergreenTeal,
     marginBottom: Spacing.md,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   infoRow: {
     flexDirection: 'row',
@@ -189,16 +189,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.sm,
     paddingVertical: Spacing.xs,
-    borderBottomWidth: 1,
+    borderBottomWidth: Layout.borderWidth.thin,
     borderBottomColor: Colors.borderLight,
   },
   label: {
     color: Colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: Typography.fontWeight.medium,
   },
   value: {
     color: Colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   verified: {
     color: Colors.success,

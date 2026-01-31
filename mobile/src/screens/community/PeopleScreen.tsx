@@ -3,23 +3,25 @@
  * Search users and manage connections
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { Text, SegmentedButtons, Searchbar, Avatar } from 'react-native-paper';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Animated } from 'react-native';
+import { Text, SegmentedButtons, Searchbar, Avatar, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, LoadingSpinner } from '../../components';
-import { Colors, Spacing } from '../../constants';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useConnections, useUserSearch, useConnectionProfiles, useStartConversation } from '../../hooks';
 import { useAuth } from '../../context/AuthContext';
 import { UserProfile, getUserById } from '../../services/firebase';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 const PeopleScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('connections');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchHintOpacity = useRef(new Animated.Value(0)).current;
 
   const {
     connections,
@@ -73,23 +75,46 @@ const PeopleScreen: React.FC = () => {
     loadRequestProfiles();
   }, [filter, requests.length, user?.uid]); // Use requests.length instead of requests array
 
-  // Handle search with debounce
+  // Auto-switch to Discover tab when user starts typing
   useEffect(() => {
-    if (filter !== 'all') {
-      clear();
-      return;
+    if (searchQuery.trim().length > 0 && filter !== 'discover') {
+      setFilter('discover');
+      // Show hint animation
+      Animated.sequence([
+        Animated.timing(searchHintOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.delay(2000),
+        Animated.timing(searchHintOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
+  }, [searchQuery]);
 
-    if (searchQuery.trim().length >= 2) {
+  // Handle search with debounce - now searches immediately when typing
+  useEffect(() => {
+    if (searchQuery.trim().length >= 1) {
       const timer = setTimeout(() => {
         search(searchQuery);
-      }, 300); // Debounce search
+      }, 200); // Faster debounce for more responsive feel
 
       return () => clearTimeout(timer);
     } else {
       clear();
     }
-  }, [searchQuery, filter]); // search and clear are stable from the hook
+  }, [searchQuery]); // search and clear are stable from the hook
+
+  // Clear search when switching away from discover
+  useEffect(() => {
+    if (filter !== 'discover' && searchQuery.trim().length > 0) {
+      // Keep the query but it won't show results on other tabs
+    }
+  }, [filter]);
 
   // Determine what to display based on filter
   const displayData = useMemo(() => {
@@ -98,14 +123,14 @@ const PeopleScreen: React.FC = () => {
     } else if (filter === 'requests') {
       return requestProfiles;
     } else {
-      // 'all' - show search results, filter out current user and existing connections
+      // 'discover' - show search results, filter out current user and existing connections
       return searchResults.filter(
         (u) => u.id !== user?.uid && !isConnected(u.id)
       );
     }
   }, [filter, connectionProfiles, requestProfiles, searchResults, user, isConnected]);
 
-  const loading = connectionsLoading || profilesLoading || (filter === 'all' && searchLoading);
+  const loading = connectionsLoading || profilesLoading || (filter === 'discover' && searchLoading);
 
   const handleSendRequest = async (userId: string, userName: string) => {
     try {
@@ -139,10 +164,9 @@ const PeopleScreen: React.FC = () => {
   const handleMessage = async (userId: string) => {
     try {
       const conversationId = await startConversation(userId);
-      // TODO: Navigate to chat screen when it's created
-      // navigation.navigate('Chat', { conversationId, userId });
-      Alert.alert('Coming Soon', 'Direct messaging will be available soon!');
+      navigation.navigate('Chat', { conversationId, otherUserId: userId });
     } catch (error) {
+      console.error('Error starting conversation:', error);
       Alert.alert('Error', 'Failed to start conversation');
     }
   };
@@ -161,35 +185,80 @@ const PeopleScreen: React.FC = () => {
       {/* Search */}
       <View style={styles.searchContainer}>
         <Searchbar
-          placeholder="Search people..."
+          placeholder="Search for people to connect..."
           onChangeText={setSearchQuery}
           value={searchQuery}
-          style={styles.searchbar}
+          style={[
+            styles.searchbar,
+            isSearchFocused && styles.searchbarFocused,
+          ]}
           iconColor={Colors.evergreenTeal}
+          onFocus={() => setIsSearchFocused(true)}
+          onBlur={() => setIsSearchFocused(false)}
         />
+        {/* Search hint that appears when auto-switching to Discover */}
+        <Animated.View
+          style={[
+            styles.searchHint,
+            { opacity: searchHintOpacity },
+          ]}
+          pointerEvents="none"
+        >
+          <Icon name="arrow-down" size={14} color={Colors.evergreenTeal} />
+          <Text variant="bodySmall" style={styles.searchHintText}>
+            Showing search results below
+          </Text>
+        </Animated.View>
       </View>
 
-      {/* Filter */}
+      {/* Filter tabs with badge for requests */}
       <View style={styles.filterContainer}>
         <SegmentedButtons
           value={filter}
-          onValueChange={setFilter}
+          onValueChange={(value) => {
+            setFilter(value);
+            // Clear search when switching to non-discover tabs
+            if (value !== 'discover') {
+              setSearchQuery('');
+              clear();
+            }
+          }}
           buttons={[
-            { value: 'all', label: 'Discover' },
-            { value: 'connections', label: 'Connections' },
-            { value: 'requests', label: 'Requests' },
+            {
+              value: 'connections',
+              label: `My Network${connectionProfiles.length > 0 ? ` (${connectionProfiles.length})` : ''}`,
+            },
+            {
+              value: 'discover',
+              label: 'Find People',
+              icon: searchQuery.length > 0 ? 'magnify' : undefined,
+            },
+            {
+              value: 'requests',
+              label: `Requests${requests.length > 0 ? ` (${requests.length})` : ''}`,
+            },
           ]}
           style={styles.segmentedButtons}
         />
       </View>
 
+      {/* Live search results preview when typing */}
+      {searchQuery.length > 0 && filter === 'discover' && searchLoading && (
+        <View style={styles.searchingIndicator}>
+          <Icon name="magnify" size={16} color={Colors.evergreenTeal} />
+          <Text variant="bodySmall" style={styles.searchingText}>
+            Searching for "{searchQuery}"...
+          </Text>
+        </View>
+      )}
+
       {/* People List */}
-      {loading ? (
+      {loading && !searchLoading ? (
         <LoadingSpinner message="Loading people..." />
       ) : displayData.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Icon
-            name="account-multiple"
+            name={filter === 'discover' ? 'account-search' : 'account-multiple'}
             size={64}
             color={Colors.textSecondary}
             style={styles.emptyIcon}
@@ -199,19 +268,28 @@ const PeopleScreen: React.FC = () => {
               ? 'No connections yet'
               : filter === 'requests'
               ? 'No pending requests'
-              : searchQuery.length >= 2
+              : searchQuery.length >= 1
               ? 'No people found'
-              : 'Search for people'}
+              : 'Find new connections'}
           </Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
             {filter === 'connections'
-              ? 'Start connecting with people to build your network'
+              ? 'Use the search bar above to find and connect with people'
               : filter === 'requests'
-              ? 'No pending connection requests'
-              : searchQuery.length >= 2
-              ? 'Try a different search term'
-              : 'Type at least 2 characters to search'}
+              ? 'Connection requests will appear here'
+              : searchQuery.length >= 1
+              ? `No results for "${searchQuery}". Try a different name.`
+              : 'Start typing a name to find people in the community'}
           </Text>
+          {filter === 'connections' && (
+            <Button
+              variant="primary"
+              style={styles.findPeopleButton}
+              onPress={() => setFilter('discover')}
+            >
+              Find People
+            </Button>
+          )}
         </View>
       ) : (
         <FlatList
@@ -299,7 +377,7 @@ const PeopleScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   header: {
     paddingHorizontal: Spacing.lg,
@@ -307,7 +385,7 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     color: Colors.evergreenTeal,
-    fontWeight: '700',
+    fontWeight: Typography.fontWeight.bold,
   },
   subtitle: {
     color: Colors.textSecondary,
@@ -320,6 +398,33 @@ const styles = StyleSheet.create({
   searchbar: {
     backgroundColor: Colors.surface,
     elevation: 0,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  searchbarFocused: {
+    borderColor: Colors.evergreenTeal,
+  },
+  searchHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.xs,
+    gap: Spacing.xs,
+  },
+  searchHintText: {
+    color: Colors.evergreenTeal,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  searchingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  searchingText: {
+    color: Colors.evergreenTeal,
   },
   filterContainer: {
     paddingHorizontal: Spacing.lg,
@@ -349,7 +454,7 @@ const styles = StyleSheet.create({
   },
   personName: {
     color: Colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     marginBottom: Spacing.xs,
   },
   personBio: {
@@ -381,6 +486,10 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  findPeopleButton: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
   },
 });
 

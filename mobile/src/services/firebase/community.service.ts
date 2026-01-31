@@ -245,6 +245,8 @@ export const createPost = async (data: {
   userId: string;
   content: string;
   groupId?: string;
+  images?: string[];
+  media?: Array<{ url: string; type: 'image' | 'video' }>;
 }): Promise<string> => {
   try {
     const postData = {
@@ -253,7 +255,8 @@ export const createPost = async (data: {
       groupId: data.groupId || null,
       likes: [],
       comments: [],
-      images: [],
+      media: data.media || [],
+      images: data.media?.filter(m => m.type === 'image').map(m => m.url) || data.images || [], // Backwards compat
       timestamp: serverTimestamp(), // Use timestamp to match web app
     };
 
@@ -314,6 +317,7 @@ export const togglePostLike = async (postId: string, userId: string): Promise<vo
 
 /**
  * Add comment to post
+ * Note: serverTimestamp() cannot be used inside arrayUnion(), so we use Timestamp.now() for comments
  */
 export const addCommentToPost = async (
   postId: string,
@@ -328,7 +332,7 @@ export const addCommentToPost = async (
       comments: arrayUnion({
         ...comment,
         likes: [],
-        createdAt: serverTimestamp(),
+        createdAt: Timestamp.now(), // Use Timestamp.now() since serverTimestamp() doesn't work in arrayUnion()
       }),
       updatedAt: serverTimestamp(),
     });

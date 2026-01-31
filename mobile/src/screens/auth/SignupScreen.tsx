@@ -11,11 +11,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Alert,
+  Linking,
 } from 'react-native';
 import { Text, Snackbar, Checkbox } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input } from '../../components';
-import { Colors, Spacing } from '../../constants';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { Button, Input, AuthHeader } from '../../components';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import {
   validateEmail,
@@ -46,50 +49,92 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [termsError, setTermsError] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarType, setSnackbarType] = useState<'error' | 'success'>('error');
 
   /**
+   * Open Terms of Service
+   */
+  const handleOpenTerms = () => {
+    Alert.alert(
+      'Terms of Service',
+      'The Terms of Service document will be displayed here. For now, this feature is coming soon.',
+      [{ text: 'OK' }]
+    );
+    // TODO: Navigate to a screen that displays TERMS_OF_SERVICE.md
+    // or open in a web browser: Linking.openURL('https://vara.app/terms')
+  };
+
+  /**
+   * Open Privacy Policy
+   */
+  const handleOpenPrivacy = () => {
+    Alert.alert(
+      'Privacy Policy',
+      'The Privacy Policy document will be displayed here. For now, this feature is coming soon.',
+      [{ text: 'OK' }]
+    );
+    // TODO: Navigate to a screen that displays PRIVACY_POLICY.md
+    // or open in a web browser: Linking.openURL('https://vara.app/privacy')
+  };
+
+  /**
    * Handle signup submission
    */
   const handleSignup = async () => {
+    console.log('🔍 handleSignup called');
+    console.log('Form values:', { displayName, email, password: '***', confirmPassword: '***', agreedToTerms });
+
     // Clear previous errors
     setNameError('');
     setEmailError('');
     setPasswordError('');
     setConfirmPasswordError('');
+    setTermsError('');
 
     // Validate display name
     const nameValidation = validateDisplayName(displayName);
+    console.log('Name validation:', nameValidation);
     if (!nameValidation.isValid) {
       setNameError(nameValidation.error || '');
+      console.log('❌ Name validation failed');
       return;
     }
 
     // Validate email
     const emailValidation = validateEmail(email);
+    console.log('Email validation:', emailValidation);
     if (!emailValidation.isValid) {
       setEmailError(emailValidation.error || '');
+      console.log('❌ Email validation failed');
       return;
     }
 
     // Validate password
     const passwordValidation = validatePassword(password);
+    console.log('Password validation:', passwordValidation);
     if (!passwordValidation.isValid) {
       setPasswordError(passwordValidation.error || '');
+      console.log('❌ Password validation failed');
       return;
     }
 
     // Validate password match
     const passwordMatchValidation = validatePasswordMatch(password, confirmPassword);
+    console.log('Password match validation:', passwordMatchValidation);
     if (!passwordMatchValidation.isValid) {
       setConfirmPasswordError(passwordMatchValidation.error || '');
+      console.log('❌ Password match validation failed');
       return;
     }
 
     // Check terms agreement
+    console.log('Terms agreed:', agreedToTerms);
     if (!agreedToTerms) {
+      console.log('❌ Terms not agreed');
+      setTermsError('You must agree to the Terms of Service and Privacy Policy to continue');
       setSnackbarMessage('Please agree to the Terms of Service and Privacy Policy');
       setSnackbarType('error');
       setSnackbarVisible(true);
@@ -97,19 +142,21 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
     }
 
     // Attempt signup
+    console.log('✅ All validations passed, attempting signup...');
     try {
       await signup(email.trim(), password, displayName.trim());
 
+      console.log('✅ Signup successful!');
       // Show success message
       setSnackbarMessage('Account created! Please check your email to verify your account.');
       setSnackbarType('success');
       setSnackbarVisible(true);
 
-      // Navigate to email verification screen after delay
-      setTimeout(() => {
-        navigation.replace('EmailVerification');
-      }, 2000);
+      // No manual navigation needed - AppNavigator will automatically detect
+      // that the user is signed in but email is not verified, and show
+      // the EmailVerificationScreen via VerificationNavigator
     } catch (error: any) {
+      console.error('❌ Signup error caught:', error);
       const errorMessage = getAuthErrorMessage(error.code);
       setSnackbarMessage(errorMessage);
       setSnackbarType('error');
@@ -128,14 +175,10 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
-          <View style={styles.header}>
-            <Text variant="displayMedium" style={styles.title}>
-              Create Account
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              Start your wellness journey today
-            </Text>
-          </View>
+          <AuthHeader
+            title="Create Account"
+            subtitle="Start your wellness journey today"
+          />
 
           {/* Form */}
           <View style={styles.form}>
@@ -151,7 +194,7 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
               autoComplete="name"
               error={!!nameError}
               errorText={nameError}
-              left={<Text>👤</Text>}
+              left={<Icon name="account-outline" size={20} color={Colors.textSecondary} />}
               style={styles.input}
             />
 
@@ -168,7 +211,7 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
               autoComplete="email"
               error={!!emailError}
               errorText={emailError}
-              left={<Text>📧</Text>}
+              left={<Icon name="email-outline" size={20} color={Colors.textSecondary} />}
               style={styles.input}
             />
 
@@ -185,10 +228,14 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
               autoComplete="password-new"
               error={!!passwordError}
               errorText={passwordError}
-              left={<Text>🔒</Text>}
+              left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
               right={
                 <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
-                  <Text>{secureTextEntry ? '👁️' : '🙈'}</Text>
+                  <Icon
+                    name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={Colors.textSecondary}
+                  />
                 </TouchableOpacity>
               }
               style={styles.input}
@@ -207,10 +254,14 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
               autoComplete="password-new"
               error={!!confirmPasswordError}
               errorText={confirmPasswordError}
-              left={<Text>🔒</Text>}
+              left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
               right={
                 <TouchableOpacity onPress={() => setSecureConfirmEntry(!secureConfirmEntry)}>
-                  <Text>{secureConfirmEntry ? '👁️' : '🙈'}</Text>
+                  <Icon
+                    name={secureConfirmEntry ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={Colors.textSecondary}
+                  />
                 </TouchableOpacity>
               }
               style={styles.input}
@@ -236,22 +287,50 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
             </View>
 
             {/* Terms Agreement */}
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setAgreedToTerms(!agreedToTerms)}
-              activeOpacity={0.7}
-            >
+            <View style={[
+              styles.checkboxContainer,
+              termsError && styles.checkboxContainerError
+            ]}>
               <Checkbox
                 status={agreedToTerms ? 'checked' : 'unchecked'}
-                onPress={() => setAgreedToTerms(!agreedToTerms)}
+                onPress={() => {
+                  setAgreedToTerms(!agreedToTerms);
+                  setTermsError('');
+                }}
                 color={Colors.evergreenTeal}
+                uncheckedColor={termsError ? Colors.error : Colors.textSecondary}
               />
-              <Text variant="bodySmall" style={styles.checkboxText}>
-                I agree to the{' '}
-                <Text style={styles.link}>Terms of Service</Text> and{' '}
-                <Text style={styles.link}>Privacy Policy</Text>
+              <TouchableOpacity
+                style={styles.checkboxTextContainer}
+                onPress={() => {
+                  setAgreedToTerms(!agreedToTerms);
+                  setTermsError('');
+                }}
+                activeOpacity={0.7}
+              >
+                <Text variant="bodySmall" style={styles.checkboxText}>
+                  I agree to the{' '}
+                  <Text
+                    style={styles.link}
+                    onPress={handleOpenTerms}
+                  >
+                    Terms of Service
+                  </Text>{' '}
+                  and{' '}
+                  <Text
+                    style={styles.link}
+                    onPress={handleOpenPrivacy}
+                  >
+                    Privacy Policy
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {termsError ? (
+              <Text variant="bodySmall" style={styles.errorText}>
+                {termsError}
               </Text>
-            </TouchableOpacity>
+            ) : null}
 
             {/* Signup Button */}
             <Button
@@ -303,7 +382,7 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   keyboardView: {
     flex: 1,
@@ -313,19 +392,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xl,
   },
-  header: {
-    marginBottom: Spacing.xl,
-    alignItems: 'center',
-  },
-  title: {
-    color: Colors.evergreenTeal,
-    marginBottom: Spacing.sm,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
   form: {
     flex: 1,
   },
@@ -334,13 +400,13 @@ const styles = StyleSheet.create({
   },
   requirementsBox: {
     backgroundColor: Colors.dewSage,
-    borderRadius: 8,
+    borderRadius: Layout.borderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
   },
   requirementsTitle: {
     color: Colors.evergreenTeal,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     marginBottom: Spacing.xs,
   },
   requirementText: {
@@ -349,17 +415,35 @@ const styles = StyleSheet.create({
   },
   checkboxContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: 'transparent',
+  },
+  checkboxContainerError: {
+    backgroundColor: Colors.error + '10', // 10% opacity red background
+    borderWidth: 1,
+    borderColor: Colors.error + '30', // 30% opacity red border
+  },
+  checkboxTextContainer: {
+    flex: 1,
+    marginLeft: Spacing.xs,
+    marginTop: 8, // Align text with checkbox center
   },
   checkboxText: {
-    flex: 1,
     color: Colors.textSecondary,
-    marginLeft: Spacing.xs,
+    lineHeight: Typography.fontSize.sm * 1.5,
+  },
+  errorText: {
+    color: Colors.error,
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.md,
+    marginLeft: Spacing.md + 24, // Align with checkbox text
   },
   link: {
     color: Colors.evergreenTeal,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     textDecorationLine: 'underline',
   },
   signupButton: {
@@ -375,7 +459,7 @@ const styles = StyleSheet.create({
   },
   loginLink: {
     color: Colors.evergreenTeal,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   snackbar: {
     backgroundColor: Colors.error,

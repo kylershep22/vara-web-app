@@ -8,3 +8,5 @@ export * from './tasks.service';
 export * from './journal.service';
 export * from './community.service';
 export * from './messaging.service';
+export * from './storage.service';
+export * from './fourThreeTwoOne.service';

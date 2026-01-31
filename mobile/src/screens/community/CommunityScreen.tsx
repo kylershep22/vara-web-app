@@ -3,7 +3,7 @@
  * Social feed with posts from connections and groups
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,15 +12,336 @@ import {
   RefreshControl,
   TextInput as RNTextInput,
   Alert,
+  Image,
+  Keyboard,
+  InputAccessoryView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { Text, Avatar, IconButton, Portal, Modal, Button as PaperButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Card, LoadingSpinner } from '../../components';
-import { Colors, Spacing } from '../../constants';
+import * as ImagePicker from 'expo-image-picker';
+import { Card, LoadingSpinner, PostCard, QuickNavButton } from '../../components';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { useFeed } from '../../hooks';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { uploadPostMedia } from '../../services/firebase';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../config/firebase';
+
+// Extracted Create Post Modal component to prevent re-renders from parent Firestore subscriptions
+interface CreatePostModalProps {
+  visible: boolean;
+  onDismiss: () => void;
+  onSubmit: (content: string, media: Array<{ uri: string; type: 'image' | 'video'; id: string }>) => Promise<void>;
+  userId: string;
+}
+
+const CreatePostModal = memo(({ visible, onDismiss, onSubmit, userId }: CreatePostModalProps) => {
+  const [postContent, setPostContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<Array<{
+    uri: string;
+    type: 'image' | 'video';
+    id: string;
+  }>>([]);
+
+  // Permission request functions
+  const requestCameraPermission = async (): Promise<boolean> => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Camera access is needed to take photos and videos');
+      return false;
+    }
+    return true;
+  };
+
+  const requestLibraryPermission = async (): Promise<boolean> => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Photo library access is needed to select media');
+      return false;
+    }
+    return true;
+  };
+
+  // Media selection functions
+  const handleTakePhoto = async () => {
+    if (!(await requestCameraPermission())) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setSelectedMedia(prev => [...prev, {
+        uri: result.assets[0].uri,
+        type: 'image',
+        id: Date.now().toString(),
+      }]);
+    }
+  };
+
+  const handleRecordVideo = async () => {
+    if (!(await requestCameraPermission())) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      videoMaxDuration: 300, // 5 minutes
+      videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+    });
+
+    if (!result.canceled) {
+      // Validate duration
+      if (result.assets[0].duration && result.assets[0].duration > 300) {
+        Alert.alert('Video Too Long', 'Videos must be 5 minutes or less');
+        return;
+      }
+
+      setSelectedMedia(prev => [...prev, {
+        uri: result.assets[0].uri,
+        type: 'video',
+        id: Date.now().toString(),
+      }]);
+    }
+  };
+
+  const handleChooseFromLibrary = async () => {
+    if (!(await requestLibraryPermission())) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      const newMedia = result.assets.map(asset => ({
+        uri: asset.uri,
+        type: asset.type === 'video' ? 'video' as const : 'image' as const,
+        id: `${Date.now()}_${Math.random()}`,
+      }));
+
+      setSelectedMedia(prev => [...prev, ...newMedia]);
+    }
+  };
+
+  const showMediaOptions = () => {
+    Alert.alert(
+      'Add Media',
+      'Choose a source',
+      [
+        { text: 'Take Photo', onPress: handleTakePhoto },
+        { text: 'Record Video', onPress: handleRecordVideo },
+        { text: 'Choose from Library', onPress: handleChooseFromLibrary },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const removeMedia = (id: string) => {
+    setSelectedMedia(prev => prev.filter(m => m.id !== id));
+  };
+
+  const handleCreatePost = async () => {
+    if (!postContent.trim() && selectedMedia.length === 0) {
+      Alert.alert('Error', 'Please enter some content or add media');
+      return;
+    }
+
+    setSubmitting(true);
+    setIsUploading(selectedMedia.length > 0);
+
+    try {
+      await onSubmit(postContent, selectedMedia);
+      // Success - clear and close
+      setPostContent('');
+      setSelectedMedia([]);
+      onDismiss();
+      Alert.alert('Success', 'Post created!');
+    } catch (error) {
+      console.error('Error creating post:', error);
+      Alert.alert(
+        'Upload Failed',
+        'Would you like to try again?',
+        [
+          { text: 'Retry', onPress: handleCreatePost },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+    } finally {
+      setSubmitting(false);
+      setIsUploading(false);
+    }
+  };
+
+  const handleDismiss = useCallback(() => {
+    Keyboard.dismiss();
+    onDismiss();
+  }, [onDismiss]);
+
+  return (
+    <Modal
+      visible={visible}
+      onDismiss={handleDismiss}
+      contentContainerStyle={styles.modal}
+    >
+      <Text variant="headlineSmall" style={styles.modalTitle}>
+        Create Post
+      </Text>
+
+      <RNTextInput
+        value={postContent}
+        onChangeText={setPostContent}
+        placeholder="What's on your mind?"
+        multiline
+        numberOfLines={6}
+        style={styles.postInput}
+        textAlignVertical="top"
+        inputAccessoryViewID="communityInputAccessory"
+        blurOnSubmit={false}
+      />
+
+      {/* Media Preview Grid */}
+      {selectedMedia.length > 0 && (
+        <ScrollView
+          horizontal
+          style={styles.mediaPreview}
+          showsHorizontalScrollIndicator={false}
+        >
+          {selectedMedia.map((media) => (
+            <View key={media.id} style={styles.mediaThumbnail}>
+              <Image
+                source={{ uri: media.uri }}
+                style={styles.thumbnailImage}
+              />
+
+              {/* Remove button */}
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => removeMedia(media.id)}
+              >
+                <Icon name="close-circle" size={24} color={Colors.error} />
+              </TouchableOpacity>
+
+              {/* Video indicator */}
+              {media.type === 'video' && (
+                <View style={styles.videoIndicator}>
+                  <Icon name="play-circle" size={32} color="#fff" />
+                </View>
+              )}
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* Add Media Button */}
+      <TouchableOpacity
+        style={styles.addMediaButton}
+        onPress={showMediaOptions}
+      >
+        <Icon name="image-plus" size={24} color={Colors.evergreenTeal} />
+        <Text style={styles.addMediaText}>Add Photos/Videos</Text>
+      </TouchableOpacity>
+
+      <View style={styles.modalActions}>
+        <PaperButton
+          mode="outlined"
+          onPress={handleDismiss}
+          style={styles.modalButton}
+        >
+          Cancel
+        </PaperButton>
+        <PaperButton
+          mode="contained"
+          onPress={handleCreatePost}
+          loading={submitting || isUploading}
+          disabled={submitting || isUploading || (!postContent.trim() && selectedMedia.length === 0)}
+          style={styles.modalButton}
+          buttonColor={Colors.evergreenTeal}
+        >
+          {isUploading ? 'Uploading...' : 'Post'}
+        </PaperButton>
+      </View>
+    </Modal>
+  );
+});
+
+// Extracted Comment Modal component
+interface CommentModalProps {
+  visible: boolean;
+  postId: string | null;
+  onDismiss: () => void;
+  onSubmit: (postId: string, text: string) => Promise<void>;
+}
+
+const CommentModal = memo(({ visible, postId, onDismiss, onSubmit }: CommentModalProps) => {
+  const [commentText, setCommentText] = useState('');
+
+  const handleComment = async () => {
+    if (!commentText.trim() || !postId) return;
+
+    try {
+      await onSubmit(postId, commentText);
+      setCommentText('');
+      onDismiss();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add comment');
+    }
+  };
+
+  const handleDismiss = useCallback(() => {
+    Keyboard.dismiss();
+    onDismiss();
+  }, [onDismiss]);
+
+  return (
+    <Modal
+      visible={visible}
+      onDismiss={handleDismiss}
+      contentContainerStyle={styles.modal}
+    >
+      <Text variant="headlineSmall" style={styles.modalTitle}>
+        Comments
+      </Text>
+
+      <View style={styles.commentInputContainer}>
+        <RNTextInput
+          value={commentText}
+          onChangeText={setCommentText}
+          placeholder="Write a comment..."
+          style={styles.commentInput}
+          inputAccessoryViewID="communityInputAccessory"
+          returnKeyType="send"
+          onSubmitEditing={handleComment}
+          blurOnSubmit={false}
+        />
+        <IconButton
+          icon="send"
+          size={24}
+          iconColor={Colors.evergreenTeal}
+          onPress={handleComment}
+        />
+      </View>
+
+      <PaperButton
+        mode="outlined"
+        onPress={handleDismiss}
+        style={styles.modalButton}
+      >
+        Close
+      </PaperButton>
+    </Modal>
+  );
+});
+
+const INPUT_ACCESSORY_VIEW_ID = 'communityInputAccessory';
 
 const CommunityScreen: React.FC = () => {
   const { user } = useAuth();
@@ -28,10 +349,24 @@ const CommunityScreen: React.FC = () => {
   const { posts, loading, createPost, likePost, commentOnPost } = useFeed();
   const [refreshing, setRefreshing] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [postContent, setPostContent] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [showComments, setShowComments] = useState<string | null>(null);
-  const [commentText, setCommentText] = useState('');
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Load user profile data for avatar
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user) return;
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          setUserProfile(userDoc.data());
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    };
+    loadUserProfile();
+  }, [user]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -39,44 +374,46 @@ const CommunityScreen: React.FC = () => {
     setTimeout(() => setRefreshing(false), 1000);
   };
 
-  const handleCreatePost = async () => {
-    if (!postContent.trim()) {
-      Alert.alert('Error', 'Please enter some content for your post');
-      return;
+  // Memoized callback for creating posts (used by extracted modal)
+  const handleSubmitPost = useCallback(async (
+    content: string,
+    selectedMedia: Array<{ uri: string; type: 'image' | 'video'; id: string }>
+  ) => {
+    let mediaArray: Array<{ url: string; type: 'image' | 'video' }> = [];
+
+    // Upload media if selected
+    if (selectedMedia.length > 0) {
+      const uploadResults = await uploadPostMedia(user!.uid, selectedMedia);
+      mediaArray = uploadResults.map(r => ({
+        url: r.url,
+        type: r.type,
+      }));
     }
 
-    setSubmitting(true);
-    try {
-      await createPost(postContent);
-      setPostContent('');
-      setShowCreatePost(false);
-      Alert.alert('Success', 'Post created!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create post. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    // Create post with media array
+    await createPost(content, undefined, mediaArray);
+  }, [user, createPost]);
 
-  const handleLike = async (postId: string) => {
+  const handleLike = useCallback(async (postId: string) => {
     try {
       await likePost(postId);
     } catch (error) {
       Alert.alert('Error', 'Failed to like post');
     }
-  };
+  }, [likePost]);
 
-  const handleComment = async (postId: string) => {
-    if (!commentText.trim()) return;
+  // Memoized callback for commenting (used by extracted modal)
+  const handleCommentSubmit = useCallback(async (postId: string, text: string) => {
+    await commentOnPost(postId, text);
+  }, [commentOnPost]);
 
-    try {
-      await commentOnPost(postId, commentText);
-      setCommentText('');
-      setShowComments(null);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add comment');
-    }
-  };
+  const handleCloseCreatePost = useCallback(() => {
+    setShowCreatePost(false);
+  }, []);
+
+  const handleCloseComments = useCallback(() => {
+    setShowComments(null);
+  }, []);
 
   const formatTimestamp = (post: any) => {
     // Support both timestamp (web app) and createdAt (mobile app)
@@ -102,131 +439,33 @@ const CommunityScreen: React.FC = () => {
   };
 
   const renderPost = ({ item }: { item: any }) => (
-    <Card style={styles.postCard}>
-      {/* Post Header */}
-      <View style={styles.postHeader}>
-        <Avatar.Text
-          size={40}
-          label={(item.author?.displayName || 'U').substring(0, 2).toUpperCase()}
-          style={styles.avatar}
-          color={Colors.textOnPrimary}
-        />
-        <View style={styles.postHeaderInfo}>
-          <Text variant="titleMedium" style={styles.authorName}>
-            {item.author?.displayName || 'Unknown User'}
-          </Text>
-          <Text variant="bodySmall" style={styles.timestamp}>
-            {formatTimestamp(item)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Post Content */}
-      <Text variant="bodyLarge" style={styles.postContent}>
-        {item.content}
-      </Text>
-
-      {/* Post Stats */}
-      <View style={styles.postStats}>
-        <Text variant="bodySmall" style={styles.statsText}>
-          {item.likesCount} {item.likesCount === 1 ? 'like' : 'likes'}
-        </Text>
-        <Text variant="bodySmall" style={styles.statsText}>
-          {item.commentsCount} {item.commentsCount === 1 ? 'comment' : 'comments'}
-        </Text>
-      </View>
-
-      {/* Post Actions */}
-      <View style={styles.postActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleLike(item.id)}
-        >
-          <Icon
-            name={item.isLiked ? 'heart' : 'heart-outline'}
-            size={20}
-            color={item.isLiked ? Colors.evergreenTeal : Colors.textSecondary}
-          />
-          <Text
-            variant="bodyMedium"
-            style={[
-              styles.actionText,
-              item.isLiked && { color: Colors.evergreenTeal },
-            ]}
-          >
-            Like
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => setShowComments(item.id)}
-        >
-          <Icon name="comment-outline" size={20} color={Colors.textSecondary} />
-          <Text variant="bodyMedium" style={styles.actionText}>
-            Comment
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Comments Preview */}
-      {item.comments && item.comments.length > 0 && (
-        <View style={styles.commentsPreview}>
-          {item.comments.slice(0, 2).map((comment: any, index: number) => (
-            <View key={index} style={styles.commentItem}>
-              <Text variant="bodySmall" style={styles.commentAuthor}>
-                User •
-              </Text>
-              <Text variant="bodySmall" style={styles.commentText}>
-                {comment.text}
-              </Text>
-            </View>
-          ))}
-          {item.comments.length > 2 && (
-            <TouchableOpacity onPress={() => setShowComments(item.id)}>
-              <Text variant="bodySmall" style={styles.viewMoreComments}>
-                View {item.comments.length - 2} more comments
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-    </Card>
+    <PostCard
+      post={item}
+      onLike={handleLike}
+      onComment={setShowComments}
+      formatTimestamp={formatTimestamp}
+    />
   );
 
   const renderHeader = () => (
     <>
       {/* Quick Navigation */}
       <View style={styles.quickNav}>
-        <TouchableOpacity
-          style={styles.quickNavButton}
+        <QuickNavButton
+          icon="account-group"
+          label="Groups"
           onPress={() => navigation.navigate('Groups')}
-        >
-          <Icon name="account-group" size={24} color={Colors.evergreenTeal} />
-          <Text variant="bodySmall" style={styles.quickNavText}>
-            Groups
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickNavButton}
+        />
+        <QuickNavButton
+          icon="account-multiple"
+          label="People"
           onPress={() => navigation.navigate('People')}
-        >
-          <Icon name="account-multiple" size={24} color={Colors.evergreenTeal} />
-          <Text variant="bodySmall" style={styles.quickNavText}>
-            People
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickNavButton}
-          onPress={() => navigation.navigate('Messages')}
-        >
-          <Icon name="message-text" size={24} color={Colors.evergreenTeal} />
-          <Text variant="bodySmall" style={styles.quickNavText}>
-            Messages
-          </Text>
-        </TouchableOpacity>
+        />
+        <QuickNavButton
+          icon="message-text"
+          label="Messages"
+          onPress={() => navigation.navigate('Conversations')}
+        />
       </View>
 
       {/* Create Post Button */}
@@ -255,6 +494,25 @@ const CommunityScreen: React.FC = () => {
         <Text variant="headlineMedium" style={styles.screenTitle}>
           Community
         </Text>
+        {/* Profile Picture Button */}
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => navigation.navigate('ProfileStack')}
+        >
+          {userProfile?.avatarUrl ? (
+            <Image
+              source={{ uri: userProfile.avatarUrl }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <Avatar.Text
+              size={40}
+              label={(userProfile?.displayName || user?.displayName || 'U').substring(0, 2).toUpperCase()}
+              style={styles.profileAvatar}
+              color={Colors.textOnPrimary}
+            />
+          )}
+        </TouchableOpacity>
       </View>
 
       {loading && posts.length === 0 ? (
@@ -288,84 +546,39 @@ const CommunityScreen: React.FC = () => {
         />
       )}
 
-      {/* Create Post Modal */}
+      {/* Create Post Modal - Extracted to prevent re-renders */}
       <Portal>
-        <Modal
+        <CreatePostModal
           visible={showCreatePost}
-          onDismiss={() => setShowCreatePost(false)}
-          contentContainerStyle={styles.modal}
-        >
-          <Text variant="headlineSmall" style={styles.modalTitle}>
-            Create Post
-          </Text>
-
-          <RNTextInput
-            value={postContent}
-            onChangeText={setPostContent}
-            placeholder="What's on your mind?"
-            multiline
-            numberOfLines={6}
-            style={styles.postInput}
-            textAlignVertical="top"
-          />
-
-          <View style={styles.modalActions}>
-            <PaperButton
-              mode="outlined"
-              onPress={() => setShowCreatePost(false)}
-              style={styles.modalButton}
-            >
-              Cancel
-            </PaperButton>
-            <PaperButton
-              mode="contained"
-              onPress={handleCreatePost}
-              loading={submitting}
-              disabled={submitting || !postContent.trim()}
-              style={styles.modalButton}
-              buttonColor={Colors.evergreenTeal}
-            >
-              Post
-            </PaperButton>
-          </View>
-        </Modal>
+          onDismiss={handleCloseCreatePost}
+          onSubmit={handleSubmitPost}
+          userId={user?.uid || ''}
+        />
       </Portal>
 
-      {/* Comment Modal */}
+      {/* Comment Modal - Extracted to prevent re-renders */}
       <Portal>
-        <Modal
+        <CommentModal
           visible={showComments !== null}
-          onDismiss={() => setShowComments(null)}
-          contentContainerStyle={styles.modal}
-        >
-          <Text variant="headlineSmall" style={styles.modalTitle}>
-            Comments
-          </Text>
-
-          <View style={styles.commentInputContainer}>
-            <RNTextInput
-              value={commentText}
-              onChangeText={setCommentText}
-              placeholder="Write a comment..."
-              style={styles.commentInput}
-            />
-            <IconButton
-              icon="send"
-              size={24}
-              iconColor={Colors.evergreenTeal}
-              onPress={() => showComments && handleComment(showComments)}
-            />
-          </View>
-
-          <PaperButton
-            mode="outlined"
-            onPress={() => setShowComments(null)}
-            style={styles.modalButton}
-          >
-            Close
-          </PaperButton>
-        </Modal>
+          postId={showComments}
+          onDismiss={handleCloseComments}
+          onSubmit={handleCommentSubmit}
+        />
       </Portal>
+
+      {/* Keyboard Accessory Toolbar (iOS) */}
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID={INPUT_ACCESSORY_VIEW_ID}>
+          <View style={styles.keyboardAccessory}>
+            <TouchableOpacity
+              onPress={() => Keyboard.dismiss()}
+              style={styles.keyboardAccessoryButton}
+            >
+              <Text style={styles.keyboardAccessoryButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
     </SafeAreaView>
   );
 };
@@ -376,15 +589,32 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
+    borderBottomWidth: Layout.borderWidth.thin,
     borderBottomColor: Colors.borderLight,
   },
   screenTitle: {
     color: Colors.evergreenTeal,
-    fontWeight: '700',
+    fontWeight: Typography.fontWeight.bold,
+  },
+  profileButton: {
+    borderRadius: Layout.borderRadius['2xl'],
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: Layout.borderRadius['2xl'],
+    borderWidth: Layout.borderWidth.medium,
+    borderColor: Colors.evergreenTeal,
+  },
+  profileAvatar: {
+    backgroundColor: Colors.evergreenTeal,
   },
   feedContent: {
     paddingBottom: Spacing.xl,
@@ -394,18 +624,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
+    borderBottomWidth: Layout.borderWidth.thin,
     borderBottomColor: Colors.borderLight,
     justifyContent: 'space-around',
-  },
-  quickNavButton: {
-    alignItems: 'center',
-    padding: Spacing.sm,
-  },
-  quickNavText: {
-    color: Colors.evergreenTeal,
-    marginTop: Spacing.xs,
-    fontWeight: '600',
   },
   createPostCard: {
     marginHorizontal: Spacing.lg,
@@ -421,84 +642,8 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
     flex: 1,
   },
-  postCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
   avatar: {
     backgroundColor: Colors.evergreenTeal,
-  },
-  postHeaderInfo: {
-    marginLeft: Spacing.sm,
-    flex: 1,
-  },
-  authorName: {
-    color: Colors.textPrimary,
-    fontWeight: '600',
-  },
-  timestamp: {
-    color: Colors.textSecondary,
-  },
-  postContent: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
-    lineHeight: 22,
-  },
-  postStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.borderLight,
-    marginBottom: Spacing.sm,
-  },
-  statsText: {
-    color: Colors.textSecondary,
-  },
-  postActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: Spacing.sm,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-  },
-  actionText: {
-    color: Colors.textSecondary,
-    marginLeft: Spacing.xs,
-    fontWeight: '600',
-  },
-  commentsPreview: {
-    marginTop: Spacing.md,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-  },
-  commentItem: {
-    flexDirection: 'row',
-    marginBottom: Spacing.xs,
-  },
-  commentAuthor: {
-    color: Colors.textPrimary,
-    fontWeight: '600',
-    marginRight: Spacing.xs,
-  },
-  commentText: {
-    color: Colors.textSecondary,
-    flex: 1,
-  },
-  viewMoreComments: {
-    color: Colors.evergreenTeal,
-    marginTop: Spacing.xs,
   },
   emptyState: {
     alignItems: 'center',
@@ -519,20 +664,20 @@ const styles = StyleSheet.create({
   modal: {
     backgroundColor: Colors.surface,
     marginHorizontal: Spacing.lg,
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
   },
   modalTitle: {
     color: Colors.evergreenTeal,
     marginBottom: Spacing.lg,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   postInput: {
-    borderWidth: 1,
+    borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
-    borderRadius: 8,
+    borderRadius: Layout.borderRadius.md,
     padding: Spacing.md,
-    fontSize: 16,
+    fontSize: Typography.fontSize.base,
     color: Colors.textPrimary,
     backgroundColor: Colors.background,
     minHeight: 120,
@@ -545,11 +690,11 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     flex: 1,
-    borderWidth: 1,
+    borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
-    borderRadius: 8,
+    borderRadius: Layout.borderRadius.md,
     padding: Spacing.md,
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     color: Colors.textPrimary,
     backgroundColor: Colors.background,
   },
@@ -560,6 +705,80 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
+  },
+  // Media preview
+  mediaPreview: {
+    marginVertical: Spacing.md,
+    maxHeight: 100,
+  },
+  mediaThumbnail: {
+    width: 80,
+    height: 80,
+    marginRight: Spacing.sm,
+    borderRadius: Layout.borderRadius.md,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  removeButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+  },
+  videoIndicator: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  // Add media button
+  addMediaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderWidth: Layout.borderWidth.thin,
+    borderColor: Colors.borderLight,
+    borderRadius: Layout.borderRadius.md,
+    borderStyle: 'dashed',
+    marginBottom: Spacing.md,
+  },
+  addMediaText: {
+    marginLeft: Spacing.sm,
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  // Keyboard Accessory Toolbar
+  keyboardAccessory: {
+    backgroundColor: Colors.surface,
+    borderTopWidth: Layout.borderWidth.thin,
+    borderTopColor: Colors.borderLight,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  keyboardAccessoryButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.evergreenTeal,
+    borderRadius: Layout.borderRadius.md,
+  },
+  keyboardAccessoryButtonText: {
+    color: Colors.textOnPrimary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });
 

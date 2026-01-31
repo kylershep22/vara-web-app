@@ -604,22 +604,18 @@ export default function Dashboard() {
               <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
             </div>
           ) : dailyPlan ? (
-            <div>
-              <div className={`text-gray-700 leading-relaxed whitespace-pre-wrap ${isPlanExpanded ? '' : 'line-clamp-3'}`}>
+            <div className="max-h-60 overflow-y-auto bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg p-5 border border-purple-100">
+              <div
+                className="text-gray-800 text-base leading-7"
+                style={{
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                  whiteSpace: 'pre-wrap',
+                  maxWidth: '100%'
+                }}
+              >
                 {dailyPlan}
               </div>
-              {dailyPlan.length > 200 && (
-                <button
-                  onClick={() => setIsPlanExpanded(!isPlanExpanded)}
-                  className="mt-3 text-sm text-[#1B5E57] hover:text-[#174C46] font-medium flex items-center gap-1"
-                >
-                  {isPlanExpanded ? (
-                    <>Show Less <ChevronUp size={16} /></>
-                  ) : (
-                    <>Read Full Plan <ChevronDown size={16} /></>
-                  )}
-                </button>
-              )}
             </div>
           ) : (
             <p className="text-gray-500 text-center py-4">

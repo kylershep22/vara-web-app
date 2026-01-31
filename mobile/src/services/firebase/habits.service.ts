@@ -18,11 +18,22 @@ import {
   setDoc,
   Timestamp,
 } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db, firebaseError } from '../../config/firebase';
 import { Habit, HabitCompletion } from '../../types';
 
 const COLLECTION = 'habits';
 const COMPLETIONS_SUBCOLLECTION = 'completions';
+
+/**
+ * Check if Firestore is available
+ */
+const ensureFirestore = () => {
+  if (!db) {
+    const errorMessage = firebaseError?.message || 'Firestore is not initialized. Please check your Firebase configuration.';
+    throw new Error(errorMessage);
+  }
+  return db;
+};
 
 /**
  * Get all habits for a user
@@ -76,6 +87,13 @@ export const createHabit = async (
   data: Omit<Habit, 'id' | 'userId' | 'streak' | 'longestStreak' | 'createdAt' | 'updatedAt'>
 ): Promise<string> => {
   try {
+    const firestore = ensureFirestore();
+
+    // Validate userId
+    if (!userId || typeof userId !== 'string') {
+      throw new Error('Valid userId is required to create a habit');
+    }
+
     // Store both 'name' and 'title' for compatibility with web app
     const name = data.name;
     const habitData = {
@@ -91,7 +109,7 @@ export const createHabit = async (
       updatedAt: serverTimestamp(),
     };
 
-    const docRef = await addDoc(collection(db, COLLECTION), habitData);
+    const docRef = await addDoc(collection(firestore, COLLECTION), habitData);
     return docRef.id;
   } catch (error) {
     console.error('Error creating habit:', error);

@@ -22,27 +22,29 @@ export function useNotifications() {
   const responseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
-    // Register for push notifications and save token
-    const setupNotifications = async () => {
+    // Check permission status on mount (but don't auto-request)
+    const checkPermissions = async () => {
       if (!user) return;
 
       try {
-        const token = await registerForPushNotifications();
-        if (token) {
-          setExpoPushToken(token);
-          // Save token to user's Firestore document
-          await savePushTokenToUser(user.uid, token);
-        }
-
-        // Check permission status
+        // Check current permission status without requesting
         const { status } = await getPermissionsStatus();
         setPermissionStatus(status);
+
+        // If already granted, ensure we have a token saved
+        if (status === 'granted') {
+          const token = await registerForPushNotifications();
+          if (token) {
+            setExpoPushToken(token);
+            await savePushTokenToUser(user.uid, token);
+          }
+        }
       } catch (error) {
-        console.error('Error setting up notifications:', error);
+        console.error('Error checking notification permissions:', error);
       }
     };
 
-    setupNotifications();
+    checkPermissions();
 
     // Add listener for notifications received while app is foregrounded
     notificationListener.current = addNotificationReceivedListener((notification) => {
@@ -57,10 +59,10 @@ export function useNotifications() {
     return () => {
       // Cleanup subscriptions
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        notificationListener.current.remove();
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        responseListener.current.remove();
       }
     };
   }, [user]);

@@ -4,18 +4,28 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { Text, SegmentedButtons, Searchbar } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Alert, TextInput as RNTextInput, Keyboard, InputAccessoryView, Platform, ScrollView, KeyboardAvoidingView } from 'react-native';
+import { Text, SegmentedButtons, Searchbar, FAB, Portal, Modal, Button as PaperButton, Switch } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, LoadingSpinner } from '../../components';
-import { Colors, Spacing } from '../../constants';
+import { Button, Card, LoadingSpinner, Input } from '../../components';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useGroups } from '../../hooks';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useAuth } from '../../context/AuthContext';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { createGroup } from '../../services/firebase';
+
+const INPUT_ACCESSORY_VIEW_ID = 'groupsInputAccessory';
 
 const GroupsScreen: React.FC = () => {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'my' | 'public'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const { groups, loading, joinGroup, leaveGroup, isUserMember } = useGroups(filter);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [groupDescription, setGroupDescription] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   // Filter groups by search query
   const filteredGroups = useMemo(() => {
@@ -58,6 +68,33 @@ const GroupsScreen: React.FC = () => {
         },
       ]
     );
+  };
+
+  const handleCreateGroup = async () => {
+    if (!groupName.trim()) {
+      Alert.alert('Error', 'Please enter a group name');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await createGroup({
+        name: groupName,
+        description: groupDescription,
+        isPublic,
+        ownerId: user!.uid,
+      });
+      setGroupName('');
+      setGroupDescription('');
+      setIsPublic(true);
+      setShowCreateGroup(false);
+      Alert.alert('Success', 'Group created successfully!');
+    } catch (error) {
+      console.error('Error creating group:', error);
+      Alert.alert('Error', 'Failed to create group. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -164,6 +201,105 @@ const GroupsScreen: React.FC = () => {
           contentContainerStyle={styles.listContent}
         />
       )}
+
+      {/* FAB for Create Group */}
+      <FAB
+        icon="plus"
+        label="Create Group"
+        style={styles.fab}
+        onPress={() => setShowCreateGroup(true)}
+        color={Colors.textOnPrimary}
+      />
+
+      {/* Create Group Modal */}
+      <Portal>
+        <Modal
+          visible={showCreateGroup}
+          onDismiss={() => {
+            Keyboard.dismiss();
+            setShowCreateGroup(false);
+          }}
+          contentContainerStyle={styles.modal}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              <Text variant="headlineSmall" style={styles.modalTitle}>
+                Create New Group
+              </Text>
+
+              <Input
+                label="Group Name *"
+                value={groupName}
+                onChangeText={setGroupName}
+                placeholder="e.g., Morning Meditation Circle"
+                style={styles.input}
+              />
+
+              <Input
+                label="Description"
+                value={groupDescription}
+                onChangeText={setGroupDescription}
+                placeholder="What is this group about?"
+                multiline
+                numberOfLines={3}
+                style={styles.input}
+              />
+
+              <View style={styles.switchContainer}>
+                <View style={styles.switchLabel}>
+                  <Text variant="bodyLarge" style={styles.switchLabelText}>
+                    Public Group
+                  </Text>
+                  <Text variant="bodySmall" style={styles.switchDescription}>
+                    Anyone can discover and join
+                  </Text>
+                </View>
+                <Switch
+                  value={isPublic}
+                  onValueChange={setIsPublic}
+                  color={Colors.evergreenTeal}
+                />
+              </View>
+
+              <View style={styles.modalActions}>
+                <PaperButton
+                  mode="outlined"
+                  onPress={() => setShowCreateGroup(false)}
+                  style={styles.modalButton}
+                >
+                  Cancel
+                </PaperButton>
+                <PaperButton
+                  mode="contained"
+                  onPress={handleCreateGroup}
+                  loading={submitting}
+                  disabled={submitting || !groupName.trim()}
+                  style={styles.modalButton}
+                  buttonColor={Colors.evergreenTeal}
+                >
+                  Create
+                </PaperButton>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </Modal>
+      </Portal>
+
+      {/* Keyboard Accessory Toolbar (iOS) */}
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID={INPUT_ACCESSORY_VIEW_ID}>
+          <View style={styles.keyboardAccessory}>
+            <Button variant="text" onPress={() => Keyboard.dismiss()}>
+              Done
+            </Button>
+          </View>
+        </InputAccessoryView>
+      )}
     </SafeAreaView>
   );
 };
@@ -179,7 +315,7 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     color: Colors.evergreenTeal,
-    fontWeight: '700',
+    fontWeight: Typography.fontWeight.bold,
   },
   subtitle: {
     color: Colors.textSecondary,
@@ -209,7 +345,7 @@ const styles = StyleSheet.create({
   },
   groupName: {
     color: Colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     marginBottom: Spacing.xs,
   },
   groupDescription: {
@@ -243,6 +379,70 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    right: Spacing.lg,
+    bottom: Spacing.lg,
+    backgroundColor: Colors.evergreenTeal,
+  },
+  modal: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.lg,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.lg,
+    maxHeight: '85%',
+  },
+  scrollContent: {
+    paddingBottom: Spacing.md,
+  },
+  modalTitle: {
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.lg,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  input: {
+    marginBottom: Spacing.md,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderTopWidth: Layout.borderWidth.thin,
+    borderBottomWidth: Layout.borderWidth.thin,
+    borderColor: Colors.borderLight,
+  },
+  switchLabel: {
+    flex: 1,
+  },
+  switchLabelText: {
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
+    marginBottom: Spacing.xs / 2,
+  },
+  switchDescription: {
+    color: Colors.textSecondary,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  modalButton: {
+    flex: 1,
+  },
+  keyboardAccessory: {
+    backgroundColor: Colors.surface,
+    borderTopWidth: Layout.borderWidth.thin,
+    borderTopColor: Colors.borderLight,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
 });
 

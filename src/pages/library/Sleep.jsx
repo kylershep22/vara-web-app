@@ -84,11 +84,23 @@ export default function Sleep() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <Moon size={28} className="text-[#1B5E57]" />
-          <h1 className="text-2xl font-semibold text-[#3E3E3E]">Sleep Library</h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-[#3E3E3E]">Sleep Library</h1>
+            <p className="text-sm text-[#1B5E57] font-medium">Brain Cleanup & Memory Consolidation</p>
+          </div>
         </div>
-        <p className="text-[#9AAE8C] mb-8 max-w-xl">
-          Drift off with ambient sounds, relaxing stories, and guided meditations designed to support restful sleep.
+        <p className="text-[#9AAE8C] mb-4 max-w-2xl">
+          Quality sleep is your brain's reset button. During deep sleep, your brain clears metabolic waste, consolidates memories, and strengthens neural connections formed during the day.
         </p>
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8 max-w-2xl">
+          <h3 className="text-sm font-semibold text-blue-900 mb-2">Brain Health Benefits of Sleep</h3>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• <strong>Memory Consolidation:</strong> Transfers learning from short-term to long-term storage</li>
+            <li>• <strong>Metabolic Cleanup:</strong> Glymphatic system removes toxic proteins and waste products</li>
+            <li>• <strong>Neuroplasticity:</strong> Strengthens important neural connections while pruning unused ones</li>
+            <li>• <strong>Cognitive Performance:</strong> Restores focus, creativity, and decision-making capacity</li>
+          </ul>
+        </div>
 
         {/* Sections */}
         {renderTrack('Sleep Sounds', sleepSounds)}

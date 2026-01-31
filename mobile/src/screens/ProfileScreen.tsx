@@ -12,10 +12,14 @@ import {
   ActivityIndicator,
   StyleSheet,
   Platform,
+  Keyboard,
+  InputAccessoryView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { ProfileHeader, ProfileStats } from '../components';
 import { db, storage } from '../config/firebase';
 import {
   doc,
@@ -24,7 +28,9 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Colors as colors, Spacing as spacing } from '../constants';
+import { Colors as colors, Spacing as spacing, Typography, Layout } from '../constants';
+
+const INPUT_ACCESSORY_VIEW_ID = 'profileInputAccessory';
 
 interface UserProfile {
   displayName: string;
@@ -48,6 +54,7 @@ interface ProfileStats {
 
 const ProfileScreen = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const [profile, setProfile] = useState<UserProfile>({
     displayName: '',
     email: '',
@@ -244,76 +251,35 @@ const ProfileScreen = () => {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
-      {/* Banner */}
-      <View style={styles.bannerContainer}>
-        {profile.bannerUrl ? (
-          <Image source={{ uri: profile.bannerUrl }} style={styles.banner} />
-        ) : (
-          <View style={styles.bannerPlaceholder} />
-        )}
-        {editMode && (
-          <TouchableOpacity
-            style={styles.bannerEditButton}
-            onPress={() => handleUploadImage('banner')}
-            disabled={uploading}
-          >
-            <Ionicons name="camera" size={20} color="#fff" />
-          </TouchableOpacity>
-        )}
-      </View>
+    <View style={styles.container}>
+      {/* Settings Button - Top Right */}
+      <TouchableOpacity
+        style={styles.settingsButton}
+        onPress={() => navigation.navigate('Settings')}
+      >
+        <Ionicons name="settings-outline" size={24} color={colors.primary} />
+      </TouchableOpacity>
 
-      {/* Avatar & Name */}
-      <View style={styles.profileHeader}>
-        <View style={styles.avatarContainer}>
-          {profile.avatarUrl ? (
-            <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>
-                {profile.displayName ? profile.displayName[0].toUpperCase() : 'U'}
-              </Text>
-            </View>
-          )}
-          {editMode && (
-            <TouchableOpacity
-              style={styles.avatarEditButton}
-              onPress={() => handleUploadImage('avatar')}
-              disabled={uploading}
-            >
-              <Ionicons name="camera" size={16} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </View>
+      <ScrollView
+        style={styles.scrollContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <ProfileHeader
+          avatarUrl={profile.avatarUrl}
+          bannerUrl={profile.bannerUrl}
+          displayName={profile.displayName}
+          location={profile.location}
+          editMode={editMode}
+          uploading={uploading}
+          onUploadAvatar={() => handleUploadImage('avatar')}
+          onUploadBanner={() => handleUploadImage('banner')}
+          onDisplayNameChange={(text) => setProfile(prev => ({ ...prev, displayName: text }))}
+          onLocationChange={(text) => setProfile(prev => ({ ...prev, location: text }))}
+          inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
+        />
 
-        {editMode ? (
-          <TextInput
-            style={styles.nameInput}
-            value={profile.displayName}
-            onChangeText={(text) => setProfile(prev => ({ ...prev, displayName: text }))}
-            placeholder="Display Name"
-          />
-        ) : (
-          <Text style={styles.name}>{profile.displayName || 'User'}</Text>
-        )}
-
-        {editMode ? (
-          <TextInput
-            style={styles.locationInput}
-            value={profile.location}
-            onChangeText={(text) => setProfile(prev => ({ ...prev, location: text }))}
-            placeholder="Location"
-          />
-        ) : (
-          profile.location && <Text style={styles.location}>{profile.location}</Text>
-        )}
-      </View>
-
-      {/* Edit/Save Button */}
-      <View style={styles.actionButtons}>
+        {/* Edit/Save Button */}
+        <View style={styles.actionButtons}>
         {editMode ? (
           <>
             <TouchableOpacity style={styles.cancelButton} onPress={() => {
@@ -332,30 +298,18 @@ const ProfileScreen = () => {
             <Text style={styles.editButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         )}
-      </View>
+        </View>
 
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.posts}</Text>
-          <Text style={styles.statLabel}>Posts</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.connections}</Text>
-          <Text style={styles.statLabel}>Connections</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.groups}</Text>
-          <Text style={styles.statLabel}>Groups</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.goals}</Text>
-          <Text style={styles.statLabel}>Goals</Text>
-        </View>
-      </View>
+        {/* Stats */}
+        <ProfileStats
+          posts={stats.posts}
+          connections={stats.connections}
+          groups={stats.groups}
+          goals={stats.goals}
+        />
 
-      {/* Bio Section */}
-      <View style={styles.section}>
+        {/* Bio Section */}
+        <View style={styles.section}>
         <Text style={styles.sectionTitle}>About</Text>
         {editMode ? (
           <TextInput
@@ -365,16 +319,18 @@ const ProfileScreen = () => {
             placeholder="Tell the community about your wellness journey..."
             multiline
             numberOfLines={4}
+            inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
+            blurOnSubmit={false}
           />
         ) : (
           <Text style={styles.bioText}>
             {profile.bio || 'No bio yet. Tap Edit Profile to add one!'}
           </Text>
         )}
-      </View>
+        </View>
 
-      {/* Interests */}
-      <View style={styles.section}>
+        {/* Interests */}
+        <View style={styles.section}>
         <Text style={styles.sectionTitle}>Interests</Text>
         {editMode && (
           <View style={styles.addItemContainer}>
@@ -383,6 +339,9 @@ const ProfileScreen = () => {
               value={newInterest}
               onChangeText={setNewInterest}
               placeholder="Add an interest"
+              inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
+              returnKeyType="done"
+              onSubmitEditing={addInterest}
             />
             <TouchableOpacity style={styles.addItemButton} onPress={addInterest}>
               <Ionicons name="add" size={20} color="#fff" />
@@ -407,10 +366,10 @@ const ProfileScreen = () => {
             </Text>
           )}
         </View>
-      </View>
+        </View>
 
-      {/* Goals */}
-      <View style={styles.section}>
+        {/* Goals */}
+        <View style={styles.section}>
         <Text style={styles.sectionTitle}>Wellness Goals</Text>
         {editMode && (
           <View style={styles.addItemContainer}>
@@ -419,6 +378,9 @@ const ProfileScreen = () => {
               value={newGoal}
               onChangeText={setNewGoal}
               placeholder="Add a goal"
+              inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
+              returnKeyType="done"
+              onSubmitEditing={addGoal}
             />
             <TouchableOpacity style={styles.addItemButton} onPress={addGoal}>
               <Ionicons name="add" size={20} color="#fff" />
@@ -486,118 +448,54 @@ const ProfileScreen = () => {
         </View>
       )}
 
-      <View style={{ height: spacing.xl }} />
-    </ScrollView>
+        <View style={{ height: spacing.xl }} />
+      </ScrollView>
+
+      {/* Keyboard Accessory Toolbar (iOS) */}
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID={INPUT_ACCESSORY_VIEW_ID}>
+          <View style={styles.keyboardAccessory}>
+            <TouchableOpacity
+              onPress={() => Keyboard.dismiss()}
+              style={styles.keyboardAccessoryButton}
+            >
+              <Text style={styles.keyboardAccessoryButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAF6',
+    backgroundColor: colors.background,
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 20,
+    right: spacing.md,
+    zIndex: 10,
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    borderRadius: Layout.borderRadius['2xl'],
+    ...Layout.shadow.md,
+  },
+  scrollContainer: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FAFAF6',
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: spacing.md,
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     color: colors.text.secondary,
-  },
-  bannerContainer: {
-    height: 180,
-    position: 'relative',
-  },
-  banner: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  bannerPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.primary,
-  },
-  bannerEditButton: {
-    position: 'absolute',
-    top: spacing.md,
-    right: spacing.md,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: spacing.sm,
-    borderRadius: 20,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    marginTop: -40,
-    paddingHorizontal: spacing.md,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: spacing.sm,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 20,
-    borderWidth: 4,
-    borderColor: '#fff',
-  },
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 20,
-    borderWidth: 4,
-    borderColor: '#fff',
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  avatarEditButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: colors.primary,
-    padding: spacing.xs,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
-  },
-  nameInput: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text.primary,
-    textAlign: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.secondary.sage,
-    paddingVertical: spacing.xs,
-    minWidth: 200,
-  },
-  location: {
-    fontSize: 14,
-    color: colors.text.secondary,
-  },
-  locationInput: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.secondary.sage,
-    paddingVertical: spacing.xs,
-    minWidth: 150,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -609,112 +507,68 @@ const styles = StyleSheet.create({
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.evergreenTeal,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.lg,
   },
   editButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.textOnPrimary,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: colors.background.surface,
+    backgroundColor: colors.surface,
     paddingVertical: spacing.sm,
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.lg,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.secondary.sage,
+    borderWidth: Layout.borderWidth.thin,
+    borderColor: colors.borderLight,
   },
   cancelButtonText: {
-    color: colors.text.primary,
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.textPrimary,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
   },
   saveButton: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.evergreenTeal,
     paddingVertical: spacing.sm,
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.lg,
     alignItems: 'center',
   },
   saveButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.lg,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: spacing.xs,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.text.secondary,
+    color: colors.textOnPrimary,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
     padding: spacing.md,
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    borderRadius: Layout.borderRadius.xl,
+    ...Layout.shadow.md,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.primary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+    color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   bioText: {
-    fontSize: 14,
-    color: colors.text.primary,
-    lineHeight: 20,
+    fontSize: Typography.fontSize.sm,
+    color: colors.textPrimary,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
   },
   bioInput: {
-    fontSize: 14,
-    color: colors.text.primary,
-    lineHeight: 20,
-    borderWidth: 1,
-    borderColor: colors.secondary.sage,
-    borderRadius: 8,
+    fontSize: Typography.fontSize.sm,
+    color: colors.textPrimary,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
+    borderWidth: Layout.borderWidth.thin,
+    borderColor: colors.borderLight,
+    borderRadius: Layout.borderRadius.md,
     padding: spacing.sm,
     minHeight: 80,
     textAlignVertical: 'top',
@@ -726,16 +580,16 @@ const styles = StyleSheet.create({
   },
   addItemInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: colors.secondary.sage,
-    borderRadius: 8,
+    borderWidth: Layout.borderWidth.thin,
+    borderColor: colors.borderLight,
+    borderRadius: Layout.borderRadius.md,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },
   addItemButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.evergreenTeal,
     padding: spacing.sm,
-    borderRadius: 8,
+    borderRadius: Layout.borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -748,33 +602,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.inputBackground,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    borderRadius: 16,
+    borderRadius: Layout.borderRadius.xl,
   },
   tagText: {
-    fontSize: 12,
-    color: colors.text.primary,
+    fontSize: Typography.fontSize.xs,
+    color: colors.textPrimary,
   },
   goalTag: {
-    backgroundColor: '#E8F5F3',
+    backgroundColor: colors.mintCream,
   },
   goalTagText: {
-    color: colors.primary,
+    color: colors.evergreenTeal,
   },
   emptyText: {
-    fontSize: 12,
-    color: colors.text.secondary,
+    fontSize: Typography.fontSize.xs,
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   privacyOption: {
     marginBottom: spacing.md,
   },
   privacyLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   privacyButtons: {
@@ -784,22 +638,22 @@ const styles = StyleSheet.create({
   privacyButton: {
     flex: 1,
     paddingVertical: spacing.sm,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.secondary.sage,
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: Layout.borderWidth.thin,
+    borderColor: colors.borderLight,
     alignItems: 'center',
   },
   privacyButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.evergreenTeal,
+    borderColor: colors.evergreenTeal,
   },
   privacyButtonText: {
-    fontSize: 12,
-    color: colors.text.secondary,
+    fontSize: Typography.fontSize.xs,
+    color: colors.textSecondary,
   },
   privacyButtonTextActive: {
-    color: '#fff',
-    fontWeight: '600',
+    color: colors.textOnPrimary,
+    fontWeight: Typography.fontWeight.semibold,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -809,19 +663,41 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: colors.secondary.sage,
+    borderRadius: Layout.borderRadius.sm,
+    borderWidth: Layout.borderWidth.medium,
+    borderColor: colors.borderLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.evergreenTeal,
+    borderColor: colors.evergreenTeal,
   },
   checkboxLabel: {
-    fontSize: 14,
-    color: colors.text.primary,
+    fontSize: Typography.fontSize.sm,
+    color: colors.textPrimary,
+  },
+  // Keyboard Accessory Toolbar
+  keyboardAccessory: {
+    backgroundColor: colors.surface,
+    borderTopWidth: Layout.borderWidth.thin,
+    borderTopColor: colors.borderLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  keyboardAccessoryButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.evergreenTeal,
+    borderRadius: Layout.borderRadius.md,
+  },
+  keyboardAccessoryButtonText: {
+    color: colors.textOnPrimary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });
 

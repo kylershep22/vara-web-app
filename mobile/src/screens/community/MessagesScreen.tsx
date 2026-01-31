@@ -1,21 +1,75 @@
 /**
  * Messages Screen
- * List of DM conversations
+ * List of DM conversations with new message functionality
  */
 
-import React from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { Text, Avatar } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { Text, Avatar, FAB, Portal, Modal, Searchbar, Button as PaperButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Card, LoadingSpinner } from '../../components';
-import { Colors, Spacing } from '../../constants';
-import { useConversations } from '../../hooks';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { useConversations, useConnections, useStartConversation } from '../../hooks';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { db } from '../../config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const MessagesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { conversations, loading, markAsRead } = useConversations();
+  const { connections, getConnectionIds } = useConnections();
+  const { startConversation } = useStartConversation();
+
+  // New message modal state
+  const [showNewMessage, setShowNewMessage] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [connectionProfiles, setConnectionProfiles] = useState<any[]>([]);
+  const [loadingProfiles, setLoadingProfiles] = useState(false);
+
+  // Load connection profiles when modal opens
+  useEffect(() => {
+    const loadConnectionProfiles = async () => {
+      if (!showNewMessage) return;
+
+      setLoadingProfiles(true);
+      try {
+        const connectionIds = getConnectionIds();
+        const profiles = await Promise.all(
+          connectionIds.map(async (id) => {
+            const userDoc = await getDoc(doc(db, 'users', id));
+            if (userDoc.exists()) {
+              return { id: userDoc.id, ...userDoc.data() };
+            }
+            return null;
+          })
+        );
+        setConnectionProfiles(profiles.filter((p) => p !== null));
+      } catch (error) {
+        console.error('Error loading connection profiles:', error);
+      } finally {
+        setLoadingProfiles(false);
+      }
+    };
+
+    loadConnectionProfiles();
+  }, [showNewMessage]);
+
+  // Filter connections based on search query
+  const filteredConnections = connectionProfiles.filter((profile) =>
+    profile.displayName?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleStartConversation = async (userId: string) => {
+    try {
+      const conversationId = await startConversation(userId);
+      setShowNewMessage(false);
+      setSearchQuery('');
+      navigation.navigate('Chat', { conversationId, otherUserId: userId });
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+    }
+  };
 
   const formatTime = (timestamp: any) => {
     if (!timestamp) return '';
@@ -43,10 +97,12 @@ const MessagesScreen: React.FC = () => {
   };
 
   const handleOpenConversation = async (conversationId: string, userId: string) => {
-    // TODO: Navigate to chat screen when it's created
-    // await markAsRead(conversationId);
-    // navigation.navigate('Chat', { conversationId, userId });
-    alert('Chat screen coming soon!');
+    try {
+      await markAsRead(conversationId);
+      navigation.navigate('Chat', { conversationId, otherUserId: userId });
+    } catch (error) {
+      console.error('Error opening conversation:', error);
+    }
   };
 
   return (
@@ -132,6 +188,143 @@ const MessagesScreen: React.FC = () => {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
+
+      {/* FAB for New Message */}
+      <FAB
+        icon="message-plus"
+        label="New"
+        style={styles.fab}
+        onPress={() => setShowNewMessage(true)}
+        color={Colors.textOnPrimary}
+      />
+
+      {/* New Message Modal */}
+      <Portal>
+        <Modal
+          visible={showNewMessage}
+          onDismiss={() => {
+            setShowNewMessage(false);
+            setSearchQuery('');
+          }}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <View style={styles.modal}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderContent}>
+                <View style={styles.modalIconContainer}>
+                  <Icon name="message-plus" size={24} color={Colors.evergreenTeal} />
+                </View>
+                <View style={styles.modalTitleContainer}>
+                  <Text variant="titleLarge" style={styles.modalTitle}>New Message</Text>
+                  <Text variant="bodySmall" style={styles.modalSubtitle}>Choose a connection to message</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowNewMessage(false);
+                  setSearchQuery('');
+                }}
+                style={styles.modalCloseButton}
+              >
+                <Icon name="close" size={24} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search bar */}
+            <View style={styles.modalSearchContainer}>
+              <Searchbar
+                placeholder="Search your connections..."
+                onChangeText={setSearchQuery}
+                value={searchQuery}
+                style={styles.modalSearchbar}
+                iconColor={Colors.evergreenTeal}
+                autoFocus={true}
+              />
+              {searchQuery.length > 0 && (
+                <Text variant="bodySmall" style={styles.searchResultsCount}>
+                  {filteredConnections.length} {filteredConnections.length === 1 ? 'connection' : 'connections'} found
+                </Text>
+              )}
+            </View>
+
+            {/* Connection list */}
+            <View style={styles.modalContent}>
+              {loadingProfiles ? (
+                <View style={styles.modalLoading}>
+                  <ActivityIndicator size="large" color={Colors.evergreenTeal} />
+                  <Text variant="bodyMedium" style={styles.loadingProfilesText}>
+                    Loading connections...
+                  </Text>
+                </View>
+              ) : filteredConnections.length === 0 ? (
+                <View style={styles.emptyConnections}>
+                  <Icon name="account-group" size={48} color={Colors.textSecondary} />
+                  <Text variant="titleMedium" style={styles.emptyConnectionsTitle}>
+                    {searchQuery
+                      ? 'No connections found'
+                      : 'No connections yet'}
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.emptyConnectionsText}>
+                    {searchQuery
+                      ? `No one matching "${searchQuery}"`
+                      : 'Connect with people first to start messaging'}
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={filteredConnections}
+                  keyExtractor={(item) => item.id}
+                  style={styles.connectionsList}
+                  showsVerticalScrollIndicator={true}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.connectionItem}
+                      onPress={() => handleStartConversation(item.id)}
+                      activeOpacity={0.7}
+                    >
+                      {item.avatarUrl ? (
+                        <Image source={{ uri: item.avatarUrl }} style={styles.connectionAvatar} />
+                      ) : (
+                        <View style={styles.connectionAvatarPlaceholder}>
+                          <Text style={styles.connectionAvatarText}>
+                            {item.displayName ? item.displayName[0].toUpperCase() : 'U'}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.connectionInfo}>
+                        <Text variant="titleMedium" style={styles.connectionName}>
+                          {item.displayName || 'User'}
+                        </Text>
+                        {item.bio && (
+                          <Text variant="bodySmall" style={styles.connectionBio} numberOfLines={1}>
+                            {item.bio}
+                          </Text>
+                        )}
+                      </View>
+                      <Icon name="chevron-right" size={20} color={Colors.textSecondary} />
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+            </View>
+
+            {/* Footer */}
+            <View style={styles.modalFooter}>
+              <PaperButton
+                mode="outlined"
+                onPress={() => {
+                  setShowNewMessage(false);
+                  setSearchQuery('');
+                }}
+                style={styles.modalButton}
+              >
+                Cancel
+              </PaperButton>
+            </View>
+          </View>
+        </Modal>
+      </Portal>
     </SafeAreaView>
   );
 };
@@ -139,7 +332,7 @@ const MessagesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   header: {
     paddingHorizontal: Spacing.lg,
@@ -147,7 +340,7 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     color: Colors.evergreenTeal,
-    fontWeight: '700',
+    fontWeight: Typography.fontWeight.bold,
   },
   subtitle: {
     color: Colors.textSecondary,
@@ -178,7 +371,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     color: Colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   time: {
     color: Colors.textSecondary,
@@ -188,25 +381,25 @@ const styles = StyleSheet.create({
   },
   unreadMessage: {
     color: Colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   unreadBadge: {
     backgroundColor: Colors.evergreenTeal,
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.full,
     minWidth: 24,
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     marginLeft: Spacing.sm,
   },
   unreadText: {
     color: Colors.textOnPrimary,
-    fontWeight: '600',
-    fontSize: 12,
+    fontWeight: Typography.fontWeight.semibold,
+    fontSize: Typography.fontSize.xs,
   },
   separator: {
-    height: 1,
+    height: Layout.borderWidth.thin,
     backgroundColor: Colors.borderLight,
     marginLeft: Spacing.lg + 50 + Spacing.md, // Align with text
   },
@@ -226,6 +419,172 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  // FAB and Modal styles
+  fab: {
+    position: 'absolute',
+    right: Spacing.lg,
+    bottom: Spacing.lg,
+    backgroundColor: Colors.evergreenTeal,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modal: {
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.xl,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '85%',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: Layout.borderWidth.thin,
+    borderBottomColor: Colors.borderLight,
+  },
+  modalHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  modalIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: Layout.borderRadius.lg,
+    backgroundColor: `${Colors.evergreenTeal}15`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  modalTitleContainer: {
+    flex: 1,
+  },
+  modalTitle: {
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.bold,
+    marginBottom: 2,
+  },
+  modalSubtitle: {
+    color: Colors.textSecondary,
+  },
+  modalCloseButton: {
+    padding: Spacing.xs,
+    marginLeft: Spacing.sm,
+    marginTop: -Spacing.xs,
+  },
+  modalSearchContainer: {
+    padding: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  modalSearchbar: {
+    backgroundColor: Colors.background.default,
+    elevation: 0,
+    borderRadius: Layout.borderRadius.md,
+  },
+  searchResultsCount: {
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+    marginLeft: Spacing.xs,
+  },
+  modalContent: {
+    flex: 1,
+    minHeight: 200,
+    maxHeight: 350,
+  },
+  modalLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl * 2,
+  },
+  loadingProfilesText: {
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+  emptyConnections: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+  },
+  emptyConnectionsTitle: {
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.semibold,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  emptyConnectionsText: {
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  connectionsList: {
+    flex: 1,
+    paddingHorizontal: Spacing.md,
+  },
+  connectionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Layout.borderRadius.md,
+    marginBottom: Spacing.xs,
+    backgroundColor: Colors.background.default,
+  },
+  connectionAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: Layout.borderRadius.full,
+    marginRight: Spacing.md,
+  },
+  connectionAvatarPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.evergreenTeal,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  connectionAvatarText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textOnPrimary,
+  },
+  connectionInfo: {
+    flex: 1,
+  },
+  connectionName: {
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: 2,
+  },
+  connectionBio: {
+    color: Colors.textSecondary,
+  },
+  modalFooter: {
+    padding: Spacing.md,
+    paddingTop: Spacing.sm,
+    borderTopWidth: Layout.borderWidth.thin,
+    borderTopColor: Colors.borderLight,
+  },
+  modalButton: {
+    borderColor: Colors.borderLight,
+    borderRadius: Layout.borderRadius.md,
   },
 });
 

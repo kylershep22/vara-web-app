@@ -54,7 +54,8 @@ export const getJournalPrompt = async (
 ): Promise<string> => {
   try {
     const response = await apiPost<AIPromptResponse>('/journal-prompt', {
-      context: context || '',
+      prompt: context || '',
+      brainFocused: context === 'brain-focused',
     }, {
       debug: true,
     });
@@ -85,17 +86,26 @@ export const generateJournalSummary = async (
  * Chat with AI companion
  */
 export const chatWithAI = async (
-  message: string,
+  messages: Array<{ role: string; content: string }>,
   context?: {
-    goals?: any[];
-    habits?: any[];
-    tasks?: any[];
-    recentJournals?: any[];
+    page?: { label: string; path: string };
+    userSummary?: {
+      goals?: any[];
+      habits?: any[];
+      tasks?: any[];
+    };
+    brainMetrics?: {
+      readinessScore?: number;
+      neuroplasticityCount?: number;
+      amccStreak?: number;
+      nervousSystemToolUses?: number;
+      lastCheckIn?: string;
+    };
   }
 ): Promise<string> => {
   try {
     const response = await apiPost<{ reply: string }>('/ai-chat', {
-      message,
+      messages,
       context: context || {},
     }, {
       debug: true,
