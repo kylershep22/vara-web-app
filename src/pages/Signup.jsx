@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { db } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Eye, EyeOff } from 'lucide-react';
 import { getAuthErrorMessage, getFirebaseErrorCode, validatePassword } from '../utils/authErrors';
 import logger from '../utils/logger';
@@ -13,7 +13,7 @@ export default function Signup() {
   const emailRef = useRef();
   const passwordRef = useRef();
   const nameRef = useRef();
-  const { signup } = useAuth();
+  const { signup, sendVerificationEmail } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -58,15 +58,35 @@ export default function Signup() {
       const result = await signup(email, pass);
       const user = result.user;
 
-      // Create user document in Firestore
+      // Create user document in Firestore with trial subscription
+      const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         email: user.email,
         displayName: name,
         name: name,
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
         onboardingComplete: false,
+
+        // Subscription: Start with 7-day free trial
+        subscription: {
+          type: 'trial',
+          trialStartedAt: serverTimestamp(),
+          trialExpiresAt: Timestamp.fromDate(trialExpiresAt),
+        },
+        hasActiveSubscription: true,
+        subscriptionType: 'trial',
       });
+
+      // Send verification email
+      try {
+        await sendVerificationEmail(user);
+        logger.info('Verification email sent', { userId: user.uid, email: user.email });
+      } catch (emailError) {
+        logger.warn('Failed to send verification email', emailError);
+        // Don't block signup if verification email fails
+      }
 
       // Log successful signup
       logger.info('User signed up', { userId: user.uid, email: user.email });

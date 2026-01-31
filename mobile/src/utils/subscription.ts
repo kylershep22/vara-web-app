@@ -1,0 +1,251 @@
+/**
+ * Subscription Utilities
+ * Shared logic for calculating subscription status from user documents
+ */
+
+import { Timestamp } from 'firebase/firestore';
+
+export type SubscriptionType = 'trial' | 'premium' | 'coaching' | 'expired';
+
+export interface SubscriptionStatus {
+  type: SubscriptionType;
+  isActive: boolean;
+  canAccessApp: boolean;
+
+  // Trial info
+  trialDaysRemaining?: number;
+  isTrialExpiringSoon?: boolean; // < 2 days remaining
+
+  // Premium info
+  billingPeriod?: 'monthly' | 'annual';
+  premiumExpiresAt?: Date;
+  isInGracePeriod?: boolean;
+  graceDaysRemaining?: number;
+
+  // Expiration info
+  expiredAt?: Date;
+  dataRetentionDaysRemaining?: number;
+}
+
+export interface SubscriptionData {
+  type?: SubscriptionType;
+
+  // Trial
+  trialStartedAt?: Timestamp;
+  trialExpiresAt?: Timestamp;
+
+  // Premium
+  premiumStartedAt?: Timestamp;
+  premiumExpiresAt?: Timestamp;
+  billingPeriod?: 'monthly' | 'annual';
+  originalTransactionId?: string;
+  isInGracePeriod?: boolean;
+  gracePeriodExpiresAt?: Timestamp;
+
+  // Coaching
+  coachingGrantedAt?: Timestamp;
+  coachingInviteCode?: string;
+  coachingGrantedBy?: string;
+
+  // Expiration
+  expiredAt?: Timestamp;
+  dataRetentionDeadline?: Timestamp;
+}
+
+/**
+ * Convert Firestore Timestamp to milliseconds
+ */
+function toMillis(timestamp: Timestamp | undefined): number {
+  if (!timestamp) return 0;
+  if (typeof timestamp.toMillis === 'function') {
+    return timestamp.toMillis();
+  }
+  // Handle case where timestamp might be a plain object from Firestore
+  if (timestamp.seconds !== undefined) {
+    return timestamp.seconds * 1000 + (timestamp.nanoseconds || 0) / 1000000;
+  }
+  return 0;
+}
+
+/**
+ * Calculate days remaining until a timestamp
+ */
+function daysUntil(timestamp: Timestamp | undefined): number {
+  const targetMs = toMillis(timestamp);
+  if (!targetMs) return 0;
+  const now = Date.now();
+  const diffMs = targetMs - now;
+  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+}
+
+/**
+ * Check if a timestamp is in the past
+ */
+function isPast(timestamp: Timestamp | undefined): boolean {
+  const targetMs = toMillis(timestamp);
+  if (!targetMs) return true;
+  return Date.now() >= targetMs;
+}
+
+/**
+ * Get subscription status from user document data
+ * Works for both web and mobile since both read from the same Firestore schema
+ */
+export function getSubscriptionStatus(userDoc: any): SubscriptionStatus {
+  const sub: SubscriptionData | undefined = userDoc?.subscription;
+
+  // No subscription data = treat as expired (legacy user or data issue)
+  if (!sub || !sub.type) {
+    return {
+      type: 'expired',
+      isActive: false,
+      canAccessApp: false,
+    };
+  }
+
+  const now = Date.now();
+
+  switch (sub.type) {
+    case 'trial': {
+      const isExpired = isPast(sub.trialExpiresAt);
+
+      if (isExpired) {
+        // Trial has expired but type hasn't been updated yet
+        // (Cloud Function will update this, but handle gracefully)
+        return {
+          type: 'expired',
+          isActive: false,
+          canAccessApp: false,
+        };
+      }
+
+      const daysRemaining = daysUntil(sub.trialExpiresAt);
+
+      return {
+        type: 'trial',
+        isActive: true,
+        canAccessApp: true,
+        trialDaysRemaining: daysRemaining,
+        isTrialExpiringSoon: daysRemaining <= 2,
+      };
+    }
+
+    case 'premium': {
+      // Check grace period first
+      if (sub.isInGracePeriod && sub.gracePeriodExpiresAt) {
+        const graceExpired = isPast(sub.gracePeriodExpiresAt);
+
+        if (graceExpired) {
+          return {
+            type: 'expired',
+            isActive: false,
+            canAccessApp: false,
+          };
+        }
+
+        const graceDays = daysUntil(sub.gracePeriodExpiresAt);
+
+        return {
+          type: 'premium',
+          isActive: true,
+          canAccessApp: true,
+          billingPeriod: sub.billingPeriod,
+          isInGracePeriod: true,
+          graceDaysRemaining: graceDays,
+        };
+      }
+
+      // Regular premium check
+      const premiumExpired = isPast(sub.premiumExpiresAt);
+
+      if (premiumExpired) {
+        return {
+          type: 'expired',
+          isActive: false,
+          canAccessApp: false,
+        };
+      }
+
+      return {
+        type: 'premium',
+        isActive: true,
+        canAccessApp: true,
+        billingPeriod: sub.billingPeriod,
+        premiumExpiresAt: sub.premiumExpiresAt ? new Date(toMillis(sub.premiumExpiresAt)) : undefined,
+      };
+    }
+
+    case 'coaching': {
+      // Coaching is lifetime access - always active
+      return {
+        type: 'coaching',
+        isActive: true,
+        canAccessApp: true,
+      };
+    }
+
+    case 'expired':
+    default: {
+      const retentionDays = sub.dataRetentionDeadline
+        ? daysUntil(sub.dataRetentionDeadline)
+        : undefined;
+
+      return {
+        type: 'expired',
+        isActive: false,
+        canAccessApp: false,
+        expiredAt: sub.expiredAt ? new Date(toMillis(sub.expiredAt)) : undefined,
+        dataRetentionDaysRemaining: retentionDays && retentionDays > 0 ? retentionDays : undefined,
+      };
+    }
+  }
+}
+
+/**
+ * Format subscription type for display
+ */
+export function formatSubscriptionType(type: SubscriptionType): string {
+  switch (type) {
+    case 'trial':
+      return 'Free Trial';
+    case 'premium':
+      return 'Premium';
+    case 'coaching':
+      return 'Coaching (Lifetime)';
+    case 'expired':
+      return 'Expired';
+    default:
+      return 'Unknown';
+  }
+}
+
+/**
+ * Get a user-friendly description of the subscription status
+ */
+export function getSubscriptionDescription(status: SubscriptionStatus): string {
+  switch (status.type) {
+    case 'trial':
+      if (status.trialDaysRemaining === 1) {
+        return '1 day remaining in trial';
+      }
+      return `${status.trialDaysRemaining} days remaining in trial`;
+
+    case 'premium':
+      if (status.isInGracePeriod) {
+        return `Payment issue - ${status.graceDaysRemaining} days to resolve`;
+      }
+      return status.billingPeriod === 'annual' ? 'Annual subscription' : 'Monthly subscription';
+
+    case 'coaching':
+      return 'Lifetime access included with coaching';
+
+    case 'expired':
+      if (status.dataRetentionDaysRemaining) {
+        return `Data kept for ${status.dataRetentionDaysRemaining} more days`;
+      }
+      return 'Subscribe to continue your wellness journey';
+
+    default:
+      return '';
+  }
+}

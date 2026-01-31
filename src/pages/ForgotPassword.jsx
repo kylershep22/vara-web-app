@@ -28,8 +28,12 @@ export default function ForgotPassword() {
         return;
       }
 
-      // Send password reset email
-      await sendPasswordResetEmail(auth, email);
+      // Send password reset email with custom action URL
+      const actionCodeSettings = {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: false,
+      };
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
 
       // Log successful password reset request
       logger.info('Password reset email sent', { email });

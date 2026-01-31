@@ -3,7 +3,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendEmailVerification
 } from "firebase/auth";
 import { auth } from "../firebase";
 
@@ -51,8 +52,16 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => signOut(auth);
 
+  const sendVerificationEmail = (user) => {
+    const actionCodeSettings = {
+      url: `${window.location.origin}/login`,
+      handleCodeInApp: false,
+    };
+    return sendEmailVerification(user, actionCodeSettings);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthReady, signup, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthReady, signup, login, logout, sendVerificationEmail }}>
       {children}
     </AuthContext.Provider>
   );

@@ -21,6 +21,7 @@ import {
 
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
+import { useSubscription } from "../../hooks/useSubscription";
 import logger from "../../utils/logger";
 import { db } from "../../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -37,6 +38,7 @@ export default function Settings() {
   const { user } = useAuth();
   const toast = useToast();
   const fileInputRef = useRef();
+  const { status: subscriptionStatus, formattedType, description: subscriptionDescription } = useSubscription();
 
   const [formData, setFormData] = useState({
     // Identity
@@ -510,25 +512,57 @@ export default function Settings() {
             title="Subscription"
             subtitle="Plan details and billing info."
           >
-            <div className="bg-white/80 border border-[#D5E3D1] rounded-xl p-4 shadow-sm">
-              <p className="text-sm text-gray-700">
-                Plan: <strong>{formData.subscriptionPlan || "Free"}</strong>
-              </p>
-              <p className="text-sm text-gray-700">
-                Renews on: {formData.renewalDate || "N/A"}
-              </p>
-              <p className="text-sm text-gray-700">
-                Billing Info: {formData.billingInfo || "Not Provided"}
-              </p>
-              <div className="mt-3">
-                <button
-                  type="button"
-                  className="px-3 py-2 rounded-lg bg-gray-900 text-white hover:bg-black"
-                  // onClick={() => ... open billing portal ...}
-                >
-                  Manage billing
-                </button>
+            <div className="bg-white/80 border border-[#D5E3D1] rounded-xl p-4 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Current Plan</p>
+                  <p className="font-semibold text-[#1B5E57]">{formattedType || "Loading..."}</p>
+                  {subscriptionDescription && (
+                    <p className="text-sm text-gray-500">{subscriptionDescription}</p>
+                  )}
+                </div>
+                {subscriptionStatus?.type === 'premium' && (
+                  <span className="text-2xl">⭐</span>
+                )}
+                {subscriptionStatus?.type === 'coaching' && (
+                  <span className="text-2xl">💚</span>
+                )}
               </div>
+
+              {subscriptionStatus?.type !== 'coaching' && (
+                <div className="pt-3 border-t border-[#D5E3D1] space-y-2">
+                  {subscriptionStatus?.type === 'premium' ? (
+                    <p className="text-sm text-gray-600">
+                      Manage your subscription in the{" "}
+                      <span className="font-medium">App Store</span> on your iOS device.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-600">
+                        Subscribe via our iOS app to unlock all features.
+                      </p>
+                      <p className="text-sm text-[#1B5E57] font-medium">
+                        Monthly: $10.99 | Annual: $111.99 (Save 15%)
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {subscriptionStatus?.type !== 'coaching' && (
+                <div className="pt-3 border-t border-[#D5E3D1]">
+                  <p className="text-sm text-gray-600 mb-2">Have an invite code?</p>
+                  <button
+                    type="button"
+                    className="text-sm text-[#1B5E57] font-medium hover:underline"
+                    onClick={() => {
+                      alert('To redeem an invite code, please use the Vara iOS app.');
+                    }}
+                  >
+                    Redeem Code →
+                  </button>
+                </div>
+              )}
             </div>
           </SectionCard>
 

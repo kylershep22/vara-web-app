@@ -6,6 +6,7 @@ import Welcome from './pages/Welcome';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
+import AuthAction from './pages/AuthAction';
 import Dashboard from './pages/Dashboard';
 import SetGoalFlow from './components/goalFlow/SetGoalFlow';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -26,6 +27,7 @@ import GoalsHabits from './pages/GoalsHabits';
 import GroupForumPage from './pages/Community/GroupForumPage';
 
 // New Brain Health pages
+import BrainHealth from './pages/BrainHealth';
 import MentalResilience from './pages/MentalResilience';
 import Focus from './pages/Focus';
 import FuelRecovery from './pages/FuelRecovery';
@@ -60,6 +62,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/action" element={<AuthAction />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
 
@@ -79,6 +82,16 @@ function App() {
           />
 
           {/* New Brain Health Routes */}
+          <Route
+            path="/brain-health"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Brain Health">
+                  <BrainHealth />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/mental-resilience"
             element={

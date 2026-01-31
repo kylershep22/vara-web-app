@@ -10,12 +10,16 @@ import {
   StyleSheet,
   Platform,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../hooks/useNotifications';
+import { useSubscription } from '../hooks/useSubscription';
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { Colors as colors, Spacing as spacing } from '../constants';
+import { Colors as colors, Spacing as spacing, Typography, Layout } from '../constants';
 
 interface Settings {
   notificationsEnabled: boolean;
@@ -29,6 +33,9 @@ interface Settings {
 
 const SettingsScreen = () => {
   const { user, logout } = useAuth();
+  const navigation = useNavigation();
+  const { permissionStatus, requestPermissions } = useNotifications();
+  const { status: subscriptionStatus, formattedType, description: subscriptionDescription } = useSubscription();
   const [settings, setSettings] = useState<Settings>({
     notificationsEnabled: true,
     reminderTime: '08:00',
@@ -40,6 +47,7 @@ const SettingsScreen = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [requestingPermissions, setRequestingPermissions] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -89,6 +97,56 @@ const SettingsScreen = () => {
       Alert.alert('Error', 'Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleNotifications = async (value: boolean) => {
+    if (!value) {
+      // User is disabling notifications - just save the setting
+      await handleSaveSettings({ notificationsEnabled: false });
+      return;
+    }
+
+    // User is enabling notifications - request permissions first
+    setRequestingPermissions(true);
+    try {
+      const granted = await requestPermissions();
+
+      if (granted) {
+        // Permissions granted - save the setting
+        await handleSaveSettings({ notificationsEnabled: true });
+        Alert.alert(
+          'Notifications Enabled',
+          'You will now receive push notifications for messages and updates.'
+        );
+      } else {
+        // Permissions denied
+        Alert.alert(
+          'Notifications Disabled',
+          'Push notifications are disabled. To enable them, please allow notifications in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Open Settings',
+              onPress: () => {
+                if (Platform.OS === 'ios') {
+                  Linking.openURL('app-settings:');
+                } else {
+                  Linking.openSettings();
+                }
+              },
+            },
+          ]
+        );
+        // Keep notifications disabled in settings
+        setSettings(prev => ({ ...prev, notificationsEnabled: false }));
+      }
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      Alert.alert('Error', 'Failed to enable notifications');
+      setSettings(prev => ({ ...prev, notificationsEnabled: false }));
+    } finally {
+      setRequestingPermissions(false);
     }
   };
 
@@ -163,19 +221,26 @@ const SettingsScreen = () => {
         <View style={styles.card}>
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Enable Notifications</Text>
+              <Text style={styles.settingLabel}>Push Notifications</Text>
               <Text style={styles.settingDescription}>
-                Get daily reminders and updates
+                {permissionStatus === 'granted'
+                  ? 'Receive messages and updates'
+                  : permissionStatus === 'denied'
+                  ? 'Notifications blocked - open device settings to enable'
+                  : 'Enable to receive messages and updates'}
               </Text>
             </View>
-            <Switch
-              value={settings.notificationsEnabled}
-              onValueChange={(value) =>
-                handleSaveSettings({ notificationsEnabled: value })
-              }
-              trackColor={{ false: '#D5E3D1', true: colors.primary }}
-              thumbColor="#fff"
-            />
+            {requestingPermissions ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Switch
+                value={settings.notificationsEnabled && permissionStatus === 'granted'}
+                onValueChange={handleToggleNotifications}
+                trackColor={{ false: '#D5E3D1', true: colors.primary }}
+                thumbColor="#fff"
+                disabled={requestingPermissions}
+              />
+            )}
           </View>
 
           <View style={styles.divider} />
@@ -402,21 +467,68 @@ const SettingsScreen = () => {
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Current Plan</Text>
-              <Text style={styles.settingValue}>Free</Text>
+              <Text style={styles.settingValue}>{formattedType || 'Loading...'}</Text>
+              {subscriptionDescription && (
+                <Text style={styles.settingDescription}>{subscriptionDescription}</Text>
+              )}
             </View>
+            {subscriptionStatus?.type === 'premium' && (
+              <Ionicons name="star" size={20} color={colors.secondary.amber} />
+            )}
+            {subscriptionStatus?.type === 'coaching' && (
+              <Ionicons name="heart" size={20} color={colors.evergreenTeal} />
+            )}
           </View>
 
-          <View style={styles.divider} />
+          {/* Show different options based on subscription type */}
+          {subscriptionStatus?.type !== 'coaching' && (
+            <>
+              <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.settingRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Upgrade to Premium</Text>
-              <Text style={styles.settingDescription}>
-                Unlock AI features and more
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
-          </TouchableOpacity>
+              {subscriptionStatus?.type === 'premium' ? (
+                <TouchableOpacity
+                  style={styles.settingRow}
+                  onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.settingLabel}>Manage Subscription</Text>
+                    <Text style={styles.settingDescription}>
+                      View or cancel in App Store
+                    </Text>
+                  </View>
+                  <Ionicons name="open-outline" size={20} color={colors.text.secondary} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.settingRow}
+                  onPress={() => navigation.navigate('Paywall' as never)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.settingLabel}>Upgrade to Premium</Text>
+                    <Text style={styles.settingDescription}>
+                      Unlock all features
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
+                </TouchableOpacity>
+              )}
+
+              <View style={styles.divider} />
+
+              <TouchableOpacity
+                style={styles.settingRow}
+                onPress={() => navigation.navigate('RedeemCode' as never)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingLabel}>Redeem Invite Code</Text>
+                  <Text style={styles.settingDescription}>
+                    Have a code from a coach?
+                  </Text>
+                </View>
+                <Ionicons name="gift-outline" size={20} color={colors.text.secondary} />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
 
@@ -459,17 +571,17 @@ const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAF6',
+    backgroundColor: colors.background.default,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FAFAF6',
+    backgroundColor: colors.background.default,
   },
   loadingText: {
     marginTop: spacing.md,
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     color: colors.text.secondary,
   },
   section: {
@@ -477,19 +589,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
     color: colors.text.secondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: spacing.sm,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: Layout.borderRadius.xl,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -506,23 +618,23 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   settingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
     color: colors.text.primary,
     marginBottom: 2,
   },
   settingValue: {
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     color: colors.text.secondary,
   },
   settingDescription: {
-    fontSize: 12,
+    fontSize: Typography.fontSize.xs,
     color: colors.text.secondary,
     marginTop: 2,
   },
   divider: {
-    height: 1,
-    backgroundColor: '#F0F0F0',
+    height: Layout.borderWidth.thin,
+    backgroundColor: colors.borderLight,
     marginHorizontal: spacing.md,
   },
   appInfo: {
@@ -530,7 +642,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   appInfoText: {
-    fontSize: 12,
+    fontSize: Typography.fontSize.xs,
     color: colors.text.secondary,
   },
 });

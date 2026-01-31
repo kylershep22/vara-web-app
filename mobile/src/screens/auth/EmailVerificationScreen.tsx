@@ -7,9 +7,10 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from '../../components';
-import { Colors, Spacing } from '../../constants';
+import { Button, AuthHeader } from '../../components';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
+import { auth } from '../../config/firebase';
 
 interface EmailVerificationScreenProps {
   navigation?: any;
@@ -29,17 +30,19 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navig
   const checkEmailVerified = async () => {
     setIsChecking(true);
     try {
+      // Reload the user from Firebase to get fresh email verification status
       await refreshUser();
 
-      if (user?.emailVerified) {
+      // Check the fresh user data directly from Firebase auth
+      const currentUser = auth.currentUser;
+
+      if (currentUser?.emailVerified) {
         setSnackbarMessage('Email verified! Redirecting...');
         setSnackbarType('success');
         setSnackbarVisible(true);
 
-        // Navigate to main app after short delay
-        setTimeout(() => {
-          // Navigation will be handled by auth state change
-        }, 1500);
+        // The AppNavigator will automatically redirect to onboarding or main app
+        // based on the email verification status from auth state listener
       } else {
         setSnackbarMessage('Email not verified yet. Please check your inbox.');
         setSnackbarType('error');
@@ -47,6 +50,9 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navig
       }
     } catch (error) {
       console.error('Error checking verification:', error);
+      setSnackbarMessage('Error checking verification. Please try again.');
+      setSnackbarType('error');
+      setSnackbarVisible(true);
     } finally {
       setIsChecking(false);
     }
@@ -87,21 +93,13 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navig
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Icon */}
-        <Text style={styles.icon}>📧</Text>
-
         {/* Header */}
-        <View style={styles.header}>
-          <Text variant="displaySmall" style={styles.title}>
-            Verify Your Email
-          </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
-            We sent a verification link to
-          </Text>
-          <Text variant="bodyLarge" style={styles.email}>
-            {user?.email}
-          </Text>
-        </View>
+        <AuthHeader
+          title="Verify Your Email"
+          subtitle={`We sent a verification link to\n${user?.email || ''}`}
+          icon="email-check"
+          iconSize={64}
+        />
 
         {/* Instructions */}
         <View style={styles.instructionsBox}>
@@ -111,7 +109,7 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navig
           <Text variant="bodyMedium" style={styles.instructionText}>
             2. Click the verification link in the email
           </Text>
-          <Text variant="bodyMedium" style={styles.instructionText}>
+          <Text variant="bodyMedium" style={styles.instructionTextLast}>
             3. Come back here and tap "I've Verified My Email"
           </Text>
         </View>
@@ -189,7 +187,7 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navig
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   scrollContent: {
     flexGrow: 1,
@@ -198,40 +196,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  icon: {
-    fontSize: 80,
-    marginBottom: Spacing.lg,
-  },
-  header: {
-    marginBottom: Spacing.xl,
-    alignItems: 'center',
-  },
-  title: {
-    color: Colors.evergreenTeal,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  email: {
-    color: Colors.evergreenTeal,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
   instructionsBox: {
     backgroundColor: Colors.dewSage,
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
     width: '100%',
+    overflow: 'visible',
   },
   instructionText: {
     color: Colors.textPrimary,
     marginBottom: Spacing.sm,
-    lineHeight: 22,
+    lineHeight: 24, // Absolute value for proper text rendering (16px font * 1.5)
+  },
+  instructionTextLast: {
+    color: Colors.textPrimary,
+    lineHeight: 24,
+    marginBottom: 0, // No margin on last item to prevent clipping
   },
   actions: {
     width: '100%',
@@ -245,14 +226,14 @@ const styles = StyleSheet.create({
   },
   helpBox: {
     backgroundColor: Colors.surface,
-    borderRadius: 8,
+    borderRadius: Layout.borderRadius.md,
     padding: Spacing.md,
     width: '100%',
   },
   helpText: {
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20, // Absolute value (14px font * ~1.4)
   },
   snackbar: {
     backgroundColor: Colors.error,
