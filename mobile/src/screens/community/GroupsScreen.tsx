@@ -1,19 +1,48 @@
 /**
  * Groups Screen
- * Browse and join community groups
+ * Browse and join community groups with enhanced cards
  */
 
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, FlatList, Alert, TextInput as RNTextInput, Keyboard, InputAccessoryView, Platform, ScrollView, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
-import { Text, SegmentedButtons, Searchbar, FAB, Portal, Modal, Button as PaperButton, Switch, Avatar } from 'react-native-paper';
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  Alert,
+  Keyboard,
+  InputAccessoryView,
+  Platform,
+  ScrollView,
+  KeyboardAvoidingView,
+  TouchableOpacity,
+} from 'react-native';
+import {
+  Text,
+  SegmentedButtons,
+  Searchbar,
+  FAB,
+  Portal,
+  Modal,
+  Button as PaperButton,
+  Switch,
+  Chip,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Card, LoadingSpinner, Input } from '../../components';
-import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { Button, LoadingSpinner, Input, GroupCard } from '../../components';
+import {
+  Colors,
+  Spacing,
+  Typography,
+  Layout,
+  GROUP_CATEGORY_LIST,
+  getGroupCategory,
+} from '../../constants';
 import { useGroups } from '../../hooks';
 import { useAuth } from '../../context/AuthContext';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { createGroup } from '../../services/firebase';
+import { GroupCategory } from '../../types/models';
 
 const INPUT_ACCESSORY_VIEW_ID = 'groupsInputAccessory';
 
@@ -21,25 +50,39 @@ const GroupsScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const [filter, setFilter] = useState<'all' | 'my' | 'public'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<GroupCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const { groups, loading, joinGroup, leaveGroup, isUserMember } = useGroups(filter);
+  const { groups, loading, joinGroup, leaveGroup, isUserMember, refresh } = useGroups(filter);
+
+  // Create group modal state
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
   const [isPublic, setIsPublic] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<GroupCategory>('other');
   const [submitting, setSubmitting] = useState(false);
 
-  // Filter groups by search query
+  // Filter groups by search query and category
   const filteredGroups = useMemo(() => {
-    if (!searchQuery.trim()) return groups;
+    let result = groups;
 
-    const query = searchQuery.toLowerCase();
-    return groups.filter(
-      (group) =>
-        group.name.toLowerCase().includes(query) ||
-        group.description?.toLowerCase().includes(query)
-    );
-  }, [groups, searchQuery]);
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (group) =>
+          group.name.toLowerCase().includes(query) ||
+          group.description?.toLowerCase().includes(query)
+      );
+    }
+
+    // Filter by category
+    if (categoryFilter !== 'all') {
+      result = result.filter((group) => group.category === categoryFilter);
+    }
+
+    return result;
+  }, [groups, searchQuery, categoryFilter]);
 
   const handleJoinGroup = async (groupId: string, groupName: string) => {
     try {
@@ -85,18 +128,27 @@ const GroupsScreen: React.FC = () => {
         description: groupDescription,
         visibility: isPublic ? 'public' : 'private',
         ownerId: user!.uid,
+        category: selectedCategory,
       });
+      // Reset form
       setGroupName('');
       setGroupDescription('');
       setIsPublic(true);
+      setSelectedCategory('other');
       setShowCreateGroup(false);
       Alert.alert('Success', 'Group created successfully!');
+      // Refresh groups list
+      refresh?.();
     } catch (error) {
       console.error('Error creating group:', error);
       Alert.alert('Error', 'Failed to create group. Please try again.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleNavigateToGroup = (groupId: string, groupName: string) => {
+    navigation.navigate('GroupDetail', { groupId, groupName });
   };
 
   return (
@@ -121,19 +173,57 @@ const GroupsScreen: React.FC = () => {
         />
       </View>
 
-      {/* Filter */}
+      {/* Filter Tabs */}
       <View style={styles.filterContainer}>
         <SegmentedButtons
           value={filter}
-          onValueChange={setFilter}
+          onValueChange={(value) => setFilter(value as 'all' | 'my' | 'public')}
           buttons={[
-            { value: 'all', label: 'All Groups' },
+            { value: 'all', label: 'All' },
             { value: 'my', label: 'My Groups' },
             { value: 'public', label: 'Public' },
           ]}
           style={styles.segmentedButtons}
         />
       </View>
+
+      {/* Category Filter */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoryScroll}
+        contentContainerStyle={styles.categoryContainer}
+      >
+        <Chip
+          selected={categoryFilter === 'all'}
+          onPress={() => setCategoryFilter('all')}
+          style={[styles.categoryChip, categoryFilter === 'all' && styles.categoryChipSelected]}
+          textStyle={categoryFilter === 'all' ? styles.categoryChipTextSelected : undefined}
+        >
+          All
+        </Chip>
+        {GROUP_CATEGORY_LIST.map((cat) => (
+          <Chip
+            key={cat.key}
+            selected={categoryFilter === cat.key}
+            onPress={() => setCategoryFilter(cat.key)}
+            style={[
+              styles.categoryChip,
+              categoryFilter === cat.key && styles.categoryChipSelected,
+            ]}
+            textStyle={categoryFilter === cat.key ? styles.categoryChipTextSelected : undefined}
+            icon={() => (
+              <Icon
+                name={cat.icon as any}
+                size={16}
+                color={categoryFilter === cat.key ? Colors.textOnPrimary : cat.color}
+              />
+            )}
+          >
+            {cat.label}
+          </Chip>
+        ))}
+      </ScrollView>
 
       {/* Groups List */}
       {loading ? (
@@ -147,101 +237,41 @@ const GroupsScreen: React.FC = () => {
             style={styles.emptyIcon}
           />
           <Text variant="titleMedium" style={styles.emptyTitle}>
-            {searchQuery ? 'No groups found' : 'No groups available'}
+            {searchQuery || categoryFilter !== 'all'
+              ? 'No groups found'
+              : 'No groups available'}
           </Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
             {searchQuery
               ? 'Try a different search term'
+              : categoryFilter !== 'all'
+              ? `No ${getGroupCategory(categoryFilter as GroupCategory).label} groups yet`
               : filter === 'my'
               ? "You haven't joined any groups yet"
-              : 'Check back later for new groups'}
+              : 'Be the first to create a group!'}
           </Text>
+          {filter !== 'my' && (
+            <Button
+              variant="primary"
+              style={styles.createButton}
+              onPress={() => setShowCreateGroup(true)}
+            >
+              Create Group
+            </Button>
+          )}
         </View>
       ) : (
         <FlatList
           data={filteredGroups}
-          renderItem={({ item }) => {
-            const isMember = isUserMember(item);
-
-            return (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => navigation.navigate('GroupDetail', {
-                  groupId: item.id,
-                  groupName: item.name,
-                })}
-              >
-                <Card style={styles.groupCard}>
-                  <View style={styles.cardHeader}>
-                    <View style={styles.groupIconSmall}>
-                      <Icon name="account-group" size={24} color={Colors.evergreenTeal} />
-                    </View>
-                    <View style={styles.cardHeaderText}>
-                      <Text variant="titleMedium" style={styles.groupName}>
-                        {item.name}
-                      </Text>
-                      <View style={styles.groupMetaInline}>
-                        <Icon name="account" size={12} color={Colors.textSecondary} />
-                        <Text variant="bodySmall" style={styles.groupMetaText}>
-                          {item.memberCount || item.members?.length || 0} members
-                        </Text>
-                        <Text variant="bodySmall" style={styles.metaDivider}>·</Text>
-                        <Icon
-                          name={item.isPublic ? 'earth' : 'lock'}
-                          size={12}
-                          color={Colors.textSecondary}
-                        />
-                        <Text variant="bodySmall" style={styles.groupMetaText}>
-                          {item.isPublic ? 'Public' : 'Private'}
-                        </Text>
-                      </View>
-                    </View>
-                    {isMember && (
-                      <View style={styles.memberBadge}>
-                        <Icon name="check-circle" size={16} color={Colors.evergreenTeal} />
-                      </View>
-                    )}
-                  </View>
-                  {item.description && (
-                    <Text
-                      variant="bodyMedium"
-                      style={styles.groupDescription}
-                      numberOfLines={2}
-                    >
-                      {item.description}
-                    </Text>
-                  )}
-                  <View style={styles.cardFooter}>
-                    {isMember ? (
-                      <Button
-                        variant="outline"
-                        compact
-                        style={styles.joinButton}
-                        onPress={() => handleLeaveGroup(item.id, item.name)}
-                      >
-                        Leave
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="primary"
-                        compact
-                        style={styles.joinButton}
-                        onPress={() => handleJoinGroup(item.id, item.name)}
-                      >
-                        Join
-                      </Button>
-                    )}
-                    <View style={styles.viewGroupHint}>
-                      <Text variant="bodySmall" style={styles.viewGroupText}>
-                        Tap to view
-                      </Text>
-                      <Icon name="chevron-right" size={16} color={Colors.textSecondary} />
-                    </View>
-                  </View>
-                </Card>
-              </TouchableOpacity>
-            );
-          }}
+          renderItem={({ item }) => (
+            <GroupCard
+              group={item}
+              isMember={isUserMember(item)}
+              onPress={() => handleNavigateToGroup(item.id, item.name)}
+              onJoin={() => handleJoinGroup(item.id, item.name)}
+              onLeave={() => handleLeaveGroup(item.id, item.name)}
+            />
+          )}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
         />
@@ -250,7 +280,7 @@ const GroupsScreen: React.FC = () => {
       {/* FAB for Create Group */}
       <FAB
         icon="plus"
-        label="Create Group"
+        label="Create"
         style={styles.fab}
         onPress={() => setShowCreateGroup(true)}
         color={Colors.textOnPrimary}
@@ -295,6 +325,43 @@ const GroupsScreen: React.FC = () => {
                 style={styles.input}
               />
 
+              {/* Category Selection */}
+              <Text variant="bodyLarge" style={styles.sectionLabel}>
+                Category
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.categorySelectScroll}
+              >
+                {GROUP_CATEGORY_LIST.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.key}
+                    style={[
+                      styles.categorySelectItem,
+                      selectedCategory === cat.key && styles.categorySelectItemActive,
+                      { borderColor: cat.color },
+                    ]}
+                    onPress={() => setSelectedCategory(cat.key)}
+                  >
+                    <Icon
+                      name={cat.icon as any}
+                      size={24}
+                      color={selectedCategory === cat.key ? Colors.textOnPrimary : cat.color}
+                    />
+                    <Text
+                      style={[
+                        styles.categorySelectText,
+                        selectedCategory === cat.key && styles.categorySelectTextActive,
+                      ]}
+                    >
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Public/Private Switch */}
               <View style={styles.switchContainer}>
                 <View style={styles.switchLabel}>
                   <Text variant="bodyLarge" style={styles.switchLabelText}>
@@ -376,75 +443,32 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   segmentedButtons: {
     backgroundColor: Colors.surface,
   },
+  categoryScroll: {
+    maxHeight: 44,
+    marginBottom: Spacing.md,
+  },
+  categoryContainer: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  categoryChip: {
+    backgroundColor: Colors.surface,
+    marginRight: Spacing.xs,
+  },
+  categoryChipSelected: {
+    backgroundColor: Colors.evergreenTeal,
+  },
+  categoryChipTextSelected: {
+    color: Colors.textOnPrimary,
+  },
   listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
-  groupCard: {
-    marginBottom: Spacing.md,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  groupIconSmall: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.dewSage,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  cardHeaderText: {
-    flex: 1,
-  },
-  groupName: {
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  groupMetaInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: 2,
-  },
-  metaDivider: {
-    color: Colors.textSecondary,
-  },
-  memberBadge: {
-    marginLeft: Spacing.sm,
-  },
-  groupDescription: {
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-    marginLeft: Spacing.xl + Spacing.md + 4, // Align with text after icon
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  groupMetaText: {
-    color: Colors.textSecondary,
-  },
-  joinButton: {
-    minWidth: 80,
-  },
-  viewGroupHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  viewGroupText: {
-    color: Colors.textSecondary,
-    marginRight: Spacing.xs,
+    paddingBottom: Spacing.xl * 2,
   },
   emptyContainer: {
     flex: 1,
@@ -462,6 +486,10 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Colors.textSecondary,
     textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  createButton: {
+    minWidth: 140,
   },
   fab: {
     position: 'absolute',
@@ -474,7 +502,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
-    maxHeight: '85%',
+    maxHeight: '90%',
   },
   scrollContent: {
     paddingBottom: Spacing.md,
@@ -486,6 +514,37 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: Spacing.md,
+  },
+  sectionLabel: {
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
+    marginBottom: Spacing.sm,
+  },
+  categorySelectScroll: {
+    marginBottom: Spacing.md,
+  },
+  categorySelectItem: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: 2,
+    marginRight: Spacing.sm,
+    minWidth: 80,
+    backgroundColor: Colors.surface,
+  },
+  categorySelectItemActive: {
+    backgroundColor: Colors.evergreenTeal,
+    borderColor: Colors.evergreenTeal,
+  },
+  categorySelectText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  categorySelectTextActive: {
+    color: Colors.textOnPrimary,
+    fontWeight: Typography.fontWeight.medium,
   },
   switchContainer: {
     flexDirection: 'row',

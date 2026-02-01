@@ -40,6 +40,10 @@ export interface Group {
   isPublic: boolean;
   members: string[];
   memberCount: number;
+  category?: string;
+  coverImage?: string;
+  lastActivityAt?: Timestamp;
+  postCount?: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -173,6 +177,7 @@ export const createGroup = async (data: {
   description: string;
   visibility: 'public' | 'private';
   ownerId: string;
+  category?: string;
 }): Promise<string> => {
   try {
     const groupData = {
@@ -180,6 +185,9 @@ export const createGroup = async (data: {
       isPublic: data.visibility === 'public',
       members: [data.ownerId],
       memberCount: 1,
+      category: data.category || 'other',
+      lastActivityAt: serverTimestamp(),
+      postCount: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -261,6 +269,26 @@ export const createPost = async (data: {
     };
 
     const docRef = await addDoc(collection(db, POSTS_COLLECTION), postData);
+
+    // Update group's lastActivityAt and postCount if this is a group post
+    if (data.groupId) {
+      try {
+        const groupRef = doc(db, GROUPS_COLLECTION, data.groupId);
+        const groupSnap = await getDoc(groupRef);
+        if (groupSnap.exists()) {
+          const currentPostCount = groupSnap.data().postCount || 0;
+          await updateDoc(groupRef, {
+            lastActivityAt: serverTimestamp(),
+            postCount: currentPostCount + 1,
+            updatedAt: serverTimestamp(),
+          });
+        }
+      } catch (groupError) {
+        console.warn('Failed to update group activity:', groupError);
+        // Don't fail the post creation if group update fails
+      }
+    }
+
     return docRef.id;
   } catch (error) {
     console.error('Error creating post:', error);

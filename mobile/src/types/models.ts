@@ -223,6 +223,17 @@ export interface Mood {
 // COMMUNITY MODELS
 // ==========================================
 
+export type GroupCategory =
+  | 'fitness'
+  | 'mindfulness'
+  | 'nutrition'
+  | 'sleep'
+  | 'mental-health'
+  | 'productivity'
+  | 'social'
+  | 'learning'
+  | 'other';
+
 export interface Group {
   id: string;
   ownerId: string;
@@ -230,6 +241,12 @@ export interface Group {
   description?: string;
   visibility: 'public' | 'private';
   members: string[]; // array of user IDs
+  memberCount?: number;
+  category?: GroupCategory;
+  coverImage?: string;
+  // Activity tracking
+  lastActivityAt?: Timestamp;
+  postCount?: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
