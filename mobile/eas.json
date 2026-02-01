@@ -18,14 +18,6 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_ENV": "staging",
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyD4tyzAr7CAUyP0L9okYijDAKkvT06zviI",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "vara-4a99f.firebaseapp.com",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "vara-4a99f",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "vara-4a99f.firebasestorage.app",
-        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "621980275569",
-        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:621980275569:ios:f7595075c50313ad575cd0",
-        "EXPO_PUBLIC_FIREBASE_IOS_APP_ID": "1:621980275569:ios:f7595075c50313ad575cd0",
-        "EXPO_PUBLIC_API_URL": "https://us-central1-vara-4a99f.cloudfunctions.net",
         "EXPO_PUBLIC_DEBUG": "false",
         "EXPO_PUBLIC_USE_EMULATORS": "false"
       },
@@ -37,14 +29,6 @@
     "production": {
       "env": {
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyD4tyzAr7CAUyP0L9okYijDAKkvT06zviI",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "vara-4a99f.firebaseapp.com",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "vara-4a99f",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "vara-4a99f.firebasestorage.app",
-        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "621980275569",
-        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:621980275569:ios:f7595075c50313ad575cd0",
-        "EXPO_PUBLIC_FIREBASE_IOS_APP_ID": "1:621980275569:ios:f7595075c50313ad575cd0",
-        "EXPO_PUBLIC_API_URL": "https://us-central1-vara-4a99f.cloudfunctions.net",
         "EXPO_PUBLIC_DEBUG": "false",
         "EXPO_PUBLIC_USE_EMULATORS": "false"
       },
