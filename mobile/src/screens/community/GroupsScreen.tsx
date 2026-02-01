@@ -4,9 +4,10 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, FlatList, Alert, TextInput as RNTextInput, Keyboard, InputAccessoryView, Platform, ScrollView, KeyboardAvoidingView } from 'react-native';
-import { Text, SegmentedButtons, Searchbar, FAB, Portal, Modal, Button as PaperButton, Switch } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Alert, TextInput as RNTextInput, Keyboard, InputAccessoryView, Platform, ScrollView, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
+import { Text, SegmentedButtons, Searchbar, FAB, Portal, Modal, Button as PaperButton, Switch, Avatar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Button, Card, LoadingSpinner, Input } from '../../components';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useGroups } from '../../hooks';
@@ -18,6 +19,7 @@ const INPUT_ACCESSORY_VIEW_ID = 'groupsInputAccessory';
 
 const GroupsScreen: React.FC = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const [filter, setFilter] = useState<'all' | 'my' | 'public'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const { groups, loading, joinGroup, leaveGroup, isUserMember } = useGroups(filter);
@@ -81,7 +83,7 @@ const GroupsScreen: React.FC = () => {
       await createGroup({
         name: groupName,
         description: groupDescription,
-        isPublic,
+        visibility: isPublic ? 'public' : 'private',
         ownerId: user!.uid,
       });
       setGroupName('');
@@ -162,39 +164,82 @@ const GroupsScreen: React.FC = () => {
             const isMember = isUserMember(item);
 
             return (
-              <Card style={styles.groupCard}>
-                <Text variant="titleMedium" style={styles.groupName}>
-                  {item.name}
-                </Text>
-                <Text variant="bodyMedium" style={styles.groupDescription}>
-                  {item.description}
-                </Text>
-                <View style={styles.groupMeta}>
-                  <Text variant="bodySmall" style={styles.groupMetaText}>
-                    <Icon name="account" size={14} /> {item.memberCount || 0} members
-                  </Text>
-                  <Text variant="bodySmall" style={styles.groupMetaText}>
-                    {item.isPublic ? 'Public' : 'Private'}
-                  </Text>
-                </View>
-                {isMember ? (
-                  <Button
-                    variant="outline"
-                    style={styles.joinButton}
-                    onPress={() => handleLeaveGroup(item.id, item.name)}
-                  >
-                    Leave Group
-                  </Button>
-                ) : (
-                  <Button
-                    variant="primary"
-                    style={styles.joinButton}
-                    onPress={() => handleJoinGroup(item.id, item.name)}
-                  >
-                    Join Group
-                  </Button>
-                )}
-              </Card>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('GroupDetail', {
+                  groupId: item.id,
+                  groupName: item.name,
+                })}
+              >
+                <Card style={styles.groupCard}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.groupIconSmall}>
+                      <Icon name="account-group" size={24} color={Colors.evergreenTeal} />
+                    </View>
+                    <View style={styles.cardHeaderText}>
+                      <Text variant="titleMedium" style={styles.groupName}>
+                        {item.name}
+                      </Text>
+                      <View style={styles.groupMetaInline}>
+                        <Icon name="account" size={12} color={Colors.textSecondary} />
+                        <Text variant="bodySmall" style={styles.groupMetaText}>
+                          {item.memberCount || item.members?.length || 0} members
+                        </Text>
+                        <Text variant="bodySmall" style={styles.metaDivider}>·</Text>
+                        <Icon
+                          name={item.isPublic ? 'earth' : 'lock'}
+                          size={12}
+                          color={Colors.textSecondary}
+                        />
+                        <Text variant="bodySmall" style={styles.groupMetaText}>
+                          {item.isPublic ? 'Public' : 'Private'}
+                        </Text>
+                      </View>
+                    </View>
+                    {isMember && (
+                      <View style={styles.memberBadge}>
+                        <Icon name="check-circle" size={16} color={Colors.evergreenTeal} />
+                      </View>
+                    )}
+                  </View>
+                  {item.description && (
+                    <Text
+                      variant="bodyMedium"
+                      style={styles.groupDescription}
+                      numberOfLines={2}
+                    >
+                      {item.description}
+                    </Text>
+                  )}
+                  <View style={styles.cardFooter}>
+                    {isMember ? (
+                      <Button
+                        variant="outline"
+                        compact
+                        style={styles.joinButton}
+                        onPress={() => handleLeaveGroup(item.id, item.name)}
+                      >
+                        Leave
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        compact
+                        style={styles.joinButton}
+                        onPress={() => handleJoinGroup(item.id, item.name)}
+                      >
+                        Join
+                      </Button>
+                    )}
+                    <View style={styles.viewGroupHint}>
+                      <Text variant="bodySmall" style={styles.viewGroupText}>
+                        Tap to view
+                      </Text>
+                      <Icon name="chevron-right" size={16} color={Colors.textSecondary} />
+                    </View>
+                  </View>
+                </Card>
+              </TouchableOpacity>
             );
           }}
           keyExtractor={(item) => item.id}
@@ -307,7 +352,7 @@ const GroupsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   header: {
     paddingHorizontal: Spacing.lg,
@@ -343,25 +388,63 @@ const styles = StyleSheet.create({
   groupCard: {
     marginBottom: Spacing.md,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  groupIconSmall: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.dewSage,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  cardHeaderText: {
+    flex: 1,
+  },
   groupName: {
     color: Colors.textPrimary,
     fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.xs,
+  },
+  groupMetaInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: 2,
+  },
+  metaDivider: {
+    color: Colors.textSecondary,
+  },
+  memberBadge: {
+    marginLeft: Spacing.sm,
   },
   groupDescription: {
     color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  groupMeta: {
-    flexDirection: 'row',
-    gap: Spacing.md,
     marginBottom: Spacing.md,
+    marginLeft: Spacing.xl + Spacing.md + 4, // Align with text after icon
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
   },
   groupMetaText: {
     color: Colors.textSecondary,
   },
   joinButton: {
-    alignSelf: 'flex-start',
+    minWidth: 80,
+  },
+  viewGroupHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewGroupText: {
+    color: Colors.textSecondary,
+    marginRight: Spacing.xs,
   },
   emptyContainer: {
     flex: 1,

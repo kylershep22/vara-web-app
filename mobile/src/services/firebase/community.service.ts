@@ -273,10 +273,11 @@ export const createPost = async (data: {
  */
 export const fetchGroupPosts = async (groupId: string): Promise<Post[]> => {
   try {
+    // Note: Posts use 'timestamp' field (matching web app format)
     const q = query(
       collection(db, POSTS_COLLECTION),
       where('groupId', '==', groupId),
-      orderBy('createdAt', 'desc')
+      orderBy('timestamp', 'desc')
     );
 
     const snapshot = await getDocs(q);

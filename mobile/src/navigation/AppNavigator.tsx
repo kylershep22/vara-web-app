@@ -39,6 +39,7 @@ import RedeemCodeScreen from '../screens/RedeemCodeScreen';
 import {
   CommunityScreen,
   GroupsScreen,
+  GroupDetailScreen,
   PeopleScreen,
   MessagesScreen,
 } from '../screens/community';
@@ -161,6 +162,13 @@ const CommunityNavigator = () => {
         component={GroupsScreen}
         options={{
           title: 'Groups',
+        }}
+      />
+      <CommunityStack.Screen
+        name="GroupDetail"
+        component={GroupDetailScreen}
+        options={{
+          title: 'Group',
         }}
       />
       <CommunityStack.Screen
