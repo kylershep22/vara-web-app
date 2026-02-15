@@ -224,7 +224,7 @@ export default function MovementDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   scrollContent: {
     paddingBottom: Spacing['4xl'],
@@ -263,8 +263,8 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+    gap: Spacing.base,
+    marginBottom: Spacing.base,
   },
   metaItem: {
     flexDirection: 'row',
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   progressSection: {
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     paddingHorizontal: Spacing.sm,
     backgroundColor: Colors.surface,
     borderRadius: 12,
@@ -303,8 +303,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginTop: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.base,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.success + '20',
     borderRadius: 8,
@@ -315,12 +315,12 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.md,
+    paddingVertical: Spacing.base,
+    marginBottom: Spacing.base,
   },
   sectionTitle: {
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   needItem: {
     flexDirection: 'row',
@@ -334,9 +334,9 @@ const styles = StyleSheet.create({
   },
   tipsSection: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.sunriseAmber + '10',
-    marginHorizontal: Spacing.md,
+    marginHorizontal: Spacing.base,
     borderRadius: 12,
     marginBottom: Spacing.lg,
   },
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   relatedSection: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.lg,
   },
   errorContainer: {
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: Colors.textPrimary,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     marginBottom: Spacing.lg,
   },
 });

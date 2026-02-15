@@ -10,10 +10,7 @@ import {
   FlatList,
   Alert,
   Keyboard,
-  InputAccessoryView,
-  Platform,
   ScrollView,
-  KeyboardAvoidingView,
   TouchableOpacity,
 } from 'react-native';
 import {
@@ -30,6 +27,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, LoadingSpinner, Input, GroupCard } from '../../components';
+import { KeyboardAwareScrollView } from '../../components/shared';
+import { InvitePermissionPicker, InvitePermission } from '../../components/community';
 import {
   Colors,
   Spacing,
@@ -43,8 +42,6 @@ import { useAuth } from '../../context/AuthContext';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { createGroup } from '../../services/firebase';
 import { GroupCategory } from '../../types/models';
-
-const INPUT_ACCESSORY_VIEW_ID = 'groupsInputAccessory';
 
 const GroupsScreen: React.FC = () => {
   const { user } = useAuth();
@@ -60,6 +57,7 @@ const GroupsScreen: React.FC = () => {
   const [groupDescription, setGroupDescription] = useState('');
   const [isPublic, setIsPublic] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<GroupCategory>('other');
+  const [invitePermission, setInvitePermission] = useState<InvitePermission>('owner_only');
   const [submitting, setSubmitting] = useState(false);
 
   // Filter groups by search query and category
@@ -129,12 +127,14 @@ const GroupsScreen: React.FC = () => {
         visibility: isPublic ? 'public' : 'private',
         ownerId: user!.uid,
         category: selectedCategory,
+        invitePermission: invitePermission,
       });
       // Reset form
       setGroupName('');
       setGroupDescription('');
       setIsPublic(true);
       setSelectedCategory('other');
+      setInvitePermission('owner_only');
       setShowCreateGroup(false);
       Alert.alert('Success', 'Group created successfully!');
       // Refresh groups list
@@ -154,12 +154,19 @@ const GroupsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.screenTitle}>
-          Groups
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Find your community
-        </Text>
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
+          </TouchableOpacity>
+          <View style={styles.headerTitles}>
+            <Text variant="headlineMedium" style={styles.screenTitle}>
+              Groups
+            </Text>
+            <Text variant="bodyMedium" style={styles.subtitle}>
+              Find your community
+            </Text>
+          </View>
+        </View>
       </View>
 
       {/* Search */}
@@ -296,13 +303,11 @@ const GroupsScreen: React.FC = () => {
           }}
           contentContainerStyle={styles.modal}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          <KeyboardAwareScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            enableKeyboardAvoidance={false}
           >
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
               <Text variant="headlineSmall" style={styles.modalTitle}>
                 Create New Group
               </Text>
@@ -378,6 +383,12 @@ const GroupsScreen: React.FC = () => {
                 />
               </View>
 
+              {/* Invite Permission */}
+              <InvitePermissionPicker
+                value={invitePermission}
+                onChange={setInvitePermission}
+              />
+
               <View style={styles.modalActions}>
                 <PaperButton
                   mode="outlined"
@@ -397,21 +408,10 @@ const GroupsScreen: React.FC = () => {
                   Create
                 </PaperButton>
               </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
+          </KeyboardAwareScrollView>
         </Modal>
       </Portal>
 
-      {/* Keyboard Accessory Toolbar (iOS) */}
-      {Platform.OS === 'ios' && (
-        <InputAccessoryView nativeID={INPUT_ACCESSORY_VIEW_ID}>
-          <View style={styles.keyboardAccessory}>
-            <Button variant="text" onPress={() => Keyboard.dismiss()}>
-              Done
-            </Button>
-          </View>
-        </InputAccessoryView>
-      )}
     </SafeAreaView>
   );
 };
@@ -423,7 +423,18 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    padding: Spacing.xs,
+    marginRight: Spacing.sm,
+  },
+  headerTitles: {
+    flex: 1,
   },
   screenTitle: {
     color: Colors.evergreenTeal,
@@ -435,7 +446,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   searchbar: {
     backgroundColor: Colors.surface,
@@ -450,7 +461,7 @@ const styles = StyleSheet.create({
   },
   categoryScroll: {
     maxHeight: 44,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   categoryContainer: {
     paddingHorizontal: Spacing.lg,
@@ -477,7 +488,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyIcon: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   emptyTitle: {
     color: Colors.textPrimary,
@@ -505,7 +516,7 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
   },
   scrollContent: {
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.base,
   },
   modalTitle: {
     color: Colors.evergreenTeal,
@@ -513,7 +524,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
   },
   input: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   sectionLabel: {
     color: Colors.textPrimary,
@@ -521,12 +532,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   categorySelectScroll: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   categorySelectItem: {
     alignItems: 'center',
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     borderRadius: Layout.borderRadius.md,
     borderWidth: 2,
     marginRight: Spacing.sm,
@@ -550,7 +561,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     marginBottom: Spacing.lg,
     borderTopWidth: Layout.borderWidth.thin,
     borderBottomWidth: Layout.borderWidth.thin,
@@ -570,21 +581,11 @@ const styles = StyleSheet.create({
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     gap: Spacing.sm,
   },
   modalButton: {
     flex: 1,
-  },
-  keyboardAccessory: {
-    backgroundColor: Colors.surface,
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.borderLight,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
   },
 });
 

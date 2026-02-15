@@ -297,7 +297,7 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
                         icon="delete"
                         size={20}
                         onPress={() => handleRemoveActivity(index)}
-                        iconColor="#EF4444"
+                        iconColor="#D97A6E"
                       />
                     </View>
                   </View>
@@ -336,7 +336,7 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
           <Card style={styles.statsCard}>
             <View key="duration-stat" style={styles.statRow}>
               <Text style={styles.statLabel}>Total Duration</Text>
-              <Text style={styles.statValue}>{totalDuration} min</Text>
+              <Text style={styles.statValue}>{`${totalDuration} min`}</Text>
             </View>
             <View key="count-stat" style={styles.statRow}>
               <Text style={styles.statLabel}>Activity Count</Text>
@@ -410,7 +410,7 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
                       <Icon name={template.icon} size={24} color="#fff" />
                     </View>
                     <Text key={`lib-name-${index}`} style={styles.libraryName}>{template.name}</Text>
-                    <Text key={`lib-duration-${index}`} style={styles.libraryDuration}>{template.duration}m</Text>
+                    <Text key={`lib-duration-${index}`} style={styles.libraryDuration}>{`${template.duration}m`}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -422,29 +422,34 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
   );
 };
 
-// Helper function to get color for activity
+// Brand-compliant activity colors
+// Per Focus Page Spec: Only use primary (#1B5E57), coral (#D97A6E), or apricot (#F5B971)
 function getColorForActivity(color: string): string {
   const colorMap: { [key: string]: string } = {
-    purple: '#9333EA',
-    green: '#16A34A',
-    blue: '#2563EB',
-    orange: '#EA580C',
-    indigo: '#4F46E5',
-    red: '#DC2626',
-    cyan: '#06B6D4',
-    teal: '#14B8A6',
-    yellow: '#EAB308',
-    gray: '#6B7280',
-    brown: '#92400E',
-    pink: '#EC4899',
+    // Primary teal mappings
+    purple: '#1B5E57',
+    green: '#1B5E57',
+    blue: '#1B5E57',
+    cyan: '#1B5E57',
+    indigo: '#1B5E57',
+    teal: '#1B5E57',
+    // Coral mappings (for heart/gratitude)
+    red: '#D97A6E',
+    pink: '#D97A6E',
+    // Apricot mappings (for energy/warmth)
+    orange: '#F5B971',
+    yellow: '#F5B971',
+    brown: '#F5B971',
+    // Neutral
+    gray: '#6F7F77',
   };
-  return colorMap[color] || Colors.evergreenTeal;
+  return colorMap[color] || '#1B5E57';
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   scrollView: {
     flex: 1,
@@ -462,7 +467,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: Colors.surface,
     borderRadius: 12,
-    padding: Spacing.md,
+    padding: Spacing.base,
     fontSize: 16,
     color: Colors.textPrimary,
     borderWidth: 1,
@@ -493,7 +498,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   activityCard: {
-    padding: Spacing.md,
+    padding: Spacing.base,
   },
   activityHeader: {
     flexDirection: 'row',
@@ -513,7 +518,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activityDetails: {
-    marginLeft: Spacing.md,
+    marginLeft: Spacing.base,
     flex: 1,
   },
   activityName: {
@@ -531,7 +536,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -544,7 +549,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
     width: 40,
     textAlign: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
     borderRadius: 6,
   },
   durationLabel: {
@@ -555,7 +560,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   addButton: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -566,8 +571,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   statsCard: {
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.base,
+    marginBottom: Spacing.base,
   },
   statRow: {
     flexDirection: 'row',
@@ -594,10 +599,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   deleteButton: {
-    borderColor: '#EF4444',
+    borderColor: '#D97A6E', // Brand-compliant Soft Coral
   },
   deleteText: {
-    color: '#EF4444',
+    color: '#D97A6E', // Brand-compliant Soft Coral
     fontWeight: '600',
   },
   modalOverlay: {
@@ -630,13 +635,13 @@ const styles = StyleSheet.create({
   libraryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: Spacing.base,
   },
   libraryItem: {
     width: '30%',
     alignItems: 'center',
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
+    padding: Spacing.base,
+    backgroundColor: Colors.background.default,
     borderRadius: 12,
   },
   libraryIcon: {

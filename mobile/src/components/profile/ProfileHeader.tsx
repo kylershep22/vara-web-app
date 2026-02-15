@@ -127,8 +127,8 @@ const styles = StyleSheet.create({
   },
   bannerEditButton: {
     position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.md,
+    top: Spacing.base,
+    right: Spacing.base,
     backgroundColor: 'rgba(0,0,0,0.5)',
     padding: Spacing.sm,
     borderRadius: Layout.borderRadius['2xl'],
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   profileHeader: {
     alignItems: 'center',
     marginTop: -40,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
   },
   avatarContainer: {
     position: 'relative',

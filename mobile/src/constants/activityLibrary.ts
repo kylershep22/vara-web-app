@@ -80,9 +80,21 @@ export const SUNDAY_ACTIVITIES: ActivityTemplate[] = [
 ];
 
 /**
+ * Custom routine activities (formerly Sunday)
+ * More flexible activities for any custom routine
+ */
+export const CUSTOM_ACTIVITIES: ActivityTemplate[] = [
+  ...SUNDAY_ACTIVITIES,
+  // Additional custom-friendly activities
+  { name: 'Creative Time', duration: 45, icon: 'palette', color: 'purple' },
+  { name: 'Learning Session', duration: 30, icon: 'lightbulb', color: 'yellow' },
+  { name: 'Hobby Time', duration: 60, icon: 'puzzle', color: 'green' },
+];
+
+/**
  * Get activities for a specific routine type
  */
-export function getActivitiesForType(type: RoutineType): ActivityTemplate[] {
+export function getActivitiesForType(type: RoutineType | 'custom'): ActivityTemplate[] {
   switch (type) {
     case 'morning':
       return MORNING_ACTIVITIES;
@@ -91,7 +103,8 @@ export function getActivitiesForType(type: RoutineType): ActivityTemplate[] {
     case 'evening':
       return EVENING_ACTIVITIES;
     case 'sunday':
-      return SUNDAY_ACTIVITIES;
+    case 'custom':
+      return CUSTOM_ACTIVITIES;
     default:
       return [];
   }
@@ -100,7 +113,7 @@ export function getActivitiesForType(type: RoutineType): ActivityTemplate[] {
 /**
  * Get display name for routine type
  */
-export function getRoutineTypeDisplayName(type: RoutineType): string {
+export function getRoutineTypeDisplayName(type: RoutineType | 'custom'): string {
   switch (type) {
     case 'morning':
       return 'Morning';
@@ -109,7 +122,9 @@ export function getRoutineTypeDisplayName(type: RoutineType): string {
     case 'evening':
       return 'Evening';
     case 'sunday':
-      return 'Sunday';
+      return 'Sunday'; // Legacy support
+    case 'custom':
+      return 'Custom';
     default:
       return '';
   }
@@ -118,7 +133,7 @@ export function getRoutineTypeDisplayName(type: RoutineType): string {
 /**
  * Get description for routine type
  */
-export function getRoutineTypeDescription(type: RoutineType): string {
+export function getRoutineTypeDescription(type: RoutineType | 'custom'): string {
   switch (type) {
     case 'morning':
       return 'Start your day with intention and energy';
@@ -127,7 +142,9 @@ export function getRoutineTypeDescription(type: RoutineType): string {
     case 'evening':
       return 'Transition from work to relaxation';
     case 'sunday':
-      return 'Plan and prepare for the week ahead';
+      return 'Plan and prepare for the week ahead'; // Legacy support
+    case 'custom':
+      return 'Create a routine for this time of day—whenever you\'re ready.';
     default:
       return '';
   }
@@ -136,16 +153,18 @@ export function getRoutineTypeDescription(type: RoutineType): string {
 /**
  * Get icon for routine type
  */
-export function getRoutineTypeIcon(type: RoutineType): string {
+export function getRoutineTypeIcon(type: RoutineType | 'custom'): string {
   switch (type) {
     case 'morning':
-      return 'weather-sunny';
+      return 'white-balance-sunny';
     case 'bedtime':
-      return 'weather-night';
+      return 'moon-waning-crescent';
     case 'evening':
       return 'weather-sunset';
     case 'sunday':
-      return 'calendar-week';
+      return 'calendar-week'; // Legacy support
+    case 'custom':
+      return 'calendar';
     default:
       return 'calendar';
   }

@@ -396,12 +396,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   input: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   requirementsBox: {
     backgroundColor: Colors.dewSage,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.base,
     marginBottom: Spacing.lg,
   },
   requirementsTitle: {
@@ -438,8 +438,8 @@ const styles = StyleSheet.create({
   errorText: {
     color: Colors.error,
     marginTop: -Spacing.xs,
-    marginBottom: Spacing.md,
-    marginLeft: Spacing.md + 24, // Align with checkbox text
+    marginBottom: Spacing.base,
+    marginLeft: Spacing.base + 24, // Align with checkbox text
   },
   link: {
     color: Colors.evergreenTeal,

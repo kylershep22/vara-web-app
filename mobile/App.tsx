@@ -20,6 +20,9 @@ import { firebaseInitialized, firebaseError } from './src/config/firebase';
 // Import Auth Provider
 import { AuthProvider } from './src/context/AuthContext';
 
+// Import Notification Provider
+import { NotificationProvider } from './src/context/NotificationContext';
+
 // Import Audio Player Provider
 import { AudioPlayerProvider } from './src/context/AudioPlayerContext';
 
@@ -135,11 +138,13 @@ export default function App() {
           <QueryClientProvider client={queryClient}>
             <PaperProvider theme={theme}>
               <AuthProvider>
-                <AudioPlayerProvider>
-                  <StatusBar style="auto" />
-                  <AppNavigator />
-                  <AudioMiniPlayer />
-                </AudioPlayerProvider>
+                <NotificationProvider>
+                  <AudioPlayerProvider>
+                    <StatusBar style="auto" />
+                    <AppNavigator />
+                    <AudioMiniPlayer />
+                  </AudioPlayerProvider>
+                </NotificationProvider>
               </AuthProvider>
             </PaperProvider>
           </QueryClientProvider>

@@ -163,22 +163,28 @@ export const RoutineTimerScreen: React.FC = () => {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  // Brand-compliant activity colors
+  // Per Focus Page Spec: Only use primary (#1B5E57), coral (#D97A6E), or apricot (#F5B971)
   const getColorForActivity = (color: string): string => {
     const colorMap: { [key: string]: string } = {
-      purple: '#9333EA',
-      green: '#16A34A',
-      blue: '#2563EB',
-      orange: '#EA580C',
-      indigo: '#4F46E5',
-      red: '#DC2626',
-      cyan: '#06B6D4',
-      teal: '#14B8A6',
-      yellow: '#EAB308',
-      gray: '#6B7280',
-      brown: '#92400E',
-      pink: '#EC4899',
+      // Primary teal mappings
+      purple: '#1B5E57',
+      green: '#1B5E57',
+      blue: '#1B5E57',
+      cyan: '#1B5E57',
+      indigo: '#1B5E57',
+      teal: '#1B5E57',
+      // Coral mappings (for heart/gratitude)
+      red: '#D97A6E',
+      pink: '#D97A6E',
+      // Apricot mappings (for energy/warmth)
+      orange: '#F5B971',
+      yellow: '#F5B971',
+      brown: '#F5B971',
+      // Neutral
+      gray: '#6F7F77',
     };
-    return colorMap[color] || Colors.evergreenTeal;
+    return colorMap[color] || '#1B5E57';
   };
 
   if (isCompleted) {
@@ -206,13 +212,13 @@ export const RoutineTimerScreen: React.FC = () => {
             <View style={styles.completionStatItem}>
               <Icon name="clock-check" size={24} color={Colors.evergreenTeal} />
               <Text style={styles.completionStatLabel}>
-                {routine.activities.reduce((sum, a) => sum + a.duration, 0)} minutes
+                {`${routine.activities.reduce((sum, a) => sum + a.duration, 0)} minutes`}
               </Text>
             </View>
             <View style={styles.completionStatItem}>
               <Icon name="format-list-checks" size={24} color={Colors.evergreenTeal} />
               <Text style={styles.completionStatLabel}>
-                {routine.activities.length} activities
+                {`${routine.activities.length} activities`}
               </Text>
             </View>
           </View>
@@ -245,7 +251,7 @@ export const RoutineTimerScreen: React.FC = () => {
           <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
         <Text style={styles.progressText}>
-          Activity {currentActivityIndex + 1} of {totalActivities}
+          {`Activity ${currentActivityIndex + 1} of ${totalActivities}`}
         </Text>
       </View>
 
@@ -261,7 +267,7 @@ export const RoutineTimerScreen: React.FC = () => {
         </View>
         <Text style={styles.activityName}>{currentActivity.name}</Text>
         <Text style={styles.activityDuration}>
-          {currentActivity.duration} minute{currentActivity.duration !== 1 ? 's' : ''}
+          {`${currentActivity.duration} minute${currentActivity.duration !== 1 ? 's' : ''}`}
         </Text>
       </View>
 
@@ -373,7 +379,7 @@ export const RoutineTimerScreen: React.FC = () => {
                 {routine.activities[currentActivityIndex + 1].name}
               </Text>
               <Text style={styles.upNextDuration}>
-                {routine.activities[currentActivityIndex + 1].duration} min
+                {`${routine.activities[currentActivityIndex + 1].duration} min`}
               </Text>
             </View>
           </View>
@@ -386,14 +392,14 @@ export const RoutineTimerScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
   },
   exitButton: {
     width: 40,
@@ -411,7 +417,7 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
   },
   progressBar: {
     height: 6,
@@ -489,7 +495,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.lg,
     gap: Spacing.xs,
   },
@@ -523,7 +529,7 @@ const styles = StyleSheet.create({
   },
   upNextCard: {
     marginHorizontal: Spacing.lg,
-    padding: Spacing.md,
+    padding: Spacing.base,
   },
   upNextTitle: {
     fontSize: Typography.fontSize.xs,
@@ -536,7 +542,7 @@ const styles = StyleSheet.create({
   upNextActivity: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.base,
   },
   upNextIcon: {
     width: 40,

@@ -16,8 +16,7 @@ module.exports = async function generatePlan({ name, preferences, mood, goals, m
   const moodDescription = mood ? `${mood.emoji} (${mood.label})${mood.note ? ' - ' + mood.note : ''}` : 'No mood check-in yet.';
   const modifierText = modifier ? `User added instruction: ${modifier}` : '';
 
-  const prompt = `You are a compassionate and encouraging wellness coach named Vara.
-Generate a CONCISE personalized daily wellness plan for a user based on their goals, mood, and preferences.
+  const prompt = `You are a compassionate and encouraging wellness coach named Vara, having a natural conversation with a friend.
 
 User: ${name}
 Tone: ${tone}
@@ -28,12 +27,13 @@ Goals:
 ${readableGoals}
 ${modifierText}
 
-IMPORTANT: Keep your response brief and scannable.
-- Provide 3-5 actionable tasks for today
-- Each task should be ONE LINE (max 15 words)
-- Use a simple bullet list format (•)
+WRITING STYLE - THIS IS CRITICAL:
+- Write like you're texting a supportive friend, not writing an article
+- NEVER use markdown formatting (no **bold**, no # headers, no - bullet points)
+- Keep it conversational and warm
+- Suggest 3-5 things naturally, like "First, you could... Then maybe... And when you have a moment..."
 - Total response should be under 150 words
-- Be encouraging but concise
+- Be encouraging and personal
 
 Keep tone ${tone}.`;
 

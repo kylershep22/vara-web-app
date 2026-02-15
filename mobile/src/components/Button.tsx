@@ -1,20 +1,28 @@
 /**
  * Custom Button Component
- * Styled button following Vara design system
+ * Styled button following Vara Mobile UI Standards v1.0
+ *
+ * Button Hierarchy:
+ * - Primary: Evergreen Teal background, white text (main CTAs)
+ * - Secondary: Silver Sage background, Soft Charcoal text (alternate actions)
+ * - Outline: Teal border, Teal text (less prominent)
+ * - Text: Teal text only (tertiary actions)
  */
 
 import React from 'react';
 import { Button as PaperButton, ButtonProps } from 'react-native-paper';
 import { StyleSheet } from 'react-native';
-import { Colors, Spacing } from '../constants';
+import { Colors, Layout, Typography, TextStyles } from '../constants';
 
 interface CustomButtonProps extends ButtonProps {
   variant?: 'primary' | 'secondary' | 'outline' | 'text';
+  size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
 }
 
 const Button: React.FC<CustomButtonProps> = ({
   variant = 'primary',
+  size = 'md',
   fullWidth = false,
   mode,
   style,
@@ -30,20 +38,24 @@ const Button: React.FC<CustomButtonProps> = ({
   if (!mode) {
     switch (variant) {
       case 'primary':
+        // Evergreen Teal - main CTAs
         finalMode = 'contained';
         finalButtonColor = buttonColor || Colors.evergreenTeal;
         finalTextColor = textColor || Colors.textOnPrimary;
         break;
       case 'secondary':
+        // Silver Sage - alternate actions (per UI standards)
         finalMode = 'contained';
-        finalButtonColor = buttonColor || Colors.sunriseAmber;
-        finalTextColor = textColor || Colors.textOnPrimary;
+        finalButtonColor = buttonColor || Colors.silverSage;
+        finalTextColor = textColor || Colors.softCharcoal;
         break;
       case 'outline':
+        // Teal border and text
         finalMode = 'outlined';
         finalTextColor = textColor || Colors.evergreenTeal;
         break;
       case 'text':
+        // Text only (tertiary)
         finalMode = 'text';
         finalTextColor = textColor || Colors.evergreenTeal;
         break;
@@ -51,6 +63,19 @@ const Button: React.FC<CustomButtonProps> = ({
         finalMode = 'contained';
     }
   }
+
+  // Get button height based on size
+  const getContentHeight = () => {
+    switch (size) {
+      case 'sm':
+        return Layout.buttonHeight.sm; // 40px - tertiary/text buttons
+      case 'lg':
+        return Layout.buttonHeight.lg; // 56px - large CTAs
+      case 'md':
+      default:
+        return Layout.buttonHeight.md; // 48px - primary/secondary
+    }
+  };
 
   return (
     <PaperButton
@@ -62,7 +87,10 @@ const Button: React.FC<CustomButtonProps> = ({
         fullWidth && styles.fullWidth,
         style,
       ]}
-      contentStyle={styles.content}
+      contentStyle={[
+        styles.content,
+        { height: getContentHeight() },
+      ]}
       labelStyle={styles.label}
       {...props}
     />
@@ -71,17 +99,21 @@ const Button: React.FC<CustomButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 8,
+    // radius-lg (12px) per UI standards
+    borderRadius: Layout.borderRadius.lg,
   },
   fullWidth: {
     width: '100%',
   },
   content: {
-    paddingVertical: Spacing.xs,
+    // Height set dynamically based on size prop
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
+    // Per UI standards: 16px, Medium (500), no uppercase
+    fontSize: TextStyles.button.fontSize,
+    fontWeight: Typography.fontWeight.medium,
+    letterSpacing: TextStyles.button.letterSpacing,
+    // Note: textTransform is intentionally not set (no uppercase per UI standards)
   },
 });
 

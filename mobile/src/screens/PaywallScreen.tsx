@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   featureItem: {
     flexDirection: 'row',
@@ -277,12 +277,12 @@ const styles = StyleSheet.create({
   featureText: {
     fontSize: Typography.fontSize.base,
     color: Colors.textPrimary,
-    marginLeft: Spacing.md,
+    marginLeft: Spacing.base,
     flex: 1,
   },
   pricingContainer: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.base,
     marginBottom: Spacing.lg,
   },
   pricingCard: {
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -12,
     backgroundColor: Colors.sunriseAmber,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.xs,
     borderRadius: Layout.borderRadius.full,
   },
@@ -352,9 +352,9 @@ const styles = StyleSheet.create({
   subscribeButton: {
     backgroundColor: Colors.sunriseAmber,
     borderRadius: Layout.borderRadius.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   subscribeButtonText: {
     fontSize: Typography.fontSize.lg,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     marginBottom: Spacing.sm,
   },
   codeButtonText: {
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#FFF8E1',
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.base,
     marginBottom: Spacing.lg,
     alignItems: 'flex-start',
   },

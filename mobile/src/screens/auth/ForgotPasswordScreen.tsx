@@ -217,11 +217,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   submitButton: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   backButton: {
     alignSelf: 'center',
-    padding: Spacing.md,
+    padding: Spacing.base,
   },
   backText: {
     color: Colors.evergreenTeal,
@@ -245,10 +245,10 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
   },
   resendButton: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   loginButton: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
   },
   snackbar: {
     backgroundColor: Colors.error,

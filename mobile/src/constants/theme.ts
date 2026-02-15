@@ -19,9 +19,10 @@ export const lightTheme = {
     tertiaryContainer: Colors.dewSage,
     surface: Colors.surface,
     surfaceVariant: Colors.mistWhite,
-    background: Colors.background,
+    background: Colors.background.default,
     error: Colors.error,
-    errorContainer: '#FFCDD2',
+    // Soft coral tint for error container (brand-aligned)
+    errorContainer: Colors.priority.high,
     onPrimary: Colors.textOnPrimary,
     onPrimaryContainer: Colors.textPrimary,
     onSecondary: Colors.textOnPrimary,
@@ -43,55 +44,63 @@ export const lightTheme = {
   },
   fonts: {
     ...MD3LightTheme.fonts,
+    // Display: 32px (3xl) - rare, hero only
     displayLarge: {
       ...MD3LightTheme.fonts.displayLarge,
-      fontSize: Typography.fontSize['5xl'],
-      fontWeight: Typography.fontWeight.light,
+      fontSize: Typography.fontSize['3xl'],
+      fontWeight: Typography.fontWeight.semibold,
     },
     displayMedium: {
       ...MD3LightTheme.fonts.displayMedium,
-      fontSize: Typography.fontSize['4xl'],
+      fontSize: Typography.fontSize['3xl'],
       fontWeight: Typography.fontWeight.regular,
     },
     displaySmall: {
       ...MD3LightTheme.fonts.displaySmall,
-      fontSize: Typography.fontSize['3xl'],
+      fontSize: Typography.fontSize['2xl'],
       fontWeight: Typography.fontWeight.regular,
     },
+    // H1: 26px (2xl) - screen titles
     headlineLarge: {
       ...MD3LightTheme.fonts.headlineLarge,
       fontSize: Typography.fontSize['2xl'],
-      fontWeight: Typography.fontWeight.medium,
+      fontWeight: Typography.fontWeight.semibold,
     },
+    // H2: 22px (xl) - section titles
     headlineMedium: {
       ...MD3LightTheme.fonts.headlineMedium,
       fontSize: Typography.fontSize.xl,
-      fontWeight: Typography.fontWeight.medium,
+      fontWeight: Typography.fontWeight.semibold,
     },
+    // H3: 18px (lg) - subsections
     headlineSmall: {
       ...MD3LightTheme.fonts.headlineSmall,
       fontSize: Typography.fontSize.lg,
       fontWeight: Typography.fontWeight.medium,
     },
+    // Body: 16px (base)
     bodyLarge: {
       ...MD3LightTheme.fonts.bodyLarge,
       fontSize: Typography.fontSize.base,
       fontWeight: Typography.fontWeight.regular,
     },
+    // Body Small: 14px (sm)
     bodyMedium: {
       ...MD3LightTheme.fonts.bodyMedium,
       fontSize: Typography.fontSize.sm,
       fontWeight: Typography.fontWeight.regular,
     },
+    // Caption: 12px (xs)
     bodySmall: {
       ...MD3LightTheme.fonts.bodySmall,
       fontSize: Typography.fontSize.xs,
       fontWeight: Typography.fontWeight.regular,
     },
+    // Button: 16px (base), Medium
     labelLarge: {
       ...MD3LightTheme.fonts.labelLarge,
       fontSize: Typography.fontSize.base,
-      fontWeight: Typography.fontWeight.semibold,
+      fontWeight: Typography.fontWeight.medium,
     },
   },
 };

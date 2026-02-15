@@ -10,16 +10,21 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Card } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { useBrainHealthVocabulary } from '../../hooks';
 import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../../context/AuthContext';
 
 export const FocusWindowIndicator: React.FC = () => {
   const { user } = useAuth();
+  const { getComponentText } = useBrainHealthVocabulary();
   const [wakeTime, setWakeTime] = useState<string>('');
   const [tempWakeTime, setTempWakeTime] = useState<Date>(new Date());
   const [modalVisible, setModalVisible] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [focusWindow, setFocusWindow] = useState<{ start: string; end: string } | null>(null);
+
+  // Get translated text
+  const { title: componentTitle, description: componentDescription } = getComponentText('focusWindow');
 
   // Load wake time from storage
   useEffect(() => {
@@ -149,10 +154,10 @@ export const FocusWindowIndicator: React.FC = () => {
             <Icon name="clock-outline" size={24} color={Colors.evergreenTeal} />
             <View>
               <Text variant="titleMedium" style={styles.title}>
-                Peak Focus Window
+                {componentTitle}
               </Text>
               <Text variant="bodySmall" style={styles.subtitle}>
-                Based on circadian rhythm
+                {componentDescription}
               </Text>
             </View>
           </View>
@@ -318,7 +323,7 @@ export const FocusWindowIndicator: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   header: {
     flexDirection: 'row',
@@ -350,8 +355,8 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.base,
+    paddingHorizontal: Spacing.base,
   },
   setupButton: {
     marginTop: Spacing.sm,
@@ -359,7 +364,7 @@ const styles = StyleSheet.create({
   focusTimeCard: {
     backgroundColor: Colors.dewSage,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.base,
     borderWidth: Layout.borderRadius.thin,
     borderColor: Colors.evergreenTeal + '40',
   },
@@ -399,7 +404,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
   },
   wakeTimeLabel: {
     color: Colors.textSecondary,
@@ -421,11 +426,11 @@ const styles = StyleSheet.create({
   },
   modalSubtitle: {
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   timePickerContainer: {
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   timePicker: {
     width: '100%',
@@ -452,8 +457,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     backgroundColor: Colors.dewSage,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.base,
+    marginBottom: Spacing.base,
   },
   infoText: {
     flex: 1,

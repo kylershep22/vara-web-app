@@ -6,3 +6,7 @@
 export { default as AnimatedCheckbox } from './AnimatedCheckbox';
 export { default as ConfettiOverlay } from './ConfettiOverlay';
 export { default as StreakMilestoneModal } from './StreakMilestoneModal';
+export {
+  GoalMilestoneCheckmark,
+  InlineCheckmark,
+} from './GoalMilestoneCheckmark';

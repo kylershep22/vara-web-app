@@ -37,3 +37,12 @@ export { AIChatModal } from './ai/AIChatModal';
 
 // Celebration components
 export * from './celebrations';
+
+// Goals components
+export * from './goals';
+
+// Insights components
+export * from './insights';
+
+// Journal components
+export * from './journal';

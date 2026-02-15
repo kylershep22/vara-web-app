@@ -8,6 +8,7 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography } from '../constants';
+import { LockedScreenOverlay } from '../components';
 import {
   BrainReadinessWidget,
   NeuroplasticityTracker,
@@ -20,6 +21,7 @@ import {
 
 export default function BrainHealthDashboard() {
   return (
+    <LockedScreenOverlay feature="brain_dashboard">
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
@@ -47,13 +49,14 @@ export default function BrainHealthDashboard() {
         <WeeklyBrainMetricsChart />
       </View>
     </ScrollView>
+    </LockedScreenOverlay>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   header: {
     backgroundColor: Colors.surface,
@@ -66,7 +69,7 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.base,
   },
   headerText: {
     flex: 1,

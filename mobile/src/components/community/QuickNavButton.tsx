@@ -4,28 +4,41 @@
  */
 
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 
 interface QuickNavButtonProps {
   icon: string;
   label: string;
   onPress: () => void;
+  active?: boolean;
 }
 
 export const QuickNavButton: React.FC<QuickNavButtonProps> = ({
   icon,
   label,
   onPress,
+  active = false,
 }) => {
   return (
-    <TouchableOpacity style={styles.button} onPress={onPress}>
-      <Icon name={icon} size={24} color={Colors.evergreenTeal} />
-      <Text variant="bodySmall" style={styles.text}>
+    <TouchableOpacity
+      style={styles.button}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.iconContainer, active && styles.iconContainerActive]}>
+        <Icon
+          name={icon as any}
+          size={24}
+          color={active ? Colors.evergreenTeal : Colors.textSecondary}
+        />
+      </View>
+      <Text style={[styles.text, active && styles.textActive]}>
         {label}
       </Text>
+      {active && <View style={styles.activeIndicator} />}
     </TouchableOpacity>
   );
 };
@@ -33,11 +46,40 @@ export const QuickNavButton: React.FC<QuickNavButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    padding: Spacing.sm,
+    flex: 1,
+    maxWidth: 80,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: 4,
+    position: 'relative',
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  iconContainerActive: {
+    backgroundColor: 'rgba(27, 94, 87, 0.1)',
   },
   text: {
+    color: Colors.textSecondary,
+    marginTop: 4,
+    fontSize: 11,
+    fontWeight: Typography.fontWeight.medium,
+    textAlign: 'center',
+  },
+  textActive: {
     color: Colors.evergreenTeal,
-    marginTop: Spacing.xs,
     fontWeight: Typography.fontWeight.semibold,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: -8,
+    width: 28,
+    height: 3,
+    backgroundColor: Colors.evergreenTeal,
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
   },
 });

@@ -1,6 +1,9 @@
 /**
- * Streak Milestone Modal
- * Full-screen celebration modal for streak milestones (7, 30, 100 days)
+ * Consistency Milestone Modal
+ * Full-screen celebration modal for consistency milestones (7, 30, 100 days)
+ *
+ * Design Philosophy: Celebrates patterns over perfection, growth over streaks.
+ * Aligns with Vara's "Progress Without Pressure" brand pillar.
  */
 
 import React, { useEffect } from 'react';
@@ -31,23 +34,23 @@ interface MilestoneInfo {
 const MILESTONE_INFO: { [key: number]: MilestoneInfo } = {
   7: {
     milestone: 7,
-    title: 'One Week Strong!',
-    subtitle: 'You\'ve built real momentum. Keep it going!',
-    emoji: '🔥',
-    color: Colors.sunriseAmber,
+    title: '7 Days of Showing Up!',
+    subtitle: 'You\'re building a rhythm. This is how habits take root.',
+    emoji: '🌱',
+    color: Colors.evergreenTeal,
   },
   30: {
     milestone: 30,
-    title: 'Monthly Momentum!',
-    subtitle: 'A full month of dedication. You\'re unstoppable!',
-    emoji: '🌟',
-    color: Colors.goldenApricot,
+    title: 'A Month of Growth!',
+    subtitle: 'Thirty days of consistency. You\'re becoming who you want to be.',
+    emoji: '🌿',
+    color: Colors.evergreenTeal,
   },
   100: {
     milestone: 100,
-    title: 'Century Club!',
-    subtitle: '100 days of commitment. This is who you are now!',
-    emoji: '👑',
+    title: '100 Days of Commitment!',
+    subtitle: 'This is no longer something you do—it\'s part of who you are.',
+    emoji: '🌳',
     color: Colors.evergreenTeal,
   },
 };
@@ -56,15 +59,20 @@ interface StreakMilestoneModalProps {
   visible: boolean;
   onDismiss: () => void;
   habitName: string;
+  /** Number of days of consistency (kept as streakCount for backward compatibility) */
   streakCount: number;
   milestone: 7 | 30 | 100;
 }
 
+/**
+ * ConsistencyMilestoneModal (exported as StreakMilestoneModal for backward compatibility)
+ * Celebrates consistency milestones with growth-oriented messaging.
+ */
 const StreakMilestoneModal: React.FC<StreakMilestoneModalProps> = ({
   visible,
   onDismiss,
   habitName,
-  streakCount,
+  streakCount: consistencyDays,
   milestone,
 }) => {
   const { width: screenWidth } = useWindowDimensions();
@@ -142,10 +150,10 @@ const StreakMilestoneModal: React.FC<StreakMilestoneModalProps> = ({
             {milestoneInfo.title}
           </Text>
 
-          {/* Streak Number */}
+          {/* Days Count */}
           <Animated.View style={[styles.numberContainer, numberStyle]}>
-            <Text style={[styles.streakNumber, { color: milestoneInfo.color }]}>
-              {streakCount}
+            <Text style={[styles.consistencyNumber, { color: milestoneInfo.color }]}>
+              {consistencyDays}
             </Text>
             <Text style={styles.daysLabel}>days</Text>
           </Animated.View>
@@ -166,15 +174,15 @@ const StreakMilestoneModal: React.FC<StreakMilestoneModalProps> = ({
             onPress={onDismiss}
             activeOpacity={0.8}
           >
-            <Text style={styles.buttonText}>Keep Going!</Text>
+            <Text style={styles.buttonText}>Keep Growing!</Text>
           </TouchableOpacity>
 
-          {/* Decorative elements */}
+          {/* Decorative elements - growth themed */}
           <View style={styles.decorativeContainer}>
-            <Icon name="fire" size={20} color={Colors.sunriseAmber} style={styles.decorativeIcon} />
-            <Icon name="star" size={16} color={Colors.goldenApricot} style={[styles.decorativeIcon, { top: 40, left: 30 }]} />
-            <Icon name="star" size={14} color={Colors.silverSage} style={[styles.decorativeIcon, { top: 60, right: 25 }]} />
-            <Icon name="lightning-bolt" size={18} color={Colors.sunriseAmber} style={[styles.decorativeIcon, { bottom: 80, left: 20 }]} />
+            <Icon name="leaf" size={20} color={Colors.evergreenTeal} style={styles.decorativeIcon} />
+            <Icon name="flower" size={16} color={Colors.silverSage} style={[styles.decorativeIcon, { top: 40, left: 30 }]} />
+            <Icon name="spa" size={14} color={Colors.silverSage} style={[styles.decorativeIcon, { top: 60, right: 25 }]} />
+            <Icon name="sprout" size={18} color={Colors.evergreenTeal} style={[styles.decorativeIcon, { bottom: 80, left: 20 }]} />
           </View>
         </Animated.View>
       </View>
@@ -201,7 +209,7 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 64,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   title: {
     fontWeight: Typography.fontWeight.bold,
@@ -213,7 +221,7 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     marginBottom: Spacing.sm,
   },
-  streakNumber: {
+  consistencyNumber: {
     fontSize: 72,
     fontWeight: Typography.fontWeight.bold,
     lineHeight: 80,
@@ -227,7 +235,7 @@ const styles = StyleSheet.create({
   habitName: {
     color: Colors.textPrimary,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     fontWeight: Typography.fontWeight.semibold,
   },
   subtitle: {
@@ -237,7 +245,7 @@ const styles = StyleSheet.create({
     lineHeight: Typography.fontSize.lg * 1.5,
   },
   button: {
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     paddingHorizontal: Spacing.xl * 1.5,
     borderRadius: Layout.borderRadius.full,
   },

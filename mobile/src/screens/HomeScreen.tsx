@@ -155,7 +155,7 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   scrollContent: {
     flexGrow: 1,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: Colors.evergreenTeal,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     fontWeight: Typography.fontWeight.semibold,
   },
   infoRow: {
@@ -210,16 +210,16 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     flex: 1,
     textAlign: 'right',
-    marginLeft: Spacing.md,
+    marginLeft: Spacing.base,
   },
   description: {
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   feature: {
     color: Colors.textSecondary,
     marginBottom: Spacing.xs,
-    marginLeft: Spacing.md,
+    marginLeft: Spacing.base,
   },
   nextStep: {
     color: Colors.textSecondary,
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
   },
   logoutButton: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
   },
 });
 

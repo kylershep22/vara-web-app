@@ -6,25 +6,26 @@
 import { Platform } from 'react-native';
 
 export const Spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  '2xl': 40,
-  '3xl': 48,
-  '4xl': 64,
+  '2xs': 2,    // Inline icon-to-text gap (rare)
+  xs: 4,       // Tight internal padding, tag padding
+  sm: 8,       // Space between related elements, icon margins
+  md: 12,      // Internal card padding (compact), list item gaps
+  base: 16,    // Default padding, margins between sibling components
+  lg: 24,      // Section internal padding, card content padding
+  xl: 32,      // Gap between major sections on a screen
+  '2xl': 48,   // Screen top/bottom safe zones, major section breaks
+  '3xl': 64,   // Hero spacing, onboarding visual breathing room
 } as const;
 
 // Common layout values
 export const Layout = {
-  // Screen padding
-  screenPaddingHorizontal: Spacing.md,
+  // Screen padding (16px horizontal per UI standards)
+  screenPaddingHorizontal: Spacing.base,
   screenPaddingVertical: Spacing.lg,
 
-  // Card padding
-  cardPadding: Spacing.md,
-  cardMargin: Spacing.md,
+  // Card padding (24px internal, 16px between cards per UI standards)
+  cardPadding: Spacing.lg,
+  cardMargin: Spacing.base,
 
   // Border radius
   borderRadius: {
@@ -71,6 +72,7 @@ export const Layout = {
       android: {
         elevation: 1,
       },
+      default: {},
     }),
     md: Platform.select({
       ios: {
@@ -82,6 +84,7 @@ export const Layout = {
       android: {
         elevation: 3,
       },
+      default: {},
     }),
     lg: Platform.select({
       ios: {
@@ -93,6 +96,7 @@ export const Layout = {
       android: {
         elevation: 5,
       },
+      default: {},
     }),
   },
 
@@ -110,5 +114,15 @@ export const Layout = {
     md: 40,
     lg: 64,
     xl: 100,
+  },
+
+  // Community-specific layout values
+  community: {
+    postCardRadius: 12,
+    buttonRadius: 20,
+    postAuthorAvatarSize: 40,
+    commentAvatarSize: 32,
+    postContentPadding: 16,
+    actionButtonHeight: 36,
   },
 } as const;

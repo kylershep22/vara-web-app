@@ -9,8 +9,7 @@ import {
   DailyPlanResponse,
   AIPromptRequest,
   AIPromptResponse,
-  JournalSummaryRequest,
-  JournalSummaryResponse,
+  JournalWeeklySummary,
 } from '../../types';
 
 /**
@@ -67,17 +66,43 @@ export const getJournalPrompt = async (
 };
 
 /**
- * Generate weekly journal summary
+ * Generate weekly journal summary (plain text)
  */
 export const generateJournalSummary = async (
-  request: JournalSummaryRequest
-): Promise<JournalSummaryResponse> => {
+  entries: string
+): Promise<string> => {
   try {
-    return await apiPost<JournalSummaryResponse>('/journal-summary', request, {
+    const response = await apiPost<{ text: string }>('/journal-summary', {
+      entries,
+    }, {
       debug: true,
+      timeout: 60000, // 60 seconds for summary generation
     });
+    return response.text;
   } catch (error) {
     console.error('Error generating journal summary:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generate structured weekly journal summary with insights
+ * Returns mood trend, top themes, word count, and entry count
+ */
+export const generateStructuredJournalSummary = async (
+  entries: string
+): Promise<JournalWeeklySummary> => {
+  try {
+    const response = await apiPost<JournalWeeklySummary>('/journal-summary', {
+      entries,
+      structured: true,
+    }, {
+      debug: true,
+      timeout: 60000, // 60 seconds for summary generation
+    });
+    return response;
+  } catch (error) {
+    console.error('Error generating structured journal summary:', error);
     throw error;
   }
 };

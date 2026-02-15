@@ -113,3 +113,61 @@ button:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
+
+/* Email Verification Success Animation */
+.verification-success-icon {
+  width: 80px;
+  height: 80px;
+}
+
+.checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: checkmark-stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark-check {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: checkmark-stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+}
+
+@keyframes checkmark-stroke {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Success icon container with pulse animation */
+.success-icon-container {
+  animation: success-scale 0.5s ease-out both;
+}
+
+@keyframes success-scale {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .checkmark-circle,
+  .checkmark-check {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .success-icon-container {
+    animation: none;
+    opacity: 1;
+    transform: scale(1);
+  }
+}

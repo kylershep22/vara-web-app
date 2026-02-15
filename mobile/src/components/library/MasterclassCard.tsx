@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.lg,
-    marginHorizontal: Spacing.md,
+    marginHorizontal: Spacing.base,
     marginVertical: Spacing.sm,
     ...Layout.shadow.md,
     overflow: 'hidden',
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
   },
   content: {
-    padding: Spacing.md,
+    padding: Spacing.base,
   },
   title: {
     color: Colors.textPrimary,

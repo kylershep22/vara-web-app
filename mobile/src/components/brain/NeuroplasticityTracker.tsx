@@ -9,15 +9,20 @@ import { Text, Checkbox } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Card } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { useBrainHealthVocabulary } from '../../hooks';
 import { db } from '../../config/firebase';
 import { collection, query, where, getDocs, orderBy, limit, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 
 export const NeuroplasticityTracker: React.FC = () => {
   const { user } = useAuth();
+  const { getComponentText } = useBrainHealthVocabulary();
   const [completedToday, setCompletedToday] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [longestStreak, setLongestStreak] = useState(0);
+
+  // Get translated text for this component
+  const { title: componentTitle, description: componentDescription } = getComponentText('neuroplasticity');
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -148,10 +153,10 @@ export const NeuroplasticityTracker: React.FC = () => {
           <Icon name="sprout" size={24} color={Colors.evergreenTeal} />
           <View>
             <Text variant="titleMedium" style={styles.title}>
-              Neuroplasticity Signal
+              {componentTitle}
             </Text>
             <Text variant="bodySmall" style={styles.subtitle}>
-              Did something uncomfortable today?
+              Did something different today?
             </Text>
           </View>
         </View>
@@ -163,7 +168,7 @@ export const NeuroplasticityTracker: React.FC = () => {
       </View>
 
       <Text variant="bodySmall" style={styles.description}>
-        Your brain grows when you step outside your comfort zone. Track daily signals of neuroplasticity.
+        {componentDescription}
       </Text>
 
       {/* Streaks */}
@@ -225,7 +230,7 @@ export const NeuroplasticityTracker: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   header: {
     flexDirection: 'row',
@@ -249,15 +254,15 @@ const styles = StyleSheet.create({
   },
   description: {
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     lineHeight: Typography.fontSize.sm * 1.5,
   },
   streaksContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.dewSage,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.base,
+    marginBottom: Spacing.base,
   },
   streakItem: {
     flex: 1,
@@ -287,7 +292,7 @@ const styles = StyleSheet.create({
   examplesContainer: {
     borderTopWidth: Layout.borderWidth.thin,
     borderTopColor: Colors.borderLight,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.base,
   },
   examplesTitle: {
     color: Colors.textSecondary,

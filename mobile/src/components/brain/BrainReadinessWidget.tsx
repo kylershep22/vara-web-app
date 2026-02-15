@@ -9,6 +9,7 @@ import { Text, ProgressBar as PaperProgressBar } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Card } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { useBrainHealthVocabulary } from '../../hooks';
 import { db } from '../../config/firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
@@ -25,6 +26,7 @@ interface DailyCheckIn {
 
 export const BrainReadinessWidget: React.FC<BrainReadinessWidgetProps> = ({ onScoreUpdate }) => {
   const { user } = useAuth();
+  const { getComponentText, getInputLabel } = useBrainHealthVocabulary();
   const [checkIn, setCheckIn] = useState<DailyCheckIn>({
     sleepQuality: 0,
     hydrationLevel: 0,
@@ -32,6 +34,12 @@ export const BrainReadinessWidget: React.FC<BrainReadinessWidgetProps> = ({ onSc
   });
   const [readinessScore, setReadinessScore] = useState<number>(0);
   const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
+
+  // Get translated text
+  const { title: componentTitle } = getComponentText('brainReadiness');
+  const sleepLabel = getInputLabel('sleepQuality');
+  const hydrationLabel = getInputLabel('hydrationLevel');
+  const stressLabel = getInputLabel('stressLevel');
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -161,7 +169,7 @@ export const BrainReadinessWidget: React.FC<BrainReadinessWidgetProps> = ({ onSc
         <View style={styles.headerLeft}>
           <Icon name="brain" size={24} color={Colors.evergreenTeal} />
           <Text variant="titleMedium" style={styles.title}>
-            Brain Readiness
+            {componentTitle}
           </Text>
         </View>
         <View style={[styles.scoreBadge, { backgroundColor: scoreColor + '20' }]}>
@@ -280,7 +288,7 @@ export const BrainReadinessWidget: React.FC<BrainReadinessWidgetProps> = ({ onSc
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   header: {
     flexDirection: 'row',
@@ -298,7 +306,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
   },
   scoreBadge: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.xs,
     borderRadius: Layout.borderRadius.lg,
   },
@@ -307,7 +315,7 @@ const styles = StyleSheet.create({
   },
   message: {
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     lineHeight: Typography.fontSize.sm * 1.5,
   },
   progressBar: {
@@ -318,15 +326,15 @@ const styles = StyleSheet.create({
   checkInSection: {
     borderTopWidth: Layout.borderWidth.thin,
     borderTopColor: Colors.borderLight,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.base,
   },
   checkInLabel: {
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     fontWeight: Typography.fontWeight.semibold,
   },
   checkInItem: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   checkInHeader: {
     flexDirection: 'row',

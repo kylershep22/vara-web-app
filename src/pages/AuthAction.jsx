@@ -9,7 +9,7 @@ import {
   checkActionCode
 } from 'firebase/auth';
 import { auth } from '../firebase';
-import { Eye, EyeOff, CheckCircle, XCircle, Mail, KeyRound, Loader2, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, XCircle, KeyRound, Loader2, ShieldCheck, AlertCircle, Smartphone } from 'lucide-react';
 import { getAuthErrorMessage, getFirebaseErrorCode } from '../utils/authErrors';
 import logger from '../utils/logger';
 import VaraLogo from "../assets/logo/vara-logo-hr.png";
@@ -75,7 +75,7 @@ export default function AuthAction() {
       } catch (err) {
         const errorCode = getFirebaseErrorCode(err);
         const friendlyMessage = getAuthErrorMessage(errorCode);
-        setError(friendlyMessage || 'This link has expired or already been used. Please request a new one.');
+        setError(friendlyMessage || 'This link may have expired or already been used. Try signing in — if your email is already verified, you\'re all set.');
         logger.error('Auth action verification failed', err, { mode, errorCode });
         setLoading(false);
       }
@@ -169,15 +169,15 @@ export default function AuthAction() {
 
           <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                <XCircle className="text-red-600" size={32} />
+              <div className="w-16 h-16 bg-[#D97A6E]/15 rounded-full flex items-center justify-center">
+                <AlertCircle className="text-[#D97A6E]" size={32} />
               </div>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-[#3E3E3E] mb-2">
-                Link Expired or Invalid
+              <h2 className="text-xl font-semibold text-[#D97A6E] mb-2">
+                Something didn't go through
               </h2>
-              <p className="text-sm text-gray-600 mb-6">{error}</p>
+              <p className="text-sm text-[#6B7B6A] mb-6">{error}</p>
             </div>
 
             <div className="space-y-3">
@@ -326,6 +326,30 @@ export default function AuthAction() {
     );
   }
 
+  // Animated Checkmark Component
+  const AnimatedCheckmark = () => (
+    <svg className="verification-success-icon" viewBox="0 0 52 52">
+      <circle
+        className="checkmark-circle"
+        cx="26"
+        cy="26"
+        r="25"
+        fill="none"
+        stroke="#1B5E57"
+        strokeWidth="2"
+      />
+      <path
+        className="checkmark-check"
+        fill="none"
+        stroke="#1B5E57"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M14.1 27.2l7.1 7.2 16.7-16.8"
+      />
+    </svg>
+  );
+
   // Render success states
   if (success) {
     const isPasswordReset = mode === 'resetPassword';
@@ -343,46 +367,87 @@ export default function AuthAction() {
           </div>
 
           <div className="text-center space-y-4">
+            {/* Success Icon */}
             <div className="flex justify-center">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                {isEmailVerification ? (
-                  <Mail className="text-green-600" size={40} />
-                ) : isPasswordReset ? (
-                  <ShieldCheck className="text-green-600" size={40} />
-                ) : (
-                  <CheckCircle className="text-green-600" size={40} />
-                )}
-              </div>
+              {isEmailVerification ? (
+                <div className="success-icon-container w-20 h-20 bg-[#D5E3D1]/35 rounded-full flex items-center justify-center">
+                  <AnimatedCheckmark />
+                </div>
+              ) : (
+                <div className="w-20 h-20 bg-[#D5E3D1]/35 rounded-full flex items-center justify-center">
+                  <ShieldCheck className="text-[#1B5E57]" size={40} />
+                </div>
+              )}
             </div>
 
             <div>
               <h2 className="text-2xl font-semibold text-[#1B5E57] mb-2">
                 {isPasswordReset && 'Password Reset Complete!'}
-                {isEmailVerification && 'Email Verified!'}
+                {isEmailVerification && 'Email verified'}
                 {isEmailRecovery && 'Email Recovered!'}
               </h2>
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-[#6B7B6A] mb-2">
                 {isPasswordReset && 'Your password has been successfully updated.'}
-                {isEmailVerification && 'Your email address has been verified. Welcome to Vara!'}
+                {isEmailVerification && "You're all set. Open the Vara app to sign in and begin at your own pace."}
                 {isEmailRecovery && `Your email has been restored to ${email}.`}
-              </p>
-              <p className="text-sm text-[#6B7B6A] italic">
-                "Growth begins with the courage to start."
               </p>
             </div>
 
             <div className="pt-4 space-y-3">
-              <Link
-                to="/login"
-                className="block w-full py-3 bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold rounded-lg hover:brightness-105 transition-all text-center"
-              >
-                {isEmailVerification ? 'Continue to Login' : 'Log In with New Password'}
-              </Link>
+              {/* Email Verification: Show Open Vara + Web Fallback */}
+              {isEmailVerification ? (
+                <>
+                  {/* Open Vara Deep Link Button */}
+                  <a
+                    href="vara://login"
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-[#1B5E57] text-white font-semibold rounded-lg hover:bg-[#164a44] transition-all text-center"
+                  >
+                    <Smartphone size={20} />
+                    Open Vara
+                  </a>
 
-              {isEmailVerification && (
-                <p className="text-xs text-gray-500">
-                  You can now access all features of the Vara app.
-                </p>
+                  {/* Continue on Web Fallback */}
+                  <Link
+                    to="/login"
+                    className="block w-full py-3 border border-[#1B5E57] text-[#1B5E57] font-semibold rounded-lg hover:bg-[#1B5E57]/5 transition-all text-center"
+                  >
+                    Continue on Web
+                  </Link>
+
+                  {/* App Store Links */}
+                  <div className="pt-4 border-t border-[#D5E3D1]">
+                    <p className="text-sm text-[#6B7B6A] mb-3">
+                      Don't have the app yet?
+                    </p>
+                    <div className="flex justify-center gap-3 text-sm">
+                      <a
+                        href="https://apps.apple.com/app/vara-wellness"
+                        className="text-[#1B5E57] hover:underline font-medium"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        App Store
+                      </a>
+                      <span className="text-[#B8CDBA]">|</span>
+                      <a
+                        href="https://play.google.com/store/apps/details?id=com.vara.wellness"
+                        className="text-[#1B5E57] hover:underline font-medium"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Google Play
+                      </a>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Password Reset / Email Recovery: Show Login Button */
+                <Link
+                  to="/login"
+                  className="block w-full py-3 bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold rounded-lg hover:brightness-105 transition-all text-center"
+                >
+                  Log In with New Password
+                </Link>
               )}
             </div>
           </div>

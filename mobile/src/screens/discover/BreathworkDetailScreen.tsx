@@ -184,7 +184,7 @@ export default function BreathworkDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   scrollContent: {
     padding: Spacing.lg,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: Colors.textPrimary,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
   },
   header: {
     alignItems: 'center',
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   description: {
     color: Colors.textSecondary,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     lineHeight: Typography.lineHeight.normal * Typography.fontSize.lg,
   },
   metadata: {
@@ -255,9 +255,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: Colors.sunriseAmber + '10',
     borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.base,
     marginBottom: Spacing.lg,
-    gap: Spacing.md,
+    gap: Spacing.base,
   },
   tipsContent: {
     flex: 1,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   },
   completionButtons: {
     width: '100%',
-    gap: Spacing.md,
+    gap: Spacing.base,
   },
   repeatButton: {
     backgroundColor: Colors.evergreenTeal,

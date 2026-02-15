@@ -1,6 +1,10 @@
 /**
  * Onboarding Focus Screen
- * Let users choose their wellness focus areas
+ * Let users choose their primary brain health pillar (single-select)
+ *
+ * Design Philosophy: Guide users to focus on one pillar initially to prevent
+ * overwhelm. Features unlock progressively based on the selected pillar.
+ * Users can always unlock all features at any time.
  */
 
 import React, { useState } from 'react';
@@ -8,87 +12,96 @@ import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Button } from '../../components';
-import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { Colors, Spacing, Typography, Layout, BRAIN_PILLARS } from '../../constants';
+import type { BrainPillar, BrainPillarConfig } from '../../constants';
+import { setSelectedPillar } from '../../services/firebase/featureUnlock.service';
+import { useAuth } from '../../context/AuthContext';
+
+// Re-export for backward compatibility with other onboarding screens
+export type FocusArea = 'physical' | 'mental' | 'productivity' | 'growth' | 'community';
 
 interface OnboardingFocusScreenProps {
   navigation: any;
   route: any;
 }
 
-export type FocusArea = 'physical' | 'mental' | 'productivity' | 'growth' | 'community';
-
-interface FocusOption {
-  id: FocusArea;
-  title: string;
-  description: string;
-  icon: string;
-  color: string;
-}
-
-const FOCUS_OPTIONS: FocusOption[] = [
-  {
-    id: 'physical',
-    title: 'Physical Health',
-    description: 'Exercise, nutrition, and sleep',
-    icon: 'dumbbell',
-    color: Colors.sunriseAmber,
-  },
-  {
-    id: 'mental',
-    title: 'Mental Wellness',
-    description: 'Meditation, journaling, mindfulness',
-    icon: 'brain',
-    color: Colors.lavenderMist,
-  },
-  {
-    id: 'productivity',
-    title: 'Productivity',
-    description: 'Goals, tasks, and focus sessions',
-    icon: 'clipboard-check',
-    color: Colors.evergreenTeal,
-  },
-  {
-    id: 'growth',
-    title: 'Personal Growth',
-    description: 'Habits, learning, self-improvement',
-    icon: 'sprout',
-    color: Colors.success,
-  },
-  {
-    id: 'community',
-    title: 'Community',
-    description: 'Connect, share, and support',
-    icon: 'account-group',
-    color: Colors.secondary,
-  },
-];
-
 const OnboardingFocusScreen: React.FC<OnboardingFocusScreenProps> = ({ navigation }) => {
-  const [selectedFocus, setSelectedFocus] = useState<Set<FocusArea>>(new Set());
+  const { user } = useAuth();
+  const [selectedPillar, setSelectedPillarState] = useState<BrainPillar | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const toggleFocus = (focusId: FocusArea) => {
-    const newSelection = new Set(selectedFocus);
-    if (newSelection.has(focusId)) {
-      newSelection.delete(focusId);
-    } else {
-      newSelection.add(focusId);
-    }
-    setSelectedFocus(newSelection);
+  const handleSelectPillar = (pillar: BrainPillar) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedPillarState(pillar);
   };
 
-  const handleContinue = () => {
-    // Pass selected focus areas to next screen
-    navigation.navigate('OnboardingQuickStart', {
-      selectedFocus: Array.from(selectedFocus),
-    });
+  const handleContinue = async () => {
+    if (!selectedPillar || !user) return;
+
+    setSaving(true);
+    try {
+      // Save the selected pillar to the user's profile
+      await setSelectedPillar(user.uid, selectedPillar);
+
+      // Map pillar to legacy focus areas for compatibility with QuickStart screen
+      const pillarToFocusMap: Record<BrainPillar, FocusArea[]> = {
+        focus: ['productivity', 'mental'],
+        energy: ['physical', 'mental'],
+        growth: ['growth', 'productivity'],
+        resilience: ['mental', 'growth'],
+        connection: ['community', 'mental'],
+      };
+
+      navigation.navigate('OnboardingQuickStart', {
+        selectedFocus: pillarToFocusMap[selectedPillar],
+        selectedPillar,
+      });
+    } catch (error) {
+      console.error('Error saving pillar:', error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSkip = () => {
-    // Skip to tour with no specific focus
+    // Skip to tour with no specific focus - will use defaults
     navigation.navigate('OnboardingTour', {
       selectedFocus: [],
+      skipped: true,
     });
+  };
+
+  const renderPillarCard = (pillar: BrainPillarConfig) => {
+    const isSelected = selectedPillar === pillar.id;
+
+    return (
+      <TouchableOpacity
+        key={pillar.id}
+        style={[
+          styles.pillarCard,
+          isSelected && styles.pillarCardSelected,
+          { borderColor: isSelected ? pillar.color : Colors.border },
+        ]}
+        onPress={() => handleSelectPillar(pillar.id)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.pillarIcon, { backgroundColor: pillar.color + '20' }]}>
+          <Icon name={pillar.icon as any} size={28} color={pillar.color} />
+        </View>
+        <View style={styles.pillarContent}>
+          <Text style={styles.pillarTitle}>{pillar.title}</Text>
+          <Text style={styles.pillarSubtitle}>{pillar.subtitle}</Text>
+          <Text style={styles.pillarDescription}>{pillar.description}</Text>
+        </View>
+        {isSelected && (
+          <View style={[styles.checkmark, { backgroundColor: pillar.color }]}>
+            <Icon name="check" size={16} color={Colors.white} />
+          </View>
+        )}
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -103,48 +116,25 @@ const OnboardingFocusScreen: React.FC<OnboardingFocusScreenProps> = ({ navigatio
         </View>
 
         {/* Header */}
-        <Text variant="headlineMedium" style={styles.title}>
-          What would you like to focus on?
+        <Text style={styles.title}>
+          Choose your starting focus
         </Text>
 
-        <Text variant="bodyLarge" style={styles.subtitle}>
-          Choose one or more areas (you can always change this later)
+        <Text style={styles.subtitle}>
+          We'll customize your experience based on your choice. Don't worry — you can unlock more features anytime!
         </Text>
 
-        {/* Focus Options */}
-        <View style={styles.optionsContainer}>
-          {FOCUS_OPTIONS.map((option) => {
-            const isSelected = selectedFocus.has(option.id);
-            return (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.optionCard,
-                  isSelected && styles.optionCardSelected,
-                  { borderColor: option.color },
-                ]}
-                onPress={() => toggleFocus(option.id)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.optionIcon, { backgroundColor: option.color + '20' }]}>
-                  <Icon name={option.icon} size={24} color={option.color} />
-                </View>
-                <View style={styles.optionText}>
-                  <Text variant="titleMedium" style={styles.optionTitle}>
-                    {option.title}
-                  </Text>
-                  <Text variant="bodySmall" style={styles.optionDescription}>
-                    {option.description}
-                  </Text>
-                </View>
-                {isSelected && (
-                  <View style={[styles.checkmark, { backgroundColor: option.color }]}>
-                    <Icon name="check" size={16} color={Colors.white} />
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
+        {/* Pillar Options */}
+        <View style={styles.pillarsContainer}>
+          {BRAIN_PILLARS.map(renderPillarCard)}
+        </View>
+
+        {/* Info note */}
+        <View style={styles.infoNote}>
+          <Icon name="information-outline" size={16} color={Colors.evergreenTeal} />
+          <Text style={styles.infoNoteText}>
+            More features unlock as you use the app, or you can unlock everything in Settings.
+          </Text>
         </View>
 
         {/* Action Buttons */}
@@ -152,11 +142,12 @@ const OnboardingFocusScreen: React.FC<OnboardingFocusScreenProps> = ({ navigatio
           <Button
             variant="primary"
             onPress={handleContinue}
-            disabled={selectedFocus.size === 0}
+            disabled={!selectedPillar || saving}
+            loading={saving}
             fullWidth
             style={styles.continueButton}
           >
-            Continue ({selectedFocus.size} selected)
+            Continue with {selectedPillar ? BRAIN_PILLARS.find(p => p.id === selectedPillar)?.title : '...'}
           </Button>
 
           <Button
@@ -180,16 +171,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.md,
-    justifyContent: 'space-between',
+    paddingTop: Spacing.base,
+    paddingBottom: Spacing.base,
   },
   progressContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   progressDot: {
     width: 8,
@@ -202,61 +192,82 @@ const styles = StyleSheet.create({
     width: 24,
   },
   title: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
     color: Colors.evergreenTeal,
     marginBottom: Spacing.xs,
-    fontWeight: Typography.fontWeight.bold,
-    fontSize: Typography.fontSize.xl,
   },
   subtitle: {
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-    lineHeight: Typography.fontSize.sm * 1.4,
     fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
+    lineHeight: Typography.fontSize.sm * 1.5,
   },
-  optionsContainer: {
-    marginBottom: Spacing.sm,
+  pillarsContainer: {
+    marginBottom: Spacing.base,
   },
-  optionCard: {
+  pillarCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.sm,
+    padding: Spacing.base,
     marginBottom: Spacing.sm,
     borderWidth: 2,
     borderColor: Colors.border,
   },
-  optionCardSelected: {
-    borderWidth: 2,
+  pillarCardSelected: {
     backgroundColor: Colors.dewSage,
   },
-  optionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  pillarIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.sm,
   },
-  optionText: {
+  pillarContent: {
     flex: 1,
   },
-  optionTitle: {
-    color: Colors.textPrimary,
+  pillarTitle: {
+    fontSize: Typography.fontSize.md,
     fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
     marginBottom: 2,
-    fontSize: Typography.fontSize.sm,
   },
-  optionDescription: {
+  pillarSubtitle: {
+    fontSize: Typography.fontSize.sm,
     color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  pillarDescription: {
     fontSize: Typography.fontSize.xs,
+    color: Colors.textSecondary,
+    lineHeight: Typography.fontSize.xs * 1.4,
   },
   checkmark: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: Spacing.xs,
+  },
+  infoNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.dewSage,
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  infoNoteText: {
+    flex: 1,
+    fontSize: Typography.fontSize.xs,
+    color: Colors.evergreenTeal,
+    lineHeight: Typography.fontSize.xs * 1.4,
   },
   actions: {
     marginTop: 'auto',

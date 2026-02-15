@@ -4,3 +4,4 @@
 
 export * from './validation';
 export * from './keyboard';
+export * from './accessibility';

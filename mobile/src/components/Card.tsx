@@ -1,30 +1,46 @@
 /**
  * Custom Card Component
- * Styled card following Vara design system
+ * Styled card following Vara Mobile UI Standards v1.0
+ *
+ * Cards use:
+ * - White background (#FFFFFF)
+ * - 12px border radius (radius-lg)
+ * - 24px internal padding (spacing-lg)
+ * - Subtle shadows (structural only)
  */
 
 import React from 'react';
 import { Card as PaperCard, CardProps } from 'react-native-paper';
 import { StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Spacing } from '../constants';
+import { Colors, Spacing, Layout } from '../constants';
+
+type ShadowSize = 'none' | 'sm' | 'md' | 'lg';
 
 interface CustomCardProps extends CardProps {
   padding?: number;
   elevated?: boolean;
+  shadow?: ShadowSize;
 }
 
 const Card: React.FC<CustomCardProps> = ({
-  padding = Spacing.md,
+  padding = Spacing.lg, // 24px per UI standards
   elevated = true,
+  shadow = 'md',
   style,
   children,
   ...props
 }) => {
+  // Get shadow styles from Layout system
+  const getShadowStyle = () => {
+    if (!elevated) return {};
+    return Layout.shadow[shadow] || {};
+  };
+
   return (
     <PaperCard
       style={[
         styles.card,
-        elevated && styles.elevated,
+        getShadowStyle(),
         { padding } as ViewStyle,
         style,
       ]}
@@ -37,15 +53,12 @@ const Card: React.FC<CustomCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
+    // White surface per UI standards
     backgroundColor: Colors.surface,
-    borderRadius: 12,
-  },
-  elevated: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    // radius-lg (12px) per UI standards
+    borderRadius: Layout.borderRadius.lg,
+    // Reset default Paper elevation (we use custom shadows)
+    elevation: 0,
   },
 });
 

@@ -3,12 +3,14 @@
  * Task management with priority and completion tracking
  */
 
-import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, FAB, Portal, Modal, Button as PaperButton, Checkbox, SegmentedButtons } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
+import { Text, FAB, Checkbox, SegmentedButtons } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card, LoadingSpinner, PriorityBadge } from '../components';
+import { useNavigation } from '@react-navigation/native';
+import { Input, LoadingSpinner, PriorityBadge, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton, LockedScreenOverlay } from '../components';
 import { Colors, Spacing, Typography, Layout } from '../constants';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTasks } from '../hooks';
 import { createTask, updateTask, deleteTask, toggleTaskComplete } from '../services/firebase';
@@ -16,12 +18,28 @@ import { Task } from '../types';
 
 interface TasksScreenProps {
   hideHeader?: boolean;
+  /** Filter passed from parent (PlanScreen) */
+  externalFilter?: string;
+  /** Show inline create button instead of FAB */
+  showInlineCreate?: boolean;
 }
 
-const TasksScreen: React.FC<TasksScreenProps> = ({ hideHeader = false }) => {
+const TasksScreen: React.FC<TasksScreenProps> = ({
+  hideHeader = false,
+  externalFilter,
+  showInlineCreate = false,
+}) => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const { tasks: allTasks, loading } = useTasks();
-  const [filter, setFilter] = useState('todo');
+  const [filter, setFilter] = useState(externalFilter || 'todo');
+
+  // Sync filter with external filter from PlanScreen
+  useEffect(() => {
+    if (externalFilter) {
+      setFilter(externalFilter);
+    }
+  }, [externalFilter]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [formData, setFormData] = useState({
@@ -108,93 +126,74 @@ const TasksScreen: React.FC<TasksScreenProps> = ({ hideHeader = false }) => {
     }
   };
 
-  const renderTaskItem = ({ item }: { item: Task }) => (
-    <Card style={styles.taskCard}>
-      <View style={styles.taskContent}>
-        {/* Checkbox */}
-        <Checkbox
-          status={item.completed ? 'checked' : 'unchecked'}
-          onPress={() => handleToggleComplete(item.id)}
-          color={Colors.evergreenTeal}
-        />
+  // Navigate to task detail screen
+  const handleNavigateToDetail = (task: Task) => {
+    navigation.navigate('TaskDetail', { taskId: task.id });
+  };
 
-        {/* Task Info */}
-        <TouchableOpacity
-          style={styles.taskInfo}
-          onPress={() => handleToggleComplete(item.id)}
-          activeOpacity={0.7}
-        >
-          <Text
-            variant="titleMedium"
-            style={[styles.taskTitle, item.completed && styles.taskCompleted]}
+  // Check if task has additional content that warrants a chevron
+  const hasTaskDetails = (task: Task) => {
+    return !!task.description;
+  };
+
+  const renderTaskItem = ({ item }: { item: Task }) => {
+    const showChevron = hasTaskDetails(item);
+    const showPriorityTag = item.priority === 'high' || item.priority === 'low';
+
+    return (
+      <BaseCard
+        onPress={showChevron ? () => handleNavigateToDetail(item) : undefined}
+        style={styles.taskCard}
+        testID={`task-card-${item.id}`}
+      >
+        <View style={styles.taskCardRow}>
+          {/* Checkbox */}
+          <Checkbox
+            status={item.completed ? 'checked' : 'unchecked'}
+            onPress={() => handleToggleComplete(item.id)}
+            color={Colors.evergreenTeal}
+          />
+
+          {/* Content area */}
+          <TouchableOpacity
+            style={styles.taskCardContent}
+            onPress={() => handleToggleComplete(item.id)}
+            activeOpacity={0.7}
           >
-            {item.title}
-          </Text>
-          {item.description && (
             <Text
-              variant="bodyMedium"
-              style={[styles.taskDescription, item.completed && styles.taskCompleted]}
+              style={[
+                styles.taskCardTitle,
+                item.completed && styles.taskCardTitleCompleted,
+              ]}
+              numberOfLines={2}
             >
-              {item.description}
+              {item.title}
             </Text>
+
+            {/* Priority tag - only for High/Low */}
+            {showPriorityTag && (
+              <PriorityBadge
+                priority={item.priority}
+                style={styles.taskPriorityTag}
+              />
+            )}
+          </TouchableOpacity>
+
+          {/* Chevron - only if task has description */}
+          {showChevron && (
+            <Icon name="chevron-right" size={16} color={Colors.mutedSageGray} />
           )}
-
-          {/* Timestamps */}
-          <View style={styles.timestampContainer}>
-            {item.createdAt && (
-              <Text variant="bodySmall" style={styles.timestampText}>
-                Created: {new Date(item.createdAt.seconds * 1000).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                })}
-              </Text>
-            )}
-            {item.completed && item.completedAt && (
-              <Text variant="bodySmall" style={styles.timestampText}>
-                Completed: {new Date(item.completedAt.seconds * 1000).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                })}
-              </Text>
-            )}
-          </View>
-
-          {/* Priority Badge */}
-          <PriorityBadge priority={item.priority || 'medium'} style={styles.priorityBadge} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Actions */}
-      <View style={styles.taskActions}>
-        <Button
-          variant="text"
-          onPress={() => handleEditTask(item)}
-          style={styles.actionButton}
-        >
-          Edit
-        </Button>
-        <Button
-          variant="text"
-          onPress={() => handleDeleteTask(item.id)}
-          style={styles.deleteButton}
-        >
-          Delete
-        </Button>
-      </View>
-    </Card>
-  );
+        </View>
+      </BaseCard>
+    );
+  };
 
   if (loading) {
     return <LoadingSpinner message="Loading tasks..." />;
   }
 
   return (
+    <LockedScreenOverlay feature="tasks_basic">
     <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
       {!hideHeader && (
         <View style={styles.header}>
@@ -207,42 +206,57 @@ const TasksScreen: React.FC<TasksScreenProps> = ({ hideHeader = false }) => {
         </View>
       )}
 
-      {/* Filter */}
-      <View style={styles.filterContainer}>
-        <SegmentedButtons
-          value={filter}
-          onValueChange={setFilter}
-          buttons={[
-            {
-              value: 'todo',
-              label: `To Do (${allTasks.filter(t => !t.completed).length})`,
-            },
-            {
-              value: 'done',
-              label: `Done (${allTasks.filter(t => t.completed).length})`,
-            },
-            {
-              value: 'all',
-              label: 'All',
-            },
-          ]}
-          style={styles.segmentedButtons}
+      {/* Filter - hide when externalFilter is provided (PlanScreen controls filter) */}
+      {!externalFilter && (
+        <View style={styles.filterContainer}>
+          <SegmentedButtons
+            value={filter}
+            onValueChange={setFilter}
+            buttons={[
+              {
+                value: 'todo',
+                label: `To Do (${allTasks.filter(t => !t.completed).length})`,
+              },
+              {
+                value: 'done',
+                label: `Done (${allTasks.filter(t => t.completed).length})`,
+              },
+              {
+                value: 'all',
+                label: 'All',
+              },
+            ]}
+            style={styles.segmentedButtons}
+          />
+        </View>
+      )}
+
+      {/* Inline Create Button - shown when embedded in PlanScreen */}
+      {showInlineCreate && (
+        <InlineCreateButton
+          label="Add a task"
+          onPress={handleCreateTask}
+          testID="inline-create-task"
         />
-      </View>
+      )}
 
       {/* Tasks List */}
       {filteredTasks.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>
-            {filter === 'done' ? '🎉' : '📝'}
-          </Text>
+          <View style={styles.emptyIconContainer}>
+            <Icon
+              name={filter === 'done' ? 'check-circle-outline' : 'leaf'}
+              size={32}
+              color={Colors.evergreenTeal}
+            />
+          </View>
           <Text variant="titleMedium" style={styles.emptyTitle}>
-            {filter === 'done' ? 'No completed tasks' : 'No tasks'}
+            {filter === 'done' ? 'No completed tasks yet' : 'A clear space for what matters'}
           </Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
             {filter === 'done'
-              ? 'Complete some tasks to see them here'
-              : 'Add a task to get started!'}
+              ? 'Your completed tasks will appear here'
+              : 'Add tasks whenever something comes to mind.'}
           </Text>
         </View>
       ) : (
@@ -254,106 +268,88 @@ const TasksScreen: React.FC<TasksScreenProps> = ({ hideHeader = false }) => {
         />
       )}
 
-      {/* FAB */}
-      <FAB
-        icon="plus"
-        label="New Task"
-        style={styles.fab}
-        onPress={handleCreateTask}
-        color={Colors.textOnPrimary}
-      />
+      {/* FAB - hide when using inline create button */}
+      {!showInlineCreate && (
+        <FAB
+          icon="plus"
+          label="New Task"
+          style={styles.fab}
+          onPress={handleCreateTask}
+          color={Colors.textOnPrimary}
+        />
+      )}
 
       {/* Create/Edit Modal */}
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => setModalVisible(false)}
-          contentContainerStyle={styles.modal}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          >
-            <ScrollView
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={styles.scrollContent}
+      <EnhancedModal
+        visible={modalVisible}
+        onDismiss={() => setModalVisible(false)}
+        title={editingTask ? 'Edit Task' : 'New Task'}
+        subtitle="Stay organized and productive"
+        headerIcon="checkbox-marked-outline"
+        inputAccessoryViewID="task-modal"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setModalVisible(false)}
+            onSubmit={handleSubmit}
+            submitLabel={editingTask ? 'Update' : 'Create'}
+            submitLoading={submitting}
+            submitDisabled={submitting}
+          />
+        }
+      >
+        <Input
+          label="Task Title *"
+          value={formData.title}
+          onChangeText={(text) => setFormData({ ...formData, title: text })}
+          placeholder="e.g., Review project proposal"
+          style={styles.input}
+          inputAccessoryViewID="task-modal"
+        />
+
+        <Input
+          label="Description"
+          value={formData.description}
+          onChangeText={(text) => setFormData({ ...formData, description: text })}
+          placeholder="Add details..."
+          multiline
+          numberOfLines={3}
+          style={styles.input}
+          inputAccessoryViewID="task-modal"
+        />
+
+        <Text variant="bodyMedium" style={styles.fieldLabel}>
+          Priority
+        </Text>
+        <View style={styles.priorityButtons}>
+          {(['low', 'medium', 'high'] as const).map((priority) => (
+            <TouchableOpacity
+              key={priority}
+              onPress={() => setFormData({ ...formData, priority })}
+              style={[
+                styles.priorityButton,
+                formData.priority === priority && styles[`priority${priority.charAt(0).toUpperCase() + priority.slice(1)}Active`],
+              ]}
             >
-              <Text variant="headlineSmall" style={styles.modalTitle}>
-                {editingTask ? 'Edit Task' : 'New Task'}
+              <Text style={[styles.priorityButtonText, formData.priority === priority && styles.priorityButtonTextActive]}>
+                {priority.charAt(0).toUpperCase() + priority.slice(1)}
               </Text>
-
-              <Input
-                label="Task Title *"
-                value={formData.title}
-                onChangeText={(text) => setFormData({ ...formData, title: text })}
-                placeholder="e.g., Review project proposal"
-                style={styles.input}
-              />
-
-              <Input
-                label="Description"
-                value={formData.description}
-                onChangeText={(text) => setFormData({ ...formData, description: text })}
-                placeholder="Add details..."
-                multiline
-                numberOfLines={3}
-                style={styles.input}
-              />
-
-              <Text variant="bodyMedium" style={styles.fieldLabel}>
-                Priority
-              </Text>
-              <View style={styles.priorityButtons}>
-                {(['low', 'medium', 'high'] as const).map((priority) => (
-                  <TouchableOpacity
-                    key={priority}
-                    onPress={() => setFormData({ ...formData, priority })}
-                    style={[
-                      styles.priorityButton,
-                      formData.priority === priority && styles[`priority${priority.charAt(0).toUpperCase() + priority.slice(1)}Active`],
-                    ]}
-                  >
-                    <Text style={[styles.priorityButtonText, formData.priority === priority && styles.priorityButtonTextActive]}>
-                      {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={styles.modalActions}>
-                <PaperButton
-                  mode="outlined"
-                  onPress={() => setModalVisible(false)}
-                  style={styles.modalButton}
-                >
-                  Cancel
-                </PaperButton>
-                <PaperButton
-                  mode="contained"
-                  onPress={handleSubmit}
-                  loading={submitting}
-                  disabled={submitting}
-                  style={styles.modalButton}
-                  buttonColor={Colors.evergreenTeal}
-                >
-                  {editingTask ? 'Update' : 'Create'}
-                </PaperButton>
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </Modal>
-      </Portal>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </EnhancedModal>
     </SafeAreaView>
+    </LockedScreenOverlay>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
   },
   screenTitle: {
     color: Colors.evergreenTeal,
@@ -365,7 +361,7 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   segmentedButtons: {
     backgroundColor: Colors.surface,
@@ -375,53 +371,30 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   taskCard: {
-    marginBottom: Spacing.md,
-  },
-  taskContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     marginBottom: Spacing.sm,
+    marginHorizontal: 0,
   },
-  taskInfo: {
+  taskCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskCardContent: {
     flex: 1,
     marginLeft: Spacing.sm,
   },
-  taskTitle: {
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.xs,
+  taskCardTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+    lineHeight: Typography.fontSize.base * 1.3,
   },
-  taskDescription: {
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  taskCompleted: {
+  taskCardTitleCompleted: {
     textDecorationLine: 'line-through',
-    color: Colors.textSecondary,
+    color: Colors.mutedSageGray,
   },
-  timestampContainer: {
-    marginVertical: Spacing.xs,
-  },
-  timestampText: {
-    color: Colors.textSecondary,
-    fontSize: Typography.fontSize.xs - 1,
-    marginBottom: Spacing.xs / 2,
-  },
-  priorityBadge: {
+  taskPriorityTag: {
     marginTop: Spacing.xs,
-  },
-  taskActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.borderLight,
-    paddingTop: Spacing.sm,
-  },
-  actionButton: {
-    marginLeft: Spacing.sm,
-  },
-  deleteButton: {
-    marginLeft: Spacing.sm,
+    alignSelf: 'flex-start',
   },
   emptyContainer: {
     flex: 1,
@@ -429,16 +402,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
   },
-  emptyIcon: {
-    fontSize: Typography.fontSize['5xl'] + 16,
-    marginBottom: Spacing.md,
+  emptyIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.dewSage,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.base,
   },
   emptyTitle: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+    color: Colors.softCharcoal,
+    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: Spacing.xs,
   },
   emptyText: {
-    color: Colors.textSecondary,
+    color: Colors.mutedSageGray,
     textAlign: 'center',
   },
   fab: {
@@ -447,25 +426,8 @@ const styles = StyleSheet.create({
     bottom: Spacing.lg,
     backgroundColor: Colors.evergreenTeal,
   },
-  modal: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: Spacing.lg,
-    borderRadius: Layout.borderRadius.lg,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    maxHeight: '85%',
-    overflow: 'hidden',
-  },
-  scrollContent: {
-    // No bottom padding needed - modalActions handles spacing
-  },
-  modalTitle: {
-    color: Colors.evergreenTeal,
-    marginBottom: Spacing.lg,
-    fontWeight: Typography.fontWeight.semibold,
-  },
   input: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   fieldLabel: {
     color: Colors.textSecondary,
@@ -479,7 +441,7 @@ const styles = StyleSheet.create({
   priorityButton: {
     flex: 1,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     borderRadius: Layout.borderRadius.md,
     borderWidth: Layout.borderWidth.medium,
     borderColor: Colors.border,
@@ -504,16 +466,6 @@ const styles = StyleSheet.create({
   },
   priorityButtonTextActive: {
     color: Colors.textPrimary,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  modalButton: {
-    flex: 1,
   },
 });
 

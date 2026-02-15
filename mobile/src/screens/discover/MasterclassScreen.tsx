@@ -93,11 +93,11 @@ export default function MasterclassScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   descriptionSection: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.goldenApricot + '10',
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   listContent: {
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     paddingBottom: Spacing['4xl'],
   },
   comingSoonContainer: {
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   featuresContainer: {
-    gap: Spacing.md,
+    gap: Spacing.base,
   },
   featureItem: {
     flexDirection: 'row',

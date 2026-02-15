@@ -1,24 +1,41 @@
 /**
  * People Screen
- * Search users and manage connections
+ * Enhanced UI with suggested connections, mutual connections, and improved profile cards
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Animated } from 'react-native';
-import { Text, SegmentedButtons, Searchbar, Avatar, Chip } from 'react-native-paper';
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  Animated,
+  ScrollView,
+} from 'react-native';
+import { Text, Searchbar, Avatar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Card, LoadingSpinner } from '../../components';
+import { Button, Card, LoadingSpinner, PersonCard } from '../../components';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
-import { useConnections, useUserSearch, useConnectionProfiles, useStartConversation } from '../../hooks';
+import {
+  useConnections,
+  useUserSearch,
+  useConnectionProfiles,
+  useStartConversation,
+  useSuggestedConnections,
+} from '../../hooks';
 import { useAuth } from '../../context/AuthContext';
 import { UserProfile, getUserById } from '../../services/firebase';
+import { EnhancedUserProfile } from '../../services/firebase/connections.service';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+
+type FilterTab = 'connections' | 'discover' | 'requests';
 
 const PeopleScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const [filter, setFilter] = useState('connections');
+  const [filter, setFilter] = useState<FilterTab>('connections');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchHintOpacity = useRef(new Animated.Value(0)).current;
@@ -36,6 +53,9 @@ const PeopleScreen: React.FC = () => {
   } = useConnections();
 
   const { users: searchResults, loading: searchLoading, search, clear } = useUserSearch();
+
+  // Suggested connections
+  const { suggestions, loading: suggestionsLoading, refresh: refreshSuggestions } = useSuggestedConnections(6);
 
   // Memoize connectionIds to prevent infinite loops
   const connectionIds = useMemo(() => getConnectionIds(), [connections]);
@@ -61,10 +81,10 @@ const PeopleScreen: React.FC = () => {
             const otherUserId = req.requester === user!.uid
               ? (req.a === user!.uid ? req.b : req.a)
               : req.requester;
-            return getUserById(otherUserId);
+            return otherUserId ? getUserById(otherUserId) : Promise.resolve(null);
           })
         );
-        setRequestProfiles(profiles.filter((p) => p !== null) as UserProfile[]);
+        setRequestProfiles(profiles.filter((p): p is UserProfile => p !== null));
       } catch (err) {
         console.error('Error loading request profiles:', err);
       } finally {
@@ -73,13 +93,12 @@ const PeopleScreen: React.FC = () => {
     };
 
     loadRequestProfiles();
-  }, [filter, requests.length, user?.uid]); // Use requests.length instead of requests array
+  }, [filter, requests.length, user?.uid]);
 
   // Auto-switch to Discover tab when user starts typing
   useEffect(() => {
     if (searchQuery.trim().length > 0 && filter !== 'discover') {
       setFilter('discover');
-      // Show hint animation
       Animated.sequence([
         Animated.timing(searchHintOpacity, {
           toValue: 1,
@@ -96,37 +115,29 @@ const PeopleScreen: React.FC = () => {
     }
   }, [searchQuery]);
 
-  // Handle search with debounce - now searches immediately when typing
+  // Handle search with debounce
   useEffect(() => {
     if (searchQuery.trim().length >= 1) {
       const timer = setTimeout(() => {
         search(searchQuery);
-      }, 200); // Faster debounce for more responsive feel
-
+      }, 200);
       return () => clearTimeout(timer);
     } else {
       clear();
     }
-  }, [searchQuery]); // search and clear are stable from the hook
-
-  // Clear search when switching away from discover
-  useEffect(() => {
-    if (filter !== 'discover' && searchQuery.trim().length > 0) {
-      // Keep the query but it won't show results on other tabs
-    }
-  }, [filter]);
+  }, [searchQuery]);
 
   // Determine what to display based on filter
   const displayData = useMemo(() => {
     if (filter === 'connections') {
-      return connectionProfiles;
+      return connectionProfiles.map((p) => ({ ...p, uid: p.id } as EnhancedUserProfile));
     } else if (filter === 'requests') {
-      return requestProfiles;
+      return requestProfiles.map((p) => ({ ...p, uid: p.id } as EnhancedUserProfile));
     } else {
       // 'discover' - show search results, filter out current user and existing connections
-      return searchResults.filter(
-        (u) => u.id !== user?.uid && !isConnected(u.id)
-      );
+      return searchResults
+        .filter((u) => u.id !== user?.uid && !isConnected(u.id))
+        .map((p) => ({ ...p, uid: p.id } as EnhancedUserProfile));
     }
   }, [filter, connectionProfiles, requestProfiles, searchResults, user, isConnected]);
 
@@ -136,6 +147,7 @@ const PeopleScreen: React.FC = () => {
     try {
       await sendRequest(userId);
       Alert.alert('Success', `Connection request sent to ${userName}`);
+      refreshSuggestions();
     } catch (error) {
       Alert.alert('Error', 'Failed to send connection request');
     }
@@ -171,37 +183,90 @@ const PeopleScreen: React.FC = () => {
     }
   };
 
+  const handleViewProfile = (userId: string) => {
+    navigation.navigate('UserProfile', { userId });
+  };
+
+  // Tab button component
+  const TabButton = ({
+    value,
+    label,
+    count,
+    icon,
+    isActive,
+  }: {
+    value: FilterTab;
+    label: string;
+    count?: number;
+    icon?: string;
+    isActive: boolean;
+  }) => (
+    <TouchableOpacity
+      style={[styles.tabButton, isActive && styles.tabButtonActive]}
+      onPress={() => {
+        setFilter(value);
+        if (value !== 'discover') {
+          setSearchQuery('');
+          clear();
+        }
+      }}
+    >
+      {icon && (
+        <Icon
+          name={icon as any}
+          size={18}
+          color={isActive ? Colors.textOnPrimary : Colors.textSecondary}
+        />
+      )}
+      <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+        {label}
+      </Text>
+      {count !== undefined && count > 0 && (
+        <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
+          <Text style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}>
+            {count}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.screenTitle}>
-          People
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Build your wellness network
-        </Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text variant="headlineMedium" style={styles.screenTitle}>
+              People
+            </Text>
+            <Text variant="bodyMedium" style={styles.subtitle}>
+              Build your wellness network
+            </Text>
+          </View>
+          {/* Network stats */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{connectionProfiles.length}</Text>
+              <Text style={styles.statLabel}>Connections</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       {/* Search */}
       <View style={styles.searchContainer}>
         <Searchbar
-          placeholder="Search for people to connect..."
+          placeholder="Search by name or interests..."
           onChangeText={setSearchQuery}
           value={searchQuery}
-          style={[
-            styles.searchbar,
-            isSearchFocused && styles.searchbarFocused,
-          ]}
+          style={[styles.searchbar, isSearchFocused && styles.searchbarFocused]}
           iconColor={Colors.evergreenTeal}
           onFocus={() => setIsSearchFocused(true)}
           onBlur={() => setIsSearchFocused(false)}
         />
-        {/* Search hint that appears when auto-switching to Discover */}
         <Animated.View
-          style={[
-            styles.searchHint,
-            { opacity: searchHintOpacity },
-          ]}
+          style={[styles.searchHint, { opacity: searchHintOpacity }]}
           pointerEvents="none"
         >
           <Icon name="arrow-down" size={14} color={Colors.evergreenTeal} />
@@ -211,38 +276,37 @@ const PeopleScreen: React.FC = () => {
         </Animated.View>
       </View>
 
-      {/* Filter tabs with badge for requests */}
-      <View style={styles.filterContainer}>
-        <SegmentedButtons
-          value={filter}
-          onValueChange={(value) => {
-            setFilter(value);
-            // Clear search when switching to non-discover tabs
-            if (value !== 'discover') {
-              setSearchQuery('');
-              clear();
-            }
-          }}
-          buttons={[
-            {
-              value: 'connections',
-              label: `My Network${connectionProfiles.length > 0 ? ` (${connectionProfiles.length})` : ''}`,
-            },
-            {
-              value: 'discover',
-              label: 'Find People',
-              icon: searchQuery.length > 0 ? 'magnify' : undefined,
-            },
-            {
-              value: 'requests',
-              label: `Requests${requests.length > 0 ? ` (${requests.length})` : ''}`,
-            },
-          ]}
-          style={styles.segmentedButtons}
-        />
+      {/* Filter Tabs */}
+      <View style={styles.tabsContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsContent}
+        >
+          <TabButton
+            value="connections"
+            label="My Network"
+            count={connectionProfiles.length}
+            icon="account-group"
+            isActive={filter === 'connections'}
+          />
+          <TabButton
+            value="discover"
+            label="Find People"
+            icon="magnify"
+            isActive={filter === 'discover'}
+          />
+          <TabButton
+            value="requests"
+            label="Requests"
+            count={requests.length}
+            icon="account-plus"
+            isActive={filter === 'requests'}
+          />
+        </ScrollView>
       </View>
 
-      {/* Live search results preview when typing */}
+      {/* Live search indicator */}
       {searchQuery.length > 0 && filter === 'discover' && searchLoading && (
         <View style={styles.searchingIndicator}>
           <Icon name="magnify" size={16} color={Colors.evergreenTeal} />
@@ -252,124 +316,151 @@ const PeopleScreen: React.FC = () => {
         </View>
       )}
 
-      {/* People List */}
-      {loading && !searchLoading ? (
-        <LoadingSpinner message="Loading people..." />
-      ) : displayData.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Icon
-            name={filter === 'discover' ? 'account-search' : 'account-multiple'}
-            size={64}
-            color={Colors.textSecondary}
-            style={styles.emptyIcon}
-          />
-          <Text variant="titleMedium" style={styles.emptyTitle}>
-            {filter === 'connections'
-              ? 'No connections yet'
-              : filter === 'requests'
-              ? 'No pending requests'
-              : searchQuery.length >= 1
-              ? 'No people found'
-              : 'Find new connections'}
-          </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {filter === 'connections'
-              ? 'Use the search bar above to find and connect with people'
-              : filter === 'requests'
-              ? 'Connection requests will appear here'
-              : searchQuery.length >= 1
-              ? `No results for "${searchQuery}". Try a different name.`
-              : 'Start typing a name to find people in the community'}
-          </Text>
-          {filter === 'connections' && (
-            <Button
-              variant="primary"
-              style={styles.findPeopleButton}
-              onPress={() => setFilter('discover')}
-            >
-              Find People
-            </Button>
-          )}
-        </View>
-      ) : (
-        <FlatList
-          data={displayData}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity activeOpacity={0.7}>
-              <Card style={styles.personCard}>
-                <View style={styles.personContent}>
-                  <Avatar.Text
-                    size={50}
-                    label={(item.displayName || 'U').substring(0, 2).toUpperCase()}
-                    style={styles.avatar}
-                    color={Colors.textOnPrimary}
-                  />
-                  <View style={styles.personInfo}>
-                    <Text variant="titleMedium" style={styles.personName}>
-                      {item.displayName || 'Unknown'}
-                    </Text>
-                    {item.bio && (
-                      <Text
-                        variant="bodyMedium"
-                        style={styles.personBio}
-                        numberOfLines={2}
-                      >
-                        {item.bio}
+      {/* Main Content */}
+      <FlatList
+        data={displayData}
+        keyExtractor={(item) => item.uid || item.id}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={() => (
+          <>
+            {/* Suggested Connections Section (only show on My Network tab) */}
+            {filter === 'connections' && suggestions.length > 0 && !searchQuery && (
+              <View style={styles.suggestionsSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Suggested for you</Text>
+                  <TouchableOpacity onPress={refreshSuggestions}>
+                    <Icon name="refresh" size={20} color={Colors.evergreenTeal} />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.suggestionsScroll}
+                >
+                  {suggestions.map((suggestion) => (
+                    <TouchableOpacity
+                      key={suggestion.uid}
+                      style={styles.suggestionCard}
+                      onPress={() => handleViewProfile(suggestion.uid)}
+                    >
+                      {/* Suggestion reason badge */}
+                      <View style={styles.suggestionReasonBadge}>
+                        <Icon
+                          name={
+                            suggestion.suggestionReason === 'group'
+                              ? 'account-group'
+                              : suggestion.suggestionReason === 'interests'
+                              ? 'heart'
+                              : 'account-multiple'
+                          }
+                          size={10}
+                          color={Colors.evergreenTeal}
+                        />
+                      </View>
+                      <Avatar.Text
+                        size={56}
+                        label={(suggestion.displayName || 'U').substring(0, 2).toUpperCase()}
+                        style={styles.suggestionAvatar}
+                        color={Colors.textOnPrimary}
+                      />
+                      <Text style={styles.suggestionName} numberOfLines={1}>
+                        {suggestion.displayName || 'Unknown'}
                       </Text>
-                    )}
-                  </View>
-                </View>
-                <View style={styles.actions}>
-                  {filter === 'requests' ? (
-                    <>
-                      <Button
-                        variant="primary"
-                        style={styles.actionButton}
-                        onPress={() => handleAcceptRequest(index)}
+                      <Text style={styles.suggestionReason} numberOfLines={1}>
+                        {suggestion.suggestionReason === 'group'
+                          ? 'Shared group'
+                          : suggestion.suggestionReason === 'interests'
+                          ? 'Similar interests'
+                          : 'Mutual connection'}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.miniConnectButton}
+                        onPress={() => handleSendRequest(suggestion.uid, suggestion.displayName)}
                       >
-                        Accept
-                      </Button>
-                      <Button
-                        variant="outline"
-                        style={styles.actionButton}
-                        onPress={() => handleDeclineRequest(index)}
-                      >
-                        Decline
-                      </Button>
-                    </>
-                  ) : filter === 'connections' ? (
-                    <Button
-                      variant="outline"
-                      style={styles.actionButton}
-                      onPress={() => handleMessage(item.id)}
-                    >
-                      Message
-                    </Button>
-                  ) : hasPendingRequest(item.id) ? (
-                    <Button
-                      variant="outline"
-                      style={[styles.actionButton, styles.requestedButton]}
-                      disabled
-                    >
-                      Requested
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="primary"
-                      style={styles.actionButton}
-                      onPress={() => handleSendRequest(item.id, item.displayName)}
-                    >
-                      Connect
-                    </Button>
-                  )}
-                </View>
-              </Card>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
+                        <Icon name="plus" size={14} color={Colors.textOnPrimary} />
+                        <Text style={styles.miniConnectText}>Connect</Text>
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Section title for main list */}
+            {displayData.length > 0 && (
+              <Text style={styles.listSectionTitle}>
+                {filter === 'connections'
+                  ? 'Your Connections'
+                  : filter === 'requests'
+                  ? 'Pending Requests'
+                  : searchQuery.length > 0
+                  ? `Results for "${searchQuery}"`
+                  : 'Discover People'}
+              </Text>
+            )}
+          </>
+        )}
+        renderItem={({ item, index }) => (
+          <PersonCard
+            user={item}
+            mode={
+              filter === 'requests'
+                ? 'request'
+                : filter === 'connections'
+                ? 'connection'
+                : 'discover'
+            }
+            onConnect={() => handleSendRequest(item.uid, item.displayName)}
+            onMessage={() => handleMessage(item.uid)}
+            onAccept={() => handleAcceptRequest(index)}
+            onDecline={() => handleDeclineRequest(index)}
+            onPress={() => handleViewProfile(item.uid)}
+            isPending={hasPendingRequest(item.uid)}
+            showMutualConnections={filter !== 'connections'}
+          />
+        )}
+        ListEmptyComponent={() =>
+          loading ? (
+            <LoadingSpinner message="Loading people..." />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Icon
+                name={filter === 'discover' ? 'account-search' : 'account-multiple'}
+                size={64}
+                color={Colors.textSecondary}
+                style={styles.emptyIcon}
+              />
+              <Text variant="titleMedium" style={styles.emptyTitle}>
+                {filter === 'connections'
+                  ? 'No connections yet'
+                  : filter === 'requests'
+                  ? 'No pending requests'
+                  : searchQuery.length >= 1
+                  ? 'No people found'
+                  : 'Find new connections'}
+              </Text>
+              <Text variant="bodyMedium" style={styles.emptyText}>
+                {filter === 'connections'
+                  ? 'Use the search bar above to find and connect with people'
+                  : filter === 'requests'
+                  ? 'Connection requests will appear here'
+                  : searchQuery.length >= 1
+                  ? `No results for "${searchQuery}". Try a different name.`
+                  : 'Start typing a name to find people in the community'}
+              </Text>
+              {filter === 'connections' && (
+                <Button
+                  variant="primary"
+                  style={styles.findPeopleButton}
+                  onPress={() => setFilter('discover')}
+                >
+                  Find People
+                </Button>
+              )}
+            </View>
+          )
+        }
+      />
     </SafeAreaView>
   );
 };
@@ -381,7 +472,12 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   screenTitle: {
     color: Colors.evergreenTeal,
@@ -391,15 +487,31 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
+  statsContainer: {
+    alignItems: 'center',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.evergreenTeal,
+  },
+  statLabel: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textSecondary,
+  },
   searchContainer: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   searchbar: {
     backgroundColor: Colors.surface,
     elevation: 0,
     borderWidth: 1,
     borderColor: 'transparent',
+    borderRadius: Layout.borderRadius.lg,
   },
   searchbarFocused: {
     borderColor: Colors.evergreenTeal,
@@ -415,69 +527,150 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.medium,
   },
+  tabsContainer: {
+    marginBottom: Spacing.base,
+  },
+  tabsContent: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  tabButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  tabButtonActive: {
+    backgroundColor: Colors.evergreenTeal,
+    borderColor: Colors.evergreenTeal,
+  },
+  tabText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  tabTextActive: {
+    color: Colors.textOnPrimary,
+  },
+  tabBadge: {
+    backgroundColor: Colors.inputBackground,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Layout.borderRadius.full,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  tabBadgeTextActive: {
+    color: Colors.textOnPrimary,
+  },
   searchingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
     gap: Spacing.xs,
   },
   searchingText: {
     color: Colors.evergreenTeal,
   },
-  filterContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  segmentedButtons: {
-    backgroundColor: Colors.surface,
-  },
   listContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl,
   },
-  personCard: {
-    marginBottom: Spacing.md,
+  // Suggestions Section
+  suggestionsSection: {
+    marginBottom: Spacing.lg,
   },
-  personContent: {
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.base,
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textPrimary,
+  },
+  suggestionsScroll: {
+    gap: Spacing.base,
+  },
+  suggestionCard: {
+    width: 120,
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.xl,
+    padding: Spacing.base,
+    alignItems: 'center',
+    ...Layout.shadow.sm,
+    position: 'relative',
+  },
+  suggestionReasonBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: Colors.mintCream,
+    padding: 4,
+    borderRadius: Layout.borderRadius.full,
+  },
+  suggestionAvatar: {
+    backgroundColor: Colors.evergreenTeal,
+    marginBottom: Spacing.sm,
+  },
+  suggestionName: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  suggestionReason: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  miniConnectButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  avatar: {
+    gap: 4,
     backgroundColor: Colors.evergreenTeal,
-    marginRight: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: Layout.borderRadius.full,
   },
-  personInfo: {
-    flex: 1,
-  },
-  personName: {
-    color: Colors.textPrimary,
+  miniConnectText: {
+    fontSize: 11,
+    color: Colors.textOnPrimary,
     fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.xs,
   },
-  personBio: {
-    color: Colors.textSecondary,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  requestedButton: {
-    opacity: 0.6,
+  listSectionTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.base,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing['3xl'],
   },
   emptyIcon: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   emptyTitle: {
     color: Colors.textPrimary,

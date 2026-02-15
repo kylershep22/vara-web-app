@@ -1,16 +1,23 @@
 /**
  * Email Verification Screen
- * Prompts user to verify their email address
+ * Branded "Check Your Email" screen following Vara Mobile UI Standards
  */
 
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Snackbar } from 'react-native-paper';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Linking,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, AuthHeader } from '../../components';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
-import { auth } from '../../config/firebase';
+
+type ResendState = 'idle' | 'sending' | 'sent' | 'cooldown';
 
 interface EmailVerificationScreenProps {
   navigation?: any;
@@ -19,167 +26,203 @@ interface EmailVerificationScreenProps {
 const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navigation }) => {
   const { user, sendVerificationEmail, refreshUser, logout, isLoading } = useAuth();
 
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarType, setSnackbarType] = useState<'error' | 'success'>('success');
-  const [isChecking, setIsChecking] = useState(false);
+  const [resendState, setResendState] = useState<ResendState>('idle');
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
 
-  /**
-   * Check if email is verified (polls Firebase)
-   */
-  const checkEmailVerified = async () => {
-    setIsChecking(true);
-    try {
-      // Reload the user from Firebase to get fresh email verification status
-      await refreshUser();
-
-      // Check the fresh user data directly from Firebase auth
-      const currentUser = auth.currentUser;
-
-      if (currentUser?.emailVerified) {
-        setSnackbarMessage('Email verified! Redirecting...');
-        setSnackbarType('success');
-        setSnackbarVisible(true);
-
-        // The AppNavigator will automatically redirect to onboarding or main app
-        // based on the email verification status from auth state listener
-      } else {
-        setSnackbarMessage('Email not verified yet. Please check your inbox.');
-        setSnackbarType('error');
-        setSnackbarVisible(true);
-      }
-    } catch (error) {
-      console.error('Error checking verification:', error);
-      setSnackbarMessage('Error checking verification. Please try again.');
-      setSnackbarType('error');
-      setSnackbarVisible(true);
-    } finally {
-      setIsChecking(false);
+  // Handle cooldown timer
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setTimeout(() => setCooldownSeconds((s) => s - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (resendState === 'cooldown') {
+      setResendState('idle');
     }
-  };
+  }, [cooldownSeconds, resendState]);
+
+  // Check for email verification status periodically
+  useEffect(() => {
+    const checkVerification = async () => {
+      try {
+        await refreshUser();
+      } catch (error) {
+        // Silent check - no error display needed
+      }
+    };
+
+    // Check every 5 seconds
+    const interval = setInterval(checkVerification, 5000);
+    return () => clearInterval(interval);
+  }, [refreshUser]);
 
   /**
-   * Resend verification email
+   * Open the device's email app
    */
-  const handleResendEmail = async () => {
+  const handleOpenEmailApp = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      Linking.openURL('message://').catch(() => {
+        // Fallback if Mail app not available
+        Linking.openURL('mailto:');
+      });
+    } else {
+      // Android - opens email app chooser
+      Linking.openURL('mailto:');
+    }
+  }, []);
+
+  /**
+   * Resend verification email with cooldown
+   */
+  const handleResendEmail = useCallback(async () => {
+    if (resendState !== 'idle') return;
+
+    setResendState('sending');
+    setFeedbackMessage('');
+
     try {
       await sendVerificationEmail();
-      setSnackbarMessage('Verification email sent! Check your inbox.');
-      setSnackbarType('success');
-      setSnackbarVisible(true);
+      setResendState('sent');
+      setFeedbackMessage('Email sent');
+
+      // After 2 seconds, start cooldown
+      setTimeout(() => {
+        setResendState('cooldown');
+        setCooldownSeconds(30);
+      }, 2000);
     } catch (error: any) {
-      let errorMessage = 'Failed to send email. Please try again.';
+      setResendState('idle');
       if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many requests. Please wait a few minutes before trying again.';
+        setFeedbackMessage('Too many attempts. Please wait a few minutes.');
+      } else {
+        setFeedbackMessage('Something went wrong. Try again when ready.');
       }
-      setSnackbarMessage(errorMessage);
-      setSnackbarType('error');
-      setSnackbarVisible(true);
     }
-  };
+  }, [resendState, sendVerificationEmail]);
 
   /**
-   * Logout and return to login screen
+   * Try a different email - logs out and returns to signup
    */
-  const handleLogout = async () => {
+  const handleTryDifferentEmail = useCallback(async () => {
     try {
       await logout();
       // Navigation will be handled by auth state change
     } catch (error) {
       console.error('Logout error:', error);
     }
+  }, [logout]);
+
+  /**
+   * Go back to previous screen
+   */
+  const handleGoBack = useCallback(() => {
+    if (navigation?.canGoBack()) {
+      navigation.goBack();
+    } else {
+      handleTryDifferentEmail();
+    }
+  }, [navigation, handleTryDifferentEmail]);
+
+  /**
+   * Get resend button text based on state
+   */
+  const getResendText = () => {
+    switch (resendState) {
+      case 'sending':
+        return 'Sending...';
+      case 'sent':
+        return 'Email sent';
+      case 'cooldown':
+        return `Resend available in ${cooldownSeconds}s`;
+      default:
+        return 'Resend email';
+    }
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <AuthHeader
-          title="Verify Your Email"
-          subtitle={`We sent a verification link to\n${user?.email || ''}`}
-          icon="email-check"
-          iconSize={64}
-        />
+      {/* Top Navigation */}
+      <View style={styles.topNav}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleGoBack}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
+          <Icon name="chevron-left" size={24} color={Colors.evergreenTeal} />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Instructions */}
-        <View style={styles.instructionsBox}>
-          <Text variant="bodyMedium" style={styles.instructionText}>
-            1. Check your email inbox (and spam folder)
-          </Text>
-          <Text variant="bodyMedium" style={styles.instructionText}>
-            2. Click the verification link in the email
-          </Text>
-          <Text variant="bodyMedium" style={styles.instructionTextLast}>
-            3. Come back here and tap "I've Verified My Email"
+      {/* Main Content */}
+      <View style={styles.content}>
+        {/* Envelope Icon */}
+        <View style={styles.iconCircle}>
+          <Icon name="email-outline" size={48} color={Colors.evergreenTeal} />
+        </View>
+
+        {/* Heading */}
+        <Text style={styles.heading}>Check your email</Text>
+
+        {/* Subtitle */}
+        <Text style={styles.subtitle}>We've sent a verification link to</Text>
+
+        {/* Email Display */}
+        <Text style={styles.emailText}>{user?.email || ''}</Text>
+
+        {/* Instruction Card */}
+        <View style={styles.instructionCard}>
+          <Text style={styles.instructionText}>
+            Tap the link in the email to verify your account. It may take a moment to arrive.
           </Text>
         </View>
 
-        {/* Actions */}
-        <View style={styles.actions}>
-          {/* Check Verification Button */}
-          <Button
-            variant="primary"
-            onPress={checkEmailVerified}
-            loading={isChecking}
-            disabled={isChecking || isLoading}
-            fullWidth
-            style={styles.button}
-          >
-            I've Verified My Email
-          </Button>
+        {/* Primary CTA - Open Email App */}
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={handleOpenEmailApp}
+          activeOpacity={0.85}
+          accessibilityLabel="Open email app"
+          accessibilityRole="button"
+        >
+          <Text style={styles.primaryButtonText}>Open email app</Text>
+        </TouchableOpacity>
 
-          {/* Resend Email Button */}
-          <Button
-            variant="outline"
-            onPress={handleResendEmail}
-            loading={isLoading}
-            disabled={isLoading || isChecking}
-            fullWidth
-            style={styles.button}
-          >
-            Resend Verification Email
-          </Button>
-
-          {/* Logout Button */}
-          <Button
-            variant="text"
-            onPress={handleLogout}
-            disabled={isLoading || isChecking}
-            fullWidth
-            style={styles.logoutButton}
-          >
-            Log Out
-          </Button>
+        {/* Resend Email */}
+        <View style={styles.resendArea}>
+          {resendState === 'idle' ? (
+            <TouchableOpacity
+              onPress={handleResendEmail}
+              disabled={isLoading}
+              accessibilityLabel="Resend verification email"
+              accessibilityRole="button"
+            >
+              <Text style={styles.resendText}>Resend email</Text>
+            </TouchableOpacity>
+          ) : resendState === 'sent' ? (
+            <View style={styles.sentContainer}>
+              <Icon name="check" size={16} color={Colors.evergreenTeal} />
+              <Text style={styles.sentText}>Email sent</Text>
+            </View>
+          ) : (
+            <Text style={styles.resendHelper}>{getResendText()}</Text>
+          )}
         </View>
 
-        {/* Help Text */}
-        <View style={styles.helpBox}>
-          <Text variant="bodySmall" style={styles.helpText}>
-            Didn't receive the email? Check your spam folder or try resending.
-          </Text>
-          <Text variant="bodySmall" style={styles.helpText}>
-            {'\n'}
-            Still having trouble? Contact support for help.
-          </Text>
-        </View>
-      </ScrollView>
+        {/* Feedback Message */}
+        {feedbackMessage && resendState === 'idle' && (
+          <Text style={styles.feedbackMessage}>{feedbackMessage}</Text>
+        )}
+      </View>
 
-      {/* Snackbar */}
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={4000}
-        action={{
-          label: 'Dismiss',
-          onPress: () => setSnackbarVisible(false),
-        }}
-        style={[
-          styles.snackbar,
-          snackbarType === 'success' && styles.snackbarSuccess,
-        ]}
-      >
-        {snackbarMessage}
-      </Snackbar>
+      {/* Bottom Help Text */}
+      <View style={styles.bottomHelp}>
+        <Text style={styles.bottomHelpText}>
+          Didn't receive anything? Check your spam folder or{' '}
+          <Text style={styles.linkText} onPress={handleTryDifferentEmail}>
+            try a different email
+          </Text>
+        </Text>
+      </View>
     </SafeAreaView>
   );
 };
@@ -187,59 +230,141 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navig
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: Colors.mistWhite,
   },
-  scrollContent: {
-    flexGrow: 1,
+  topNav: {
+    height: 44,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  instructionsBox: {
-    backgroundColor: Colors.dewSage,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.lg,
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    alignSelf: 'flex-start',
+    marginLeft: -Spacing.sm,
+  },
+  backText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.medium,
+    marginLeft: Spacing.xs,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+    marginTop: -Spacing.xl,
+  },
+  iconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: 'rgba(213, 227, 209, 0.35)', // Dew Sage at 35%
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Spacing.xl,
+  },
+  heading: {
+    fontSize: 26,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    textAlign: 'center',
+    lineHeight: 34,
+    letterSpacing: -0.3,
+    marginBottom: Spacing.base,
+  },
+  subtitle: {
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: Spacing.sm,
+  },
+  emailText: {
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
+  },
+  instructionCard: {
+    backgroundColor: 'rgba(213, 227, 209, 0.3)', // Dew Sage at 30%
+    borderRadius: Layout.borderRadius.lg,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
     width: '100%',
-    overflow: 'visible',
+    maxWidth: 340,
+    marginBottom: Spacing.xl,
   },
   instructionText: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-    lineHeight: 24, // Absolute value for proper text rendering (16px font * 1.5)
+    fontSize: Typography.fontSize.sm,
+    color: Colors.softCharcoal,
+    lineHeight: 22,
+    textAlign: 'center',
   },
-  instructionTextLast: {
-    color: Colors.textPrimary,
-    lineHeight: 24,
-    marginBottom: 0, // No margin on last item to prevent clipping
-  },
-  actions: {
+  primaryButton: {
     width: '100%',
+    maxWidth: 340,
+    height: 48,
+    backgroundColor: Colors.evergreenTeal,
+    borderRadius: Layout.borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Spacing.lg,
   },
-  button: {
-    marginBottom: Spacing.md,
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.medium,
   },
-  logoutButton: {
-    marginTop: Spacing.md,
+  resendArea: {
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  helpBox: {
-    backgroundColor: Colors.surface,
-    borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
-    width: '100%',
+  resendText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.medium,
+    padding: Spacing.sm,
   },
-  helpText: {
-    color: Colors.textSecondary,
+  sentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  sentText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  resendHelper: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+  },
+  feedbackMessage: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.error,
     textAlign: 'center',
-    lineHeight: 20, // Absolute value (14px font * ~1.4)
+    marginTop: Spacing.sm,
   },
-  snackbar: {
-    backgroundColor: Colors.error,
+  bottomHelp: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl * 2,
+    paddingTop: Spacing.lg,
   },
-  snackbarSuccess: {
-    backgroundColor: Colors.success,
+  bottomHelpText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+  linkText: {
+    color: Colors.evergreenTeal,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 

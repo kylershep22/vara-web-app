@@ -15,7 +15,26 @@ export interface UserProfile {
   email: string;
   bio?: string;
   avatar?: string;
+  avatarUrl?: string; // Alternative field name used in some places
+  bannerUrl?: string;
+  location?: string;
   privacy: 'public' | 'connections' | 'private';
+  searchable?: boolean;
+
+  // Standardized interests (IDs from WELLNESS_INTERESTS)
+  interests?: string[];
+  interestsPublic?: boolean; // Toggle for showing interests publicly
+
+  // Wellness goals (IDs from WELLNESS_GOALS)
+  goals?: string[];
+  goalsPublic?: boolean; // Toggle for showing goals publicly
+
+  // Activity tracking
+  lastActiveAt?: Timestamp;
+
+  // Group memberships (for suggested connections)
+  groupIds?: string[];
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -56,6 +75,8 @@ export interface Milestone {
   title: string;
   completed: boolean;
   completedAt?: Timestamp;
+  targetProgress?: number; // Associated progress percentage (e.g., 25, 50, 75, 100)
+  isUserDefined?: boolean; // True if user created/modified, false if from suggestions
 }
 
 // ==========================================
@@ -162,6 +183,14 @@ export interface JournalEntry {
   updatedAt: Timestamp;
 }
 
+export interface JournalWeeklySummary {
+  text: string;
+  moodTrend: 'improving' | 'stable' | 'declining';
+  topThemes: string[];
+  wordCount: number;
+  entryCount: number;
+}
+
 // ==========================================
 // 4-3-2-1 DAILY PRACTICE MODELS
 // ==========================================
@@ -244,9 +273,110 @@ export interface Group {
   memberCount?: number;
   category?: GroupCategory;
   coverImage?: string;
+  // Invite permission settings
+  invitePermission: 'owner_only' | 'all_members';
   // Activity tracking
   lastActivityAt?: Timestamp;
   postCount?: number;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ==========================================
+// CHALLENGE MODELS
+// ==========================================
+
+export type ChallengeStatus = 'upcoming' | 'active' | 'completed';
+export type ChallengeFrequency = 'daily' | 'weekly' | 'total';
+
+export interface Challenge {
+  id: string;
+  // Basic info (similar to Group)
+  ownerId: string;
+  name: string;
+  description?: string;
+  visibility: 'public' | 'private';
+  members: string[];
+  memberCount?: number;
+  category?: GroupCategory;
+  coverImage?: string;
+
+  // Challenge-specific fields
+  type: 'challenge'; // Distinguishes from regular groups
+  challengeGoal: string; // e.g., "Run 4 days a week"
+  startDate: Timestamp;
+  endDate: Timestamp;
+  frequency: ChallengeFrequency; // How often to check in
+  targetCount: number; // Target completions (e.g., 16 runs over 4 weeks)
+  unit?: string; // e.g., "runs", "sessions", "days"
+
+  // Invite permission settings
+  invitePermission: 'owner_only' | 'all_members';
+  sourceGroupId?: string; // If created from a group
+
+  // Status
+  status: ChallengeStatus;
+
+  // Activity tracking
+  lastActivityAt?: Timestamp;
+  postCount?: number;
+  totalCheckIns?: number;
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface ChallengeCheckIn {
+  id: string;
+  challengeId: string;
+  userId: string;
+  date: string; // YYYY-MM-DD format
+  note?: string;
+  proofImageUrl?: string;
+  createdAt: Timestamp;
+}
+
+export interface ChallengeParticipant {
+  id: string;
+  challengeId: string;
+  userId: string;
+  displayName?: string;
+  avatar?: string;
+  joinedAt: Timestamp;
+  checkInCount: number;
+  currentStreak: number;
+  longestStreak: number;
+  lastCheckInDate?: string;
+  completedTarget: boolean;
+  rank?: number; // Calculated field for leaderboard
+}
+
+// ==========================================
+// INVITE MODELS
+// ==========================================
+
+export type InviteStatus = 'pending' | 'accepted' | 'declined';
+
+export interface GroupInvite {
+  id: string;
+  groupId: string;
+  groupName: string; // Denormalized for display
+  inviterId: string;
+  inviterName: string; // Denormalized for display
+  inviteeId: string;
+  status: InviteStatus;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface ChallengeInvite {
+  id: string;
+  challengeId: string;
+  challengeName: string; // Denormalized for display
+  inviterId: string;
+  inviterName: string; // Denormalized for display
+  inviteeId: string;
+  status: InviteStatus;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -312,15 +442,146 @@ export interface DirectMessage {
 // NOTIFICATION MODELS
 // ==========================================
 
+export type NotificationType =
+  | 'connection'
+  | 'message'
+  | 'post'
+  | 'comment'
+  | 'system'
+  | 'streak_protection'      // Never Miss Twice alerts
+  | 'streak_milestone'       // 7, 21, 30, 66, 100 day streaks
+  | 'goal_milestone'         // 25%, 50%, 75%, 100% progress
+  | 'goal_completed'         // Goal reached 100%
+  | 'daily_reminder'         // Daily check-in reminder
+  | 'habit_reminder'         // Individual habit reminders
+  | 'challenge_reminder'     // Challenge check-in reminder
+  | 'challenge_update'       // Challenge activity (someone checked in)
+  | 'weekly_summary'         // Weekly progress digest
+  | 'inactivity'             // Re-engagement notifications
+  | 'community_activity'     // Group/friend activity
+  | 'wellness_suggestion';   // AI-powered wellness tips
+
 export interface Notification {
   id: string;
   userId: string;
-  type: 'connection' | 'message' | 'post' | 'comment' | 'system';
+  type: NotificationType;
   title: string;
   body: string;
   read: boolean;
   data?: Record<string, any>;
   createdAt: Timestamp;
+}
+
+// ==========================================
+// NOTIFICATION PREFERENCES MODELS
+// ==========================================
+
+export type NotificationFrequency = 'realtime' | 'daily' | 'weekly' | 'never';
+export type ReminderTime = { hour: number; minute: number };
+
+export interface NotificationCategory {
+  enabled: boolean;
+  frequency?: NotificationFrequency;
+  // For push vs in-app control
+  push?: boolean;
+  inApp?: boolean;
+}
+
+export interface NotificationPreferences {
+  id: string;
+  userId: string;
+
+  // Master toggle
+  allNotificationsEnabled: boolean;
+
+  // Quiet Hours
+  quietHours: {
+    enabled: boolean;
+    startTime: ReminderTime; // e.g., { hour: 22, minute: 0 } for 10 PM
+    endTime: ReminderTime;   // e.g., { hour: 7, minute: 0 } for 7 AM
+  };
+
+  // ==========================================
+  // TIER 1: Retention-Critical
+  // ==========================================
+
+  // Streak Protection ("Never Miss Twice")
+  streakProtection: NotificationCategory & {
+    // Time to send the reminder (morning after missed day)
+    reminderTime: ReminderTime;
+  };
+
+  // Milestone Celebrations
+  milestones: NotificationCategory & {
+    habitStreaks: boolean;    // 7, 21, 30, 66, 100 day milestones
+    goalProgress: boolean;    // 25%, 50%, 75%, 100% milestones
+    dailyCompletion: boolean; // All habits done for the day
+  };
+
+  // Daily Check-in Reminders
+  dailyReminders: NotificationCategory & {
+    reminderTime: ReminderTime;
+    fourThreeTwoOne: boolean; // 4-3-2-1 practice reminder
+    habits: boolean;          // General habit reminder
+  };
+
+  // ==========================================
+  // TIER 2: Engagement Boosters
+  // ==========================================
+
+  // Challenge Notifications
+  challenges: NotificationCategory & {
+    checkInReminders: boolean;
+    friendActivity: boolean;      // When friends check in
+    leaderboardChanges: boolean;  // When rank changes
+    reminderTime: ReminderTime;
+  };
+
+  // Implementation Intention Triggers
+  implementationIntentions: NotificationCategory & {
+    // These fire based on the cue time set in each habit
+    enabled: boolean;
+  };
+
+  // Weekly Summary
+  weeklySummary: NotificationCategory & {
+    dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
+    time: ReminderTime;
+    includeEmail: boolean;
+  };
+
+  // ==========================================
+  // TIER 3: Re-engagement & Community
+  // ==========================================
+
+  // Inactivity Re-engagement
+  inactivityReminders: NotificationCategory & {
+    threeDayReminder: boolean;
+    sevenDayReminder: boolean;
+    fourteenDayReminder: boolean;
+  };
+
+  // Community Activity
+  community: NotificationCategory & {
+    friendMilestones: boolean;    // When friends reach milestones
+    groupPosts: boolean;          // New posts in your groups
+    mentions: boolean;            // When someone mentions you
+    connectionRequests: boolean;  // New connection requests
+  };
+
+  // Direct Messages
+  messages: NotificationCategory;
+
+  // AI Wellness Suggestions
+  wellnessSuggestions: NotificationCategory & {
+    frequency: NotificationFrequency; // How often to send suggestions
+    basedOnMood: boolean;     // Trigger based on mood patterns
+    basedOnStress: boolean;   // Trigger based on stress levels
+    basedOnSleep: boolean;    // Trigger based on sleep quality
+  };
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 // ==========================================
@@ -399,4 +660,125 @@ export interface AMCCChallenge {
   reflection?: string;
   completedAt?: Timestamp;
   createdAt: Timestamp;
+}
+
+// ==========================================
+// VARA WELLNESS SCORE MODELS
+// ==========================================
+
+/**
+ * Wellness Score Pillar
+ * Individual component scores that make up the overall wellness score
+ */
+export interface WellnessScorePillar {
+  name: 'foundation' | 'consistency' | 'mind' | 'growth';
+  score: number; // 0-100 for the pillar
+  weight: number; // Percentage weight (0.40, 0.30, 0.20, 0.10)
+  weightedScore: number; // score * weight
+  components: WellnessScoreComponent[];
+}
+
+/**
+ * Individual component within a pillar
+ */
+export interface WellnessScoreComponent {
+  name: string;
+  value: number; // Raw value or normalized 0-100
+  maxValue?: number; // For display purposes (e.g., "3/5 habits")
+  contribution: number; // Points contributed to pillar score
+  status: 'positive' | 'neutral' | 'negative' | 'missing'; // For UI coloring
+  label?: string; // Human-readable label
+  hasData: boolean; // Whether this component has actual user data
+  actionRoute?: string; // Navigation route to complete this component
+  actionLabel?: string; // Label for the action button (e.g., "Log sleep")
+}
+
+/**
+ * Incomplete action item for wellness score
+ */
+export interface WellnessIncompleteAction {
+  component: string; // Component name
+  label: string; // Human-readable label
+  description: string; // What the user needs to do
+  route: string; // Navigation route
+  priority: number; // 1 = highest priority
+  pillar: 'foundation' | 'consistency' | 'mind' | 'growth';
+}
+
+/**
+ * Morning Check-In
+ * Quick subjective input to ground the objective data
+ */
+export interface MorningCheckIn {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD format
+  energyLevel: number; // 1-5 scale
+  mood: number; // 1-5 scale
+  note?: string; // Optional quick note
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
+ * Daily Wellness Score
+ * Calculated daily score with full breakdown
+ */
+export interface DailyWellnessScore {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD format
+
+  // Overall score
+  score: number; // 0-100 composite score
+  previousScore: number | null; // Yesterday's score for trend (null if no previous)
+  trend: 'up' | 'down' | 'stable'; // Compared to yesterday
+
+  // Pillar breakdown
+  pillars: {
+    foundation: WellnessScorePillar;
+    consistency: WellnessScorePillar;
+    mind: WellnessScorePillar;
+    growth: WellnessScorePillar;
+  };
+
+  // Quick insights for the user
+  topContributor?: string; // What's helping most
+  topDetractor?: string; // What's dragging the score down
+  suggestion?: string; // One actionable suggestion
+
+  // Data completeness (for transparency)
+  dataCompleteness: number; // 0-100 how much data we have
+  missingData: string[] | null; // What data is missing (null if none)
+
+  // Score context
+  maxPossibleScore: number; // Max score possible with current data (components with data)
+  componentsTracked: number; // How many components have data
+  componentsTotal: number; // Total possible components
+
+  // Actionable items to complete the score
+  incompleteActions: WellnessIncompleteAction[];
+
+  // Morning check-in data (if submitted)
+  morningCheckIn: {
+    energyLevel: number;
+    mood: number;
+  } | null;
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
+ * Wellness Score History Entry (for trends/charts)
+ */
+export interface WellnessScoreHistoryEntry {
+  date: string;
+  score: number;
+  pillars: {
+    foundation: number;
+    consistency: number;
+    mind: number;
+    growth: number;
+  };
 }

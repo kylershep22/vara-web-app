@@ -178,6 +178,7 @@ export const createGroup = async (data: {
   visibility: 'public' | 'private';
   ownerId: string;
   category?: string;
+  invitePermission?: 'owner_only' | 'all_members';
 }): Promise<string> => {
   try {
     const groupData = {
@@ -186,6 +187,7 @@ export const createGroup = async (data: {
       members: [data.ownerId],
       memberCount: 1,
       category: data.category || 'other',
+      invitePermission: data.invitePermission || 'owner_only',
       lastActivityAt: serverTimestamp(),
       postCount: 0,
       createdAt: serverTimestamp(),
@@ -259,6 +261,7 @@ export const createPost = async (data: {
   try {
     const postData = {
       authorId: data.userId, // Use authorId to match web app
+      userId: data.userId, // Also include userId for mobile app compatibility
       content: data.content,
       groupId: data.groupId || null,
       likes: [],
@@ -266,6 +269,7 @@ export const createPost = async (data: {
       media: data.media || [],
       images: data.media?.filter(m => m.type === 'image').map(m => m.url) || data.images || [], // Backwards compat
       timestamp: serverTimestamp(), // Use timestamp to match web app
+      createdAt: serverTimestamp(), // Also include createdAt for mobile feed query
     };
 
     const docRef = await addDoc(collection(db, POSTS_COLLECTION), postData);
@@ -347,24 +351,51 @@ export const togglePostLike = async (postId: string, userId: string): Promise<vo
 /**
  * Add comment to post
  * Note: serverTimestamp() cannot be used inside arrayUnion(), so we use Timestamp.now() for comments
+ * Stores authorName for efficient comment preview display
  */
 export const addCommentToPost = async (
   postId: string,
   comment: {
     userId: string;
     text: string;
+    authorName?: string;
   }
 ): Promise<void> => {
   try {
     const docRef = doc(db, POSTS_COLLECTION, postId);
+
+    // First, get the current post to check its structure
+    const postSnap = await getDoc(docRef);
+    if (!postSnap.exists()) {
+      throw new Error('Post not found');
+    }
+
+    const currentData = postSnap.data();
+    const currentComments = currentData.comments || [];
+
+    console.log('[addCommentToPost] Current comments count:', currentComments.length);
+    console.log('[addCommentToPost] Adding comment for user:', comment.userId);
+
+    // Create the new comment object
+    const newComment = {
+      userId: comment.userId,
+      content: comment.text,
+      authorName: comment.authorName || 'Someone',
+      likes: [],
+      createdAt: Timestamp.now(),
+    };
+
+    // Use set with merge to ensure comments array exists, or just append
     await updateDoc(docRef, {
-      comments: arrayUnion({
-        ...comment,
-        likes: [],
-        createdAt: Timestamp.now(), // Use Timestamp.now() since serverTimestamp() doesn't work in arrayUnion()
-      }),
+      comments: [...currentComments, newComment],
       updatedAt: serverTimestamp(),
     });
+
+    // Verify the comment was saved
+    const verifySnap = await getDoc(docRef);
+    const verifyData = verifySnap.data();
+    console.log('[addCommentToPost] Verified comments count after save:', verifyData?.comments?.length);
+    console.log('[addCommentToPost] Comment added successfully');
   } catch (error) {
     console.error('Error adding comment:', error);
     throw error;

@@ -255,7 +255,7 @@ export default function SleepDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   scrollContent: {
     paddingBottom: Spacing['4xl'],
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.evergreenTeal + '15',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   title: {
     color: Colors.textPrimary,
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     gap: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   metaItem: {
     flexDirection: 'row',
@@ -312,10 +312,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.surface,
-    marginHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.base,
     borderRadius: 12,
   },
   settingLabel: {
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   },
   timerSection: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   },
   sectionDescription: {
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   pickerContainer: {
     backgroundColor: Colors.surface,
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.success + '20',
     borderRadius: 8,
@@ -361,14 +361,14 @@ const styles = StyleSheet.create({
     color: Colors.success,
   },
   relatedSection: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.lg,
   },
   tipsSection: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.goldenApricot + '10',
-    marginHorizontal: Spacing.md,
+    marginHorizontal: Spacing.base,
     borderRadius: 12,
   },
   tipItem: {
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: Colors.textPrimary,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     marginBottom: Spacing.lg,
   },
 });

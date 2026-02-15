@@ -32,7 +32,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { Card, LoadingSpinner, Button, PostCard } from '../../components';
+import { InviteMembersModal, CreateChallengeFromGroupModal, ChallengeCard } from '../../components/community';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { Challenge, ChallengeParticipant } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
 import {
   getGroupInfo,
@@ -47,8 +49,15 @@ import {
   Post,
   UserProfile,
 } from '../../services/firebase/community.service';
+import { canUserInviteToGroup } from '../../services/firebase/invites.service';
+import {
+  fetchChallengesByGroup,
+  fetchMyParticipation,
+  joinChallenge,
+} from '../../services/firebase/challenges.service';
 import { uploadPostMedia } from '../../services/firebase';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 type GroupDetailRouteParams = {
   GroupDetail: {
@@ -432,6 +441,11 @@ const GroupDetailScreen: React.FC = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showComments, setShowComments] = useState<string | null>(null);
   const [showMembers, setShowMembers] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showCreateChallengeModal, setShowCreateChallengeModal] = useState(false);
+  const [canInvite, setCanInvite] = useState(false);
+  const [groupChallenges, setGroupChallenges] = useState<Challenge[]>([]);
+  const [challengeParticipations, setChallengeParticipations] = useState<Map<string, ChallengeParticipant | null>>(new Map());
 
   // Load group data
   const loadGroupData = useCallback(async () => {
@@ -448,6 +462,12 @@ const GroupDetailScreen: React.FC = () => {
       // Fetch owner profile
       const ownerProfile = await getUserById(groupData.ownerId);
       setOwner(ownerProfile);
+
+      // Check if user can invite others
+      if (user) {
+        const canUserInvite = await canUserInviteToGroup(groupId, user.uid);
+        setCanInvite(canUserInvite);
+      }
 
       // Fetch member profiles (first 20)
       const memberIds = groupData.members.slice(0, 20);
@@ -474,6 +494,31 @@ const GroupDetailScreen: React.FC = () => {
         })
       );
       setPosts(enrichedPosts);
+
+      // Fetch group challenges
+      try {
+        console.log('Fetching challenges for group:', groupId);
+        const challenges = await fetchChallengesByGroup(groupId);
+        console.log('Found challenges for group:', challenges.length, challenges.map(c => ({ id: c.id, name: c.name, sourceGroupId: c.sourceGroupId })));
+        setGroupChallenges(challenges);
+
+        // Fetch participations for each challenge
+        if (user && challenges.length > 0) {
+          const participationPromises = challenges.map(async (challenge) => {
+            const participation = await fetchMyParticipation(challenge.id);
+            return { challengeId: challenge.id, participation };
+          });
+          const participations = await Promise.all(participationPromises);
+          const participationMap = new Map<string, ChallengeParticipant | null>();
+          participations.forEach(({ challengeId, participation }) => {
+            participationMap.set(challengeId, participation);
+          });
+          setChallengeParticipations(participationMap);
+        }
+      } catch (challengeError) {
+        console.error('Error loading group challenges:', challengeError);
+        // Non-critical, don't show error to user
+      }
     } catch (error) {
       console.error('Error loading group data:', error);
       Alert.alert('Error', 'Failed to load group data');
@@ -596,6 +641,24 @@ const GroupDetailScreen: React.FC = () => {
     await loadGroupData();
   }, [user, loadGroupData]);
 
+  const handleNavigateToChallenge = useCallback((challengeId: string, challengeName: string) => {
+    navigation.navigate('ChallengeDetail', { challengeId, challengeName });
+  }, [navigation]);
+
+  const handleJoinChallenge = useCallback(async (challengeId: string, challengeName: string) => {
+    try {
+      await joinChallenge(challengeId);
+      Alert.alert('Success', `You joined ${challengeName}!`);
+      await loadGroupData();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to join challenge');
+    }
+  }, [loadGroupData]);
+
+  const isChallengeParticipant = useCallback((challenge: Challenge): boolean => {
+    return challenge.members.includes(user?.uid || '');
+  }, [user?.uid]);
+
   const formatTimestamp = (post: any) => {
     const timestamp = post.timestamp || post.createdAt;
     if (!timestamp) return '';
@@ -620,6 +683,21 @@ const GroupDetailScreen: React.FC = () => {
 
   const renderHeader = () => (
     <View>
+      {/* Back Button Header */}
+      <View style={styles.backButtonHeader}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+        <Text variant="titleMedium" style={styles.backButtonTitle} numberOfLines={1}>
+          {group?.name || initialGroupName || 'Group'}
+        </Text>
+        <View style={styles.backButtonSpacer} />
+      </View>
+
       {/* Group Header */}
       <View style={styles.groupHeader}>
         <View style={styles.groupIconContainer}>
@@ -684,6 +762,28 @@ const GroupDetailScreen: React.FC = () => {
               >
                 <Icon name="pencil" size={16} color={Colors.textOnPrimary} /> Post
               </Button>
+              {canInvite && (
+                <Button
+                  variant="outline"
+                  style={styles.actionButton}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowInviteModal(true);
+                  }}
+                >
+                  <Icon name="account-plus" size={16} color={Colors.evergreenTeal} /> Invite
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                style={styles.actionButton}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowCreateChallengeModal(true);
+                }}
+              >
+                <Icon name="trophy-outline" size={16} color={Colors.evergreenTeal} /> Challenge
+              </Button>
               {!isOwner && (
                 <Button
                   variant="outline"
@@ -705,6 +805,59 @@ const GroupDetailScreen: React.FC = () => {
           )}
         </View>
       </View>
+
+      {/* Group Challenges Section */}
+      {groupChallenges.length > 0 && (
+        <View style={styles.challengesSection}>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Group Challenges
+            </Text>
+            <Text variant="bodySmall" style={styles.sectionSubtitle}>
+              {groupChallenges.length} {groupChallenges.length === 1 ? 'challenge' : 'challenges'}
+            </Text>
+          </View>
+          <View style={styles.challengesList}>
+            {groupChallenges.map((challenge) => (
+              <ChallengeCard
+                key={challenge.id}
+                challenge={challenge}
+                participation={challengeParticipations.get(challenge.id)}
+                isMember={isChallengeParticipant(challenge)}
+                onPress={() => handleNavigateToChallenge(challenge.id, challenge.name)}
+                onJoin={() => handleJoinChallenge(challenge.id, challenge.name)}
+              />
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Empty Challenges State (only show when member but no challenges) */}
+      {isMember && groupChallenges.length === 0 && (
+        <View style={styles.emptyChallengesSection}>
+          <View style={styles.emptyChallengesContent}>
+            <Icon name="trophy-outline" size={32} color={Colors.textSecondary} />
+            <View style={styles.emptyChallengesText}>
+              <Text variant="bodyMedium" style={styles.emptyChallengesTitle}>
+                No group challenges yet
+              </Text>
+              <Text variant="bodySmall" style={styles.emptyChallengesSubtitle}>
+                Create a challenge to motivate group members
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.createChallengeButton}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowCreateChallengeModal(true);
+              }}
+            >
+              <Icon name="plus" size={16} color={Colors.evergreenTeal} />
+              <Text style={styles.createChallengeButtonText}>Create</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Posts Section Header */}
       <View style={styles.sectionHeader}>
@@ -732,7 +885,7 @@ const GroupDetailScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <FlatList
         data={posts}
         renderItem={renderPost}
@@ -801,6 +954,36 @@ const GroupDetailScreen: React.FC = () => {
         />
       </Portal>
 
+      {/* Invite Members Modal */}
+      <InviteMembersModal
+        visible={showInviteModal}
+        onDismiss={() => setShowInviteModal(false)}
+        type="group"
+        entityId={groupId}
+        entityName={group?.name || 'Group'}
+        existingMemberIds={group?.members || []}
+        onInvitesSent={(count) => {
+          if (count > 0) {
+            Alert.alert('Success', `${count} invite${count > 1 ? 's' : ''} sent!`);
+          }
+        }}
+      />
+
+      {/* Create Challenge from Group Modal */}
+      <CreateChallengeFromGroupModal
+        visible={showCreateChallengeModal}
+        onDismiss={() => setShowCreateChallengeModal(false)}
+        groupId={groupId}
+        groupName={group?.name || 'Group'}
+        memberCount={group?.memberCount || group?.members?.length || 1}
+        onSuccess={(challengeId) => {
+          navigation.navigate('ChallengeDetail', {
+            challengeId,
+            challengeName: 'New Challenge',
+          });
+        }}
+      />
+
       {/* Keyboard Accessory Toolbar (iOS) */}
       {Platform.OS === 'ios' && (
         <InputAccessoryView nativeID={INPUT_ACCESSORY_VIEW_ID}>
@@ -826,6 +1009,27 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: Spacing.xl,
   },
+  backButtonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: Layout.borderWidth.thin,
+    borderBottomColor: Colors.borderLight,
+  },
+  backButton: {
+    padding: Spacing.xs,
+    marginRight: Spacing.sm,
+  },
+  backButtonTitle: {
+    flex: 1,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  backButtonSpacer: {
+    width: 32, // Same width as back button for centering
+  },
   groupHeader: {
     backgroundColor: Colors.surface,
     padding: Spacing.lg,
@@ -840,7 +1044,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dewSage,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   groupName: {
     color: Colors.evergreenTeal,
@@ -851,13 +1055,13 @@ const styles = StyleSheet.create({
   groupDescription: {
     color: Colors.textSecondary,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     paddingHorizontal: Spacing.lg,
   },
   groupMeta: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   metaChip: {
     backgroundColor: Colors.mistWhite,
@@ -890,7 +1094,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.mistWhite,
   },
   sectionTitle: {
@@ -900,13 +1104,59 @@ const styles = StyleSheet.create({
   sectionSubtitle: {
     color: Colors.textSecondary,
   },
+  challengesSection: {
+    backgroundColor: Colors.mistWhite,
+  },
+  challengesList: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.base,
+  },
+  emptyChallengesSection: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.base,
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: Layout.borderWidth.thin,
+    borderColor: Colors.borderLight,
+    borderStyle: 'dashed',
+  },
+  emptyChallengesContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.base,
+    gap: Spacing.base,
+  },
+  emptyChallengesText: {
+    flex: 1,
+  },
+  emptyChallengesTitle: {
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  emptyChallengesSubtitle: {
+    color: Colors.textSecondary,
+  },
+  createChallengeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.dewSage,
+    borderRadius: Layout.borderRadius.md,
+    gap: 4,
+  },
+  createChallengeButtonText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing.xl * 2,
     paddingHorizontal: Spacing.xl,
   },
   emptyIcon: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   emptyTitle: {
     color: Colors.textPrimary,
@@ -944,24 +1194,24 @@ const styles = StyleSheet.create({
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.base,
     fontSize: Typography.fontSize.base,
     color: Colors.textPrimary,
     backgroundColor: Colors.mistWhite,
     minHeight: 120,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   commentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   commentInput: {
     flex: 1,
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.base,
     fontSize: Typography.fontSize.sm,
     color: Colors.textPrimary,
     backgroundColor: Colors.mistWhite,
@@ -976,7 +1226,7 @@ const styles = StyleSheet.create({
   },
   // Media styles
   mediaPreview: {
-    marginVertical: Spacing.md,
+    marginVertical: Spacing.base,
     maxHeight: 100,
   },
   mediaThumbnail: {
@@ -1012,12 +1262,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.borderLight,
     borderRadius: Layout.borderRadius.md,
     borderStyle: 'dashed',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   addMediaText: {
     marginLeft: Spacing.sm,
@@ -1038,7 +1288,7 @@ const styles = StyleSheet.create({
   },
   memberAvatar: {
     backgroundColor: Colors.evergreenTeal,
-    marginRight: Spacing.md,
+    marginRight: Spacing.base,
   },
   memberInfo: {
     flex: 1,
@@ -1063,7 +1313,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopWidth: Layout.borderWidth.thin,
     borderTopColor: Colors.borderLight,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     flexDirection: 'row',
     justifyContent: 'flex-end',

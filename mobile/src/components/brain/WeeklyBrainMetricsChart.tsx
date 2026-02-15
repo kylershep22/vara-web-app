@@ -220,13 +220,13 @@ export const WeeklyBrainMetricsChart: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     height: 180,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     paddingHorizontal: Spacing.xs,
   },
   barContainer: {
@@ -315,10 +315,10 @@ const styles = StyleSheet.create({
   legend: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: Spacing.base,
     borderTopWidth: Layout.borderWidth.thin,
     borderTopColor: Colors.borderLight,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.base,
   },
   legendItem: {
     flexDirection: 'row',

@@ -5,23 +5,44 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, useWindowDimensions } from 'react-native';
-import { Text, Card as PaperCard, IconButton, SegmentedButtons } from 'react-native-paper';
+import { Text, IconButton } from 'react-native-paper';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { Button, Card, LoadingSpinner, StatCard, PriorityBadge, ProgressBar, BrainPillarBadge, BrainPillarInfoModal } from '../components';
-import { FourThreeTwoOneCard, ProgressNudgeCard } from '../components/dashboard';
-import { BrainReadinessWidget, NeuroplasticityTracker, NervousSystemToolsWidget, AMCCChallengeCard, FocusWindowIndicator, WeeklyBrainMetricsChart } from '../components/brain';
+import { Button, Card, LoadingSpinner } from '../components';
+import {
+  FourThreeTwoOneCard,
+  BrainHealthInsightStrip,
+  NextBestActionCard,
+  GoalsCard,
+  QuickActionButtons,
+  BrainHealthEducationCard,
+  TasksCard,
+  WellnessScoreCard,
+  WellnessScoreBreakdown,
+  MorningCheckIn,
+  MorningCheckInComplete,
+} from '../components/dashboard';
+import { ConsistencyBadge } from '../components/habits';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
-import { useGoals, useHabits, useTasks } from '../hooks';
-import { markHabitComplete, completeTask, getHabitCompletions, isHabitCompletedToday, unmarkHabitComplete } from '../services/firebase';
+import { useGoals, useHabits, useTasks, useJournal } from '../hooks';
+import {
+  markHabitComplete,
+  getHabitCompletions,
+  isHabitCompletedToday,
+  unmarkHabitComplete,
+  getMorningCheckIn,
+  saveMorningCheckIn,
+  calculateWellnessScore,
+  refreshWellnessScore,
+  getTodayWellnessScore,
+  getTodayEntry,
+} from '../services/firebase';
 import { generateDailyPlan } from '../services/api/ai.service';
-import { getBrainPillars } from '../constants/brainHealthMapping';
-import { BrainPillar } from '../types';
 import * as SecureStore from 'expo-secure-store';
-import { db } from '../config/firebase';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { DailyWellnessScore, MorningCheckIn as MorningCheckInType, FourThreeTwoOneEntry } from '../types';
 
 // Responsive breakpoints for habit tracker
 const SMALL_SCREEN_WIDTH = 375;
@@ -34,19 +55,34 @@ const DashboardScreen: React.FC = () => {
   const { goals, loading: goalsLoading } = useGoals();
   const { habits, loading: habitsLoading } = useHabits(true); // Active habits only
   const { tasks: allTasks, loading: tasksLoading } = useTasks(); // All tasks
+  const { entries: journalEntries } = useJournal(1); // Get most recent entry for lastJournalDate
+
+  // Get last journal date for NextBestAction priority
+  const lastJournalDate = useMemo(() => {
+    if (journalEntries.length === 0) return null;
+    const entry = journalEntries[0];
+    if (entry.createdAt?.toDate) return entry.createdAt.toDate();
+    if (entry.createdAt?.seconds) return new Date(entry.createdAt.seconds * 1000);
+    return null;
+  }, [journalEntries]);
   const [refreshing, setRefreshing] = useState(false);
   const [realStreaks, setRealStreaks] = useState<{ [habitId: string]: number }>({});
+  const [allCompletions, setAllCompletions] = useState<{ [habitId: string]: string[] }>({});
   const [processingHabits, setProcessingHabits] = useState<Set<string>>(new Set());
   const [completedToday, setCompletedToday] = useState<Set<string>>(new Set());
   const [weeklyCompletions, setWeeklyCompletions] = useState<{ [habitId: string]: { [date: string]: boolean } }>({});
   const [dailyPlan, setDailyPlan] = useState<string | null>(null);
   const [generatingPlan, setGeneratingPlan] = useState(false);
-  const [pillarInfoVisible, setPillarInfoVisible] = useState(false);
-  const [weeklyFocusSessions, setWeeklyFocusSessions] = useState<number>(0);
-  const [weeklyUltradianSessions, setWeeklyUltradianSessions] = useState<number>(0); // 90-min sessions for Resilience
-  const [weeklyJournalEntries, setWeeklyJournalEntries] = useState<number>(0);
-  const [weeklyCommunityActions, setWeeklyCommunityActions] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'today' | 'brain'>('today');
+  const [isPlanExpanded, setIsPlanExpanded] = useState(false);
+
+  // Wellness Score state
+  const [wellnessScore, setWellnessScore] = useState<DailyWellnessScore | null>(null);
+  const [wellnessScoreLoading, setWellnessScoreLoading] = useState(true);
+  const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
+  const [morningCheckIn, setMorningCheckIn] = useState<MorningCheckInType | null>(null);
+  const [morningCheckInLoading, setMorningCheckInLoading] = useState(false);
+  const [showMorningCheckIn, setShowMorningCheckIn] = useState(false);
+  const [fourThreeTwoOneEntry, setFourThreeTwoOneEntry] = useState<FourThreeTwoOneEntry | null>(null);
 
   // Responsive: Determine how many days to show based on screen width
   // Small screens (<375px): 5 days, Medium (375-414px): 6 days, Large (>414px): 7 days
@@ -59,8 +95,27 @@ const DashboardScreen: React.FC = () => {
   // Calculate minimum touch target size (48px for accessibility)
   const isCompactMode = screenWidth < SMALL_SCREEN_WIDTH;
 
-  // Get today's date for habit completion
-  const today = new Date().toISOString().split('T')[0];
+  // Get today's date for habit completion (local timezone)
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  // Formatted date for header display (e.g., "Saturday, February 8")
+  const formattedDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  // Time-based greeting
+  const getTimeBasedGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+  const greeting = user?.displayName?.split(' ')[0]
+    ? `${getTimeBasedGreeting()}, ${user.displayName.split(' ')[0]}`
+    : getTimeBasedGreeting();
 
   // Get last N days (responsive based on screen width)
   const getLastNDays = (numDays: number) => {
@@ -100,6 +155,47 @@ const DashboardScreen: React.FC = () => {
     loadDailyPlan();
   }, [today]);
 
+  // Load wellness score, morning check-in, and 4-3-2-1 entry
+  useEffect(() => {
+    const loadWellnessData = async () => {
+      if (!user?.uid) return;
+
+      setWellnessScoreLoading(true);
+      try {
+        // Load all wellness data in parallel for better performance
+        const [existingCheckIn, todayFourThreeTwoOne] = await Promise.all([
+          getMorningCheckIn(user.uid),
+          getTodayEntry(user.uid),
+        ]);
+
+        setMorningCheckIn(existingCheckIn);
+        setFourThreeTwoOneEntry(todayFourThreeTwoOne);
+
+        // Show morning check-in prompt if not yet done today (only in the morning)
+        const hour = new Date().getHours();
+        if (!existingCheckIn && hour < 12) {
+          setShowMorningCheckIn(true);
+        }
+
+        // Calculate or fetch today's wellness score
+        const existingScore = await getTodayWellnessScore(user.uid);
+        if (existingScore) {
+          setWellnessScore(existingScore);
+        } else {
+          // Calculate fresh score
+          const newScore = await calculateWellnessScore(user.uid);
+          setWellnessScore(newScore);
+        }
+      } catch (error) {
+        console.error('Error loading wellness data:', error);
+      } finally {
+        setWellnessScoreLoading(false);
+      }
+    };
+
+    loadWellnessData();
+  }, [user?.uid, today]);
+
   // Calculate real current streak from completion history
   const calculateCurrentStreak = (completions: string[]): number => {
     if (completions.length === 0) return 0;
@@ -135,77 +231,22 @@ const DashboardScreen: React.FC = () => {
     return currentStreak;
   };
 
-  /**
-   * Calculate weekly pillar engagement from ALL activities
-   *
-   * What counts toward each pillar:
-   * - ALL PILLARS: Habits mapped via category → brain health mapping
-   * - FOCUS: Focus sessions (Pomodoro/90-min deep work)
-   * - RESILIENCE: 90-minute ultradian focus sessions (mental endurance)
-   * - GROWTH: Journal entries (reflection & learning)
-   * - CONNECTION: Community actions (posts, messages, connections)
-   *
-   * Note: Routines (breathwork, meditation, movement) will count once completion tracking is implemented
-   */
-  const calculateWeeklyPillarEngagement = (): { pillar: BrainPillar; count: number }[] => {
-    const pillarCounts: { [key: string]: number } = {};
-
-    // 1. Count completed habits by their brain pillars
-    habits.forEach(habit => {
-      if (habit.category) {
-        const pillars = getBrainPillars(habit.category);
-        const completions = weeklyCompletions[habit.id] || {};
-        const weeklyCount = Object.values(completions).filter(c => c).length;
-
-        pillars.forEach(pillar => {
-          pillarCounts[pillar] = (pillarCounts[pillar] || 0) + weeklyCount;
-        });
-      }
-    });
-
-    // 2. Count focus sessions → Focus pillar
-    // Each focus session counts as 1 activity toward Focus
-    if (weeklyFocusSessions > 0) {
-      pillarCounts['focus'] = (pillarCounts['focus'] || 0) + weeklyFocusSessions;
-    }
-
-    // 90-min ultradian sessions also count toward Resilience (building mental endurance)
-    if (weeklyUltradianSessions > 0) {
-      pillarCounts['resilience'] = (pillarCounts['resilience'] || 0) + weeklyUltradianSessions;
-    }
-
-    // 3. Count journal entries → Growth pillar
-    // Each journal entry counts as 1 activity toward Growth
-    if (weeklyJournalEntries > 0) {
-      pillarCounts['growth'] = (pillarCounts['growth'] || 0) + weeklyJournalEntries;
-    }
-
-    // 4. Count community actions → Connection pillar
-    // Posts, comments, messages, connections all count toward Connection
-    if (weeklyCommunityActions > 0) {
-      pillarCounts['connection'] = (pillarCounts['connection'] || 0) + weeklyCommunityActions;
-    }
-
-    // Convert to array and sort by count
-    const sorted = Object.entries(pillarCounts)
-      .map(([pillar, count]) => ({ pillar: pillar as BrainPillar, count }))
-      .sort((a, b) => b.count - a.count);
-
-    return sorted;
-  };
-
   // Calculate real streaks and load weekly completions when habits load
   useEffect(() => {
     const loadHabitData = async () => {
       const streaks: { [habitId: string]: number } = {};
       const weekly: { [habitId: string]: { [date: string]: boolean } } = {};
       const completedSet = new Set<string>();
+      const allCompletionDates: { [habitId: string]: string[] } = {};
 
       for (const habit of habits) {
         try {
           const completionsData = await getHabitCompletions(habit.id);
           const completionDates = completionsData.map((c) => c.date);
           streaks[habit.id] = calculateCurrentStreak(completionDates);
+
+          // Store all completion dates for ConsistencyBadge
+          allCompletionDates[habit.id] = completionDates;
 
           // Build weekly completion map
           weekly[habit.id] = {};
@@ -222,12 +263,14 @@ const DashboardScreen: React.FC = () => {
           console.error('Error loading habit data:', habit.id, error);
           streaks[habit.id] = 0;
           weekly[habit.id] = {};
+          allCompletionDates[habit.id] = [];
         }
       }
 
       setRealStreaks(streaks);
       setWeeklyCompletions(weekly);
       setCompletedToday(completedSet);
+      setAllCompletions(allCompletionDates);
     };
 
     if (habits.length > 0) {
@@ -235,117 +278,8 @@ const DashboardScreen: React.FC = () => {
     }
   }, [habits]);
 
-  // Load weekly activity data (focus sessions, journal entries, community actions)
-  useEffect(() => {
-    const loadWeeklyActivityData = async () => {
-      if (!user) return;
-
-      // Calculate timestamp for 7 days ago
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const weekStart = Timestamp.fromDate(sevenDaysAgo);
-
-      // 1. Count focus sessions from past 7 days
-      let totalFocusSessions = 0;
-      let ultradianCount = 0;
-      try {
-        const focusSessionsQuery = query(
-          collection(db, 'focusSessions'),
-          where('userId', '==', user.uid),
-          where('createdAt', '>=', weekStart),
-          where('completed', '==', true)
-        );
-        const focusSnapshot = await getDocs(focusSessionsQuery);
-
-        totalFocusSessions = focusSnapshot.size;
-        focusSnapshot.docs.forEach(doc => {
-          const data = doc.data();
-          if (data.duration === 90 || data.type === 'ultradian') {
-            ultradianCount++;
-          }
-        });
-      } catch (error) {
-        console.log('No focus sessions data available (likely new user)');
-      }
-      setWeeklyFocusSessions(totalFocusSessions);
-      setWeeklyUltradianSessions(ultradianCount);
-
-      // 2. Count journal entries from past 7 days
-      let journalCount = 0;
-      try {
-        const journalQuery = query(
-          collection(db, 'journalEntries'),
-          where('userId', '==', user.uid),
-          where('createdAt', '>=', weekStart)
-        );
-        const journalSnapshot = await getDocs(journalQuery);
-        journalCount = journalSnapshot.size;
-      } catch (error) {
-        console.log('No journal entries data available (likely new user)');
-      }
-      setWeeklyJournalEntries(journalCount);
-
-      // 3. Count community actions from past 7 days
-      let postsCount = 0;
-      let messagesCount = 0;
-      let connectionsCount = 0;
-
-      // Posts created
-      try {
-        const postsQuery = query(
-          collection(db, 'posts'),
-          where('userId', '==', user.uid),
-          where('createdAt', '>=', weekStart)
-        );
-        const postsSnapshot = await getDocs(postsQuery);
-        postsCount = postsSnapshot.size;
-      } catch (error) {
-        console.log('No posts data available (likely new user)');
-      }
-
-      // Messages sent (direct messages)
-      try {
-        const messagesQuery = query(
-          collection(db, 'directMessages'),
-          where('senderId', '==', user.uid),
-          where('createdAt', '>=', weekStart)
-        );
-        const messagesSnapshot = await getDocs(messagesQuery);
-        messagesCount = messagesSnapshot.size;
-      } catch (error) {
-        console.log('No messages data available (likely new user)');
-      }
-
-      // Connections made (accepted connections where user initiated)
-      try {
-        const connectionsQuery = query(
-          collection(db, 'connections'),
-          where('a', '==', user.uid),
-          where('status', '==', 'accepted'),
-          where('createdAt', '>=', weekStart)
-        );
-        const connectionsSnapshot = await getDocs(connectionsQuery);
-        connectionsCount = connectionsSnapshot.size;
-      } catch (error) {
-        console.log('No connections data available (likely new user)');
-      }
-
-      // Total community actions
-      const totalCommunityActions = postsCount + messagesCount + connectionsCount;
-      setWeeklyCommunityActions(totalCommunityActions);
-    };
-
-    loadWeeklyActivityData();
-  }, [user]);
-
-  // Filter tasks to show only incomplete ones
+  // Filter tasks to show only incomplete ones (used for AI plan generation)
   const tasks = allTasks.filter((task) => !task.completed);
-
-  // Calculate stats using real streaks
-  const activeGoals = goals.filter((g) => g.status === 'active').length;
-  const completedGoals = goals.filter((g) => g.status === 'completed').length;
-  const totalStreak = habits.reduce((sum, h) => sum + (realStreaks[h.id] || 0), 0);
-  const pendingTasks = tasks.length;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -390,13 +324,27 @@ const DashboardScreen: React.FC = () => {
         }
       }
 
-      // Recalculate streak for this habit
+      // Recalculate streak and update completions for this habit
       const completionsData = await getHabitCompletions(habitId);
       const completionDates = completionsData.map((c) => c.date);
       setRealStreaks(prev => ({
         ...prev,
         [habitId]: calculateCurrentStreak(completionDates)
       }));
+      setAllCompletions(prev => ({
+        ...prev,
+        [habitId]: completionDates
+      }));
+
+      // Refresh wellness score if today's habit was toggled (affects Consistency pillar)
+      if (date === today && user?.uid) {
+        try {
+          const newScore = await refreshWellnessScore(user.uid);
+          setWellnessScore(newScore);
+        } catch (error) {
+          console.error('Error refreshing wellness score after habit toggle:', error);
+        }
+      }
     } catch (error) {
       console.error('Error toggling habit completion:', error);
     } finally {
@@ -406,14 +354,6 @@ const DashboardScreen: React.FC = () => {
         newSet.delete(`${habitId}-${date}`);
         return newSet;
       });
-    }
-  };
-
-  const handleTaskCheck = async (taskId: string) => {
-    try {
-      await completeTask(taskId);
-    } catch (error) {
-      console.error('Error completing task:', error);
     }
   };
 
@@ -440,6 +380,57 @@ const DashboardScreen: React.FC = () => {
     }
   };
 
+  // Handle morning check-in submission
+  const handleMorningCheckInComplete = async (energyLevel: number, mood: number) => {
+    if (!user?.uid) return;
+
+    setMorningCheckInLoading(true);
+    try {
+      const checkIn = await saveMorningCheckIn(user.uid, energyLevel, mood);
+      setMorningCheckIn(checkIn);
+      setShowMorningCheckIn(false);
+
+      // Refresh wellness score with new check-in data
+      const newScore = await refreshWellnessScore(user.uid);
+      setWellnessScore(newScore);
+    } catch (error) {
+      console.error('Error saving morning check-in:', error);
+    } finally {
+      setMorningCheckInLoading(false);
+    }
+  };
+
+  // Handle wellness score refresh
+  const handleRefreshWellnessScore = async () => {
+    if (!user?.uid) return;
+
+    setWellnessScoreLoading(true);
+    try {
+      const newScore = await refreshWellnessScore(user.uid);
+      setWellnessScore(newScore);
+    } catch (error) {
+      console.error('Error refreshing wellness score:', error);
+    } finally {
+      setWellnessScoreLoading(false);
+    }
+  };
+
+  // Handle 4-3-2-1 practice changes - refresh wellness score and update state
+  const handleFourThreeTwoOneChange = async (entry: FourThreeTwoOneEntry) => {
+    // Update local state immediately for responsive Next Best Action
+    setFourThreeTwoOneEntry(entry);
+
+    // Refresh wellness score to reflect the change
+    if (user?.uid) {
+      try {
+        const newScore = await refreshWellnessScore(user.uid);
+        setWellnessScore(newScore);
+      } catch (error) {
+        console.error('Error refreshing wellness score after 4-3-2-1 change:', error);
+      }
+    }
+  };
+
   if (goalsLoading || habitsLoading || tasksLoading) {
     return <LoadingSpinner message="Loading your wellness dashboard..." />;
   }
@@ -455,185 +446,170 @@ const DashboardScreen: React.FC = () => {
           <View style={styles.headerTop}>
             <View style={styles.headerTextContainer}>
               <Text variant="displaySmall" style={styles.greeting}>
-                Hello, {user?.displayName?.split(' ')[0] || 'there'}!
+                {greeting}
               </Text>
-              <Text variant="bodyLarge" style={styles.subtitle}>
-                Here's your wellness overview
+              <Text variant="bodyMedium" style={styles.dateText}>
+                {formattedDate}
               </Text>
             </View>
             <IconButton
               icon="cog-outline"
               size={28}
               iconColor={Colors.evergreenTeal}
-              onPress={() => navigation.navigate('ProfileStack' as never)}
+              onPress={() => navigation.navigate('ProfileStack' as never, { screen: 'Settings' } as never)}
               style={styles.settingsButton}
+              accessibilityLabel="Settings"
             />
           </View>
         </View>
 
-        {/* Tab Navigation */}
-        <View style={styles.tabContainer}>
-          <SegmentedButtons
-            value={activeTab}
-            onValueChange={(value) => setActiveTab(value as 'today' | 'brain')}
-            buttons={[
-              {
-                value: 'today',
-                label: 'Today',
-                icon: 'calendar-today',
-              },
-              {
-                value: 'brain',
-                label: 'Brain Health',
-                icon: 'brain',
-              },
-            ]}
-            style={styles.segmentedButtons}
+        {/* Morning Check-In (shows before score if not yet completed) */}
+        {showMorningCheckIn && !morningCheckIn && (
+          <MorningCheckIn
+            onComplete={handleMorningCheckInComplete}
+            onDismiss={() => setShowMorningCheckIn(false)}
+            loading={morningCheckInLoading}
           />
-        </View>
+        )}
 
-        {/* Today Tab Content */}
-        {activeTab === 'today' && (
-          <View>
-        {/* Stats Cards */}
-        <View style={styles.statsRow}>
-          <StatCard
-            value={activeGoals}
-            label="Active Goals"
-            icon="target"
-          />
-          <StatCard
-            value={`🔥 ${totalStreak}`}
-            label="Total Streak"
-            color={Colors.sunriseAmber}
-            icon="fire"
-            iconColor={Colors.sunriseAmber}
-          />
-          <StatCard
-            value={pendingTasks}
-            label="Tasks To Do"
-            icon="checkbox-marked-circle-outline"
-          />
-        </View>
-
-        {/* Progress Nudge Card - Motivational prompt */}
-        <ProgressNudgeCard
-          habits={habits}
-          completedToday={completedToday}
-          realStreaks={realStreaks}
-          onHabitPress={(habitId) => navigation.navigate('Plan' as never, { tab: 'habits', highlightHabit: habitId } as never)}
+        {/* Wellness Score Card */}
+        <WellnessScoreCard
+          score={wellnessScore}
+          loading={wellnessScoreLoading}
+          onPress={() => setShowScoreBreakdown(true)}
+          onRefresh={handleRefreshWellnessScore}
         />
 
-        {/* Weekly Wellness Summary */}
-        {(() => {
-          const pillarEngagement = calculateWeeklyPillarEngagement();
-          const topPillars = pillarEngagement.slice(0, 3);
-
-          // Only show if there's at least one activity
-          const hasActivities = habits.length > 0 || weeklyFocusSessions > 0 || weeklyJournalEntries > 0 || weeklyCommunityActions > 0;
-          if (!hasActivities || topPillars.length === 0) return null;
-
-          // Find the pillar with highest count for the main message
-          const topPillar = topPillars[0];
-          const pillarLabels: { [key in BrainPillar]: string } = {
-            growth: 'Growth',
-            energy: 'Energy',
-            focus: 'Focus',
-            resilience: 'Resilience',
-            connection: 'Connection',
-          };
-
-          return (
-            <Card style={styles.wellnessSummaryCard}>
-              <View style={styles.wellnessSummaryHeader}>
-                <Text variant="titleMedium" style={styles.wellnessSummaryTitle}>
-                  This Week's Wellness Focus
-                </Text>
-                <IconButton
-                  icon="information-outline"
-                  size={20}
-                  iconColor={Colors.evergreenTeal}
-                  onPress={() => setPillarInfoVisible(true)}
-                  style={styles.infoButton}
-                />
-              </View>
-              <Text variant="bodyMedium" style={styles.wellnessSummarySubtitle}>
-                Your activities this week are supporting these brain health pillars:
-              </Text>
-              <Text variant="bodySmall" style={styles.wellnessActivityTypes}>
-                {[
-                  habits.length > 0 && 'Habits',
-                  weeklyFocusSessions > 0 && 'Focus',
-                  weeklyJournalEntries > 0 && 'Journaling',
-                  weeklyCommunityActions > 0 && 'Community'
-                ].filter(Boolean).join(' • ')}
-              </Text>
-              <View style={styles.wellnessPillarsRow}>
-                {topPillars.map(({ pillar, count }) => (
-                  <View key={pillar} style={styles.wellnessPillarItem}>
-                    <BrainPillarBadge pillar={pillar} />
-                    <Text variant="bodySmall" style={styles.wellnessPillarCount}>
-                      {count} {count === 1 ? 'activity' : 'activities'}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-              <TouchableOpacity
-                onPress={() => setPillarInfoVisible(true)}
-                style={styles.learnMoreButton}
-              >
-                <Text variant="bodySmall" style={styles.learnMoreText}>
-                  Learn about brain health pillars
-                </Text>
-              </TouchableOpacity>
-            </Card>
-          );
-        })()}
-
-        {/* Daily AI Plan */}
-        {dailyPlan && (
-          <Card style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                Today's AI Plan
-              </Text>
-              <IconButton
-                icon="close"
-                size={20}
-                onPress={async () => {
-                  setDailyPlan(null);
-                  await SecureStore.deleteItemAsync(`dailyPlan_${today}`);
-                }}
-              />
-            </View>
-            <View style={styles.planScrollContainer}>
-              <ScrollView
-                nestedScrollEnabled={true}
-                showsVerticalScrollIndicator={true}
-              >
-                <Text variant="bodyMedium" style={styles.planText}>
-                  {dailyPlan}
-                </Text>
-              </ScrollView>
-            </View>
-          </Card>
+        {/* Morning Check-In Complete (shows as compact badge if already done) */}
+        {morningCheckIn && (
+          <MorningCheckInComplete
+            energyLevel={morningCheckIn.energyLevel}
+            mood={morningCheckIn.mood}
+          />
         )}
+
+        {/* Brain Health Insight Strip */}
+        <BrainHealthInsightStrip />
+
+        {/* Next Best Action Card - Intelligent pillar-aware recommendation */}
+        <NextBestActionCard
+          wellnessScore={wellnessScore}
+          habits={habits}
+          tasks={tasks}
+          completedTodayHabits={completedToday}
+          fourThreeTwoOne={fourThreeTwoOneEntry}
+          lastJournalDate={lastJournalDate}
+          hasMorningCheckIn={!!morningCheckIn}
+          hasDailyPlan={!!dailyPlan}
+          onGeneratePlan={handleGenerateDailyPlan}
+          onMorningCheckIn={() => setShowMorningCheckIn(true)}
+        />
+
+        {/* AI Daily Plan Card - Collapsible */}
+        <View style={styles.aiPlanCard}>
+          <TouchableOpacity
+            style={styles.aiPlanHeader}
+            onPress={() => dailyPlan ? setIsPlanExpanded(!isPlanExpanded) : handleGenerateDailyPlan()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isPlanExpanded }}
+            accessibilityLabel={dailyPlan ? `Today's Plan. ${isPlanExpanded ? 'Tap to collapse' : 'Tap to expand'}` : "Generate today's plan"}
+          >
+            <View style={styles.aiPlanHeaderLeft}>
+              <View style={styles.aiPlanIconContainer}>
+                <Icon name="auto-fix" size={18} color={Colors.evergreenTeal} />
+              </View>
+              <View style={styles.aiPlanTitleContainer}>
+                <Text style={styles.aiPlanTitle}>Today's Plan</Text>
+                <Text style={styles.aiPlanSubtitle}>Personalized for your goals and habits</Text>
+              </View>
+            </View>
+            <View style={styles.aiPlanHeaderRight}>
+              <View style={styles.aiPlanStatusBadge}>
+                <Text style={styles.aiPlanStatusText}>
+                  {generatingPlan ? 'Creating...' : dailyPlan ? 'Ready' : 'Generate'}
+                </Text>
+              </View>
+              {dailyPlan && (
+                <Icon
+                  name={isPlanExpanded ? 'chevron-up' : 'chevron-right'}
+                  size={16}
+                  color={Colors.silverSage}
+                  style={styles.aiPlanChevron}
+                />
+              )}
+            </View>
+          </TouchableOpacity>
+
+          {/* Expanded Plan Content */}
+          {isPlanExpanded && dailyPlan && (
+            <View style={styles.aiPlanExpandedContent}>
+              <View style={styles.aiPlanDivider} />
+              <View style={styles.aiPlanContentContainer}>
+                <ScrollView
+                  nestedScrollEnabled={true}
+                  showsVerticalScrollIndicator={true}
+                  style={styles.aiPlanScroll}
+                >
+                  <Text style={styles.aiPlanText}>{dailyPlan}</Text>
+                </ScrollView>
+              </View>
+              <View style={styles.aiPlanActions}>
+                <TouchableOpacity style={styles.aiPlanActionButton}>
+                  <Text style={styles.aiPlanActionTextSecondary}>Adjust plan</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.aiPlanActionButton}
+                  onPress={handleGenerateDailyPlan}
+                  disabled={generatingPlan}
+                >
+                  <Text style={styles.aiPlanActionTextPrimary}>
+                    {generatingPlan ? 'Regenerating...' : 'Regenerate'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
 
         {/* Weekly Habits Tracker */}
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Weekly Habits
-            </Text>
-            <Text variant="bodySmall" style={styles.sectionCount}>
-              {habits.length}
-            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Track' as never, { tab: 'habits' } as never)}
+              style={styles.sectionTitleButton}
+              activeOpacity={0.7}
+            >
+              <Text variant="titleLarge" style={styles.sectionTitle}>
+                Weekly Habits
+              </Text>
+              <Icon name="chevron-right" size={20} color={Colors.evergreenTeal} />
+            </TouchableOpacity>
+            {habits.length > 0 && (
+              <View style={styles.habitCountBadge}>
+                <Text style={styles.habitCountText}>
+                  {habits.length} {habits.length === 1 ? 'habit' : 'habits'}
+                </Text>
+              </View>
+            )}
           </View>
 
           {habits.length === 0 ? (
-            <Text variant="bodyMedium" style={styles.emptyText}>
-              No active habits. Create one to get started!
-            </Text>
+            <View style={styles.emptyStateContainer}>
+              <Icon name="checkbox-marked-circle-outline" size={48} color={Colors.dewSage} />
+              <Text variant="bodyMedium" style={styles.emptyText}>
+                No active habits yet
+              </Text>
+              <Text variant="bodySmall" style={styles.emptySubtext}>
+                Small daily actions build lasting change
+              </Text>
+              <TouchableOpacity
+                style={styles.addHabitButton}
+                onPress={() => navigation.navigate('Track' as never, { tab: 'habits' } as never)}
+              >
+                <Text style={styles.addHabitButtonText}>Add Your First Habit</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <View>
               {/* Week Day Headers */}
@@ -656,7 +632,7 @@ const DashboardScreen: React.FC = () => {
               {/* Habit Rows */}
               {habits.slice(0, 5).map((habit) => {
                 const habitName = habit.name || (habit as any).title || 'Unnamed Habit';
-                const currentStreak = realStreaks[habit.id] || 0;
+                const habitCompletions = allCompletions[habit.id] || [];
 
                 return (
                   <View key={habit.id} style={styles.habitRow}>
@@ -664,9 +640,7 @@ const DashboardScreen: React.FC = () => {
                       <Text variant="bodyMedium" style={styles.habitRowName} numberOfLines={2}>
                         {habitName}
                       </Text>
-                      <Text variant="bodySmall" style={styles.habitRowStreak}>
-                        🔥 {currentStreak}
-                      </Text>
+                      <ConsistencyBadge completions={habitCompletions} daysToShow={30} />
                     </View>
                     {visibleDays.map((day) => {
                       const isCompleted = weeklyCompletions[habit.id]?.[day.date] || false;
@@ -697,10 +671,10 @@ const DashboardScreen: React.FC = () => {
                               <View style={[
                                 styles.checkbox,
                                 isCompleted && styles.checkboxCompleted,
-                                day.isToday && styles.checkboxToday,
+                                day.isToday && !isCompleted && styles.checkboxTodayUnchecked,
                               ]}>
                                 {isCompleted && (
-                                  <Text style={styles.checkmark}>✓</Text>
+                                  <Icon name="check" size={13} color={Colors.textOnPrimary} />
                                 )}
                               </View>
                             )}
@@ -718,7 +692,7 @@ const DashboardScreen: React.FC = () => {
             <Button
               variant="text"
               style={styles.viewAllButton}
-              onPress={() => navigation.navigate('Plan' as never, { tab: 'habits' } as never)}
+              onPress={() => navigation.navigate('Track' as never, { tab: 'habits' } as never)}
             >
               View All Habits →
             </Button>
@@ -726,155 +700,30 @@ const DashboardScreen: React.FC = () => {
         </Card>
 
         {/* 4-3-2-1 Daily Practice */}
-        <FourThreeTwoOneCard />
+        <FourThreeTwoOneCard onChange={handleFourThreeTwoOneChange} />
 
-        {/* Priority Tasks */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('Plan' as never, { tab: 'tasks' } as never)}
-        >
-          <Card style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                Priority Tasks
-              </Text>
-              <Text variant="bodySmall" style={styles.sectionCount}>
-                {tasks.length}
-              </Text>
-            </View>
 
-          {tasks.length === 0 ? (
-            <Text variant="bodyMedium" style={styles.emptyText}>
-              No pending tasks. You're all caught up!
-            </Text>
-          ) : (
-            <View style={styles.tasksList}>
-              {tasks.slice(0, 5).map((task) => (
-                <View key={task.id} style={styles.taskItem}>
-                  <View style={styles.taskInfo}>
-                    <Text variant="bodyLarge" style={styles.taskTitle}>
-                      {task.title}
-                    </Text>
-                    <View style={styles.taskMeta}>
-                      <PriorityBadge priority={task.priority} />
-                    </View>
-                  </View>
-                  <Button
-                    variant="outline"
-                    onPress={() => handleTaskCheck(task.id)}
-                    style={styles.checkButton}
-                  >
-                    ✓
-                  </Button>
-                </View>
-              ))}
-            </View>
-          )}
+        {/* Goals Card */}
+        <GoalsCard goals={goals} />
 
-          {tasks.length > 5 && (
-            <Button
-              variant="text"
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate('Plan' as never, { tab: 'tasks' } as never)}
-            >
-              View All Tasks →
-            </Button>
-          )}
-          </Card>
-        </TouchableOpacity>
+        {/* Tasks Card */}
+        <TasksCard tasks={tasks} />
 
-        {/* Goals Progress */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('Plan' as never, { tab: 'goals' } as never)}
-        >
-          <Card style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                Goals Progress
-              </Text>
-              <Text variant="bodySmall" style={styles.sectionCount}>
-                {completedGoals}/{goals.length} completed
-              </Text>
-            </View>
+        {/* Quick Action Buttons */}
+        <QuickActionButtons />
 
-          {goals.length === 0 ? (
-            <Text variant="bodyMedium" style={styles.emptyText}>
-              No goals yet. Set a goal to start your journey!
-            </Text>
-          ) : (
-            <View style={styles.goalsList}>
-              {goals.slice(0, 3).map((goal) => (
-                <View key={goal.id} style={styles.goalItem}>
-                  <Text variant="bodyMedium" style={styles.goalTitle}>
-                    {goal.title}
-                  </Text>
-                  <ProgressBar progress={goal.progress} />
-                </View>
-              ))}
-            </View>
-          )}
-
-          {goals.length > 3 && (
-            <Button
-              variant="text"
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate('Plan' as never, { tab: 'goals' } as never)}
-            >
-              View All Goals →
-            </Button>
-          )}
-          </Card>
-        </TouchableOpacity>
-
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <Button
-            variant="primary"
-            fullWidth
-            style={styles.actionButton}
-            onPress={handleGenerateDailyPlan}
-            disabled={generatingPlan || !!dailyPlan}
-          >
-            {generatingPlan ? 'Generating...' : dailyPlan ? '✓ Plan Generated' : 'Generate Daily Plan with AI'}
-          </Button>
-          <Button
-            variant="outline"
-            fullWidth
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Journal' as never)}
-          >
-            Add Journal Entry
-          </Button>
-        </View>
-          </View>
-        )}
-
-        {/* Brain Health Tab Content */}
-        {activeTab === 'brain' && (
-          <View style={styles.brainHealthTab}>
-            <Text variant="headlineSmall" style={styles.brainHealthTitle}>
-              Brain Health Dashboard
-            </Text>
-            <Text variant="bodyMedium" style={styles.brainHealthSubtitle}>
-              Track your cognitive wellness and build brain-healthy habits
-            </Text>
-
-            {/* Brain Health Widgets */}
-            <BrainReadinessWidget />
-            <FocusWindowIndicator />
-            <NeuroplasticityTracker />
-            <AMCCChallengeCard />
-            <NervousSystemToolsWidget />
-            <WeeklyBrainMetricsChart />
-          </View>
-        )}
+        {/* Brain Health Education Card */}
+        <BrainHealthEducationCard />
       </ScrollView>
 
-      {/* Brain Pillar Info Modal */}
-      <BrainPillarInfoModal
-        visible={pillarInfoVisible}
-        onDismiss={() => setPillarInfoVisible(false)}
+      {/* Wellness Score Breakdown Modal */}
+      <WellnessScoreBreakdown
+        visible={showScoreBreakdown}
+        onClose={() => setShowScoreBreakdown(false)}
+        score={wellnessScore}
+        onNavigate={(route) => {
+          navigation.navigate(route as never);
+        }}
       />
     </SafeAreaView>
   );
@@ -886,7 +735,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.default,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.lg,
   },
   header: {
@@ -907,15 +756,12 @@ const styles = StyleSheet.create({
   greeting: {
     color: Colors.evergreenTeal,
     marginBottom: Spacing.xs,
-    fontWeight: Typography.fontWeight.bold,
+    fontWeight: Typography.fontWeight.semibold,
+    fontSize: 26,
   },
-  subtitle: {
+  dateText: {
     color: Colors.textSecondary,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
+    fontSize: Typography.fontSize.sm,
   },
   sectionCard: {
     marginBottom: Spacing.lg,
@@ -924,11 +770,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   sectionTitle: {
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.semibold,
+  },
+  sectionTitleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sectionCount: {
     color: Colors.textSecondary,
@@ -937,11 +787,60 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Layout.borderRadius.lg,
   },
+  emptyStateContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
   emptyText: {
     color: Colors.textSecondary,
-    fontStyle: 'italic',
     textAlign: 'center',
-    paddingVertical: Spacing.lg,
+    marginTop: Spacing.sm,
+    fontSize: Typography.fontSize.base,
+  },
+  emptySubtext: {
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+    fontSize: Typography.fontSize.sm,
+  },
+  addHabitButton: {
+    marginTop: Spacing.base,
+    backgroundColor: Colors.evergreenTeal,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
+  },
+  addHabitButtonText: {
+    color: '#FFFFFF',
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  habitCountBadge: {
+    backgroundColor: `${Colors.dewSage}80`, // 50% opacity
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  habitCountText: {
+    color: Colors.mutedSageGray || '#6F7F77',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${Colors.sunriseAmber}1F`, // 12% opacity
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 3,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  streakBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#C4960A',
   },
   // Weekly Habit Tracker Styles
   weekHeader: {
@@ -1010,11 +909,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontWeight: Typography.fontWeight.medium,
     fontSize: Typography.fontSize.sm,
-    marginBottom: 2,
-  },
-  habitRowStreak: {
-    color: Colors.sunriseAmber,
-    fontSize: Typography.fontSize.xs,
   },
   // Touch target wrapper - provides good touch area while fitting in column
   checkboxTouchTarget: {
@@ -1024,11 +918,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkbox: {
-    width: 28,
-    height: 28,
+    width: 26,
+    height: 26,
     borderRadius: Layout.borderRadius.full,
-    borderWidth: Layout.borderWidth.medium,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.surface,
@@ -1037,14 +931,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.evergreenTeal,
     borderColor: Colors.evergreenTeal,
   },
-  checkboxToday: {
+  checkboxTodayUnchecked: {
     borderColor: Colors.evergreenTeal,
-    borderWidth: Layout.borderWidth.thick,
-  },
-  checkmark: {
-    color: Colors.textOnPrimary,
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
+    borderWidth: 1.5,
+    backgroundColor: `${Colors.dewSage}40`, // 25% opacity
   },
   checkboxLoading: {
     width: 32,
@@ -1056,148 +946,113 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: Typography.fontSize.lg,
   },
-  tasksList: {
-    marginBottom: Spacing.sm,
-  },
-  taskItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: Colors.borderLight,
-  },
-  taskInfo: {
-    flex: 1,
-  },
-  taskTitle: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  taskMeta: {
-    flexDirection: 'row',
-  },
-  goalsList: {
-    marginBottom: Spacing.sm,
-  },
-  goalItem: {
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: Colors.borderLight,
-  },
-  goalTitle: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
   viewAllButton: {
     marginTop: Spacing.sm,
   },
-  quickActions: {
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  actionButton: {
-    marginBottom: Spacing.sm,
-  },
-  planScrollContainer: {
-    maxHeight: 200,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.dewSage,
-    borderRadius: Layout.borderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    padding: Spacing.md,
-  },
-  planText: {
-    color: Colors.textPrimary,
-    fontSize: Typography.fontSize.base,
-    lineHeight: Typography.fontSize.base * 1.6,
-  },
-  wellnessSummaryCard: {
+  // AI Daily Plan Card styles
+  aiPlanCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 18,
     marginBottom: Spacing.lg,
-    backgroundColor: Colors.dewSage,
+    shadowColor: 'rgba(0,0,0,0.04)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  wellnessSummaryHeader: {
+  aiPlanHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
   },
-  wellnessSummaryTitle: {
-    color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.semibold,
+  aiPlanHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
-  infoButton: {
-    margin: 0,
+  aiPlanIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: `${Colors.evergreenTeal}14`, // 8% opacity
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.sm,
   },
-  wellnessSummarySubtitle: {
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
+  aiPlanTitleContainer: {
+    flex: 1,
   },
-  wellnessActivityTypes: {
-    color: Colors.evergreenTeal,
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.md,
+  aiPlanTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
   },
-  wellnessPillarsRow: {
+  aiPlanSubtitle: {
+    fontSize: 12,
+    color: Colors.mutedSageGray || '#6F7F77',
+    marginTop: 2,
+  },
+  aiPlanHeaderRight: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  wellnessPillarItem: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: Spacing.xs / 2,
-  },
-  wellnessPillarCount: {
-    color: Colors.textSecondary,
-    fontSize: Typography.fontSize.xs,
-  },
-  learnMoreButton: {
-    paddingVertical: Spacing.xs,
     alignItems: 'center',
   },
-  learnMoreText: {
+  aiPlanStatusBadge: {
+    backgroundColor: `${Colors.dewSage}80`, // 50% opacity
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  aiPlanStatusText: {
+    fontSize: 11,
+    fontWeight: '500',
     color: Colors.evergreenTeal,
-    fontSize: Typography.fontSize.sm,
-    textDecorationLine: 'underline',
   },
-  tabContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+  aiPlanChevron: {
+    marginLeft: 4,
   },
-  segmentedButtons: {
-    backgroundColor: Colors.surface,
+  aiPlanExpandedContent: {
+    marginTop: 14,
   },
-  brainHealthTab: {
-    paddingHorizontal: Spacing.lg,
+  aiPlanDivider: {
+    height: 1,
+    backgroundColor: `${Colors.dewSage}80`, // 50% opacity
+    marginBottom: 14,
   },
-  brainHealthTitle: {
-    color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.xs,
+  aiPlanContentContainer: {
+    backgroundColor: `${Colors.dewSage}40`, // 25% opacity
+    borderRadius: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.evergreenTeal,
+    padding: 14,
   },
-  brainHealthSubtitle: {
-    color: Colors.textSecondary,
-    marginBottom: Spacing.lg,
+  aiPlanScroll: {
+    maxHeight: 200,
   },
-  comingSoonCard: {
-    backgroundColor: Colors.dewSage,
-    padding: Spacing.lg,
-    marginTop: Spacing.md,
-  },
-  comingSoonTitle: {
-    color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  comingSoonText: {
+  aiPlanText: {
+    fontSize: 14,
     color: Colors.textPrimary,
-    lineHeight: Typography.fontSize.base * 1.8,
+    lineHeight: 14 * 1.5,
+  },
+  aiPlanActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    gap: Spacing.base,
+  },
+  aiPlanActionButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  aiPlanActionTextPrimary: {
+    fontSize: 13,
+    color: Colors.evergreenTeal,
+    fontWeight: '500',
+  },
+  aiPlanActionTextSecondary: {
+    fontSize: 13,
+    color: Colors.mutedSageGray || '#6F7F77',
+    fontWeight: '500',
   },
 });
 

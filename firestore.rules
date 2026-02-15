@@ -153,11 +153,30 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // ========== VARA WELLNESS SCORE ==========
+
+    // Daily Wellness Scores (calculated composite scores)
+    match /dailyWellnessScores/{scoreId} {
+      // Allow read if document doesn't exist (for checking before create) OR if user owns it
+      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Morning Check-Ins (quick subjective inputs)
+    match /morningCheckIns/{checkInId} {
+      // Allow read if document doesn't exist (for checking before create) OR if user owns it
+      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
     // ========== BRAIN HEALTH COLLECTIONS ==========
 
     // Brain Metrics (daily readiness scores and check-ins)
     match /brainMetrics/{metricId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      // Allow read if document doesn't exist (for checking before create) OR if user owns it
+      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
       allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
@@ -261,10 +280,15 @@ service cloud.firestore {
            request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.members)
         );
 
-      // Update: only post author (support both userId and authorId fields)
+      // Update: post author can update anything, any authenticated user can like/comment
       allow update: if isAuthenticated() && (
+        // Author can update anything
         request.auth.uid == resource.data.userId ||
-        request.auth.uid == resource.data.authorId
+        request.auth.uid == resource.data.authorId ||
+        // Any authenticated user can update likes, comments, and updatedAt
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments', 'likesCount', 'commentsCount', 'updatedAt'])
+        )
       );
 
       // Delete: post author or group owner (if group post)
@@ -274,6 +298,120 @@ service cloud.firestore {
         (resource.data.groupId &&
          exists(/databases/$(database)/documents/groups/$(resource.data.groupId)) &&
          request.auth.uid == get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.ownerId)
+      );
+    }
+
+    // ========== CHALLENGES ==========
+
+    // Challenges (time-limited group challenges)
+    match /challenges/{challengeId} {
+      // Read: public challenges by anyone, private challenges only by members
+      allow read: if isAuthenticated() && (
+        resource.data.visibility == 'public' ||
+        request.auth.uid in resource.data.members
+      );
+
+      // Create: any authenticated user can create a challenge
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.ownerId;
+
+      // Update: owner, members, or users joining/leaving public challenges
+      allow update: if isAuthenticated() && (
+        // Owner can update anything
+        request.auth.uid == resource.data.ownerId ||
+        // Members can update (for check-ins, leaving, etc.)
+        request.auth.uid in resource.data.members ||
+        // Allow joining public challenges (non-members adding themselves)
+        (
+          resource.data.visibility == 'public' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberCount', 'updatedAt', 'lastActivityAt'])
+        )
+      );
+
+      // Delete: only challenge owner
+      allow delete: if isAuthenticated() &&
+        request.auth.uid == resource.data.ownerId;
+    }
+
+    // Challenge Participants (leaderboard and progress tracking)
+    match /challengeParticipants/{participantId} {
+      // Read: any authenticated user can see participants (for leaderboard)
+      allow read: if isAuthenticated();
+
+      // Create: user can create their own participant record
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.userId;
+
+      // Update: user can update their own record (for stats)
+      allow update: if isAuthenticated() &&
+        request.auth.uid == resource.data.userId;
+
+      // Delete: user can delete their own record (when leaving)
+      allow delete: if isAuthenticated() &&
+        request.auth.uid == resource.data.userId;
+    }
+
+    // Challenge Check-ins (daily/weekly progress)
+    match /challengeCheckIns/{checkInId} {
+      // Read: authenticated users can read check-ins (for activity feed)
+      allow read: if isAuthenticated();
+
+      // Create: user can create their own check-ins
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.userId;
+
+      // Update/Delete: users cannot modify check-ins (immutable)
+      allow update, delete: if false;
+    }
+
+    // ========== GROUP & CHALLENGE INVITES ==========
+
+    // Group Invites
+    match /groupInvites/{inviteId} {
+      // Read: inviter or invitee can read
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.inviterId ||
+        request.auth.uid == resource.data.inviteeId
+      );
+
+      // Create: inviter must be the authenticated user, and must have permission to invite
+      // Permission check happens in the service layer since Firestore rules can't do complex lookups
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.inviterId;
+
+      // Update: only invitee can update (to accept/decline)
+      allow update: if isAuthenticated() &&
+        request.auth.uid == resource.data.inviteeId &&
+        request.resource.data.status in ['accepted', 'declined'];
+
+      // Delete: inviter can cancel, invitee can remove declined invites
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.inviterId ||
+        request.auth.uid == resource.data.inviteeId
+      );
+    }
+
+    // Challenge Invites
+    match /challengeInvites/{inviteId} {
+      // Read: inviter or invitee can read
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.inviterId ||
+        request.auth.uid == resource.data.inviteeId
+      );
+
+      // Create: inviter must be the authenticated user
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.inviterId;
+
+      // Update: only invitee can update (to accept/decline)
+      allow update: if isAuthenticated() &&
+        request.auth.uid == resource.data.inviteeId &&
+        request.resource.data.status in ['accepted', 'declined'];
+
+      // Delete: inviter can cancel, invitee can remove
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.inviterId ||
+        request.auth.uid == resource.data.inviteeId
       );
     }
 
@@ -405,6 +543,12 @@ service cloud.firestore {
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.recipientId
       );
+    }
+
+    // Notification Preferences (document ID is userId)
+    match /notificationPreferences/{userId} {
+      // Users can only read/write their own notification preferences
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
 
     // ========== SHARED CONTENT ==========

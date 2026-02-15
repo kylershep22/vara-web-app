@@ -32,11 +32,17 @@ const BODY_FUEL_OPTIONS: { value: BodyFuelOption; label: string; icon: string }[
   { value: 'other', label: 'Other', icon: 'dots-horizontal' },
 ];
 
-export const FourThreeTwoOneCard: React.FC = () => {
+interface FourThreeTwoOneCardProps {
+  /** Called when any part of the 4-3-2-1 practice is updated */
+  onChange?: (entry: FourThreeTwoOneEntry) => void;
+}
+
+export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChange }) => {
   const { user } = useAuth();
   const [entry, setEntry] = useState<FourThreeTwoOneEntry | null>(null);
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Modal states
   const [winsModalVisible, setWinsModalVisible] = useState(false);
@@ -53,7 +59,7 @@ export const FourThreeTwoOneCard: React.FC = () => {
     loadData();
   }, [user]);
 
-  const loadData = async () => {
+  const loadData = async (notifyParent = false) => {
     if (!user) return;
 
     try {
@@ -70,6 +76,11 @@ export const FourThreeTwoOneCard: React.FC = () => {
         setWin2(todayEntry.threeWins.wins?.[1] || '');
         setWin3(todayEntry.threeWins.wins?.[2] || '');
         setSelectedFuelOptions(todayEntry.twoFuel.options || []);
+
+        // Notify parent of changes (for wellness score recalculation)
+        if (notifyParent && onChange) {
+          onChange(todayEntry);
+        }
       }
     } catch (error) {
       console.error('Error loading 4-3-2-1 data:', error);
@@ -83,7 +94,7 @@ export const FourThreeTwoOneCard: React.FC = () => {
 
     try {
       await toggleFourMinutes(user.uid);
-      await loadData();
+      await loadData(true); // Notify parent to refresh wellness score
     } catch (error) {
       console.error('Error toggling 4 minutes:', error);
     }
@@ -96,7 +107,7 @@ export const FourThreeTwoOneCard: React.FC = () => {
       const wins = [win1, win2, win3].filter(w => w.trim().length > 0);
       await updateThreeWins(user.uid, true, wins.length > 0 ? wins : undefined);
       setWinsModalVisible(false);
-      await loadData();
+      await loadData(true); // Notify parent to refresh wellness score
     } catch (error) {
       console.error('Error saving wins:', error);
     }
@@ -108,7 +119,7 @@ export const FourThreeTwoOneCard: React.FC = () => {
     try {
       await updateThreeWins(user.uid, true);
       setWinsModalVisible(false);
-      await loadData();
+      await loadData(true); // Notify parent to refresh wellness score
     } catch (error) {
       console.error('Error marking wins:', error);
     }
@@ -120,7 +131,7 @@ export const FourThreeTwoOneCard: React.FC = () => {
     try {
       await updateTwoFuel(user.uid, true, selectedFuelOptions);
       setFuelModalVisible(false);
-      await loadData();
+      await loadData(true); // Notify parent to refresh wellness score
     } catch (error) {
       console.error('Error saving fuel:', error);
     }
@@ -141,7 +152,7 @@ export const FourThreeTwoOneCard: React.FC = () => {
 
     try {
       await toggleOneConnection(user.uid);
-      await loadData();
+      await loadData(true); // Notify parent to refresh wellness score
     } catch (error) {
       console.error('Error toggling connection:', error);
     }
@@ -168,36 +179,46 @@ export const FourThreeTwoOneCard: React.FC = () => {
   return (
     <>
       <Card style={styles.card}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text variant="titleLarge" style={styles.title}>
-              4-3-2-1 Daily Practice
-            </Text>
-            {streak > 0 && (
-              <View style={styles.streakBadge}>
-                <Icon name="fire" size={14} color={Colors.sunriseAmber} />
-                <Text variant="bodySmall" style={styles.streakText}>
-                  {streak} day{streak !== 1 ? 's' : ''}
+        {/* Collapsible Header */}
+        <TouchableOpacity
+          style={styles.collapsibleHeader}
+          onPress={() => setIsExpanded(!isExpanded)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isExpanded }}
+          accessibilityLabel={`4-3-2-1 Daily Practice. ${completionCount} of 4 complete. ${isExpanded ? 'Tap to collapse' : 'Tap to expand'}`}
+        >
+          <View style={styles.headerContent}>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.title}>4-3-2-1 Daily Practice</Text>
+              <Text style={styles.subtitle}>A gentle daily check-in</Text>
+            </View>
+            <View style={styles.headerRight}>
+              <Text style={styles.progressText}>{completionCount}/4</Text>
+              <Icon
+                name={isExpanded ? 'chevron-up' : 'chevron-right'}
+                size={16}
+                color={Colors.silverSage}
+                style={styles.chevron}
+              />
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Expanded Content */}
+        {isExpanded && (
+          <View style={styles.expandedContent}>
+            {allCompleted && (
+              <View style={styles.completionBanner}>
+                <Icon name="check-circle" size={20} color={Colors.success} />
+                <Text variant="bodyMedium" style={styles.completionText}>
+                  Amazing! You completed today's practice
                 </Text>
               </View>
             )}
-          </View>
-          <Text variant="bodySmall" style={styles.progress}>
-            {completionCount}/4
-          </Text>
-        </View>
 
-        {allCompleted && (
-          <View style={styles.completionBanner}>
-            <Icon name="check-circle" size={20} color={Colors.success} />
-            <Text variant="bodyMedium" style={styles.completionText}>
-              Amazing! You completed today's practice
-            </Text>
-          </View>
-        )}
-
-        {/* 4 Minutes */}
-        <TouchableOpacity
+            {/* 4 Minutes */}
+            <TouchableOpacity
           style={[styles.item, entry.fourMinutes && styles.itemCompleted]}
           onPress={handleFourMinutesToggle}
           activeOpacity={0.7}
@@ -308,6 +329,8 @@ export const FourThreeTwoOneCard: React.FC = () => {
             <Icon name="check-circle" size={20} color={Colors.success} style={styles.completionIcon} />
           )}
         </TouchableOpacity>
+          </View>
+        )}
       </Card>
 
       {/* 3 Wins Modal */}
@@ -450,29 +473,54 @@ export const FourThreeTwoOneCard: React.FC = () => {
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: Spacing.md,
-    padding: Spacing.lg,
-    backgroundColor: Colors.background.card,
-    borderRadius: Layout.borderRadius.lg,
+    marginBottom: Spacing.base,
+    padding: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
   },
   loadingContainer: {
     padding: Spacing.lg,
     alignItems: 'center',
   },
-  header: {
+  collapsibleHeader: {
+    // Touchable header
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
   },
-  headerLeft: {
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
   },
   title: {
-    fontWeight: Typography.fontWeight.bold,
+    fontSize: 16,
+    fontWeight: '600',
     color: Colors.textPrimary,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: Colors.mutedSageGray || '#6F7F77',
+    marginTop: 2,
+  },
+  progressText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.mutedSageGray || '#6F7F77',
+    marginRight: 4,
+  },
+  chevron: {
+    marginLeft: 2,
+  },
+  expandedContent: {
+    marginTop: Spacing.base,
+    paddingTop: Spacing.base,
+    borderTopWidth: 1,
+    borderTopColor: `${Colors.dewSage}80`,
   },
   streakBadge: {
     flexDirection: 'row',
@@ -487,18 +535,13 @@ const styles = StyleSheet.create({
     color: Colors.sunriseAmber,
     fontWeight: Typography.fontWeight.semibold,
   },
-  progress: {
-    color: Colors.textSecondary,
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-  },
   completionBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.success + '15',
     padding: Spacing.sm,
     borderRadius: Layout.borderRadius.md,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     gap: Spacing.xs,
   },
   completionText: {
@@ -509,7 +552,7 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     paddingHorizontal: Spacing.sm,
     marginBottom: Spacing.sm,
     backgroundColor: Colors.background.surface,
@@ -557,7 +600,7 @@ const styles = StyleSheet.create({
   },
   winsScrollView: {
     maxHeight: 250,
-    marginVertical: Spacing.md,
+    marginVertical: Spacing.base,
   },
   winsScrollContent: {
     paddingBottom: Spacing.sm,
@@ -578,13 +621,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   input: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     backgroundColor: Colors.background.card,
   },
   modalActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
   },
   modalButton: {
     flex: 1,
@@ -593,7 +636,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-    marginVertical: Spacing.md,
+    marginVertical: Spacing.base,
   },
   optionChip: {
     marginBottom: Spacing.xs,

@@ -9,6 +9,7 @@ import { Text, Portal, Modal, Button as PaperButton } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Card } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { useBrainHealthVocabulary } from '../../hooks';
 import { db } from '../../config/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
@@ -17,10 +18,16 @@ type ToolType = 'physiological-sigh' | 'panoramic-vision' | null;
 
 export const NervousSystemToolsWidget: React.FC = () => {
   const { user } = useAuth();
+  const { getComponentText } = useBrainHealthVocabulary();
   const [activeTool, setActiveTool] = useState<ToolType>(null);
   const [weeklyCount, setWeeklyCount] = useState(0);
   const [timer, setTimer] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+
+  // Get translated text
+  const { title: componentTitle, description: componentDescription } = getComponentText('nervousSystem');
+  const { title: physiologicalSighTitle } = getComponentText('physiologicalSigh');
+  const { title: panoramicVisionTitle } = getComponentText('panoramicVision');
 
   // Breathing animation values
   const breathScale = new Animated.Value(1);
@@ -157,7 +164,7 @@ export const NervousSystemToolsWidget: React.FC = () => {
             <Icon name="meditation" size={24} color={Colors.evergreenTeal} />
             <View>
               <Text variant="titleMedium" style={styles.title}>
-                Nervous System Tools
+                {componentTitle}
               </Text>
               <Text variant="bodySmall" style={styles.subtitle}>
                 {weeklyCount} sessions this week
@@ -167,7 +174,7 @@ export const NervousSystemToolsWidget: React.FC = () => {
         </View>
 
         <Text variant="bodySmall" style={styles.description}>
-          Quick tools to regulate your nervous system and reduce stress in real-time.
+          {componentDescription}
         </Text>
 
         {/* Tool Buttons */}
@@ -181,7 +188,7 @@ export const NervousSystemToolsWidget: React.FC = () => {
               <Icon name="lung" size={32} color={Colors.evergreenTeal} />
             </View>
             <Text variant="labelMedium" style={styles.toolLabel}>
-              Physiological{'\n'}Sigh
+              {physiologicalSighTitle.replace(' ', '\n')}
             </Text>
             <Text variant="bodySmall" style={styles.toolDuration}>
               60s
@@ -197,7 +204,7 @@ export const NervousSystemToolsWidget: React.FC = () => {
               <Icon name="eye-outline" size={32} color={Colors.evergreenTeal} />
             </View>
             <Text variant="labelMedium" style={styles.toolLabel}>
-              Panoramic{'\n'}Vision
+              {panoramicVisionTitle.replace(' ', '\n')}
             </Text>
             <Text variant="bodySmall" style={styles.toolDuration}>
               60s
@@ -303,7 +310,7 @@ export const NervousSystemToolsWidget: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   header: {
     flexDirection: 'row',
@@ -326,18 +333,18 @@ const styles = StyleSheet.create({
   },
   description: {
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     lineHeight: Typography.fontSize.sm * 1.5,
   },
   toolsRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.base,
   },
   toolButton: {
     flex: 1,
     backgroundColor: Colors.dewSage,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.base,
     alignItems: 'center',
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.evergreenTeal + '40',
@@ -403,7 +410,7 @@ const styles = StyleSheet.create({
   timerText: {
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   instructionText: {
     color: Colors.textSecondary,

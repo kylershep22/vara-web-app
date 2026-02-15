@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: Colors.evergreenTeal,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     textAlign: 'center',
   },
   subtitle: {
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     color: Colors.evergreenTeal,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     fontWeight: Typography.fontWeight.semibold,
   },
   infoText: {
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   button: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
   },
 });
 

@@ -211,7 +211,7 @@ export const AIBrainInsightCard: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     backgroundColor: Colors.dewSage,
   },
   header: {
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.md,
+    padding: Spacing.base,
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.md,
   },
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   insightContainer: {
-    padding: Spacing.md,
+    padding: Spacing.base,
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.md,
     borderLeftWidth: 4,

@@ -199,7 +199,7 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   scrollView: {
     flex: 1,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.base,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     marginLeft: -Spacing.xs,
   },
   headerTitle: {
-    color: Colors.textPrimary,
+    color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.bold,
   },
   headerSubtitle: {
@@ -233,8 +233,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   featuredSection: {
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.base,
   },
   featuredCard: {
     backgroundColor: Colors.surface,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   featuredTitle: {
     color: Colors.textPrimary,
     fontWeight: Typography.fontWeight.bold,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     textAlign: 'center',
   },
   featuredText: {
@@ -255,17 +255,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   categoriesGrid: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: Spacing.base,
     marginTop: Spacing.sm,
   },
   categoryCard: {
     width: '47%',
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.base,
     borderWidth: 2,
     ...Layout.shadow.sm,
     minHeight: 160,
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   quickLinksList: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     gap: Spacing.sm,
   },
   quickLink: {
@@ -304,9 +304,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.base,
     ...Layout.shadow.sm,
-    gap: Spacing.md,
+    gap: Spacing.base,
   },
   quickLinkContent: {
     flex: 1,

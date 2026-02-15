@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   content: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
   },

@@ -29,10 +29,13 @@ export const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, style })
     }
   };
 
+  // Capitalize first letter for sentence case
+  const displayText = priority.charAt(0).toUpperCase() + priority.slice(1);
+
   return (
     <View style={[styles.badge, getBadgeStyle(), style]}>
       <Text variant="bodySmall" style={styles.text}>
-        {priority}
+        {displayText}
       </Text>
     </View>
   );
@@ -40,22 +43,29 @@ export const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, style })
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    // Tag padding per UI standards: xs (4px) horizontal, 2px vertical
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing['2xs'],
+    // radius-sm (4px) for tags per UI standards
     borderRadius: Layout.borderRadius.sm,
   },
   high: {
+    // Soft coral tint - non-alarming
     backgroundColor: Colors.priority.high,
   },
   medium: {
+    // Soft amber tint
     backgroundColor: Colors.priority.medium,
   },
   low: {
+    // Soft teal tint
     backgroundColor: Colors.priority.low,
   },
   text: {
-    fontSize: Typography.fontSize.xs - 2,
-    fontWeight: Typography.fontWeight.semibold,
-    textTransform: 'uppercase',
+    // Caption/Label: 12px, Medium (500)
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+    // Note: No uppercase per UI standards (sentence case only)
   },
 });

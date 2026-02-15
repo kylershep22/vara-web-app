@@ -3,16 +3,17 @@
  * Manage user goals with progress tracking
  */
 
-import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, FAB, Portal, Modal, Button as PaperButton, SegmentedButtons, Menu } from 'react-native-paper';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
+import { Text, FAB, SegmentedButtons, Menu } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card, LoadingSpinner, ProgressBar, BrainPillarBadge } from '../components';
-import { Colors, Spacing, Typography, Layout } from '../constants';
+import { useNavigation } from '@react-navigation/native';
+import { Button, Input, Card, LoadingSpinner, ProgressBar, BrainPillarBadge, SwipeableGoalCard, ProgressUpdateModal, GoalMilestoneCheckmark, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton, LockedScreenOverlay } from '../components';
+import { Colors, Spacing, Typography, Layout, getSuggestedMilestones, templatesToMilestones } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { useGoals } from '../hooks';
-import { createGoal, updateGoal, deleteGoal, updateGoalProgress } from '../services/firebase';
-import { Goal, BrainPillar } from '../types';
+import { createGoal, updateGoal, deleteGoal, updateGoalProgress, updateGoalProgressWithMilestones } from '../services/firebase';
+import { Goal, BrainPillar, Milestone } from '../types';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 // Focus Area options with suggested brain health pillars
@@ -60,12 +61,28 @@ const TIMEFRAME_OPTIONS = [
 
 interface GoalsScreenProps {
   hideHeader?: boolean;
+  /** Filter passed from parent (PlanScreen) */
+  externalFilter?: string;
+  /** Show inline create button instead of FAB */
+  showInlineCreate?: boolean;
 }
 
-const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
+const GoalsScreen: React.FC<GoalsScreenProps> = ({
+  hideHeader = false,
+  externalFilter,
+  showInlineCreate = false,
+}) => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const { goals, loading, error: goalsError } = useGoals();
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState(externalFilter || 'all');
+
+  // Sync filter with external filter from PlanScreen
+  useEffect(() => {
+    if (externalFilter) {
+      setFilter(externalFilter);
+    }
+  }, [externalFilter]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [formData, setFormData] = useState({
@@ -78,6 +95,16 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
   const [submitting, setSubmitting] = useState(false);
   const [focusMenuVisible, setFocusMenuVisible] = useState(false);
   const [timeframeMenuVisible, setTimeframeMenuVisible] = useState(false);
+
+  // State for swipeable cards and progress modal
+  const [revealedCardId, setRevealedCardId] = useState<string | null>(null);
+  const [progressModalVisible, setProgressModalVisible] = useState(false);
+  const [progressModalGoal, setProgressModalGoal] = useState<Goal | null>(null);
+
+  // State for milestone celebration
+  const [celebrationVisible, setCelebrationVisible] = useState(false);
+  const [celebrationMessage, setCelebrationMessage] = useState('');
+  const [celebrationSubMessage, setCelebrationSubMessage] = useState('');
 
   // Filter goals
   const filteredGoals = goals.filter((goal) => {
@@ -141,9 +168,14 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
       if (editingGoal) {
         await updateGoal(editingGoal.id, formData);
       } else {
+        // Generate milestones based on focus area and timeframe
+        const milestoneTemplates = getSuggestedMilestones(formData.primaryFocus, formData.timeframe);
+        const milestones = templatesToMilestones(milestoneTemplates);
+
         await createGoal(user!.uid, {
           ...formData,
           status: 'active',
+          milestones,
         });
       }
       setModalVisible(false);
@@ -194,6 +226,60 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
     }
   };
 
+  // Handlers for swipeable card interactions
+  const handleRevealChange = useCallback((goalId: string, revealed: boolean) => {
+    setRevealedCardId(revealed ? goalId : null);
+  }, []);
+
+  const handleQuickProgressUpdate = useCallback(async (goalId: string, increment: number) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    const newProgress = Math.min(100, goal.progress + increment);
+
+    try {
+      const result = await updateGoalProgressWithMilestones(goalId, newProgress);
+
+      // Show milestone celebration if any were completed
+      if (result.completedMilestones && result.completedMilestones.length > 0) {
+        const milestone = result.completedMilestones[0];
+        setCelebrationMessage('Milestone Reached!');
+        setCelebrationSubMessage(milestone.title);
+        setCelebrationVisible(true);
+      }
+
+      // Auto-complete if progress reaches 100%
+      if (newProgress >= 100) {
+        await updateGoal(goalId, { status: 'completed' });
+      }
+    } catch (error) {
+      console.error('Error updating progress:', error);
+      Alert.alert('Error', 'Failed to update progress');
+    }
+  }, [goals]);
+
+  const handleMoreOptions = useCallback((goal: Goal) => {
+    setProgressModalGoal(goal);
+    setProgressModalVisible(true);
+  }, []);
+
+  const handleProgressModalUpdate = useCallback(async (goalId: string, newProgress: number, note?: string): Promise<Milestone[]> => {
+    const result = await updateGoalProgressWithMilestones(goalId, newProgress, note);
+    return result.completedMilestones || [];
+  }, []);
+
+  const handleGoalComplete = useCallback((goal: Goal) => {
+    setCelebrationMessage('Goal Complete!');
+    setCelebrationSubMessage(goal.title);
+    setCelebrationVisible(true);
+  }, []);
+
+  const handleCelebrationComplete = useCallback(() => {
+    setCelebrationVisible(false);
+    setCelebrationMessage('');
+    setCelebrationSubMessage('');
+  }, []);
+
   const handleCompleteGoal = (goalId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'completed' ? 'active' : 'completed';
     const actionText = newStatus === 'completed' ? 'Mark as Complete' : 'Mark as Active';
@@ -223,89 +309,14 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
   };
 
   const renderGoalItem = ({ item }: { item: Goal }) => (
-    <Card style={styles.goalCard}>
-      <TouchableOpacity onPress={() => handleEditGoal(item)}>
-        <View style={styles.goalHeader}>
-          <View style={styles.goalTitleContainer}>
-            <Text variant="titleMedium" style={styles.goalTitle}>
-              {item.title}
-            </Text>
-            <View style={styles.goalMeta}>
-              <Text variant="bodySmall" style={styles.goalFocus}>
-                {item.primaryFocus}
-              </Text>
-              {item.timeframe && (
-                <Text variant="bodySmall" style={styles.goalTimeframe}>
-                  • {item.timeframe}
-                </Text>
-              )}
-            </View>
-
-            {/* Brain Health Pillars - Display if any pillars selected */}
-            {item.brainPillars && item.brainPillars.length > 0 && (
-              <View style={styles.pillarsDisplay}>
-                {item.brainPillars.map((pillar) => (
-                  <BrainPillarBadge key={pillar} pillar={pillar} style={styles.pillarBadge} />
-                ))}
-              </View>
-            )}
-          </View>
-          <View
-            style={[
-              styles.statusBadge,
-              item.status === 'completed' && styles.statusCompleted,
-              item.status === 'paused' && styles.statusPaused,
-            ]}
-          >
-            <Text variant="bodySmall" style={styles.statusText}>
-              {item.status}
-            </Text>
-          </View>
-        </View>
-
-        {/* Progress Bar */}
-        <ProgressBar progress={item.progress} style={styles.progressContainer} />
-
-        {/* Progress Controls */}
-        {item.status === 'active' && (
-          <View style={styles.progressControls}>
-            <TouchableOpacity
-              onPress={() => handleUpdateProgress(item.id, Math.max(0, item.progress - 10))}
-              style={styles.progressButton}
-            >
-              <Text style={styles.progressButtonText}>-10%</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => handleUpdateProgress(item.id, Math.min(100, item.progress + 10))}
-              style={styles.progressButton}
-            >
-              <Text style={styles.progressButtonText}>+10%</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Actions */}
-        <View style={styles.goalActions}>
-          <Button
-            variant="text"
-            onPress={() => handleCompleteGoal(item.id, item.status)}
-            style={styles.actionButton}
-          >
-            {item.status === 'completed' ? 'Reactivate' : 'Complete'}
-          </Button>
-          <Button variant="text" onPress={() => handleEditGoal(item)} style={styles.actionButton}>
-            Edit
-          </Button>
-          <Button
-            variant="text"
-            onPress={() => handleDeleteGoal(item.id)}
-            style={styles.deleteButton}
-          >
-            Delete
-          </Button>
-        </View>
-      </TouchableOpacity>
-    </Card>
+    <SwipeableGoalCard
+      goal={item}
+      isRevealed={revealedCardId === item.id}
+      onRevealChange={handleRevealChange}
+      onProgressUpdate={handleQuickProgressUpdate}
+      onMoreOptions={handleMoreOptions}
+      onPress={handleEditGoal}
+    />
   );
 
   if (loading) {
@@ -333,6 +344,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
   }
 
   return (
+    <LockedScreenOverlay feature="goals_basic">
     <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
       {!hideHeader && (
         <View style={styles.header}>
@@ -345,30 +357,51 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
         </View>
       )}
 
-      {/* Filter */}
-      <View style={styles.filterContainer}>
-        <SegmentedButtons
-          value={filter}
-          onValueChange={setFilter}
-          buttons={[
-            { value: 'all', label: 'All' },
-            { value: 'active', label: 'Active' },
-            { value: 'completed', label: 'Done' },
-          ]}
-          style={styles.segmentedButtons}
+      {/* Filter - Only show when not using external filter from PlanScreen */}
+      {!externalFilter && (
+        <View style={styles.filterContainer}>
+          <SegmentedButtons
+            value={filter}
+            onValueChange={setFilter}
+            buttons={[
+              { value: 'all', label: 'All' },
+              { value: 'active', label: 'Active' },
+              { value: 'completed', label: 'Done' },
+            ]}
+            style={styles.segmentedButtons}
+          />
+        </View>
+      )}
+
+      {/* Inline Create Button - Only show when embedded in PlanScreen */}
+      {showInlineCreate && (
+        <InlineCreateButton
+          label="Add a goal"
+          onPress={handleCreateGoal}
         />
-      </View>
+      )}
 
       {/* Goals List */}
       {filteredGoals.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🎯</Text>
+          <View style={styles.emptyIconContainer}>
+            <Icon name="leaf" size={32} color={Colors.silverSage} />
+          </View>
           <Text variant="titleMedium" style={styles.emptyTitle}>
-            No goals yet
+            A fresh space for your goals
           </Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
-            Set your first goal to start your wellness journey!
+            Add a goal whenever you're ready — no rush.
           </Text>
+          {!showInlineCreate && (
+            <Button
+              variant="primary"
+              onPress={handleCreateGoal}
+              style={styles.emptyButton}
+            >
+              Add a goal
+            </Button>
+          )}
         </View>
       ) : (
         <FlatList
@@ -379,157 +412,159 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ hideHeader = false }) => {
         />
       )}
 
-      {/* FAB */}
-      <FAB
-        icon="plus"
-        label="New Goal"
-        style={styles.fab}
-        onPress={handleCreateGoal}
-        color={Colors.textOnPrimary}
-      />
+      {/* FAB - Only show when NOT using inline create */}
+      {!showInlineCreate && (
+        <FAB
+          icon="plus"
+          label="New Goal"
+          style={styles.fab}
+          onPress={handleCreateGoal}
+          color={Colors.textOnPrimary}
+        />
+      )}
 
       {/* Create/Edit Modal */}
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => setModalVisible(false)}
-          contentContainerStyle={styles.modal}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          >
-            <ScrollView
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={styles.scrollContent}
+      <EnhancedModal
+        visible={modalVisible}
+        onDismiss={() => setModalVisible(false)}
+        title={editingGoal ? 'Edit Goal' : 'New Goal'}
+        subtitle="Track your progress toward your dreams"
+        headerIcon="target"
+        inputAccessoryViewID="goal-modal"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setModalVisible(false)}
+            onSubmit={handleSubmit}
+            submitLabel={editingGoal ? 'Update' : 'Create'}
+            submitLoading={submitting}
+            submitDisabled={submitting}
+          />
+        }
+      >
+        <Input
+          label="Goal Title *"
+          value={formData.title}
+          onChangeText={(text) => setFormData({ ...formData, title: text })}
+          placeholder="e.g., Exercise 3 times per week"
+          style={styles.input}
+          inputAccessoryViewID="goal-modal"
+        />
+
+        {/* Focus Area Dropdown */}
+        <Text variant="bodyMedium" style={styles.fieldLabel}>
+          Focus Area * (SMART Goal Category)
+        </Text>
+        <Menu
+          visible={focusMenuVisible}
+          onDismiss={() => setFocusMenuVisible(false)}
+          anchor={
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              onPress={() => setFocusMenuVisible(true)}
             >
-              <Text variant="headlineSmall" style={styles.modalTitle}>
-                {editingGoal ? 'Edit Goal' : 'New Goal'}
+              <Text style={formData.primaryFocus ? styles.dropdownText : styles.dropdownPlaceholder}>
+                {formData.primaryFocus || 'Select focus area...'}
               </Text>
+              <Text style={styles.dropdownArrow}>▼</Text>
+            </TouchableOpacity>
+          }
+        >
+          {FOCUS_OPTIONS.map((option) => (
+            <Menu.Item
+              key={option.value}
+              onPress={() => handleFocusChange(option.value)}
+              title={option.label}
+            />
+          ))}
+        </Menu>
 
-              <Input
-                label="Goal Title *"
-                value={formData.title}
-                onChangeText={(text) => setFormData({ ...formData, title: text })}
-                placeholder="e.g., Exercise 3 times per week"
-                style={styles.input}
-              />
-
-              {/* Focus Area Dropdown */}
-              <Text variant="bodyMedium" style={styles.fieldLabel}>
-                Focus Area * (SMART Goal Category)
+        {/* Timeframe Dropdown */}
+        <Text variant="bodyMedium" style={styles.fieldLabel}>
+          Timeframe (Time-bound)
+        </Text>
+        <Menu
+          visible={timeframeMenuVisible}
+          onDismiss={() => setTimeframeMenuVisible(false)}
+          anchor={
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              onPress={() => setTimeframeMenuVisible(true)}
+            >
+              <Text style={formData.timeframe ? styles.dropdownText : styles.dropdownPlaceholder}>
+                {formData.timeframe || 'Select timeframe...'}
               </Text>
-              <Menu
-                visible={focusMenuVisible}
-                onDismiss={() => setFocusMenuVisible(false)}
-                anchor={
-                  <TouchableOpacity
-                    style={styles.dropdownButton}
-                    onPress={() => setFocusMenuVisible(true)}
-                  >
-                    <Text style={formData.primaryFocus ? styles.dropdownText : styles.dropdownPlaceholder}>
-                      {formData.primaryFocus || 'Select focus area...'}
-                    </Text>
-                    <Text style={styles.dropdownArrow}>▼</Text>
-                  </TouchableOpacity>
-                }
-              >
-                {FOCUS_OPTIONS.map((option) => (
-                  <Menu.Item
-                    key={option.value}
-                    onPress={() => handleFocusChange(option.value)}
-                    title={option.label}
-                  />
-                ))}
-              </Menu>
+              <Text style={styles.dropdownArrow}>▼</Text>
+            </TouchableOpacity>
+          }
+        >
+          {TIMEFRAME_OPTIONS.map((option) => (
+            <Menu.Item
+              key={option.value}
+              onPress={() => {
+                setFormData({ ...formData, timeframe: option.value });
+                setTimeframeMenuVisible(false);
+              }}
+              title={option.label}
+            />
+          ))}
+        </Menu>
 
-              {/* Timeframe Dropdown */}
-              <Text variant="bodyMedium" style={styles.fieldLabel}>
-                Timeframe (Time-bound)
-              </Text>
-              <Menu
-                visible={timeframeMenuVisible}
-                onDismiss={() => setTimeframeMenuVisible(false)}
-                anchor={
-                  <TouchableOpacity
-                    style={styles.dropdownButton}
-                    onPress={() => setTimeframeMenuVisible(true)}
-                  >
-                    <Text style={formData.timeframe ? styles.dropdownText : styles.dropdownPlaceholder}>
-                      {formData.timeframe || 'Select timeframe...'}
-                    </Text>
-                    <Text style={styles.dropdownArrow}>▼</Text>
-                  </TouchableOpacity>
-                }
-              >
-                {TIMEFRAME_OPTIONS.map((option) => (
-                  <Menu.Item
-                    key={option.value}
-                    onPress={() => {
-                      setFormData({ ...formData, timeframe: option.value });
-                      setTimeframeMenuVisible(false);
-                    }}
-                    title={option.label}
-                  />
-                ))}
-              </Menu>
+        {/* Brain Health Pillars */}
+        <Text variant="bodyMedium" style={styles.fieldLabel}>
+          What does this goal support? (Optional)
+        </Text>
+        <Text variant="bodySmall" style={styles.helpText}>
+          Select the areas of wellness this goal will help you build
+        </Text>
+        <View style={styles.pillarsContainer}>
+          {BRAIN_PILLARS.map((pillar) => (
+            <TouchableOpacity
+              key={pillar.value}
+              style={[
+                styles.pillarChip,
+                formData.brainPillars.includes(pillar.value) && styles.pillarChipSelected,
+              ]}
+              onPress={() => togglePillar(pillar.value)}
+            >
+              <BrainPillarBadge pillar={pillar.value} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </EnhancedModal>
 
-              {/* Brain Health Pillars */}
-              <Text variant="bodyMedium" style={styles.fieldLabel}>
-                What does this goal support? (Optional)
-              </Text>
-              <Text variant="bodySmall" style={styles.helpText}>
-                Select the areas of wellness this goal will help you build
-              </Text>
-              <View style={styles.pillarsContainer}>
-                {BRAIN_PILLARS.map((pillar) => (
-                  <TouchableOpacity
-                    key={pillar.value}
-                    style={[
-                      styles.pillarChip,
-                      formData.brainPillars.includes(pillar.value) && styles.pillarChipSelected,
-                    ]}
-                    onPress={() => togglePillar(pillar.value)}
-                  >
-                    <BrainPillarBadge pillar={pillar.value} />
-                  </TouchableOpacity>
-                ))}
-              </View>
+      {/* Progress Update Modal */}
+      <ProgressUpdateModal
+        visible={progressModalVisible}
+        goal={progressModalGoal}
+        onClose={() => {
+          setProgressModalVisible(false);
+          setProgressModalGoal(null);
+        }}
+        onUpdateProgress={handleProgressModalUpdate}
+        onGoalComplete={handleGoalComplete}
+      />
 
-              <View style={styles.modalActions}>
-                <PaperButton
-                  mode="outlined"
-                  onPress={() => setModalVisible(false)}
-                  style={styles.modalButton}
-                >
-                  Cancel
-                </PaperButton>
-                <PaperButton
-                  mode="contained"
-                  onPress={handleSubmit}
-                  loading={submitting}
-                  disabled={submitting}
-                  style={styles.modalButton}
-                  buttonColor={Colors.evergreenTeal}
-                >
-                  {editingGoal ? 'Update' : 'Create'}
-                </PaperButton>
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </Modal>
-      </Portal>
+      {/* Milestone Celebration Overlay */}
+      <GoalMilestoneCheckmark
+        visible={celebrationVisible}
+        message={celebrationMessage}
+        subMessage={celebrationSubMessage}
+        onComplete={handleCelebrationComplete}
+        duration={2500}
+      />
     </SafeAreaView>
+    </LockedScreenOverlay>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: Colors.mistWhite,
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
   },
   screenTitle: {
     color: Colors.evergreenTeal,
@@ -541,7 +576,7 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   segmentedButtons: {
     backgroundColor: Colors.surface,
@@ -551,13 +586,13 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   goalCard: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   goalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   goalTitleContainer: {
     flex: 1,
@@ -592,17 +627,17 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: Colors.textOnPrimary,
-    fontSize: Typography.fontSize.xs - 2,
+    fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.semibold,
-    textTransform: 'uppercase',
+    // Note: No uppercase per UI standards (sentence case only)
   },
   progressContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   progressControls: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: Spacing.md,
+    gap: Spacing.base,
     marginBottom: Spacing.sm,
   },
   progressButton: {
@@ -634,17 +669,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
   },
-  emptyIcon: {
-    fontSize: Typography.fontSize['5xl'] + 16,
-    marginBottom: Spacing.md,
+  emptyIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.dewSage,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.base,
   },
   emptyTitle: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+    color: Colors.softCharcoal,
+    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: Spacing.xs,
   },
   emptyText: {
-    color: Colors.textSecondary,
+    color: Colors.mutedSageGray,
     textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  emptyButton: {
+    minWidth: 200,
   },
   fab: {
     position: 'absolute',
@@ -652,25 +697,8 @@ const styles = StyleSheet.create({
     bottom: Spacing.lg,
     backgroundColor: Colors.evergreenTeal,
   },
-  modal: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: Spacing.lg,
-    borderRadius: Layout.borderRadius.lg,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    maxHeight: '85%',
-    overflow: 'hidden',
-  },
-  scrollContent: {
-    // No bottom padding needed - modalActions handles spacing
-  },
-  modalTitle: {
-    color: Colors.evergreenTeal,
-    marginBottom: Spacing.lg,
-    fontWeight: Typography.fontWeight.semibold,
-  },
   input: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   fieldLabel: {
     color: Colors.textSecondary,
@@ -681,13 +709,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.base,
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
     borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.surface,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   dropdownText: {
     color: Colors.textPrimary,
@@ -703,16 +731,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: Typography.fontSize.xs,
   },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  modalButton: {
-    flex: 1,
-  },
   helpText: {
     color: Colors.textSecondary,
     fontSize: Typography.fontSize.sm,
@@ -722,7 +740,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   pillarChip: {
     borderRadius: Layout.borderRadius.md,

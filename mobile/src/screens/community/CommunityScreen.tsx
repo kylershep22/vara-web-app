@@ -10,19 +10,24 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  TextInput as RNTextInput,
+  TextInput,
   Alert,
   Image,
   Keyboard,
   InputAccessoryView,
   Platform,
   ScrollView,
+  InteractionManager,
+  Text,
+  Modal,
+  KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
-import { Text, Avatar, IconButton, Portal, Modal, Button as PaperButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { Card, LoadingSpinner, PostCard, QuickNavButton } from '../../components';
+import { LoadingSpinner, PostCard, QuickNavButton, LockedScreenOverlay } from '../../components';
+import { PendingInvitesSection } from '../../components/community';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { useFeed } from '../../hooks';
@@ -30,6 +35,8 @@ import { uploadPostMedia } from '../../services/firebase';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { getAllPendingInvites } from '../../services/firebase/invites.service';
+import { GroupInvite, ChallengeInvite } from '../../types/models';
 
 // Extracted Create Post Modal component to prevent re-renders from parent Firestore subscriptions
 interface CreatePostModalProps {
@@ -37,9 +44,10 @@ interface CreatePostModalProps {
   onDismiss: () => void;
   onSubmit: (content: string, media: Array<{ uri: string; type: 'image' | 'video'; id: string }>) => Promise<void>;
   userId: string;
+  placeholder?: string;
 }
 
-const CreatePostModal = memo(({ visible, onDismiss, onSubmit, userId }: CreatePostModalProps) => {
+const CreatePostModal = memo(({ visible, onDismiss, onSubmit, userId, placeholder }: CreatePostModalProps) => {
   const [postContent, setPostContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -186,162 +194,619 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, userId }: CreatePo
     onDismiss();
   }, [onDismiss]);
 
+  const isPostDisabled = submitting || isUploading || (!postContent.trim() && selectedMedia.length === 0);
+
   return (
     <Modal
       visible={visible}
-      onDismiss={handleDismiss}
-      contentContainerStyle={styles.modal}
+      transparent
+      animationType="fade"
+      onRequestClose={handleDismiss}
     >
-      <Text variant="headlineSmall" style={styles.modalTitle}>
-        Create Post
-      </Text>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modal}>
+          <Text style={styles.modalTitle}>Share with the community</Text>
 
-      <RNTextInput
-        value={postContent}
-        onChangeText={setPostContent}
-        placeholder="What's on your mind?"
-        multiline
-        numberOfLines={6}
-        style={styles.postInput}
-        textAlignVertical="top"
-        inputAccessoryViewID="communityInputAccessory"
-        blurOnSubmit={false}
-      />
+          <TextInput
+            value={postContent}
+            onChangeText={setPostContent}
+            placeholder={placeholder || "What's on your mind?"}
+            placeholderTextColor={Colors.textSecondary}
+            multiline
+            numberOfLines={6}
+            style={styles.postInput}
+            textAlignVertical="top"
+            inputAccessoryViewID="communityInputAccessory"
+            blurOnSubmit={false}
+          />
 
-      {/* Media Preview Grid */}
-      {selectedMedia.length > 0 && (
-        <ScrollView
-          horizontal
-          style={styles.mediaPreview}
-          showsHorizontalScrollIndicator={false}
-        >
-          {selectedMedia.map((media) => (
-            <View key={media.id} style={styles.mediaThumbnail}>
-              <Image
-                source={{ uri: media.uri }}
-                style={styles.thumbnailImage}
-              />
+          {/* Media Preview Grid */}
+          {selectedMedia.length > 0 && (
+            <ScrollView
+              horizontal
+              style={styles.mediaPreview}
+              showsHorizontalScrollIndicator={false}
+            >
+              {selectedMedia.map((media) => (
+                <View key={media.id} style={styles.mediaThumbnail}>
+                  <Image
+                    source={{ uri: media.uri }}
+                    style={styles.thumbnailImage}
+                  />
 
-              {/* Remove button */}
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removeMedia(media.id)}
-              >
-                <Icon name="close-circle" size={24} color={Colors.error} />
-              </TouchableOpacity>
+                  {/* Remove button */}
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => removeMedia(media.id)}
+                  >
+                    <Icon name="close-circle" size={24} color={Colors.error} />
+                  </TouchableOpacity>
 
-              {/* Video indicator */}
-              {media.type === 'video' && (
-                <View style={styles.videoIndicator}>
-                  <Icon name="play-circle" size={32} color="#fff" />
+                  {/* Video indicator */}
+                  {media.type === 'video' && (
+                    <View style={styles.videoIndicator}>
+                      <Icon name="play-circle" size={32} color="#fff" />
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-          ))}
-        </ScrollView>
-      )}
+              ))}
+            </ScrollView>
+          )}
 
-      {/* Add Media Button */}
-      <TouchableOpacity
-        style={styles.addMediaButton}
-        onPress={showMediaOptions}
-      >
-        <Icon name="image-plus" size={24} color={Colors.evergreenTeal} />
-        <Text style={styles.addMediaText}>Add Photos/Videos</Text>
-      </TouchableOpacity>
+          {/* Add Media Button */}
+          <TouchableOpacity
+            style={styles.addMediaButton}
+            onPress={showMediaOptions}
+          >
+            <Icon name="image-plus" size={24} color={Colors.evergreenTeal} />
+            <Text style={styles.addMediaText}>Add Photos/Videos</Text>
+          </TouchableOpacity>
 
-      <View style={styles.modalActions}>
-        <PaperButton
-          mode="outlined"
-          onPress={handleDismiss}
-          style={styles.modalButton}
-        >
-          Cancel
-        </PaperButton>
-        <PaperButton
-          mode="contained"
-          onPress={handleCreatePost}
-          loading={submitting || isUploading}
-          disabled={submitting || isUploading || (!postContent.trim() && selectedMedia.length === 0)}
-          style={styles.modalButton}
-          buttonColor={Colors.evergreenTeal}
-        >
-          {isUploading ? 'Uploading...' : 'Post'}
-        </PaperButton>
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleDismiss}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.postButton, isPostDisabled && styles.postButtonDisabled]}
+              onPress={handleCreatePost}
+              disabled={isPostDisabled}
+            >
+              <Text style={styles.postButtonText}>
+                {isUploading ? 'Uploading...' : 'Post'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </Modal>
   );
 });
 
-// Extracted Comment Modal component
+// Enhanced Comment Modal component
 interface CommentModalProps {
   visible: boolean;
-  postId: string | null;
+  post: any | null;
   onDismiss: () => void;
   onSubmit: (postId: string, text: string) => Promise<void>;
 }
 
-const CommentModal = memo(({ visible, postId, onDismiss, onSubmit }: CommentModalProps) => {
+interface CommentItemData {
+  userId: string;
+  content: string;
+  authorName?: string;
+  createdAt?: any;
+}
+
+const CHARACTER_LIMIT = 500;
+
+const CommentModal = memo(({ visible, post, onDismiss, onSubmit }: CommentModalProps) => {
+  const { user } = useAuth();
   const [commentText, setCommentText] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [localComments, setLocalComments] = useState<CommentItemData[]>([]);
+
+  // Sync local comments with post comments when post changes
+  useEffect(() => {
+    if (post?.comments) {
+      setLocalComments(post.comments);
+    } else {
+      setLocalComments([]);
+    }
+  }, [post]);
+
+  const authorName = post?.author?.displayName || 'this post';
+  const remainingChars = CHARACTER_LIMIT - commentText.length;
 
   const handleComment = async () => {
-    if (!commentText.trim() || !postId) return;
+    if (!commentText.trim() || !post?.id) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    // Optimistically add the comment
+    const newComment: CommentItemData = {
+      userId: user?.uid || '',
+      content: commentText,
+      authorName: user?.displayName || 'You',
+      createdAt: new Date(),
+    };
 
     try {
-      await onSubmit(postId, commentText);
+      await onSubmit(post.id, commentText);
+      // Add to local state on success
+      setLocalComments(prev => [...prev, newComment]);
       setCommentText('');
-      onDismiss();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add comment');
+    } catch (err) {
+      setError("Something didn't go through. Try again when ready.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDismiss = useCallback(() => {
     Keyboard.dismiss();
+    setCommentText('');
+    setError(null);
     onDismiss();
   }, [onDismiss]);
+
+  const formatCommentTime = (createdAt: any): string => {
+    if (!createdAt) return '';
+    const date = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
+
+  const isPostAuthor = (commentUserId: string): boolean => {
+    const postAuthorId = post?.author?.uid || post?.authorId || post?.userId;
+    return commentUserId === postAuthorId;
+  };
+
+  const renderEmptyState = () => (
+    <View style={commentStyles.emptyState}>
+      <Icon name="comment-text-outline" size={48} color={Colors.silverSage} />
+      <Text style={commentStyles.emptyStateTitle}>Be the first to comment</Text>
+      <Text style={commentStyles.emptyStateText}>Share your thoughts and support</Text>
+    </View>
+  );
+
+  const renderCommentItem = (comment: CommentItemData, index: number) => {
+    const commentAuthorName = comment.authorName || 'Someone';
+    const initials = commentAuthorName.substring(0, 2).toUpperCase();
+    const isAuthor = isPostAuthor(comment.userId);
+
+    return (
+      <View key={index} style={commentStyles.commentItem}>
+        <View style={commentStyles.commentAvatar}>
+          <Text style={commentStyles.commentAvatarText}>{initials}</Text>
+        </View>
+        <View style={commentStyles.commentContent}>
+          <View style={commentStyles.commentHeader}>
+            <Text style={commentStyles.commentAuthor}>{commentAuthorName}</Text>
+            {isAuthor && (
+              <View style={commentStyles.authorBadge}>
+                <Text style={commentStyles.authorBadgeText}>Author</Text>
+              </View>
+            )}
+            <Text style={commentStyles.commentTime}>{formatCommentTime(comment.createdAt)}</Text>
+          </View>
+          <Text style={commentStyles.commentText}>{comment.content}</Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <Modal
       visible={visible}
-      onDismiss={handleDismiss}
-      contentContainerStyle={styles.modal}
+      transparent
+      animationType="slide"
+      onRequestClose={handleDismiss}
     >
-      <Text variant="headlineSmall" style={styles.modalTitle}>
-        Comments
-      </Text>
-
-      <View style={styles.commentInputContainer}>
-        <RNTextInput
-          value={commentText}
-          onChangeText={setCommentText}
-          placeholder="Write a comment..."
-          style={styles.commentInput}
-          inputAccessoryViewID="communityInputAccessory"
-          returnKeyType="send"
-          onSubmitEditing={handleComment}
-          blurOnSubmit={false}
-        />
-        <IconButton
-          icon="send"
-          size={24}
-          iconColor={Colors.evergreenTeal}
-          onPress={handleComment}
-        />
-      </View>
-
-      <PaperButton
-        mode="outlined"
-        onPress={handleDismiss}
-        style={styles.modalButton}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        Close
-      </PaperButton>
+        <TouchableOpacity
+          style={commentStyles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleDismiss}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={commentStyles.modalContainer}
+          >
+            {/* Handle bar */}
+            <View style={commentStyles.handleBar} />
+
+            {/* Header */}
+            <View style={commentStyles.modalHeader}>
+              <View style={commentStyles.headerContent}>
+                <Text style={commentStyles.modalTitle}>Comments</Text>
+                <Text style={commentStyles.modalSubtitle}>on {authorName}'s post</Text>
+              </View>
+              <TouchableOpacity style={commentStyles.closeButton} onPress={handleDismiss}>
+                <Icon name="close" size={24} color="#6F7F77" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Input section */}
+            <View style={commentStyles.inputContainer}>
+              <View style={[
+                commentStyles.inputWrapper,
+                isFocused && commentStyles.inputWrapperFocused,
+              ]}>
+                <TextInput
+                  style={commentStyles.input}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  placeholder="Share a supportive thought..."
+                  placeholderTextColor="#6F7F77"
+                  multiline
+                  maxLength={CHARACTER_LIMIT}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  textAlignVertical="top"
+                  editable={!isSubmitting}
+                  accessibilityLabel="Comment input field"
+                  accessibilityHint="Type your comment here"
+                />
+                <TouchableOpacity
+                  style={[
+                    commentStyles.sendButton,
+                    (!commentText.trim() || isSubmitting) && commentStyles.sendButtonDisabled,
+                  ]}
+                  onPress={handleComment}
+                  disabled={!commentText.trim() || isSubmitting}
+                  accessibilityLabel="Send comment"
+                  accessibilityRole="button"
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Icon
+                      name="send"
+                      size={20}
+                      color={commentText.trim() ? '#FFFFFF' : '#B8CDBA'}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Character count */}
+              {commentText.length > 0 && (
+                <Text style={[
+                  commentStyles.characterCount,
+                  remainingChars < 50 && commentStyles.characterCountWarning,
+                ]}>
+                  {remainingChars} characters remaining
+                </Text>
+              )}
+
+              {/* Hint text */}
+              {!commentText && !isFocused && (
+                <Text style={commentStyles.inputHint}>
+                  Your thoughtful perspective matters
+                </Text>
+              )}
+
+              {/* Error message */}
+              {error && (
+                <View style={commentStyles.errorContainer}>
+                  <Icon name="alert-circle-outline" size={16} color="#D97A6E" />
+                  <Text style={commentStyles.errorText}>{error}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Divider */}
+            <View style={commentStyles.divider} />
+
+            {/* Comments list */}
+            {localComments.length === 0 ? (
+              renderEmptyState()
+            ) : (
+              <ScrollView
+                style={commentStyles.commentsList}
+                showsVerticalScrollIndicator={false}
+              >
+                {localComments.map((comment, index) => renderCommentItem(comment, index))}
+              </ScrollView>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 });
 
+// Comment Modal Styles
+const commentStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FAFAF6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingBottom: 34,
+    paddingHorizontal: 24,
+    maxHeight: '85%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#1B5E57',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#B8CDBA',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  headerContent: {
+    flex: 1,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1B5E57',
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6F7F77',
+    fontWeight: '400',
+  },
+  closeButton: {
+    padding: 8,
+    marginTop: -4,
+    marginRight: -8,
+  },
+  // Input styles
+  inputContainer: {
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#D5E3D1',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 56,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#1B5E57',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  inputWrapperFocused: {
+    borderColor: '#1B5E57',
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#3E3E3E',
+    maxHeight: 120,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1B5E57',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#1B5E57',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#D5E3D1',
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0,
+      },
+      android: {
+        elevation: 0,
+      },
+    }),
+  },
+  characterCount: {
+    fontSize: 12,
+    color: '#6F7F77',
+    textAlign: 'right',
+    marginTop: 8,
+  },
+  characterCountWarning: {
+    color: '#D97A6E',
+  },
+  inputHint: {
+    fontSize: 13,
+    color: '#6F7F77',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(217, 122, 110, 0.1)',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#D97A6E',
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#D97A6E',
+    flex: 1,
+  },
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(184, 205, 186, 0.3)',
+    marginVertical: 16,
+  },
+  // Empty state
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1B5E57',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#6F7F77',
+    textAlign: 'center',
+  },
+  // Comments list
+  commentsList: {
+    maxHeight: 300,
+  },
+  commentItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(213, 227, 209, 0.4)',
+  },
+  commentAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#D5E3D1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  commentAvatarText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1B5E57',
+  },
+  commentContent: {
+    flex: 1,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  commentAuthor: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#3E3E3E',
+  },
+  authorBadge: {
+    backgroundColor: 'rgba(27, 94, 87, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  authorBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1B5E57',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  commentTime: {
+    fontSize: 13,
+    color: '#6F7F77',
+  },
+  commentText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#3E3E3E',
+  },
+});
+
 const INPUT_ACCESSORY_VIEW_ID = 'communityInputAccessory';
+
+// Contextual prompts for post composer - rotating inspirational prompts
+const POST_PROMPTS = [
+  "What's bringing you energy today? ✨",
+  "Share a small win from this week 🎉",
+  "What are you grateful for right now? 🙏",
+  "Any wellness tips you've discovered? 💡",
+  "How's your wellness journey going? 🌱",
+  "What's one thing you're proud of? 💪",
+  "Share something that made you smile 😊",
+  "What healthy habit are you building? 🌿",
+];
 
 const CommunityScreen: React.FC = () => {
   const { user } = useAuth();
@@ -349,8 +814,35 @@ const CommunityScreen: React.FC = () => {
   const { posts, loading, createPost, likePost, commentOnPost } = useFeed();
   const [refreshing, setRefreshing] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [showComments, setShowComments] = useState<string | null>(null);
+  const [commentPost, setCommentPost] = useState<any | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [promptIndex, setPromptIndex] = useState(0);
+  const [pendingInvites, setPendingInvites] = useState<{
+    groupInvites: GroupInvite[];
+    challengeInvites: ChallengeInvite[];
+  }>({ groupInvites: [], challengeInvites: [] });
+
+  // Rotate prompts periodically
+  useEffect(() => {
+    // Set random initial prompt
+    setPromptIndex(Math.floor(Math.random() * POST_PROMPTS.length));
+
+    // Rotate every 30 seconds
+    const interval = setInterval(() => {
+      setPromptIndex((prev) => (prev + 1) % POST_PROMPTS.length);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Defer heavy rendering until after navigation animations complete
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+    });
+    return () => task.cancel();
+  }, []);
 
   // Load user profile data for avatar
   useEffect(() => {
@@ -368,9 +860,34 @@ const CommunityScreen: React.FC = () => {
     loadUserProfile();
   }, [user]);
 
+  // Load pending invites
+  const loadPendingInvites = useCallback(async () => {
+    if (!user) return;
+    try {
+      const invites = await getAllPendingInvites();
+      setPendingInvites({
+        groupInvites: invites.groups || [],
+        challengeInvites: invites.challenges || [],
+      });
+    } catch (error) {
+      // Silently fail for permission errors (common for new users with no invites)
+      // Only log non-permission errors
+      if (!(error instanceof Error && error.message.includes('permission'))) {
+        console.error('Error loading pending invites:', error);
+      }
+      setPendingInvites({ groupInvites: [], challengeInvites: [] });
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadPendingInvites();
+  }, [loadPendingInvites]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     // Posts update automatically via real-time subscription
+    // Also reload pending invites
+    await loadPendingInvites();
     setTimeout(() => setRefreshing(false), 1000);
   };
 
@@ -404,7 +921,14 @@ const CommunityScreen: React.FC = () => {
 
   // Memoized callback for commenting (used by extracted modal)
   const handleCommentSubmit = useCallback(async (postId: string, text: string) => {
-    await commentOnPost(postId, text);
+    console.log('[CommunityScreen] Submitting comment to post:', postId, 'text:', text);
+    try {
+      await commentOnPost(postId, text);
+      console.log('[CommunityScreen] Comment submitted successfully');
+    } catch (error) {
+      console.error('[CommunityScreen] Error submitting comment:', error);
+      throw error;
+    }
   }, [commentOnPost]);
 
   const handleCloseCreatePost = useCallback(() => {
@@ -412,7 +936,7 @@ const CommunityScreen: React.FC = () => {
   }, []);
 
   const handleCloseComments = useCallback(() => {
-    setShowComments(null);
+    setCommentPost(null);
   }, []);
 
   const formatTimestamp = (post: any) => {
@@ -438,14 +962,23 @@ const CommunityScreen: React.FC = () => {
     });
   };
 
+  const handleOpenComments = useCallback((post: any) => {
+    setCommentPost(post);
+  }, []);
+
   const renderPost = ({ item }: { item: any }) => (
     <PostCard
       post={item}
       onLike={handleLike}
-      onComment={setShowComments}
+      onComment={handleOpenComments}
       formatTimestamp={formatTimestamp}
     />
   );
+
+  const handleInviteAction = useCallback(() => {
+    // Reload invites after accepting or declining
+    loadPendingInvites();
+  }, [loadPendingInvites]);
 
   const renderHeader = () => (
     <>
@@ -462,36 +995,60 @@ const CommunityScreen: React.FC = () => {
           onPress={() => navigation.navigate('People')}
         />
         <QuickNavButton
+          icon="trophy-outline"
+          label="Challenges"
+          onPress={() => navigation.navigate('Challenges')}
+        />
+        <QuickNavButton
           icon="message-text"
           label="Messages"
           onPress={() => navigation.navigate('Conversations')}
         />
       </View>
 
-      {/* Create Post Button */}
-      <Card style={styles.createPostCard}>
+      {/* Pending Invites Section */}
+      {(pendingInvites.groupInvites.length > 0 || pendingInvites.challengeInvites.length > 0) && (
+        <View style={styles.pendingInvitesContainer}>
+          <PendingInvitesSection
+            groupInvites={pendingInvites.groupInvites}
+            challengeInvites={pendingInvites.challengeInvites}
+            onAccept={handleInviteAction}
+            onDecline={handleInviteAction}
+          />
+        </View>
+      )}
+
+      {/* Create Post Button with Contextual Prompt */}
+      <View style={styles.createPostCard}>
         <TouchableOpacity
           style={styles.createPostButton}
           onPress={() => setShowCreatePost(true)}
         >
-          <Avatar.Text
-            size={36}
-            label={(user?.displayName || 'U').substring(0, 2).toUpperCase()}
-            style={styles.avatar}
-            color={Colors.textOnPrimary}
-          />
-          <Text variant="bodyMedium" style={styles.createPostPlaceholder}>
-            What's on your mind?
+          {userProfile?.avatarUrl ? (
+            <Image
+              source={{ uri: userProfile.avatarUrl }}
+              style={styles.createPostAvatar}
+            />
+          ) : (
+            <View style={styles.createPostAvatarFallback}>
+              <Text style={styles.avatarText}>
+                {(userProfile?.displayName || user?.displayName || 'U').substring(0, 2).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <Text style={styles.createPostPlaceholder}>
+            {POST_PROMPTS[promptIndex]}
           </Text>
         </TouchableOpacity>
-      </Card>
+      </View>
     </>
   );
 
   return (
+    <LockedScreenOverlay feature="community_view">
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.screenTitle}>
+        <Text style={styles.screenTitle}>
           Community
         </Text>
         {/* Profile Picture Button */}
@@ -505,17 +1062,16 @@ const CommunityScreen: React.FC = () => {
               style={styles.profileImage}
             />
           ) : (
-            <Avatar.Text
-              size={40}
-              label={(userProfile?.displayName || user?.displayName || 'U').substring(0, 2).toUpperCase()}
-              style={styles.profileAvatar}
-              color={Colors.textOnPrimary}
-            />
+            <View style={styles.profileAvatarFallback}>
+              <Text style={styles.profileAvatarText}>
+                {(userProfile?.displayName || user?.displayName || 'U').substring(0, 2).toUpperCase()}
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>
 
-      {loading && posts.length === 0 ? (
+      {!isReady || (loading && posts.length === 0) ? (
         <LoadingSpinner message="Loading feed..." />
       ) : (
         <FlatList
@@ -527,44 +1083,46 @@ const CommunityScreen: React.FC = () => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
+          // Performance optimizations to prevent rendering too many items at once
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          removeClippedSubviews={true}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Icon
-                name="earth"
+                name="hand-wave-outline"
                 size={64}
-                color={Colors.textSecondary}
+                color={Colors.evergreenTeal}
                 style={styles.emptyIcon}
               />
-              <Text variant="titleMedium" style={styles.emptyTitle}>
-                Your feed is empty
+              <Text style={styles.emptyTitle}>
+                Welcome to the community
               </Text>
-              <Text variant="bodyMedium" style={styles.emptyText}>
-                Connect with people and join groups to see posts here
+              <Text style={styles.emptyText}>
+                Connect with others and join groups to build your wellness network
               </Text>
             </View>
           }
         />
       )}
 
-      {/* Create Post Modal - Extracted to prevent re-renders */}
-      <Portal>
-        <CreatePostModal
-          visible={showCreatePost}
-          onDismiss={handleCloseCreatePost}
-          onSubmit={handleSubmitPost}
-          userId={user?.uid || ''}
-        />
-      </Portal>
+      {/* Create Post Modal */}
+      <CreatePostModal
+        visible={showCreatePost}
+        onDismiss={handleCloseCreatePost}
+        onSubmit={handleSubmitPost}
+        userId={user?.uid || ''}
+        placeholder={POST_PROMPTS[promptIndex]}
+      />
 
-      {/* Comment Modal - Extracted to prevent re-renders */}
-      <Portal>
-        <CommentModal
-          visible={showComments !== null}
-          postId={showComments}
-          onDismiss={handleCloseComments}
-          onSubmit={handleCommentSubmit}
-        />
-      </Portal>
+      {/* Comment Modal */}
+      <CommentModal
+        visible={commentPost !== null}
+        post={commentPost}
+        onDismiss={handleCloseComments}
+        onSubmit={handleCommentSubmit}
+      />
 
       {/* Keyboard Accessory Toolbar (iOS) */}
       {Platform.OS === 'ios' && (
@@ -580,20 +1138,21 @@ const CommunityScreen: React.FC = () => {
         </InputAccessoryView>
       )}
     </SafeAreaView>
+    </LockedScreenOverlay>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.surface,
     borderBottomWidth: Layout.borderWidth.thin,
     borderBottomColor: Colors.borderLight,
@@ -601,6 +1160,7 @@ const styles = StyleSheet.create({
   screenTitle: {
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.bold,
+    fontSize: 22,
   },
   profileButton: {
     borderRadius: Layout.borderRadius['2xl'],
@@ -621,16 +1181,35 @@ const styles = StyleSheet.create({
   },
   quickNav: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.surface,
     borderBottomWidth: Layout.borderWidth.thin,
     borderBottomColor: Colors.borderLight,
-    justifyContent: 'space-around',
+    justifyContent: 'space-evenly',
+  },
+  pendingInvitesContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.base,
   },
   createPostCard: {
     marginHorizontal: Spacing.lg,
-    marginVertical: Spacing.md,
+    marginTop: Spacing.base,
+    marginBottom: Spacing.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    ...Platform.select({
+      ios: {
+        shadowColor: 'rgba(0,0,0,0.06)',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   createPostButton: {
     flexDirection: 'row',
@@ -639,61 +1218,146 @@ const styles = StyleSheet.create({
   },
   createPostPlaceholder: {
     color: Colors.textSecondary,
-    marginLeft: Spacing.md,
+    marginLeft: Spacing.base,
     flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
   },
   avatar: {
     backgroundColor: Colors.evergreenTeal,
+  },
+  createPostAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: Layout.borderWidth.thin,
+    borderColor: Colors.evergreenTeal,
+  },
+  createPostAvatarFallback: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.evergreenTeal,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: Colors.textOnPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  profileAvatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.evergreenTeal,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileAvatarText: {
+    color: Colors.textOnPrimary,
+    fontSize: 16,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing.xl * 2,
     paddingHorizontal: Spacing.xl,
+    backgroundColor: Colors.mintCream,
+    marginHorizontal: Spacing.lg,
+    borderRadius: Layout.borderRadius.lg,
+    marginTop: Spacing.base,
   },
   emptyIcon: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
+    opacity: 0.9,
   },
   emptyTitle: {
-    color: Colors.textPrimary,
+    color: Colors.evergreenTeal,
     marginBottom: Spacing.sm,
+    fontSize: 18,
+    fontWeight: '600',
   },
   emptyText: {
     color: Colors.textSecondary,
     textAlign: 'center',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modal: {
     backgroundColor: Colors.surface,
     marginHorizontal: Spacing.lg,
     borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
+    width: '90%',
+    maxWidth: 400,
   },
   modalTitle: {
     color: Colors.evergreenTeal,
     marginBottom: Spacing.lg,
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: '600',
+    fontSize: 20,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+    borderRadius: Layout.borderRadius.md,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: Colors.evergreenTeal,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  postButton: {
+    flex: 1,
+    paddingVertical: 12,
+    backgroundColor: Colors.evergreenTeal,
+    borderRadius: Layout.borderRadius.md,
+    alignItems: 'center',
+  },
+  postButtonDisabled: {
+    backgroundColor: Colors.silverSage,
+  },
+  postButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  sendButton: {
+    padding: 8,
+    marginLeft: 8,
   },
   postInput: {
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.base,
     fontSize: Typography.fontSize.base,
     color: Colors.textPrimary,
     backgroundColor: Colors.background,
     minHeight: 120,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   commentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   commentInput: {
     flex: 1,
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.base,
     fontSize: Typography.fontSize.sm,
     color: Colors.textPrimary,
     backgroundColor: Colors.background,
@@ -708,7 +1372,7 @@ const styles = StyleSheet.create({
   },
   // Media preview
   mediaPreview: {
-    marginVertical: Spacing.md,
+    marginVertical: Spacing.base,
     maxHeight: 100,
   },
   mediaThumbnail: {
@@ -745,12 +1409,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.borderLight,
     borderRadius: Layout.borderRadius.md,
     borderStyle: 'dashed',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   addMediaText: {
     marginLeft: Spacing.sm,
@@ -763,7 +1427,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopWidth: Layout.borderWidth.thin,
     borderTopColor: Colors.borderLight,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     flexDirection: 'row',
     justifyContent: 'flex-end',

@@ -29,8 +29,11 @@ export interface BreathworkSession {
   title: string;
   description: string;
   duration: string; // "5 min"
-  type: 'Audio' | 'Video' | 'Guided';
-  purpose: 'Relax' | 'Sleep' | 'Focus';
+  type: 'Audio' | 'Video' | 'Guided' | 'Timer';
+  purpose: 'Relax' | 'Sleep' | 'Focus' | 'Energy';
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  breathingPattern: string; // e.g., "Inhale 4s → Hold 4s → Exhale 4s → Hold 4s"
+  featured?: boolean;
   audioUrl?: string;
   videoUrl?: string;
   instructions?: string;
@@ -92,6 +95,9 @@ export const BREATHWORK_SESSIONS: BreathworkSession[] = [
     duration: '5 min',
     type: 'Guided',
     purpose: 'Relax',
+    difficulty: 'beginner',
+    breathingPattern: 'Inhale 4s → Hold 4s → Exhale 4s → Hold 4s',
+    featured: true,
     instructions: 'Inhale for 4 counts, hold for 4 counts, exhale for 4 counts, hold for 4 counts. Repeat this cycle for 5 minutes.',
   },
   {
@@ -101,15 +107,21 @@ export const BREATHWORK_SESSIONS: BreathworkSession[] = [
     duration: '6 min',
     type: 'Guided',
     purpose: 'Focus',
+    difficulty: 'intermediate',
+    breathingPattern: 'Quick inhale → Passive exhale × 30, then hold',
+    featured: true,
     instructions: 'Sharp inhales through the nose, passive exhales through the mouth. 30 breaths, followed by a breath hold.',
   },
   {
     id: '3',
     title: 'Evening Unwind',
-    description: 'Wind down with gentle breath awareness. Prepares your body and mind for restful sleep.',
+    description: 'Wind down with gentle breath awareness. Prepares your body and mind for restful sleep. This practice gradually slows your heart rate and activates your parasympathetic nervous system.',
     duration: '7 min',
     type: 'Guided',
     purpose: 'Sleep',
+    difficulty: 'beginner',
+    breathingPattern: 'Inhale 4s → Hold 7s → Exhale 8s',
+    featured: true,
     instructions: '4-7-8 breathing: Inhale for 4 counts, hold for 7 counts, exhale slowly for 8 counts.',
   },
   {
@@ -119,15 +131,19 @@ export const BREATHWORK_SESSIONS: BreathworkSession[] = [
     duration: '4 min',
     type: 'Guided',
     purpose: 'Relax',
+    difficulty: 'beginner',
+    breathingPattern: 'Inhale 4s → Hold 7s → Exhale 8s',
     instructions: 'Inhale quietly through your nose for 4 counts, hold for 7 counts, exhale completely through your mouth for 8 counts.',
   },
   {
     id: '5',
     title: 'Wim Hof Method (Intro)',
-    description: 'Introduction to the Wim Hof breathing method. Boosts energy, reduces stress, and enhances immune function.',
+    description: 'Introduction to the Wim Hof breathing method. Boosts energy, reduces stress, and enhances immune function. This powerful technique requires focus and should be practiced seated or lying down.',
     duration: '10 min',
     type: 'Guided',
-    purpose: 'Focus',
+    purpose: 'Energy',
+    difficulty: 'advanced',
+    breathingPattern: '30-40 deep breaths → Hold → Recovery breath × 3 rounds',
     instructions: '30-40 deep breaths (in through nose, out through mouth), followed by retention. Repeat for 3 rounds.',
   },
   {
@@ -137,7 +153,53 @@ export const BREATHWORK_SESSIONS: BreathworkSession[] = [
     duration: '8 min',
     type: 'Guided',
     purpose: 'Relax',
+    difficulty: 'beginner',
+    breathingPattern: 'Inhale 6s → Exhale 6s',
     instructions: 'Inhale for 6 seconds, exhale for 6 seconds. Maintain this rhythm throughout the session.',
+  },
+  {
+    id: '7',
+    title: 'Power Breath',
+    description: 'An invigorating breathing technique to boost your energy and mental alertness. Great for afternoon slumps or before workouts.',
+    duration: '5 min',
+    type: 'Guided',
+    purpose: 'Energy',
+    difficulty: 'intermediate',
+    breathingPattern: 'Sharp inhale → Forceful exhale × 20, rest, repeat',
+    instructions: 'Rapid, rhythmic breathing through the nose. 20 breaths per round, 3 rounds with 30-second rest between.',
+  },
+  {
+    id: '8',
+    title: 'Kapalabhati (Skull Shining)',
+    description: 'Traditional yogic breathing to cleanse and energize. Activates your core and clears mental fog.',
+    duration: '8 min',
+    type: 'Guided',
+    purpose: 'Energy',
+    difficulty: 'intermediate',
+    breathingPattern: 'Passive inhale → Forceful exhale × 30',
+    instructions: 'Passive inhale, forceful exhale through the nose using abdominal muscles. 30 breaths per round.',
+  },
+  {
+    id: '9',
+    title: 'Deep Sleep Preparation',
+    description: 'A gentle, extended exhale practice to activate your rest-and-digest system. Perfect for the last 10 minutes before bed.',
+    duration: '10 min',
+    type: 'Guided',
+    purpose: 'Sleep',
+    difficulty: 'beginner',
+    breathingPattern: 'Inhale 4s → Extended exhale 8s',
+    instructions: 'Breathe in for 4 seconds, breathe out slowly for 8 seconds. Focus on making each exhale smooth and complete.',
+  },
+  {
+    id: '10',
+    title: 'Focus Flow',
+    description: 'Balanced breathing to enhance concentration and mental clarity. Ideal before important meetings or deep work sessions.',
+    duration: '6 min',
+    type: 'Timer',
+    purpose: 'Focus',
+    difficulty: 'beginner',
+    breathingPattern: 'Inhale 5s → Exhale 5s',
+    instructions: 'Equal duration inhale and exhale. Breathe in for 5 seconds, out for 5 seconds. Keep attention on the breath.',
   },
 ];
 

@@ -20,6 +20,10 @@ import {
 } from 'firebase/firestore';
 import { db, firebaseError } from '../../config/firebase';
 import { Habit, HabitCompletion } from '../../types';
+import {
+  checkAndSendStreakMilestone,
+  cancelStreakProtectionNotification,
+} from '../notificationScheduler.service';
 
 const COLLECTION = 'habits';
 const COMPLETIONS_SUBCOLLECTION = 'completions';
@@ -168,8 +172,27 @@ export const markHabitComplete = async (
       completedAt: serverTimestamp(),
     });
 
-    // Update streak
-    await updateHabitStreak(habitId);
+    // Get habit info for notification
+    const habit = await getHabit(habitId);
+
+    // Update streak and get the new value
+    const newStreak = await updateHabitStreak(habitId);
+
+    // Cancel streak protection notification since user completed something
+    try {
+      await cancelStreakProtectionNotification(userId);
+    } catch (notifError) {
+      console.log('Could not cancel streak protection notification:', notifError);
+    }
+
+    // Check and send streak milestone notification
+    if (habit && newStreak > 0) {
+      try {
+        await checkAndSendStreakMilestone(userId, habit.name || habit.title || 'Habit', newStreak);
+      } catch (notifError) {
+        console.log('Could not send milestone notification:', notifError);
+      }
+    }
   } catch (error) {
     console.error('Error marking habit complete:', error);
     throw error;
@@ -231,8 +254,9 @@ export const getHabitCompletions = async (
 /**
  * Update habit streak based on recent completions
  * This is a simplified version - production would be more sophisticated
+ * Returns the new current streak value
  */
-const updateHabitStreak = async (habitId: string): Promise<void> => {
+const updateHabitStreak = async (habitId: string): Promise<number> => {
   try {
     const completions = await getHabitCompletions(habitId);
     const sortedDates = completions
@@ -268,6 +292,8 @@ const updateHabitStreak = async (habitId: string): Promise<void> => {
       longestStreak: maxStreak,
       bestStreak: maxStreak, // Web app compatibility
     });
+
+    return currentStreak;
   } catch (error) {
     console.error('Error updating habit streak:', error);
     throw error;
@@ -279,7 +305,8 @@ const updateHabitStreak = async (habitId: string): Promise<void> => {
  */
 export const isHabitCompletedToday = async (habitId: string): Promise<boolean> => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const completionRef = doc(db, COLLECTION, habitId, COMPLETIONS_SUBCOLLECTION, today);
     const completionSnap = await getDoc(completionRef);
 

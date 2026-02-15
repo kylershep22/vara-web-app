@@ -270,8 +270,8 @@ const styles = StyleSheet.create({
   pillarCard: {
     backgroundColor: Colors.borderLight,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.base,
+    marginBottom: Spacing.base,
   },
   pillarCardHighlight: {
     borderWidth: Layout.borderWidth.medium,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   pillarHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   pillarIconContainer: {
     width: 48,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
   },
   modalActions: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     marginBottom: Spacing.sm,
   },
   closeButton: {

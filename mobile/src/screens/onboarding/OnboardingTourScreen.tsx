@@ -1,18 +1,22 @@
 /**
  * Onboarding Tour Screen
  * Quick feature tour to familiarize users with the app
+ * Now includes mandatory "First Action" step before completing onboarding
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { View, StyleSheet, FlatList, Dimensions, ScrollView } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button } from '../../components';
+import { ConfettiOverlay } from '../../components/celebrations';
+import { FirstActionCard } from '../../components/onboarding/FirstActionCard';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { FocusArea } from './OnboardingFocusScreen';
 
 const { width } = Dimensions.get('window');
 
@@ -40,7 +44,7 @@ const TOUR_SLIDES: TourSlide[] = [
   {
     id: 'home',
     title: 'Your Daily Hub',
-    description: 'Track goals, build habit streaks, manage tasks, and see your AI-generated daily wellness plan.',
+    description: 'Track goals, build healthy habits, manage tasks, and see your AI-generated daily wellness plan.',
     icon: 'view-dashboard',
     color: Colors.sunriseAmber,
   },
@@ -69,10 +73,13 @@ const TOUR_SLIDES: TourSlide[] = [
 
 const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation, route }) => {
   const { user } = useAuth();
-  const { createdType, createdTitle, skipped } = route.params || {};
+  const { createdType, createdTitle, skipped, selectedFocus = [] } = route.params || {};
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSuccessBanner, setShowSuccessBanner] = useState(!skipped && !!createdType);
+  const [showFirstAction, setShowFirstAction] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [completedAction, setCompletedAction] = useState<{ type: string; data?: any } | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   // Auto-dismiss success banner after 5 seconds
@@ -92,11 +99,26 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
       flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
       setCurrentIndex(nextIndex);
     } else {
-      handleFinish();
+      // After tour slides, show the First Action step
+      setShowFirstAction(true);
     }
   };
 
   const handleSkip = () => {
+    // Skip tour but still show first action (it's mandatory for the Day One Win)
+    setShowFirstAction(true);
+  };
+
+  const handleFirstActionComplete = (actionType: string, actionData?: any) => {
+    // Store what action was completed for the success message
+    setCompletedAction({ type: actionType, data: actionData });
+    // Show confetti celebration
+    setShowConfetti(true);
+  };
+
+  const handleConfettiComplete = () => {
+    setShowConfetti(false);
+    // Now finish the onboarding
     handleFinish();
   };
 
@@ -108,8 +130,13 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
         await updateDoc(userRef, {
           hasCompletedOnboarding: true,
           onboardingCompletedAt: new Date(),
+          firstAction: completedAction ? {
+            type: completedAction.type,
+            data: completedAction.data,
+            completedAt: new Date(),
+          } : null,
         });
-        console.log('✅ Onboarding completed, user document updated');
+        console.log('✅ Onboarding completed with first action, user document updated');
 
         // The AppNavigator will automatically detect the change and navigate to MainNavigator
         // No manual navigation needed - the navigation state update happens via the
@@ -136,6 +163,39 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
     </View>
   );
 
+  // Render the First Action step after tour
+  if (showFirstAction) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        {/* Progress Indicator - all steps complete, on final action */}
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressDot, styles.progressDotActive]} />
+          <View style={[styles.progressDot, styles.progressDotActive]} />
+          <View style={[styles.progressDot, styles.progressDotActive]} />
+          <View style={[styles.progressDot, styles.progressDotActive]} />
+          <View style={[styles.progressDot, styles.progressDotFinal]} />
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.firstActionScrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <FirstActionCard
+            selectedFocus={selectedFocus as FocusArea[]}
+            onComplete={handleFirstActionComplete}
+          />
+        </ScrollView>
+
+        {/* Confetti Celebration */}
+        <ConfettiOverlay
+          visible={showConfetti}
+          onComplete={handleConfettiComplete}
+          duration={3000}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Progress Indicator */}
@@ -144,6 +204,7 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
         <View style={[styles.progressDot, styles.progressDotActive]} />
         <View style={[styles.progressDot, styles.progressDotActive]} />
         <View style={[styles.progressDot, styles.progressDotActive]} />
+        <View style={styles.progressDot} />
       </View>
 
       {/* Success Message if user created something - only show on first slide and auto-dismiss after 5s */}
@@ -197,7 +258,7 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
           fullWidth
           style={styles.nextButton}
         >
-          {currentIndex === TOUR_SLIDES.length - 1 ? 'Start My Journey' : 'Next'}
+          {currentIndex === TOUR_SLIDES.length - 1 ? 'One More Thing...' : 'Next'}
         </Button>
 
         {currentIndex < TOUR_SLIDES.length - 1 && (
@@ -224,7 +285,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     marginBottom: Spacing.lg,
   },
   progressDot: {
@@ -237,12 +298,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.evergreenTeal,
     width: 24,
   },
+  progressDotFinal: {
+    backgroundColor: Colors.sunriseAmber,
+    width: 24,
+  },
   successBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.success + '20',
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.base,
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
     gap: Spacing.sm,
@@ -268,14 +333,14 @@ const styles = StyleSheet.create({
   slideTitle: {
     color: Colors.evergreenTeal,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     fontWeight: Typography.fontWeight.bold,
   },
   slideDescription: {
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: Typography.fontSize.base * 1.6,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
   },
   pagination: {
     flexDirection: 'row',
@@ -300,6 +365,11 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     marginBottom: Spacing.sm,
+  },
+  firstActionScrollContent: {
+    flexGrow: 1,
+    paddingTop: Spacing.base,
+    paddingBottom: Spacing.xl,
   },
 });
 

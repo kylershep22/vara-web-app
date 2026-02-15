@@ -1,6 +1,9 @@
 /**
  * Progress Nudge Card
- * Motivational card showing daily progress and streak opportunities
+ * Motivational card showing daily progress and consistency milestones
+ *
+ * Design Philosophy: Emphasizes patterns over perfection, growth over streaks.
+ * Aligns with Vara's "Progress Without Pressure" brand pillar.
  */
 
 import React, { useMemo } from 'react';
@@ -18,7 +21,7 @@ interface ProgressNudgeCardProps {
 }
 
 interface NudgeContent {
-  type: 'daily_progress' | 'streak_opportunity';
+  type: 'daily_progress' | 'consistency_milestone';
   title: string;
   message: string;
   icon: string;
@@ -43,24 +46,25 @@ const ProgressNudgeCard: React.FC<ProgressNudgeCardProps> = ({
     const totalCount = habits.length;
     const remainingCount = remainingHabits.length;
 
-    // Check for streak opportunities first (priority nudges)
+    // Check for consistency milestones first (priority nudges)
     // Milestones: 6 → 7 (week), 29 → 30 (month), 99 → 100 (century)
     const milestoneThresholds = [6, 29, 99];
 
     for (const habit of habits) {
-      const currentStreak = realStreaks[habit.id] || 0;
+      const currentConsistency = realStreaks[habit.id] || 0;
       const habitName = habit.name || (habit as any).title || 'this habit';
 
       // Only show if not completed today and at a threshold
-      if (!completedToday.has(habit.id) && milestoneThresholds.includes(currentStreak)) {
-        const nextMilestone = currentStreak === 6 ? 7 : currentStreak === 29 ? 30 : 100;
+      if (!completedToday.has(habit.id) && milestoneThresholds.includes(currentConsistency)) {
+        const nextMilestone = currentConsistency === 6 ? 7 : currentConsistency === 29 ? 30 : 100;
+        const milestoneLabel = nextMilestone === 7 ? 'a week' : nextMilestone === 30 ? 'a month' : '100 days';
         return {
-          type: 'streak_opportunity',
-          title: `${nextMilestone}-Day Milestone Ahead!`,
-          message: `Complete "${habitName}" to hit a ${nextMilestone}-day streak!`,
-          icon: 'fire',
-          iconColor: Colors.sunriseAmber,
-          backgroundColor: Colors.goldenApricot + '20',
+          type: 'consistency_milestone',
+          title: `Almost ${milestoneLabel} of consistency!`,
+          message: `Complete "${habitName}" to reach ${nextMilestone} days.`,
+          icon: 'leaf',
+          iconColor: Colors.evergreenTeal,
+          backgroundColor: Colors.dewSage,
           habitId: habit.id,
           habitName,
         };
@@ -156,7 +160,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
+    padding: Spacing.base,
     borderRadius: Layout.borderRadius.lg,
     marginBottom: Spacing.lg,
   },
@@ -167,7 +171,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.base,
   },
   contentContainer: {
     flex: 1,

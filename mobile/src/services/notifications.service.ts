@@ -23,39 +23,46 @@ export async function registerForPushNotifications(): Promise<string | null> {
     return null;
   }
 
-  // Check existing permissions
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
+  try {
+    // Check existing permissions
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-  // Request permissions if not granted
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
+    // Request permissions if not granted
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
 
-  if (finalStatus !== 'granted') {
-    console.log('Failed to get push token for push notification!');
+    if (finalStatus !== 'granted') {
+      console.log('Failed to get push token for push notification!');
+      return null;
+    }
+
+    // Get the Expo push token
+    // Note: This will fail in Expo Go but work in production builds
+    const token = (
+      await Notifications.getExpoPushTokenAsync({
+        projectId: '63c2515a-00f1-454c-8400-2514781cade6', // EAS project ID from app.json
+      })
+    ).data;
+
+    // Android-specific configuration
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#1B5E57',
+      });
+    }
+
+    return token;
+  } catch (error) {
+    // This error is expected in Expo Go - push tokens only work in production builds
+    console.log('Push notification token unavailable (expected in Expo Go):', error);
     return null;
   }
-
-  // Get the Expo push token
-  const token = (
-    await Notifications.getExpoPushTokenAsync({
-      projectId: '9af30502-8eeb-472c-a0cc-f4e8b10ede1a', // Your Expo project ID
-    })
-  ).data;
-
-  // Android-specific configuration
-  if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#1B5E57',
-    });
-  }
-
-  return token;
 }
 
 /**

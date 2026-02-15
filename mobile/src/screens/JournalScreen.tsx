@@ -4,26 +4,42 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback, memo } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, TextInput as RNTextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView } from 'react-native';
-import { Text, FAB, Portal, Modal, Button as PaperButton, Searchbar, Chip, IconButton } from 'react-native-paper';
+import { View, StyleSheet, SectionList, TouchableOpacity, Alert, TextInput as RNTextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView } from 'react-native';
+import { Text, Portal, Modal, Button as PaperButton, Chip, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card, LoadingSpinner } from '../components';
+import {
+  Button,
+  Input,
+  LoadingSpinner,
+  JournalEntryCard,
+  CollapsibleSearchBar,
+  FilterChipBar,
+  RelativeDateHeader,
+  groupEntriesByRelativeDate,
+  AIWeeklySummaryCard,
+  GentleEncouragementCard,
+  MoodGradientDot,
+  LockedScreenOverlay,
+} from '../components';
 import { Colors, Spacing, Typography, Layout } from '../constants';
+import { getMoodConfig } from '../constants/journalTags';
 import { useAuth } from '../context/AuthContext';
-import { useJournal } from '../hooks';
-import { createJournalEntry, updateJournalEntry, deleteJournalEntry } from '../services/firebase';
+import { useJournal, useJournalStats, useWeeklySummary } from '../hooks';
+import { createJournalEntry, updateJournalEntry, deleteJournalEntry, refreshWellnessScore } from '../services/firebase';
 import { getJournalPrompt } from '../services/api';
 import { JournalEntry } from '../types';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const INPUT_ACCESSORY_VIEW_ID = 'journalInputAccessory';
 
-const MOODS = [
-  { value: 'great', emoji: '😄', label: 'Great' },
-  { value: 'good', emoji: '🙂', label: 'Good' },
-  { value: 'okay', emoji: '😐', label: 'Okay' },
-  { value: 'bad', emoji: '😟', label: 'Bad' },
-  { value: 'terrible', emoji: '😢', label: 'Terrible' },
+// Mood options for the entry modal (values match MOOD_CONFIG in journalTags.ts)
+const MOOD_OPTIONS = [
+  { value: 'great', label: 'Great' },
+  { value: 'good', label: 'Good' },
+  { value: 'okay', label: 'Okay' },
+  { value: 'bad', label: 'Low' },
+  { value: 'terrible', label: 'Difficult' },
 ];
 
 // Brain health reflection prompts
@@ -167,7 +183,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
             How are you feeling?
           </Text>
           <View style={styles.moodButtons}>
-            {MOODS.map((m) => (
+            {MOOD_OPTIONS.map((m) => (
               <TouchableOpacity
                 key={m.value}
                 onPress={() => setMood(m.value)}
@@ -175,8 +191,13 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
                   styles.moodButton,
                   mood === m.value && styles.moodButtonActive,
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Mood: ${m.label}`}
+                accessibilityState={{ selected: mood === m.value }}
               >
-                <Text style={styles.moodButtonEmoji}>{m.emoji}</Text>
+                <View style={styles.moodButtonDot}>
+                  <MoodGradientDot mood={m.value} size={20} />
+                </View>
                 <Text
                   style={[
                     styles.moodButtonText,
@@ -328,60 +349,62 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
 const JournalScreen: React.FC = () => {
   const { user } = useAuth();
   const { entries, loading } = useJournal();
+  const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
 
-  // Filter entries by search query
+  // Journal stats for filter chips
+  const journalStats = useJournalStats(entries || []);
+
+  // AI weekly summary
+  const {
+    summary: weeklySummary,
+    loading: summaryLoading,
+    error: summaryError,
+    refetch: refetchSummary,
+    hasEnoughEntries: summaryHasEnoughEntries,
+  } = useWeeklySummary(entries || []);
+
+  // Filter entries by search query and tag
   const filteredEntries = useMemo(() => {
-    if (!searchQuery.trim()) return entries || [];
+    let result = entries || [];
 
-    const query = searchQuery.toLowerCase();
-    return (entries || []).filter((entry) => {
-      const entryText = entry.text || entry.content || '';
-      return entryText.toLowerCase().includes(query) ||
-        entry.tags?.some(tag => tag.toLowerCase().includes(query));
-    });
-  }, [entries, searchQuery]);
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((entry) => {
+        const entryText = entry.text || entry.content || '';
+        return entryText.toLowerCase().includes(query) ||
+          entry.tags?.some(tag => tag.toLowerCase().includes(query));
+      });
+    }
 
-  // Group entries by date
+    // Filter by selected tag
+    if (selectedTagFilter) {
+      result = result.filter((entry) =>
+        entry.tags?.includes(selectedTagFilter)
+      );
+    }
+
+    return result;
+  }, [entries, searchQuery, selectedTagFilter]);
+
+  // Group entries by relative date (Today, Yesterday, This Week, etc.)
   const groupedEntries = useMemo(() => {
-    const groups: { [key: string]: JournalEntry[] } = {};
-
-    filteredEntries.forEach((entry) => {
-      // Skip entries without valid createdAt timestamp
+    // Filter out entries without valid timestamps
+    const validEntries = filteredEntries.filter((entry) => {
       if (!entry.createdAt || !entry.createdAt.seconds) {
         console.warn('Journal entry missing createdAt:', entry.id);
-        return;
+        return false;
       }
-
-      const date = new Date(entry.createdAt.seconds * 1000).toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-
-      if (!groups[date]) {
-        groups[date] = [];
-      }
-      groups[date].push(entry);
+      return true;
     });
 
-    return Object.entries(groups).sort((a, b) => {
-      const entryA = filteredEntries.find(e => groups[a[0]].includes(e));
-      const entryB = filteredEntries.find(e => groups[b[0]].includes(e));
-
-      if (!entryA?.createdAt?.seconds || !entryB?.createdAt?.seconds) {
-        return 0;
-      }
-
-      const dateA = new Date(entryA.createdAt.seconds * 1000);
-      const dateB = new Date(entryB.createdAt.seconds * 1000);
-      return dateB.getTime() - dateA.getTime();
-    });
+    return groupEntriesByRelativeDate(validEntries);
   }, [filteredEntries]);
 
   const handleCreateEntry = useCallback(() => {
@@ -405,12 +428,28 @@ const JournalScreen: React.FC = () => {
     isEditing: boolean,
     entryId?: string
   ) => {
+    // Cast mood to the expected type
+    const entryData = {
+      text: data.text,
+      mood: data.mood as 'great' | 'good' | 'okay' | 'bad' | 'terrible',
+      tags: data.tags,
+    };
+
     if (isEditing && entryId) {
-      await updateJournalEntry(entryId, data);
+      await updateJournalEntry(entryId, entryData);
     } else {
-      await createJournalEntry(user!.uid, data);
+      await createJournalEntry(user!.uid, entryData);
     }
     setEditingEntry(null);
+
+    // Refresh wellness score to reflect journal activity (affects Mind pillar)
+    if (user?.uid) {
+      try {
+        await refreshWellnessScore(user.uid);
+      } catch (error) {
+        console.error('Error refreshing wellness score after journal entry:', error);
+      }
+    }
   }, [user]);
 
   const handleDeleteEntry = useCallback((entryId: string) => {
@@ -440,130 +479,122 @@ const JournalScreen: React.FC = () => {
     setDetailModalVisible(true);
   }, []);
 
-  const getMoodEmoji = (mood: string) => {
-    return MOODS.find((m) => m.value === mood)?.emoji || '😐';
-  };
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
 
-  const truncateText = (text: string, maxLength: number = 150) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength).trim() + '...';
-  };
-
-  const renderEntry = (entry: JournalEntry) => (
-    <TouchableOpacity
-      key={entry.id}
+  // Render individual entry using JournalEntryCard
+  const renderEntry = useCallback(({ item: entry }: { item: JournalEntry }) => (
+    <JournalEntryCard
+      entry={entry}
       onPress={() => handleViewEntry(entry)}
-      activeOpacity={0.7}
-    >
-      <Card style={styles.entryCard}>
-        <View style={styles.entryHeader}>
-          <Text style={styles.moodEmoji}>{getMoodEmoji(entry.mood)}</Text>
-          <Text variant="bodySmall" style={styles.entryTime}>
-            {entry.createdAt?.seconds
-              ? new Date(entry.createdAt.seconds * 1000).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                })
-              : 'N/A'}
-          </Text>
-        </View>
+      onLongPress={() => handleEditEntry(entry)}
+    />
+  ), [handleViewEntry, handleEditEntry]);
 
-        <Text variant="bodyMedium" style={styles.entryPreview} numberOfLines={3}>
-          {truncateText(entry.text || entry.content || '')}
-        </Text>
+  // Render section header with relative date
+  const renderSectionHeader = useCallback(({ section }: { section: { dateGroup: any; date?: Date } }) => (
+    <RelativeDateHeader dateGroup={section.dateGroup} date={section.date} />
+  ), []);
 
-        {entry.tags && entry.tags.length > 0 && (
-          <View style={styles.tagsContainer}>
-            {entry.tags.slice(0, 3).map((tag) => (
-              <Chip key={tag} style={styles.tag} textStyle={styles.tagText}>
-                #{tag}
-              </Chip>
-            ))}
-            {entry.tags.length > 3 && (
-              <Text variant="bodySmall" style={styles.moreTagsText}>
-                +{entry.tags.length - 3} more
-              </Text>
-            )}
-          </View>
-        )}
-
-        <View style={styles.entryFooter}>
-          <Text variant="bodySmall" style={styles.readMoreText}>
-            Tap to read more
-          </Text>
-        </View>
-      </Card>
-    </TouchableOpacity>
-  );
-
-  const renderDateSection = ({ item }: { item: [string, JournalEntry[]] }) => {
-    const [date, dateEntries] = item;
-    return (
-      <View style={styles.dateSection}>
-        <Text variant="titleMedium" style={styles.dateHeader}>
-          {date}
-        </Text>
-        {dateEntries.map((entry) => renderEntry(entry))}
-      </View>
-    );
-  };
+  // Get section key
+  const getSectionKey = useCallback((section: any) => {
+    return `${section.dateGroup}-${section.date?.getTime() || 'none'}`;
+  }, []);
 
   if (loading) {
     return <LoadingSpinner message="Loading journal..." />;
   }
 
   return (
+    <LockedScreenOverlay feature="journal">
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header with back button and + Reflect button */}
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.screenTitle}>
-          Journal
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Reflect on your wellness journey
-        </Text>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
+          <Ionicons name="chevron-back" size={28} color={Colors.evergreenTeal} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text variant="headlineMedium" style={styles.screenTitle}>
+            Journal
+          </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            Reflect on your wellness journey
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={handleCreateEntry}
+          style={styles.reflectButton}
+          accessibilityLabel="Create new journal entry"
+          accessibilityRole="button"
+        >
+          <Ionicons name="add" size={20} color={Colors.textOnPrimary} />
+          <Text style={styles.reflectButtonText}>Reflect</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Search entries..."
-          onChangeText={setSearchQuery}
+      {/* Collapsible Search Bar and Filter Chips */}
+      <View style={styles.toolbarContainer}>
+        <CollapsibleSearchBar
           value={searchQuery}
-          style={styles.searchbar}
-          iconColor={Colors.evergreenTeal}
+          onChangeText={setSearchQuery}
+          onClear={handleClearSearch}
+          placeholder="Search entries..."
         />
       </View>
+
+      {/* Filter Chips */}
+      <FilterChipBar
+        tags={journalStats.topTags}
+        selectedTag={selectedTagFilter}
+        onSelectTag={setSelectedTagFilter}
+      />
 
       {/* Entries List */}
       {filteredEntries.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>📔</Text>
-          <Text variant="titleMedium" style={styles.emptyTitle}>
-            {searchQuery ? 'No entries found' : 'No journal entries yet'}
-          </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {searchQuery
-              ? 'Try a different search term'
-              : 'Start journaling to track your thoughts and feelings'}
-          </Text>
+          {/* Show encouragement card if no entries this week, otherwise show empty state */}
+          {!journalStats.hasEntriesThisWeek && !searchQuery && !selectedTagFilter ? (
+            <GentleEncouragementCard visible={true} />
+          ) : (
+            <>
+              <Text style={styles.emptyIcon}>📔</Text>
+              <Text variant="titleMedium" style={styles.emptyTitle}>
+                {searchQuery || selectedTagFilter ? 'No entries found' : 'No journal entries yet'}
+              </Text>
+              <Text variant="bodyMedium" style={styles.emptyText}>
+                {searchQuery || selectedTagFilter
+                  ? 'Try a different search or filter'
+                  : 'Start journaling to track your thoughts and feelings'}
+              </Text>
+            </>
+          )}
         </View>
       ) : (
-        <FlatList
-          data={groupedEntries}
-          renderItem={renderDateSection}
-          keyExtractor={(item) => item[0]}
+        <SectionList
+          sections={groupedEntries}
+          renderItem={renderEntry}
+          renderSectionHeader={renderSectionHeader}
+          keyExtractor={(item) => item.id}
+          stickySectionHeadersEnabled={true}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <AIWeeklySummaryCard
+              summary={weeklySummary}
+              loading={summaryLoading}
+              error={summaryError}
+              onRetry={refetchSummary}
+              hasEnoughEntries={summaryHasEnoughEntries}
+              weekEntryCount={journalStats.thisWeekCount}
+            />
+          }
         />
       )}
-
-      {/* FAB */}
-      <FAB
-        icon="plus"
-        label="New Entry"
-        style={styles.fab}
-        onPress={handleCreateEntry}
-        color={Colors.textOnPrimary}
-      />
 
       {/* Create/Edit Modal - Extracted to prevent re-renders */}
       <Portal>
@@ -587,7 +618,12 @@ const JournalScreen: React.FC = () => {
               <>
                 <View style={styles.detailHeader}>
                   <View style={styles.detailMoodRow}>
-                    <Text style={styles.detailMoodEmoji}>{getMoodEmoji(selectedEntry.mood)}</Text>
+                    <View style={styles.detailMoodContainer}>
+                      <MoodGradientDot mood={selectedEntry.mood || 'okay'} size={24} />
+                      <Text style={styles.detailMoodLabel}>
+                        {getMoodConfig(selectedEntry.mood || 'okay').label}
+                      </Text>
+                    </View>
                     <View style={styles.detailDateContainer}>
                       <Text variant="titleMedium" style={styles.detailDate}>
                         {selectedEntry.createdAt?.seconds
@@ -679,17 +715,31 @@ const JournalScreen: React.FC = () => {
         </InputAccessoryView>
       )}
     </SafeAreaView>
+    </LockedScreenOverlay>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   header: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.base,
+  },
+  backButton: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
   },
   screenTitle: {
     color: Colors.evergreenTeal,
@@ -699,71 +749,28 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
-  searchContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+  reflectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.evergreenTeal,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.base,
+    borderRadius: Layout.borderRadius.full,
+    gap: Spacing.xs,
+    minHeight: 48,
   },
-  searchbar: {
-    backgroundColor: Colors.surface,
-    elevation: 0,
+  reflectButtonText: {
+    color: Colors.textOnPrimary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  toolbarContainer: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   listContent: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.base,
     paddingBottom: 100,
-  },
-  dateSection: {
-    marginBottom: Spacing.lg,
-  },
-  dateHeader: {
-    color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.sm,
-  },
-  entryCard: {
-    marginBottom: Spacing.md,
-  },
-  entryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
-  },
-  moodEmoji: {
-    fontSize: Typography.fontSize['3xl'] + 4,
-  },
-  entryTime: {
-    color: Colors.textSecondary,
-  },
-  entryContent: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
-  },
-  entryPreview: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
-  },
-  entryFooter: {
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.borderLight,
-    paddingTop: Spacing.sm,
-    alignItems: 'center',
-  },
-  readMoreText: {
-    color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  moreTagsText: {
-    color: Colors.textSecondary,
-    alignSelf: 'center',
-    marginLeft: Spacing.xs,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
   },
   tag: {
     backgroundColor: Colors.dewSage,
@@ -771,19 +778,6 @@ const styles = StyleSheet.create({
   tagText: {
     color: Colors.evergreenTeal,
     fontSize: Typography.fontSize.xs,
-  },
-  entryActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.borderLight,
-    paddingTop: Spacing.sm,
-  },
-  actionButton: {
-    marginLeft: Spacing.sm,
-  },
-  deleteButton: {
-    marginLeft: Spacing.sm,
   },
   emptyContainer: {
     flex: 1,
@@ -793,7 +787,7 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: Typography.fontSize['5xl'] + 16,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   emptyTitle: {
     color: Colors.textPrimary,
@@ -802,12 +796,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Colors.textSecondary,
     textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: Spacing.lg,
-    bottom: Spacing.lg,
-    backgroundColor: Colors.evergreenTeal,
   },
   modal: {
     backgroundColor: Colors.surface,
@@ -819,7 +807,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   modalHeader: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   scrollContent: {
     // No bottom padding needed - modalActions handles spacing
@@ -841,7 +829,7 @@ const styles = StyleSheet.create({
   moodButtons: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   moodButton: {
     flex: 1,
@@ -851,14 +839,15 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     alignItems: 'center',
     backgroundColor: Colors.surface,
+    minHeight: 56,
+    justifyContent: 'center',
   },
   moodButtonActive: {
     backgroundColor: Colors.dewSage,
     borderColor: Colors.evergreenTeal,
   },
-  moodButtonEmoji: {
-    fontSize: Typography.fontSize['2xl'],
-    marginBottom: 4,
+  moodButtonDot: {
+    marginBottom: Spacing.xs,
   },
   moodButtonText: {
     fontSize: Typography.fontSize.xs,
@@ -877,11 +866,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   promptChip: {
     backgroundColor: Colors.dewSage,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     borderRadius: Layout.borderRadius.lg,
     borderWidth: Layout.borderWidth.thin,
@@ -893,13 +882,13 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
   },
   aiPromptButton: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   contentInput: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   contentInputContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   textInputWithVoice: {
     position: 'relative',
@@ -908,10 +897,10 @@ const styles = StyleSheet.create({
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
     borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.base,
     fontSize: Typography.fontSize.base,
     color: Colors.textPrimary,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
     minHeight: 200,
     maxHeight: 300,
   },
@@ -937,18 +926,18 @@ const styles = StyleSheet.create({
   tagInputContainer: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   tagInput: {
     flex: 1,
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
     borderRadius: Layout.borderRadius.md,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     fontSize: Typography.fontSize.sm,
     color: Colors.textPrimary,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   addTagButton: {
     justifyContent: 'center',
@@ -957,7 +946,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   editTag: {
     backgroundColor: Colors.dewSage,
@@ -965,7 +954,7 @@ const styles = StyleSheet.create({
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     marginBottom: Spacing.sm,
     gap: Spacing.sm,
   },
@@ -983,17 +972,24 @@ const styles = StyleSheet.create({
   },
   detailHeader: {
     marginBottom: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.base,
     borderBottomWidth: Layout.borderWidth.thin,
     borderBottomColor: Colors.borderLight,
   },
   detailMoodRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.base,
   },
-  detailMoodEmoji: {
-    fontSize: Typography.fontSize['5xl'],
+  detailMoodContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  detailMoodLabel: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
   },
   detailDateContainer: {
     flex: 1,
@@ -1024,7 +1020,7 @@ const styles = StyleSheet.create({
   detailActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   detailActionButton: {
     flex: 1,
@@ -1037,7 +1033,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopWidth: Layout.borderWidth.thin,
     borderTopColor: Colors.border,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     flexDirection: 'row',
     justifyContent: 'flex-end',

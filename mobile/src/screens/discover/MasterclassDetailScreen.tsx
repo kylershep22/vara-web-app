@@ -237,7 +237,7 @@ export default function MasterclassDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   scrollContent: {
     paddingBottom: Spacing['4xl'],
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   },
   instructor: {
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   badges: {
     flexDirection: 'row',
@@ -289,8 +289,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   progressSection: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.base,
+    paddingHorizontal: Spacing.base,
     backgroundColor: Colors.evergreenTeal + '10',
     borderRadius: 12,
     marginBottom: Spacing.lg,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   description: {
     color: Colors.textPrimary,
@@ -345,8 +345,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.md,
+    marginTop: Spacing.base,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.success + '20',
     borderRadius: 12,
   },
@@ -360,8 +360,8 @@ const styles = StyleSheet.create({
   instructorCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.md,
+    gap: Spacing.base,
+    padding: Spacing.base,
     backgroundColor: Colors.surface,
     borderRadius: 12,
   },
@@ -385,8 +385,8 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   requirementsSection: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.base,
+    paddingHorizontal: Spacing.base,
     backgroundColor: Colors.surface,
     borderRadius: 12,
     marginBottom: Spacing.lg,
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: Colors.textPrimary,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     marginBottom: Spacing.lg,
   },
 });

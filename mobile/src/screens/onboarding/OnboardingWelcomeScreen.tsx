@@ -140,13 +140,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.base,
     paddingBottom: Spacing.lg,
     justifyContent: 'space-between',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   logoCircle: {
     width: 80,
@@ -171,11 +171,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
   },
   benefitsContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   benefitItem: {
     flexDirection: 'row',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     alignItems: 'flex-start',
   },
   benefitIcon: {
@@ -201,10 +201,10 @@ const styles = StyleSheet.create({
   },
   ctaContainer: {
     marginTop: 'auto',
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.base,
   },
   ctaButton: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   footerText: {
     color: Colors.textSecondary,

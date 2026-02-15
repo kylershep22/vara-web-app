@@ -195,7 +195,7 @@ const RoutineView: React.FC<RoutineViewProps> = ({ routine, onEdit }) => {
               </View>
               <View key={`activity-${index}-content`} style={styles.timelineContent}>
                 <Text key={`activity-${index}-name`} style={styles.activityName}>{activity.name}</Text>
-                <Text key={`activity-${index}-duration`} style={styles.activityDuration}>{activity.duration} min</Text>
+                <Text key={`activity-${index}-duration`} style={styles.activityDuration}>{`${activity.duration} min`}</Text>
               </View>
             </View>
           ))}
@@ -205,7 +205,7 @@ const RoutineView: React.FC<RoutineViewProps> = ({ routine, onEdit }) => {
         <View key="routine-stats" style={styles.stats}>
           <View key="duration-stat" style={styles.statItem}>
             <Icon key="duration-icon" name="clock-outline" size={20} color={Colors.textSecondary} />
-            <Text key="duration-text" style={styles.statText}>{totalDuration} min total</Text>
+            <Text key="duration-text" style={styles.statText}>{`${totalDuration} min total`}</Text>
           </View>
           <View key="count-stat" style={styles.statItem}>
             <Icon key="count-icon" name="format-list-checks" size={20} color={Colors.textSecondary} />
@@ -265,35 +265,40 @@ const EmptyState: React.FC<EmptyStateProps> = ({ routineType, onCreate }) => {
   );
 };
 
-// Helper function to get color for activity
+// Brand-compliant activity colors
+// Per Focus Page Spec: Only use primary (#1B5E57), coral (#D97A6E), or apricot (#F5B971)
 function getColorForActivity(color: string): string {
   const colorMap: { [key: string]: string } = {
-    purple: '#9333EA',
-    green: '#16A34A',
-    blue: '#2563EB',
-    orange: '#EA580C',
-    indigo: '#4F46E5',
-    red: '#DC2626',
-    cyan: '#06B6D4',
-    teal: '#14B8A6',
-    yellow: '#EAB308',
-    gray: '#6B7280',
-    brown: '#92400E',
-    pink: '#EC4899',
+    // Primary teal mappings
+    purple: '#1B5E57',
+    green: '#1B5E57',
+    blue: '#1B5E57',
+    cyan: '#1B5E57',
+    indigo: '#1B5E57',
+    teal: '#1B5E57',
+    // Coral mappings (for heart/gratitude)
+    red: '#D97A6E',
+    pink: '#D97A6E',
+    // Apricot mappings (for energy/warmth)
+    orange: '#F5B971',
+    yellow: '#F5B971',
+    brown: '#F5B971',
+    // Neutral
+    gray: '#6F7F77',
   };
-  return colorMap[color] || Colors.evergreenTeal;
+  return colorMap[color] || '#1B5E57';
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   typeSelector: {
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
   },
   typeButton: {
     flex: 1,
@@ -346,7 +351,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: 16,
@@ -362,7 +367,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
   },
   editButtonText: {
@@ -397,7 +402,7 @@ const styles = StyleSheet.create({
   timelineContent: {
     flex: 1,
     paddingTop: Spacing.xs,
-    paddingLeft: Spacing.md,
+    paddingLeft: Spacing.base,
   },
   activityName: {
     fontSize: 16,
@@ -412,7 +417,7 @@ const styles = StyleSheet.create({
   stats: {
     flexDirection: 'row',
     gap: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.base,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
@@ -436,7 +441,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: Colors.textPrimary,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     textAlign: 'center',
   },
   emptyDescription: {
@@ -451,7 +456,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   startButton: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

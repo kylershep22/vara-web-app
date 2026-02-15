@@ -25,6 +25,10 @@ export const Colors = {
   white: '#FFFFFF',
   black: '#000000',
 
+  // Extended Palette
+  mintCream: '#E8F5F2',        // Soft teal-tinted background
+  mutedSageGray: '#7A8B7A',    // Muted gray-green for secondary text/icons
+
   // Accent Colors
   dewSage: '#D5E3D1',
   oliveSage: '#9AAE8C',
@@ -36,20 +40,39 @@ export const Colors = {
     surface: '#FFFFFF',
   },
   surface: '#FFFFFF',
-  error: '#D32F2F',
-  success: '#388E3C',
-  warning: '#F57C00',
-  info: '#1976D2',
+  error: '#D97A6E',            // Soft Coral - brand compliant (never use red #FF0000)
+  success: '#1B5E57',          // Use primary teal for success states, not bright green
+  warning: '#F5B971',          // Golden Apricot for warnings
+  info: '#1B5E57',             // Use primary for info states
+
+  // Focus Page Spec Tokens (aliases for design system compliance)
+  focusTokens: {
+    primary: '#1B5E57',
+    backgroundPrimary: '#FAFAF6',
+    backgroundSurface: '#FFFFFF',
+    secondary: '#B8CDBA',
+    surfaceTinted: '#D5E3D1',
+    surfaceTintedLight: 'rgba(213, 227, 209, 0.5)',
+    accentWarm: '#F4C542',
+    accentApricot: '#F5B971',
+    textPrimary: '#3E3E3E',
+    textSecondary: '#6F7F77',
+    error: '#D97A6E',
+    primaryLight: 'rgba(27, 94, 87, 0.08)',
+    primaryMedium: 'rgba(27, 94, 87, 0.15)',
+    disabled: 'rgba(184, 205, 186, 0.5)',
+    secondaryLight: 'rgba(184, 205, 186, 0.25)',
+  },
 
   // Text Colors
   text: {
     primary: '#3E3E3E',
-    secondary: '#757575',
+    secondary: '#6F7F77',       // Updated per Focus spec for better brand alignment
     disabled: '#BDBDBD',
     onPrimary: '#FFFFFF',
   },
   textPrimary: '#3E3E3E',
-  textSecondary: '#757575',
+  textSecondary: '#6F7F77',     // Updated per Focus spec
   textDisabled: '#BDBDBD',
   textOnPrimary: '#FFFFFF',
 

@@ -268,7 +268,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   topRow: {
     flexDirection: 'row',
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dewSage,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.base,
   },
   titleSection: {
     flex: 1,
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   },
   description: {
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     lineHeight: 18,
   },
   bottomRow: {
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   actionButton: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.xs,
     borderRadius: Layout.borderRadius.md,
     minWidth: 64,

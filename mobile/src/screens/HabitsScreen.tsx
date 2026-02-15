@@ -1,14 +1,15 @@
 /**
  * Habits Screen
- * Daily habit tracking with streaks
+ * Daily habit tracking with consistency rhythm visualization
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, useWindowDimensions } from 'react-native';
-import { Text, FAB, Portal, Modal, Button as PaperButton, Menu } from 'react-native-paper';
+import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
+import { Text, FAB, Menu } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { Button, Input, Card, LoadingSpinner, BrainPillarBadge, BrainPillarInfoModal } from '../components';
+import { Button, Input, Card, LoadingSpinner, BrainPillarBadge, BrainPillarInfoModal, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton, LockedScreenOverlay } from '../components';
 import { AnimatedCheckbox, ConfettiOverlay, StreakMilestoneModal } from '../components/celebrations';
 import { Colors, Spacing, Typography, Layout, HABIT_CATEGORIES } from '../constants';
 import { getNeurochemicalTags, formatNeurochemicalTag, getBrainPillars, getHabitBrainMapping } from '../constants/brainHealthMapping';
@@ -29,13 +30,21 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 interface HabitsScreenProps {
   hideHeader?: boolean;
+  /** Filter passed from parent (PlanScreen) */
+  externalFilter?: string;
+  /** Show inline create button instead of FAB */
+  showInlineCreate?: boolean;
 }
 
-const HabitsScreen: React.FC<HabitsScreenProps> = ({ hideHeader = false }) => {
+const HabitsScreen: React.FC<HabitsScreenProps> = ({
+  hideHeader = false,
+  externalFilter,
+  showInlineCreate = false,
+}) => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const { habits, loading, error: habitsError } = useHabits(true); // Active habits only
   const insets = useSafeAreaInsets();
-  const { height: screenHeight } = useWindowDimensions();
   const {
     showConfetti,
     triggerConfetti,
@@ -45,8 +54,6 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({ hideHeader = false }) => {
     dismissMilestone,
   } = useCelebrations();
 
-  // Calculate safe modal height accounting for safe areas
-  const modalMaxHeight = screenHeight - insets.top - insets.bottom - 40; // 40px margin
   const [modalVisible, setModalVisible] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [formData, setFormData] = useState({
@@ -399,205 +406,73 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({ hideHeader = false }) => {
     }
   };
 
+  /**
+   * Simplified habit card per Vara UI Standards
+   * - Checkbox + Title + Metadata + Chevron
+   * - No streak counters, momentum stats, or visible Edit/Delete
+   */
   const renderHabitItem = ({ item }: { item: Habit }) => {
     try {
       const isCompleted = completedToday.has(item.id);
-
-      // Handle both 'name' and 'title' fields from web app
       const habitName = item?.name || (item as any)?.title || 'Unnamed Habit';
 
-      // Use calculated real streaks from completion history
-      const streakData = realStreaks[item?.id] || { current: 0, longest: 0 };
-      const currentStreak = streakData.current || 0;
-      const bestStreak = streakData.longest || 0;
+      // Build metadata line: Category · Frequency · Trigger
+      const metaParts: string[] = [];
+      if (item.category) metaParts.push(item.category);
+      if (item.type) metaParts.push(item.type.charAt(0).toUpperCase() + item.type.slice(1));
+      if (item.cue?.value) {
+        const triggerPrefix = item.cue.type === 'time' ? '' : '';
+        metaParts.push(item.cue.value);
+      }
+      const metaLine = metaParts.join(' · ');
 
-      // Vara Habits: Calculate steps taken and identity progress
-      const stepsTaken = item?.totalStepsTaken || 0;
-      const scalingPhase = item?.scalingPhase || 'getting_started';
-
-      // Calculate milestone for identity progress (defensive coding)
-      const getIdentityMilestone = (steps: number) => {
-        const safeSteps = Math.max(0, steps || 0); // Ensure non-negative number
-        if (safeSteps >= 200) return 'Expert';
-        if (safeSteps >= 100) return 'Established';
-        if (safeSteps >= 50) return 'Committed';
-        if (safeSteps >= 25) return 'Building Momentum';
-        if (safeSteps >= 10) return 'Getting Started';
-        return 'Just Beginning';
+      const handleNavigateToDetail = () => {
+        // Navigate to habit detail screen
+        navigation.navigate('HabitDetail', { habitId: item.id, habit: item });
       };
 
-      const milestone = getIdentityMilestone(stepsTaken);
+      return (
+        <BaseCard onPress={handleNavigateToDetail}>
+          <View style={styles.habitCardRow}>
+            {/* Checkbox */}
+            <View style={styles.checkboxWrapper}>
+              <AnimatedCheckbox
+                status={isCompleted ? 'checked' : 'unchecked'}
+                onPress={() => handleToggleCompletion(item.id)}
+                color={Colors.evergreenTeal}
+              />
+            </View>
 
-      // Calculate progress percentage to next milestone (defensive coding)
-      const getProgressPercentage = (steps: number) => {
-        const safeSteps = Math.max(0, steps || 0); // Ensure non-negative number
-        if (safeSteps >= 200) return 100;
-        if (safeSteps >= 100) return Math.min(100, ((safeSteps - 100) / 100) * 100); // To 200
-        if (safeSteps >= 50) return Math.min(100, ((safeSteps - 50) / 50) * 100); // To 100
-        if (safeSteps >= 25) return Math.min(100, ((safeSteps - 25) / 25) * 100); // To 50
-        if (safeSteps >= 10) return Math.min(100, ((safeSteps - 10) / 15) * 100); // To 25
-        return Math.min(100, (safeSteps / 10) * 100); // To 10
-      };
-
-      const progressPercent = getProgressPercentage(stepsTaken);
-
-    return (
-      <Card style={styles.habitCard}>
-        {/* Identity Header (if exists) */}
-        {item?.identity && (
-          <View style={styles.identityHeader}>
-            <Icon name="account-star" size={16} color={Colors.evergreenTeal} />
-            <Text variant="bodySmall" style={styles.identityHeaderText}>
-              Becoming: {item.identity}
-            </Text>
-            <Text variant="bodySmall" style={styles.milestoneText}>
-              • {milestone}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.habitContent}>
-          {/* Animated Checkbox with Haptic Feedback */}
-          <AnimatedCheckbox
-            status={isCompleted ? 'checked' : 'unchecked'}
-            onPress={() => handleToggleCompletion(item.id)}
-            color={Colors.evergreenTeal}
-          />
-
-          {/* Habit Info */}
-          <View style={styles.habitInfo}>
-            <Text
-              variant="titleMedium"
-              style={[styles.habitName, isCompleted && styles.habitCompleted]}
-            >
-              {habitName}
-            </Text>
-            <View style={styles.habitMeta}>
-              {item.category && (
-                <Text variant="bodySmall" style={styles.habitCategory}>
-                  {item.category}
+            {/* Content */}
+            <View style={styles.habitCardContent}>
+              <Text
+                style={[
+                  styles.habitCardTitle,
+                  isCompleted && styles.habitCardTitleCompleted,
+                ]}
+              >
+                {habitName}
+              </Text>
+              {metaLine && (
+                <Text style={styles.habitCardMeta}>
+                  {metaLine}
                 </Text>
               )}
-              <Text variant="bodySmall" style={styles.habitType}>
-                • {item.type || 'daily'}
-              </Text>
             </View>
-            {/* Wellness Insights - Only show if category has brain health mapping */}
-            {item.category && getNeurochemicalTags(item.category).length > 0 && (
-              <View style={styles.wellnessInsights}>
-                {getNeurochemicalTags(item.category).slice(0, 3).map((impact, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.wellnessTag}
-                    onPress={() => setPillarInfoVisible(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Icon name={impact.icon} size={12} color={Colors.evergreenTeal} />
-                    <Text variant="bodySmall" style={styles.wellnessTagText}>
-                      {formatNeurochemicalTag(impact)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity
-                  style={styles.learnMoreTag}
-                  onPress={() => setPillarInfoVisible(true)}
-                  activeOpacity={0.7}
-                >
-                  <Icon name="information-outline" size={12} color={Colors.evergreenTeal} />
-                  <Text variant="bodySmall" style={styles.learnMoreTagText}>
-                    Learn more
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
 
-          {/* Streak */}
-          <View style={styles.streakContainer}>
-            <Text style={styles.streakIcon}>🔥</Text>
-            <Text variant="titleLarge" style={styles.streakNumber}>
-              {currentStreak}
-            </Text>
+            {/* Chevron */}
+            <Icon name="chevron-right" size={16} color="#6F7F77" />
           </View>
-        </View>
-
-        {/* Vara Habits: Steps Taken Progress (if identity exists) */}
-        {item?.identity && stepsTaken > 0 && (
-          <View style={styles.stepsProgress}>
-            <View style={styles.stepsHeader}>
-              <Text variant="bodySmall" style={styles.stepsLabel}>
-                Steps Taken
-              </Text>
-              <Text variant="titleSmall" style={styles.stepsCount}>
-                {stepsTaken}
-              </Text>
-            </View>
-            <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBar, { width: `${Math.max(0, Math.min(100, progressPercent))}%` }]} />
-            </View>
-            <Text variant="bodySmall" style={styles.progressMessage}>
-              Every step counts toward becoming {item.identity.toLowerCase()}!
-            </Text>
-          </View>
-        )}
-
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text variant="bodySmall" style={styles.statLabel}>
-              Current Momentum
-            </Text>
-            <Text variant="titleSmall" style={styles.statValue}>
-              {currentStreak} days
-            </Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text variant="bodySmall" style={styles.statLabel}>
-              Best Momentum
-            </Text>
-            <Text variant="titleSmall" style={styles.statValue}>
-              {bestStreak} days
-            </Text>
-          </View>
-        </View>
-
-        {/* When/Where Plan (if exists) */}
-        {item?.implementationIntention && (
-          <View style={styles.intentionDisplay}>
-            <Icon name="calendar-check" size={14} color={Colors.textSecondary} />
-            <Text variant="bodySmall" style={styles.intentionDisplayText}>
-              {item.implementationIntention}
-            </Text>
-          </View>
-        )}
-
-        {/* Actions */}
-        <View style={styles.habitActions}>
-          <Button variant="text" onPress={() => handleEditHabit(item)} style={styles.actionButton}>
-            Edit
-          </Button>
-          <Button
-            variant="text"
-            onPress={() => handleDeleteHabit(item.id)}
-            style={styles.deleteButton}
-          >
-            Delete
-          </Button>
-        </View>
-      </Card>
-    );
+        </BaseCard>
+      );
     } catch (error) {
-      // Defensive: If habit rendering fails, show a simple fallback
       console.error('Error rendering habit item:', error, item);
       return (
-        <Card style={styles.habitCard}>
-          <View style={{ padding: 16 }}>
-            <Text variant="bodyMedium" style={{ color: Colors.textSecondary }}>
-              Unable to display this habit. Please try again.
-            </Text>
-          </View>
-        </Card>
+        <BaseCard>
+          <Text style={{ color: Colors.textSecondary }}>
+            Unable to display this habit.
+          </Text>
+        </BaseCard>
       );
     }
   };
@@ -627,6 +502,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({ hideHeader = false }) => {
   }
 
   return (
+    <LockedScreenOverlay feature="habits_basic">
     <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
       {!hideHeader && (
         <View style={styles.header}>
@@ -639,26 +515,38 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({ hideHeader = false }) => {
         </View>
       )}
 
-      {/* Today's Date */}
-      <View style={styles.dateContainer}>
-        <Text variant="titleMedium" style={styles.dateText}>
-          Today: {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </Text>
-      </View>
+      {/* Today's Date - Only show when NOT embedded in PlanScreen */}
+      {!externalFilter && (
+        <View style={styles.dateContainer}>
+          <Text variant="titleMedium" style={styles.dateText}>
+            Today: {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </Text>
+        </View>
+      )}
+
+      {/* Inline Create Button - Only show when embedded in PlanScreen */}
+      {showInlineCreate && (
+        <InlineCreateButton
+          label="Add a habit"
+          onPress={handleCreateHabit}
+        />
+      )}
 
       {/* Habits List */}
       {habits.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>✨</Text>
+          <View style={styles.emptyIconContainer}>
+            <Icon name="waves" size={32} color={Colors.silverSage} />
+          </View>
           <Text variant="titleMedium" style={styles.emptyTitle}>
-            No habits yet
+            Your habits live here
           </Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
-            Create your first habit to start building consistency!
+            Start with one small thing that feels manageable.
           </Text>
         </View>
       ) : (
@@ -673,33 +561,36 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({ hideHeader = false }) => {
         />
       )}
 
-      {/* FAB */}
-      <FAB
-        icon="plus"
-        label="New Habit"
-        style={[styles.fab, { bottom: Math.max(Spacing.lg, insets.bottom + Spacing.sm) }]}
-        onPress={handleCreateHabit}
-        color={Colors.textOnPrimary}
-      />
+      {/* FAB - Only show when NOT using inline create */}
+      {!showInlineCreate && (
+        <FAB
+          icon="plus"
+          label="New Habit"
+          style={[styles.fab, { bottom: Math.max(Spacing.lg, insets.bottom + Spacing.sm) }]}
+          onPress={handleCreateHabit}
+          color={Colors.textOnPrimary}
+        />
+      )}
 
       {/* Create/Edit Modal */}
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => setModalVisible(false)}
-          contentContainerStyle={[styles.modal, { maxHeight: modalMaxHeight }]}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          >
-            <ScrollView
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={styles.scrollContent}
-            >
-              <Text variant="headlineSmall" style={styles.modalTitle}>
-                {editingHabit ? 'Edit Habit' : 'New Habit'}
-              </Text>
-
+      <EnhancedModal
+        visible={modalVisible}
+        onDismiss={() => setModalVisible(false)}
+        title={editingHabit ? 'Edit Habit' : 'New Habit'}
+        subtitle="Build consistency, one day at a time"
+        headerIcon="refresh"
+        inputAccessoryViewID="habit-modal"
+        maxHeightPercent={0.9}
+        footer={
+          <ModalFooterActions
+            onCancel={() => setModalVisible(false)}
+            onSubmit={handleSubmit}
+            submitLabel={editingHabit ? 'Update' : 'Create'}
+            submitLoading={submitting}
+            submitDisabled={submitting}
+          />
+        }
+      >
               {/* Step 1: Who Are You Becoming? */}
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
@@ -1019,29 +910,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({ hideHeader = false }) => {
                 ))}
               </View>
 
-              <View style={styles.modalActions}>
-                <PaperButton
-                  mode="outlined"
-                  onPress={() => setModalVisible(false)}
-                  style={styles.modalButton}
-                >
-                  Cancel
-                </PaperButton>
-                <PaperButton
-                  mode="contained"
-                  onPress={handleSubmit}
-                  loading={submitting}
-                  disabled={submitting}
-                  style={styles.modalButton}
-                  buttonColor={Colors.evergreenTeal}
-                >
-                  {editingHabit ? 'Update' : 'Create'}
-                </PaperButton>
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </Modal>
-      </Portal>
+      </EnhancedModal>
 
       {/* Brain Pillar Info Modal */}
       <BrainPillarInfoModal
@@ -1067,17 +936,18 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({ hideHeader = false }) => {
         />
       )}
     </SafeAreaView>
+    </LockedScreenOverlay>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: Colors.mistWhite,
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
   },
   screenTitle: {
     color: Colors.evergreenTeal,
@@ -1089,11 +959,11 @@ const styles = StyleSheet.create({
   },
   dateContainer: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.dewSage,
     marginHorizontal: Spacing.lg,
     borderRadius: Layout.borderRadius.md,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   dateText: {
     color: Colors.evergreenTeal,
@@ -1104,12 +974,12 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   habitCard: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   habitContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   habitInfo: {
     flex: 1,
@@ -1183,7 +1053,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.mistWhite,
     borderRadius: Layout.borderRadius.md,
     marginBottom: Spacing.sm,
@@ -1217,23 +1087,67 @@ const styles = StyleSheet.create({
   deleteButton: {
     marginLeft: Spacing.sm,
   },
+  // Simplified Habit Card Styles (per Vara UI Standards)
+  habitCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkboxWrapper: {
+    paddingTop: 1, // Align with title baseline
+  },
+  habitCardContent: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  habitCardTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#3E3E3E',
+    lineHeight: 21,
+  },
+  habitCardTitleCompleted: {
+    color: '#6F7F77',
+    textDecorationLine: 'line-through',
+  },
+  habitCardMeta: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#6F7F77',
+    marginTop: 4,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
   },
+  emptyIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.dewSage,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.base,
+    opacity: 0.6,
+  },
   emptyIcon: {
-    fontSize: Typography.fontSize['5xl'] + 16,
-    marginBottom: Spacing.md,
+    fontSize: 48, // Large empty state icon
+    marginBottom: Spacing.base,
   },
   emptyTitle: {
-    color: Colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '500',
+    color: Colors.evergreenTeal,
     marginBottom: Spacing.sm,
   },
   emptyText: {
-    color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#6F7F77',
     textAlign: 'center',
+    maxWidth: 240,
+    lineHeight: 21,
   },
   fab: {
     position: 'absolute',
@@ -1241,25 +1155,8 @@ const styles = StyleSheet.create({
     bottom: Spacing.lg,
     backgroundColor: Colors.evergreenTeal,
   },
-  modal: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: Spacing.lg,
-    borderRadius: Layout.borderRadius.lg,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    // maxHeight is now set dynamically with safe area insets
-    overflow: 'hidden', // Ensures content doesn't extend past border radius
-  },
-  scrollContent: {
-    // No bottom padding needed - modalActions handles spacing
-  },
-  modalTitle: {
-    color: Colors.evergreenTeal,
-    marginBottom: Spacing.lg,
-    fontWeight: Typography.fontWeight.semibold,
-  },
   input: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   fieldLabel: {
     color: Colors.textSecondary,
@@ -1272,10 +1169,10 @@ const styles = StyleSheet.create({
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
     borderRadius: Layout.borderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.surface,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   categoryValue: {
     fontSize: Typography.fontSize.base,
@@ -1285,8 +1182,8 @@ const styles = StyleSheet.create({
   pillarImpactSection: {
     backgroundColor: Colors.dewSage,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.base,
+    marginBottom: Spacing.base,
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.evergreenTeal + '40',
   },
@@ -1348,7 +1245,7 @@ const styles = StyleSheet.create({
   typeButton: {
     flex: 1,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     borderRadius: Layout.borderRadius.md,
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
@@ -1365,20 +1262,10 @@ const styles = StyleSheet.create({
     color: Colors.textOnPrimary,
     fontWeight: Typography.fontWeight.semibold,
   },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  modalButton: {
-    flex: 1,
-  },
   // Vara Habits Enhancement Styles
   section: {
     marginBottom: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.base,
     borderBottomWidth: Layout.borderWidth.thin,
     borderBottomColor: Colors.borderLight,
   },
@@ -1399,7 +1286,7 @@ const styles = StyleSheet.create({
   },
   identityPreview: {
     backgroundColor: Colors.dewSage,
-    padding: Spacing.md,
+    padding: Spacing.base,
     borderRadius: Layout.borderRadius.md,
     marginBottom: Spacing.sm,
     borderWidth: Layout.borderWidth.thin,
@@ -1429,7 +1316,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   cueTypeButton: {
     flexDirection: 'row',
@@ -1456,7 +1343,7 @@ const styles = StyleSheet.create({
   },
   intentionPreview: {
     backgroundColor: Colors.mistWhite,
-    padding: Spacing.md,
+    padding: Spacing.base,
     borderRadius: Layout.borderRadius.md,
     marginTop: Spacing.sm,
     borderLeftWidth: 3,
@@ -1475,7 +1362,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.dewSage,
     borderTopLeftRadius: Layout.borderRadius.md,
@@ -1490,8 +1377,8 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
   },
   stepsProgress: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.mistWhite,
     borderRadius: Layout.borderRadius.md,
     marginBottom: Spacing.sm,
@@ -1532,7 +1419,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.mistWhite,
     borderRadius: Layout.borderRadius.sm,

@@ -43,10 +43,10 @@ const styles = StyleSheet.create({
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   spinner: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   message: {
     color: Colors.textSecondary,

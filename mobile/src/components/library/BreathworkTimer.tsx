@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   controls: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: Spacing.md,
+    gap: Spacing.base,
     marginBottom: Spacing.lg,
   },
   controlButton: {
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.evergreenTeal,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     borderRadius: 24,
     gap: Spacing.sm,
   },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.surface,
     borderRadius: 12,

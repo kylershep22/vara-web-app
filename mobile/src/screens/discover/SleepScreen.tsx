@@ -148,14 +148,14 @@ export default function SleepScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.mistWhite,
   },
   scrollContent: {
     paddingBottom: Spacing['4xl'],
   },
   descriptionSection: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.base,
     backgroundColor: '#7E57C2' + '10', // Purple tint
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
@@ -165,20 +165,20 @@ const styles = StyleSheet.create({
     lineHeight: Typography.lineHeight.normal * Typography.fontSize.base,
   },
   section: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
   },
   cardsList: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
   },
   contentCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.base,
     marginBottom: Spacing.sm,
     ...Layout.shadow.sm,
-    gap: Spacing.md,
+    gap: Spacing.base,
   },
   contentCardDisabled: {
     opacity: 0.6,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   comingSoonTitle: {
     color: Colors.textPrimary,
     fontWeight: Typography.fontWeight.bold,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     marginBottom: Spacing.sm,
   },
   comingSoonText: {
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   tipsCard: {
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.lg,
-    marginHorizontal: Spacing.md,
+    marginHorizontal: Spacing.base,
     padding: Spacing.lg,
     ...Layout.shadow.sm,
   },

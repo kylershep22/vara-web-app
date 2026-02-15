@@ -1,274 +1,317 @@
 /**
  * Post Card Component
- * Displays a community post with author, content, likes, and comments
+ * Simplified version to prevent React Native bridge errors
+ * Enhanced with Support action and comment previews
  */
 
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import { Text, Avatar } from 'react-native-paper';
+import React from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, Platform, Image } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import Card from '../Card';
-import { MediaItem } from '../media';
-// Temporarily disabled ImageViewer due to worklets version mismatch
-// import { ImageViewer } from '../media';
-import { Colors, Spacing, Typography, Layout } from '../../constants';
+
+// Brand colors
+const COLORS = {
+  evergreenTeal: '#1B5E57',
+  mistWhite: '#FAFAF6',
+  silverSage: '#B8CDBA',
+  softCharcoal: '#3E3E3E',
+  textSecondary: '#6F7F77',
+  mintCream: '#E8F5F2',
+};
+
+interface Comment {
+  userId: string;
+  content: string;
+  createdAt: any;
+  authorName?: string;
+}
 
 interface PostCardProps {
   post: any;
   onLike: (postId: string) => void;
-  onComment: (postId: string) => void;
+  onComment: (post: any) => void;
   formatTimestamp: (post: any) => string;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({
+const PostCardComponent: React.FC<PostCardProps> = ({
   post,
   onLike,
   onComment,
   formatTimestamp,
 }) => {
-  // Temporarily disabled ImageViewer state due to worklets version mismatch
-  // const [viewerVisible, setViewerVisible] = useState(false);
-  // const [viewerIndex, setViewerIndex] = useState(0);
+  // Extract data safely to avoid nested text issues
+  const authorName = post.author?.displayName || 'Unknown';
+  const initials = authorName.substring(0, 2).toUpperCase();
+  const content = String(post.content || '');
+  const timestamp = formatTimestamp(post);
+  const likesCount = post.likesCount || 0;
+  const commentsCount = post.commentsCount || 0;
+  const avatarUrl = post.author?.avatarUrl || post.author?.avatar;
 
-  // Temporarily disabled - will re-enable after development build
-  // const handleMediaPress = (mediaItem: { url: string; type: 'image' | 'video' }, index: number) => {
-  //   if (mediaItem.type === 'image') {
-  //     setViewerIndex(index);
-  //     setViewerVisible(true);
-  //   }
-  //   // Videos play inline, no action needed
-  // };
+  // Get last active status
+  const lastActive = post.author?.lastActiveAt;
+  const isActiveNow = lastActive && (() => {
+    const date = lastActive.toDate ? lastActive.toDate() : new Date(lastActive);
+    const diffMs = Date.now() - date.getTime();
+    return diffMs < 5 * 60 * 1000; // Active within 5 minutes
+  })();
+
+  // Get preview of last 2 comments
+  const comments: Comment[] = post.comments || [];
+  const previewComments = comments.slice(-2);
 
   return (
-    <Card style={styles.postCard}>
+    <View style={styles.postCard}>
       {/* Post Header */}
       <View style={styles.postHeader}>
-        <Avatar.Text
-          size={40}
-          label={(post.author?.displayName || 'U').substring(0, 2).toUpperCase()}
-          style={styles.avatar}
-          color={Colors.textOnPrimary}
-        />
+        <View style={styles.avatarWrapper}>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+          )}
+          {isActiveNow && <View style={styles.activeIndicator} />}
+        </View>
         <View style={styles.postHeaderInfo}>
-          <Text variant="titleMedium" style={styles.authorName}>
-            {post.author?.displayName || 'Unknown User'}
-          </Text>
-          <Text variant="bodySmall" style={styles.timestamp}>
-            {formatTimestamp(post)}
-          </Text>
+          <Text style={styles.authorName}>{authorName}</Text>
+          <Text style={styles.timestamp}>{timestamp}</Text>
         </View>
       </View>
 
       {/* Post Content */}
-      <Text variant="bodyLarge" style={styles.postContent}>
-        {post.content}
-      </Text>
+      <Text style={styles.postContent}>{content}</Text>
 
-      {/* Media Gallery - New media field with types */}
-      {post.media && post.media.length > 0 && (
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          style={styles.mediaGallery}
-        >
-          {post.media.map((mediaItem: any, index: number) => (
-            <MediaItem
-              key={index}
-              media={mediaItem}
-              style={styles.postImage}
-              // onPress temporarily disabled - image viewer requires development build
-            />
-          ))}
-        </ScrollView>
-      )}
-
-      {/* Backwards compatibility for old posts with images field */}
-      {!post.media && post.images && post.images.length > 0 && (
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          style={styles.mediaGallery}
-        >
-          {post.images.map((imageUrl: string, index: number) => (
-            <MediaItem
-              key={index}
-              media={{ url: imageUrl, type: 'image' }}
-              style={styles.postImage}
-              // onPress temporarily disabled - image viewer requires development build
-            />
-          ))}
-        </ScrollView>
-      )}
-
-      {/* Post Stats */}
+      {/* Stats Row */}
       <View style={styles.postStats}>
-        <Text variant="bodySmall" style={styles.statsText}>
-          {post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}
-        </Text>
-        <Text variant="bodySmall" style={styles.statsText}>
-          {post.commentsCount} {post.commentsCount === 1 ? 'comment' : 'comments'}
+        <Text style={styles.statsText}>
+          {`${likesCount} ${likesCount === 1 ? 'support' : 'supports'} · ${commentsCount} ${commentsCount === 1 ? 'comment' : 'comments'}`}
         </Text>
       </View>
 
-      {/* Post Actions */}
-      <View style={styles.postActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => onLike(post.id)}
-        >
-          <Icon
-            name={post.isLiked ? 'heart' : 'heart-outline'}
-            size={20}
-            color={post.isLiked ? Colors.evergreenTeal : Colors.textSecondary}
-          />
-          <Text
-            variant="bodyMedium"
-            style={[
-              styles.actionText,
-              post.isLiked && { color: Colors.evergreenTeal },
-            ]}
-          >
-            Like
-          </Text>
-        </TouchableOpacity>
+      {/* Comment Previews */}
+      {previewComments.length > 0 && (
+        <View style={styles.commentPreviewSection}>
+          {previewComments.map((comment, index) => {
+            const commentAuthor = comment.authorName || 'Someone';
+            const commentInitials = commentAuthor.substring(0, 2).toUpperCase();
+            const commentContent = String(comment.content || '').substring(0, 100);
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => onComment(post.id)}
-        >
-          <Icon name="comment-outline" size={20} color={Colors.textSecondary} />
-          <Text variant="bodyMedium" style={styles.actionText}>
-            Comment
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Comments Preview */}
-      {post.comments && post.comments.length > 0 && (
-        <View style={styles.commentsPreview}>
-          {post.comments.slice(0, 2).map((comment: any, index: number) => (
-            <View key={index} style={styles.commentItem}>
-              <Text variant="bodySmall" style={styles.commentAuthor}>
-                User •
-              </Text>
-              <Text variant="bodySmall" style={styles.commentText}>
-                {comment.text}
-              </Text>
-            </View>
-          ))}
-          {post.comments.length > 2 && (
-            <TouchableOpacity onPress={() => onComment(post.id)}>
-              <Text variant="bodySmall" style={styles.viewMoreComments}>
-                View {post.comments.length - 2} more comments
+            return (
+              <View key={index} style={styles.commentPreview}>
+                <View style={styles.commentAvatarSmall}>
+                  <Text style={styles.commentAvatarText}>{commentInitials}</Text>
+                </View>
+                <View style={styles.commentContent}>
+                  <Text style={styles.commentAuthorName}>{commentAuthor}</Text>
+                  <Text style={styles.commentText} numberOfLines={2}>
+                    {commentContent}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+          {commentsCount > 2 && (
+            <TouchableOpacity onPress={() => onComment(post)}>
+              <Text style={styles.viewMoreComments}>
+                {`View all ${commentsCount} comments`}
               </Text>
             </TouchableOpacity>
           )}
         </View>
       )}
 
-      {/* Image Viewer - Temporarily disabled due to worklets version mismatch */}
-      {/* Will be re-enabled after development build is installed */}
-      {/* <ImageViewer
-        visible={viewerVisible}
-        images={post.media || (post.images?.map((url: string) => ({ url, type: 'image' as const })) || [])}
-        initialIndex={viewerIndex}
-        onClose={() => setViewerVisible(false)}
-      /> */}
-    </Card>
+      {/* Post Actions */}
+      <View style={styles.postActions}>
+        <TouchableOpacity
+          style={[styles.actionButton, post.isLiked && styles.actionButtonActive]}
+          onPress={() => onLike(post.id)}
+        >
+          <Icon
+            name={post.isLiked ? 'hand-heart' : 'hand-heart-outline'}
+            size={20}
+            color={post.isLiked ? COLORS.evergreenTeal : COLORS.textSecondary}
+          />
+          <Text style={[styles.actionText, post.isLiked && styles.actionTextActive]}>
+            Support
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => onComment(post)}
+        >
+          <Icon name="comment-outline" size={20} color={COLORS.textSecondary} />
+          <Text style={styles.actionText}>Comment</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
+// Memoize to prevent unnecessary re-renders
+export const PostCard = React.memo(PostCardComponent);
+
 const styles = StyleSheet.create({
   postCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 18,
+    ...Platform.select({
+      ios: {
+        shadowColor: 'rgba(0,0,0,0.06)',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: 14,
   },
-  avatar: {
-    backgroundColor: Colors.evergreenTeal,
+  avatarWrapper: {
+    position: 'relative',
+  },
+  avatarContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.evergreenTeal,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   postHeaderInfo: {
-    marginLeft: Spacing.sm,
+    marginLeft: 12,
     flex: 1,
   },
   authorName: {
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.semibold,
+    color: COLORS.softCharcoal,
+    fontWeight: '600',
+    fontSize: 16,
   },
   timestamp: {
-    color: Colors.textSecondary,
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    marginTop: 2,
   },
   postContent: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
+    color: COLORS.softCharcoal,
+    fontSize: 15,
+    lineHeight: 23,
+    marginBottom: 14,
   },
   postStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
-    borderTopWidth: Layout.borderWidth.thin,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderColor: Colors.borderLight,
-    marginBottom: Spacing.sm,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
   statsText: {
-    color: Colors.textSecondary,
+    color: COLORS.textSecondary,
+    fontSize: 13,
   },
-  postActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: Spacing.sm,
+  // Comment Preview Styles
+  commentPreviewSection: {
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
-  actionButton: {
+  commentPreview: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+    backgroundColor: COLORS.mintCream,
+    padding: 10,
+    borderRadius: 10,
+  },
+  commentAvatarSmall: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.silverSage,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
   },
-  actionText: {
-    color: Colors.textSecondary,
-    marginLeft: Spacing.xs,
-    fontWeight: Typography.fontWeight.semibold,
+  commentAvatarText: {
+    color: COLORS.softCharcoal,
+    fontSize: 11,
+    fontWeight: '600',
   },
-  commentsPreview: {
-    marginTop: Spacing.md,
-    paddingTop: Spacing.md,
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.borderLight,
+  commentContent: {
+    flex: 1,
+    marginLeft: 8,
   },
-  commentItem: {
-    flexDirection: 'row',
-    marginBottom: Spacing.xs,
-  },
-  commentAuthor: {
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.semibold,
-    marginRight: Spacing.xs,
+  commentAuthorName: {
+    color: COLORS.softCharcoal,
+    fontWeight: '600',
+    fontSize: 13,
+    marginBottom: 2,
   },
   commentText: {
-    color: Colors.textSecondary,
-    flex: 1,
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
   },
   viewMoreComments: {
-    color: Colors.evergreenTeal,
-    marginTop: Spacing.xs,
+    color: COLORS.evergreenTeal,
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 4,
   },
-  // Media gallery
-  mediaGallery: {
-    marginVertical: Spacing.md,
-    width: '100%',
+  // Action Buttons
+  postActions: {
+    flexDirection: 'row',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    gap: 8,
   },
-  postImage: {
-    width: Dimensions.get('window').width - (Spacing.lg * 4), // Account for card margins
-    height: 300,
-    borderRadius: Layout.borderRadius.md,
-    marginRight: Spacing.sm,
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 22,
+    gap: 6,
+    backgroundColor: COLORS.mistWhite,
+  },
+  actionButtonActive: {
+    backgroundColor: COLORS.mintCream,
+  },
+  actionText: {
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  actionTextActive: {
+    color: COLORS.evergreenTeal,
   },
 });

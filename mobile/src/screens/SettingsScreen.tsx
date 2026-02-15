@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   Switch,
@@ -12,14 +11,19 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Text } from 'react-native-paper';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { useSubscription } from '../hooks/useSubscription';
+import { useFeatureUnlock } from '../hooks/useFeatureUnlock';
+import { useBrainHealthVocabulary } from '../hooks/useBrainHealthVocabulary';
+import { FEATURE_METADATA, FeatureId } from '../constants/featureUnlock';
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { Colors as colors, Spacing as spacing, Typography, Layout } from '../constants';
+import { Colors, Spacing, Typography, Layout } from '../constants';
 
 interface Settings {
   notificationsEnabled: boolean;
@@ -36,6 +40,9 @@ const SettingsScreen = () => {
   const navigation = useNavigation();
   const { permissionStatus, requestPermissions } = useNotifications();
   const { status: subscriptionStatus, formattedType, description: subscriptionDescription } = useSubscription();
+  const { access, selectedPillarInfo, unlockAll, loading: featureUnlockLoading } = useFeatureUnlock();
+  const { showScience, toggleVocabulary, loading: vocabularyLoading } = useBrainHealthVocabulary();
+  const [unlockingFeatures, setUnlockingFeatures] = useState(false);
   const [settings, setSettings] = useState<Settings>({
     notificationsEnabled: true,
     reminderTime: '08:00',
@@ -191,17 +198,61 @@ const SettingsScreen = () => {
     );
   };
 
+  const handleUnlockAllFeatures = () => {
+    Alert.alert(
+      'Unlock All Features',
+      'This will immediately unlock all app features. You can always explore at your own pace, but this removes the gradual unlock schedule.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unlock All',
+          onPress: async () => {
+            setUnlockingFeatures(true);
+            try {
+              await unlockAll();
+              Alert.alert(
+                'Features Unlocked',
+                'All features are now available! Explore everything Vara has to offer.'
+              );
+            } catch (error) {
+              console.error('Error unlocking features:', error);
+              Alert.alert('Error', 'Failed to unlock features. Please try again.');
+            } finally {
+              setUnlockingFeatures(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={Colors.evergreenTeal} />
         <Text style={styles.loadingText}>Loading settings...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.headerTitles}>
+          <Text variant="headlineMedium" style={styles.screenTitle}>
+            Settings
+          </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            Customize your experience
+          </Text>
+        </View>
+      </View>
+
+      <ScrollView style={styles.scrollContainer}>
       {/* Account Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
@@ -212,6 +263,111 @@ const SettingsScreen = () => {
               <Text style={styles.settingValue}>{user?.email}</Text>
             </View>
           </View>
+        </View>
+      </View>
+
+      {/* Feature Access Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Feature Access</Text>
+        <View style={styles.card}>
+          {/* Current Focus Pillar */}
+          {selectedPillarInfo && (
+            <>
+              <View style={styles.settingRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingLabel}>Your Focus</Text>
+                  <Text style={styles.settingValue}>{selectedPillarInfo.title}</Text>
+                  <Text style={styles.settingDescription}>
+                    {selectedPillarInfo.subtitle}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name={selectedPillarInfo.icon as any}
+                  size={24}
+                  color={selectedPillarInfo.color}
+                />
+              </View>
+              <View style={styles.divider} />
+            </>
+          )}
+
+          {/* Unlock Status */}
+          <View style={styles.settingRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Feature Unlock Progress</Text>
+              {featureUnlockLoading ? (
+                <Text style={styles.settingDescription}>Loading...</Text>
+              ) : access.allUnlocked ? (
+                <Text style={[styles.settingValue, { color: Colors.evergreenTeal }]}>
+                  All features unlocked
+                </Text>
+              ) : (
+                <Text style={styles.settingDescription}>
+                  Day {access.currentDay} of 14
+                </Text>
+              )}
+            </View>
+            {access.allUnlocked && (
+              <Ionicons name="checkmark-circle" size={20} color={Colors.evergreenTeal} />
+            )}
+          </View>
+
+          {/* Available Features List - show when not all unlocked */}
+          {!access.allUnlocked && !featureUnlockLoading && access.unlockedFeatures.length > 0 && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.featureListContainer}>
+                <Text style={styles.featureListLabel}>Currently available:</Text>
+                <View style={styles.featureChips}>
+                  {access.unlockedFeatures.slice(0, 6).map((featureId: FeatureId) => (
+                    <View key={featureId} style={styles.featureChip}>
+                      <MaterialCommunityIcons
+                        name={FEATURE_METADATA[featureId]?.icon as any || 'check'}
+                        size={12}
+                        color={Colors.evergreenTeal}
+                      />
+                      <Text style={styles.featureChipText}>
+                        {FEATURE_METADATA[featureId]?.name || featureId}
+                      </Text>
+                    </View>
+                  ))}
+                  {access.unlockedFeatures.length > 6 && (
+                    <View style={styles.featureChip}>
+                      <Text style={styles.featureChipText}>
+                        +{access.unlockedFeatures.length - 6} more
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </>
+          )}
+
+          {/* Unlock All Button - only show if not already unlocked */}
+          {!access.allUnlocked && (
+            <>
+              <View style={styles.divider} />
+              <TouchableOpacity
+                style={styles.settingRow}
+                onPress={handleUnlockAllFeatures}
+                disabled={unlockingFeatures}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.settingLabel, { color: Colors.evergreenTeal }]}>
+                    Unlock All Features
+                  </Text>
+                  <Text style={styles.settingDescription}>
+                    Ready for more? Skip the gradual unlock
+                  </Text>
+                </View>
+                {unlockingFeatures ? (
+                  <ActivityIndicator size="small" color={Colors.evergreenTeal} />
+                ) : (
+                  <Ionicons name="lock-open-outline" size={20} color={Colors.evergreenTeal} />
+                )}
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
 
@@ -231,12 +387,12 @@ const SettingsScreen = () => {
               </Text>
             </View>
             {requestingPermissions ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+              <ActivityIndicator size="small" color={Colors.evergreenTeal} />
             ) : (
               <Switch
                 value={settings.notificationsEnabled && permissionStatus === 'granted'}
                 onValueChange={handleToggleNotifications}
-                trackColor={{ false: '#D5E3D1', true: colors.primary }}
+                trackColor={{ false: '#D5E3D1', true: Colors.evergreenTeal }}
                 thumbColor="#fff"
                 disabled={requestingPermissions}
               />
@@ -245,15 +401,18 @@ const SettingsScreen = () => {
 
           <View style={styles.divider} />
 
-          <View style={styles.settingRow}>
-            <View>
-              <Text style={styles.settingLabel}>Reminder Time</Text>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => navigation.navigate('NotificationSettings' as never)}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Notification Preferences</Text>
               <Text style={styles.settingDescription}>
-                Current: {settings.reminderTime}
+                Customize what notifications you receive
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
-          </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -291,7 +450,7 @@ const SettingsScreen = () => {
                 {settings.tone.charAt(0).toUpperCase() + settings.tone.slice(1)}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -326,7 +485,7 @@ const SettingsScreen = () => {
                 {settings.intensity.charAt(0).toUpperCase() + settings.intensity.slice(1)}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -365,7 +524,7 @@ const SettingsScreen = () => {
                 {settings.privacy.charAt(0).toUpperCase() + settings.privacy.slice(1)}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -380,7 +539,7 @@ const SettingsScreen = () => {
             <Switch
               value={settings.searchable}
               onValueChange={(value) => handleSaveSettings({ searchable: value })}
-              trackColor={{ false: '#D5E3D1', true: colors.primary }}
+              trackColor={{ false: '#D5E3D1', true: Colors.evergreenTeal }}
               thumbColor="#fff"
             />
           </View>
@@ -421,8 +580,31 @@ const SettingsScreen = () => {
                 {settings.theme.charAt(0).toUpperCase() + settings.theme.slice(1)}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <View style={styles.settingRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Scientific Terminology</Text>
+              <Text style={styles.settingDescription}>
+                {showScience
+                  ? 'Showing neuroscience terms (AMCC, Neuroplasticity)'
+                  : 'Using friendly language (Do One Hard Thing, Try Something New)'}
+              </Text>
+            </View>
+            {vocabularyLoading ? (
+              <ActivityIndicator size="small" color={Colors.evergreenTeal} />
+            ) : (
+              <Switch
+                value={showScience}
+                onValueChange={toggleVocabulary}
+                trackColor={{ false: '#D5E3D1', true: Colors.evergreenTeal }}
+                thumbColor="#fff"
+              />
+            )}
+          </View>
         </View>
       </View>
 
@@ -434,7 +616,7 @@ const SettingsScreen = () => {
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Privacy Policy</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -443,7 +625,7 @@ const SettingsScreen = () => {
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Terms of Service</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -455,7 +637,7 @@ const SettingsScreen = () => {
                 Download a copy of your data
               </Text>
             </View>
-            <Ionicons name="download-outline" size={20} color={colors.text.secondary} />
+            <Ionicons name="download-outline" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -473,10 +655,10 @@ const SettingsScreen = () => {
               )}
             </View>
             {subscriptionStatus?.type === 'premium' && (
-              <Ionicons name="star" size={20} color={colors.secondary.amber} />
+              <Ionicons name="star" size={20} color={Colors.sunriseAmber} />
             )}
             {subscriptionStatus?.type === 'coaching' && (
-              <Ionicons name="heart" size={20} color={colors.evergreenTeal} />
+              <Ionicons name="heart" size={20} color={Colors.evergreenTeal} />
             )}
           </View>
 
@@ -496,7 +678,7 @@ const SettingsScreen = () => {
                       View or cancel in App Store
                     </Text>
                   </View>
-                  <Ionicons name="open-outline" size={20} color={colors.text.secondary} />
+                  <Ionicons name="open-outline" size={20} color={Colors.textSecondary} />
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -509,7 +691,7 @@ const SettingsScreen = () => {
                       Unlock all features
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
+                  <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
                 </TouchableOpacity>
               )}
 
@@ -525,7 +707,7 @@ const SettingsScreen = () => {
                     Have a code from a coach?
                   </Text>
                 </View>
-                <Ionicons name="gift-outline" size={20} color={colors.text.secondary} />
+                <Ionicons name="gift-outline" size={20} color={Colors.textSecondary} />
               </TouchableOpacity>
             </>
           )}
@@ -538,9 +720,9 @@ const SettingsScreen = () => {
         <View style={styles.card}>
           <TouchableOpacity style={styles.settingRow} onPress={handleLogout}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.settingLabel, { color: colors.primary }]}>Logout</Text>
+              <Text style={[styles.settingLabel, { color: Colors.evergreenTeal }]}>Logout</Text>
             </View>
-            <Ionicons name="log-out-outline" size={20} color={colors.primary} />
+            <Ionicons name="log-out-outline" size={20} color={Colors.evergreenTeal} />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -563,48 +745,73 @@ const SettingsScreen = () => {
         <Text style={styles.appInfoText}>Version 1.0.0</Text>
       </View>
 
-      <View style={{ height: spacing.xl }} />
+      <View style={{ height: Spacing.xl }} />
     </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.default,
+    backgroundColor: Colors.mistWhite,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.base,
+  },
+  backButton: {
+    padding: Spacing.xs,
+    marginRight: Spacing.sm,
+  },
+  headerTitles: {
+    flex: 1,
+  },
+  screenTitle: {
+    color: Colors.evergreenTeal,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  subtitle: {
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background.default,
+    backgroundColor: Colors.mistWhite,
   },
   loadingText: {
-    marginTop: spacing.md,
+    marginTop: Spacing.base,
     fontSize: Typography.fontSize.sm,
-    color: colors.text.secondary,
+    color: Colors.textSecondary,
   },
   section: {
-    marginTop: spacing.lg,
-    paddingHorizontal: spacing.md,
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.base,
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.bold,
-    color: colors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.sm,
   },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(27,94,87,0.06)',
     ...Platform.select({
       ios: {
-        shadowColor: colors.shadow,
+        shadowColor: Colors.evergreenTeal,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
       },
       android: {
         elevation: 3,
@@ -615,35 +822,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.md,
+    padding: Spacing.base,
   },
   settingLabel: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
-    color: colors.text.primary,
+    color: Colors.softCharcoal,
     marginBottom: 2,
   },
   settingValue: {
     fontSize: Typography.fontSize.sm,
-    color: colors.text.secondary,
+    color: Colors.mutedSageGray,
   },
   settingDescription: {
     fontSize: Typography.fontSize.xs,
-    color: colors.text.secondary,
+    color: Colors.mutedSageGray,
     marginTop: 2,
   },
   divider: {
     height: Layout.borderWidth.thin,
-    backgroundColor: colors.borderLight,
-    marginHorizontal: spacing.md,
+    backgroundColor: Colors.borderLight,
+    marginHorizontal: Spacing.base,
   },
   appInfo: {
     alignItems: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: Spacing.lg,
   },
   appInfoText: {
     fontSize: Typography.fontSize.xs,
-    color: colors.text.secondary,
+    color: Colors.mutedSageGray,
+  },
+  featureListContainer: {
+    padding: Spacing.base,
+    paddingTop: Spacing.sm,
+  },
+  featureListLabel: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  featureChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  featureChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.dewSage,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Layout.borderRadius.sm,
+    gap: 4,
+  },
+  featureChipText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.evergreenTeal,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 

@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   icon: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   title: {
     color: Colors.evergreenTeal,

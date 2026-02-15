@@ -238,10 +238,11 @@ const OnboardingQuickStartScreen: React.FC<OnboardingQuickStartScreenProps> = ({
       }
 
       console.log('🚀 Navigating to tour...');
-      // Navigate to tour
-      navigation.navigate('OnboardingTour', {
+      // Navigate to tour with selectedFocus for First Action step
+      navigation.navigate('OnboardingFirstWin', {
         createdType: template.type,
         createdTitle: template.title,
+        selectedFocus,
       });
     } catch (error) {
       console.error('❌ Error creating from template:', error);
@@ -275,10 +276,11 @@ const OnboardingQuickStartScreen: React.FC<OnboardingQuickStartScreenProps> = ({
         });
       }
 
-      // Navigate to tour
-      navigation.navigate('OnboardingTour', {
+      // Navigate to First Win screen
+      navigation.navigate('OnboardingFirstWin', {
         createdType: customType,
         createdTitle: customTitle.trim(),
+        selectedFocus,
       });
     } catch (error) {
       console.error('Error creating custom item:', error);
@@ -289,8 +291,9 @@ const OnboardingQuickStartScreen: React.FC<OnboardingQuickStartScreenProps> = ({
   };
 
   const handleSkip = () => {
-    navigation.navigate('OnboardingTour', {
+    navigation.navigate('OnboardingFirstWin', {
       skipped: true,
+      selectedFocus,
     });
   };
 
@@ -571,8 +574,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.base,
+    marginBottom: Spacing.base,
     borderWidth: 2,
     borderColor: Colors.border,
   },
@@ -587,7 +590,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dewSage,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.base,
   },
   templateContent: {
     flex: 1,
@@ -616,7 +619,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   typeSelector: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   customInput: {
     backgroundColor: Colors.surface,
@@ -624,17 +627,17 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: Colors.textPrimary,
     fontWeight: Typography.fontWeight.semibold,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     marginBottom: Spacing.xs,
   },
   frequencySelector: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   frequencyInput: {
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.base,
+    marginBottom: Spacing.base,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -664,7 +667,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   categoryContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   categoryDropdown: {
     flexDirection: 'row',
@@ -674,7 +677,7 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.md,
+    padding: Spacing.base,
     minHeight: 48,
   },
   categoryValueContainer: {

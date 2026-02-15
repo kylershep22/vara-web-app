@@ -26,7 +26,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   iconColor,
 }) => {
   return (
-    <Card style={styles.container} padding={Spacing.md}>
+    <Card style={styles.container} padding={Spacing.base}>
       {icon && (
         <Icon
           name={icon}

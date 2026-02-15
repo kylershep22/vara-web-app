@@ -113,10 +113,14 @@ export function useNotifications() {
 
         return status === 'granted';
       }
-      return false;
+      // Token is null - likely running in Expo Go where push tokens aren't available
+      // Check if permissions were at least granted
+      const { status } = await getPermissionsStatus();
+      setPermissionStatus(status);
+      return status === 'granted';
     } catch (error) {
-      console.error('Error requesting permissions:', error);
-      Alert.alert('Error', 'Failed to enable notifications');
+      console.log('Notification setup unavailable (expected in Expo Go):', error);
+      // Don't show error alert in development - this is expected behavior
       return false;
     }
   };

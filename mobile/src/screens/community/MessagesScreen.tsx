@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
   },
   screenTitle: {
     color: Colors.evergreenTeal,
@@ -353,12 +353,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     backgroundColor: Colors.surface,
   },
   avatar: {
     backgroundColor: Colors.evergreenTeal,
-    marginRight: Spacing.md,
+    marginRight: Spacing.base,
   },
   conversationInfo: {
     flex: 1,
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   separator: {
     height: Layout.borderWidth.thin,
     backgroundColor: Colors.borderLight,
-    marginLeft: Spacing.lg + 50 + Spacing.md, // Align with text
+    marginLeft: Spacing.lg + 50 + Spacing.base, // Align with text
   },
   emptyContainer: {
     flex: 1,
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyIcon: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   emptyTitle: {
     color: Colors.textPrimary,
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     padding: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.base,
     borderBottomWidth: Layout.borderWidth.thin,
     borderBottomColor: Colors.borderLight,
   },
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.evergreenTeal}15`,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.base,
   },
   modalTitleContainer: {
     flex: 1,
@@ -486,8 +486,8 @@ const styles = StyleSheet.create({
     marginTop: -Spacing.xs,
   },
   modalSearchContainer: {
-    padding: Spacing.md,
-    paddingTop: Spacing.md,
+    padding: Spacing.base,
+    paddingTop: Spacing.base,
     paddingBottom: Spacing.sm,
   },
   modalSearchbar: {
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
   },
   loadingProfilesText: {
     color: Colors.textSecondary,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
   },
   emptyConnections: {
     flex: 1,
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   emptyConnectionsTitle: {
     color: Colors.textPrimary,
     fontWeight: Typography.fontWeight.semibold,
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     marginBottom: Spacing.xs,
   },
   emptyConnectionsText: {
@@ -534,12 +534,12 @@ const styles = StyleSheet.create({
   },
   connectionsList: {
     flex: 1,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.base,
   },
   connectionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.base,
     paddingHorizontal: Spacing.sm,
     borderRadius: Layout.borderRadius.md,
     marginBottom: Spacing.xs,
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: Layout.borderRadius.full,
-    marginRight: Spacing.md,
+    marginRight: Spacing.base,
   },
   connectionAvatarPlaceholder: {
     width: 44,
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.evergreenTeal,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.base,
   },
   connectionAvatarText: {
     fontSize: Typography.fontSize.base,
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   modalFooter: {
-    padding: Spacing.md,
+    padding: Spacing.base,
     paddingTop: Spacing.sm,
     borderTopWidth: Layout.borderWidth.thin,
     borderTopColor: Colors.borderLight,

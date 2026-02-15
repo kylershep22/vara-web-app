@@ -9,6 +9,7 @@ import { Text, Checkbox, Portal, Modal, Button as PaperButton } from 'react-nati
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Card, Input } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { useBrainHealthVocabulary } from '../../hooks';
 import { db } from '../../config/firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
@@ -56,11 +57,15 @@ const CHALLENGES: Challenge[] = [
 
 export const AMCCChallengeCard: React.FC = () => {
   const { user } = useAuth();
+  const { getComponentText } = useBrainHealthVocabulary();
   const [todayChallenge, setTodayChallenge] = useState<Challenge>(CHALLENGES[0]);
   const [completedToday, setCompletedToday] = useState(false);
   const [reflection, setReflection] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
+
+  // Get translated text for this component
+  const { title: componentTitle, description: componentDescription } = getComponentText('amccChallenge');
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -182,10 +187,10 @@ export const AMCCChallengeCard: React.FC = () => {
             <Icon name="lightning-bolt" size={24} color={Colors.goldenApricot} />
             <View>
               <Text variant="titleMedium" style={styles.title}>
-                AMCC Challenge
+                {componentTitle}
               </Text>
               <Text variant="bodySmall" style={styles.subtitle}>
-                Do One Hard Thing Today
+                {componentDescription}
               </Text>
             </View>
           </View>
@@ -198,7 +203,7 @@ export const AMCCChallengeCard: React.FC = () => {
         </View>
 
         <Text variant="bodySmall" style={styles.description}>
-          Build your willpower center (AMCC) by doing something difficult every day.
+          Strengthen your resilience by doing something difficult every day.
         </Text>
 
         {/* Today's Challenge */}
@@ -311,7 +316,7 @@ export const AMCCChallengeCard: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   header: {
     flexDirection: 'row',
@@ -348,13 +353,13 @@ const styles = StyleSheet.create({
   },
   description: {
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
     lineHeight: Typography.fontSize.sm * 1.5,
   },
   challengeCard: {
     backgroundColor: Colors.borderLight,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.base,
     borderWidth: Layout.borderWidth.medium,
     borderColor: Colors.goldenApricot + '40',
   },
@@ -432,13 +437,13 @@ const styles = StyleSheet.create({
   },
   modalSubtitle: {
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   examplesList: {
     backgroundColor: Colors.borderLight,
     borderRadius: Layout.borderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.base,
+    marginBottom: Spacing.base,
   },
   examplesListLabel: {
     color: Colors.textPrimary,
@@ -451,7 +456,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs / 2,
   },
   reflectionInput: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
   },
   modalActions: {
     flexDirection: 'row',

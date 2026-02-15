@@ -1,9 +1,10 @@
 /**
  * AI Chat Modal Component
- * Full-screen chat interface for AI wellness coach
+ * Full-screen chat interface for Vara AI wellness coach
+ * Redesigned with Vara brand: calm, grounded, brain-health centered
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,15 +13,40 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  ActivityIndicator,
+  TextInput,
+  ScrollView,
+  Animated,
+  Easing,
 } from 'react-native';
-import { Text, TextInput, IconButton } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Spacing, Layout, Typography } from '../../constants';
+import Svg, { Path } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { chatWithAI } from '../../services/api/ai.service';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../config/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+
+// Brand Colors
+const EVERGREEN_TEAL = '#1B5E57';
+const MIST_WHITE = '#FAFAF6';
+const SILVER_SAGE = '#B8CDBA';
+const DEW_SAGE = '#D5E3D1';
+const SOFT_CHARCOAL = '#3E3E3E';
+const MUTED_SAGE_GRAY = '#6F7F77';
+const BORDER_COLOR = '#e4ebe4';
+const TIMESTAMP_COLOR = '#a0b0a0';
+const ONLINE_GREEN = '#5CB85C';
+
+// Quick prompt suggestions
+const QUICK_PROMPTS = [
+  'Help me focus',
+  'I need a reset',
+  'Build a routine',
+  'Feeling overwhelmed',
+];
 
 interface Message {
   id: string;
@@ -35,13 +61,148 @@ interface AIChatModalProps {
   initialContext?: any;
 }
 
+// Abstract Ribbon V Icon for header avatar
+const VaraIcon = ({ size = 28, color = EVERGREEN_TEAL }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+    <Path
+      d="M20 20 Q35 50 50 80 Q65 50 80 20"
+      stroke={color}
+      strokeWidth={11}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Svg>
+);
+
+// Typing indicator with animated dots
+const TypingIndicator = () => {
+  const animatedValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.timing(animatedValue, {
+        toValue: 1,
+        duration: 1200,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    animation.start();
+
+    return () => {
+      animation.stop();
+      animatedValue.setValue(0);
+    };
+  }, [animatedValue]);
+
+  // Create staggered opacity for each dot
+  const getDotStyle = (dotIndex: number) => {
+    const inputRange = [0, 0.25, 0.5, 0.75, 1];
+    const baseOpacity = 0.3;
+    const peakOpacity = 1;
+
+    // Stagger the peak for each dot
+    const outputRange = (() => {
+      switch (dotIndex) {
+        case 0:
+          return [peakOpacity, baseOpacity, baseOpacity, baseOpacity, peakOpacity];
+        case 1:
+          return [baseOpacity, peakOpacity, baseOpacity, baseOpacity, baseOpacity];
+        case 2:
+          return [baseOpacity, baseOpacity, peakOpacity, baseOpacity, baseOpacity];
+        default:
+          return [baseOpacity, baseOpacity, baseOpacity, baseOpacity, baseOpacity];
+      }
+    })();
+
+    return {
+      opacity: animatedValue.interpolate({
+        inputRange,
+        outputRange,
+      }),
+      transform: [
+        {
+          scale: animatedValue.interpolate({
+            inputRange,
+            outputRange: outputRange.map((o) => (o === peakOpacity ? 1.1 : 0.85)),
+          }),
+        },
+      ],
+    };
+  };
+
+  return (
+    <View style={styles.typingContainer}>
+      <View style={styles.typingDotsRow}>
+        <Animated.View style={[styles.typingDot, getDotStyle(0)]} />
+        <Animated.View style={[styles.typingDot, getDotStyle(1)]} />
+        <Animated.View style={[styles.typingDot, getDotStyle(2)]} />
+      </View>
+    </View>
+  );
+};
+
+// Message bubble component with entry animation
+const MessageBubble = ({ message, index }: { message: Message; index: number }) => {
+  const isUser = message.role === 'user';
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(6)).current;
+
+  useEffect(() => {
+    const animation = Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 250,
+        delay: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 250,
+        delay: 50,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [fadeAnim, translateY]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.messageBubble,
+        isUser ? styles.userMessage : styles.assistantMessage,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
+      <Text style={[styles.messageText, isUser ? styles.userMessageText : styles.assistantMessageText]}>
+        {message.content}
+      </Text>
+      <Text style={[styles.timestamp, isUser ? styles.userTimestamp : styles.assistantTimestamp]}>
+        {message.timestamp.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })}
+      </Text>
+    </Animated.View>
+  );
+};
+
 export function AIChatModal({ visible, onClose, initialContext }: AIChatModalProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
       role: 'assistant',
-      content: 'Hi! I\'m Vara, your AI wellness coach. How can I support you today?',
+      content: "Hi! I'm Vara, your brain-health wellness coach. How can I support you today?",
       timestamp: new Date(),
     },
   ]);
@@ -49,6 +210,29 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
   const [isLoading, setIsLoading] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  // Entry animation when modal opens
+  useEffect(() => {
+    let animation: Animated.CompositeAnimation | null = null;
+
+    if (visible) {
+      slideAnim.setValue(0);
+      animation = Animated.spring(slideAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 65,
+        useNativeDriver: true,
+      });
+      animation.start();
+    }
+
+    return () => {
+      if (animation) {
+        animation.stop();
+      }
+    };
+  }, [visible, slideAnim]);
 
   // Fetch brain metrics for AI context
   const fetchBrainMetrics = async () => {
@@ -58,7 +242,6 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       const today = new Date().toISOString().split('T')[0];
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
 
-      // Fetch today's metrics
       const metricsQuery = query(
         collection(db, 'brainMetrics'),
         where('userId', '==', user.uid),
@@ -68,7 +251,6 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       const metricsSnapshot = await getDocs(metricsQuery);
       const todayMetrics = metricsSnapshot.docs[0]?.data();
 
-      // Fetch recent neuroplasticity signals
       const neuroplasticityQuery = query(
         collection(db, 'neuroplasticitySignals'),
         where('userId', '==', user.uid),
@@ -76,7 +258,6 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       );
       const neuroplasticitySnapshot = await getDocs(neuroplasticityQuery);
 
-      // Fetch AMCC streak
       const amccQuery = query(
         collection(db, 'amccChallenges'),
         where('userId', '==', user.uid),
@@ -86,13 +267,12 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       const amccSnapshot = await getDocs(amccQuery);
       const amccDates = amccSnapshot.docs.map(doc => doc.data().date).filter(Boolean);
 
-      // Calculate streak
       const calculateStreak = (dates: string[]): number => {
         if (dates.length === 0) return 0;
         const sorted = dates.sort().reverse();
-        const today = new Date().toISOString().split('T')[0];
+        const todayStr = new Date().toISOString().split('T')[0];
         const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        if (sorted[0] !== today && sorted[0] !== yesterday) return 0;
+        if (sorted[0] !== todayStr && sorted[0] !== yesterday) return 0;
         let streak = 0;
         let expectedDate = new Date(sorted[0]);
         for (const date of sorted) {
@@ -106,7 +286,6 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
         return streak;
       };
 
-      // Fetch nervous system tool uses
       const nervousSystemQuery = query(
         collection(db, 'nervousSystemSessions'),
         where('userId', '==', user.uid),
@@ -115,7 +294,7 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       const nervousSystemSnapshot = await getDocs(nervousSystemQuery);
       const nervousSystemToolUses = nervousSystemSnapshot.docs.filter(doc => {
         const completedAt = doc.data().completedAt?.seconds || 0;
-        const sevenDaysAgoTimestamp = Date.now() / 1000 - (7 * 86400);
+        const sevenDaysAgoTimestamp = Date.now() / 1000 - 7 * 86400;
         return completedAt >= sevenDaysAgoTimestamp;
       }).length;
 
@@ -141,13 +320,16 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
     }
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!inputText.trim() || isLoading) return;
+  const handleSend = useCallback(async (text?: string) => {
+    const messageText = text || inputText;
+    if (!messageText.trim() || isLoading) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: inputText.trim(),
+      content: messageText.trim(),
       timestamp: new Date(),
     };
 
@@ -156,22 +338,17 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
     setIsLoading(true);
 
     try {
-      // Build message history for API
       const messageHistory = [...messages, userMessage].map((msg) => ({
         role: msg.role,
         content: msg.content,
       }));
 
-      // Fetch brain metrics
       const brainMetrics = await fetchBrainMetrics();
-
-      // Build enhanced context with brain metrics
       const enhancedContext = {
         ...initialContext,
         brainMetrics,
       };
 
-      // Call AI service
       const response = await chatWithAI(messageHistory, enhancedContext);
 
       const assistantMessage: Message = {
@@ -188,7 +365,7 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: "I'm having trouble connecting right now. Please try again in a moment.",
         timestamp: new Date(),
       };
 
@@ -196,129 +373,160 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
     } finally {
       setIsLoading(false);
     }
+  }, [inputText, isLoading, messages, initialContext]);
+
+  const handleQuickPrompt = (prompt: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    handleSend(prompt);
   };
 
-  const renderMessage = ({ item }: { item: Message }) => {
-    const isUser = item.role === 'user';
+  const handleClose = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onClose();
+  };
 
-    return (
-      <View
-        style={[
-          styles.messageBubble,
-          isUser ? styles.userMessage : styles.assistantMessage,
-        ]}
-      >
-        <Text
-          variant="bodyMedium"
-          style={[
-            styles.messageText,
-            isUser ? styles.userMessageText : styles.assistantMessageText,
-          ]}
-        >
-          {item.content}
-        </Text>
-        <Text
-          variant="labelSmall"
-          style={[
-            styles.timestamp,
-            isUser ? styles.userTimestamp : styles.assistantTimestamp,
-          ]}
-        >
-          {item.timestamp.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </Text>
-      </View>
-    );
+  const renderMessage = ({ item, index }: { item: Message; index: number }) => (
+    <MessageBubble message={item} index={index} />
+  );
+
+  const containerStyle = {
+    opacity: slideAnim,
+    transform: [
+      {
+        translateY: slideAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [16, 0],
+        }),
+      },
+      {
+        scale: slideAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.97, 1],
+        }),
+      },
+    ],
   };
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
       presentationStyle="pageSheet"
     >
       <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.aiIconContainer}>
-              <Text style={styles.aiIcon}>🤖</Text>
-            </View>
-            <View>
-              <Text variant="titleLarge" style={styles.headerTitle}>
-                AI Wellness Coach
-              </Text>
-              <Text variant="bodySmall" style={styles.headerSubtitle}>
-                Powered by Vara
-              </Text>
-            </View>
-          </View>
-          <IconButton
-            icon="close"
-            size={24}
-            iconColor={Colors.textPrimary}
-            onPress={onClose}
-          />
-        </View>
+        <Animated.View style={[styles.chatWrapper, containerStyle]}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              {/* Avatar with V icon */}
+              <LinearGradient
+                colors={[DEW_SAGE, SILVER_SAGE]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.avatar}
+              >
+                <VaraIcon size={28} color={EVERGREEN_TEAL} />
+              </LinearGradient>
 
-        {/* Messages */}
-        <KeyboardAvoidingView
-          style={styles.chatContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        >
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderMessage}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.messagesList}
-            showsVerticalScrollIndicator={false}
-          />
-
-          {/* Typing Indicator */}
-          {isLoading && (
-            <View style={styles.typingIndicator}>
-              <ActivityIndicator size="small" color={Colors.evergreenTeal} />
-              <Text variant="bodySmall" style={styles.typingText}>
-                Vara is typing...
-              </Text>
+              {/* Title area */}
+              <View style={styles.titleArea}>
+                <View style={styles.titleRow}>
+                  <Text style={styles.headerTitle}>Vara Coach</Text>
+                  <View style={styles.onlineDot} />
+                </View>
+                <Text style={styles.headerSubtitle}>Brain-health guidance</Text>
+              </View>
             </View>
-          )}
 
-          {/* Input Bar */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              mode="outlined"
-              placeholder="Ask me anything about wellness..."
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              maxLength={500}
-              style={styles.input}
-              outlineColor={Colors.borderLight}
-              activeOutlineColor={Colors.evergreenTeal}
-              onSubmitEditing={handleSend}
-            />
+            {/* Close button */}
             <TouchableOpacity
-              onPress={handleSend}
-              style={[
-                styles.sendButton,
-                (!inputText.trim() || isLoading) && styles.sendButtonDisabled,
-              ]}
-              disabled={!inputText.trim() || isLoading}
+              onPress={handleClose}
+              style={styles.closeButton}
+              activeOpacity={0.7}
             >
-              <IconButton
-                icon="send"
-                size={24}
-                iconColor={inputText.trim() && !isLoading ? Colors.white : Colors.textDisabled}
-              />
+              <Ionicons name="close" size={22} color={MUTED_SAGE_GRAY} />
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+
+          {/* Messages */}
+          <KeyboardAvoidingView
+            style={styles.chatContainer}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+          >
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              renderItem={renderMessage}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.messagesList}
+              showsVerticalScrollIndicator={false}
+            />
+
+            {/* Typing Indicator */}
+            {isLoading && <TypingIndicator />}
+
+            {/* Input Area */}
+            <View style={styles.inputArea}>
+              {/* Quick Prompt Chips */}
+              {messages.length <= 1 && !isLoading && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.quickPromptsContainer}
+                  style={styles.quickPromptsScroll}
+                >
+                  {QUICK_PROMPTS.map((prompt) => (
+                    <TouchableOpacity
+                      key={prompt}
+                      style={styles.quickPromptChip}
+                      onPress={() => handleQuickPrompt(prompt)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.quickPromptText}>{prompt}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+
+              <View style={styles.inputRow}>
+                <TextInput
+                  placeholder="How can I support you today?"
+                  placeholderTextColor={TIMESTAMP_COLOR}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  multiline
+                  maxLength={500}
+                  style={styles.textInput}
+                  returnKeyType="default"
+                />
+                <TouchableOpacity
+                  onPress={() => handleSend()}
+                  style={[
+                    styles.sendButton,
+                    inputText.trim() && !isLoading
+                      ? styles.sendButtonActive
+                      : styles.sendButtonInactive,
+                  ]}
+                  disabled={!inputText.trim() || isLoading}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="send"
+                    size={18}
+                    color={inputText.trim() && !isLoading ? MIST_WHITE : MUTED_SAGE_GRAY}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Footer */}
+              <Text style={styles.footerText}>
+                Powered by Vara · Brain-health centered wellness
+              </Text>
+            </View>
+          </KeyboardAvoidingView>
+        </Animated.View>
       </SafeAreaView>
     </Modal>
   );
@@ -327,121 +535,235 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: MIST_WHITE,
   },
+  chatWrapper: {
+    flex: 1,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: MIST_WHITE,
+  },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: BORDER_COLOR,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 12,
+    flex: 1,
   },
-  aiIconContainer: {
+  avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.evergreenTeal + '20',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  aiIcon: {
-    fontSize: 28,
+  titleArea: {
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   headerTitle: {
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.bold,
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: SOFT_CHARCOAL,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: ONLINE_GREEN,
   },
   headerSubtitle: {
-    color: Colors.textSecondary,
+    fontSize: 11.5,
+    color: MUTED_SAGE_GRAY,
+    marginTop: 2,
   },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+
+  // Chat container
   chatContainer: {
     flex: 1,
   },
   messagesList: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
     flexGrow: 1,
+    gap: 14,
   },
+
+  // Messages
   messageBubble: {
-    maxWidth: '80%',
-    padding: Spacing.md,
-    borderRadius: Layout.borderRadius.lg,
-    marginBottom: Spacing.sm,
+    maxWidth: '90%',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   userMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: Colors.evergreenTeal,
+    maxWidth: '82%',
+    backgroundColor: EVERGREEN_TEAL,
+    borderRadius: 16,
     borderBottomRightRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   assistantMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: Colors.surface,
+    backgroundColor: '#fff',
+    borderRadius: 16,
     borderBottomLeftRadius: 4,
-    ...Layout.shadow.sm,
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
+    borderLeftWidth: 3,
+    borderLeftColor: SILVER_SAGE,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
   },
   messageText: {
-    marginBottom: 4,
+    fontSize: 13.5,
+    lineHeight: 13.5 * 1.55,
   },
   userMessageText: {
-    color: Colors.white,
+    color: MIST_WHITE,
   },
   assistantMessageText: {
-    color: Colors.textPrimary,
+    color: SOFT_CHARCOAL,
   },
   timestamp: {
-    fontSize: Typography.fontSize.xs,
+    fontSize: 10.5,
+    marginTop: 4,
+    paddingHorizontal: 4,
   },
   userTimestamp: {
-    color: Colors.white + 'CC',
+    color: 'rgba(250, 250, 246, 0.7)',
     alignSelf: 'flex-end',
   },
   assistantTimestamp: {
-    color: Colors.textSecondary,
+    color: TIMESTAMP_COLOR,
     alignSelf: 'flex-start',
   },
-  typingIndicator: {
+
+  // Typing indicator
+  typingContainer: {
+    alignSelf: 'flex-start',
+    marginLeft: 14,
+    marginBottom: 14,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
+    borderLeftWidth: 3,
+    borderLeftColor: SILVER_SAGE,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  typingDotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
+    gap: 5,
   },
-  typingText: {
-    color: Colors.textSecondary,
-    fontStyle: 'italic',
+  typingDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: SILVER_SAGE,
   },
-  inputContainer: {
+
+  // Quick prompts
+  quickPromptsScroll: {
+    flexGrow: 0,
+    marginBottom: 10,
+  },
+  quickPromptsContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-    gap: Spacing.sm,
+    alignItems: 'center',
   },
-  input: {
+  quickPromptChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: DEW_SAGE,
+    backgroundColor: MIST_WHITE,
+    marginRight: 8,
+  },
+  quickPromptText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: EVERGREEN_TEAL,
+    lineHeight: 16,
+  },
+
+  // Input area
+  inputArea: {
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: BORDER_COLOR,
+    backgroundColor: '#fff',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: MIST_WHITE,
+    borderRadius: 14,
+    paddingLeft: 14,
+    paddingRight: 4,
+    paddingVertical: 4,
+    borderWidth: 1.5,
+    borderColor: '#e0e8e0',
+  },
+  textInput: {
     flex: 1,
-    maxHeight: 100,
-    backgroundColor: Colors.background,
+    fontSize: 13.5,
+    color: SOFT_CHARCOAL,
+    maxHeight: 80,
+    paddingVertical: 8,
   },
   sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.evergreenTeal,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendButtonDisabled: {
-    backgroundColor: Colors.borderLight,
+  sendButtonActive: {
+    backgroundColor: EVERGREEN_TEAL,
+  },
+  sendButtonInactive: {
+    backgroundColor: DEW_SAGE,
+  },
+  footerText: {
+    textAlign: 'center',
+    fontSize: 10,
+    color: TIMESTAMP_COLOR,
+    marginTop: 8,
   },
 });
