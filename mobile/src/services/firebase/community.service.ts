@@ -151,20 +151,33 @@ export const fetchUserGroups = async (userId: string): Promise<Group[]> => {
  */
 export const getGroupInfo = async (groupId: string): Promise<Group | null> => {
   try {
+    console.log('[getGroupInfo] Fetching group:', groupId);
     const docRef = doc(db, GROUPS_COLLECTION, groupId);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
+      const data = docSnap.data();
+      console.log('[getGroupInfo] Group found:', {
+        id: docSnap.id,
+        name: data.name,
+        visibility: data.visibility,
+        memberCount: data.members?.length,
+      });
       return {
         id: docSnap.id,
-        ...docSnap.data(),
-        isPublic: docSnap.data().visibility === 'public',
+        ...data,
+        isPublic: data.visibility === 'public',
       } as Group;
     }
 
+    console.log('[getGroupInfo] Group not found:', groupId);
     return null;
-  } catch (error) {
-    console.error('Error getting group info:', error);
+  } catch (error: any) {
+    console.error('[getGroupInfo] Error:', {
+      groupId,
+      code: error?.code,
+      message: error?.message,
+    });
     throw error;
   }
 };

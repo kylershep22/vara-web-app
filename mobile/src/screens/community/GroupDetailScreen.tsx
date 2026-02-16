@@ -519,9 +519,18 @@ const GroupDetailScreen: React.FC = () => {
         console.error('Error loading group challenges:', challengeError);
         // Non-critical, don't show error to user
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading group data:', error);
-      Alert.alert('Error', 'Failed to load group data');
+      // Provide more specific error messages
+      let errorMessage = 'Failed to load group data';
+      if (error?.code === 'permission-denied') {
+        errorMessage = 'You do not have permission to view this group. It may be private or you may need to sign in again.';
+      } else if (error?.code === 'not-found') {
+        errorMessage = 'This group no longer exists or has been deleted.';
+      } else if (error?.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
