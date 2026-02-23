@@ -292,7 +292,7 @@ export const FocusCopy = {
   endConfirmationSecondary: 'Keep going',
   completeHeadline: 'Routine complete',
   completeBody: 'Well done. Take a moment before moving on.',
-  completeCtaPrimary: 'Back to Focus',
+  completeCtaPrimary: 'Done',
   completeCtaSecondary: 'Adjust this routine',
 
   // Notifications

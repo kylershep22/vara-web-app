@@ -16,6 +16,14 @@ setGlobalOptions({
   maxInstances: 10,
 });
 
+// Notification Cloud Functions (4 categories)
+const notifications = require("./src/notifications");
+exports.sendDailyRhythm = notifications.sendDailyRhythm;
+exports.sendInsights = notifications.sendInsights;
+exports.onNewDirectMessage = notifications.onNewDirectMessage;
+exports.onNewConnection = notifications.onNewConnection;
+exports.sendMilestones = notifications.sendMilestones;
+
 // Secret defined via: firebase functions:secrets:set OPENAI_API_KEY
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 

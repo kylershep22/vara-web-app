@@ -27,12 +27,19 @@ export const Colors = {
 
   // Extended Palette
   mintCream: '#E8F5F2',        // Soft teal-tinted background
-  mutedSageGray: '#7A8B7A',    // Muted gray-green for secondary text/icons
+  mutedSageGray: '#6F7F77',    // Muted sage gray for secondary text/icons (aligned with textSecondary)
+
+  // Derived Alpha Colors
+  tealLight: 'rgba(27,94,87,0.08)',       // Selected state tints, active badge bg
+  tealMedium: 'rgba(27,94,87,0.15)',      // Active badge borders
+  dewSageLight: 'rgba(213,227,209,0.5)',  // Icon containers, pill inactive bg, tag bg
+  divider: 'rgba(184,205,186,0.4)',       // Dividers, borders
 
   // Accent Colors
   dewSage: '#D5E3D1',
   oliveSage: '#9AAE8C',
   lavenderMist: '#C7B8EA',
+  softCoral: '#D97A6E',
 
   // Functional Colors
   background: {
@@ -82,7 +89,9 @@ export const Colors = {
   borderDark: '#D0D0D0',
 
   // Input Colors
-  inputBackground: '#F5F5F5',
+  inputBackground: '#FFFFFF',
+  inputBorder: '#B8CDBA',           // Silver Sage
+  inputBorderFocus: '#1B5E57',      // Evergreen Teal
 
   // Shadow Color
   shadow: '#000000',

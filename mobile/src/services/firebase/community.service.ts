@@ -15,12 +15,27 @@ import {
   query,
   where,
   orderBy,
+  limit,
   arrayUnion,
   arrayRemove,
   serverTimestamp,
   Timestamp,
+  writeBatch,
 } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { db } from '../../config/firebase';
+import { GroupPrompt } from '../../types/models';
+
+/**
+ * Helper to ensure Firestore is initialized
+ * Throws a clear error if db is null
+ */
+const ensureFirestore = () => {
+  if (!db) {
+    throw new Error('Firestore is not initialized. Please check your Firebase configuration.');
+  }
+  return db;
+};
 
 const GROUPS_COLLECTION = 'groups';
 const POSTS_COLLECTION = 'posts';
@@ -106,7 +121,7 @@ export interface UserProfile {
 export const fetchPublicGroups = async (): Promise<Group[]> => {
   try {
     const q = query(
-      collection(db, GROUPS_COLLECTION),
+      collection(ensureFirestore(), GROUPS_COLLECTION),
       where('visibility', '==', 'public'),
       orderBy('createdAt', 'desc')
     );
@@ -129,7 +144,7 @@ export const fetchPublicGroups = async (): Promise<Group[]> => {
 export const fetchUserGroups = async (userId: string): Promise<Group[]> => {
   try {
     const q = query(
-      collection(db, GROUPS_COLLECTION),
+      collection(ensureFirestore(), GROUPS_COLLECTION),
       where('members', 'array-contains', userId),
       orderBy('createdAt', 'desc')
     );
@@ -152,7 +167,7 @@ export const fetchUserGroups = async (userId: string): Promise<Group[]> => {
 export const getGroupInfo = async (groupId: string): Promise<Group | null> => {
   try {
     console.log('[getGroupInfo] Fetching group:', groupId);
-    const docRef = doc(db, GROUPS_COLLECTION, groupId);
+    const docRef = doc(ensureFirestore(), GROUPS_COLLECTION, groupId);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
@@ -207,7 +222,7 @@ export const createGroup = async (data: {
       updatedAt: serverTimestamp(),
     };
 
-    const docRef = await addDoc(collection(db, GROUPS_COLLECTION), groupData);
+    const docRef = await addDoc(collection(ensureFirestore(), GROUPS_COLLECTION), groupData);
     return docRef.id;
   } catch (error) {
     console.error('Error creating group:', error);
@@ -220,7 +235,7 @@ export const createGroup = async (data: {
  */
 export const joinGroup = async (groupId: string, userId: string): Promise<void> => {
   try {
-    const docRef = doc(db, GROUPS_COLLECTION, groupId);
+    const docRef = doc(ensureFirestore(), GROUPS_COLLECTION, groupId);
     await updateDoc(docRef, {
       members: arrayUnion(userId),
       memberCount: await getGroupMemberCount(groupId) + 1,
@@ -237,7 +252,7 @@ export const joinGroup = async (groupId: string, userId: string): Promise<void> 
  */
 export const leaveGroup = async (groupId: string, userId: string): Promise<void> => {
   try {
-    const docRef = doc(db, GROUPS_COLLECTION, groupId);
+    const docRef = doc(ensureFirestore(), GROUPS_COLLECTION, groupId);
     await updateDoc(docRef, {
       members: arrayRemove(userId),
       memberCount: Math.max(0, (await getGroupMemberCount(groupId)) - 1),
@@ -270,9 +285,12 @@ export const createPost = async (data: {
   groupId?: string;
   images?: string[];
   media?: Array<{ url: string; type: 'image' | 'video' }>;
+  postType?: string;
+  challengeId?: string;
+  challengeName?: string;
 }): Promise<string> => {
   try {
-    const postData = {
+    const postData: Record<string, any> = {
       authorId: data.userId, // Use authorId to match web app
       userId: data.userId, // Also include userId for mobile app compatibility
       content: data.content,
@@ -281,16 +299,20 @@ export const createPost = async (data: {
       comments: [],
       media: data.media || [],
       images: data.media?.filter(m => m.type === 'image').map(m => m.url) || data.images || [], // Backwards compat
+      postType: data.postType || 'update',
       timestamp: serverTimestamp(), // Use timestamp to match web app
       createdAt: serverTimestamp(), // Also include createdAt for mobile feed query
     };
 
-    const docRef = await addDoc(collection(db, POSTS_COLLECTION), postData);
+    if (data.challengeId) postData.challengeId = data.challengeId;
+    if (data.challengeName) postData.challengeName = data.challengeName;
+
+    const docRef = await addDoc(collection(ensureFirestore(), POSTS_COLLECTION), postData);
 
     // Update group's lastActivityAt and postCount if this is a group post
     if (data.groupId) {
       try {
-        const groupRef = doc(db, GROUPS_COLLECTION, data.groupId);
+        const groupRef = doc(ensureFirestore(), GROUPS_COLLECTION, data.groupId);
         const groupSnap = await getDoc(groupRef);
         if (groupSnap.exists()) {
           const currentPostCount = groupSnap.data().postCount || 0;
@@ -320,7 +342,7 @@ export const fetchGroupPosts = async (groupId: string): Promise<Post[]> => {
   try {
     // Note: Posts use 'timestamp' field (matching web app format)
     const q = query(
-      collection(db, POSTS_COLLECTION),
+      collection(ensureFirestore(), POSTS_COLLECTION),
       where('groupId', '==', groupId),
       orderBy('timestamp', 'desc')
     );
@@ -341,7 +363,7 @@ export const fetchGroupPosts = async (groupId: string): Promise<Post[]> => {
  */
 export const togglePostLike = async (postId: string, userId: string): Promise<void> => {
   try {
-    const docRef = doc(db, POSTS_COLLECTION, postId);
+    const docRef = doc(ensureFirestore(), POSTS_COLLECTION, postId);
     const docSnap = await getDoc(docRef);
 
     if (!docSnap.exists()) {
@@ -375,7 +397,7 @@ export const addCommentToPost = async (
   }
 ): Promise<void> => {
   try {
-    const docRef = doc(db, POSTS_COLLECTION, postId);
+    const docRef = doc(ensureFirestore(), POSTS_COLLECTION, postId);
 
     // First, get the current post to check its structure
     const postSnap = await getDoc(docRef);
@@ -461,7 +483,7 @@ export const sendConnectionRequest = async (
     });
 
     // Use addDoc like web app (auto-generated ID)
-    const docRef = await addDoc(collection(db, CONNECTIONS_COLLECTION), connectionData);
+    const docRef = await addDoc(collection(ensureFirestore(), CONNECTIONS_COLLECTION), connectionData);
     console.log('[sendConnectionRequest] Connection created successfully with ID:', docRef.id);
 
     return docRef.id;
@@ -476,7 +498,7 @@ export const sendConnectionRequest = async (
  */
 export const acceptConnection = async (connectionId: string): Promise<void> => {
   try {
-    const docRef = doc(db, CONNECTIONS_COLLECTION, connectionId);
+    const docRef = doc(ensureFirestore(), CONNECTIONS_COLLECTION, connectionId);
     await updateDoc(docRef, {
       status: 'accepted',
       updatedAt: serverTimestamp(),
@@ -492,7 +514,7 @@ export const acceptConnection = async (connectionId: string): Promise<void> => {
  */
 export const declineConnection = async (connectionId: string): Promise<void> => {
   try {
-    const docRef = doc(db, CONNECTIONS_COLLECTION, connectionId);
+    const docRef = doc(ensureFirestore(), CONNECTIONS_COLLECTION, connectionId);
     await updateDoc(docRef, {
       status: 'declined',
       updatedAt: serverTimestamp(),
@@ -512,20 +534,20 @@ export const fetchUserConnections = async (userId: string): Promise<Connection[]
 
     // Query 1: Web app format (participants array)
     const qWeb = query(
-      collection(db, CONNECTIONS_COLLECTION),
+      collection(ensureFirestore(), CONNECTIONS_COLLECTION),
       where('participants', 'array-contains', userId),
       where('status', '==', 'accepted')
     );
 
     // Query 2 & 3: Mobile app format (a/b fields)
     const qMobile1 = query(
-      collection(db, CONNECTIONS_COLLECTION),
+      collection(ensureFirestore(), CONNECTIONS_COLLECTION),
       where('a', '==', userId),
       where('status', '==', 'accepted')
     );
 
     const qMobile2 = query(
-      collection(db, CONNECTIONS_COLLECTION),
+      collection(ensureFirestore(), CONNECTIONS_COLLECTION),
       where('b', '==', userId),
       where('status', '==', 'accepted')
     );
@@ -580,20 +602,20 @@ export const fetchIncomingConnectionRequests = async (
 
     // Query 1: Web app format (addresseeId)
     const qWeb = query(
-      collection(db, CONNECTIONS_COLLECTION),
+      collection(ensureFirestore(), CONNECTIONS_COLLECTION),
       where('addresseeId', '==', userId),
       where('status', '==', 'pending')
     );
 
     // Query 2 & 3: Mobile app format (a/b fields)
     const qMobile1 = query(
-      collection(db, CONNECTIONS_COLLECTION),
+      collection(ensureFirestore(), CONNECTIONS_COLLECTION),
       where('a', '==', userId),
       where('status', '==', 'pending')
     );
 
     const qMobile2 = query(
-      collection(db, CONNECTIONS_COLLECTION),
+      collection(ensureFirestore(), CONNECTIONS_COLLECTION),
       where('b', '==', userId),
       where('status', '==', 'pending')
     );
@@ -648,14 +670,14 @@ export const fetchSentConnectionRequests = async (
 
     // Query 1: Web app format (requesterId)
     const qWeb = query(
-      collection(db, CONNECTIONS_COLLECTION),
+      collection(ensureFirestore(), CONNECTIONS_COLLECTION),
       where('requesterId', '==', userId),
       where('status', '==', 'pending')
     );
 
     // Query 2: Mobile app format (requester field)
     const qMobile = query(
-      collection(db, CONNECTIONS_COLLECTION),
+      collection(ensureFirestore(), CONNECTIONS_COLLECTION),
       where('requester', '==', userId),
       where('status', '==', 'pending')
     );
@@ -703,7 +725,7 @@ export const fetchSentConnectionRequests = async (
  */
 export const getUserById = async (userId: string): Promise<UserProfile | null> => {
   try {
-    const docRef = doc(db, USERS_COLLECTION, userId);
+    const docRef = doc(ensureFirestore(), USERS_COLLECTION, userId);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
@@ -727,7 +749,7 @@ export const searchUsers = async (searchQuery: string): Promise<UserProfile[]> =
   try {
     // Note: Firestore doesn't support full-text search
     // This is a basic implementation - consider using Algolia or similar for production
-    const q = query(collection(db, USERS_COLLECTION), orderBy('displayName'));
+    const q = query(collection(ensureFirestore(), USERS_COLLECTION), orderBy('displayName'));
 
     const snapshot = await getDocs(q);
     const users = snapshot.docs.map((doc) => ({
@@ -745,5 +767,134 @@ export const searchUsers = async (searchQuery: string): Promise<UserProfile[]> =
   } catch (error) {
     console.error('Error searching users:', error);
     throw error;
+  }
+};
+
+// ==========================================
+// GROUP PROMPTS
+// ==========================================
+
+const GROUP_PROMPTS_COLLECTION = 'groupPrompts';
+
+/**
+ * Get active group prompt for a group
+ */
+export const getGroupPrompt = async (groupId: string): Promise<GroupPrompt | null> => {
+  const q = query(
+    collection(ensureFirestore(), GROUP_PROMPTS_COLLECTION),
+    where('groupId', '==', groupId),
+    where('active', '==', true),
+    limit(1)
+  );
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as GroupPrompt;
+};
+
+/**
+ * Create or update a group prompt
+ * Deactivates existing prompts for the group first
+ */
+export const createGroupPrompt = async (data: {
+  groupId: string;
+  prompt: string;
+  dayOfWeek?: number;
+}): Promise<string> => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error('Must be logged in');
+
+  const firestore = ensureFirestore();
+
+  // Deactivate existing prompts for this group
+  const existing = await getDocs(
+    query(
+      collection(firestore, GROUP_PROMPTS_COLLECTION),
+      where('groupId', '==', data.groupId),
+      where('active', '==', true)
+    )
+  );
+  const batch = writeBatch(firestore);
+  existing.docs.forEach(existingDoc => {
+    batch.update(existingDoc.ref, { active: false, updatedAt: serverTimestamp() });
+  });
+
+  const promptRef = doc(collection(firestore, GROUP_PROMPTS_COLLECTION));
+  batch.set(promptRef, {
+    groupId: data.groupId,
+    prompt: data.prompt,
+    frequency: 'weekly',
+    dayOfWeek: data.dayOfWeek ?? 1,
+    createdBy: user.uid,
+    active: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  await batch.commit();
+  return promptRef.id;
+};
+
+/**
+ * Ensure a weekly prompt post exists for the current week
+ * Creates a post with the prompt content if one doesn't exist yet
+ */
+export const ensureWeeklyPromptPost = async (
+  groupId: string,
+  prompt: GroupPrompt
+): Promise<void> => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const firestore = ensureFirestore();
+
+  // Check if a prompt post exists for this week
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+
+  // Only create if it's past the scheduled day
+  const scheduledDay = prompt.dayOfWeek || 1;
+  const currentDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+  if (currentDay < scheduledDay) return;
+
+  // Check if prompt post already exists this week by looking for recent posts with isGroupPrompt
+  const q = query(
+    collection(firestore, POSTS_COLLECTION),
+    where('groupId', '==', groupId),
+    where('isGroupPrompt', '==', true),
+    orderBy('createdAt', 'desc'),
+    limit(1)
+  );
+
+  try {
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const lastPromptPost = snapshot.docs[0].data();
+      const postDate = lastPromptPost.createdAt?.toDate ? lastPromptPost.createdAt.toDate() : new Date(lastPromptPost.createdAt);
+      if (postDate >= monday) return; // Already created this week
+    }
+
+    // Create the prompt post
+    await addDoc(collection(firestore, POSTS_COLLECTION), {
+      userId: prompt.createdBy,
+      authorId: prompt.createdBy,
+      groupId: groupId,
+      content: prompt.prompt,
+      isGroupPrompt: true,
+      promptId: prompt.id,
+      likes: [],
+      comments: [],
+      media: [],
+      images: [],
+      timestamp: serverTimestamp(),
+      createdAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error ensuring weekly prompt post:', error);
   }
 };

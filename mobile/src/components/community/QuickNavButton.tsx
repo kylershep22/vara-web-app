@@ -31,8 +31,8 @@ export const QuickNavButton: React.FC<QuickNavButtonProps> = ({
       <View style={[styles.iconContainer, active && styles.iconContainerActive]}>
         <Icon
           name={icon as any}
-          size={24}
-          color={active ? Colors.evergreenTeal : Colors.textSecondary}
+          size={18}
+          color={Colors.evergreenTeal}
         />
       </View>
       <Text style={[styles.text, active && styles.textActive]}>
@@ -57,14 +57,15 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.lg,
+    backgroundColor: Colors.dewSageLight,
   },
   iconContainerActive: {
-    backgroundColor: 'rgba(27, 94, 87, 0.1)',
+    backgroundColor: Colors.tealLight,
   },
   text: {
-    color: Colors.textSecondary,
-    marginTop: 4,
+    color: Colors.mutedSageGray,
+    marginTop: 6,
     fontSize: 11,
     fontWeight: Typography.fontWeight.medium,
     textAlign: 'center',

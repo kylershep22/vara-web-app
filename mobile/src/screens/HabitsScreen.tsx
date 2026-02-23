@@ -3,19 +3,23 @@
  * Daily habit tracking with consistency rhythm visualization
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Text, FAB, Menu } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { Button, Input, Card, LoadingSpinner, BrainPillarBadge, BrainPillarInfoModal, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton, LockedScreenOverlay } from '../components';
+import { Button, Input, Card, LoadingSpinner, BrainPillarBadge, BrainPillarInfoModal, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton } from '../components';
 import { AnimatedCheckbox, ConfettiOverlay, StreakMilestoneModal } from '../components/celebrations';
+import { WizardContainer } from '../components/habits/wizard';
+import { HabitFormData } from '../components/habits/wizard/types';
+import { IntentionsSummaryCard } from '../components/habits/IntentionsSummaryCard';
 import { Colors, Spacing, Typography, Layout, HABIT_CATEGORIES } from '../constants';
 import { getNeurochemicalTags, formatNeurochemicalTag, getBrainPillars, getHabitBrainMapping } from '../constants/brainHealthMapping';
 import { useAuth } from '../context/AuthContext';
 import { useHabits } from '../hooks';
 import { useCelebrations } from '../hooks/useCelebrations';
+import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import {
   createHabit,
   updateHabit,
@@ -45,6 +49,8 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
   const navigation = useNavigation<any>();
   const { habits, loading, error: habitsError } = useHabits(true); // Active habits only
   const insets = useSafeAreaInsets();
+  const { shouldShowPrompt: shouldShowNotifPrompt, markPromptShown: markNotifPromptShown } = useNotificationOptIn();
+  const notifOptInChecked = useRef(false);
   const {
     showConfetti,
     triggerConfetti,
@@ -56,27 +62,8 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'daily' as 'daily' | 'weekly' | 'custom',
-    frequency: 7,
-    category: '',
-    // Vara Habits Enhancement fields
-    identity: '',
-    identityStatement: '',
-    outcomeGoal: '',
-    fullVersion: '',
-    quickStartVersion: '',
-    justShowUpVersion: '',
-    cueType: 'time' as 'time' | 'location' | 'after_habit' | 'emotion',
-    cueValue: '',
-    implementationIntention: '',
-    problem: '',
-  });
-  const [submitting, setSubmitting] = useState(false);
   const [completedToday, setCompletedToday] = useState<Set<string>>(new Set());
   const [realStreaks, setRealStreaks] = useState<{ [habitId: string]: { current: number; longest: number } }>({});
-  const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
   const [pillarInfoVisible, setPillarInfoVisible] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
@@ -181,72 +168,34 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
 
   const handleCreateHabit = () => {
     setEditingHabit(null);
-    setFormData({
-      name: '',
-      type: 'daily',
-      frequency: 7,
-      category: '',
-      identity: '',
-      identityStatement: '',
-      outcomeGoal: '',
-      fullVersion: '',
-      quickStartVersion: '',
-      justShowUpVersion: '',
-      cueType: 'time',
-      cueValue: '',
-      implementationIntention: '',
-      problem: '',
-    });
     setModalVisible(true);
   };
 
   const handleEditHabit = (habit: Habit) => {
     setEditingHabit(habit);
-    setFormData({
-      name: habit.name,
-      type: habit.type,
-      frequency: habit.frequency,
-      category: habit.category || '',
-      identity: habit.identity || '',
-      identityStatement: habit.identityStatement || '',
-      outcomeGoal: habit.outcomeGoal || '',
-      fullVersion: habit.fullVersion || '',
-      quickStartVersion: habit.quickStartVersion || '',
-      justShowUpVersion: habit.justShowUpVersion || '',
-      cueType: habit.cue?.type || 'time',
-      cueValue: habit.cue?.value || '',
-      implementationIntention: habit.implementationIntention || '',
-      problem: habit.problem || '',
-    });
     setModalVisible(true);
   };
 
-  const handleSubmit = async () => {
-    // Check user authentication first
+  const handleWizardComplete = async (formData: HabitFormData) => {
     if (!user || !user.uid) {
       Alert.alert('Authentication Error', 'You must be logged in to create a habit. Please sign out and sign back in.');
       return;
     }
 
-    if (!formData.name.trim()) {
-      Alert.alert('Error', 'Please enter a habit name');
-      return;
-    }
-
-    setSubmitting(true);
     try {
-      // Prepare habit data with new Vara Habits fields
       const habitData: any = {
         name: formData.name.trim(),
         type: formData.type,
         frequency: formData.frequency,
-        category: formData.category || undefined,
+        active: true,
       };
 
-      // Add Vara Habits Enhancement fields if provided
+      if (formData.category && formData.category.trim()) {
+        habitData.category = formData.category.trim();
+      }
+
       if (formData.identity) {
         habitData.identity = formData.identity.trim();
-        // Auto-generate identity statement if not provided
         if (!formData.identityStatement && formData.identity) {
           habitData.identityStatement = `I'm becoming ${formData.identity.toLowerCase()}`;
         } else if (formData.identityStatement) {
@@ -260,14 +209,12 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
       if (formData.justShowUpVersion) habitData.justShowUpVersion = formData.justShowUpVersion.trim();
       if (formData.problem) habitData.problem = formData.problem.trim();
 
-      // Add cue if value is provided
       if (formData.cueValue) {
         habitData.cue = {
           type: formData.cueType,
           value: formData.cueValue.trim(),
         };
 
-        // Auto-generate implementation intention if not provided
         if (!formData.implementationIntention) {
           const cuePrefix = formData.cueType === 'time' ? 'At' :
                            formData.cueType === 'after_habit' ? 'After' :
@@ -280,7 +227,11 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
         habitData.implementationIntention = formData.implementationIntention.trim();
       }
 
-      // Initialize progress tracking fields for new habits
+      // Add intention if provided
+      if (formData.intention) {
+        habitData.intention = formData.intention;
+      }
+
       if (!editingHabit) {
         habitData.totalStepsTaken = 0;
         habitData.thisWeekSteps = 0;
@@ -296,22 +247,6 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
       }
 
       setModalVisible(false);
-      setFormData({
-        name: '',
-        type: 'daily',
-        frequency: 7,
-        category: '',
-        identity: '',
-        identityStatement: '',
-        outcomeGoal: '',
-        fullVersion: '',
-        quickStartVersion: '',
-        justShowUpVersion: '',
-        cueType: 'time',
-        cueValue: '',
-        implementationIntention: '',
-        problem: '',
-      });
     } catch (error: any) {
       console.error('Error saving habit:', error);
       const errorMessage = error?.message || 'Failed to save habit.';
@@ -319,8 +254,6 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
         'Unable to Save Habit',
         `${errorMessage}\n\nPlease check your internet connection and try again. If the problem persists, try signing out and back in.`
       );
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -373,6 +306,13 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
         }));
       } else {
         await markHabitComplete(habitId, user!.uid, today);
+
+        // Notification opt-in: trigger on first habit completion
+        if (!notifOptInChecked.current && shouldShowNotifPrompt) {
+          notifOptInChecked.current = true;
+          markNotifPromptShown();
+          navigation.navigate('NotificationOptIn');
+        }
 
         // Update completed set
         const newCompletedSet = new Set(completedToday).add(habitId);
@@ -458,6 +398,22 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
                   {metaLine}
                 </Text>
               )}
+              {(item.intention || item.cue?.value) && (
+                <View style={styles.intentionTagRow}>
+                  {item.intention && (
+                    <Text style={styles.intentionTagLabel}>{item.intention.label}</Text>
+                  )}
+                  {item.intention && item.cue?.value && (
+                    <Text style={styles.intentionTagDot}> · </Text>
+                  )}
+                  {item.cue?.value && !item.intention && (
+                    <Text style={styles.intentionTagTime}>{item.cue.value}</Text>
+                  )}
+                  {item.cue?.value && item.intention && (
+                    <Text style={styles.intentionTagTime}>{item.cue.value}</Text>
+                  )}
+                </View>
+              )}
             </View>
 
             {/* Chevron */}
@@ -502,7 +458,6 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
   }
 
   return (
-    <LockedScreenOverlay feature="habits_basic">
     <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
       {!hideHeader && (
         <View style={styles.header}>
@@ -554,6 +509,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
           data={habits}
           renderItem={renderHabitItem}
           keyExtractor={(item) => item.id}
+          ListFooterComponent={<IntentionsSummaryCard habits={habits} />}
           contentContainerStyle={[
             styles.listContent,
             { paddingBottom: Math.max(100, 80 + insets.bottom) } // Account for FAB + safe area
@@ -572,345 +528,13 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
         />
       )}
 
-      {/* Create/Edit Modal */}
-      <EnhancedModal
+      {/* Create/Edit Wizard */}
+      <WizardContainer
         visible={modalVisible}
         onDismiss={() => setModalVisible(false)}
-        title={editingHabit ? 'Edit Habit' : 'New Habit'}
-        subtitle="Build consistency, one day at a time"
-        headerIcon="refresh"
-        inputAccessoryViewID="habit-modal"
-        maxHeightPercent={0.9}
-        footer={
-          <ModalFooterActions
-            onCancel={() => setModalVisible(false)}
-            onSubmit={handleSubmit}
-            submitLabel={editingHabit ? 'Update' : 'Create'}
-            submitLoading={submitting}
-            submitDisabled={submitting}
-          />
-        }
-      >
-              {/* Step 1: Who Are You Becoming? */}
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Icon name="account-star" size={20} color={Colors.evergreenTeal} />
-                  <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Who Are You Becoming?
-                  </Text>
-                </View>
-                <Text variant="bodySmall" style={styles.sectionDescription}>
-                  Focus on the person you want to become, not just the outcome you want to achieve.
-                </Text>
-
-                <Input
-                  label="Identity (e.g., 'A runner', 'Someone who writes')"
-                  value={formData.identity}
-                  onChangeText={(text) => setFormData({ ...formData, identity: text })}
-                  placeholder="A person who..."
-                  style={styles.input}
-                />
-
-                {formData.identity && (
-                  <View style={styles.identityPreview}>
-                    <Text variant="bodyMedium" style={styles.identityPreviewText}>
-                      "I'm becoming {formData.identity.toLowerCase()}"
-                    </Text>
-                  </View>
-                )}
-
-                <Input
-                  label="Outcome Goal (Optional)"
-                  value={formData.outcomeGoal}
-                  onChangeText={(text) => setFormData({ ...formData, outcomeGoal: text })}
-                  placeholder="e.g., Run a 5K (de-emphasized)"
-                  style={styles.input}
-                />
-              </View>
-
-              {/* Step 2: What Action Proves It? */}
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Icon name="lightning-bolt" size={20} color={Colors.evergreenTeal} />
-                  <Text variant="titleMedium" style={styles.sectionTitle}>
-                    What Action Proves It?
-                  </Text>
-                </View>
-                <Text variant="bodySmall" style={styles.sectionDescription}>
-                  Be specific about what you'll do.
-                </Text>
-
-                <Input
-                  label="Habit Name *"
-                  value={formData.name}
-                  onChangeText={(text) => setFormData({ ...formData, name: text })}
-                  placeholder="e.g., Run for 30 minutes"
-                  style={styles.input}
-                />
-              </View>
-
-              {/* Step 3: Quick Start System (Scaling Versions) */}
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Icon name="rocket-launch" size={20} color={Colors.evergreenTeal} />
-                  <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Start Small (Quick Start System)
-                  </Text>
-                </View>
-                <Text variant="bodySmall" style={styles.sectionDescription}>
-                  Make it flexible for tough days. All versions count! 🎯
-                </Text>
-
-                <Input
-                  label="Full Version (Optional)"
-                  value={formData.fullVersion}
-                  onChangeText={(text) => setFormData({ ...formData, fullVersion: text })}
-                  placeholder="e.g., Run for 30 minutes"
-                  style={styles.input}
-                />
-
-                <Input
-                  label="Quick Start (5-10 min version)"
-                  value={formData.quickStartVersion}
-                  onChangeText={(text) => setFormData({ ...formData, quickStartVersion: text })}
-                  placeholder="e.g., Run for 10 minutes"
-                  style={styles.input}
-                />
-
-                <Input
-                  label="Just Show Up (1-2 min version)"
-                  value={formData.justShowUpVersion}
-                  onChangeText={(text) => setFormData({ ...formData, justShowUpVersion: text })}
-                  placeholder="e.g., Put on shoes, step outside"
-                  style={styles.input}
-                />
-
-                <View style={styles.quickStartInfo}>
-                  <Icon name="information-outline" size={16} color={Colors.evergreenTeal} />
-                  <Text variant="bodySmall" style={styles.quickStartInfoText}>
-                    On tough days, showing up is the win. Every version counts toward your progress!
-                  </Text>
-                </View>
-              </View>
-
-              {/* Step 4: Your When/Where Plan */}
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Icon name="calendar-clock" size={20} color={Colors.evergreenTeal} />
-                  <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Your When/Where Plan
-                  </Text>
-                </View>
-                <Text variant="bodySmall" style={styles.sectionDescription}>
-                  Clear plans increase success by 3x!
-                </Text>
-
-                <Text variant="bodyMedium" style={styles.fieldLabel}>
-                  Trigger Type
-                </Text>
-                <View style={styles.cueTypeButtons}>
-                  {[
-                    { type: 'time', label: 'Time', icon: 'clock-outline' },
-                    { type: 'after_habit', label: 'After Habit', icon: 'link-variant' },
-                    { type: 'location', label: 'Location', icon: 'map-marker' },
-                    { type: 'emotion', label: 'Feeling', icon: 'emoticon-happy-outline' },
-                  ].map((cueOption) => (
-                    <TouchableOpacity
-                      key={cueOption.type}
-                      onPress={() => setFormData({ ...formData, cueType: cueOption.type as any })}
-                      style={[
-                        styles.cueTypeButton,
-                        formData.cueType === cueOption.type && styles.cueTypeButtonActive,
-                      ]}
-                    >
-                      <Icon
-                        name={cueOption.icon}
-                        size={16}
-                        color={formData.cueType === cueOption.type ? Colors.textOnPrimary : Colors.textSecondary}
-                      />
-                      <Text
-                        style={[
-                          styles.cueTypeButtonText,
-                          formData.cueType === cueOption.type && styles.cueTypeButtonTextActive,
-                        ]}
-                      >
-                        {cueOption.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Input
-                  label={
-                    formData.cueType === 'time' ? 'Time (e.g., 7:00 AM)' :
-                    formData.cueType === 'after_habit' ? 'After which habit/routine?' :
-                    formData.cueType === 'location' ? 'Where?' :
-                    'When you feel...'
-                  }
-                  value={formData.cueValue}
-                  onChangeText={(text) => setFormData({ ...formData, cueValue: text })}
-                  placeholder={
-                    formData.cueType === 'time' ? '7:00 AM' :
-                    formData.cueType === 'after_habit' ? 'After morning coffee' :
-                    formData.cueType === 'location' ? 'At my desk' :
-                    'Stressed'
-                  }
-                  style={styles.input}
-                />
-
-                {formData.cueValue && (
-                  <View style={styles.intentionPreview}>
-                    <Text variant="bodySmall" style={styles.intentionPreviewLabel}>
-                      Your plan:
-                    </Text>
-                    <Text variant="bodyMedium" style={styles.intentionPreviewText}>
-                      "{
-                        formData.cueType === 'time' ? `At ${formData.cueValue}` :
-                        formData.cueType === 'after_habit' ? `After ${formData.cueValue}` :
-                        formData.cueType === 'location' ? `At ${formData.cueValue}` :
-                        `When I feel ${formData.cueValue}`
-                      }, I will {formData.name.toLowerCase() || '...'}"
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Step 5: Problem Context (Optional) */}
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Icon name="lightbulb-outline" size={20} color={Colors.evergreenTeal} />
-                  <Text variant="titleMedium" style={styles.sectionTitle}>
-                    What Problem Are You Solving? (Optional)
-                  </Text>
-                </View>
-                <Text variant="bodySmall" style={styles.sectionDescription}>
-                  Understanding your "why" makes the habit more meaningful.
-                </Text>
-
-                <Input
-                  label="Problem"
-                  value={formData.problem}
-                  onChangeText={(text) => setFormData({ ...formData, problem: text })}
-                  placeholder="e.g., I feel stressed after work"
-                  style={styles.input}
-                  multiline
-                  numberOfLines={2}
-                />
-              </View>
-
-              <Text variant="bodyMedium" style={styles.fieldLabel}>
-                Category
-              </Text>
-              <Menu
-                visible={categoryMenuVisible}
-                onDismiss={() => setCategoryMenuVisible(false)}
-                anchor={
-                  <TouchableOpacity
-                    style={styles.categoryDropdown}
-                    onPress={() => setCategoryMenuVisible(true)}
-                  >
-                    <Text style={styles.categoryValue}>
-                      {formData.category || 'Select a category'}
-                    </Text>
-                    <Icon
-                      name={categoryMenuVisible ? 'chevron-up' : 'chevron-down'}
-                      size={20}
-                      color={Colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                }
-              >
-                {HABIT_CATEGORIES.map((category) => (
-                  <Menu.Item
-                    key={category}
-                    onPress={() => {
-                      setFormData({ ...formData, category });
-                      setCategoryMenuVisible(false);
-                    }}
-                    title={category}
-                  />
-                ))}
-              </Menu>
-
-              {/* Pillar Impact Preview */}
-              {formData.category && (() => {
-                const mapping = getHabitBrainMapping(formData.category);
-                const pillars = getBrainPillars(formData.category);
-                const neurochemicalTags = getNeurochemicalTags(formData.category);
-
-                return (
-                  <View style={styles.pillarImpactSection}>
-                    <View style={styles.pillarImpactHeader}>
-                      <Icon name="brain" size={20} color={Colors.evergreenTeal} />
-                      <Text variant="titleSmall" style={styles.pillarImpactTitle}>
-                        Brain Health Benefits
-                      </Text>
-                    </View>
-
-                    {/* Description */}
-                    {mapping?.description && (
-                      <Text variant="bodySmall" style={styles.pillarImpactDescription}>
-                        {mapping.description}
-                      </Text>
-                    )}
-
-                    {/* Neurochemical Tags */}
-                    {neurochemicalTags.length > 0 && (
-                      <View style={styles.neurochemicalTagsRow}>
-                        {neurochemicalTags.slice(0, 3).map((impact, index) => (
-                          <View key={index} style={styles.neurochemicalTag}>
-                            <Icon name={impact.icon} size={14} color={Colors.textSecondary} />
-                            <Text variant="bodySmall" style={styles.neurochemicalTagText}>
-                              {formatNeurochemicalTag(impact)}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-
-                    {/* Brain Pillars */}
-                    {pillars.length > 0 && (
-                      <View style={styles.pillarBadgesContainer}>
-                        <Text variant="bodySmall" style={styles.pillarBadgesLabel}>
-                          Supports:
-                        </Text>
-                        <View style={styles.pillarBadgesRow}>
-                          {pillars.map((pillar) => (
-                            <BrainPillarBadge key={pillar} pillar={pillar} showIcon={false} />
-                          ))}
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                );
-              })()}
-
-              <Text variant="bodyMedium" style={styles.fieldLabel}>
-                Type
-              </Text>
-              <View style={styles.typeButtons}>
-                {(['daily', 'weekly', 'custom'] as const).map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    onPress={() => setFormData({ ...formData, type })}
-                    style={[
-                      styles.typeButton,
-                      formData.type === type && styles.typeButtonActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.typeButtonText,
-                        formData.type === type && styles.typeButtonTextActive,
-                      ]}
-                    >
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-      </EnhancedModal>
+        editingHabit={editingHabit}
+        onComplete={handleWizardComplete}
+      />
 
       {/* Brain Pillar Info Modal */}
       <BrainPillarInfoModal
@@ -936,7 +560,6 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
         />
       )}
     </SafeAreaView>
-    </LockedScreenOverlay>
   );
 };
 
@@ -1114,6 +737,25 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#6F7F77',
     marginTop: 4,
+  },
+  intentionTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+  },
+  intentionTagLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#6F7F77',
+  },
+  intentionTagDot: {
+    fontSize: 11,
+    color: '#B8CDBA',
+  },
+  intentionTagTime: {
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#6F7F77',
   },
   emptyContainer: {
     flex: 1,

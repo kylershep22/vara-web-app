@@ -31,6 +31,7 @@ import {
   GroupCategory,
 } from '../../types/models';
 import { getAuth } from 'firebase/auth';
+import { createPost } from './community.service';
 
 const CHALLENGES_COLLECTION = 'challenges';
 const CHALLENGE_PARTICIPANTS_COLLECTION = 'challengeParticipants';
@@ -417,6 +418,7 @@ export async function fetchMyParticipation(challengeId: string): Promise<Challen
 export async function checkIn(
   challengeId: string,
   note?: string,
+  mood?: string,
   proofImageUrl?: string
 ): Promise<string> {
   const auth = getAuth();
@@ -437,6 +439,7 @@ export async function checkIn(
     userId: user.uid,
     date: today,
     note: note || null,
+    mood: mood || null,
     proofImageUrl: proofImageUrl || null,
     createdAt: serverTimestamp() as Timestamp,
   };
@@ -453,6 +456,24 @@ export async function checkIn(
     lastActivityAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+
+  // Create a feed post when a note is provided
+  if (note) {
+    try {
+      const challenge = await fetchChallengeById(challengeId);
+      await createPost({
+        userId: user.uid,
+        content: note,
+        postType: 'update',
+        challengeId,
+        challengeName: challenge?.name || 'Challenge',
+        groupId: challenge?.sourceGroupId || undefined,
+      });
+    } catch (postError) {
+      // Non-critical: don't fail the check-in if the post creation fails
+      console.error('Error creating check-in feed post:', postError);
+    }
+  }
 
   return docRef.id;
 }
@@ -593,6 +614,37 @@ export async function hasCheckedInToday(challengeId: string): Promise<boolean> {
   return checkIn !== null;
 }
 
+/**
+ * Fetch weekly check-in counts for all participants in a challenge
+ * Returns a map of userId -> weekly check-in count
+ */
+export async function fetchWeeklyCheckInCounts(challengeId: string): Promise<Map<string, number>> {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - mondayOffset);
+  const mondayStr = monday.toISOString().split('T')[0]; // YYYY-MM-DD
+
+  const q = query(
+    collection(db, CHALLENGE_CHECKINS_COLLECTION),
+    where('challengeId', '==', challengeId),
+  );
+
+  const snapshot = await getDocs(q);
+  const weeklyCounts = new Map<string, number>();
+
+  snapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    if (data.date >= mondayStr) {
+      const current = weeklyCounts.get(data.userId) || 0;
+      weeklyCounts.set(data.userId, current + 1);
+    }
+  });
+
+  return weeklyCounts;
+}
+
 // ==========================================
 // UTILITY FUNCTIONS
 // ==========================================
@@ -628,6 +680,25 @@ export function formatChallengeDuration(startDate: Timestamp, endDate: Timestamp
   if (diffDays <= 7) return `${diffDays} day challenge`;
   if (diffDays <= 31) return `${Math.round(diffDays / 7)} week challenge`;
   return `${Math.round(diffDays / 30)} month challenge`;
+}
+
+/**
+ * Format challenge position as "Day X of Y" or "Week X of Y"
+ */
+export function formatChallengePosition(startDate: any, endDate: any): string {
+  const start = startDate?.toDate ? startDate.toDate() : new Date(startDate);
+  const end = endDate?.toDate ? endDate.toDate() : new Date(endDate);
+  const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  const elapsed = Math.ceil((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24));
+  const currentDay = Math.min(Math.max(elapsed, 1), totalDays);
+
+  if (totalDays <= 14) {
+    return `Day ${currentDay} of ${totalDays}`;
+  } else {
+    const currentWeek = Math.ceil(currentDay / 7);
+    const totalWeeks = Math.ceil(totalDays / 7);
+    return `Week ${currentWeek} of ${totalWeeks}`;
+  }
 }
 
 /**

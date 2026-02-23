@@ -46,3 +46,9 @@ export * from './insights';
 
 // Journal components
 export * from './journal';
+
+// Onboarding components
+export * from './onboarding';
+
+// Discovery components (progressive feature unlock)
+export * from './discovery';

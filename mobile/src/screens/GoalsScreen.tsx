@@ -8,7 +8,7 @@ import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'r
 import { Text, FAB, SegmentedButtons, Menu } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Input, Card, LoadingSpinner, ProgressBar, BrainPillarBadge, SwipeableGoalCard, ProgressUpdateModal, GoalMilestoneCheckmark, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton, LockedScreenOverlay } from '../components';
+import { Button, Input, Card, LoadingSpinner, ProgressBar, BrainPillarBadge, SwipeableGoalCard, ProgressUpdateModal, GoalMilestoneCheckmark, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton } from '../components';
 import { Colors, Spacing, Typography, Layout, getSuggestedMilestones, templatesToMilestones } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { useGoals } from '../hooks';
@@ -344,7 +344,6 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
   }
 
   return (
-    <LockedScreenOverlay feature="goals_basic">
     <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
       {!hideHeader && (
         <View style={styles.header}>
@@ -553,7 +552,6 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
         duration={2500}
       />
     </SafeAreaView>
-    </LockedScreenOverlay>
   );
 };
 

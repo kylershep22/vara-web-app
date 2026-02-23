@@ -94,7 +94,7 @@ export const CUSTOM_ACTIVITIES: ActivityTemplate[] = [
 /**
  * Get activities for a specific routine type
  */
-export function getActivitiesForType(type: RoutineType | 'custom'): ActivityTemplate[] {
+export function getActivitiesForType(type: RoutineType): ActivityTemplate[] {
   switch (type) {
     case 'morning':
       return MORNING_ACTIVITIES;
@@ -102,7 +102,6 @@ export function getActivitiesForType(type: RoutineType | 'custom'): ActivityTemp
       return BEDTIME_ACTIVITIES;
     case 'evening':
       return EVENING_ACTIVITIES;
-    case 'sunday':
     case 'custom':
       return CUSTOM_ACTIVITIES;
     default:
@@ -113,7 +112,7 @@ export function getActivitiesForType(type: RoutineType | 'custom'): ActivityTemp
 /**
  * Get display name for routine type
  */
-export function getRoutineTypeDisplayName(type: RoutineType | 'custom'): string {
+export function getRoutineTypeDisplayName(type: RoutineType): string {
   switch (type) {
     case 'morning':
       return 'Morning';
@@ -121,8 +120,6 @@ export function getRoutineTypeDisplayName(type: RoutineType | 'custom'): string 
       return 'Bedtime';
     case 'evening':
       return 'Evening';
-    case 'sunday':
-      return 'Sunday'; // Legacy support
     case 'custom':
       return 'Custom';
     default:
@@ -133,7 +130,7 @@ export function getRoutineTypeDisplayName(type: RoutineType | 'custom'): string 
 /**
  * Get description for routine type
  */
-export function getRoutineTypeDescription(type: RoutineType | 'custom'): string {
+export function getRoutineTypeDescription(type: RoutineType): string {
   switch (type) {
     case 'morning':
       return 'Start your day with intention and energy';
@@ -141,8 +138,6 @@ export function getRoutineTypeDescription(type: RoutineType | 'custom'): string 
       return 'Wind down and prepare for restful sleep';
     case 'evening':
       return 'Transition from work to relaxation';
-    case 'sunday':
-      return 'Plan and prepare for the week ahead'; // Legacy support
     case 'custom':
       return 'Create a routine for this time of day—whenever you\'re ready.';
     default:
@@ -153,7 +148,7 @@ export function getRoutineTypeDescription(type: RoutineType | 'custom'): string 
 /**
  * Get icon for routine type
  */
-export function getRoutineTypeIcon(type: RoutineType | 'custom'): string {
+export function getRoutineTypeIcon(type: RoutineType): string {
   switch (type) {
     case 'morning':
       return 'white-balance-sunny';
@@ -161,8 +156,6 @@ export function getRoutineTypeIcon(type: RoutineType | 'custom'): string {
       return 'moon-waning-crescent';
     case 'evening':
       return 'weather-sunset';
-    case 'sunday':
-      return 'calendar-week'; // Legacy support
     case 'custom':
       return 'calendar';
     default:

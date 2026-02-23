@@ -20,10 +20,6 @@ import {
 } from 'firebase/firestore';
 import { db, firebaseError } from '../../config/firebase';
 import { Habit, HabitCompletion } from '../../types';
-import {
-  checkAndSendStreakMilestone,
-  cancelStreakProtectionNotification,
-} from '../notificationScheduler.service';
 
 const COLLECTION = 'habits';
 const COMPLETIONS_SUBCOLLECTION = 'completions';
@@ -178,21 +174,6 @@ export const markHabitComplete = async (
     // Update streak and get the new value
     const newStreak = await updateHabitStreak(habitId);
 
-    // Cancel streak protection notification since user completed something
-    try {
-      await cancelStreakProtectionNotification(userId);
-    } catch (notifError) {
-      console.log('Could not cancel streak protection notification:', notifError);
-    }
-
-    // Check and send streak milestone notification
-    if (habit && newStreak > 0) {
-      try {
-        await checkAndSendStreakMilestone(userId, habit.name || habit.title || 'Habit', newStreak);
-      } catch (notifError) {
-        console.log('Could not send milestone notification:', notifError);
-      }
-    }
   } catch (error) {
     console.error('Error marking habit complete:', error);
     throw error;

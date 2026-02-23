@@ -22,9 +22,11 @@ const INSIGHT_MESSAGES = [
 
 interface BrainHealthInsightStripProps {
   onPress?: () => void;
+  /** When true, renders in compact mode with reduced padding and single-line text */
+  compact?: boolean;
 }
 
-export const BrainHealthInsightStrip: React.FC<BrainHealthInsightStripProps> = () => {
+export const BrainHealthInsightStrip: React.FC<BrainHealthInsightStripProps> = ({ compact = false }) => {
   // Select a random message on mount (per session)
   const message = useMemo(() => {
     const randomIndex = Math.floor(Math.random() * INSIGHT_MESSAGES.length);
@@ -32,14 +34,19 @@ export const BrainHealthInsightStrip: React.FC<BrainHealthInsightStripProps> = (
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, compact && styles.containerCompact]}>
       <Icon
         name="leaf"
-        size={18}
+        size={compact ? 14 : 18}
         color={Colors.evergreenTeal}
         style={styles.icon}
       />
-      <Text style={styles.message}>{message}</Text>
+      <Text
+        style={[styles.message, compact && styles.messageCompact]}
+        numberOfLines={compact ? 1 : undefined}
+      >
+        {message}
+      </Text>
     </View>
   );
 };
@@ -56,6 +63,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     gap: 10,
   },
+  containerCompact: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginTop: 0,
+    marginBottom: Spacing.lg,
+    alignItems: 'center',
+    gap: 8,
+  },
   icon: {
     flexShrink: 0,
     marginTop: 2,
@@ -66,6 +81,10 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: Colors.textPrimary, // Soft Charcoal
     lineHeight: 13 * 1.45,
+  },
+  messageCompact: {
+    fontSize: 12,
+    lineHeight: 12 * 1.3,
   },
 });
 

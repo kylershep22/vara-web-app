@@ -26,6 +26,9 @@ import { NotificationProvider } from './src/context/NotificationContext';
 // Import Audio Player Provider
 import { AudioPlayerProvider } from './src/context/AudioPlayerContext';
 
+// Import Toast Provider (feature discovery)
+import { ToastProvider } from './src/context/ToastContext';
+
 // Import navigation
 import AppNavigator from './src/navigation/AppNavigator';
 
@@ -138,13 +141,15 @@ export default function App() {
           <QueryClientProvider client={queryClient}>
             <PaperProvider theme={theme}>
               <AuthProvider>
-                <NotificationProvider>
-                  <AudioPlayerProvider>
-                    <StatusBar style="auto" />
-                    <AppNavigator />
-                    <AudioMiniPlayer />
-                  </AudioPlayerProvider>
-                </NotificationProvider>
+                <ToastProvider>
+                  <NotificationProvider>
+                    <AudioPlayerProvider>
+                      <StatusBar style="auto" />
+                      <AppNavigator />
+                      <AudioMiniPlayer />
+                    </AudioPlayerProvider>
+                  </NotificationProvider>
+                </ToastProvider>
               </AuthProvider>
             </PaperProvider>
           </QueryClientProvider>

@@ -1,133 +1,79 @@
 /**
  * Onboarding Welcome Screen
- * First screen in onboarding flow - value proposition
+ * Screen 1 of 6 - Sets the emotional and philosophical tone
+ *
+ * Purpose: Communicate that Vara works with your brain, not against it.
+ * One screen, one idea: brain-first wellness.
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Button } from '../../components';
+import { OnboardingProgressDots } from '../../components/onboarding';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
 interface OnboardingWelcomeScreenProps {
   navigation: any;
 }
 
-const OnboardingWelcomeScreen: React.FC<OnboardingWelcomeScreenProps> = ({ navigation }) => {
-  const handleGetStarted = () => {
-    navigation.navigate('OnboardingFocus');
+const OnboardingWelcomeScreen: React.FC<OnboardingWelcomeScreenProps> = ({
+  navigation,
+}) => {
+  const handleBegin = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    navigation.navigate('OnboardingCheckIn');
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* App Logo/Icon */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
+      {/* Progress Dots */}
+      <OnboardingProgressDots currentStep={1} totalSteps={6} />
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Spacer for vertical centering */}
+        <View style={styles.topSpacer} />
+
+        {/* Brain Icon */}
+        <View style={styles.iconContainer}>
+          <View style={styles.iconCircle}>
             <Icon name="brain" size={48} color={Colors.white} />
           </View>
         </View>
 
-        {/* Title */}
-        <Text variant="displaySmall" style={styles.title}>
-          Welcome to Vara
+        {/* Headline */}
+        <Text style={styles.headline}>
+          Vara supports your brain, so your habits can follow.
         </Text>
 
-        <Text variant="bodyLarge" style={styles.subtitle}>
-          Build a healthier brain & body with 5 core pillars
+        {/* Body */}
+        <Text style={styles.body}>
+          This app is designed around how your brain actually works — helping
+          you build clarity, focus, and consistency without pressure.
         </Text>
 
-        {/* Brain Health Pillars */}
-        <View style={styles.benefitsContainer}>
-          <View style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: '#1B5E57' + '20' }]}>
-              <Icon name="sprout" size={24} color="#1B5E57" />
-            </View>
-            <View style={styles.benefitText}>
-              <Text variant="titleSmall" style={styles.benefitTitle}>
-                Growth
-              </Text>
-              <Text variant="bodySmall" style={styles.benefitDescription}>
-                Learn new skills, try challenging things, and build mental flexibility
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: '#F4C542' + '20' }]}>
-              <Icon name="lightning-bolt" size={24} color="#F4C542" />
-            </View>
-            <View style={styles.benefitText}>
-              <Text variant="titleSmall" style={styles.benefitTitle}>
-                Energy
-              </Text>
-              <Text variant="bodySmall" style={styles.benefitDescription}>
-                Quality sleep, nutrition, and movement to fuel your body and brain
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: '#B8CDBA' + '20' }]}>
-              <Icon name="eye-circle" size={24} color="#B8CDBA" />
-            </View>
-            <View style={styles.benefitText}>
-              <Text variant="titleSmall" style={styles.benefitTitle}>
-                Focus
-              </Text>
-              <Text variant="bodySmall" style={styles.benefitDescription}>
-                Sharpen attention, improve concentration, and enhance mental clarity
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: '#F5B971' + '20' }]}>
-              <Icon name="shield-check" size={24} color="#F5B971" />
-            </View>
-            <View style={styles.benefitText}>
-              <Text variant="titleSmall" style={styles.benefitTitle}>
-                Resilience
-              </Text>
-              <Text variant="bodySmall" style={styles.benefitDescription}>
-                Build stress tolerance, recovery capacity, and emotional strength
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: '#C7B8EA' + '20' }]}>
-              <Icon name="account-heart" size={24} color="#C7B8EA" />
-            </View>
-            <View style={styles.benefitText}>
-              <Text variant="titleSmall" style={styles.benefitTitle}>
-                Connection
-              </Text>
-              <Text variant="bodySmall" style={styles.benefitDescription}>
-                Strengthen relationships, build belonging, and support others
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* CTA Button */}
-        <View style={styles.ctaContainer}>
-          <Button
-            variant="primary"
-            onPress={handleGetStarted}
-            fullWidth
-            style={styles.ctaButton}
-          >
-            Get Started
-          </Button>
-
-          <Text variant="bodySmall" style={styles.footerText}>
-            Takes less than 2 minutes
-          </Text>
-        </View>
+        {/* Spacer */}
+        <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* CTA Button - Fixed at bottom */}
+      <View style={styles.ctaContainer}>
+        <Button
+          variant="primary"
+          onPress={handleBegin}
+          fullWidth
+          accessibilityLabel="Begin at your own pace"
+          accessibilityRole="button"
+        >
+          Begin at your own pace
+        </Button>
+      </View>
     </SafeAreaView>
   );
 };
@@ -140,15 +86,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.base,
-    paddingBottom: Spacing.lg,
-    justifyContent: 'space-between',
   },
-  logoContainer: {
+  topSpacer: {
+    flex: 1,
+    minHeight: Spacing['3xl'],
+  },
+  iconContainer: {
     alignItems: 'center',
-    marginBottom: Spacing.base,
+    marginBottom: Spacing.xl,
   },
-  logoCircle: {
+  iconCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
@@ -157,59 +104,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...Layout.shadow.md,
   },
-  title: {
+  headline: {
     color: Colors.evergreenTeal,
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-    fontWeight: Typography.fontWeight.bold,
-    fontSize: Typography.fontSize.xl,
-  },
-  subtitle: {
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-    fontSize: Typography.fontSize.sm,
-  },
-  benefitsContainer: {
-    marginBottom: Spacing.base,
-  },
-  benefitItem: {
-    flexDirection: 'row',
-    marginBottom: Spacing.base,
-    alignItems: 'flex-start',
-  },
-  benefitIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.sm,
-  },
-  benefitText: {
-    flex: 1,
-  },
-  benefitTitle: {
-    color: Colors.textPrimary,
+    fontSize: Typography.fontSize['2xl'],
     fontWeight: Typography.fontWeight.semibold,
-    marginBottom: 2,
+    textAlign: 'center',
+    lineHeight: Typography.fontSize['2xl'] * Typography.lineHeight.heading,
+    marginBottom: Spacing.lg,
+    letterSpacing: -0.25,
   },
-  benefitDescription: {
-    color: Colors.textSecondary,
-    lineHeight: Typography.fontSize.sm * 1.4,
-    fontSize: Typography.fontSize.xs,
+  body: {
+    color: Colors.softCharcoal,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.regular,
+    textAlign: 'center',
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
+    paddingHorizontal: Spacing.sm,
+  },
+  bottomSpacer: {
+    flex: 1,
+    minHeight: Spacing['3xl'],
   },
   ctaContainer: {
-    marginTop: 'auto',
-    paddingTop: Spacing.base,
-  },
-  ctaButton: {
-    marginBottom: Spacing.base,
-  },
-  footerText: {
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.base,
+    paddingTop: Spacing.sm,
   },
 });
 

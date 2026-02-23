@@ -1,5 +1,5 @@
 // mobile/src/screens/ProfileScreen.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,14 +18,19 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import { ProfileHeader, ProfileStats } from '../components';
+import { ProfileHeader } from '../components';
 import { db, storage } from '../config/firebase';
 import {
   doc,
   getDoc,
   updateDoc,
   serverTimestamp,
+  collection,
+  query,
+  where,
+  getDocs,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Colors as colors, Spacing as spacing, Typography, Layout } from '../constants';
@@ -45,12 +50,17 @@ interface UserProfile {
   goals: string[];
 }
 
-interface ProfileStats {
-  posts: number;
-  connections: number;
-  groups: number;
-  goals: number;
-}
+const formatRelativeTime = (date: Date): string => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffHours < 1) return 'Just now';
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  return `${diffDays}d ago`;
+};
 
 const ProfileScreen = () => {
   const { user } = useAuth();
@@ -67,12 +77,17 @@ const ProfileScreen = () => {
     interests: [],
     goals: [],
   });
-  const [stats, setStats] = useState<ProfileStats>({
-    posts: 0,
-    connections: 0,
-    groups: 0,
-    goals: 0,
-  });
+  const [activeData, setActiveData] = useState<{
+    groups: { name: string; id: string }[];
+    challenges: { name: string; id: string; dayPosition: string }[];
+    connectionsCount: number;
+  }>({ groups: [], challenges: [], connectionsCount: 0 });
+  const [recentActivity, setRecentActivity] = useState<Array<{
+    id: string;
+    type: 'post' | 'check-in' | 'group-join';
+    description: string;
+    timestamp: Date;
+  }>>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -107,14 +122,124 @@ const ProfileScreen = () => {
         });
       }
 
-      // Load stats (simplified for mobile)
-      // In a real app, you'd fetch these from Firestore
-      setStats({
-        posts: 0,
-        connections: 0,
-        groups: 0,
-        goals: 0,
-      });
+      // Load active data
+      try {
+        // Fetch user's groups
+        const groupsQuery = query(collection(db, 'groups'), where('members', 'array-contains', user.uid));
+        const groupsSnap = await getDocs(groupsQuery);
+        const userGroups = groupsSnap.docs.map(d => ({ id: d.id, name: d.data().name }));
+
+        // Fetch active challenges
+        const challengesQuery = query(collection(db, 'challenges'), where('participants', 'array-contains', user.uid));
+        const challengesSnap = await getDocs(challengesQuery);
+        const now = new Date();
+        const activeChallenges = challengesSnap.docs
+          .filter(d => {
+            const endDate = d.data().endDate?.toDate?.() || new Date(d.data().endDate);
+            return endDate > now;
+          })
+          .map(d => {
+            const data = d.data();
+            const startDate = data.startDate?.toDate?.() || new Date(data.startDate);
+            const elapsed = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            const endDate = data.endDate?.toDate?.() || new Date(data.endDate);
+            const total = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+            return {
+              id: d.id,
+              name: data.name || data.title || 'Challenge',
+              dayPosition: `Day ${Math.min(elapsed, total)} of ${total}`,
+            };
+          });
+
+        // Fetch connections count
+        const connQuery1 = query(collection(db, 'connections'), where('a', '==', user.uid), where('status', '==', 'accepted'));
+        const connQuery2 = query(collection(db, 'connections'), where('b', '==', user.uid), where('status', '==', 'accepted'));
+        const [connSnap1, connSnap2] = await Promise.all([getDocs(connQuery1), getDocs(connQuery2)]);
+        const connectionsCount = connSnap1.size + connSnap2.size;
+
+        setActiveData({ groups: userGroups, challenges: activeChallenges, connectionsCount });
+      } catch (err) {
+        console.error('Error loading active data:', err);
+      }
+
+      // Load recent activity
+      try {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const activities: typeof recentActivity = [];
+
+        // Recent posts
+        const postsQuery = query(
+          collection(db, 'posts'),
+          where('userId', '==', user.uid),
+        );
+        const postsSnap = await getDocs(postsQuery);
+        postsSnap.docs.forEach(d => {
+          const data = d.data();
+          const ts = data.createdAt?.toDate?.() || (data.createdAt?.seconds ? new Date(data.createdAt.seconds * 1000) : null);
+          if (ts && ts > sevenDaysAgo) {
+            activities.push({
+              id: d.id,
+              type: 'post',
+              description: data.content?.substring(0, 60) || 'Shared a post',
+              timestamp: ts,
+            });
+          }
+        });
+
+        // Recent challenge check-ins
+        try {
+          const checkInsQuery = query(
+            collection(db, 'challengeCheckIns'),
+            where('userId', '==', user.uid),
+          );
+          const checkInsSnap = await getDocs(checkInsQuery);
+          checkInsSnap.docs.forEach(d => {
+            const data = d.data();
+            const ts = data.createdAt?.toDate?.() || (data.createdAt?.seconds ? new Date(data.createdAt.seconds * 1000) : null);
+            if (ts && ts > sevenDaysAgo) {
+              activities.push({
+                id: d.id,
+                type: 'check-in',
+                description: data.note?.substring(0, 60) || 'Checked in to a challenge',
+                timestamp: ts,
+              });
+            }
+          });
+        } catch (checkInErr) {
+          console.error('Error loading check-in activity:', checkInErr);
+        }
+
+        // Recent group joins (groups where user is a member, created recently)
+        try {
+          const groupsQuery = query(
+            collection(db, 'groups'),
+            where('members', 'array-contains', user.uid),
+          );
+          const groupsSnap = await getDocs(groupsQuery);
+          groupsSnap.docs.forEach(d => {
+            const data = d.data();
+            const ts = data.updatedAt?.toDate?.() || data.createdAt?.toDate?.() || null;
+            if (ts && ts > sevenDaysAgo && data.memberCount > 1) {
+              activities.push({
+                id: `group-${d.id}`,
+                type: 'group-join',
+                description: `Joined ${data.name || 'a group'}`,
+                timestamp: ts,
+              });
+            }
+          });
+        } catch (groupErr) {
+          console.error('Error loading group activity:', groupErr);
+        }
+
+        // Sort by most recent and limit to 5
+        activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        setRecentActivity(activities.slice(0, 5));
+      } catch (err) {
+        console.error('Error loading recent activity:', err);
+      }
     } catch (error) {
       console.error('Error loading profile:', error);
       Alert.alert('Error', 'Failed to load profile');
@@ -252,12 +377,20 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Back Arrow - Top Left */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Ionicons name="arrow-back" size={20} color={colors.evergreenTeal} />
+      </TouchableOpacity>
+
       {/* Settings Button - Top Right */}
       <TouchableOpacity
         style={styles.settingsButton}
         onPress={() => navigation.navigate('Settings')}
       >
-        <Ionicons name="settings-outline" size={24} color={colors.primary} />
+        <Ionicons name="settings-outline" size={18} color={colors.evergreenTeal} />
       </TouchableOpacity>
 
       <ScrollView
@@ -294,123 +427,201 @@ const ProfileScreen = () => {
           </>
         ) : (
           <TouchableOpacity style={styles.editButton} onPress={() => setEditMode(true)}>
-            <Ionicons name="create-outline" size={18} color="#fff" style={{ marginRight: spacing.xs }} />
+            <Ionicons name="create-outline" size={14} color={colors.evergreenTeal} style={{ marginRight: spacing.xs }} />
             <Text style={styles.editButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         )}
         </View>
 
-        {/* Stats */}
-        <ProfileStats
-          posts={stats.posts}
-          connections={stats.connections}
-          groups={stats.groups}
-          goals={stats.goals}
-        />
+        {/* Currently Active */}
+        <View style={styles.activeContainer}>
+          <View style={styles.activeCard}>
+            <Text style={styles.activeHeader}>CURRENTLY ACTIVE</Text>
+            <View style={styles.activeItems}>
+              {activeData.groups.length > 0 && (
+                <View style={styles.activeItem}>
+                  <View style={styles.activeIconContainer}>
+                    <Icon name="account-group" size={16} color={colors.evergreenTeal} />
+                  </View>
+                  <View style={styles.activeItemContent}>
+                    <Text style={styles.activeItemLabel}>Groups</Text>
+                    <Text style={styles.activeItemDetail} numberOfLines={1}>
+                      {activeData.groups.map(g => g.name).join(', ')}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {activeData.challenges.length > 0 && (
+                <View style={styles.activeItem}>
+                  <View style={styles.activeIconContainer}>
+                    <Icon name="trophy-outline" size={16} color={colors.evergreenTeal} />
+                  </View>
+                  <View style={styles.activeItemContent}>
+                    <Text style={styles.activeItemLabel}>Challenges</Text>
+                    {activeData.challenges.map(c => (
+                      <Text key={c.id} style={styles.activeItemDetail} numberOfLines={1}>
+                        {c.name} · {c.dayPosition}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {activeData.connectionsCount > 0 && (
+                <View style={styles.activeItem}>
+                  <View style={styles.activeIconContainer}>
+                    <Icon name="account-multiple" size={16} color={colors.evergreenTeal} />
+                  </View>
+                  <View style={styles.activeItemContent}>
+                    <Text style={styles.activeItemLabel}>Connections</Text>
+                    <Text style={styles.activeItemDetail}>{activeData.connectionsCount} connection{activeData.connectionsCount !== 1 ? 's' : ''}</Text>
+                  </View>
+                </View>
+              )}
+
+              {activeData.groups.length === 0 && activeData.challenges.length === 0 && activeData.connectionsCount === 0 && (
+                <Text style={styles.nudgeText}>Join a group or start a challenge to get active in the community!</Text>
+              )}
+            </View>
+          </View>
+        </View>
 
         {/* Bio Section */}
-        <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About</Text>
-        {editMode ? (
-          <TextInput
-            style={styles.bioInput}
-            value={profile.bio}
-            onChangeText={(text) => setProfile(prev => ({ ...prev, bio: text }))}
-            placeholder="Tell the community about your wellness journey..."
-            multiline
-            numberOfLines={4}
-            inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
-            blurOnSubmit={false}
-          />
-        ) : (
-          <Text style={styles.bioText}>
-            {profile.bio || 'No bio yet. Tap Edit Profile to add one!'}
-          </Text>
-        )}
+        <View style={styles.cardContainer}>
+          <View style={styles.card}>
+            <Text style={styles.cardHeader}>About</Text>
+            {editMode ? (
+              <TextInput
+                style={styles.bioInput}
+                value={profile.bio}
+                onChangeText={(text) => setProfile(prev => ({ ...prev, bio: text }))}
+                placeholder="Tell the community about your wellness journey..."
+                multiline
+                numberOfLines={4}
+                inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
+                blurOnSubmit={false}
+              />
+            ) : (
+              <Text style={styles.bioText}>
+                {profile.bio || 'No bio yet. Tap Edit Profile to add one!'}
+              </Text>
+            )}
+          </View>
         </View>
 
         {/* Interests */}
-        <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Interests</Text>
-        {editMode && (
-          <View style={styles.addItemContainer}>
-            <TextInput
-              style={styles.addItemInput}
-              value={newInterest}
-              onChangeText={setNewInterest}
-              placeholder="Add an interest"
-              inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
-              returnKeyType="done"
-              onSubmitEditing={addInterest}
-            />
-            <TouchableOpacity style={styles.addItemButton} onPress={addInterest}>
-              <Ionicons name="add" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        )}
-        <View style={styles.tagsContainer}>
-          {profile.interests.length > 0 ? (
-            profile.interests.map((interest, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>{interest}</Text>
-                {editMode && (
-                  <TouchableOpacity onPress={() => removeInterest(interest)}>
-                    <Ionicons name="close-circle" size={16} color={colors.secondary.sage} />
-                  </TouchableOpacity>
-                )}
+        <View style={styles.cardContainer}>
+          <View style={styles.card}>
+            <Text style={styles.cardHeader}>Interests</Text>
+            {editMode && (
+              <View style={styles.addItemContainer}>
+                <TextInput
+                  style={styles.addItemInput}
+                  value={newInterest}
+                  onChangeText={setNewInterest}
+                  placeholder="Add an interest"
+                  inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
+                  returnKeyType="done"
+                  onSubmitEditing={addInterest}
+                />
+                <TouchableOpacity style={styles.addItemButton} onPress={addInterest}>
+                  <Ionicons name="add" size={20} color="#fff" />
+                </TouchableOpacity>
               </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>
-              {editMode ? 'Add interests to connect with others' : 'No interests added yet'}
-            </Text>
-          )}
-        </View>
+            )}
+            <View style={styles.tagsContainer}>
+              {profile.interests.length > 0 ? (
+                profile.interests.map((interest, index) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{interest}</Text>
+                    {editMode && (
+                      <TouchableOpacity onPress={() => removeInterest(interest)}>
+                        <Ionicons name="close-circle" size={16} color={colors.secondary.sage} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyText}>
+                  {editMode ? 'Add interests to connect with others' : 'No interests added yet'}
+                </Text>
+              )}
+            </View>
+          </View>
         </View>
 
         {/* Goals */}
-        <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Wellness Goals</Text>
-        {editMode && (
-          <View style={styles.addItemContainer}>
-            <TextInput
-              style={styles.addItemInput}
-              value={newGoal}
-              onChangeText={setNewGoal}
-              placeholder="Add a goal"
-              inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
-              returnKeyType="done"
-              onSubmitEditing={addGoal}
-            />
-            <TouchableOpacity style={styles.addItemButton} onPress={addGoal}>
-              <Ionicons name="add" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        )}
-        <View style={styles.tagsContainer}>
-          {profile.goals.length > 0 ? (
-            profile.goals.map((goal, index) => (
-              <View key={index} style={[styles.tag, styles.goalTag]}>
-                <Text style={[styles.tagText, styles.goalTagText]}>{goal}</Text>
-                {editMode && (
-                  <TouchableOpacity onPress={() => removeGoal(goal)}>
-                    <Ionicons name="close-circle" size={16} color={colors.primary} />
-                  </TouchableOpacity>
-                )}
+        <View style={styles.cardContainer}>
+          <View style={styles.card}>
+            <Text style={styles.cardHeader}>Wellness Goals</Text>
+            {editMode && (
+              <View style={styles.addItemContainer}>
+                <TextInput
+                  style={styles.addItemInput}
+                  value={newGoal}
+                  onChangeText={setNewGoal}
+                  placeholder="Add a goal"
+                  inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
+                  returnKeyType="done"
+                  onSubmitEditing={addGoal}
+                />
+                <TouchableOpacity style={styles.addItemButton} onPress={addGoal}>
+                  <Ionicons name="add" size={20} color="#fff" />
+                </TouchableOpacity>
               </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>
-              {editMode ? 'Add your wellness goals' : 'No goals added yet'}
-            </Text>
-          )}
+            )}
+            <View style={styles.tagsContainer}>
+              {profile.goals.length > 0 ? (
+                profile.goals.map((goal, index) => (
+                  <View key={index} style={[styles.tag, styles.goalTag]}>
+                    <Text style={[styles.tagText, styles.goalTagText]}>{goal}</Text>
+                    {editMode && (
+                      <TouchableOpacity onPress={() => removeGoal(goal)}>
+                        <Ionicons name="close-circle" size={16} color={colors.primary} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyText}>
+                  {editMode ? 'Add your wellness goals' : 'No goals added yet'}
+                </Text>
+              )}
+            </View>
+          </View>
         </View>
-      </View>
+
+      {/* Recent Activity */}
+      {!editMode && recentActivity.length > 0 && (
+        <View style={styles.cardContainer}>
+          <View style={styles.card}>
+            <Text style={styles.cardHeader}>Recent Activity</Text>
+            {recentActivity.map((activity, index) => (
+              <View
+                key={activity.id}
+                style={[
+                  styles.activityItem,
+                  index < recentActivity.length - 1 && styles.activityItemBorder,
+                ]}
+              >
+                <Text style={styles.activityDescription} numberOfLines={1}>
+                  {activity.description}
+                </Text>
+                <Text style={styles.activityTime}>
+                  {formatRelativeTime(activity.timestamp)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Privacy Settings (in edit mode) */}
       {editMode && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy</Text>
+        <View style={styles.cardContainer}>
+          <View style={styles.card}>
+          <Text style={styles.cardHeader}>Privacy</Text>
           <View style={styles.privacyOption}>
             <Text style={styles.privacyLabel}>Profile Visibility</Text>
             <View style={styles.privacyButtons}>
@@ -445,6 +656,7 @@ const ProfileScreen = () => {
             </View>
             <Text style={styles.checkboxLabel}>Allow people to find me in search</Text>
           </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -471,17 +683,19 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.mistWhite,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 12,
+    left: 16,
+    zIndex: 10,
   },
   settingsButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 20,
-    right: spacing.md,
+    top: 12,
+    right: 16,
     zIndex: 10,
-    backgroundColor: colors.surface,
-    padding: spacing.sm,
-    borderRadius: Layout.borderRadius['2xl'],
-    ...Layout.shadow.md,
   },
   scrollContainer: {
     flex: 1,
@@ -490,46 +704,49 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: colors.mistWhite,
   },
   loadingText: {
     marginTop: spacing.md,
-    fontSize: Typography.fontSize.sm,
-    color: colors.text.secondary,
+    fontSize: 14,
+    color: colors.mutedSageGray,
   },
+  // Action Buttons (Edit/Save/Cancel)
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.md,
+    paddingHorizontal: spacing.base,
+    marginTop: spacing.sm,
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.evergreenTeal,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    backgroundColor: colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     borderRadius: Layout.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.evergreenTeal,
   },
   editButtonText: {
-    color: colors.textOnPrimary,
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    color: colors.evergreenTeal,
+    fontSize: 13,
+    fontWeight: '500' as const,
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     paddingVertical: spacing.sm,
     borderRadius: Layout.borderRadius.lg,
     alignItems: 'center',
-    borderWidth: Layout.borderWidth.thin,
-    borderColor: colors.borderLight,
+    borderWidth: 1,
+    borderColor: colors.divider,
   },
   cancelButtonText: {
-    color: colors.textPrimary,
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    color: colors.softCharcoal,
+    fontSize: 14,
+    fontWeight: '600' as const,
   },
   saveButton: {
     flex: 1,
@@ -539,96 +756,109 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
-    color: colors.textOnPrimary,
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '600' as const,
   },
-  section: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.md,
-    borderRadius: Layout.borderRadius.xl,
-    ...Layout.shadow.md,
+  // Generic card container and card styles
+  cardContainer: {
+    paddingTop: 12,
+    paddingHorizontal: 16,
   },
-  sectionTitle: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    ...Layout.shadow.sm,
   },
+  cardHeader: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: colors.softCharcoal,
+    marginBottom: 10,
+  },
+  // Bio
   bioText: {
-    fontSize: Typography.fontSize.sm,
-    color: colors.textPrimary,
-    lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
+    fontSize: 14,
+    color: colors.softCharcoal,
+    lineHeight: 14 * 1.5,
   },
   bioInput: {
-    fontSize: Typography.fontSize.sm,
-    color: colors.textPrimary,
-    lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
-    borderWidth: Layout.borderWidth.thin,
-    borderColor: colors.borderLight,
-    borderRadius: Layout.borderRadius.md,
+    fontSize: 14,
+    color: colors.softCharcoal,
+    lineHeight: 14 * 1.5,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: 8,
     padding: spacing.sm,
     minHeight: 80,
     textAlignVertical: 'top',
   },
+  // Add item (edit mode)
   addItemContainer: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: 10,
   },
   addItemInput: {
     flex: 1,
-    borderWidth: Layout.borderWidth.thin,
-    borderColor: colors.borderLight,
-    borderRadius: Layout.borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: 8,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
+    fontSize: 14,
+    color: colors.softCharcoal,
   },
   addItemButton: {
     backgroundColor: colors.evergreenTeal,
     padding: spacing.sm,
-    borderRadius: Layout.borderRadius.md,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Tags (Interests)
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
+    gap: 8,
   },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.inputBackground,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: Layout.borderRadius.xl,
+    backgroundColor: colors.dewSageLight,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   tagText: {
-    fontSize: Typography.fontSize.xs,
-    color: colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: colors.evergreenTeal,
   },
+  // Goal Tags
   goalTag: {
-    backgroundColor: colors.mintCream,
+    backgroundColor: colors.tealLight,
+    borderWidth: 1,
+    borderColor: colors.tealMedium,
   },
   goalTagText: {
     color: colors.evergreenTeal,
   },
   emptyText: {
-    fontSize: Typography.fontSize.xs,
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: colors.mutedSageGray,
     fontStyle: 'italic',
   },
+  // Privacy (edit mode)
   privacyOption: {
     marginBottom: spacing.md,
   },
   privacyLabel: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.softCharcoal,
     marginBottom: spacing.sm,
   },
   privacyButtons: {
@@ -638,9 +868,9 @@ const styles = StyleSheet.create({
   privacyButton: {
     flex: 1,
     paddingVertical: spacing.sm,
-    borderRadius: Layout.borderRadius.md,
-    borderWidth: Layout.borderWidth.thin,
-    borderColor: colors.borderLight,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.divider,
     alignItems: 'center',
   },
   privacyButtonActive: {
@@ -648,12 +878,12 @@ const styles = StyleSheet.create({
     borderColor: colors.evergreenTeal,
   },
   privacyButtonText: {
-    fontSize: Typography.fontSize.xs,
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: colors.mutedSageGray,
   },
   privacyButtonTextActive: {
-    color: colors.textOnPrimary,
-    fontWeight: Typography.fontWeight.semibold,
+    color: colors.white,
+    fontWeight: '600' as const,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -663,9 +893,9 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: Layout.borderRadius.sm,
-    borderWidth: Layout.borderWidth.medium,
-    borderColor: colors.borderLight,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.divider,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -674,15 +904,92 @@ const styles = StyleSheet.create({
     borderColor: colors.evergreenTeal,
   },
   checkboxLabel: {
-    fontSize: Typography.fontSize.sm,
-    color: colors.textPrimary,
+    fontSize: 14,
+    color: colors.softCharcoal,
+  },
+  // Currently Active card
+  activeContainer: {
+    paddingTop: 20,
+    paddingHorizontal: 16,
+  },
+  activeCard: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    ...Layout.shadow.sm,
+  },
+  activeHeader: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: colors.evergreenTeal,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  activeItems: {
+    flexDirection: 'column',
+    gap: 10,
+  },
+  activeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  activeIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.dewSageLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeItemContent: {
+    flex: 1,
+  },
+  activeItemLabel: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: colors.softCharcoal,
+  },
+  activeItemDetail: {
+    fontSize: 12,
+    color: colors.mutedSageGray,
+  },
+  nudgeText: {
+    fontSize: 14,
+    color: colors.mutedSageGray,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: spacing.sm,
+  },
+  // Recent Activity styles
+  activityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  activityItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  activityDescription: {
+    fontSize: 14,
+    color: colors.softCharcoal,
+    flex: 1,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: colors.mutedSageGray,
+    flexShrink: 0,
+    marginLeft: 12,
   },
   // Keyboard Accessory Toolbar
   keyboardAccessory: {
-    backgroundColor: colors.surface,
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: colors.borderLight,
-    paddingHorizontal: spacing.md,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+    paddingHorizontal: 16,
     paddingVertical: spacing.sm,
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -692,12 +999,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     backgroundColor: colors.evergreenTeal,
-    borderRadius: Layout.borderRadius.md,
+    borderRadius: 8,
   },
   keyboardAccessoryButtonText: {
-    color: colors.textOnPrimary,
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
 });
 

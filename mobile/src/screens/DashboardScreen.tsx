@@ -15,19 +15,20 @@ import {
   FourThreeTwoOneCard,
   BrainHealthInsightStrip,
   NextBestActionCard,
-  GoalsCard,
-  QuickActionButtons,
-  BrainHealthEducationCard,
-  TasksCard,
   WellnessScoreCard,
   WellnessScoreBreakdown,
   MorningCheckIn,
-  MorningCheckInComplete,
+  WellnessScoreOptInCard,
+  QuickActionsRow,
 } from '../components/dashboard';
+import WelcomeBackCard from '../components/dashboard/WelcomeBackCard';
+import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
 import { ConsistencyBadge } from '../components/habits';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
-import { useGoals, useHabits, useTasks, useJournal } from '../hooks';
+import { useToast } from '../context/ToastContext';
+import { useGoals, useHabits, useTasks, useJournal, useFeatureDiscovery } from '../hooks';
+import { useNotificationOptInCards } from '../hooks/useNotificationOptInCards';
 import {
   markHabitComplete,
   getHabitCompletions,
@@ -39,9 +40,13 @@ import {
   refreshWellnessScore,
   getTodayWellnessScore,
   getTodayEntry,
+  getWellnessScoreEnabled,
+  setWellnessScoreEnabled,
 } from '../services/firebase';
 import { generateDailyPlan } from '../services/api/ai.service';
 import * as SecureStore from 'expo-secure-store';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { DailyWellnessScore, MorningCheckIn as MorningCheckInType, FourThreeTwoOneEntry } from '../types';
 
 // Responsive breakpoints for habit tracker
@@ -56,6 +61,13 @@ const DashboardScreen: React.FC = () => {
   const { habits, loading: habitsLoading } = useHabits(true); // Active habits only
   const { tasks: allTasks, loading: tasksLoading } = useTasks(); // All tasks
   const { entries: journalEntries } = useJournal(1); // Get most recent entry for lastJournalDate
+
+  // Feature discovery engagement tracking
+  const { trackEngagement, evaluateTriggers, pendingToasts, markToastShown } = useFeatureDiscovery();
+  const { queueUnlockToasts } = useToast();
+
+  // Progressive notification opt-in cards
+  const { activeCard: notifOptInCard, onOptIn: handleNotifOptIn, onDismiss: handleNotifDismiss } = useNotificationOptInCards();
 
   // Get last journal date for NextBestAction priority
   const lastJournalDate = useMemo(() => {
@@ -83,6 +95,37 @@ const DashboardScreen: React.FC = () => {
   const [morningCheckInLoading, setMorningCheckInLoading] = useState(false);
   const [showMorningCheckIn, setShowMorningCheckIn] = useState(false);
   const [fourThreeTwoOneEntry, setFourThreeTwoOneEntry] = useState<FourThreeTwoOneEntry | null>(null);
+
+  // Wellness Score opt-in state
+  const [wellnessScoreEnabled, setWellnessScoreEnabledState] = useState<boolean | null>(null);
+  const [showOptInPrompt, setShowOptInPrompt] = useState(true);
+
+  // Welcome-back card state (shown if user was away 3+ days)
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+
+  // Track lastActiveAt and check for returning user
+  useEffect(() => {
+    if (!user?.uid) return;
+    const checkAndUpdate = async () => {
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userRef);
+        const data = userDoc.data();
+        if (data?.lastActiveAt) {
+          const lastActive = data.lastActiveAt.toDate ? data.lastActiveAt.toDate() : new Date(data.lastActiveAt);
+          const daysSince = (Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24);
+          if (daysSince >= 3) {
+            setShowWelcomeBack(true);
+          }
+        }
+        // Update lastActiveAt
+        await updateDoc(userRef, { lastActiveAt: serverTimestamp() });
+      } catch (error) {
+        console.log('Error updating lastActiveAt:', error);
+      }
+    };
+    checkAndUpdate();
+  }, [user?.uid]);
 
   // Responsive: Determine how many days to show based on screen width
   // Small screens (<375px): 5 days, Medium (375-414px): 6 days, Large (>414px): 7 days
@@ -154,6 +197,42 @@ const DashboardScreen: React.FC = () => {
 
     loadDailyPlan();
   }, [today]);
+
+  // Load wellness score opt-in preference
+  useEffect(() => {
+    const loadWellnessPreference = async () => {
+      if (!user?.uid) return;
+      try {
+        const enabled = await getWellnessScoreEnabled(user.uid);
+        setWellnessScoreEnabledState(enabled);
+      } catch (error) {
+        console.error('Error loading wellness score preference:', error);
+        setWellnessScoreEnabledState(false);
+      }
+    };
+
+    loadWellnessPreference();
+  }, [user?.uid]);
+
+  // Track new session for feature discovery
+  useEffect(() => {
+    if (user?.uid) {
+      trackEngagement('sessionCount').then(() => {
+        // Evaluate triggers after tracking session
+        evaluateTriggers();
+      }).catch(console.error);
+    }
+  }, [user?.uid]);
+
+  // Show toasts for newly unlocked features
+  useEffect(() => {
+    if (pendingToasts.length > 0) {
+      const featureIds = pendingToasts.map(t => t.featureId);
+      queueUnlockToasts(featureIds);
+      // Mark toasts as shown
+      featureIds.forEach(id => markToastShown(id).catch(console.error));
+    }
+  }, [pendingToasts, queueUnlockToasts, markToastShown]);
 
   // Load wellness score, morning check-in, and 4-3-2-1 entry
   useEffect(() => {
@@ -321,6 +400,8 @@ const DashboardScreen: React.FC = () => {
         }));
         if (date === today) {
           setCompletedToday(prev => new Set(prev).add(habitId));
+          // Track habit completion for feature discovery
+          trackEngagement('habitsCompleted').then(() => evaluateTriggers()).catch(console.error);
         }
       }
 
@@ -389,6 +470,9 @@ const DashboardScreen: React.FC = () => {
       const checkIn = await saveMorningCheckIn(user.uid, energyLevel, mood);
       setMorningCheckIn(checkIn);
       setShowMorningCheckIn(false);
+
+      // Track morning check-in for feature discovery
+      trackEngagement('morningCheckInsCompleted').then(() => evaluateTriggers()).catch(console.error);
 
       // Refresh wellness score with new check-in data
       const newScore = await refreshWellnessScore(user.uid);
@@ -463,116 +547,28 @@ const DashboardScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Morning Check-In (shows before score if not yet completed) */}
-        {showMorningCheckIn && !morningCheckIn && (
-          <MorningCheckIn
-            onComplete={handleMorningCheckInComplete}
-            onDismiss={() => setShowMorningCheckIn(false)}
-            loading={morningCheckInLoading}
+        {/* Welcome Back Card (returning users, 3+ days away) */}
+        {showWelcomeBack && (
+          <WelcomeBackCard
+            onResume={() => {
+              setShowWelcomeBack(false);
+              navigation.navigate('Main' as never, { screen: 'Track' } as never);
+            }}
           />
         )}
 
-        {/* Wellness Score Card */}
-        <WellnessScoreCard
-          score={wellnessScore}
-          loading={wellnessScoreLoading}
-          onPress={() => setShowScoreBreakdown(true)}
-          onRefresh={handleRefreshWellnessScore}
-        />
-
-        {/* Morning Check-In Complete (shows as compact badge if already done) */}
-        {morningCheckIn && (
-          <MorningCheckInComplete
-            energyLevel={morningCheckIn.energyLevel}
-            mood={morningCheckIn.mood}
-          />
+        {/* Notification Opt-In Card (progressive disclosure) */}
+        {notifOptInCard && (
+          <View style={{ paddingHorizontal: Spacing.base }}>
+            <NotificationOptInCard
+              category={notifOptInCard}
+              onOptIn={() => handleNotifOptIn(notifOptInCard)}
+              onDismiss={() => handleNotifDismiss(notifOptInCard)}
+            />
+          </View>
         )}
 
-        {/* Brain Health Insight Strip */}
-        <BrainHealthInsightStrip />
-
-        {/* Next Best Action Card - Intelligent pillar-aware recommendation */}
-        <NextBestActionCard
-          wellnessScore={wellnessScore}
-          habits={habits}
-          tasks={tasks}
-          completedTodayHabits={completedToday}
-          fourThreeTwoOne={fourThreeTwoOneEntry}
-          lastJournalDate={lastJournalDate}
-          hasMorningCheckIn={!!morningCheckIn}
-          hasDailyPlan={!!dailyPlan}
-          onGeneratePlan={handleGenerateDailyPlan}
-          onMorningCheckIn={() => setShowMorningCheckIn(true)}
-        />
-
-        {/* AI Daily Plan Card - Collapsible */}
-        <View style={styles.aiPlanCard}>
-          <TouchableOpacity
-            style={styles.aiPlanHeader}
-            onPress={() => dailyPlan ? setIsPlanExpanded(!isPlanExpanded) : handleGenerateDailyPlan()}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityState={{ expanded: isPlanExpanded }}
-            accessibilityLabel={dailyPlan ? `Today's Plan. ${isPlanExpanded ? 'Tap to collapse' : 'Tap to expand'}` : "Generate today's plan"}
-          >
-            <View style={styles.aiPlanHeaderLeft}>
-              <View style={styles.aiPlanIconContainer}>
-                <Icon name="auto-fix" size={18} color={Colors.evergreenTeal} />
-              </View>
-              <View style={styles.aiPlanTitleContainer}>
-                <Text style={styles.aiPlanTitle}>Today's Plan</Text>
-                <Text style={styles.aiPlanSubtitle}>Personalized for your goals and habits</Text>
-              </View>
-            </View>
-            <View style={styles.aiPlanHeaderRight}>
-              <View style={styles.aiPlanStatusBadge}>
-                <Text style={styles.aiPlanStatusText}>
-                  {generatingPlan ? 'Creating...' : dailyPlan ? 'Ready' : 'Generate'}
-                </Text>
-              </View>
-              {dailyPlan && (
-                <Icon
-                  name={isPlanExpanded ? 'chevron-up' : 'chevron-right'}
-                  size={16}
-                  color={Colors.silverSage}
-                  style={styles.aiPlanChevron}
-                />
-              )}
-            </View>
-          </TouchableOpacity>
-
-          {/* Expanded Plan Content */}
-          {isPlanExpanded && dailyPlan && (
-            <View style={styles.aiPlanExpandedContent}>
-              <View style={styles.aiPlanDivider} />
-              <View style={styles.aiPlanContentContainer}>
-                <ScrollView
-                  nestedScrollEnabled={true}
-                  showsVerticalScrollIndicator={true}
-                  style={styles.aiPlanScroll}
-                >
-                  <Text style={styles.aiPlanText}>{dailyPlan}</Text>
-                </ScrollView>
-              </View>
-              <View style={styles.aiPlanActions}>
-                <TouchableOpacity style={styles.aiPlanActionButton}>
-                  <Text style={styles.aiPlanActionTextSecondary}>Adjust plan</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.aiPlanActionButton}
-                  onPress={handleGenerateDailyPlan}
-                  disabled={generatingPlan}
-                >
-                  <Text style={styles.aiPlanActionTextPrimary}>
-                    {generatingPlan ? 'Regenerating...' : 'Regenerate'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Weekly Habits Tracker */}
+        {/* Weekly Habits Tracker - MOVED UP */}
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <TouchableOpacity
@@ -605,7 +601,7 @@ const DashboardScreen: React.FC = () => {
               </Text>
               <TouchableOpacity
                 style={styles.addHabitButton}
-                onPress={() => navigation.navigate('Track' as never, { tab: 'habits' } as never)}
+                onPress={() => navigation.navigate('Track' as never, { tab: 'habits', openCreateModal: true } as never)}
               >
                 <Text style={styles.addHabitButtonText}>Add Your First Habit</Text>
               </TouchableOpacity>
@@ -699,21 +695,130 @@ const DashboardScreen: React.FC = () => {
           )}
         </Card>
 
-        {/* 4-3-2-1 Daily Practice */}
-        <FourThreeTwoOneCard onChange={handleFourThreeTwoOneChange} />
+        {/* 4-3-2-1 Daily Practice - MOVED UP, collapsed by default */}
+        <FourThreeTwoOneCard onChange={handleFourThreeTwoOneChange} defaultCollapsed={true} />
 
+        {/* AI Daily Plan Card - Collapsible */}
+        <View style={styles.aiPlanCard}>
+          <TouchableOpacity
+            style={styles.aiPlanHeader}
+            onPress={() => dailyPlan ? setIsPlanExpanded(!isPlanExpanded) : handleGenerateDailyPlan()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isPlanExpanded }}
+            accessibilityLabel={dailyPlan ? `Today's Plan. ${isPlanExpanded ? 'Tap to collapse' : 'Tap to expand'}` : "Generate today's plan"}
+          >
+            <View style={styles.aiPlanHeaderLeft}>
+              <View style={styles.aiPlanIconContainer}>
+                <Icon name="auto-fix" size={18} color={Colors.evergreenTeal} />
+              </View>
+              <View style={styles.aiPlanTitleContainer}>
+                <Text style={styles.aiPlanTitle}>Today's Plan</Text>
+                <Text style={styles.aiPlanSubtitle}>Personalized for your goals and habits</Text>
+              </View>
+            </View>
+            <View style={styles.aiPlanHeaderRight}>
+              <View style={styles.aiPlanStatusBadge}>
+                <Text style={styles.aiPlanStatusText}>
+                  {generatingPlan ? 'Creating...' : dailyPlan ? 'Ready' : 'Generate'}
+                </Text>
+              </View>
+              {dailyPlan && (
+                <Icon
+                  name={isPlanExpanded ? 'chevron-up' : 'chevron-right'}
+                  size={16}
+                  color={Colors.silverSage}
+                  style={styles.aiPlanChevron}
+                />
+              )}
+            </View>
+          </TouchableOpacity>
 
-        {/* Goals Card */}
-        <GoalsCard goals={goals} />
+          {/* Expanded Plan Content */}
+          {isPlanExpanded && dailyPlan && (
+            <View style={styles.aiPlanExpandedContent}>
+              <View style={styles.aiPlanDivider} />
+              <View style={styles.aiPlanContentContainer}>
+                <ScrollView
+                  nestedScrollEnabled={true}
+                  showsVerticalScrollIndicator={true}
+                  style={styles.aiPlanScroll}
+                >
+                  <Text style={styles.aiPlanText}>{dailyPlan}</Text>
+                </ScrollView>
+              </View>
+              <View style={styles.aiPlanActions}>
+                <TouchableOpacity style={styles.aiPlanActionButton}>
+                  <Text style={styles.aiPlanActionTextSecondary}>Adjust plan</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.aiPlanActionButton}
+                  onPress={handleGenerateDailyPlan}
+                  disabled={generatingPlan}
+                >
+                  <Text style={styles.aiPlanActionTextPrimary}>
+                    {generatingPlan ? 'Regenerating...' : 'Regenerate'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
 
-        {/* Tasks Card */}
-        <TasksCard tasks={tasks} />
+        {/* Next Best Action Card - Intelligent pillar-aware recommendation */}
+        <NextBestActionCard
+          wellnessScore={wellnessScore}
+          habits={habits}
+          tasks={tasks}
+          completedTodayHabits={completedToday}
+          fourThreeTwoOne={fourThreeTwoOneEntry}
+          lastJournalDate={lastJournalDate}
+          hasMorningCheckIn={!!morningCheckIn}
+          hasDailyPlan={!!dailyPlan}
+          onGeneratePlan={handleGenerateDailyPlan}
+          onMorningCheckIn={() => setShowMorningCheckIn(true)}
+        />
 
-        {/* Quick Action Buttons */}
-        <QuickActionButtons />
+        {/* Quick Actions Row - Journal + Reflect */}
+        <QuickActionsRow
+          onJournalPress={() => navigation.navigate('Journal' as never)}
+          onReflectPress={() => navigation.navigate('Focus' as never)}
+        />
 
-        {/* Brain Health Education Card */}
-        <BrainHealthEducationCard />
+        {/* Brain Health Insight Strip - compact version */}
+        <BrainHealthInsightStrip compact />
+
+        {/* Wellness Score Opt-In (only if not enabled and not dismissed) */}
+        {wellnessScoreEnabled === false && showOptInPrompt && (
+          <WellnessScoreOptInCard
+            onEnable={async () => {
+              if (user?.uid) {
+                await setWellnessScoreEnabled(user.uid, true);
+                setWellnessScoreEnabledState(true);
+              }
+            }}
+            onDismiss={() => setShowOptInPrompt(false)}
+          />
+        )}
+
+        {/* Wellness Score Card (only if enabled) */}
+        {wellnessScoreEnabled && (
+          <WellnessScoreCard
+            score={wellnessScore}
+            loading={wellnessScoreLoading}
+            onPress={() => setShowScoreBreakdown(true)}
+            onRefresh={handleRefreshWellnessScore}
+          />
+        )}
+
+        {/* Morning Check-In - MOVED TO BOTTOM */}
+        {showMorningCheckIn && !morningCheckIn && (
+          <MorningCheckIn
+            onComplete={handleMorningCheckInComplete}
+            onDismiss={() => setShowMorningCheckIn(false)}
+            loading={morningCheckInLoading}
+          />
+        )}
       </ScrollView>
 
       {/* Wellness Score Breakdown Modal */}

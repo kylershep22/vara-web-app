@@ -9,11 +9,13 @@ import { Text, ProgressBar } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Card from '../Card';
 import { Colors, Spacing, Typography, Layout, getGroupCategory } from '../../constants';
+import { Badge } from '../shared/Badge';
 import { Challenge, ChallengeParticipant } from '../../types/models';
 import {
   getDaysRemaining,
   getChallengeProgress,
   formatChallengeDuration,
+  formatChallengePosition,
 } from '../../services/firebase/challenges.service';
 
 interface ChallengeCardProps {
@@ -27,18 +29,9 @@ interface ChallengeCardProps {
 
 // Status Badge
 const StatusBadge: React.FC<{ status: Challenge['status'] }> = ({ status }) => {
-  const config = {
-    upcoming: { label: 'Upcoming', color: Colors.info, icon: 'clock-outline' },
-    active: { label: 'Active', color: Colors.success, icon: 'lightning-bolt' },
-    completed: { label: 'Completed', color: Colors.textSecondary, icon: 'check-circle' },
-  }[status];
-
-  return (
-    <View style={[styles.statusBadge, { backgroundColor: config.color + '20' }]}>
-      <Icon name={config.icon as any} size={12} color={config.color} />
-      <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
-    </View>
-  );
+  const label = status.charAt(0).toUpperCase() + status.slice(1);
+  const variant = status === 'active' ? 'active' : 'default';
+  return <Badge label={label} variant={variant} />;
 };
 
 // Progress Ring (simplified as progress bar for now)
@@ -68,7 +61,8 @@ const ProgressDisplay: React.FC<{
 };
 
 // Countdown Display
-const CountdownDisplay: React.FC<{ endDate: any; status: Challenge['status'] }> = ({
+const CountdownDisplay: React.FC<{ startDate: any; endDate: any; status: Challenge['status'] }> = ({
+  startDate,
   endDate,
   status,
 }) => {
@@ -81,8 +75,6 @@ const CountdownDisplay: React.FC<{ endDate: any; status: Challenge['status'] }> 
     );
   }
 
-  const daysLeft = getDaysRemaining(endDate);
-
   if (status === 'upcoming') {
     return (
       <View style={styles.countdown}>
@@ -92,13 +84,13 @@ const CountdownDisplay: React.FC<{ endDate: any; status: Challenge['status'] }> 
     );
   }
 
-  const urgencyColor = daysLeft <= 3 ? Colors.error : daysLeft <= 7 ? Colors.warning : Colors.success;
+  const positionText = formatChallengePosition(startDate, endDate);
 
   return (
     <View style={styles.countdown}>
-      <Icon name="timer-sand" size={16} color={urgencyColor} />
-      <Text style={[styles.countdownText, { color: urgencyColor }]}>
-        {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
+      <Icon name="timer-sand" size={16} color={Colors.evergreenTeal} />
+      <Text style={[styles.countdownText, { color: Colors.evergreenTeal }]}>
+        {positionText}
       </Text>
     </View>
   );
@@ -120,8 +112,8 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
       <Card style={styles.card}>
         {/* Header Row */}
         <View style={styles.headerRow}>
-          <View style={[styles.categoryIcon, { backgroundColor: categoryConfig.color + '20' }]}>
-            <Icon name={categoryConfig.icon as any} size={24} color={categoryConfig.color} />
+          <View style={styles.categoryIcon}>
+            <Icon name={categoryConfig.icon as any} size={24} color={Colors.evergreenTeal} />
           </View>
 
           <View style={styles.headerInfo}>
@@ -135,7 +127,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
             </View>
             <View style={styles.metaRow}>
               <StatusBadge status={challenge.status} />
-              <CountdownDisplay endDate={challenge.endDate} status={challenge.status} />
+              <CountdownDisplay startDate={challenge.startDate} endDate={challenge.endDate} status={challenge.status} />
             </View>
           </View>
         </View>
@@ -193,7 +185,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                     onCheckIn();
                   }}
                 >
-                  <Icon name="check-bold" size={16} color={Colors.textOnPrimary} />
+                  <Icon name="check-bold" size={16} color={Colors.white} />
                   <Text style={styles.checkInButtonText}>Check In</Text>
                 </TouchableOpacity>
               )}
@@ -210,7 +202,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 onJoin();
               }}
             >
-              <Icon name="account-plus" size={16} color={Colors.textOnPrimary} />
+              <Icon name="account-plus" size={16} color={Colors.white} />
               <Text style={styles.joinButtonText}>Join Challenge</Text>
             </TouchableOpacity>
           )}
@@ -232,7 +224,8 @@ const styles = StyleSheet.create({
   categoryIcon: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.lg,
+    backgroundColor: Colors.dewSageLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.base,
@@ -281,18 +274,18 @@ const styles = StyleSheet.create({
   },
   goalSection: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.dewSage,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Layout.borderRadius.sm,
-    marginBottom: Spacing.sm,
-    gap: Spacing.xs,
+    alignItems: 'flex-start',
+    backgroundColor: Colors.dewSageLight,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: Layout.borderRadius.md,
+    marginBottom: Spacing.base,
+    gap: Spacing.sm,
   },
   goalText: {
     flex: 1,
     color: Colors.evergreenTeal,
-    fontSize: Typography.fontSize.sm,
+    fontSize: 13,
     fontWeight: Typography.fontWeight.medium,
   },
   statsRow: {
@@ -307,14 +300,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statText: {
-    color: Colors.textSecondary,
+    color: Colors.mutedSageGray,
     fontSize: Typography.fontSize.xs,
   },
   progressContainer: {
     marginBottom: Spacing.base,
     paddingTop: Spacing.sm,
     borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: Colors.divider,
   },
   progressHeader: {
     flexDirection: 'row',
@@ -332,9 +325,9 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
   },
   progressBar: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.silverSage,
+    height: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(184,205,186,0.3)',
   },
   progressPercent: {
     color: Colors.evergreenTeal,
@@ -348,7 +341,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: Spacing.sm,
     borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: Colors.divider,
     gap: Spacing.sm,
   },
   checkInButton: {
@@ -361,7 +354,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   checkInButtonText: {
-    color: Colors.textOnPrimary,
+    color: Colors.white,
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
   },
@@ -385,7 +378,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   joinButtonText: {
-    color: Colors.textOnPrimary,
+    color: Colors.white,
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
   },

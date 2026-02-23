@@ -28,6 +28,7 @@ export interface EnrichedPost extends Post {
   isLiked: boolean;
   likesCount: number;
   commentsCount: number;
+  groupName?: string;
 }
 
 export const useFeed = () => {
@@ -37,6 +38,7 @@ export const useFeed = () => {
   const [error, setError] = useState<Error | null>(null);
   const [connectionIds, setConnectionIds] = useState<string[]>([]);
   const [groupIds, setGroupIds] = useState<string[]>([]);
+  const [groupMap, setGroupMap] = useState<Map<string, string>>(new Map()); // groupId -> groupName
   const [contextLoaded, setContextLoaded] = useState(false);
 
   // Load user's connections and groups
@@ -67,9 +69,16 @@ export const useFeed = () => {
 
         console.log('[useFeed] Loaded connections:', connIds.length, connIds);
 
-        // Extract group IDs
+        // Extract group IDs and build group name map
         const grpIds = groups.map((g) => g.id);
         setGroupIds(grpIds);
+
+        // Build map of groupId -> groupName for enriching posts
+        const grpMap = new Map<string, string>();
+        groups.forEach((g) => {
+          grpMap.set(g.id, g.name);
+        });
+        setGroupMap(grpMap);
 
         console.log('[useFeed] Loaded groups:', grpIds.length, grpIds);
 
@@ -173,12 +182,16 @@ export const useFeed = () => {
                 const authorId = post.authorId || post.userId;
                 const author = authorId ? await getUserById(authorId) : null;
 
+                // Get group name if this is a group post
+                const groupName = post.groupId ? groupMap.get(post.groupId) : undefined;
+
                 return {
                   ...post,
                   author: author || undefined,
                   isLiked: post.likes?.includes(user.uid) || false,
                   likesCount: post.likes?.length || 0,
                   commentsCount: post.comments?.length || 0,
+                  groupName,
                 } as EnrichedPost;
               })
             );
@@ -219,12 +232,15 @@ export const useFeed = () => {
     );
 
     return () => unsubscribe();
-  }, [user, connectionIds, groupIds, contextLoaded]);
+  }, [user, connectionIds, groupIds, groupMap, contextLoaded]);
 
   const handleCreatePost = async (
     content: string,
     groupId?: string,
-    media?: Array<{ url: string; type: 'image' | 'video' }>
+    media?: Array<{ url: string; type: 'image' | 'video' }>,
+    postType?: string,
+    challengeId?: string,
+    challengeName?: string,
   ) => {
     if (!user) return;
 
@@ -234,6 +250,9 @@ export const useFeed = () => {
         content,
         groupId,
         media,
+        postType,
+        challengeId,
+        challengeName,
       });
     } catch (err) {
       console.error('Error creating post:', err);
@@ -278,6 +297,8 @@ export const useFeed = () => {
     posts,
     loading,
     error,
+    connectionIds,
+    groupIds,
     createPost: handleCreatePost,
     likePost: handleLikePost,
     commentOnPost: handleCommentOnPost,

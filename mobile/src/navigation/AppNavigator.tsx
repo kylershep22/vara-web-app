@@ -34,9 +34,9 @@ import InsightsScreen from '../screens/InsightsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
+import NotificationOptInScreen from '../screens/NotificationOptInScreen';
 import ConversationsScreen from '../screens/ConversationsScreen';
 import ChatScreen from '../screens/ChatScreen';
-import RoutineTimerScreen from '../screens/RoutineTimerScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import RedeemCodeScreen from '../screens/RedeemCodeScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
@@ -53,13 +53,13 @@ import {
   MessagesScreen,
 } from '../screens/community';
 
-// Onboarding screens
+// Onboarding screens (new streamlined flow)
 import {
   OnboardingWelcomeScreen,
-  OnboardingFocusScreen,
-  OnboardingQuickStartScreen,
-  OnboardingFirstWinScreen,
-  OnboardingTourScreen,
+  OnboardingCheckInScreen,
+  OnboardingInsightScreen,
+  OnboardingActivityScreen,
+  OnboardingConfirmationScreen,
 } from '../screens/onboarding';
 
 // Discover screens
@@ -87,7 +87,8 @@ const PaywallStack = createNativeStackNavigator();
 
 /**
  * Onboarding Stack Navigator
- * Screens for new users who haven't completed onboarding
+ * Streamlined 6-screen onboarding flow for new users
+ * Flow: Welcome → Check-in → Insight (aha!) → Activity → Confirmation → Home
  */
 const OnboardingNavigator = () => {
   return (
@@ -98,10 +99,10 @@ const OnboardingNavigator = () => {
       }}
     >
       <OnboardingStack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen} />
-      <OnboardingStack.Screen name="OnboardingFocus" component={OnboardingFocusScreen} />
-      <OnboardingStack.Screen name="OnboardingQuickStart" component={OnboardingQuickStartScreen} />
-      <OnboardingStack.Screen name="OnboardingFirstWin" component={OnboardingFirstWinScreen} />
-      <OnboardingStack.Screen name="OnboardingTour" component={OnboardingTourScreen} />
+      <OnboardingStack.Screen name="OnboardingCheckIn" component={OnboardingCheckInScreen} />
+      <OnboardingStack.Screen name="OnboardingInsight" component={OnboardingInsightScreen} />
+      <OnboardingStack.Screen name="OnboardingActivity" component={OnboardingActivityScreen} />
+      <OnboardingStack.Screen name="OnboardingConfirmation" component={OnboardingConfirmationScreen} />
     </OnboardingStack.Navigator>
   );
 };
@@ -201,21 +202,21 @@ const CommunityNavigator = () => {
         name="People"
         component={PeopleScreen}
         options={{
-          title: 'People',
+          headerShown: false, // PeopleScreen has custom header
         }}
       />
       <CommunityStack.Screen
         name="Conversations"
         component={ConversationsScreen}
         options={{
-          title: 'Messages',
+          headerShown: false, // MessagesScreen has custom header
         }}
       />
       <CommunityStack.Screen
         name="Chat"
         component={ChatScreen}
         options={{
-          title: 'Chat',
+          headerShown: false, // ChatScreen has custom header
         }}
       />
     </CommunityStack.Navigator>
@@ -424,9 +425,6 @@ const BottomTabsNavigator = () => {
  * App Stack Navigator
  * Screens for authenticated users
  */
-// Screens where AI FAB should be hidden (have their own FAB)
-const SCREENS_WITHOUT_AI_FAB: string[] = [];
-
 const MainNavigator = () => {
   // Call hooks at top level (required by Rules of Hooks)
   // Provide safe defaults if data isn't available yet
@@ -434,16 +432,16 @@ const MainNavigator = () => {
   const habitsData = useHabits();
   const tasksData = useTasks();
 
-  // Track current route to conditionally show/hide AI FAB
-  const [currentRoute, setCurrentRoute] = React.useState<string>('Main');
+  // Track current active tab to conditionally show/hide AI FAB
+  const [activeTab, setActiveTab] = React.useState<string>('Home');
 
   // Safely extract data with fallbacks
   const goals = goalsData?.goals || [];
   const habits = habitsData?.habits || [];
   const tasks = tasksData?.tasks || [];
 
-  // Determine if AI FAB should be shown
-  const showAIFab = !SCREENS_WITHOUT_AI_FAB.includes(currentRoute);
+  // Hide AI FAB on Community tab (community screens have their own action buttons)
+  const showAIFab = activeTab !== 'Community';
 
   return (
     <>
@@ -453,11 +451,18 @@ const MainNavigator = () => {
         }}
         screenListeners={{
           state: (e) => {
-            // Track current route for FAB visibility
+            // Track active bottom tab for FAB visibility
             const routes = e.data.state?.routes;
             if (routes && routes.length > 0) {
-              const currentRouteName = routes[routes.length - 1].name;
-              setCurrentRoute(currentRouteName);
+              const topRoute = routes[routes.length - 1];
+              // If on Main (BottomTabs), check which tab is active
+              if (topRoute.name === 'Main' && topRoute.state) {
+                const tabRoutes = topRoute.state.routes;
+                const tabIndex = topRoute.state.index ?? 0;
+                if (tabRoutes && tabRoutes[tabIndex]) {
+                  setActiveTab(tabRoutes[tabIndex].name);
+                }
+              }
             }
           },
         }}
@@ -663,12 +668,12 @@ const MainNavigator = () => {
             animation: 'slide_from_bottom',
           }}
         />
-        {/* Routine Timer - Full screen immersive experience */}
+        {/* Notification opt-in (shown after first meaningful action) */}
         <AppStack.Screen
-          name="RoutineTimer"
-          component={RoutineTimerScreen}
+          name="NotificationOptIn"
+          component={NotificationOptInScreen}
           options={{
-            presentation: 'fullScreenModal',
+            presentation: 'modal',
             animation: 'slide_from_bottom',
             headerShown: false,
           }}

@@ -3,3 +3,5 @@
  */
 
 export * from './models';
+export * from './onboarding';
+export * from './featureDiscovery';

@@ -237,9 +237,12 @@ const SLEEP_SOUNDS_BASE: Omit<SleepContent, 'audioUrl'>[] = [
 
 // Storage paths mapping
 const SLEEP_AUDIO_PATHS: Record<string, string> = {
+  // Sounds
   '1': 'sleep-audio/DeltaWaves.mp3',
   '2': 'sleep-audio/CalmingMelody.mp3',
   '3': 'sleep-audio/SurrealForest.mp3',
+  // Stories
+  'story-1': 'sleep-audio/The Warmth.wav',
 };
 
 // Cached URLs to avoid repeated fetches
@@ -294,9 +297,41 @@ export const SLEEP_SOUNDS: SleepContent[] = SLEEP_SOUNDS_BASE.map(sound => ({
   audioUrl: '',
 }));
 
-export const SLEEP_STORIES: SleepContent[] = [
-  // Placeholder - add when audio files are uploaded to Firebase Storage
+// Sleep stories with storage paths (URLs fetched dynamically)
+const SLEEP_STORIES_BASE: Omit<SleepContent, 'audioUrl'>[] = [
+  {
+    id: 'story-1',
+    title: 'The Warmth',
+    duration: '10 min',
+    type: 'Story',
+    description: 'A soothing bedtime story to help you drift into peaceful sleep. Let the gentle narrative carry you away.',
+    category: 'stories',
+  },
 ];
+
+/**
+ * Get sleep stories with authenticated URLs
+ */
+export async function getSleepStoriesWithUrls(): Promise<SleepContent[]> {
+  const stories = await Promise.all(
+    SLEEP_STORIES_BASE.map(async (story) => {
+      try {
+        const audioUrl = await getSleepAudioUrl(story.id);
+        return { ...story, audioUrl };
+      } catch (error) {
+        console.error(`Error loading audio for ${story.title}:`, error);
+        return { ...story, audioUrl: '' };
+      }
+    })
+  );
+  return stories;
+}
+
+// For backward compatibility - returns stories with empty URLs
+export const SLEEP_STORIES: SleepContent[] = SLEEP_STORIES_BASE.map(story => ({
+  ...story,
+  audioUrl: '',
+}));
 
 export const SLEEP_MEDITATIONS: SleepContent[] = [
   // Placeholder - add when audio files are uploaded to Firebase Storage

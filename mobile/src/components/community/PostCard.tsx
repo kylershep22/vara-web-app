@@ -1,22 +1,13 @@
 /**
  * Post Card Component
- * Simplified version to prevent React Native bridge errors
- * Enhanced with Support action and comment previews
+ * Restyled to match Vara Community UI mockup
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Platform, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Platform, Image, Alert } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-
-// Brand colors
-const COLORS = {
-  evergreenTeal: '#1B5E57',
-  mistWhite: '#FAFAF6',
-  silverSage: '#B8CDBA',
-  softCharcoal: '#3E3E3E',
-  textSecondary: '#6F7F77',
-  mintCream: '#E8F5F2',
-};
+import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { CommunityAvatar } from '../shared/CommunityAvatar';
 
 interface Comment {
   userId: string;
@@ -30,6 +21,11 @@ interface PostCardProps {
   onLike: (postId: string) => void;
   onComment: (post: any) => void;
   formatTimestamp: (post: any) => string;
+  disabled?: boolean;
+  disabledMessage?: string;
+  onGroupPress?: () => void;
+  /** Hide group context badge (when viewing inside a group) */
+  hideGroupBadge?: boolean;
 }
 
 const PostCardComponent: React.FC<PostCardProps> = ({
@@ -37,281 +33,355 @@ const PostCardComponent: React.FC<PostCardProps> = ({
   onLike,
   onComment,
   formatTimestamp,
+  disabled = false,
+  disabledMessage = 'Join the group to interact with posts',
+  onGroupPress,
+  hideGroupBadge = false,
 }) => {
-  // Extract data safely to avoid nested text issues
   const authorName = post.author?.displayName || 'Unknown';
-  const initials = authorName.substring(0, 2).toUpperCase();
   const content = String(post.content || '');
   const timestamp = formatTimestamp(post);
   const likesCount = post.likesCount || 0;
   const commentsCount = post.commentsCount || 0;
   const avatarUrl = post.author?.avatarUrl || post.author?.avatar;
 
-  // Get last active status
-  const lastActive = post.author?.lastActiveAt;
-  const isActiveNow = lastActive && (() => {
-    const date = lastActive.toDate ? lastActive.toDate() : new Date(lastActive);
-    const diffMs = Date.now() - date.getTime();
-    return diffMs < 5 * 60 * 1000; // Active within 5 minutes
-  })();
+  const isChallengePost = !!(post.challengeId && post.challengeName);
 
-  // Get preview of last 2 comments
-  const comments: Comment[] = post.comments || [];
-  const previewComments = comments.slice(-2);
+  // Post type badge config
+  const getPostTypeBadge = () => {
+    if (!post.postType || post.postType === 'update') return null;
+    switch (post.postType) {
+      case 'win':
+        return { label: '\uD83C\uDF89 Win', bg: 'rgba(245,185,113,0.15)', color: '#8B6530' };
+      case 'reflection':
+        return { label: '\uD83D\uDCAD Reflection', bg: Colors.dewSageLight, color: Colors.evergreenTeal };
+      case 'ask':
+        return { label: '\uD83E\uDD1D Ask', bg: Colors.tealLight, color: Colors.evergreenTeal, border: Colors.tealMedium };
+      default:
+        return null;
+    }
+  };
+
+  const badge = getPostTypeBadge();
 
   return (
-    <View style={styles.postCard}>
-      {/* Post Header */}
-      <View style={styles.postHeader}>
-        <View style={styles.avatarWrapper}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatarText}>{initials}</Text>
-            </View>
-          )}
-          {isActiveNow && <View style={styles.activeIndicator} />}
-        </View>
-        <View style={styles.postHeaderInfo}>
-          <Text style={styles.authorName}>{authorName}</Text>
-          <Text style={styles.timestamp}>{timestamp}</Text>
-        </View>
-      </View>
-
-      {/* Post Content */}
-      <Text style={styles.postContent}>{content}</Text>
-
-      {/* Stats Row */}
-      <View style={styles.postStats}>
-        <Text style={styles.statsText}>
-          {`${likesCount} ${likesCount === 1 ? 'support' : 'supports'} · ${commentsCount} ${commentsCount === 1 ? 'comment' : 'comments'}`}
-        </Text>
-      </View>
-
-      {/* Comment Previews */}
-      {previewComments.length > 0 && (
-        <View style={styles.commentPreviewSection}>
-          {previewComments.map((comment, index) => {
-            const commentAuthor = comment.authorName || 'Someone';
-            const commentInitials = commentAuthor.substring(0, 2).toUpperCase();
-            const commentContent = String(comment.content || '').substring(0, 100);
-
-            return (
-              <View key={index} style={styles.commentPreview}>
-                <View style={styles.commentAvatarSmall}>
-                  <Text style={styles.commentAvatarText}>{commentInitials}</Text>
-                </View>
-                <View style={styles.commentContent}>
-                  <Text style={styles.commentAuthorName}>{commentAuthor}</Text>
-                  <Text style={styles.commentText} numberOfLines={2}>
-                    {commentContent}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-          {commentsCount > 2 && (
-            <TouchableOpacity onPress={() => onComment(post)}>
-              <Text style={styles.viewMoreComments}>
-                {`View all ${commentsCount} comments`}
-              </Text>
-            </TouchableOpacity>
+    <View style={[styles.card, isChallengePost && styles.challengeCard]}>
+      {/* Challenge Banner */}
+      {isChallengePost && (
+        <View style={styles.challengeBanner}>
+          <Text style={styles.challengeIcon}>{'\u25C8'}</Text>
+          <Text style={styles.challengeName} numberOfLines={1}>{post.challengeName}</Text>
+          {post.challengeDay && post.challengeTotal && (
+            <Text style={styles.challengeDay}>
+              Day {post.challengeDay} of {post.challengeTotal}
+            </Text>
           )}
         </View>
       )}
 
-      {/* Post Actions */}
-      <View style={styles.postActions}>
+      {/* Group Context Badge */}
+      {post.groupName && !isChallengePost && !hideGroupBadge && (
         <TouchableOpacity
-          style={[styles.actionButton, post.isLiked && styles.actionButtonActive]}
-          onPress={() => onLike(post.id)}
+          style={styles.groupBadgeContainer}
+          onPress={onGroupPress}
+          disabled={!onGroupPress}
+          activeOpacity={onGroupPress ? 0.7 : 1}
         >
-          <Icon
-            name={post.isLiked ? 'hand-heart' : 'hand-heart-outline'}
-            size={20}
-            color={post.isLiked ? COLORS.evergreenTeal : COLORS.textSecondary}
-          />
-          <Text style={[styles.actionText, post.isLiked && styles.actionTextActive]}>
-            Support
+          <View style={styles.groupBadge}>
+            <Text style={styles.groupBadgeText}>{post.groupName}</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {/* Author Row */}
+      <View style={styles.authorRow}>
+        <CommunityAvatar
+          name={authorName}
+          photoURL={avatarUrl}
+          size={36}
+        />
+        <View style={styles.authorInfo}>
+          <Text style={styles.authorName}>{authorName}</Text>
+          <Text style={styles.timestamp}>
+            {isChallengePost ? `checked in \u00B7 ${timestamp}` : timestamp}
+          </Text>
+        </View>
+        {badge && (
+          <View style={[
+            styles.postTypeBadge,
+            { backgroundColor: badge.bg },
+            badge.border ? { borderWidth: 1, borderColor: badge.border } : undefined,
+          ]}>
+            <Text style={[styles.postTypeBadgeText, { color: badge.color }]}>
+              {badge.label}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Post Content */}
+      <View style={styles.contentContainer}>
+        <Text style={styles.postContent}>{content}</Text>
+      </View>
+
+      {/* Support Avatars + Comment Count */}
+      {(likesCount > 0 || commentsCount > 0) && (
+        <View style={styles.statsRow}>
+          {likesCount > 0 && (
+            <View style={styles.supportSection}>
+              {/* Mini avatar stack for supporters */}
+              <View style={styles.miniAvatarStack}>
+                {[0, 1, 2].slice(0, Math.min(likesCount, 3)).map((i) => (
+                  <View key={i} style={[styles.miniAvatar, i > 0 && { marginLeft: -4 }]}>
+                    <View style={styles.miniAvatarInner} />
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.supportText}>
+                {likesCount > 3 ? `and ${likesCount - 3} others supported` : `${likesCount} ${likesCount === 1 ? 'support' : 'supports'}`}
+              </Text>
+            </View>
+          )}
+          {commentsCount > 0 && (
+            <Text style={styles.commentCount}>
+              {commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* Action Buttons */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            post.isLiked && styles.actionButtonActive,
+            disabled && styles.actionButtonDisabled,
+          ]}
+          onPress={() => {
+            if (disabled) {
+              Alert.alert('Join Required', disabledMessage);
+              return;
+            }
+            onLike(post.id);
+          }}
+        >
+          <Text style={[
+            styles.actionText,
+            post.isLiked && styles.actionTextActive,
+          ]}>
+            {'\u2661'} Support
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => onComment(post)}
+          style={[styles.actionButton, disabled && styles.actionButtonDisabled]}
+          onPress={() => {
+            if (disabled) {
+              Alert.alert('Join Required', disabledMessage);
+              return;
+            }
+            onComment(post);
+          }}
         >
-          <Icon name="comment-outline" size={20} color={COLORS.textSecondary} />
-          <Text style={styles.actionText}>Comment</Text>
+          <Text style={styles.actionText}>
+            {'\uD83D\uDCAC'} Comment
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-// Memoize to prevent unnecessary re-renders
 export const PostCard = React.memo(PostCardComponent);
 
 const styles = StyleSheet.create({
-  postCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 18,
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: Layout.borderRadius.lg,
     ...Platform.select({
       ios: {
-        shadowColor: 'rgba(0,0,0,0.06)',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 1,
-        shadowRadius: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 3,
       },
       android: {
-        elevation: 2,
+        elevation: 1,
       },
     }),
   },
-  postHeader: {
+  challengeCard: {
+    borderWidth: 1,
+    borderColor: Colors.dewSage,
+  },
+
+  // Challenge Banner
+  challengeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    gap: Spacing.sm,
+    backgroundColor: Colors.dewSageLight,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.base,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+    borderTopLeftRadius: Layout.borderRadius.lg,
+    borderTopRightRadius: Layout.borderRadius.lg,
   },
-  avatarWrapper: {
-    position: 'relative',
+  challengeIcon: {
+    fontSize: 14,
+    color: Colors.evergreenTeal,
   },
-  avatarContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.evergreenTeal,
-    justifyContent: 'center',
+  challengeName: {
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    flex: 1,
+  },
+  challengeDay: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginLeft: 'auto',
+  },
+
+  // Group Context Badge
+  groupBadgeContainer: {
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.base,
+  },
+  groupBadge: {
+    backgroundColor: Colors.dewSageLight,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: Layout.borderRadius.sm,
+    alignSelf: 'flex-start',
+  },
+  groupBadgeText: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
+  },
+
+  // Author Row
+  authorRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    paddingTop: 10,
+    paddingHorizontal: Spacing.base,
   },
-  avatarImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  activeIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#4CAF50',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  postHeaderInfo: {
-    marginLeft: 12,
+  authorInfo: {
     flex: 1,
   },
   authorName: {
-    color: COLORS.softCharcoal,
-    fontWeight: '600',
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
   },
   timestamp: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.mutedSageGray,
+  },
+
+  // Post Type Badge
+  postTypeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: Layout.borderRadius.sm,
+    marginLeft: 'auto',
+  },
+  postTypeBadgeText: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.medium,
+  },
+
+  // Content
+  contentContainer: {
+    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.base,
   },
   postContent: {
-    color: COLORS.softCharcoal,
     fontSize: 15,
-    lineHeight: 23,
-    marginBottom: 14,
+    lineHeight: 22.5,
+    color: Colors.softCharcoal,
   },
-  postStats: {
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  statsText: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-  },
-  // Comment Preview Styles
-  commentPreviewSection: {
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  commentPreview: {
+
+  // Stats Row
+  statsRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-    backgroundColor: COLORS.mintCream,
-    padding: 10,
-    borderRadius: 10,
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
+    marginTop: Spacing.md,
   },
-  commentAvatarSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.silverSage,
+  supportSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  miniAvatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.silverSage,
+    borderWidth: 1.5,
+    borderColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  commentAvatarText: {
-    color: COLORS.softCharcoal,
-    fontSize: 11,
-    fontWeight: '600',
+  miniAvatarInner: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.silverSage,
   },
-  commentContent: {
-    flex: 1,
-    marginLeft: 8,
+  supportText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
   },
-  commentAuthorName: {
-    color: COLORS.softCharcoal,
-    fontWeight: '600',
-    fontSize: 13,
-    marginBottom: 2,
+  commentCount: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginLeft: 'auto',
   },
-  commentText: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  viewMoreComments: {
-    color: COLORS.evergreenTeal,
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 4,
-  },
+
   // Action Buttons
-  postActions: {
+  actionRow: {
     flexDirection: 'row',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    gap: 8,
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.base,
+    paddingBottom: 14,
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 22,
-    gap: 6,
-    backgroundColor: COLORS.mistWhite,
+    height: 36,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.dewSageLight,
   },
   actionButtonActive: {
-    backgroundColor: COLORS.mintCream,
+    backgroundColor: Colors.tealLight,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
   },
   actionText: {
-    color: COLORS.textSecondary,
-    fontWeight: '500',
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
   },
   actionTextActive: {
-    color: COLORS.evergreenTeal,
+    color: Colors.evergreenTeal,
   },
 });

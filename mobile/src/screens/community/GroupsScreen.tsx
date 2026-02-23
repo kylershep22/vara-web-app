@@ -3,7 +3,7 @@
  * Browse and join community groups with enhanced cards
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,17 +12,14 @@ import {
   Keyboard,
   ScrollView,
   TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import {
   Text,
-  SegmentedButtons,
-  Searchbar,
-  FAB,
   Portal,
   Modal,
   Button as PaperButton,
   Switch,
-  Chip,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -41,15 +38,60 @@ import { useGroups } from '../../hooks';
 import { useAuth } from '../../context/AuthContext';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { createGroup } from '../../services/firebase';
-import { GroupCategory } from '../../types/models';
+import { GroupCategory, GroupInvite } from '../../types/models';
+import { getAllPendingInvites, acceptGroupInvite, declineGroupInvite } from '../../services/firebase/invites.service';
 
 const GroupsScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const [filter, setFilter] = useState<'all' | 'my' | 'public'>('all');
+  const [filter, setFilter] = useState<'my' | 'discover' | 'invites'>('my');
   const [categoryFilter, setCategoryFilter] = useState<GroupCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const { groups, loading, joinGroup, leaveGroup, isUserMember, refresh } = useGroups(filter);
+  const [pendingInvites, setPendingInvites] = useState<GroupInvite[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
+
+  // Map filter to useGroups format: 'my' -> 'my', 'discover' -> 'public'
+  const hookFilter = filter === 'discover' ? 'public' : filter === 'my' ? 'my' : 'all';
+  const { groups, loading, joinGroup, leaveGroup, isUserMember, refresh } = useGroups(hookFilter as 'all' | 'my' | 'public');
+
+  // Load invites when invites tab is active
+  useEffect(() => {
+    if (filter === 'invites') {
+      loadInvites();
+    }
+  }, [filter]);
+
+  const loadInvites = async () => {
+    setInvitesLoading(true);
+    try {
+      const result = await getAllPendingInvites();
+      setPendingInvites(result.groups);
+    } catch (error) {
+      console.error('Error loading invites:', error);
+    } finally {
+      setInvitesLoading(false);
+    }
+  };
+
+  const handleAcceptInvite = async (invite: GroupInvite) => {
+    try {
+      await acceptGroupInvite(invite.id);
+      Alert.alert('Success', `You joined ${invite.groupName}!`);
+      setPendingInvites(prev => prev.filter(i => i.id !== invite.id));
+      refresh?.();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to accept invite');
+    }
+  };
+
+  const handleDeclineInvite = async (invite: GroupInvite) => {
+    try {
+      await declineGroupInvite(invite.id);
+      setPendingInvites(prev => prev.filter(i => i.id !== invite.id));
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to decline invite');
+    }
+  };
 
   // Create group modal state
   const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -169,29 +211,43 @@ const GroupsScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Search groups..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-          iconColor={Colors.evergreenTeal}
-        />
+      {/* Filter Tabs */}
+      <View style={styles.tabContainer}>
+        {(['my', 'discover', 'invites'] as const).map((tab) => {
+          const isActive = filter === tab;
+          const label = tab === 'my' ? 'My Groups' : tab === 'discover' ? 'Discover' : 'Invites';
+          return (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tabPill, isActive ? styles.tabPillActive : styles.tabPillInactive]}
+              onPress={() => setFilter(tab)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabPillText, isActive ? styles.tabPillTextActive : styles.tabPillTextInactive]}>
+                {label}
+              </Text>
+              {tab === 'invites' && pendingInvites.length > 0 && (
+                <View style={[styles.inviteBadge, isActive ? styles.inviteBadgeActive : styles.inviteBadgeInactive]}>
+                  <Text style={styles.inviteBadgeText}>{pendingInvites.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {/* Filter Tabs */}
-      <View style={styles.filterContainer}>
-        <SegmentedButtons
-          value={filter}
-          onValueChange={(value) => setFilter(value as 'all' | 'my' | 'public')}
-          buttons={[
-            { value: 'all', label: 'All' },
-            { value: 'my', label: 'My Groups' },
-            { value: 'public', label: 'Public' },
-          ]}
-          style={styles.segmentedButtons}
-        />
+      {/* Search */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Icon name="magnify" size={20} color={Colors.mutedSageGray} />
+          <TextInput
+            placeholder="Search groups by name or category..."
+            placeholderTextColor={Colors.mutedSageGray}
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchInput}
+          />
+        </View>
       </View>
 
       {/* Category Filter */}
@@ -201,97 +257,148 @@ const GroupsScreen: React.FC = () => {
         style={styles.categoryScroll}
         contentContainerStyle={styles.categoryContainer}
       >
-        <Chip
-          selected={categoryFilter === 'all'}
+        <TouchableOpacity
           onPress={() => setCategoryFilter('all')}
           style={[styles.categoryChip, categoryFilter === 'all' && styles.categoryChipSelected]}
-          textStyle={categoryFilter === 'all' ? styles.categoryChipTextSelected : undefined}
+          activeOpacity={0.7}
         >
-          All
-        </Chip>
+          <Text style={[styles.categoryChipText, categoryFilter === 'all' && styles.categoryChipTextSelected]}>
+            All
+          </Text>
+        </TouchableOpacity>
         {GROUP_CATEGORY_LIST.map((cat) => (
-          <Chip
+          <TouchableOpacity
             key={cat.key}
-            selected={categoryFilter === cat.key}
             onPress={() => setCategoryFilter(cat.key)}
-            style={[
-              styles.categoryChip,
-              categoryFilter === cat.key && styles.categoryChipSelected,
-            ]}
-            textStyle={categoryFilter === cat.key ? styles.categoryChipTextSelected : undefined}
-            icon={() => (
-              <Icon
-                name={cat.icon as any}
-                size={16}
-                color={categoryFilter === cat.key ? Colors.textOnPrimary : cat.color}
-              />
-            )}
+            style={[styles.categoryChip, categoryFilter === cat.key && styles.categoryChipSelected]}
+            activeOpacity={0.7}
           >
-            {cat.label}
-          </Chip>
+            <Text style={[styles.categoryChipText, categoryFilter === cat.key && styles.categoryChipTextSelected]}>
+              {cat.label}
+            </Text>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Groups List */}
-      {loading ? (
-        <LoadingSpinner message="Loading groups..." />
-      ) : filteredGroups.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Icon
-            name="account-group"
-            size={64}
-            color={Colors.textSecondary}
-            style={styles.emptyIcon}
-          />
-          <Text variant="titleMedium" style={styles.emptyTitle}>
-            {searchQuery || categoryFilter !== 'all'
-              ? 'No groups found'
-              : 'No groups available'}
-          </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {searchQuery
-              ? 'Try a different search term'
-              : categoryFilter !== 'all'
-              ? `No ${getGroupCategory(categoryFilter as GroupCategory).label} groups yet`
-              : filter === 'my'
-              ? "You haven't joined any groups yet"
-              : 'Be the first to create a group!'}
-          </Text>
-          {filter !== 'my' && (
-            <Button
-              variant="primary"
-              style={styles.createButton}
-              onPress={() => setShowCreateGroup(true)}
-            >
-              Create Group
-            </Button>
-          )}
-        </View>
-      ) : (
-        <FlatList
-          data={filteredGroups}
-          renderItem={({ item }) => (
-            <GroupCard
-              group={item}
-              isMember={isUserMember(item)}
-              onPress={() => handleNavigateToGroup(item.id, item.name)}
-              onJoin={() => handleJoinGroup(item.id, item.name)}
-              onLeave={() => handleLeaveGroup(item.id, item.name)}
+      {/* Invites Tab */}
+      {filter === 'invites' ? (
+        invitesLoading ? (
+          <LoadingSpinner message="Loading invites..." />
+        ) : pendingInvites.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Icon
+              name="email-outline"
+              size={64}
+              color={Colors.textSecondary}
+              style={styles.emptyIcon}
             />
-          )}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-        />
+            <Text variant="titleMedium" style={styles.emptyTitle}>
+              No pending invites
+            </Text>
+            <Text variant="bodyMedium" style={styles.emptyText}>
+              When someone invites you to a group, it will appear here.
+            </Text>
+            <TouchableOpacity onPress={() => setFilter('discover')} activeOpacity={0.7}>
+              <Text style={styles.discoverLink}>Discover groups to join</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={pendingInvites}
+            renderItem={({ item }) => (
+              <View style={styles.inviteCard}>
+                <View style={styles.inviteInfo}>
+                  <Text variant="titleSmall" style={styles.inviteGroupName}>
+                    {item.groupName}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.inviteFromText}>
+                    Invited by {item.inviterName}
+                  </Text>
+                </View>
+                <View style={styles.inviteActions}>
+                  <TouchableOpacity
+                    style={styles.declineButton}
+                    onPress={() => handleDeclineInvite(item)}
+                  >
+                    <Text style={styles.declineButtonText}>Decline</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.acceptButton}
+                    onPress={() => handleAcceptInvite(item)}
+                  >
+                    <Text style={styles.acceptButtonText}>Accept</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+          />
+        )
+      ) : (
+        /* Groups List */
+        loading ? (
+          <LoadingSpinner message="Loading groups..." />
+        ) : filteredGroups.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Icon
+              name="account-group"
+              size={64}
+              color={Colors.textSecondary}
+              style={styles.emptyIcon}
+            />
+            <Text variant="titleMedium" style={styles.emptyTitle}>
+              {searchQuery || categoryFilter !== 'all'
+                ? 'No groups found'
+                : 'No groups available'}
+            </Text>
+            <Text variant="bodyMedium" style={styles.emptyText}>
+              {searchQuery
+                ? 'Try a different search term'
+                : categoryFilter !== 'all'
+                ? `No ${getGroupCategory(categoryFilter as GroupCategory).label} groups yet`
+                : filter === 'my'
+                ? "You haven't joined any groups yet"
+                : 'Be the first to create a group!'}
+            </Text>
+            {filter !== 'my' && (
+              <Button
+                variant="primary"
+                style={styles.createButton}
+                onPress={() => setShowCreateGroup(true)}
+              >
+                Create Group
+              </Button>
+            )}
+          </View>
+        ) : (
+          <FlatList
+            data={filteredGroups}
+            renderItem={({ item }) => (
+              <GroupCard
+                group={item}
+                isMember={isUserMember(item)}
+                onPress={() => handleNavigateToGroup(item.id, item.name)}
+                onJoin={() => handleJoinGroup(item.id, item.name)}
+                onLeave={() => handleLeaveGroup(item.id, item.name)}
+              />
+            )}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            ListFooterComponent={
+              <TouchableOpacity
+                style={styles.inlineCreateButton}
+                onPress={() => setShowCreateGroup(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.inlineCreateButtonText}>+ Create a Group</Text>
+              </TouchableOpacity>
+            }
+          />
+        )
       )}
 
-      {/* FAB for Create Group */}
-      <FAB
-        icon="plus"
-        label="Create"
-        style={styles.fab}
-        onPress={() => setShowCreateGroup(true)}
-        color={Colors.textOnPrimary}
-      />
+      {/* Create Group button removed from FAB, now inline in list */}
 
       {/* Create Group Modal */}
       <Portal>
@@ -345,14 +452,14 @@ const GroupsScreen: React.FC = () => {
                     style={[
                       styles.categorySelectItem,
                       selectedCategory === cat.key && styles.categorySelectItemActive,
-                      { borderColor: cat.color },
+                      { borderColor: selectedCategory === cat.key ? Colors.evergreenTeal : Colors.silverSage },
                     ]}
                     onPress={() => setSelectedCategory(cat.key)}
                   >
                     <Icon
                       name={cat.icon as any}
                       size={24}
-                      color={selectedCategory === cat.key ? Colors.textOnPrimary : cat.color}
+                      color={selectedCategory === cat.key ? Colors.textOnPrimary : Colors.evergreenTeal}
                     />
                     <Text
                       style={[
@@ -444,43 +551,115 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
+
+  // Tab Navigation (pill-style)
+  tabContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+  tabPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  tabPillActive: {
+    backgroundColor: Colors.evergreenTeal,
+  },
+  tabPillInactive: {
+    backgroundColor: Colors.dewSageLight,
+  },
+  tabPillText: {
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  tabPillTextActive: {
+    color: Colors.white,
+  },
+  tabPillTextInactive: {
+    color: Colors.mutedSageGray,
+  },
+  inviteBadge: {
+    marginLeft: 6,
+    paddingVertical: 1,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+  },
+  inviteBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  inviteBadgeInactive: {
+    backgroundColor: Colors.softCoral,
+  },
+  inviteBadgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: Typography.fontWeight.bold,
+  },
+
+  // Search Bar
   searchContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.base,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
-  searchbar: {
-    backgroundColor: Colors.surface,
-    elevation: 0,
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
+    backgroundColor: Colors.white,
   },
-  filterContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.softCharcoal,
+    padding: 0,
   },
-  segmentedButtons: {
-    backgroundColor: Colors.surface,
-  },
+
+  // Category Filter Chips
   categoryScroll: {
     maxHeight: 44,
-    marginBottom: Spacing.base,
   },
   categoryContainer: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.xs,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 8,
   },
   categoryChip: {
-    backgroundColor: Colors.surface,
-    marginRight: Spacing.xs,
+    backgroundColor: Colors.white,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.divider,
   },
   categoryChipSelected: {
     backgroundColor: Colors.evergreenTeal,
+    borderWidth: 0,
+  },
+  categoryChipText: {
+    fontSize: 12,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.mutedSageGray,
   },
   categoryChipTextSelected: {
-    color: Colors.textOnPrimary,
+    color: Colors.white,
   },
+
+  // Groups List
   listContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl * 2,
   },
+
+  // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -499,15 +678,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Spacing.lg,
   },
+  discoverLink: {
+    color: Colors.evergreenTeal,
+    fontSize: 14,
+    fontWeight: Typography.fontWeight.medium,
+  },
   createButton: {
     minWidth: 140,
   },
-  fab: {
-    position: 'absolute',
-    right: Spacing.lg,
-    bottom: Spacing.lg,
+
+  // Inline Create Group Button
+  inlineCreateButton: {
     backgroundColor: Colors.evergreenTeal,
+    height: 48,
+    borderRadius: Layout.borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: -8,
+    marginBottom: 24,
+    marginTop: Spacing.base,
   },
+  inlineCreateButtonText: {
+    color: Colors.white,
+    fontSize: 15,
+    fontWeight: Typography.fontWeight.medium,
+  },
+
+  // Modal
   modal: {
     backgroundColor: Colors.surface,
     marginHorizontal: Spacing.lg,
@@ -586,6 +783,60 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
+  },
+
+  // Invite card styles
+  inviteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.base,
+    marginBottom: Spacing.sm,
+    borderWidth: Layout.borderWidth.thin,
+    borderColor: Colors.borderLight,
+  },
+  inviteInfo: {
+    flex: 1,
+    marginRight: Spacing.base,
+  },
+  inviteGroupName: {
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: 2,
+  },
+  inviteFromText: {
+    color: Colors.textSecondary,
+    fontSize: Typography.fontSize.xs,
+  },
+  inviteActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  declineButton: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.xs,
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    backgroundColor: 'transparent',
+  },
+  declineButtonText: {
+    color: Colors.mutedSageGray,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  acceptButton: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.xs,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.evergreenTeal,
+  },
+  acceptButtonText: {
+    color: Colors.white,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });
 

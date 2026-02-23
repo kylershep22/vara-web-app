@@ -18,3 +18,5 @@ export * from './routineMigration.service';
 export * from './wellnessScore.service';
 export * from './featureUnlock.service';
 export * from './invites.service';
+export * from './onboarding.service';
+export * from './featureDiscovery.service';

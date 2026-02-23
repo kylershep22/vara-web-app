@@ -34,6 +34,7 @@ export const Layout = {
     lg: 12,
     xl: 16,
     '2xl': 20,
+    pill: 20,     // Pill-shaped filter tabs
     full: 9999,
   },
 
@@ -48,9 +49,9 @@ export const Layout = {
 
   // Button heights
   buttonHeight: {
-    sm: 36,
-    md: 48,
-    lg: 56,
+    sm: 36,   // Small buttons (tertiary, inline actions)
+    md: 48,   // Default buttons (primary, secondary)
+    lg: 56,   // Large CTAs
   },
 
   // Input heights
@@ -66,8 +67,8 @@ export const Layout = {
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        shadowOpacity: 0.04,
+        shadowRadius: 3,
       },
       android: {
         elevation: 1,
@@ -78,8 +79,8 @@ export const Layout = {
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
       },
       android: {
         elevation: 3,
@@ -90,11 +91,11 @@ export const Layout = {
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
       },
       android: {
-        elevation: 5,
+        elevation: 6,
       },
       default: {},
     }),

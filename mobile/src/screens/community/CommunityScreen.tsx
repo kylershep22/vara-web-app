@@ -3,7 +3,7 @@
  * Social feed with posts from connections and groups
  */
 
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -13,6 +13,7 @@ import {
   TextInput,
   Alert,
   Image,
+  ImageStyle,
   Keyboard,
   InputAccessoryView,
   Platform,
@@ -26,7 +27,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { LoadingSpinner, PostCard, QuickNavButton, LockedScreenOverlay } from '../../components';
+import { LoadingSpinner, PostCard, QuickNavButton } from '../../components';
 import { PendingInvitesSection } from '../../components/community';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
@@ -231,7 +232,7 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, userId, placeholde
                 <View key={media.id} style={styles.mediaThumbnail}>
                   <Image
                     source={{ uri: media.uri }}
-                    style={styles.thumbnailImage}
+                    style={styles.thumbnailImage as ImageStyle}
                   />
 
                   {/* Remove button */}
@@ -542,16 +543,16 @@ const commentStyles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#FAFAF6',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 12,
+    backgroundColor: Colors.mistWhite,
+    borderTopLeftRadius: Layout.borderRadius.xl,
+    borderTopRightRadius: Layout.borderRadius.xl,
+    paddingTop: Spacing.md,
     paddingBottom: 34,
-    paddingHorizontal: 24,
+    paddingHorizontal: Spacing.lg,
     maxHeight: '85%',
     ...Platform.select({
       ios: {
-        shadowColor: '#1B5E57',
+        shadowColor: Colors.evergreenTeal,
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.08,
         shadowRadius: 12,
@@ -564,10 +565,10 @@ const commentStyles = StyleSheet.create({
   handleBar: {
     width: 40,
     height: 4,
-    backgroundColor: '#B8CDBA',
+    backgroundColor: Colors.silverSage,
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.base,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -580,38 +581,37 @@ const commentStyles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: '600',
-    color: '#1B5E57',
-    marginBottom: 4,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.xs,
     letterSpacing: -0.3,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#6F7F77',
-    fontWeight: '400',
+    color: Colors.mutedSageGray,
+    fontWeight: Typography.fontWeight.regular,
   },
   closeButton: {
-    padding: 8,
+    padding: Spacing.sm,
     marginTop: -4,
     marginRight: -8,
   },
-  // Input styles
   inputContainer: {
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: Colors.white,
+    borderRadius: Layout.borderRadius.xl,
     borderWidth: 1.5,
-    borderColor: '#D5E3D1',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: Colors.dewSage,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
     minHeight: 56,
     ...Platform.select({
       ios: {
-        shadowColor: '#1B5E57',
+        shadowColor: Colors.evergreenTeal,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.04,
         shadowRadius: 4,
@@ -622,7 +622,7 @@ const commentStyles = StyleSheet.create({
     }),
   },
   inputWrapperFocused: {
-    borderColor: '#1B5E57',
+    borderColor: Colors.evergreenTeal,
     ...Platform.select({
       ios: {
         shadowOpacity: 0.08,
@@ -637,7 +637,7 @@ const commentStyles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     lineHeight: 22,
-    color: '#3E3E3E',
+    color: Colors.softCharcoal,
     maxHeight: 120,
     paddingTop: 0,
     paddingBottom: 0,
@@ -645,115 +645,93 @@ const commentStyles = StyleSheet.create({
   sendButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1B5E57',
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#1B5E57',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    marginLeft: Spacing.md,
   },
   sendButtonDisabled: {
-    backgroundColor: '#D5E3D1',
-    ...Platform.select({
-      ios: {
-        shadowOpacity: 0,
-      },
-      android: {
-        elevation: 0,
-      },
-    }),
+    backgroundColor: Colors.dewSage,
   },
   characterCount: {
-    fontSize: 12,
-    color: '#6F7F77',
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
     textAlign: 'right',
-    marginTop: 8,
+    marginTop: Spacing.sm,
   },
   characterCountWarning: {
-    color: '#D97A6E',
+    color: Colors.softCoral,
   },
   inputHint: {
     fontSize: 13,
-    color: '#6F7F77',
-    marginTop: 8,
+    color: Colors.mutedSageGray,
+    marginTop: Spacing.sm,
     fontStyle: 'italic',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     backgroundColor: 'rgba(217, 122, 110, 0.1)',
-    borderRadius: 8,
+    borderRadius: Layout.borderRadius.md,
     borderLeftWidth: 3,
-    borderLeftColor: '#D97A6E',
-    gap: 8,
+    borderLeftColor: Colors.softCoral,
+    gap: Spacing.sm,
   },
   errorText: {
     fontSize: 13,
-    color: '#D97A6E',
+    color: Colors.softCoral,
     flex: 1,
   },
-  // Divider
   divider: {
     height: 1,
-    backgroundColor: 'rgba(184, 205, 186, 0.3)',
-    marginVertical: 16,
+    backgroundColor: Colors.divider,
+    marginVertical: Spacing.base,
   },
-  // Empty state
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 24,
+    paddingVertical: Spacing['2xl'],
+    paddingHorizontal: Spacing.lg,
   },
   emptyStateTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1B5E57',
-    marginTop: 16,
-    marginBottom: 8,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginTop: Spacing.base,
+    marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     textAlign: 'center',
   },
-  // Comments list
   commentsList: {
     maxHeight: 300,
   },
   commentItem: {
     flexDirection: 'row',
-    marginBottom: 16,
-    paddingBottom: 16,
+    marginBottom: Spacing.base,
+    paddingBottom: Spacing.base,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(213, 227, 209, 0.4)',
+    borderBottomColor: Colors.divider,
   },
   commentAvatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#D5E3D1',
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.dewSage,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   commentAvatarText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#1B5E57',
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
   },
   commentContent: {
     flex: 1,
@@ -767,30 +745,30 @@ const commentStyles = StyleSheet.create({
   },
   commentAuthor: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#3E3E3E',
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
   },
   authorBadge: {
-    backgroundColor: 'rgba(27, 94, 87, 0.12)',
-    paddingHorizontal: 8,
+    backgroundColor: Colors.tealMedium,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: Layout.borderRadius.sm,
   },
   authorBadgeText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#1B5E57',
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
   commentTime: {
     fontSize: 13,
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
   },
   commentText: {
     fontSize: 15,
     lineHeight: 22,
-    color: '#3E3E3E',
+    color: Colors.softCharcoal,
   },
 });
 
@@ -811,8 +789,11 @@ const POST_PROMPTS = [
 const CommunityScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const { posts, loading, createPost, likePost, commentOnPost } = useFeed();
+  const { posts, loading, createPost, likePost, commentOnPost, connectionIds, groupIds } = useFeed();
   const [refreshing, setRefreshing] = useState(false);
+  const [feedFilter, setFeedFilter] = useState<'all' | 'groups' | 'connections'>('all');
+  const [selectedPostType, setSelectedPostType] = useState<'update' | 'win' | 'reflection' | 'ask' | null>(null);
+  const [showPostTypeSelector, setShowPostTypeSelector] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [commentPost, setCommentPost] = useState<any | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -907,9 +888,10 @@ const CommunityScreen: React.FC = () => {
       }));
     }
 
-    // Create post with media array
-    await createPost(content, undefined, mediaArray);
-  }, [user, createPost]);
+    // Create post with media array and post type
+    await createPost(content, undefined, mediaArray, selectedPostType || 'update');
+    setSelectedPostType(null);
+  }, [user, createPost, selectedPostType]);
 
   const handleLike = useCallback(async (postId: string) => {
     try {
@@ -966,13 +948,23 @@ const CommunityScreen: React.FC = () => {
     setCommentPost(post);
   }, []);
 
+  const filteredPosts = useMemo(() => {
+    if (feedFilter === 'all') return posts;
+    if (feedFilter === 'groups') return posts.filter((p: any) => !!p.groupId);
+    if (feedFilter === 'connections') return posts.filter((p: any) => !p.groupId);
+    return posts;
+  }, [posts, feedFilter]);
+
   const renderPost = ({ item }: { item: any }) => (
-    <PostCard
-      post={item}
-      onLike={handleLike}
-      onComment={handleOpenComments}
-      formatTimestamp={formatTimestamp}
-    />
+    <View style={{ marginHorizontal: Spacing.base, marginBottom: Spacing.md }}>
+      <PostCard
+        post={item}
+        onLike={handleLike}
+        onComment={handleOpenComments}
+        formatTimestamp={formatTimestamp}
+        onGroupPress={item.groupId ? () => navigation.navigate('GroupDetail', { groupId: item.groupId, groupName: item.groupName }) : undefined}
+      />
+    </View>
   );
 
   const handleInviteAction = useCallback(() => {
@@ -1018,16 +1010,44 @@ const CommunityScreen: React.FC = () => {
         </View>
       )}
 
+      {/* Feed Filter Pills */}
+      <View style={styles.filterPillsContainer}>
+        {(['all', 'groups', 'connections'] as const).map((filter) => {
+          const labels = { all: 'All', groups: 'My Groups', connections: 'Connections' };
+          const isActive = feedFilter === filter;
+          return (
+            <TouchableOpacity
+              key={filter}
+              style={[styles.filterPill, isActive && styles.filterPillActive]}
+              onPress={() => setFeedFilter(filter)}
+            >
+              <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
+                {labels[filter]}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       {/* Create Post Button with Contextual Prompt */}
       <View style={styles.createPostCard}>
         <TouchableOpacity
           style={styles.createPostButton}
-          onPress={() => setShowCreatePost(true)}
+          onPress={() => {
+            if (showPostTypeSelector) {
+              // If already showing type selector, tapping input directly defaults to 'update'
+              setSelectedPostType('update');
+              setShowPostTypeSelector(false);
+              setShowCreatePost(true);
+            } else {
+              setShowPostTypeSelector(true);
+            }
+          }}
         >
           {userProfile?.avatarUrl ? (
             <Image
               source={{ uri: userProfile.avatarUrl }}
-              style={styles.createPostAvatar}
+              style={styles.createPostAvatar as ImageStyle}
             />
           ) : (
             <View style={styles.createPostAvatarFallback}>
@@ -1040,12 +1060,36 @@ const CommunityScreen: React.FC = () => {
             {POST_PROMPTS[promptIndex]}
           </Text>
         </TouchableOpacity>
+
+        {/* Post Type Selector Grid */}
+        {showPostTypeSelector && (
+          <View style={styles.postTypeGrid}>
+            {([
+              { type: 'update' as const, emoji: '\u2728', label: 'Update', subtitle: "Share what's happening" },
+              { type: 'win' as const, emoji: '\uD83C\uDF89', label: 'Win', subtitle: 'Celebrate progress' },
+              { type: 'reflection' as const, emoji: '\uD83D\uDCAD', label: 'Reflection', subtitle: 'Share an insight' },
+              { type: 'ask' as const, emoji: '\uD83E\uDD1D', label: 'Ask', subtitle: 'Request support' },
+            ]).map((item) => (
+              <TouchableOpacity
+                key={item.type}
+                style={styles.postTypeCard}
+                onPress={() => {
+                  setSelectedPostType(item.type);
+                  setShowPostTypeSelector(false);
+                  setShowCreatePost(true);
+                }}
+              >
+                <Text style={styles.postTypeLabel}>{item.emoji} {item.label}</Text>
+                <Text style={styles.postTypeSubtitle}>{item.subtitle}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
     </>
   );
 
   return (
-    <LockedScreenOverlay feature="community_view">
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.screenTitle}>
@@ -1059,7 +1103,7 @@ const CommunityScreen: React.FC = () => {
           {userProfile?.avatarUrl ? (
             <Image
               source={{ uri: userProfile.avatarUrl }}
-              style={styles.profileImage}
+              style={styles.profileImage as ImageStyle}
             />
           ) : (
             <View style={styles.profileAvatarFallback}>
@@ -1075,7 +1119,7 @@ const CommunityScreen: React.FC = () => {
         <LoadingSpinner message="Loading feed..." />
       ) : (
         <FlatList
-          data={posts}
+          data={filteredPosts}
           renderItem={renderPost}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderHeader}
@@ -1110,10 +1154,18 @@ const CommunityScreen: React.FC = () => {
       {/* Create Post Modal */}
       <CreatePostModal
         visible={showCreatePost}
-        onDismiss={handleCloseCreatePost}
+        onDismiss={() => {
+          handleCloseCreatePost();
+          setSelectedPostType(null);
+        }}
         onSubmit={handleSubmitPost}
         userId={user?.uid || ''}
-        placeholder={POST_PROMPTS[promptIndex]}
+        placeholder={
+          selectedPostType === 'win' ? 'What went well?' :
+          selectedPostType === 'reflection' ? 'What did you notice or learn?' :
+          selectedPostType === 'ask' ? 'What could you use support with?' :
+          "What's on your mind?"
+        }
       />
 
       {/* Comment Modal */}
@@ -1138,7 +1190,6 @@ const CommunityScreen: React.FC = () => {
         </InputAccessoryView>
       )}
     </SafeAreaView>
-    </LockedScreenOverlay>
   );
 };
 
@@ -1151,27 +1202,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.base,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: Colors.borderLight,
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.md,
+    paddingBottom: 0,
   },
   screenTitle: {
     color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.bold,
-    fontSize: 22,
+    fontWeight: Typography.fontWeight.semibold,
+    fontSize: 26,
   },
   profileButton: {
-    borderRadius: Layout.borderRadius['2xl'],
+    borderRadius: Layout.borderRadius.full,
     overflow: 'hidden',
   },
   profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: Layout.borderRadius['2xl'],
-    borderWidth: Layout.borderWidth.medium,
-    borderColor: Colors.evergreenTeal,
+    width: 36,
+    height: 36,
+    borderRadius: Layout.borderRadius.full,
   },
   profileAvatar: {
     backgroundColor: Colors.evergreenTeal,
@@ -1182,46 +1229,98 @@ const styles = StyleSheet.create({
   quickNav: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.base,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: Colors.borderLight,
+    paddingTop: Spacing.base,
+    paddingBottom: Spacing.sm,
     justifyContent: 'space-evenly',
   },
   pendingInvitesContainer: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.base,
   },
+  filterPillsContainer: {
+    flexDirection: 'row',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    gap: Spacing.sm,
+  },
+  filterPill: {
+    backgroundColor: Colors.dewSageLight,
+    borderRadius: Layout.borderRadius.pill,
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.base,
+  },
+  filterPillActive: {
+    backgroundColor: Colors.evergreenTeal,
+  },
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.mutedSageGray,
+  },
+  filterPillTextActive: {
+    color: Colors.white,
+  },
+  postTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: 14,
+  },
+  postTypeCard: {
+    flex: 1,
+    minWidth: '45%',
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 10,
+    backgroundColor: Colors.dewSageLight,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  postTypeLabel: {
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+  },
+  postTypeSubtitle: {
+    fontSize: 11,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.mutedSageGray,
+    marginTop: 2,
+  },
   createPostCard: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.base,
-    marginBottom: Spacing.sm,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.white,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.base,
     ...Platform.select({
       ios: {
-        shadowColor: 'rgba(0,0,0,0.06)',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 1,
-        shadowRadius: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 3,
       },
       android: {
-        elevation: 2,
+        elevation: 1,
       },
     }),
   },
   createPostButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.sm,
+    gap: Spacing.md,
   },
   createPostPlaceholder: {
-    color: Colors.textSecondary,
-    marginLeft: Spacing.base,
     flex: 1,
-    fontSize: 15,
-    lineHeight: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: Layout.borderRadius.pill,
+    backgroundColor: Colors.mistWhite,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    fontSize: 14,
+    color: Colors.mutedSageGray,
+    overflow: 'hidden',
   },
   avatar: {
     backgroundColor: Colors.evergreenTeal,
@@ -1247,17 +1346,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   profileAvatarFallback: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: Layout.borderRadius.full,
     backgroundColor: Colors.evergreenTeal,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileAvatarText: {
-    color: Colors.textOnPrimary,
-    fontSize: 16,
-    fontWeight: '600',
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: Typography.fontWeight.semibold,
   },
   emptyState: {
     alignItems: 'center',
@@ -1343,7 +1442,7 @@ const styles = StyleSheet.create({
     padding: Spacing.base,
     fontSize: Typography.fontSize.base,
     color: Colors.textPrimary,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
     minHeight: 120,
     marginBottom: Spacing.base,
   },
@@ -1360,7 +1459,7 @@ const styles = StyleSheet.create({
     padding: Spacing.base,
     fontSize: Typography.fontSize.sm,
     color: Colors.textPrimary,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background.default,
   },
   modalActions: {
     flexDirection: 'row',

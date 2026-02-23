@@ -8,7 +8,7 @@ import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'r
 import { Text, FAB, Checkbox, SegmentedButtons } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Input, LoadingSpinner, PriorityBadge, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton, LockedScreenOverlay } from '../components';
+import { Input, LoadingSpinner, PriorityBadge, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton } from '../components';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -193,7 +193,6 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
   }
 
   return (
-    <LockedScreenOverlay feature="tasks_basic">
     <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
       {!hideHeader && (
         <View style={styles.header}>
@@ -338,7 +337,6 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
         </View>
       </EnhancedModal>
     </SafeAreaView>
-    </LockedScreenOverlay>
   );
 };
 

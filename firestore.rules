@@ -372,6 +372,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ========== GROUP PROMPTS ==========
+
+    // Group Prompts (weekly reflection prompts for groups)
+    match /groupPrompts/{promptId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isGroupOwner(request.resource.data.groupId);
+      allow update, delete: if isAuthenticated() && isGroupOwner(resource.data.groupId);
+    }
+
     // ========== GROUP & CHALLENGE INVITES ==========
 
     // Group Invites
@@ -557,6 +566,18 @@ service cloud.firestore {
     match /notificationPreferences/{userId} {
       // Users can only read/write their own notification preferences
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // App Configuration (feature flags, read-only for clients)
+    match /config/{docId} {
+      allow read: if isAuthenticated();
+      // Write: admin SDK only (Cloud Functions)
+    }
+
+    // Notification Log (Cloud Functions dedup tracking, no client access)
+    match /notificationLog/{userId}/{document=**} {
+      // Write: admin SDK only (Cloud Functions)
+      // No client read/write needed
     }
 
     // ========== SHARED CONTENT ==========

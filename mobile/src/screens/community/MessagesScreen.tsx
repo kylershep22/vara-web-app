@@ -108,12 +108,19 @@ const MessagesScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.screenTitle}>
-          Messages
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Your conversations
-        </Text>
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Icon name="chevron-left" size={24} color={Colors.evergreenTeal} />
+          </TouchableOpacity>
+          <View>
+            <Text variant="headlineMedium" style={styles.screenTitle}>
+              Messages
+            </Text>
+            <Text variant="bodyMedium" style={styles.subtitle}>
+              Your conversations
+            </Text>
+          </View>
+        </View>
       </View>
 
       {/* Conversations List */}
@@ -337,6 +344,14 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.base,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  backButton: {
+    padding: Spacing.xs,
   },
   screenTitle: {
     color: Colors.evergreenTeal,

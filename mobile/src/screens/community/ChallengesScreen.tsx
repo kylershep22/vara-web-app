@@ -19,17 +19,13 @@ import {
   Text,
   SegmentedButtons,
   Searchbar,
-  FAB,
-  Portal,
-  Modal,
-  Button as PaperButton,
   Switch,
   Chip,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, LoadingSpinner, Input } from '../../components';
-import { KeyboardAwareScrollView } from '../../components/shared';
+import { EnhancedModal, ModalFooterActions } from '../../components/shared/EnhancedModal';
 import ChallengeCard from '../../components/community/ChallengeCard';
 import { InvitePermissionPicker, InvitePermission } from '../../components/community';
 import {
@@ -310,7 +306,7 @@ const ChallengesScreen: React.FC = () => {
               <Icon
                 name={cat.icon as any}
                 size={16}
-                color={categoryFilter === cat.key ? Colors.textOnPrimary : cat.color}
+                color={categoryFilter === cat.key ? Colors.textOnPrimary : Colors.textSecondary}
               />
             )}
           >
@@ -357,208 +353,193 @@ const ChallengesScreen: React.FC = () => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.evergreenTeal]} />
           }
+          ListFooterComponent={
+            <TouchableOpacity
+              style={styles.inlineCreateButton}
+              onPress={() => setShowCreateModal(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.inlineCreateButtonText}>+ Create a Challenge</Text>
+            </TouchableOpacity>
+          }
         />
       )}
 
-      {/* FAB */}
-      <FAB
-        icon="plus"
-        label="Create"
-        style={styles.fab}
-        onPress={() => setShowCreateModal(true)}
-        color={Colors.textOnPrimary}
-      />
+      {/* Create Challenge button removed from FAB, now inline in list */}
 
       {/* Create Challenge Modal */}
-      <Portal>
-        <Modal
-          visible={showCreateModal}
-          onDismiss={() => {
-            Keyboard.dismiss();
-            setShowCreateModal(false);
-          }}
-          contentContainerStyle={styles.modal}
-        >
-          <KeyboardAwareScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            enableKeyboardAvoidance={false}
-          >
-              <Text variant="headlineSmall" style={styles.modalTitle}>
-                Create a Challenge
-              </Text>
+      <EnhancedModal
+        visible={showCreateModal}
+        onDismiss={() => {
+          Keyboard.dismiss();
+          setShowCreateModal(false);
+        }}
+        title="Create a Challenge"
+        headerIcon="trophy-outline"
+        maxHeightPercent={0.92}
+        footer={
+          <ModalFooterActions
+            onCancel={() => setShowCreateModal(false)}
+            onSubmit={handleCreateChallenge}
+            cancelLabel="Cancel"
+            submitLabel="Create"
+            submitLoading={submitting}
+            submitDisabled={!name.trim() || !challengeGoal.trim()}
+          />
+        }
+      >
+        <Input
+          label="Challenge Name *"
+          value={name}
+          onChangeText={setName}
+          placeholder="e.g., 30-Day Running Challenge"
+          style={styles.input}
+        />
 
-              <Input
-                label="Challenge Name *"
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g., 30-Day Running Challenge"
-                style={styles.input}
+        <Input
+          label="Challenge Goal *"
+          value={challengeGoal}
+          onChangeText={setChallengeGoal}
+          placeholder="e.g., Run 4 days a week"
+          style={styles.input}
+        />
+
+        <Input
+          label="Description"
+          value={description}
+          onChangeText={setDescription}
+          placeholder="What's this challenge about?"
+          multiline
+          numberOfLines={3}
+          style={styles.input}
+        />
+
+        {/* Category Selection */}
+        <Text variant="bodyLarge" style={styles.sectionLabel}>
+          Category
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categorySelectScroll}>
+          {GROUP_CATEGORY_LIST.map((cat) => (
+            <TouchableOpacity
+              key={cat.key}
+              style={[
+                styles.categorySelectItem,
+                selectedCategory === cat.key && styles.categorySelectItemActive,
+                { borderColor: selectedCategory === cat.key ? Colors.evergreenTeal : Colors.silverSage },
+              ]}
+              onPress={() => setSelectedCategory(cat.key)}
+            >
+              <Icon
+                name={cat.icon as any}
+                size={24}
+                color={selectedCategory === cat.key ? Colors.textOnPrimary : Colors.evergreenTeal}
               />
-
-              <Input
-                label="Challenge Goal *"
-                value={challengeGoal}
-                onChangeText={setChallengeGoal}
-                placeholder="e.g., Run 4 days a week"
-                style={styles.input}
-              />
-
-              <Input
-                label="Description"
-                value={description}
-                onChangeText={setDescription}
-                placeholder="What's this challenge about?"
-                multiline
-                numberOfLines={3}
-                style={styles.input}
-              />
-
-              {/* Category Selection */}
-              <Text variant="bodyLarge" style={styles.sectionLabel}>
-                Category
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categorySelectScroll}>
-                {GROUP_CATEGORY_LIST.map((cat) => (
-                  <TouchableOpacity
-                    key={cat.key}
-                    style={[
-                      styles.categorySelectItem,
-                      selectedCategory === cat.key && styles.categorySelectItemActive,
-                      { borderColor: cat.color },
-                    ]}
-                    onPress={() => setSelectedCategory(cat.key)}
-                  >
-                    <Icon
-                      name={cat.icon as any}
-                      size={24}
-                      color={selectedCategory === cat.key ? Colors.textOnPrimary : cat.color}
-                    />
-                    <Text
-                      style={[
-                        styles.categorySelectText,
-                        selectedCategory === cat.key && styles.categorySelectTextActive,
-                      ]}
-                    >
-                      {cat.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              {/* Frequency Selection */}
-              <Text variant="bodyLarge" style={styles.sectionLabel}>
-                Check-in Frequency
-              </Text>
-              <SegmentedButtons
-                value={frequency}
-                onValueChange={(value) => setFrequency(value as ChallengeFrequency)}
-                buttons={[
-                  { value: 'daily', label: 'Daily' },
-                  { value: 'weekly', label: 'Weekly' },
-                  { value: 'total', label: 'Total' },
+              <Text
+                style={[
+                  styles.categorySelectText,
+                  selectedCategory === cat.key && styles.categorySelectTextActive,
                 ]}
-                style={styles.frequencyButtons}
-              />
-
-              {/* Target & Unit */}
-              <View style={styles.targetRow}>
-                <View style={styles.targetInput}>
-                  <Input
-                    label="Target Count"
-                    value={targetCount}
-                    onChangeText={setTargetCount}
-                    keyboardType="number-pad"
-                    placeholder="20"
-                  />
-                </View>
-                <View style={styles.unitInput}>
-                  <Input label="Unit" value={unit} onChangeText={setUnit} placeholder="times" />
-                </View>
-              </View>
-
-              {/* Date Selection */}
-              <Text variant="bodyLarge" style={styles.sectionLabel}>
-                Duration
+              >
+                {cat.label}
               </Text>
-              <View style={styles.dateRow}>
-                <TouchableOpacity style={styles.dateButton} onPress={() => setShowStartPicker(true)}>
-                  <Icon name="calendar-start" size={20} color={Colors.evergreenTeal} />
-                  <View>
-                    <Text style={styles.dateLabel}>Start Date</Text>
-                    <Text style={styles.dateValue}>{formatDate(startDate)}</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.dateButton} onPress={() => setShowEndPicker(true)}>
-                  <Icon name="calendar-end" size={20} color={Colors.evergreenTeal} />
-                  <View>
-                    <Text style={styles.dateLabel}>End Date</Text>
-                    <Text style={styles.dateValue}>{formatDate(endDate)}</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-              {showStartPicker && (
-                <DateTimePicker
-                  value={startDate}
-                  mode="date"
-                  onChange={(event, date) => {
-                    setShowStartPicker(false);
-                    if (date) setStartDate(date);
-                  }}
-                />
-              )}
-              {showEndPicker && (
-                <DateTimePicker
-                  value={endDate}
-                  mode="date"
-                  minimumDate={startDate}
-                  onChange={(event, date) => {
-                    setShowEndPicker(false);
-                    if (date) setEndDate(date);
-                  }}
-                />
-              )}
+        {/* Frequency Selection */}
+        <Text variant="bodyLarge" style={styles.sectionLabel}>
+          Check-in Frequency
+        </Text>
+        <SegmentedButtons
+          value={frequency}
+          onValueChange={(value) => setFrequency(value as ChallengeFrequency)}
+          buttons={[
+            { value: 'daily', label: 'Daily' },
+            { value: 'weekly', label: 'Weekly' },
+            { value: 'total', label: 'Total' },
+          ]}
+          style={styles.frequencyButtons}
+        />
 
-              {/* Public/Private Switch */}
-              <View style={styles.switchContainer}>
-                <View style={styles.switchLabel}>
-                  <Text variant="bodyLarge" style={styles.switchLabelText}>
-                    Public Challenge
-                  </Text>
-                  <Text variant="bodySmall" style={styles.switchDescription}>
-                    Anyone can discover and join
-                  </Text>
-                </View>
-                <Switch value={isPublic} onValueChange={setIsPublic} color={Colors.evergreenTeal} />
-              </View>
+        {/* Target & Unit */}
+        <View style={styles.targetRow}>
+          <View style={styles.targetInput}>
+            <Input
+              label="Target Count"
+              value={targetCount}
+              onChangeText={setTargetCount}
+              keyboardType="number-pad"
+              placeholder="20"
+            />
+          </View>
+          <View style={styles.unitInput}>
+            <Input label="Unit" value={unit} onChangeText={setUnit} placeholder="times" />
+          </View>
+        </View>
 
-              {/* Invite Permissions */}
-              <InvitePermissionPicker
-                value={invitePermission}
-                onChange={setInvitePermission}
-                entityType="challenge"
-              />
+        {/* Date Selection */}
+        <Text variant="bodyLarge" style={styles.sectionLabel}>
+          Duration
+        </Text>
+        <View style={styles.dateRow}>
+          <TouchableOpacity style={styles.dateButton} onPress={() => setShowStartPicker(true)}>
+            <Icon name="calendar-start" size={20} color={Colors.evergreenTeal} />
+            <View>
+              <Text style={styles.dateLabel}>Start Date</Text>
+              <Text style={styles.dateValue}>{formatDate(startDate)}</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.dateButton} onPress={() => setShowEndPicker(true)}>
+            <Icon name="calendar-end" size={20} color={Colors.evergreenTeal} />
+            <View>
+              <Text style={styles.dateLabel}>End Date</Text>
+              <Text style={styles.dateValue}>{formatDate(endDate)}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
-              {/* Actions */}
-              <View style={styles.modalActions}>
-                <PaperButton mode="outlined" onPress={() => setShowCreateModal(false)} style={styles.modalButton}>
-                  Cancel
-                </PaperButton>
-                <PaperButton
-                  mode="contained"
-                  onPress={handleCreateChallenge}
-                  loading={submitting}
-                  disabled={submitting || !name.trim() || !challengeGoal.trim()}
-                  style={styles.modalButton}
-                  buttonColor={Colors.evergreenTeal}
-                >
-                  Create
-                </PaperButton>
-              </View>
-          </KeyboardAwareScrollView>
-        </Modal>
-      </Portal>
+        {showStartPicker && (
+          <DateTimePicker
+            value={startDate}
+            mode="date"
+            onChange={(event, date) => {
+              setShowStartPicker(Platform.OS === 'ios');
+              if (date) setStartDate(date);
+            }}
+          />
+        )}
+        {showEndPicker && (
+          <DateTimePicker
+            value={endDate}
+            mode="date"
+            minimumDate={startDate}
+            onChange={(event, date) => {
+              setShowEndPicker(Platform.OS === 'ios');
+              if (date) setEndDate(date);
+            }}
+          />
+        )}
+
+        {/* Public/Private Switch */}
+        <View style={styles.switchContainer}>
+          <View style={styles.switchLabel}>
+            <Text variant="bodyLarge" style={styles.switchLabelText}>
+              Public Challenge
+            </Text>
+            <Text variant="bodySmall" style={styles.switchDescription}>
+              Anyone can discover and join
+            </Text>
+          </View>
+          <Switch value={isPublic} onValueChange={setIsPublic} color={Colors.evergreenTeal} />
+        </View>
+
+        {/* Invite Permissions */}
+        <InvitePermissionPicker
+          value={invitePermission}
+          onChange={setInvitePermission}
+          entityType="challenge"
+        />
+      </EnhancedModal>
     </SafeAreaView>
   );
 };
@@ -649,26 +630,19 @@ const styles = StyleSheet.create({
   createButton: {
     minWidth: 160,
   },
-  fab: {
-    position: 'absolute',
-    right: Spacing.lg,
-    bottom: Spacing.lg,
+  inlineCreateButton: {
     backgroundColor: Colors.evergreenTeal,
-  },
-  modal: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: Spacing.lg,
+    height: 48,
     borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.lg,
-    maxHeight: '90%',
-  },
-  scrollContent: {
-    paddingBottom: Spacing.base,
-  },
-  modalTitle: {
-    color: Colors.evergreenTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Spacing.lg,
-    fontWeight: Typography.fontWeight.semibold,
+    marginTop: Spacing.base,
+  },
+  inlineCreateButtonText: {
+    color: Colors.textOnPrimary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
   },
   input: {
     marginBottom: Spacing.base,
@@ -761,15 +735,6 @@ const styles = StyleSheet.create({
   },
   switchDescription: {
     color: Colors.textSecondary,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: Spacing.base,
-    gap: Spacing.sm,
-  },
-  modalButton: {
-    flex: 1,
   },
 });
 

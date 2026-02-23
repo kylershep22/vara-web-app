@@ -41,6 +41,7 @@ export interface EnhancedUserProfile {
   mutualConnectionCount?: number;
   lastActiveAt?: Timestamp | Date;
   sharedGroups?: string[];
+  sharedGroupNames?: string[];
   sharedInterests?: string[];
   suggestionReason?: 'group' | 'interests' | 'friends_of_friends';
 }
@@ -199,6 +200,9 @@ export async function getSuggestedConnections(
   // 1. Get suggestions from same groups (highest priority)
   const userGroups = await getUserGroups(currentUserId);
 
+  // Map of groupId -> groupName for resolving names later
+  const groupNameMap: Map<string, string> = new Map();
+
   for (const groupId of userGroups) {
     if (suggestions.size >= maxSuggestions) break;
 
@@ -206,6 +210,8 @@ export async function getSuggestedConnections(
     if (!groupDoc.exists()) continue;
 
     const groupData = groupDoc.data();
+    const groupName = groupData.name || 'Unnamed Group';
+    groupNameMap.set(groupId, groupName);
     const members = groupData.members || [];
 
     for (const memberId of members) {
@@ -227,6 +233,15 @@ export async function getSuggestedConnections(
           [...sharedGroups, groupId]
         );
       }
+    }
+  }
+
+  // Resolve group names for group-based suggestions
+  for (const [, suggestion] of suggestions) {
+    if (suggestion.suggestionReason === 'group' && suggestion.sharedGroups) {
+      suggestion.sharedGroupNames = suggestion.sharedGroups
+        .map((gId) => groupNameMap.get(gId))
+        .filter((name): name is string => !!name);
     }
   }
 
@@ -346,10 +361,16 @@ export function getSuggestionReasonLabel(
   reason?: 'group' | 'interests' | 'friends_of_friends',
   sharedGroups?: string[],
   sharedInterests?: string[],
-  mutualCount?: number
+  mutualCount?: number,
+  sharedGroupNames?: string[]
 ): string {
   switch (reason) {
     case 'group':
+      if (sharedGroupNames && sharedGroupNames.length > 0) {
+        return sharedGroupNames.length === 1
+          ? `In ${sharedGroupNames[0]}`
+          : `In ${sharedGroupNames[0]} + ${sharedGroupNames.length - 1} more`;
+      }
       return sharedGroups && sharedGroups.length > 0
         ? `In ${sharedGroups.length} shared group${sharedGroups.length > 1 ? 's' : ''}`
         : 'In a shared group';

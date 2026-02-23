@@ -1,9 +1,16 @@
 /**
  * Signup Screen
  * New user registration with email and password
+ *
+ * Enhanced with:
+ * - Floating label inputs
+ * - Custom styled checkbox
+ * - Real-time password validation
+ * - Animated mount transitions
+ * - Decorative background elements
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,21 +19,30 @@ import {
   Platform,
   TouchableOpacity,
   Alert,
-  Linking,
+  Image,
+  Animated,
 } from 'react-native';
-import { Text, Snackbar, Checkbox } from 'react-native-paper';
+import { Text, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { Button, Input, AuthHeader } from '../../components';
+import { Button } from '../../components';
+import {
+  FloatingLabelInput,
+  CustomCheckbox,
+  PasswordRequirements,
+  allRequirementsMet,
+} from '../../components/auth';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import {
   validateEmail,
-  validatePassword,
-  validatePasswordMatch,
   validateDisplayName,
   getAuthErrorMessage,
 } from '../../utils/validation';
+
+// Import logo from assets (Vara branded icon)
+const VaraLogo = require('../../../assets/iOS Icon 2 - 1024x1024.png');
 
 interface SignupScreenProps {
   navigation: any;
@@ -34,6 +50,7 @@ interface SignupScreenProps {
 
 const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
   const { signup, isLoading } = useAuth();
+  const reduceMotion = useReducedMotion();
 
   // Form state
   const [displayName, setDisplayName] = useState('');
@@ -47,12 +64,44 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
   // Error state
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [termsError, setTermsError] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarType, setSnackbarType] = useState<'error' | 'success'>('error');
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateAnim = useRef(new Animated.Value(12)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
+
+  // Mount animation
+  useEffect(() => {
+    const duration = reduceMotion ? 0 : 500;
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateAnim, {
+        toValue: 0,
+        duration: reduceMotion ? 0 : duration,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [reduceMotion]);
+
+  // Check if passwords match (for mismatch message)
+  const showPasswordMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
+
+  // Check if form is valid for enabling button
+  const isFormValid =
+    displayName.trim().length > 0 &&
+    email.trim().length > 0 &&
+    allRequirementsMet(password) &&
+    password === confirmPassword &&
+    agreedToTerms;
 
   /**
    * Open Terms of Service
@@ -63,8 +112,6 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
       'The Terms of Service document will be displayed here. For now, this feature is coming soon.',
       [{ text: 'OK' }]
     );
-    // TODO: Navigate to a screen that displays TERMS_OF_SERVICE.md
-    // or open in a web browser: Linking.openURL('https://vara.app/terms')
   };
 
   /**
@@ -76,65 +123,69 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
       'The Privacy Policy document will be displayed here. For now, this feature is coming soon.',
       [{ text: 'OK' }]
     );
-    // TODO: Navigate to a screen that displays PRIVACY_POLICY.md
-    // or open in a web browser: Linking.openURL('https://vara.app/privacy')
+  };
+
+  /**
+   * Button press animations
+   */
+  const handleButtonPressIn = () => {
+    Animated.timing(buttonScale, {
+      toValue: 0.98,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleButtonPressOut = () => {
+    Animated.timing(buttonScale, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
   };
 
   /**
    * Handle signup submission
    */
   const handleSignup = async () => {
-    console.log('🔍 handleSignup called');
-    console.log('Form values:', { displayName, email, password: '***', confirmPassword: '***', agreedToTerms });
-
     // Clear previous errors
     setNameError('');
     setEmailError('');
-    setPasswordError('');
-    setConfirmPasswordError('');
     setTermsError('');
 
     // Validate display name
     const nameValidation = validateDisplayName(displayName);
-    console.log('Name validation:', nameValidation);
     if (!nameValidation.isValid) {
       setNameError(nameValidation.error || '');
-      console.log('❌ Name validation failed');
       return;
     }
 
     // Validate email
     const emailValidation = validateEmail(email);
-    console.log('Email validation:', emailValidation);
     if (!emailValidation.isValid) {
       setEmailError(emailValidation.error || '');
-      console.log('❌ Email validation failed');
       return;
     }
 
-    // Validate password
-    const passwordValidation = validatePassword(password);
-    console.log('Password validation:', passwordValidation);
-    if (!passwordValidation.isValid) {
-      setPasswordError(passwordValidation.error || '');
-      console.log('❌ Password validation failed');
+    // Validate password requirements
+    if (!allRequirementsMet(password)) {
+      setSnackbarMessage('Please ensure your password meets all requirements');
+      setSnackbarType('error');
+      setSnackbarVisible(true);
       return;
     }
 
     // Validate password match
-    const passwordMatchValidation = validatePasswordMatch(password, confirmPassword);
-    console.log('Password match validation:', passwordMatchValidation);
-    if (!passwordMatchValidation.isValid) {
-      setConfirmPasswordError(passwordMatchValidation.error || '');
-      console.log('❌ Password match validation failed');
+    if (password !== confirmPassword) {
+      setSnackbarMessage('Passwords don\'t quite match yet');
+      setSnackbarType('error');
+      setSnackbarVisible(true);
       return;
     }
 
     // Check terms agreement
-    console.log('Terms agreed:', agreedToTerms);
     if (!agreedToTerms) {
-      console.log('❌ Terms not agreed');
-      setTermsError('You must agree to the Terms of Service and Privacy Policy to continue');
+      setTermsError('You must agree to the Terms of Service and Privacy Policy');
       setSnackbarMessage('Please agree to the Terms of Service and Privacy Policy');
       setSnackbarType('error');
       setSnackbarVisible(true);
@@ -142,21 +193,12 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
     }
 
     // Attempt signup
-    console.log('✅ All validations passed, attempting signup...');
     try {
       await signup(email.trim(), password, displayName.trim());
-
-      console.log('✅ Signup successful!');
-      // Show success message
       setSnackbarMessage('Account created! Please check your email to verify your account.');
       setSnackbarType('success');
       setSnackbarVisible(true);
-
-      // No manual navigation needed - AppNavigator will automatically detect
-      // that the user is signed in but email is not verified, and show
-      // the EmailVerificationScreen via VerificationNavigator
     } catch (error: any) {
-      console.error('❌ Signup error caught:', error);
       const errorMessage = getAuthErrorMessage(error.code);
       setSnackbarMessage(errorMessage);
       setSnackbarType('error');
@@ -166,6 +208,10 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Decorative background circles */}
+      <View style={styles.bgCircleTopRight} pointerEvents="none" />
+      <View style={styles.bgCircleBottomLeft} pointerEvents="none" />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -173,189 +219,180 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
-          <AuthHeader
-            title="Create Account"
-            subtitle="Start your wellness journey today"
-          />
-
-          {/* Form */}
-          <View style={styles.form}>
-            {/* Name Input */}
-            <Input
-              label="Full Name"
-              value={displayName}
-              onChangeText={(text) => {
-                setDisplayName(text);
-                setNameError('');
-              }}
-              autoCapitalize="words"
-              autoComplete="name"
-              error={!!nameError}
-              errorText={nameError}
-              left={<Icon name="account-outline" size={20} color={Colors.textSecondary} />}
-              style={styles.input}
-            />
-
-            {/* Email Input */}
-            <Input
-              label="Email"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setEmailError('');
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              error={!!emailError}
-              errorText={emailError}
-              left={<Icon name="email-outline" size={20} color={Colors.textSecondary} />}
-              style={styles.input}
-            />
-
-            {/* Password Input */}
-            <Input
-              label="Password"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                setPasswordError('');
-              }}
-              secureTextEntry={secureTextEntry}
-              autoCapitalize="none"
-              autoComplete="password-new"
-              error={!!passwordError}
-              errorText={passwordError}
-              left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
-              right={
-                <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
-                  <Icon
-                    name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
-                    size={20}
-                    color={Colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              }
-              style={styles.input}
-            />
-
-            {/* Confirm Password Input */}
-            <Input
-              label="Confirm Password"
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                setConfirmPasswordError('');
-              }}
-              secureTextEntry={secureConfirmEntry}
-              autoCapitalize="none"
-              autoComplete="password-new"
-              error={!!confirmPasswordError}
-              errorText={confirmPasswordError}
-              left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
-              right={
-                <TouchableOpacity onPress={() => setSecureConfirmEntry(!secureConfirmEntry)}>
-                  <Icon
-                    name={secureConfirmEntry ? 'eye-outline' : 'eye-off-outline'}
-                    size={20}
-                    color={Colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              }
-              style={styles.input}
-            />
-
-            {/* Password Requirements */}
-            <View style={styles.requirementsBox}>
-              <Text variant="bodySmall" style={styles.requirementsTitle}>
-                Password must contain:
-              </Text>
-              <Text variant="bodySmall" style={styles.requirementText}>
-                • At least 8 characters
-              </Text>
-              <Text variant="bodySmall" style={styles.requirementText}>
-                • One uppercase letter
-              </Text>
-              <Text variant="bodySmall" style={styles.requirementText}>
-                • One lowercase letter
-              </Text>
-              <Text variant="bodySmall" style={styles.requirementText}>
-                • One number
-              </Text>
-            </View>
-
-            {/* Terms Agreement */}
-            <View style={[
-              styles.checkboxContainer,
-              termsError && styles.checkboxContainerError
-            ]}>
-              <Checkbox
-                status={agreedToTerms ? 'checked' : 'unchecked'}
-                onPress={() => {
-                  setAgreedToTerms(!agreedToTerms);
-                  setTermsError('');
-                }}
-                color={Colors.evergreenTeal}
-                uncheckedColor={termsError ? Colors.error : Colors.textSecondary}
+          <Animated.View
+            style={[
+              styles.contentContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: translateAnim }],
+              },
+            ]}
+          >
+            {/* Header with Logo */}
+            <View style={styles.header}>
+              <Image
+                source={VaraLogo}
+                style={styles.logo}
+                resizeMode="cover"
               />
-              <TouchableOpacity
-                style={styles.checkboxTextContainer}
-                onPress={() => {
-                  setAgreedToTerms(!agreedToTerms);
-                  setTermsError('');
+              <Text style={styles.title}>Create Your Account</Text>
+              <Text style={styles.subtitle}>
+                A calm place to begin supporting your brain health
+              </Text>
+            </View>
+
+            {/* Form */}
+            <View style={styles.form}>
+              {/* Name Input */}
+              <FloatingLabelInput
+                label="Full Name"
+                value={displayName}
+                onChangeText={(text) => {
+                  setDisplayName(text);
+                  setNameError('');
                 }}
-                activeOpacity={0.7}
-              >
-                <Text variant="bodySmall" style={styles.checkboxText}>
-                  I agree to the{' '}
-                  <Text
-                    style={styles.link}
-                    onPress={handleOpenTerms}
-                  >
-                    Terms of Service
-                  </Text>{' '}
-                  and{' '}
-                  <Text
-                    style={styles.link}
-                    onPress={handleOpenPrivacy}
-                  >
-                    Privacy Policy
+                autoCapitalize="words"
+                autoComplete="name"
+                error={!!nameError}
+                errorText={nameError}
+                left={<Icon name="account-outline" size={20} color={Colors.textSecondary} />}
+              />
+
+              {/* Email Input */}
+              <FloatingLabelInput
+                label="Email"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setEmailError('');
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                error={!!emailError}
+                errorText={emailError}
+                left={<Icon name="email-outline" size={20} color={Colors.textSecondary} />}
+              />
+
+              {/* Password Input */}
+              <FloatingLabelInput
+                label="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={secureTextEntry}
+                autoCapitalize="none"
+                autoComplete="password-new"
+                left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
+                right={
+                  <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
+                    <Icon
+                      name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color={Colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                }
+              />
+
+              {/* Confirm Password Input */}
+              <FloatingLabelInput
+                label="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={secureConfirmEntry}
+                autoCapitalize="none"
+                autoComplete="password-new"
+                left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
+                right={
+                  <TouchableOpacity onPress={() => setSecureConfirmEntry(!secureConfirmEntry)}>
+                    <Icon
+                      name={secureConfirmEntry ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color={Colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                }
+              />
+
+              {/* Password Mismatch Message */}
+              {showPasswordMismatch && (
+                <Text style={styles.mismatchText}>
+                  Passwords don't quite match yet
+                </Text>
+              )}
+
+              {/* Password Requirements */}
+              <PasswordRequirements password={password} />
+
+              {/* Terms Agreement */}
+              <View style={[
+                styles.checkboxContainer,
+                termsError && styles.checkboxContainerError
+              ]}>
+                <CustomCheckbox
+                  checked={agreedToTerms}
+                  onPress={() => {
+                    setAgreedToTerms(!agreedToTerms);
+                    setTermsError('');
+                  }}
+                  error={!!termsError}
+                />
+                <TouchableOpacity
+                  style={styles.checkboxTextContainer}
+                  onPress={() => {
+                    setAgreedToTerms(!agreedToTerms);
+                    setTermsError('');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.checkboxText}>
+                    I agree to the{' '}
+                    <Text style={styles.link} onPress={handleOpenTerms}>
+                      Terms of Service
+                    </Text>{' '}
+                    and{' '}
+                    <Text style={styles.link} onPress={handleOpenPrivacy}>
+                      Privacy Policy
+                    </Text>
                   </Text>
-                </Text>
-              </TouchableOpacity>
-            </View>
-            {termsError ? (
-              <Text variant="bodySmall" style={styles.errorText}>
-                {termsError}
-              </Text>
-            ) : null}
+                </TouchableOpacity>
+              </View>
 
-            {/* Signup Button */}
-            <Button
-              variant="primary"
-              onPress={handleSignup}
-              loading={isLoading}
-              disabled={isLoading}
-              fullWidth
-              style={styles.signupButton}
-            >
-              Sign Up
-            </Button>
-
-            {/* Login Link */}
-            <View style={styles.loginContainer}>
-              <Text variant="bodyMedium" style={styles.loginText}>
-                Already have an account?{' '}
-              </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text variant="bodyMedium" style={styles.loginLink}>
-                  Log In
-                </Text>
+              {/* Signup Button */}
+              <TouchableOpacity
+                onPress={handleSignup}
+                onPressIn={handleButtonPressIn}
+                onPressOut={handleButtonPressOut}
+                disabled={!isFormValid || isLoading}
+                activeOpacity={1}
+                style={styles.buttonWrapper}
+              >
+                <Animated.View
+                  style={[
+                    styles.signupButton,
+                    !isFormValid && styles.signupButtonDisabled,
+                    { transform: [{ scale: buttonScale }] },
+                  ]}
+                >
+                  {isLoading ? (
+                    <Text style={styles.signupButtonText}>Creating account...</Text>
+                  ) : (
+                    <Text style={styles.signupButtonText}>Begin at your own pace</Text>
+                  )}
+                </Animated.View>
               </TouchableOpacity>
+
+              {/* Login Link */}
+              <View style={styles.loginContainer}>
+                <Text style={styles.loginText}>Already have an account? </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                  <Text style={styles.loginLink}>Sign in</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -382,85 +419,151 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: Colors.mistWhite,
+  },
+  // Decorative background circles
+  bgCircleTopRight: {
+    position: 'absolute',
+    top: -80,
+    right: -60,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(213, 227, 209, 0.33)',
+    zIndex: 0,
+  },
+  bgCircleBottomLeft: {
+    position: 'absolute',
+    bottom: 40,
+    left: -80,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(213, 227, 209, 0.25)',
+    zIndex: 0,
   },
   keyboardView: {
     flex: 1,
+    zIndex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xl,
   },
+  contentContainer: {
+    flex: 1,
+  },
+  // Header styles
+  header: {
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
+  logo: {
+    width: 68,
+    height: 68,
+    borderRadius: 14,
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 15 * 1.5,
+    paddingHorizontal: Spacing.md,
+  },
+  // Form styles
   form: {
     flex: 1,
   },
-  input: {
+  mismatchText: {
+    fontSize: 13,
+    color: Colors.error,
+    marginTop: -8,
     marginBottom: Spacing.base,
+    marginLeft: 4,
   },
-  requirementsBox: {
-    backgroundColor: Colors.dewSage,
-    borderRadius: Layout.borderRadius.md,
-    padding: Spacing.base,
-    marginBottom: Spacing.lg,
-  },
-  requirementsTitle: {
-    color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.xs,
-  },
-  requirementText: {
-    color: Colors.textSecondary,
-    marginLeft: Spacing.sm,
-  },
+  // Checkbox styles
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: 'transparent',
+    marginBottom: Spacing.lg,
+    paddingVertical: Spacing.xs,
   },
   checkboxContainerError: {
-    backgroundColor: Colors.error + '10', // 10% opacity red background
-    borderWidth: 1,
-    borderColor: Colors.error + '30', // 30% opacity red border
+    backgroundColor: Colors.error + '10',
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.sm,
+    marginLeft: -Spacing.sm,
+    marginRight: -Spacing.sm,
   },
   checkboxTextContainer: {
     flex: 1,
     marginLeft: Spacing.xs,
-    marginTop: 8, // Align text with checkbox center
+    marginTop: 2,
   },
   checkboxText: {
+    fontSize: 14,
     color: Colors.textSecondary,
-    lineHeight: Typography.fontSize.sm * 1.5,
-  },
-  errorText: {
-    color: Colors.error,
-    marginTop: -Spacing.xs,
-    marginBottom: Spacing.base,
-    marginLeft: Spacing.base + 24, // Align with checkbox text
+    lineHeight: 14 * 1.5,
   },
   link: {
     color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: '500',
     textDecorationLine: 'underline',
   },
-  signupButton: {
+  // Button styles
+  buttonWrapper: {
     marginBottom: Spacing.lg,
   },
+  signupButton: {
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: Colors.evergreenTeal,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: 'rgba(27, 94, 87, 0.19)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  signupButtonDisabled: {
+    backgroundColor: 'rgba(27, 94, 87, 0.4)',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  signupButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  // Login link styles
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: Spacing.sm,
   },
   loginText: {
+    fontSize: 14,
     color: Colors.textSecondary,
   },
   loginLink: {
+    fontSize: 14,
     color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: '500',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(27, 94, 87, 0.25)',
   },
+  // Snackbar styles
   snackbar: {
     backgroundColor: Colors.error,
   },

@@ -9,11 +9,14 @@ import { Text, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Button, Input, EnhancedModal, ModalFooterActions, BaseCard } from '../components';
+import { IntentionHighlightCard } from '../components/habits/IntentionHighlightCard';
+import { BrainHealthInsightNote } from '../components/habits/BrainHealthInsightNote';
+import { IntentionEditSheet } from '../components/habits/IntentionEditSheet';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { updateHabit, deleteHabit } from '../services/firebase';
-import { Habit } from '../types';
+import { Habit, HabitIntention } from '../types';
 
 type HabitDetailRouteParams = {
   HabitDetail: {
@@ -30,6 +33,7 @@ const HabitDetailScreen: React.FC = () => {
 
   const [habit, setHabit] = useState<Habit>(initialHabit);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [intentionSheetVisible, setIntentionSheetVisible] = useState(false);
   const [formData, setFormData] = useState({
     name: habit.name,
     type: habit.type,
@@ -94,6 +98,23 @@ const HabitDetailScreen: React.FC = () => {
     );
   };
 
+  const handleSaveIntention = async (intention?: HabitIntention) => {
+    try {
+      const updateData: any = {};
+      if (intention) {
+        updateData.intention = intention;
+      } else {
+        // Remove intention - set to null for Firestore
+        updateData.intention = null;
+      }
+      await updateHabit(habit.id, updateData);
+      setHabit({ ...habit, intention: intention || undefined });
+    } catch (error) {
+      console.error('Error updating intention:', error);
+      Alert.alert('Error', 'Failed to update intention. Please try again.');
+    }
+  };
+
   const getFrequencyLabel = () => {
     if (habit.type === 'daily') return 'Daily';
     if (habit.type === 'weekly') return `${habit.frequency}x per week`;
@@ -145,6 +166,14 @@ const HabitDetailScreen: React.FC = () => {
           </View>
         </BaseCard>
 
+        {/* Intention Highlight Card */}
+        {habit.intention && (
+          <IntentionHighlightCard
+            intention={habit.intention}
+            onEdit={() => setIntentionSheetVisible(true)}
+          />
+        )}
+
         {/* Identity Section (if applicable) */}
         {(habit.identity || habit.identityStatement) && (
           <BaseCard style={styles.identityCard}>
@@ -161,6 +190,12 @@ const HabitDetailScreen: React.FC = () => {
             )}
           </BaseCard>
         )}
+
+        {/* Brain Health Insight Note */}
+        <BrainHealthInsightNote
+          category={habit.category}
+          intentionCategory={habit.intention?.category}
+        />
 
         {/* Actions */}
         <View style={styles.actionsContainer}>
@@ -239,6 +274,14 @@ const HabitDetailScreen: React.FC = () => {
           inputAccessoryViewID="habit-edit-modal"
         />
       </EnhancedModal>
+
+      {/* Intention Edit Sheet */}
+      <IntentionEditSheet
+        visible={intentionSheetVisible}
+        onDismiss={() => setIntentionSheetVisible(false)}
+        currentIntention={habit.intention}
+        onSave={handleSaveIntention}
+      />
     </SafeAreaView>
   );
 };

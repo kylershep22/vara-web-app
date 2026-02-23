@@ -60,3 +60,22 @@ export {
   getActionLabel,
   type BrainHealthTranslation,
 } from './brainHealth';
+export {
+  INTENTION_OPTIONS,
+  INTENTION_CATEGORY_LABELS,
+  INTENTION_INSIGHTS,
+} from './intentions';
+export {
+  ALL_DISCOVERABLE_FEATURES,
+  PILLAR_INITIAL_FEATURES,
+  PILLAR_FEATURE_ORDER,
+  UNLOCK_TRIGGERS,
+  FEATURE_PREVIEW_CONTENT,
+  FEATURE_CARD_CONTENT,
+  UNLOCK_TOAST_CONTENT,
+  DEFAULT_FEATURE_STATE,
+  DEFAULT_ENGAGEMENT_METRICS,
+  getUnlockTrigger,
+  getOrderedUpcomingFeatures,
+  initializeFeatureStates,
+} from './featureDiscovery';

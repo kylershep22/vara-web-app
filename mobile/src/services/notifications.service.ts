@@ -1,17 +1,60 @@
 // mobile/src/services/notifications.service.ts
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { Platform } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import { db } from '../config/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
-// Configure how notifications should be handled when the app is foregrounded
+// ==========================================
+// FOREGROUND NOTIFICATION GATE
+// Suppresses system alerts when app is foregrounded;
+// routes them to in-app toast instead.
+// ==========================================
+
+let _isForeground = AppState.currentState === 'active';
+let _onForegroundNotification: ((title: string, body: string) => void) | null = null;
+
+// Track foreground state
+AppState.addEventListener('change', (state: AppStateStatus) => {
+  _isForeground = state === 'active';
+});
+
+/**
+ * Register a callback for notifications received while foregrounded.
+ * The NotificationContext calls this to route to ToastContext.
+ */
+export function setForegroundNotificationHandler(
+  handler: (title: string, body: string) => void,
+): void {
+  _onForegroundNotification = handler;
+}
+
+// Configure how notifications are handled when the app is foregrounded
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (notification) => {
+    if (_isForeground) {
+      // Route to in-app toast instead of system alert
+      const title = notification.request.content.title || '';
+      const body = notification.request.content.body || '';
+      if (_onForegroundNotification && (title || body)) {
+        _onForegroundNotification(title, body);
+      }
+      return {
+        shouldShowAlert: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: false,
+        shouldShowList: false,
+      };
+    }
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    };
+  },
 });
 
 /**
@@ -40,10 +83,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
     }
 
     // Get the Expo push token
-    // Note: This will fail in Expo Go but work in production builds
     const token = (
       await Notifications.getExpoPushTokenAsync({
-        projectId: '63c2515a-00f1-454c-8400-2514781cade6', // EAS project ID from app.json
+        projectId: '63c2515a-00f1-454c-8400-2514781cade6',
       })
     ).data;
 
@@ -59,7 +101,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     return token;
   } catch (error) {
-    // This error is expected in Expo Go - push tokens only work in production builds
     console.log('Push notification token unavailable (expected in Expo Go):', error);
     return null;
   }
@@ -123,26 +164,6 @@ export async function getAllScheduledNotifications(): Promise<Notifications.Noti
 }
 
 /**
- * Schedule daily habit reminder
- */
-export async function scheduleDailyHabitReminder(hour: number, minute: number): Promise<string> {
-  // Cancel existing reminder first
-  await cancelAllNotifications();
-
-  const trigger: Notifications.DailyTriggerInput = {
-    hour,
-    minute,
-    repeats: true,
-  };
-
-  return await scheduleLocalNotification(
-    'Time to check in! 🌟',
-    'Complete your daily habits and track your wellness journey.',
-    trigger
-  );
-}
-
-/**
  * Add notification received listener
  */
 export function addNotificationReceivedListener(
@@ -172,5 +193,54 @@ export async function getPermissionsStatus(): Promise<Notifications.Notification
  */
 export async function openNotificationSettings(): Promise<void> {
   await Notifications.getPermissionsAsync();
-  // On iOS, this will prompt to open settings if permissions were denied
+}
+
+// ==========================================
+// FCM TOKEN & FEATURE FLAG
+// ==========================================
+
+/**
+ * Register for FCM push token via expo-notifications device push token.
+ * Saves to user doc as `fcmToken` for server-side Cloud Functions.
+ */
+export async function registerAndSaveFCMToken(userId: string): Promise<string | null> {
+  if (!Device.isDevice) return null;
+
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') return null;
+
+    // Expo's getDevicePushTokenAsync returns the native FCM/APNs token
+    const deviceToken = await Notifications.getDevicePushTokenAsync();
+    const fcmToken = deviceToken.data;
+
+    if (fcmToken && typeof fcmToken === 'string') {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        fcmToken,
+        fcmTokenUpdatedAt: serverTimestamp(),
+      });
+      return fcmToken;
+    }
+
+    return null;
+  } catch (error) {
+    console.log('FCM token registration unavailable:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if server-side push is enabled via feature flag.
+ * Returns true if server push is active (client can skip local scheduling for covered categories).
+ */
+export async function isServerPushEnabled(): Promise<boolean> {
+  try {
+    const configRef = doc(db, 'config', 'notifications');
+    const configSnap = await getDoc(configRef);
+    if (!configSnap.exists()) return false;
+    return configSnap.data()?.serverPushEnabled === true;
+  } catch {
+    return false;
+  }
 }

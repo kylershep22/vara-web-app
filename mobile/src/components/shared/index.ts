@@ -16,5 +16,7 @@ export type { TagVariant } from './Tag';
 export { BaseCard } from './BaseCard';
 export { InlineCreateButton } from './InlineCreateButton';
 export { FeatureGate, LockedFeaturePreview, LockedBadge } from './FeatureGate';
-export { LockedScreenOverlay } from './LockedScreenOverlay';
 export { OfflineIndicator } from './OfflineIndicator';
+export { Badge } from './Badge';
+export type { BadgeVariant } from './Badge';
+export { CommunityAvatar } from './CommunityAvatar';

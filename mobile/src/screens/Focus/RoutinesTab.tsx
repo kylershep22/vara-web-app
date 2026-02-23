@@ -47,12 +47,8 @@ import {
 } from './components';
 import { getActivityColor, getActivityColorWithOpacity } from './components/activityColors';
 
-// Map new TimeOfDay to existing RoutineType
-type RoutineType = 'morning' | 'bedtime' | 'evening' | 'custom';
-
+// TimeOfDay maps directly to RoutineType after sunday→custom migration
 const mapTimeOfDayToRoutineType = (time: TimeOfDay): RoutineType => {
-  // Custom maps to what was 'sunday' in the database
-  if (time === 'custom') return 'custom';
   return time;
 };
 
@@ -85,8 +81,7 @@ export const RoutinesTab: React.FC<RoutinesTabProps> = ({ onStartRoutine }) => {
 
     setLoading(true);
     try {
-      // Map 'custom' to 'sunday' for backwards compatibility
-      const routineType = selectedTime === 'custom' ? 'sunday' : selectedTime;
+      const routineType = mapTimeOfDayToRoutineType(selectedTime);
       const routine = await fetchActiveRoutineByType(user.uid, routineType as any);
       setActiveRoutine(routine);
     } catch (error) {
@@ -148,8 +143,7 @@ export const RoutinesTab: React.FC<RoutinesTabProps> = ({ onStartRoutine }) => {
 
   // Show RoutineEditor when editing
   if (isEditing) {
-    // Map TimeOfDay to RoutineType for the editor
-    const routineType = selectedTime === 'custom' ? 'sunday' : selectedTime;
+    const routineType = mapTimeOfDayToRoutineType(selectedTime);
 
     return (
       <RoutineEditor

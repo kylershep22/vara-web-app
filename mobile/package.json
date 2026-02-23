@@ -15,6 +15,7 @@
     "submit:android": "eas submit --platform android"
   },
   "dependencies": {
+    "@expo/ngrok": "^4.1.3",
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "8.4.1",
@@ -43,6 +44,7 @@
     "expo-status-bar": "~2.2.3",
     "expo-video": "~2.2.2",
     "firebase": "^12.6.0",
+    "ngrok": "^4.3.3",
     "react": "19.0.0",
     "react-hook-form": "^7.68.0",
     "react-native": "0.79.6",

@@ -80,6 +80,22 @@ export interface Milestone {
 }
 
 // ==========================================
+// INTENTION SYSTEM
+// ==========================================
+
+export type IntentionCategory =
+  | 'focus_clarity'
+  | 'regulation_recovery'
+  | 'sustainable_consistency'
+  | 'energy_resilience';
+
+export interface HabitIntention {
+  label: string;
+  category: IntentionCategory;
+  isCustom: boolean;
+}
+
+// ==========================================
 // HABIT MODELS
 // ==========================================
 
@@ -132,6 +148,9 @@ export interface Habit {
 
   // Build On What Works (habit stacking)
   stackedAfter?: string; // Habit ID or routine name this is stacked after
+
+  // Intention System
+  intention?: HabitIntention;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -283,6 +302,23 @@ export interface Group {
 }
 
 // ==========================================
+// GROUP PROMPT MODELS
+// ==========================================
+
+export interface GroupPrompt {
+  id: string;
+  groupId: string;
+  prompt: string;
+  frequency: 'weekly';
+  dayOfWeek: number; // 0=Sunday, 1=Monday, etc.
+  createdBy: string;
+  active: boolean;
+  currentPostId?: string;
+  createdAt: any;
+  updatedAt: any;
+}
+
+// ==========================================
 // CHALLENGE MODELS
 // ==========================================
 
@@ -332,6 +368,7 @@ export interface ChallengeCheckIn {
   userId: string;
   date: string; // YYYY-MM-DD format
   note?: string;
+  mood?: string;
   proofImageUrl?: string;
   createdAt: Timestamp;
 }
@@ -389,6 +426,9 @@ export interface Post {
   imageUrl?: string;
   likes: string[]; // array of user IDs
   comments: Comment[];
+  postType?: 'update' | 'win' | 'reflection' | 'ask';
+  challengeId?: string;
+  challengeName?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -448,18 +488,11 @@ export type NotificationType =
   | 'post'
   | 'comment'
   | 'system'
-  | 'streak_protection'      // Never Miss Twice alerts
-  | 'streak_milestone'       // 7, 21, 30, 66, 100 day streaks
   | 'goal_milestone'         // 25%, 50%, 75%, 100% progress
   | 'goal_completed'         // Goal reached 100%
-  | 'daily_reminder'         // Daily check-in reminder
-  | 'habit_reminder'         // Individual habit reminders
-  | 'challenge_reminder'     // Challenge check-in reminder
-  | 'challenge_update'       // Challenge activity (someone checked in)
-  | 'weekly_summary'         // Weekly progress digest
-  | 'inactivity'             // Re-engagement notifications
-  | 'community_activity'     // Group/friend activity
-  | 'wellness_suggestion';   // AI-powered wellness tips
+  | 'daily_reminder'         // Daily rhythm reminder
+  | 'community_activity'     // Group activity
+  | 'welcome_back';          // Returning user welcome
 
 export interface Notification {
   id: string;
@@ -490,6 +523,7 @@ export interface NotificationCategory {
 export interface NotificationPreferences {
   id: string;
   userId: string;
+  schemaVersion?: number;
 
   // Master toggle
   allNotificationsEnabled: boolean;
@@ -497,88 +531,39 @@ export interface NotificationPreferences {
   // Quiet Hours
   quietHours: {
     enabled: boolean;
-    startTime: ReminderTime; // e.g., { hour: 22, minute: 0 } for 10 PM
-    endTime: ReminderTime;   // e.g., { hour: 7, minute: 0 } for 7 AM
+    startTime: ReminderTime;
+    endTime: ReminderTime;
   };
 
-  // ==========================================
-  // TIER 1: Retention-Critical
-  // ==========================================
-
-  // Streak Protection ("Never Miss Twice")
-  streakProtection: NotificationCategory & {
-    // Time to send the reminder (morning after missed day)
-    reminderTime: ReminderTime;
+  // Daily Rhythm (1 notification/day at user-selected time)
+  dailyRhythm: {
+    enabled: boolean;
+    reminderTime: ReminderTime | null;
   };
 
-  // Milestone Celebrations
-  milestones: NotificationCategory & {
-    habitStreaks: boolean;    // 7, 21, 30, 66, 100 day milestones
-    goalProgress: boolean;    // 25%, 50%, 75%, 100% milestones
-    dailyCompletion: boolean; // All habits done for the day
+  // Insights & Learning (2-3/week brain-health content)
+  insightsLearning: {
+    enabled: boolean;
+    frequency: 'twice_weekly' | 'three_weekly';
   };
 
-  // Daily Check-in Reminders
-  dailyReminders: NotificationCategory & {
-    reminderTime: ReminderTime;
-    fourThreeTwoOne: boolean; // 4-3-2-1 practice reminder
-    habits: boolean;          // General habit reminder
+  // Social & Connection
+  socialConnection: {
+    directMessages: boolean;
+    connectionRequests: boolean;
+    communityDigest: boolean;
   };
 
-  // ==========================================
-  // TIER 2: Engagement Boosters
-  // ==========================================
-
-  // Challenge Notifications
-  challenges: NotificationCategory & {
-    checkInReminders: boolean;
-    friendActivity: boolean;      // When friends check in
-    leaderboardChanges: boolean;  // When rank changes
-    reminderTime: ReminderTime;
-  };
-
-  // Implementation Intention Triggers
-  implementationIntentions: NotificationCategory & {
-    // These fire based on the cue time set in each habit
+  // Milestones & Reflection (calendar-time based, not streaks)
+  milestonesReflection: {
     enabled: boolean;
   };
 
-  // Weekly Summary
-  weeklySummary: NotificationCategory & {
-    dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
-    time: ReminderTime;
-    includeEmail: boolean;
-  };
-
-  // ==========================================
-  // TIER 3: Re-engagement & Community
-  // ==========================================
-
-  // Inactivity Re-engagement
-  inactivityReminders: NotificationCategory & {
-    threeDayReminder: boolean;
-    sevenDayReminder: boolean;
-    fourteenDayReminder: boolean;
-  };
-
-  // Community Activity
-  community: NotificationCategory & {
-    friendMilestones: boolean;    // When friends reach milestones
-    groupPosts: boolean;          // New posts in your groups
-    mentions: boolean;            // When someone mentions you
-    connectionRequests: boolean;  // New connection requests
-  };
-
-  // Direct Messages
-  messages: NotificationCategory;
-
-  // AI Wellness Suggestions
-  wellnessSuggestions: NotificationCategory & {
-    frequency: NotificationFrequency; // How often to send suggestions
-    basedOnMood: boolean;     // Trigger based on mood patterns
-    basedOnStress: boolean;   // Trigger based on stress levels
-    basedOnSleep: boolean;    // Trigger based on sleep quality
-  };
+  // Legacy fields (kept for backward compat during migration)
+  dailyReminders?: any;
+  milestones?: any;
+  messages?: any;
+  community?: any;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

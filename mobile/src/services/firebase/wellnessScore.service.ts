@@ -896,3 +896,39 @@ export const getScoreLabel = (score: number): string => {
   if (score >= 35) return 'Needs attention';
   return 'Rest day';
 };
+
+/**
+ * Get whether wellness score tracking is enabled for a user
+ */
+export const getWellnessScoreEnabled = async (userId: string): Promise<boolean> => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userDocRef);
+
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      // Default to false (opt-in)
+      return data.wellnessScoreEnabled === true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error getting wellness score enabled:', error);
+    return false;
+  }
+};
+
+/**
+ * Set whether wellness score tracking is enabled for a user
+ */
+export const setWellnessScoreEnabled = async (userId: string, enabled: boolean): Promise<void> => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+      wellnessScoreEnabled: enabled,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error setting wellness score enabled:', error);
+    throw error;
+  }
+};

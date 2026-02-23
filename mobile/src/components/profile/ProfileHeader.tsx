@@ -6,6 +6,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, TextInput, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
 interface ProfileHeaderProps {
@@ -42,7 +43,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         {bannerUrl ? (
           <Image source={{ uri: bannerUrl }} style={styles.banner} />
         ) : (
-          <View style={styles.bannerPlaceholder} />
+          <LinearGradient
+            colors={[Colors.dewSage, Colors.silverSage, Colors.dewSage]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.bannerPlaceholder}
+          />
         )}
         {editMode && (
           <TouchableOpacity
@@ -112,7 +118,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
 const styles = StyleSheet.create({
   bannerContainer: {
-    height: 180,
+    height: 160,
     position: 'relative',
   },
   banner: {
@@ -123,7 +129,6 @@ const styles = StyleSheet.create({
   bannerPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: Colors.evergreenTeal,
   },
   bannerEditButton: {
     position: 'absolute',
@@ -143,25 +148,25 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: Layout.borderRadius['2xl'],
-    borderWidth: Layout.borderWidth.thick,
-    borderColor: Colors.white,
+    width: 80,
+    height: 80,
+    borderRadius: 80,
+    borderWidth: 4,
+    borderColor: Colors.mistWhite,
   },
   avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: Layout.borderRadius['2xl'],
-    borderWidth: Layout.borderWidth.thick,
-    borderColor: Colors.white,
+    width: 80,
+    height: 80,
+    borderRadius: 80,
+    borderWidth: 4,
+    borderColor: Colors.mistWhite,
     backgroundColor: Colors.evergreenTeal,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: Typography.fontSize['4xl'],
-    fontWeight: Typography.fontWeight.bold,
+    fontSize: 28,
+    fontWeight: '600' as const,
     color: Colors.white,
   },
   avatarEditButton: {
@@ -175,32 +180,37 @@ const styles = StyleSheet.create({
     borderColor: Colors.white,
   },
   name: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
+    fontSize: 22,
+    fontWeight: '600' as const,
+    color: Colors.softCharcoal,
+    marginTop: 10,
+    marginBottom: 2,
   },
   nameInput: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
+    fontSize: 22,
+    fontWeight: '600' as const,
+    color: Colors.softCharcoal,
     textAlign: 'center',
     borderBottomWidth: Layout.borderWidth.thin,
     borderBottomColor: Colors.borderLight,
     paddingVertical: Spacing.xs,
     minWidth: 200,
+    marginTop: 10,
+    marginBottom: 2,
   },
   location: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
+    fontSize: 13,
+    color: Colors.mutedSageGray,
+    marginBottom: 12,
   },
   locationInput: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
+    fontSize: 13,
+    color: Colors.mutedSageGray,
     textAlign: 'center',
     borderBottomWidth: Layout.borderWidth.thin,
     borderBottomColor: Colors.borderLight,
     paddingVertical: Spacing.xs,
     minWidth: 150,
+    marginBottom: 12,
   },
 });

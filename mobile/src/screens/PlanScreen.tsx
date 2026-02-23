@@ -1,6 +1,6 @@
 /**
- * Plan Screen
- * Consolidated screen for Goals, Habits, and Tasks
+ * Track Screen
+ * Consolidated screen for Habits and Tasks
  *
  * UI redesigned per Vara Mobile UI Standards:
  * - Teal-based primary tabs (not amber)
@@ -9,23 +9,25 @@
  * - Inline create button (not FAB)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Animated,
-  ScrollView,
   Platform,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../constants';
-import GoalsScreen from './GoalsScreen';
+import { FocusCopy } from '../tokens/design-tokens';
+import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import HabitsScreen from './HabitsScreen';
 import TasksScreen from './TasksScreen';
+import { RoutinesTab } from './Focus/RoutinesTab';
+import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
+import { Routine } from '../services/firebase/routines.service';
 
 // Design tokens from spec
 const TOKENS = {
@@ -60,7 +62,7 @@ const TOKENS = {
   fontSizeFilterLabel: 13,
 };
 
-type TabType = 'goals' | 'habits' | 'tasks';
+type TabType = 'habits' | 'routines' | 'tasks';
 type FilterType = 'all' | 'active' | 'complete';
 
 interface PrimaryTabProps {
@@ -188,9 +190,31 @@ const InlineCreateButton: React.FC<InlineCreateButtonProps> = ({ label, onPress 
 
 const PlanScreen: React.FC = () => {
   const route = useRoute();
+  const navigation = useNavigation<any>();
   const params = route.params as { tab?: string } | undefined;
-  const [activeTab, setActiveTab] = useState<TabType>((params?.tab as TabType) || 'goals');
+  const [activeTab, setActiveTab] = useState<TabType>((params?.tab as TabType) || 'habits');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const notifOptInChecked = useRef(false);
+  const { shouldShowPrompt, markPromptShown } = useNotificationOptIn();
+
+  // Routine player state
+  const [playerVisible, setPlayerVisible] = useState(false);
+  const [activeRoutine, setActiveRoutine] = useState<Routine | null>(null);
+
+  const handleStartRoutine = useCallback((routine: Routine) => {
+    setActiveRoutine(routine);
+    setPlayerVisible(true);
+  }, []);
+
+  const handleClosePlayer = useCallback(() => {
+    setPlayerVisible(false);
+    setActiveRoutine(null);
+  }, []);
+
+  const handleEditRoutine = useCallback(() => {
+    setPlayerVisible(false);
+    // Routine editing is handled within RoutinesTab
+  }, []);
 
   // Update tab when route params change
   useEffect(() => {
@@ -204,13 +228,24 @@ const PlanScreen: React.FC = () => {
     setActiveFilter('all');
   }, [activeTab]);
 
+  // Notification opt-in: trigger on first routine tab interaction
+  useEffect(() => {
+    if (activeTab === 'routines' && !notifOptInChecked.current) {
+      notifOptInChecked.current = true;
+      if (shouldShowPrompt) {
+        markPromptShown();
+        navigation.navigate('NotificationOptIn');
+      }
+    }
+  }, [activeTab, shouldShowPrompt]);
+
   // Get contextual create button label
   const getCreateLabel = (): string => {
     switch (activeTab) {
-      case 'goals':
-        return 'Add a goal';
       case 'habits':
         return 'Add a habit';
+      case 'routines':
+        return 'Create a routine';
       case 'tasks':
         return 'Add a task';
       default:
@@ -239,9 +274,23 @@ const PlanScreen: React.FC = () => {
     }
   };
 
+  // Dynamic subtitle based on active tab
+  const getSubtitle = (): string => {
+    switch (activeTab) {
+      case 'habits':
+        return 'Build consistency, one day at a time';
+      case 'routines':
+        return FocusCopy.routinesSubtitle;
+      case 'tasks':
+        return 'Stay organized and productive';
+      default:
+        return '';
+    }
+  };
+
   const tabs = [
-    { value: 'goals' as TabType, label: 'Goals' },
     { value: 'habits' as TabType, label: 'Habits' },
+    { value: 'routines' as TabType, label: 'Routines' },
     { value: 'tasks' as TabType, label: 'Tasks' },
   ];
 
@@ -249,8 +298,8 @@ const PlanScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Your Plan</Text>
-        <Text style={styles.pageSubtitle}>Goals, habits, and tasks in one place</Text>
+        <Text style={styles.pageTitle}>Track</Text>
+        <Text style={styles.pageSubtitle}>{getSubtitle()}</Text>
       </View>
 
       {/* Primary Tab Group */}
@@ -262,30 +311,28 @@ const PlanScreen: React.FC = () => {
         />
       </View>
 
-      {/* Sub-Filters */}
-      <SubFilterBar
-        activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
-      />
+      {/* Sub-Filters - hidden for Routines (has its own TimeOfDaySelector) */}
+      {activeTab !== 'routines' && (
+        <SubFilterBar
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
+      )}
 
-      {/* Date Banner - Habits tab only */}
-      {activeTab === 'habits' && <DateBanner />}
+      {/* Date Banner - Habits and Tasks tabs */}
+      {(activeTab === 'habits' || activeTab === 'tasks') && <DateBanner />}
 
       {/* Tab Content */}
       <View style={styles.content}>
-        {activeTab === 'goals' && (
-          <GoalsScreen
-            hideHeader
-            externalFilter={getScreenFilter()}
-            showInlineCreate
-          />
-        )}
         {activeTab === 'habits' && (
           <HabitsScreen
             hideHeader
             externalFilter={getScreenFilter()}
             showInlineCreate
           />
+        )}
+        {activeTab === 'routines' && (
+          <RoutinesTab onStartRoutine={handleStartRoutine} />
         )}
         {activeTab === 'tasks' && (
           <TasksScreen
@@ -295,6 +342,16 @@ const PlanScreen: React.FC = () => {
           />
         )}
       </View>
+
+      {/* Active Routine Player Modal */}
+      {activeRoutine && (
+        <ActiveRoutinePlayer
+          visible={playerVisible}
+          routine={activeRoutine}
+          onClose={handleClosePlayer}
+          onEditRoutine={handleEditRoutine}
+        />
+      )}
     </SafeAreaView>
   );
 };

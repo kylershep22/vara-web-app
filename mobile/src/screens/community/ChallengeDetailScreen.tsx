@@ -12,13 +12,17 @@ import {
   TouchableOpacity,
   RefreshControl,
   Image,
+  TextInput,
 } from 'react-native';
-import { Text, Avatar, Divider, ProgressBar, Portal, Modal, Button as PaperButton } from 'react-native-paper';
+import { Text, ProgressBar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button, LoadingSpinner, Input, Card } from '../../components';
 import { InviteMembersModal } from '../../components/community';
+import { WeekRhythmDots } from '../../components/community/WeekRhythmDots';
+import { Badge } from '../../components/shared/Badge';
+import { CommunityAvatar } from '../../components/shared/CommunityAvatar';
 import { Colors, Spacing, Typography, Layout, getGroupCategory } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { canUserInviteToChallenge } from '../../services/firebase/invites.service';
@@ -29,6 +33,7 @@ import {
   fetchMyParticipation,
   fetchChallengeCheckIns,
   fetchMyCheckIns,
+  fetchWeeklyCheckInCounts,
   joinChallenge,
   leaveChallenge,
   checkIn,
@@ -36,6 +41,7 @@ import {
   getDaysRemaining,
   getChallengeProgress,
   formatChallengeDuration,
+  formatChallengePosition,
   isUserMemberOfChallenge,
 } from '../../services/firebase/challenges.service';
 import { Challenge, ChallengeParticipant, ChallengeCheckIn } from '../../types/models';
@@ -60,18 +66,20 @@ const ChallengeDetailScreen: React.FC = () => {
   const [recentCheckIns, setRecentCheckIns] = useState<ChallengeCheckIn[]>([]);
   const [myCheckIns, setMyCheckIns] = useState<ChallengeCheckIn[]>([]);
   const [checkedInToday, setCheckedInToday] = useState(false);
+  const [weeklyCheckInCounts, setWeeklyCheckInCounts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Modal state
-  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  // Panel state
+  const [showCheckInPanel, setShowCheckInPanel] = useState(false);
   const [checkInNote, setCheckInNote] = useState('');
+  const [checkInMood, setCheckInMood] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [canInvite, setCanInvite] = useState(false);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'leaderboard' | 'activity' | 'my-progress'>('leaderboard');
+  const [activeTab, setActiveTab] = useState<'activity' | 'standings' | 'my-progress'>('activity');
 
   const loadData = useCallback(async () => {
     try {
@@ -88,9 +96,13 @@ const ChallengeDetailScreen: React.FC = () => {
       const ownerData = await getUserById(challengeData.ownerId);
       setOwner(ownerData);
 
-      // Load leaderboard
-      const leaderboardData = await fetchChallengeLeaderboard(challengeId);
+      // Load leaderboard and weekly counts
+      const [leaderboardData, weeklyCounts] = await Promise.all([
+        fetchChallengeLeaderboard(challengeId),
+        fetchWeeklyCheckInCounts(challengeId),
+      ]);
       setLeaderboard(leaderboardData);
+      setWeeklyCheckInCounts(weeklyCounts);
 
       // Load recent activity
       const recentData = await fetchChallengeCheckIns(challengeId, 20);
@@ -158,13 +170,41 @@ const ChallengeDetailScreen: React.FC = () => {
     ]);
   };
 
+  const getActiveDaysThisWeek = (checkIns: ChallengeCheckIn[]): number => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+
+    const uniqueDays = new Set(
+      checkIns
+        .filter(ci => new Date(ci.date) >= monday)
+        .map(ci => ci.date)
+    );
+    return uniqueDays.size;
+  };
+
+  const getCheckInPrompt = (category?: string): string => {
+    switch (category) {
+      case 'fitness': return 'How did movement feel today?';
+      case 'mindfulness': return 'What did you notice during your practice?';
+      case 'nutrition': return 'How did this meal make you feel?';
+      case 'sleep': return 'How was your rest?';
+      case 'mental-health': return 'How are you feeling right now?';
+      default: return 'How did this go today?';
+    }
+  };
+
   const handleCheckIn = async () => {
     setSubmitting(true);
     try {
-      await checkIn(challengeId, checkInNote.trim() || undefined);
-      Alert.alert('Great job!', "You've checked in for today!");
-      setShowCheckInModal(false);
+      await checkIn(challengeId, checkInNote.trim() || undefined, checkInMood || undefined);
+      setShowCheckInPanel(false);
       setCheckInNote('');
+      setCheckInMood('');
+      setCheckedInToday(true);
       loadData();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to check in');
@@ -187,12 +227,35 @@ const ChallengeDetailScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
+          <Icon name="arrow-left" size={20} color={Colors.evergreenTeal} />
         </TouchableOpacity>
-        <Text variant="titleLarge" style={styles.headerTitle} numberOfLines={1}>
+        <Text style={styles.headerTitle} numberOfLines={1}>
           {challenge.name}
         </Text>
-        <View style={styles.headerSpacer} />
+        {isMember ? (
+          <TouchableOpacity
+            onPress={() => {
+              Alert.alert(
+                'Options',
+                undefined,
+                [
+                  {
+                    text: 'Leave Challenge',
+                    style: 'destructive',
+                    onPress: handleLeave,
+                  },
+                  { text: 'Cancel', style: 'cancel' },
+                ],
+              );
+            }}
+            style={styles.overflowButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="dots-horizontal" size={18} color={Colors.mutedSageGray} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
       </View>
 
       <ScrollView
@@ -202,114 +265,79 @@ const ChallengeDetailScreen: React.FC = () => {
         }
       >
         {/* Challenge Info Card */}
-        <Card style={styles.infoCard}>
-          {/* Category & Status */}
-          <View style={styles.topBadges}>
-            <View style={[styles.categoryBadge, { backgroundColor: categoryConfig.color + '20' }]}>
-              <Icon name={categoryConfig.icon as any} size={16} color={categoryConfig.color} />
-              <Text style={[styles.categoryText, { color: categoryConfig.color }]}>{categoryConfig.label}</Text>
+        <View style={styles.infoCardContainer}>
+          <Card style={styles.infoCard}>
+            {/* Category & Status Badges */}
+            <View style={styles.topBadges}>
+              <Badge label={categoryConfig.label} variant="category" />
+              <Badge
+                label={challenge.status.charAt(0).toUpperCase() + challenge.status.slice(1)}
+                variant="active"
+              />
             </View>
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor:
-                    challenge.status === 'active'
-                      ? Colors.success + '20'
-                      : challenge.status === 'upcoming'
-                      ? Colors.info + '20'
-                      : Colors.textSecondary + '20',
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
-                  {
-                    color:
-                      challenge.status === 'active'
-                        ? Colors.success
-                        : challenge.status === 'upcoming'
-                        ? Colors.info
-                        : Colors.textSecondary,
-                  },
-                ]}
-              >
-                {challenge.status.charAt(0).toUpperCase() + challenge.status.slice(1)}
+
+            {/* Goal */}
+            <View style={styles.goalSection}>
+              <Text style={styles.goalText}>{'\u25CE'} {challenge.challengeGoal}</Text>
+            </View>
+
+            {/* Stats Row */}
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{memberCount}</Text>
+                <Text style={styles.statLabel}>participants</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{formatChallengePosition(challenge.startDate, challenge.endDate).split(' of ')[0]}</Text>
+                <Text style={styles.statLabel}>of {formatChallengePosition(challenge.startDate, challenge.endDate).split(' of ')[1]}</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{challenge.totalCheckIns || 0}</Text>
+                <Text style={styles.statLabel}>check-ins today</Text>
+              </View>
+            </View>
+
+            {/* Creator Row */}
+            <View style={styles.ownerRow}>
+              <CommunityAvatar
+                name={owner?.displayName || 'U'}
+                photoURL={owner?.avatar}
+                size={24}
+              />
+              <Text style={styles.ownerText}>
+                Created by <Text style={styles.ownerName}>{owner?.displayName || 'Unknown'}</Text>
+              </Text>
+              <Text style={styles.ownerWeek}>
+                {formatChallengeDuration(challenge.startDate, challenge.endDate)}
               </Text>
             </View>
-          </View>
-
-          {/* Goal */}
-          <View style={styles.goalSection}>
-            <Icon name="target" size={20} color={Colors.evergreenTeal} />
-            <Text style={styles.goalText}>{challenge.challengeGoal}</Text>
-          </View>
-
-          {/* Description */}
-          {challenge.description && (
-            <Text style={styles.description}>{challenge.description}</Text>
-          )}
-
-          {/* Stats Row */}
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Icon name="account-group" size={18} color={Colors.evergreenTeal} />
-              <Text style={styles.statValue}>{memberCount}</Text>
-              <Text style={styles.statLabel}>participants</Text>
-            </View>
-            <View style={styles.stat}>
-              <Icon name="timer-sand" size={18} color={daysLeft <= 7 ? Colors.warning : Colors.evergreenTeal} />
-              <Text style={styles.statValue}>{daysLeft}</Text>
-              <Text style={styles.statLabel}>days left</Text>
-            </View>
-            <View style={styles.stat}>
-              <Icon name="check-circle-outline" size={18} color={Colors.evergreenTeal} />
-              <Text style={styles.statValue}>{challenge.totalCheckIns || 0}</Text>
-              <Text style={styles.statLabel}>check-ins</Text>
-            </View>
-          </View>
-
-          {/* Owner */}
-          <View style={styles.ownerRow}>
-            {owner?.avatar ? (
-              <Avatar.Image size={24} source={{ uri: owner.avatar }} />
-            ) : (
-              <Avatar.Text
-                size={24}
-                label={(owner?.displayName || 'U').charAt(0).toUpperCase()}
-                style={styles.ownerAvatar}
-              />
-            )}
-            <Text style={styles.ownerText}>
-              Created by <Text style={styles.ownerName}>{owner?.displayName || 'Unknown'}</Text>
-            </Text>
-          </View>
-
-          {/* Duration */}
-          <Text style={styles.durationText}>
-            {formatChallengeDuration(challenge.startDate, challenge.endDate)}
-          </Text>
-        </Card>
+          </Card>
+        </View>
 
         {/* My Progress (if member) */}
         {isMember && myParticipation && (
+          <View style={styles.progressCardContainer}>
           <Card style={styles.progressCard}>
-            <Text variant="titleMedium" style={styles.progressTitle}>
+            <Text style={styles.progressTitle}>
               Your Progress
             </Text>
+
+            <WeekRhythmDots checkIns={myCheckIns} />
+
             <View style={styles.progressStats}>
               <View style={styles.progressStat}>
-                <Text style={styles.progressStatValue}>{myParticipation.checkInCount}</Text>
-                <Text style={styles.progressStatLabel}>Check-ins</Text>
+                <Text style={styles.progressStatValue}>{getActiveDaysThisWeek(myCheckIns)}</Text>
+                <Text style={styles.progressStatLabel}>Active days</Text>
               </View>
+              <View style={styles.progressStatDivider} />
               <View style={styles.progressStat}>
-                <Text style={styles.progressStatValue}>{myParticipation.currentStreak}</Text>
-                <Text style={styles.progressStatLabel}>Day Streak</Text>
+                <Text style={styles.progressStatValue}>{myParticipation.checkInCount}</Text>
+                <Text style={styles.progressStatLabel}>Total check-ins</Text>
               </View>
+              <View style={styles.progressStatDivider} />
               <View style={styles.progressStat}>
                 <Text style={styles.progressStatValue}>{myParticipation.longestStreak}</Text>
-                <Text style={styles.progressStatLabel}>Best Run</Text>
+                <Text style={styles.progressStatLabel}>Best rhythm</Text>
               </View>
             </View>
             <View style={styles.progressBarSection}>
@@ -328,56 +356,105 @@ const ChallengeDetailScreen: React.FC = () => {
               />
             </View>
 
-            {/* Check-in Button */}
-            {challenge.status === 'active' && (
+            {/* Check-in Button / Panel */}
+            {challenge.status === 'active' && !checkedInToday && !showCheckInPanel && (
               <Button
-                variant={checkedInToday ? 'outline' : 'primary'}
-                onPress={() => setShowCheckInModal(true)}
-                disabled={checkedInToday}
+                variant="primary"
+                onPress={() => setShowCheckInPanel(true)}
                 style={styles.checkInButton}
               >
-                {checkedInToday ? 'Checked In Today' : 'Check In Now'}
+                Check In Today
               </Button>
             )}
+
+            {challenge.status === 'active' && checkedInToday && (
+              <Button
+                variant="outline"
+                disabled
+                style={styles.checkInButton}
+              >
+                Checked In Today
+              </Button>
+            )}
+
+            {showCheckInPanel && (
+              <View style={styles.reflectionPanel}>
+                <Text style={styles.reflectionPrompt}>
+                  {getCheckInPrompt(challenge.category)}
+                </Text>
+
+                <View style={styles.emojiRow}>
+                  {['😤', '😐', '😊', '💪', '🌟'].map((emoji) => (
+                    <TouchableOpacity
+                      key={emoji}
+                      style={[
+                        styles.emojiButton,
+                        checkInMood === emoji && styles.emojiButtonSelected,
+                      ]}
+                      onPress={() => setCheckInMood(checkInMood === emoji ? '' : emoji)}
+                    >
+                      <Text style={styles.emojiText}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TextInput
+                  style={styles.reflectionInput}
+                  placeholder="Add a note (optional)..."
+                  placeholderTextColor={Colors.textSecondary}
+                  value={checkInNote}
+                  onChangeText={setCheckInNote}
+                  multiline
+                />
+
+                <View style={styles.reflectionActions}>
+                  <TouchableOpacity
+                    style={styles.cancelReflectionButton}
+                    onPress={() => {
+                      setShowCheckInPanel(false);
+                      setCheckInNote('');
+                      setCheckInMood('');
+                    }}
+                  >
+                    <Text style={styles.cancelReflectionText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.completeCheckInButton}
+                    onPress={handleCheckIn}
+                    disabled={submitting}
+                  >
+                    <Text style={styles.completeCheckInText}>
+                      {submitting ? 'Checking in...' : 'Complete Check-In'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </Card>
+          </View>
         )}
 
         {/* Tabs */}
         <View style={styles.tabs}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'leaderboard' && styles.tabActive]}
-            onPress={() => setActiveTab('leaderboard')}
-          >
-            <Icon
-              name="trophy"
-              size={18}
-              color={activeTab === 'leaderboard' ? Colors.evergreenTeal : Colors.textSecondary}
-            />
-            <Text style={[styles.tabText, activeTab === 'leaderboard' && styles.tabTextActive]}>
-              Leaderboard
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             style={[styles.tab, activeTab === 'activity' && styles.tabActive]}
             onPress={() => setActiveTab('activity')}
           >
-            <Icon
-              name="pulse"
-              size={18}
-              color={activeTab === 'activity' ? Colors.evergreenTeal : Colors.textSecondary}
-            />
             <Text style={[styles.tabText, activeTab === 'activity' && styles.tabTextActive]}>Activity</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'standings' && styles.tabActive]}
+            onPress={() => setActiveTab('standings')}
+          >
+            <Text style={[styles.tabText, activeTab === 'standings' && styles.tabTextActive]}>
+              Standings
+            </Text>
           </TouchableOpacity>
           {isMember && (
             <TouchableOpacity
               style={[styles.tab, activeTab === 'my-progress' && styles.tabActive]}
               onPress={() => setActiveTab('my-progress')}
             >
-              <Icon
-                name="chart-line"
-                size={18}
-                color={activeTab === 'my-progress' ? Colors.evergreenTeal : Colors.textSecondary}
-              />
               <Text style={[styles.tabText, activeTab === 'my-progress' && styles.tabTextActive]}>
                 My Check-ins
               </Text>
@@ -386,14 +463,24 @@ const ChallengeDetailScreen: React.FC = () => {
         </View>
 
         {/* Tab Content */}
-        {activeTab === 'leaderboard' && (
+        {activeTab === 'standings' && (
           <Card style={styles.tabContent}>
+            <View style={styles.weeklyResetBanner}>
+              <Text style={styles.weeklyResetText}>Resets weekly · Everyone starts fresh each Monday</Text>
+            </View>
             {leaderboard.length === 0 ? (
               <Text style={styles.emptyTabText}>No participants yet. Be the first!</Text>
             ) : (
-              leaderboard.map((participant, index) => (
-                <LeaderboardItem key={participant.id} participant={participant} rank={index + 1} />
-              ))
+              [...leaderboard]
+                .sort((a, b) => (weeklyCheckInCounts.get(b.userId) || 0) - (weeklyCheckInCounts.get(a.userId) || 0))
+                .map((participant, index) => (
+                  <LeaderboardItem
+                    key={participant.id}
+                    participant={participant}
+                    rank={index + 1}
+                    weeklyCount={weeklyCheckInCounts.get(participant.userId) || 0}
+                  />
+                ))
             )}
           </Card>
         )}
@@ -418,7 +505,7 @@ const ChallengeDetailScreen: React.FC = () => {
           </Card>
         )}
 
-        {/* Join/Leave Actions */}
+        {/* Join/Invite Actions */}
         <View style={styles.actionsSection}>
           {!isMember ? (
             <Button variant="primary" onPress={handleJoin} style={styles.actionButton}>
@@ -438,51 +525,10 @@ const ChallengeDetailScreen: React.FC = () => {
                   <Icon name="account-plus" size={16} color={Colors.textOnPrimary} /> Invite Members
                 </Button>
               )}
-              <Button variant="outline" onPress={handleLeave} style={styles.leaveButton}>
-                Leave Challenge
-              </Button>
             </>
           )}
         </View>
       </ScrollView>
-
-      {/* Check-in Modal */}
-      <Portal>
-        <Modal
-          visible={showCheckInModal}
-          onDismiss={() => setShowCheckInModal(false)}
-          contentContainerStyle={styles.modal}
-        >
-          <Text variant="headlineSmall" style={styles.modalTitle}>
-            Check In
-          </Text>
-          <Text style={styles.modalSubtitle}>Great work! Add an optional note about today's progress.</Text>
-          <Input
-            label="Note (optional)"
-            value={checkInNote}
-            onChangeText={setCheckInNote}
-            placeholder="How did it go today?"
-            multiline
-            numberOfLines={3}
-            style={styles.modalInput}
-          />
-          <View style={styles.modalActions}>
-            <PaperButton mode="outlined" onPress={() => setShowCheckInModal(false)} style={styles.modalButton}>
-              Cancel
-            </PaperButton>
-            <PaperButton
-              mode="contained"
-              onPress={handleCheckIn}
-              loading={submitting}
-              disabled={submitting}
-              style={styles.modalButton}
-              buttonColor={Colors.evergreenTeal}
-            >
-              Check In
-            </PaperButton>
-          </View>
-        </Modal>
-      </Portal>
 
       {/* Invite Members Modal */}
       <InviteMembersModal
@@ -503,44 +549,40 @@ const ChallengeDetailScreen: React.FC = () => {
 };
 
 // Leaderboard Item Component
-const LeaderboardItem: React.FC<{ participant: ChallengeParticipant; rank: number }> = ({
+const LeaderboardItem: React.FC<{ participant: ChallengeParticipant; rank: number; weeklyCount?: number }> = ({
   participant,
   rank,
+  weeklyCount = 0,
 }) => {
-  const getMedalColor = (rank: number) => {
-    if (rank === 1) return '#FFD700';
-    if (rank === 2) return '#C0C0C0';
-    if (rank === 3) return '#CD7F32';
-    return Colors.textSecondary;
+  const getRankDisplay = (rank: number) => {
+    if (rank === 1) return '\uD83E\uDD47'; // gold medal emoji
+    return null;
   };
 
   return (
     <View style={styles.leaderboardItem}>
       <View style={styles.rankContainer}>
-        {rank <= 3 ? (
-          <Icon name="medal" size={24} color={getMedalColor(rank)} />
+        {rank === 1 ? (
+          <Text style={[styles.rankText, { color: Colors.sunriseAmber }]}>{getRankDisplay(rank)}</Text>
         ) : (
           <Text style={styles.rankText}>{rank}</Text>
         )}
       </View>
-      {participant.avatar ? (
-        <Avatar.Image size={40} source={{ uri: participant.avatar }} />
-      ) : (
-        <Avatar.Text
-          size={40}
-          label={(participant.displayName || 'U').charAt(0).toUpperCase()}
-          style={styles.leaderboardAvatar}
-        />
-      )}
+      <CommunityAvatar
+        name={participant.displayName || 'U'}
+        photoURL={participant.avatar}
+        size={36}
+      />
       <View style={styles.leaderboardInfo}>
         <Text style={styles.leaderboardName}>{participant.displayName || 'Anonymous'}</Text>
         <Text style={styles.leaderboardStats}>
-          {participant.checkInCount} check-ins | {participant.currentStreak} day run
+          {weeklyCount} active {weeklyCount === 1 ? 'day' : 'days'} this week
         </Text>
       </View>
-      {participant.completedTarget && (
-        <Icon name="check-decagram" size={24} color={Colors.success} />
-      )}
+      <View style={styles.leaderboardCount}>
+        <Text style={styles.leaderboardCountValue}>{weeklyCount}</Text>
+        <Text style={styles.leaderboardCountLabel}>this week</Text>
+      </View>
     </View>
   );
 };
@@ -561,21 +603,18 @@ const ActivityItem: React.FC<{ checkIn: ChallengeCheckIn }> = ({ checkIn }) => {
 
   return (
     <View style={styles.activityItem}>
-      {userProfile?.avatar ? (
-        <Avatar.Image size={36} source={{ uri: userProfile.avatar }} />
-      ) : (
-        <Avatar.Text
-          size={36}
-          label={(userProfile?.displayName || 'U').charAt(0).toUpperCase()}
-          style={styles.activityAvatar}
-        />
-      )}
+      <CommunityAvatar
+        name={userProfile?.displayName || 'U'}
+        photoURL={userProfile?.avatar}
+        size={32}
+      />
       <View style={styles.activityInfo}>
-        <Text style={styles.activityText}>
-          <Text style={styles.activityName}>{userProfile?.displayName || 'Someone'}</Text> checked in
-        </Text>
-        {checkIn.note && <Text style={styles.activityNote}>"{checkIn.note}"</Text>}
-        <Text style={styles.activityTime}>{formatTime(checkIn.createdAt)}</Text>
+        <View style={styles.activityHeader}>
+          <Text style={styles.activityName}>{userProfile?.displayName || 'Someone'}</Text>
+          {checkIn.mood && <Text style={styles.activityMoodEmoji}>{checkIn.mood}</Text>}
+          <Text style={styles.activityTime}>{formatTime(checkIn.createdAt)}</Text>
+        </View>
+        {checkIn.note && <Text style={styles.activityNote}>{checkIn.note}</Text>}
       </View>
     </View>
   );
@@ -604,145 +643,151 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.mistWhite,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.md,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: Colors.borderLight,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
   },
   backButton: {
     padding: Spacing.xs,
   },
   headerTitle: {
     flex: 1,
-    color: Colors.textPrimary,
+    fontSize: 17,
     fontWeight: Typography.fontWeight.semibold,
-    textAlign: 'center',
-    marginHorizontal: Spacing.sm,
+    color: Colors.softCharcoal,
   },
   headerSpacer: {
     width: 32,
   },
+  overflowButton: {
+    padding: Spacing.xs,
+  },
+
   scrollView: {
     flex: 1,
   },
+
+  // Info Card
+  infoCardContainer: {
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.base,
+  },
   infoCard: {
-    margin: Spacing.lg,
+    padding: 20,
   },
   topBadges: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginBottom: Spacing.base,
+    marginBottom: Spacing.md,
+    flexWrap: 'wrap',
   },
-  categoryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Layout.borderRadius.sm,
-    gap: 4,
-  },
-  categoryText: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Layout.borderRadius.sm,
-  },
-  statusText: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-  },
+
+  // Goal
   goalSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.dewSage,
-    padding: Spacing.base,
+    padding: 14,
     borderRadius: Layout.borderRadius.md,
-    marginBottom: Spacing.base,
-    gap: Spacing.sm,
+    backgroundColor: Colors.dewSageLight,
+    marginBottom: 14,
   },
   goalText: {
-    flex: 1,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
     color: Colors.evergreenTeal,
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.semibold,
   },
-  description: {
-    color: Colors.textSecondary,
-    marginBottom: Spacing.base,
-    lineHeight: 20,
-  },
+
+  // Stats Row
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: Spacing.base,
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.borderLight,
-    marginBottom: Spacing.base,
+    textAlign: 'center',
+    marginBottom: 14,
   },
   stat: {
     alignItems: 'center',
   },
   statValue: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: 20,
     fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
+    color: Colors.evergreenTeal,
   },
   statLabel: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.textSecondary,
+    fontSize: 11,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.mutedSageGray,
+    marginTop: 2,
   },
+
+  // Owner Row
   ownerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-  },
-  ownerAvatar: {
-    backgroundColor: Colors.evergreenTeal,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
   },
   ownerText: {
-    color: Colors.textSecondary,
-    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    fontSize: 13,
+    flex: 1,
   },
   ownerName: {
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+    fontWeight: Typography.fontWeight.semibold,
   },
-  durationText: {
-    color: Colors.textSecondary,
-    fontSize: Typography.fontSize.sm,
-    marginTop: Spacing.xs,
+  ownerWeek: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginLeft: 'auto',
+  },
+
+  // Progress Card
+  progressCardContainer: {
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.md,
   },
   progressCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    padding: 20,
   },
   progressTitle: {
-    color: Colors.textPrimary,
+    fontSize: Spacing.base,
     fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.base,
+    color: Colors.softCharcoal,
+    marginBottom: 14,
   },
   progressStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: Colors.mistWhite,
+    borderRadius: 10,
+    paddingVertical: Spacing.md,
     marginBottom: Spacing.base,
   },
   progressStat: {
     alignItems: 'center',
+    flex: 1,
+  },
+  progressStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: Colors.divider,
   },
   progressStatValue: {
-    fontSize: Typography.fontSize.xxl,
+    fontSize: 18,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.evergreenTeal,
   },
   progressStatLabel: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.textSecondary,
+    fontSize: 11,
+    color: Colors.mutedSageGray,
   },
   progressBarSection: {
     marginBottom: Spacing.base,
@@ -753,172 +798,263 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   progressBarLabel: {
-    color: Colors.textSecondary,
-    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    fontSize: Typography.fontSize.xs,
   },
   progressBarPercent: {
     color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.semibold,
   },
   progressBar: {
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.silverSage,
+    height: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(184,205,186,0.3)',
   },
   checkInButton: {
     marginTop: Spacing.sm,
   },
+
+  // Reflection Panel
+  reflectionPanel: {
+    backgroundColor: Colors.dewSageLight,
+    borderWidth: 1,
+    borderColor: Colors.dewSage,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.base,
+    marginTop: Spacing.sm,
+  },
+  reflectionPrompt: {
+    fontSize: 14,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.sm,
+  },
+  emojiRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  emojiButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.divider,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emojiButtonSelected: {
+    borderColor: Colors.evergreenTeal,
+    backgroundColor: Colors.tealLight,
+  },
+  emojiText: {
+    fontSize: 22,
+  },
+  reflectionInput: {
+    height: 60,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
+    borderRadius: Layout.borderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.softCharcoal,
+    backgroundColor: Colors.white,
+    textAlignVertical: 'top',
+    marginTop: Spacing.md,
+  },
+  reflectionActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: 10,
+  },
+  cancelReflectionButton: {
+    flex: 1,
+    height: 36,
+    borderRadius: Layout.borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelReflectionText: {
+    color: Colors.mutedSageGray,
+    fontSize: 14,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  completeCheckInButton: {
+    flex: 1,
+    height: 36,
+    backgroundColor: Colors.evergreenTeal,
+    borderRadius: Layout.borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completeCheckInText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: Typography.fontWeight.medium,
+  },
+
+  // Tabs
   tabs: {
     flexDirection: 'row',
-    marginHorizontal: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderRadius: Layout.borderRadius.md,
-    padding: 4,
-    marginBottom: Spacing.base,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+    marginHorizontal: Spacing.base,
+    paddingTop: Spacing.base,
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.sm,
-    gap: 4,
-    borderRadius: Layout.borderRadius.sm,
+    paddingVertical: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   tabActive: {
-    backgroundColor: Colors.dewSage,
+    borderBottomColor: Colors.evergreenTeal,
   },
   tabText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
+    fontSize: 13,
+    color: Colors.mutedSageGray,
+    fontWeight: Typography.fontWeight.semibold,
   },
   tabTextActive: {
     color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.medium,
   },
   tabContent: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginHorizontal: Spacing.base,
+    marginVertical: Spacing.md,
   },
   emptyTabText: {
-    color: Colors.textSecondary,
+    color: Colors.mutedSageGray,
     textAlign: 'center',
     paddingVertical: Spacing.xl,
+  },
+
+  // Leaderboard
+  weeklyResetBanner: {
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.base,
+    backgroundColor: Colors.dewSageLight,
+    borderTopLeftRadius: Layout.borderRadius.md,
+    borderTopRightRadius: Layout.borderRadius.md,
+    marginBottom: 0,
+  },
+  weeklyResetText: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    color: Colors.mutedSageGray,
   },
   leaderboardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: Colors.borderLight,
+    gap: Spacing.md,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.base,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
   },
   rankContainer: {
-    width: 40,
+    width: 20,
     alignItems: 'center',
   },
   rankText: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: 14,
     fontWeight: Typography.fontWeight.bold,
-    color: Colors.textSecondary,
-  },
-  leaderboardAvatar: {
-    backgroundColor: Colors.evergreenTeal,
+    color: Colors.mutedSageGray,
   },
   leaderboardInfo: {
     flex: 1,
-    marginLeft: Spacing.sm,
   },
   leaderboardName: {
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.medium,
+    fontSize: 14,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
   },
   leaderboardStats: {
-    color: Colors.textSecondary,
-    fontSize: Typography.fontSize.sm,
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
   },
+  leaderboardCount: {
+    alignItems: 'center',
+  },
+  leaderboardCountValue: {
+    fontSize: Spacing.base,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.evergreenTeal,
+  },
+  leaderboardCountLabel: {
+    fontSize: 11,
+    color: Colors.mutedSageGray,
+  },
+
+  // Activity
   activityItem: {
     flexDirection: 'row',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: Colors.borderLight,
-  },
-  activityAvatar: {
-    backgroundColor: Colors.evergreenTeal,
+    gap: 10,
+    alignItems: 'flex-start',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
   },
   activityInfo: {
     flex: 1,
-    marginLeft: Spacing.sm,
   },
-  activityText: {
-    color: Colors.textPrimary,
+  activityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   activityName: {
+    fontSize: 14,
     fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
   },
-  activityNote: {
-    color: Colors.textSecondary,
-    fontStyle: 'italic',
-    marginTop: 2,
+  activityMoodEmoji: {
+    fontSize: 18,
   },
   activityTime: {
-    color: Colors.textSecondary,
     fontSize: Typography.fontSize.xs,
-    marginTop: 2,
+    color: Colors.mutedSageGray,
+    marginLeft: 'auto',
   },
+  activityNote: {
+    fontSize: 14,
+    color: Colors.softCharcoal,
+    lineHeight: 20,
+    marginTop: Spacing.xs,
+  },
+
+  // My Check-ins
   myCheckInItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: Colors.borderLight,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
     gap: Spacing.sm,
   },
   myCheckInInfo: {
     flex: 1,
   },
   myCheckInDate: {
-    color: Colors.textPrimary,
+    color: Colors.softCharcoal,
     fontWeight: Typography.fontWeight.medium,
   },
   myCheckInNote: {
-    color: Colors.textSecondary,
+    color: Colors.mutedSageGray,
     fontSize: Typography.fontSize.sm,
   },
+
+  // Actions
   actionsSection: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.base,
     paddingBottom: Spacing.xl,
   },
   actionButton: {
     marginBottom: Spacing.base,
-  },
-  leaveButton: {
-    borderColor: Colors.error,
-  },
-  modal: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: Spacing.lg,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.lg,
-  },
-  modalTitle: {
-    color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.xs,
-  },
-  modalSubtitle: {
-    color: Colors.textSecondary,
-    marginBottom: Spacing.base,
-  },
-  modalInput: {
-    marginBottom: Spacing.base,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.sm,
-  },
-  modalButton: {
-    flex: 1,
   },
 });
 

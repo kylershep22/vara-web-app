@@ -18,7 +18,6 @@ import {
   NarrativeRecap,
   EmptyStateCard,
   ConsolidatedMetricsCard,
-  LockedScreenOverlay,
 } from '../components';
 import { Colors, Spacing, Typography } from '../constants';
 import { useAuth } from '../context/AuthContext';
@@ -546,7 +545,6 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     metrics.journal.entries > 0 || metrics.community.posts > 0 || metrics.community.connections > 0;
 
   return (
-    <LockedScreenOverlay feature="insights">
     <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
       {!hideHeader && (
         <View style={styles.header}>
@@ -688,7 +686,6 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
         />
       </ScrollView>
     </SafeAreaView>
-    </LockedScreenOverlay>
   );
 };
 

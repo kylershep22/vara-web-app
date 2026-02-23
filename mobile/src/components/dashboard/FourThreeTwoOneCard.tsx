@@ -35,14 +35,16 @@ const BODY_FUEL_OPTIONS: { value: BodyFuelOption; label: string; icon: string }[
 interface FourThreeTwoOneCardProps {
   /** Called when any part of the 4-3-2-1 practice is updated */
   onChange?: (entry: FourThreeTwoOneEntry) => void;
+  /** When true, the card starts in collapsed state */
+  defaultCollapsed?: boolean;
 }
 
-export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChange }) => {
+export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChange, defaultCollapsed = false }) => {
   const { user } = useAuth();
   const [entry, setEntry] = useState<FourThreeTwoOneEntry | null>(null);
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(!defaultCollapsed);
 
   // Modal states
   const [winsModalVisible, setWinsModalVisible] = useState(false);

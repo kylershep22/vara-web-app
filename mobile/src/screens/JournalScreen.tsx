@@ -3,7 +3,7 @@
  * Personal journaling with AI prompts and mood tracking
  */
 
-import React, { useState, useMemo, useEffect, useCallback, memo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, memo, useRef } from 'react';
 import { View, StyleSheet, SectionList, TouchableOpacity, Alert, TextInput as RNTextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView } from 'react-native';
 import { Text, Portal, Modal, Button as PaperButton, Chip, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,12 +19,12 @@ import {
   AIWeeklySummaryCard,
   GentleEncouragementCard,
   MoodGradientDot,
-  LockedScreenOverlay,
 } from '../components';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { getMoodConfig } from '../constants/journalTags';
 import { useAuth } from '../context/AuthContext';
 import { useJournal, useJournalStats, useWeeklySummary } from '../hooks';
+import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import { createJournalEntry, updateJournalEntry, deleteJournalEntry, refreshWellnessScore } from '../services/firebase';
 import { getJournalPrompt } from '../services/api';
 import { JournalEntry } from '../types';
@@ -349,7 +349,9 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
 const JournalScreen: React.FC = () => {
   const { user } = useAuth();
   const { entries, loading } = useJournal();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+  const { shouldShowPrompt: shouldShowNotifPrompt, markPromptShown: markNotifPromptShown } = useNotificationOptIn();
+  const notifOptInChecked = useRef(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
@@ -439,6 +441,13 @@ const JournalScreen: React.FC = () => {
       await updateJournalEntry(entryId, entryData);
     } else {
       await createJournalEntry(user!.uid, entryData);
+
+      // Notification opt-in: trigger on first journal entry save
+      if (!notifOptInChecked.current && shouldShowNotifPrompt) {
+        notifOptInChecked.current = true;
+        markNotifPromptShown();
+        navigation.navigate('NotificationOptIn');
+      }
     }
     setEditingEntry(null);
 
@@ -507,7 +516,6 @@ const JournalScreen: React.FC = () => {
   }
 
   return (
-    <LockedScreenOverlay feature="journal">
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header with back button and + Reflect button */}
       <View style={styles.header}>
@@ -715,7 +723,6 @@ const JournalScreen: React.FC = () => {
         </InputAccessoryView>
       )}
     </SafeAreaView>
-    </LockedScreenOverlay>
   );
 };
 

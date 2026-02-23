@@ -8,6 +8,7 @@ import {
   getBreathworkSessions,
   getAllSleepContent,
   getSleepSoundsWithUrls,
+  getSleepStoriesWithUrls,
   subscribeToMovementContent,
   listMasterclasses,
   getUserMasterclassProgressList,
@@ -63,15 +64,18 @@ export function useSleep() {
     const fetchSleepContent = async () => {
       try {
         setLoading(true);
-        // Fetch sounds with authenticated URLs
-        const sounds = await getSleepSoundsWithUrls();
+        // Fetch sounds and stories with authenticated URLs
+        const [sounds, stories] = await Promise.all([
+          getSleepSoundsWithUrls(),
+          getSleepStoriesWithUrls(),
+        ]);
 
-        // Get stories and meditations (currently empty)
+        // Get meditations (currently empty, can add getMeditationsWithUrls later)
         const allContent = getAllSleepContent();
 
         setSleepContent({
           sounds,
-          stories: allContent.stories,
+          stories,
           meditations: allContent.meditations,
         });
         setLoading(false);

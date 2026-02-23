@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, LoadingSpinner, PersonCard } from '../../components';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { CommunityAvatar } from '../../components/shared/CommunityAvatar';
 import {
   useConnections,
   useUserSearch,
@@ -187,22 +188,22 @@ const PeopleScreen: React.FC = () => {
     navigation.navigate('UserProfile', { userId });
   };
 
-  // Tab button component
-  const TabButton = ({
+  // Tab pill component
+  const TabPill = ({
     value,
     label,
     count,
-    icon,
     isActive,
+    isRequestTab,
   }: {
     value: FilterTab;
     label: string;
     count?: number;
-    icon?: string;
     isActive: boolean;
+    isRequestTab?: boolean;
   }) => (
     <TouchableOpacity
-      style={[styles.tabButton, isActive && styles.tabButtonActive]}
+      style={[styles.tabPill, isActive && styles.tabPillActive]}
       onPress={() => {
         setFilter(value);
         if (value !== 'discover') {
@@ -211,19 +212,20 @@ const PeopleScreen: React.FC = () => {
         }
       }}
     >
-      {icon && (
-        <Icon
-          name={icon as any}
-          size={18}
-          color={isActive ? Colors.textOnPrimary : Colors.textSecondary}
-        />
-      )}
-      <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+      <Text style={[styles.tabPillText, isActive && styles.tabPillTextActive]}>
         {label}
       </Text>
       {count !== undefined && count > 0 && (
-        <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
-          <Text style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}>
+        <View style={[
+          styles.tabBadge,
+          isActive && styles.tabBadgeActive,
+          isRequestTab && !isActive && styles.requestBadge,
+        ]}>
+          <Text style={[
+            styles.tabBadgeText,
+            isActive && styles.tabBadgeTextActive,
+            isRequestTab && !isActive && styles.requestBadgeText,
+          ]}>
             {count}
           </Text>
         </View>
@@ -236,22 +238,17 @@ const PeopleScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View>
-            <Text variant="headlineMedium" style={styles.screenTitle}>
-              People
-            </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
-              Build your wellness network
-            </Text>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Icon name="arrow-left" size={20} color={Colors.evergreenTeal} />
+            </TouchableOpacity>
+            <Text style={styles.screenTitle}>People</Text>
           </View>
-          {/* Network stats */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{connectionProfiles.length}</Text>
-              <Text style={styles.statLabel}>Connections</Text>
-            </View>
-          </View>
+          <Text style={styles.connectionCount}>
+            {connectionProfiles.length} connection{connectionProfiles.length !== 1 ? 's' : ''}
+          </Text>
         </View>
+        <Text style={styles.subtitle}>Build your wellness network</Text>
       </View>
 
       {/* Search */}
@@ -276,34 +273,26 @@ const PeopleScreen: React.FC = () => {
         </Animated.View>
       </View>
 
-      {/* Filter Tabs */}
+      {/* Filter Tab Pills */}
       <View style={styles.tabsContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabsContent}
-        >
-          <TabButton
-            value="connections"
-            label="My Network"
-            count={connectionProfiles.length}
-            icon="account-group"
-            isActive={filter === 'connections'}
-          />
-          <TabButton
-            value="discover"
-            label="Find People"
-            icon="magnify"
-            isActive={filter === 'discover'}
-          />
-          <TabButton
-            value="requests"
-            label="Requests"
-            count={requests.length}
-            icon="account-plus"
-            isActive={filter === 'requests'}
-          />
-        </ScrollView>
+        <TabPill
+          value="connections"
+          label="Connections"
+          count={connectionProfiles.length}
+          isActive={filter === 'connections'}
+        />
+        <TabPill
+          value="discover"
+          label="Discover"
+          isActive={filter === 'discover'}
+        />
+        <TabPill
+          value="requests"
+          label="Requests"
+          count={requests.length}
+          isActive={filter === 'requests'}
+          isRequestTab
+        />
       </View>
 
       {/* Live search indicator */}
@@ -329,7 +318,7 @@ const PeopleScreen: React.FC = () => {
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Suggested for you</Text>
                   <TouchableOpacity onPress={refreshSuggestions}>
-                    <Icon name="refresh" size={20} color={Colors.evergreenTeal} />
+                    <Text style={styles.seeAllText}>See all &rarr;</Text>
                   </TouchableOpacity>
                 </View>
                 <ScrollView
@@ -343,42 +332,26 @@ const PeopleScreen: React.FC = () => {
                       style={styles.suggestionCard}
                       onPress={() => handleViewProfile(suggestion.uid)}
                     >
-                      {/* Suggestion reason badge */}
-                      <View style={styles.suggestionReasonBadge}>
-                        <Icon
-                          name={
-                            suggestion.suggestionReason === 'group'
-                              ? 'account-group'
-                              : suggestion.suggestionReason === 'interests'
-                              ? 'heart'
-                              : 'account-multiple'
-                          }
-                          size={10}
-                          color={Colors.evergreenTeal}
-                        />
-                      </View>
-                      <Avatar.Text
-                        size={56}
-                        label={(suggestion.displayName || 'U').substring(0, 2).toUpperCase()}
-                        style={styles.suggestionAvatar}
-                        color={Colors.textOnPrimary}
+                      <CommunityAvatar
+                        name={suggestion.displayName || 'U'}
+                        photoURL={suggestion.avatar || suggestion.avatarUrl || null}
+                        size={48}
                       />
                       <Text style={styles.suggestionName} numberOfLines={1}>
                         {suggestion.displayName || 'Unknown'}
                       </Text>
-                      <Text style={styles.suggestionReason} numberOfLines={1}>
+                      <Text style={styles.suggestionReason} numberOfLines={2}>
                         {suggestion.suggestionReason === 'group'
-                          ? 'Shared group'
+                          ? suggestion.sharedGroupNames?.[0] || 'Shared group'
                           : suggestion.suggestionReason === 'interests'
                           ? 'Similar interests'
                           : 'Mutual connection'}
                       </Text>
                       <TouchableOpacity
-                        style={styles.miniConnectButton}
+                        style={styles.sayHelloBtn}
                         onPress={() => handleSendRequest(suggestion.uid, suggestion.displayName)}
                       >
-                        <Icon name="plus" size={14} color={Colors.textOnPrimary} />
-                        <Text style={styles.miniConnectText}>Connect</Text>
+                        <Text style={styles.sayHelloBtnText}>Say hello</Text>
                       </TouchableOpacity>
                     </TouchableOpacity>
                   ))}
@@ -390,7 +363,7 @@ const PeopleScreen: React.FC = () => {
             {displayData.length > 0 && (
               <Text style={styles.listSectionTitle}>
                 {filter === 'connections'
-                  ? 'Your Connections'
+                  ? 'Your connections'
                   : filter === 'requests'
                   ? 'Pending Requests'
                   : searchQuery.length > 0
@@ -401,23 +374,59 @@ const PeopleScreen: React.FC = () => {
           </>
         )}
         renderItem={({ item, index }) => (
-          <PersonCard
-            user={item}
-            mode={
-              filter === 'requests'
-                ? 'request'
-                : filter === 'connections'
-                ? 'connection'
-                : 'discover'
-            }
-            onConnect={() => handleSendRequest(item.uid, item.displayName)}
-            onMessage={() => handleMessage(item.uid)}
-            onAccept={() => handleAcceptRequest(index)}
-            onDecline={() => handleDeclineRequest(index)}
-            onPress={() => handleViewProfile(item.uid)}
-            isPending={hasPendingRequest(item.uid)}
-            showMutualConnections={filter !== 'connections'}
-          />
+          filter === 'connections' ? (
+            <TouchableOpacity
+              style={[
+                styles.connectionRow,
+                index < displayData.length - 1 && styles.connectionRowBorder,
+              ]}
+              onPress={() => handleViewProfile(item.uid)}
+              activeOpacity={0.7}
+            >
+              <CommunityAvatar
+                name={item.displayName || 'U'}
+                photoURL={item.avatar || item.avatarUrl || null}
+                size={40}
+              />
+              <View style={styles.connectionInfo}>
+                <Text style={styles.connectionName} numberOfLines={1}>
+                  {item.displayName || 'Unknown'}
+                </Text>
+                {item.bio ? (
+                  <Text style={styles.connectionContext} numberOfLines={1}>
+                    {item.bio}
+                  </Text>
+                ) : item.location ? (
+                  <Text style={styles.connectionContext} numberOfLines={1}>
+                    {item.location}
+                  </Text>
+                ) : null}
+              </View>
+              <TouchableOpacity
+                style={styles.messageIconBtn}
+                onPress={() => handleMessage(item.uid)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Icon name="message-outline" size={20} color={Colors.mutedSageGray} />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ) : (
+            <PersonCard
+              user={item}
+              mode={
+                filter === 'requests'
+                  ? 'request'
+                  : 'discover'
+              }
+              onConnect={() => handleSendRequest(item.uid, item.displayName)}
+              onMessage={() => handleMessage(item.uid)}
+              onAccept={() => handleAcceptRequest(index)}
+              onDecline={() => handleDeclineRequest(index)}
+              onPress={() => handleViewProfile(item.uid)}
+              isPending={hasPendingRequest(item.uid)}
+              showMutualConnections={true}
+            />
+          )
         )}
         ListEmptyComponent={() =>
           loading ? (
@@ -427,7 +436,7 @@ const PeopleScreen: React.FC = () => {
               <Icon
                 name={filter === 'discover' ? 'account-search' : 'account-multiple'}
                 size={64}
-                color={Colors.textSecondary}
+                color={Colors.mutedSageGray}
                 style={styles.emptyIcon}
               />
               <Text variant="titleMedium" style={styles.emptyTitle}>
@@ -468,46 +477,50 @@ const PeopleScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: Colors.mistWhite,
   },
+
+  // ── Header ──────────────────────────────────────────
   header: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.base,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  backButton: {
+    padding: 4,
   },
   screenTitle: {
+    fontSize: 22,
+    fontWeight: '600',
     color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.bold,
+  },
+  connectionCount: {
+    fontSize: 13,
+    color: Colors.mutedSageGray,
   },
   subtitle: {
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
+    fontSize: 14,
+    color: Colors.mutedSageGray,
+    marginTop: 4,
+    marginBottom: 14,
   },
-  statsContainer: {
-    alignItems: 'center',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.evergreenTeal,
-  },
-  statLabel: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.textSecondary,
-  },
+
+  // ── Search ──────────────────────────────────────────
   searchContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.base,
+    paddingHorizontal: 16,
+    marginBottom: 14,
   },
   searchbar: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.white,
     elevation: 0,
     borderWidth: 1,
     borderColor: 'transparent',
@@ -520,169 +533,200 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: Spacing.xs,
-    gap: Spacing.xs,
+    marginTop: 4,
+    gap: 4,
   },
   searchHintText: {
     color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.medium,
+    fontWeight: '500',
   },
+
+  // ── Tab Pills ───────────────────────────────────────
   tabsContainer: {
-    marginBottom: Spacing.base,
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
   },
-  tabsContent: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  tabButton: {
+  tabPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
-    borderRadius: Layout.borderRadius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: Colors.dewSageLight,
   },
-  tabButtonActive: {
+  tabPillActive: {
     backgroundColor: Colors.evergreenTeal,
-    borderColor: Colors.evergreenTeal,
   },
-  tabText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
-    fontWeight: Typography.fontWeight.medium,
+  tabPillText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.mutedSageGray,
   },
-  tabTextActive: {
-    color: Colors.textOnPrimary,
+  tabPillTextActive: {
+    color: Colors.white,
   },
   tabBadge: {
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.dewSageLight,
     paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: Layout.borderRadius.full,
+    paddingVertical: 1,
+    borderRadius: 10,
     minWidth: 20,
     alignItems: 'center',
   },
   tabBadgeActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   tabBadgeText: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    fontWeight: Typography.fontWeight.bold,
+    fontSize: 10,
+    color: Colors.mutedSageGray,
+    fontWeight: '700',
   },
   tabBadgeTextActive: {
-    color: Colors.textOnPrimary,
+    color: Colors.white,
   },
+  requestBadge: {
+    backgroundColor: Colors.softCoral,
+  },
+  requestBadgeText: {
+    color: Colors.white,
+  },
+
+  // ── Searching indicator ─────────────────────────────
   searchingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.sm,
-    gap: Spacing.xs,
+    paddingVertical: 8,
+    gap: 4,
   },
   searchingText: {
     color: Colors.evergreenTeal,
   },
+
+  // ── List content ────────────────────────────────────
   listContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingHorizontal: 16,
+    paddingBottom: 32,
   },
-  // Suggestions Section
+
+  // ── Suggestions Section ─────────────────────────────
   suggestionsSection: {
-    marginBottom: Spacing.lg,
+    marginBottom: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.base,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.softCharcoal,
+  },
+  seeAllText: {
+    fontSize: 12,
+    color: Colors.evergreenTeal,
   },
   suggestionsScroll: {
-    gap: Spacing.base,
+    gap: 10,
   },
   suggestionCard: {
-    width: 120,
-    backgroundColor: Colors.surface,
-    borderRadius: Layout.borderRadius.xl,
-    padding: Spacing.base,
+    minWidth: 150,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
     ...Layout.shadow.sm,
-    position: 'relative',
-  },
-  suggestionReasonBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: Colors.mintCream,
-    padding: 4,
-    borderRadius: Layout.borderRadius.full,
-  },
-  suggestionAvatar: {
-    backgroundColor: Colors.evergreenTeal,
-    marginBottom: Spacing.sm,
   },
   suggestionName: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.softCharcoal,
     textAlign: 'center',
-    marginBottom: 2,
+    marginTop: 10,
   },
   suggestionReason: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: Colors.mutedSageGray,
     textAlign: 'center',
-    marginBottom: Spacing.sm,
+    marginTop: 4,
+    lineHeight: 11 * 1.3,
   },
-  miniConnectButton: {
+  sayHelloBtn: {
+    marginTop: 10,
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+  },
+  sayHelloBtnText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.evergreenTeal,
+  },
+
+  // ── Connection List Section ─────────────────────────
+  listSectionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.softCharcoal,
+    paddingBottom: 4,
+  },
+  connectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.evergreenTeal,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
-    borderRadius: Layout.borderRadius.full,
+    gap: 12,
+    paddingVertical: 12,
   },
-  miniConnectText: {
-    fontSize: 11,
-    color: Colors.textOnPrimary,
-    fontWeight: Typography.fontWeight.semibold,
+  connectionRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
   },
-  listSectionTitle: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.base,
+  connectionInfo: {
+    flex: 1,
   },
+  connectionName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.softCharcoal,
+  },
+  connectionContext: {
+    fontSize: 12,
+    color: Colors.mutedSageGray,
+    marginTop: 2,
+  },
+  messageIconBtn: {
+    padding: 8,
+  },
+
+  // ── Empty state ─────────────────────────────────────
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing['3xl'],
+    paddingHorizontal: 32,
+    paddingTop: 64,
   },
   emptyIcon: {
-    marginBottom: Spacing.base,
+    marginBottom: 16,
   },
   emptyTitle: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+    color: Colors.softCharcoal,
+    marginBottom: 8,
   },
   emptyText: {
-    color: Colors.textSecondary,
+    color: Colors.mutedSageGray,
     textAlign: 'center',
   },
   findPeopleButton: {
-    marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
+    marginTop: 24,
+    paddingHorizontal: 32,
   },
 });
 

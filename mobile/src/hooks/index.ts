@@ -27,7 +27,8 @@ export {
   getSuggestionReasonLabel,
 } from './useSuggestedConnections';
 export { useNotificationPreferences } from './useNotificationPreferences';
-export { useNotificationScheduler } from './useNotificationScheduler';
+export { useNotificationOptIn } from './useNotificationOptIn';
+export { useNotificationOptInCards } from './useNotificationOptInCards';
 export { useBreathworkTracking } from './useBreathworkTracking';
 export { useReducedMotion } from './useReducedMotion';
 export { useJournalStats } from './useJournalStats';
@@ -40,6 +41,9 @@ export { useAmbientSound } from './useAmbientSound';
 
 // Feature Unlock
 export { useFeatureUnlock } from './useFeatureUnlock';
+
+// Feature Discovery (Progressive Unlock)
+export { useFeatureDiscovery } from './useFeatureDiscovery';
 
 // Brain Health
 export { useBrainHealthVocabulary } from './useBrainHealthVocabulary';

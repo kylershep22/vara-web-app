@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 
-export type RoutineType = 'morning' | 'bedtime' | 'evening' | 'sunday';
+export type RoutineType = 'morning' | 'bedtime' | 'evening' | 'custom';
 
 export interface Activity {
   id: number;

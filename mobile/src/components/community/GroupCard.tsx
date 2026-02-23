@@ -1,19 +1,19 @@
 /**
  * Enhanced Group Card Component
- * Displays group info with member avatars, activity indicator, and category
+ * Restyled to match Vara Community UI mockup
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ImageStyle } from 'react-native';
-import { Text, Avatar, Chip } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import Card from '../Card';
 import { Colors, Spacing, Typography, Layout, getGroupCategory } from '../../constants';
 import { getUserById, UserProfile } from '../../services/firebase/community.service';
 import { GroupCategory } from '../../types/models';
 import { Timestamp } from 'firebase/firestore';
+import { Badge } from '../shared/Badge';
+import { CommunityAvatar } from '../shared/CommunityAvatar';
 
-// Flexible group type that works with both models.ts and service types
 interface GroupData {
   id: string;
   name: string;
@@ -29,6 +29,7 @@ interface GroupData {
   postCount?: number;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+  activeChallengeCount?: number;
 }
 
 interface GroupCardProps {
@@ -39,14 +40,13 @@ interface GroupCardProps {
   onLeave: () => void;
 }
 
-// Member Avatar Stack - shows up to 4 member avatars
+// Member Avatar Stack - shows up to 4 overlapping avatars
 const MemberAvatarStack: React.FC<{ memberIds: string[]; size?: number }> = ({
   memberIds,
-  size = 28,
+  size = 24,
 }) => {
   const [members, setMembers] = useState<UserProfile[]>([]);
   const displayCount = Math.min(memberIds.length, 4);
-  const extraCount = memberIds.length - displayCount;
 
   useEffect(() => {
     const loadMembers = async () => {
@@ -62,99 +62,58 @@ const MemberAvatarStack: React.FC<{ memberIds: string[]; size?: number }> = ({
     }
   }, [memberIds]);
 
-  if (members.length === 0) {
-    return null;
-  }
+  if (members.length === 0) return null;
 
   return (
-    <View style={styles.avatarStack}>
+    <View style={avatarStyles.stack}>
       {members.map((member, index) => (
         <View
           key={member.id}
           style={[
-            styles.stackedAvatar,
-            { marginLeft: index > 0 ? -size / 3 : 0, zIndex: displayCount - index },
+            avatarStyles.wrapper,
+            index > 0 && { marginLeft: -8 },
+            { zIndex: displayCount - index },
           ]}
         >
-          {member.avatar ? (
-            <Avatar.Image
-              size={size}
-              source={{ uri: member.avatar }}
-              style={styles.avatarImage as ImageStyle}
-            />
-          ) : (
-            <Avatar.Text
-              size={size}
-              label={(member.displayName || 'U').substring(0, 1).toUpperCase()}
-              style={styles.avatarText}
-              color={Colors.textOnPrimary}
-              labelStyle={styles.avatarLabel}
-            />
-          )}
+          <CommunityAvatar
+            name={member.displayName || 'U'}
+            photoURL={member.avatar}
+            size={size}
+            style={avatarStyles.avatar}
+          />
         </View>
       ))}
-      {extraCount > 0 && (
-        <View style={[styles.stackedAvatar, { marginLeft: -size / 3 }]}>
-          <View style={[styles.extraCount, { width: size, height: size, borderRadius: size / 2 }]}>
-            <Text style={styles.extraCountText}>+{extraCount}</Text>
-          </View>
-        </View>
-      )}
     </View>
   );
 };
 
-// Activity Indicator - shows recent activity
-const ActivityIndicator: React.FC<{
-  lastActivityAt?: Timestamp;
-  postCount?: number;
-}> = ({ lastActivityAt, postCount }) => {
-  const getActivityText = () => {
-    if (!lastActivityAt) {
-      return postCount ? `${postCount} posts` : 'New group';
-    }
+const avatarStyles = StyleSheet.create({
+  stack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  wrapper: {
+    borderWidth: 2,
+    borderColor: Colors.white,
+    borderRadius: Layout.borderRadius.full,
+  },
+  avatar: {},
+});
 
-    const now = new Date();
-    const lastActivity = lastActivityAt.toDate ? lastActivityAt.toDate() : new Date(lastActivityAt as any);
-    const diffHours = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60);
+// Activity text
+const getActivityText = (lastActivityAt?: Timestamp, postCount?: number) => {
+  if (!lastActivityAt) {
+    return postCount ? `${postCount} posts` : 'New group';
+  }
 
-    if (diffHours < 1) {
-      return 'Active now';
-    } else if (diffHours < 24) {
-      return `Active ${Math.floor(diffHours)}h ago`;
-    } else if (diffHours < 168) { // 7 days
-      const days = Math.floor(diffHours / 24);
-      return `Active ${days}d ago`;
-    } else {
-      return postCount ? `${postCount} posts` : 'No recent activity';
-    }
-  };
+  const now = new Date();
+  const lastActivity = lastActivityAt.toDate ? lastActivityAt.toDate() : new Date(lastActivityAt as any);
+  const diffHours = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60);
 
-  const isActive = lastActivityAt &&
-    ((new Date().getTime() - (lastActivityAt.toDate ? lastActivityAt.toDate() : new Date(lastActivityAt as any)).getTime()) < 3600000);
-
-  return (
-    <View style={styles.activityIndicator}>
-      <View style={[styles.activityDot, isActive && styles.activityDotActive]} />
-      <Text variant="bodySmall" style={styles.activityText}>
-        {getActivityText()}
-      </Text>
-    </View>
-  );
-};
-
-// Category Badge
-const CategoryBadge: React.FC<{ category?: GroupCategory | string }> = ({ category }) => {
-  const config = getGroupCategory(category);
-
-  return (
-    <View style={[styles.categoryBadge, { backgroundColor: config.color + '20' }]}>
-      <Icon name={config.icon as any} size={12} color={config.color} />
-      <Text style={[styles.categoryText, { color: config.color }]}>
-        {config.label}
-      </Text>
-    </View>
-  );
+  if (diffHours < 1) return 'Active now';
+  if (diffHours < 24) return `Active ${Math.floor(diffHours)}h ago`;
+  if (diffHours < 168) return `Active ${Math.floor(diffHours / 24)}d ago`;
+  return postCount ? `${postCount} posts` : 'No recent activity';
 };
 
 export const GroupCard: React.FC<GroupCardProps> = ({
@@ -166,268 +125,200 @@ export const GroupCard: React.FC<GroupCardProps> = ({
 }) => {
   const memberCount = group.memberCount || group.members?.length || 0;
   const isPublic = group.isPublic !== undefined ? group.isPublic : group.visibility === 'public';
+  const categoryConfig = getGroupCategory(group.category);
 
   return (
     <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
-      <Card style={styles.card}>
-        {/* Top Row: Icon + Title + Member Badge */}
-        <View style={styles.topRow}>
-          <View style={styles.groupIcon}>
+      <View style={styles.card}>
+        {/* Header Row: Icon + Content */}
+        <View style={styles.headerRow}>
+          <View style={styles.iconContainer}>
             <Icon
-              name={getGroupCategory(group.category).icon as any}
+              name={categoryConfig.icon as any}
               size={24}
-              color={getGroupCategory(group.category).color}
+              color={Colors.evergreenTeal}
             />
           </View>
 
-          <View style={styles.titleSection}>
-            <View style={styles.titleRow}>
-              <Text variant="titleMedium" style={styles.groupName} numberOfLines={1}>
+          <View style={styles.contentSection}>
+            {/* Name + Member Check */}
+            <View style={styles.nameRow}>
+              <Text style={styles.groupName} numberOfLines={1}>
                 {group.name}
               </Text>
               {isMember && (
-                <Icon name="check-circle" size={16} color={Colors.evergreenTeal} style={styles.memberCheck} />
+                <Text style={styles.memberCheck}>{'\u2713'}</Text>
               )}
             </View>
 
-            {/* Category + Visibility */}
-            <View style={styles.metaRow}>
-              {group.category && <CategoryBadge category={group.category} />}
-              <View style={styles.visibilityBadge}>
-                <Icon
-                  name={isPublic ? 'earth' : 'lock'}
-                  size={10}
-                  color={Colors.textSecondary}
-                />
-                <Text variant="bodySmall" style={styles.visibilityText}>
-                  {isPublic ? 'Public' : 'Private'}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Description */}
-        {group.description && (
-          <Text variant="bodyMedium" style={styles.description} numberOfLines={2}>
-            {group.description}
-          </Text>
-        )}
-
-        {/* Bottom Row: Member Avatars + Activity + Actions */}
-        <View style={styles.bottomRow}>
-          <View style={styles.socialInfo}>
-            {/* Member Avatar Stack */}
-            {group.members && group.members.length > 0 && (
-              <MemberAvatarStack memberIds={group.members} />
+            {/* Description */}
+            {group.description && (
+              <Text style={styles.description} numberOfLines={2}>
+                {group.description}
+              </Text>
             )}
+          </View>
+        </View>
 
-            {/* Member Count */}
-            <Text variant="bodySmall" style={styles.memberCount}>
-              {memberCount} {memberCount === 1 ? 'member' : 'members'}
-            </Text>
-
-            {/* Activity Indicator */}
-            <ActivityIndicator
-              lastActivityAt={group.lastActivityAt}
-              postCount={group.postCount}
+        {/* Badge Row */}
+        <View style={styles.badgeRow}>
+          {group.category && (
+            <Badge label={categoryConfig.label} variant="category" />
+          )}
+          <Badge label={`${memberCount} ${memberCount === 1 ? 'member' : 'members'}`} variant="default" />
+          {(group.activeChallengeCount ?? 0) > 0 && (
+            <Badge
+              label={`${group.activeChallengeCount} ${group.activeChallengeCount === 1 ? 'challenge' : 'challenges'}`}
+              variant="active"
             />
+          )}
+        </View>
+
+        {/* Footer Row */}
+        <View style={styles.footerRow}>
+          <View style={styles.footerLeft}>
+            {group.members && group.members.length > 0 && (
+              <MemberAvatarStack memberIds={group.members} size={24} />
+            )}
+            <Text style={styles.activityText}>
+              {getActivityText(group.lastActivityAt, group.postCount)}
+            </Text>
           </View>
 
-          {/* Action Button */}
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              isMember ? styles.leaveButton : styles.joinButton,
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              isMember ? onLeave() : onJoin();
-            }}
-          >
-            <Text style={[
-              styles.actionButtonText,
-              isMember ? styles.leaveButtonText : styles.joinButtonText,
-            ]}>
-              {isMember ? 'Leave' : 'Join'}
-            </Text>
-          </TouchableOpacity>
+          {isMember ? (
+            <TouchableOpacity style={styles.viewButton} onPress={onPress}>
+              <Text style={styles.viewButtonText}>View →</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.joinButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                onJoin();
+              }}
+            >
+              <Text style={styles.joinButtonText}>Join</Text>
+            </TouchableOpacity>
+          )}
         </View>
-
-        {/* Tap Hint */}
-        <View style={styles.tapHint}>
-          <Text variant="bodySmall" style={styles.tapHintText}>
-            Tap to view
-          </Text>
-          <Icon name="chevron-right" size={14} color={Colors.textSecondary} />
-        </View>
-      </Card>
+      </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: Spacing.base,
+    backgroundColor: Colors.white,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.base,
+    marginBottom: Spacing.md,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
-  topRow: {
+
+  // Header
+  headerRow: {
     flexDirection: 'row',
+    gap: Spacing.md,
     alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
   },
-  groupIcon: {
+  iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 12,
-    backgroundColor: Colors.dewSage,
+    borderRadius: Layout.borderRadius.lg,
+    backgroundColor: Colors.dewSageLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.base,
   },
-  titleSection: {
+  contentSection: {
     flex: 1,
   },
-  titleRow: {
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.xs,
   },
   groupName: {
-    color: Colors.textPrimary,
+    fontSize: Spacing.base,
     fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
     flex: 1,
   },
   memberCheck: {
-    marginLeft: Spacing.xs,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: Spacing.sm,
-  },
-  categoryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    gap: 4,
-  },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  visibilityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  visibilityText: {
-    color: Colors.textSecondary,
-    fontSize: 10,
+    fontSize: 14,
+    color: Colors.evergreenTeal,
   },
   description: {
-    color: Colors.textSecondary,
-    marginBottom: Spacing.base,
-    lineHeight: 18,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.mutedSageGray,
+    lineHeight: 20,
+    marginTop: 6,
   },
-  bottomRow: {
+
+  // Badges
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+    marginTop: 10,
+  },
+
+  // Footer
+  footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Spacing.sm,
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.borderLight,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
   },
-  socialInfo: {
+  footerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
     gap: Spacing.sm,
   },
-  avatarStack: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  activityText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
   },
-  stackedAvatar: {
-    borderWidth: 2,
-    borderColor: Colors.surface,
-    borderRadius: 14,
-  },
-  avatarImage: {
-    backgroundColor: Colors.dewSage,
-  },
-  avatarText: {
-    backgroundColor: Colors.evergreenTeal,
-  },
-  avatarLabel: {
-    fontSize: 10,
-  },
-  extraCount: {
-    backgroundColor: Colors.silverSage,
+
+  // Buttons
+  viewButton: {
+    height: 32,
+    paddingHorizontal: 14,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.dewSageLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  extraCountText: {
+  viewButtonText: {
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.medium,
     color: Colors.evergreenTeal,
-    fontSize: 10,
-    fontWeight: Typography.fontWeight.bold,
-  },
-  memberCount: {
-    color: Colors.textSecondary,
-  },
-  activityIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  activityDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.textSecondary,
-  },
-  activityDotActive: {
-    backgroundColor: Colors.success,
-  },
-  activityText: {
-    color: Colors.textSecondary,
-    fontSize: 11,
-  },
-  actionButton: {
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.xs,
-    borderRadius: Layout.borderRadius.md,
-    minWidth: 64,
-    alignItems: 'center',
   },
   joinButton: {
+    height: 32,
+    paddingHorizontal: 14,
+    borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.evergreenTeal,
-  },
-  leaveButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  actionButtonText: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   joinButtonText: {
-    color: Colors.textOnPrimary,
-  },
-  leaveButtonText: {
-    color: Colors.textSecondary,
-  },
-  tapHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginTop: Spacing.sm,
-  },
-  tapHintText: {
-    color: Colors.textSecondary,
-    fontSize: 11,
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.white,
   },
 });
 

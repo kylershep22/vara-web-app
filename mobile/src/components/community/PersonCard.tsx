@@ -54,7 +54,8 @@ export const PersonCard: React.FC<PersonCardProps> = ({
         user.suggestionReason,
         user.sharedGroups,
         user.sharedInterests,
-        user.mutualConnectionCount
+        user.mutualConnectionCount,
+        user.sharedGroupNames
       )
     : null;
 
@@ -214,12 +215,12 @@ export const PersonCard: React.FC<PersonCardProps> = ({
             </Button>
           ) : (
             <Button
-              variant="primary"
-              style={[styles.actionButton, styles.fullWidthButton]}
+              variant="outline"
+              style={[styles.actionButton, styles.fullWidthButton, styles.sayHelloButton]}
               onPress={onConnect}
             >
-              <Icon name="account-plus" size={16} color={Colors.textOnPrimary} />
-              <Text style={styles.connectButtonText}>Connect</Text>
+              <Icon name="account-plus" size={16} color={Colors.evergreenTeal} />
+              <Text style={styles.sayHelloButtonText}>Say hello</Text>
             </Button>
           )}
         </View>
@@ -376,8 +377,12 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
     fontSize: 14,
   },
-  connectButtonText: {
-    color: Colors.textOnPrimary,
+  sayHelloButton: {
+    backgroundColor: Colors.dewSage,
+    borderColor: Colors.dewSage,
+  },
+  sayHelloButtonText: {
+    color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.medium,
     fontSize: 14,
   },

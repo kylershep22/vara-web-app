@@ -1,6 +1,15 @@
-// mobile/src/hooks/useNotifications.ts
+/**
+ * useNotifications Hook
+ * Manages push token registration, permission status, and notification tap routing.
+ *
+ * Deep-link mapping for 4 notification categories:
+ *   daily_rhythm     → Dashboard (home/track)
+ *   insights_learning → Insights screen
+ *   social_connection → Chat / Profile / Community (based on type)
+ *   milestones_reflection → Dashboard
+ */
+
 import { useState, useEffect, useRef } from 'react';
-import { Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -18,20 +27,17 @@ export function useNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<string>('undetermined');
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const notificationListener = useRef<Notifications.Subscription>(null);
+  const responseListener = useRef<Notifications.Subscription>(null);
 
   useEffect(() => {
-    // Check permission status on mount (but don't auto-request)
     const checkPermissions = async () => {
       if (!user) return;
 
       try {
-        // Check current permission status without requesting
         const { status } = await getPermissionsStatus();
         setPermissionStatus(status);
 
-        // If already granted, ensure we have a token saved
         if (status === 'granted') {
           const token = await registerForPushNotifications();
           if (token) {
@@ -46,56 +52,81 @@ export function useNotifications() {
 
     checkPermissions();
 
-    // Add listener for notifications received while app is foregrounded
-    notificationListener.current = addNotificationReceivedListener((notification) => {
-      setNotification(notification);
+    notificationListener.current = addNotificationReceivedListener((n) => {
+      setNotification(n);
     });
 
-    // Add listener for when user taps on notification
     responseListener.current = addNotificationResponseListener((response) => {
       handleNotificationResponse(response);
     });
 
     return () => {
-      // Cleanup subscriptions
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
+      notificationListener.current?.remove();
+      responseListener.current?.remove();
     };
   }, [user]);
 
   const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
-    const notification = response.notification;
-    const data = notification.request.content.data;
+    const data = response.notification.request.content.data;
+    const category = data?.category as string | undefined;
+    const type = data?.type as string | undefined;
 
-    // Handle different notification types and navigate accordingly
-    if (data?.type === 'message') {
-      navigation.navigate('Messages', {
-        screen: 'Chat',
-        params: {
-          conversationId: data.conversationId,
-          otherUserId: data.senderId,
-        },
-      });
-    } else if (data?.type === 'habit_reminder') {
-      navigation.navigate('Habits');
-    } else if (data?.type === 'connection_request') {
-      navigation.navigate('Profile', {
-        screen: 'ProfileSettings',
-      });
-    } else if (data?.type === 'group_post') {
-      navigation.navigate('Community', {
-        screen: 'Group',
-        params: {
-          groupId: data.groupId,
-        },
-      });
-    } else {
-      // Default: navigate to home
-      navigation.navigate('Dashboard');
+    // Route by category first, then fall back to type
+    switch (category) {
+      case 'daily_rhythm':
+        navigation.navigate('Dashboard');
+        break;
+
+      case 'insights_learning':
+        navigation.navigate('Insights');
+        break;
+
+      case 'social_connection':
+        if (type === 'message' && data?.conversationId) {
+          navigation.navigate('Messages', {
+            screen: 'Chat',
+            params: {
+              conversationId: data.conversationId,
+              otherUserId: data.senderId,
+            },
+          });
+        } else if (type === 'connection' && data?.senderId) {
+          navigation.navigate('Profile', { screen: 'ProfileSettings' });
+        } else if (data?.groupId) {
+          navigation.navigate('Community', {
+            screen: 'Group',
+            params: { groupId: data.groupId },
+          });
+        } else {
+          navigation.navigate('Community');
+        }
+        break;
+
+      case 'milestones_reflection':
+        navigation.navigate('Dashboard');
+        break;
+
+      default:
+        // Legacy fallback by type
+        if (type === 'message' && data?.conversationId) {
+          navigation.navigate('Messages', {
+            screen: 'Chat',
+            params: {
+              conversationId: data.conversationId,
+              otherUserId: data.senderId,
+            },
+          });
+        } else if (type === 'connection') {
+          navigation.navigate('Profile', { screen: 'ProfileSettings' });
+        } else if (type === 'community_activity' && data?.groupId) {
+          navigation.navigate('Community', {
+            screen: 'Group',
+            params: { groupId: data.groupId },
+          });
+        } else {
+          navigation.navigate('Dashboard');
+        }
+        break;
     }
   };
 
@@ -107,20 +138,13 @@ export function useNotifications() {
       if (token) {
         setExpoPushToken(token);
         await savePushTokenToUser(user.uid, token);
-
-        const { status } = await getPermissionsStatus();
-        setPermissionStatus(status);
-
-        return status === 'granted';
       }
-      // Token is null - likely running in Expo Go where push tokens aren't available
-      // Check if permissions were at least granted
+
       const { status } = await getPermissionsStatus();
       setPermissionStatus(status);
       return status === 'granted';
     } catch (error) {
       console.log('Notification setup unavailable (expected in Expo Go):', error);
-      // Don't show error alert in development - this is expected behavior
       return false;
     }
   };

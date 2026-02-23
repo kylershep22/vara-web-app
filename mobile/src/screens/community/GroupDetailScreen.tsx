@@ -18,13 +18,17 @@ import {
   Platform,
   ScrollView,
   ImageStyle,
+  Modal,
+  KeyboardAvoidingView,
+  ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import {
   Text,
   Avatar,
   IconButton,
   Portal,
-  Modal,
+  Modal as PaperModal,
   Button as PaperButton,
   Chip,
 } from 'react-native-paper';
@@ -33,8 +37,9 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { Card, LoadingSpinner, Button, PostCard } from '../../components';
 import { InviteMembersModal, CreateChallengeFromGroupModal, ChallengeCard } from '../../components/community';
+import { Badge } from '../../components/shared/Badge';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
-import { Challenge, ChallengeParticipant } from '../../types/models';
+import { Challenge, ChallengeParticipant, GroupPrompt } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
 import {
   getGroupInfo,
@@ -45,6 +50,9 @@ import {
   joinGroup,
   leaveGroup,
   getUserById,
+  getGroupPrompt,
+  createGroupPrompt,
+  ensureWeeklyPromptPost,
   Group,
   Post,
   UserProfile,
@@ -54,7 +62,9 @@ import {
   fetchChallengesByGroup,
   fetchMyParticipation,
   joinChallenge,
+  formatChallengePosition,
 } from '../../services/firebase/challenges.service';
+import { ProgressBar } from 'react-native-paper';
 import { uploadPostMedia } from '../../services/firebase';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -216,7 +226,7 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, groupName }: Creat
   }, [onDismiss]);
 
   return (
-    <Modal
+    <PaperModal
       visible={visible}
       onDismiss={handleDismiss}
       contentContainerStyle={styles.modal}
@@ -257,7 +267,7 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, groupName }: Creat
               </TouchableOpacity>
               {media.type === 'video' && (
                 <View style={styles.videoIndicator}>
-                  <Icon name="play-circle" size={32} color="#fff" />
+                  <Icon name="play-circle" size={32} color={Colors.white} />
                 </View>
               )}
             </View>
@@ -292,74 +302,255 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, groupName }: Creat
           {isUploading ? 'Uploading...' : 'Post'}
         </PaperButton>
       </View>
-    </Modal>
+    </PaperModal>
   );
 });
 
-// Comment Modal Component
+// Enhanced Comment Modal Component
 interface CommentModalProps {
   visible: boolean;
-  postId: string | null;
+  post: any | null;
   onDismiss: () => void;
   onSubmit: (postId: string, text: string) => Promise<void>;
 }
 
-const CommentModal = memo(({ visible, postId, onDismiss, onSubmit }: CommentModalProps) => {
+interface CommentItemData {
+  userId: string;
+  content: string;
+  authorName?: string;
+  createdAt?: any;
+}
+
+const CHARACTER_LIMIT = 500;
+
+const CommentModal = memo(({ visible, post, onDismiss, onSubmit }: CommentModalProps) => {
+  const { user } = useAuth();
   const [commentText, setCommentText] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [localComments, setLocalComments] = useState<CommentItemData[]>([]);
+
+  // Sync local comments with post comments when post changes
+  useEffect(() => {
+    if (post?.comments) {
+      setLocalComments(post.comments);
+    } else {
+      setLocalComments([]);
+    }
+  }, [post]);
+
+  const authorName = post?.author?.displayName || 'this post';
+  const remainingChars = CHARACTER_LIMIT - commentText.length;
 
   const handleComment = async () => {
-    if (!commentText.trim() || !postId) return;
+    if (!commentText.trim() || !post?.id) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    // Optimistically add the comment
+    const newComment: CommentItemData = {
+      userId: user?.uid || '',
+      content: commentText,
+      authorName: user?.displayName || 'You',
+      createdAt: new Date(),
+    };
 
     try {
-      await onSubmit(postId, commentText);
+      await onSubmit(post.id, commentText);
+      // Add to local state on success
+      setLocalComments(prev => [...prev, newComment]);
       setCommentText('');
-      onDismiss();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add comment');
+    } catch (err) {
+      setError("Something didn't go through. Try again when ready.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDismiss = useCallback(() => {
     Keyboard.dismiss();
+    setCommentText('');
+    setError(null);
     onDismiss();
   }, [onDismiss]);
+
+  const formatCommentTime = (createdAt: any): string => {
+    if (!createdAt) return '';
+    const date = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
+
+  const isPostAuthor = (commentUserId: string): boolean => {
+    const postAuthorId = post?.author?.uid || post?.authorId || post?.userId;
+    return commentUserId === postAuthorId;
+  };
+
+  const renderEmptyState = () => (
+    <View style={commentStyles.emptyState}>
+      <Icon name="comment-text-outline" size={48} color={Colors.silverSage} />
+      <Text style={commentStyles.emptyStateTitle}>Be the first to comment</Text>
+      <Text style={commentStyles.emptyStateText}>Share your thoughts and support</Text>
+    </View>
+  );
+
+  const renderCommentItem = (comment: CommentItemData, index: number) => {
+    const commentAuthorName = comment.authorName || 'Someone';
+    const initials = commentAuthorName.substring(0, 2).toUpperCase();
+    const isAuthor = isPostAuthor(comment.userId);
+
+    return (
+      <View key={index} style={commentStyles.commentItem}>
+        <View style={commentStyles.commentAvatar}>
+          <Text style={commentStyles.commentAvatarText}>{initials}</Text>
+        </View>
+        <View style={commentStyles.commentContent}>
+          <View style={commentStyles.commentHeader}>
+            <Text style={commentStyles.commentAuthor}>{commentAuthorName}</Text>
+            {isAuthor && (
+              <View style={commentStyles.authorBadge}>
+                <Text style={commentStyles.authorBadgeText}>Author</Text>
+              </View>
+            )}
+            <Text style={commentStyles.commentTime}>{formatCommentTime(comment.createdAt)}</Text>
+          </View>
+          <Text style={commentStyles.commentText}>{comment.content}</Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <Modal
       visible={visible}
-      onDismiss={handleDismiss}
-      contentContainerStyle={styles.modal}
+      transparent
+      animationType="slide"
+      onRequestClose={handleDismiss}
     >
-      <Text variant="headlineSmall" style={styles.modalTitle}>
-        Comments
-      </Text>
-
-      <View style={styles.commentInputContainer}>
-        <RNTextInput
-          value={commentText}
-          onChangeText={setCommentText}
-          placeholder="Write a comment..."
-          style={styles.commentInput}
-          inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
-          returnKeyType="send"
-          onSubmitEditing={handleComment}
-          blurOnSubmit={false}
-        />
-        <IconButton
-          icon="send"
-          size={24}
-          iconColor={Colors.evergreenTeal}
-          onPress={handleComment}
-        />
-      </View>
-
-      <PaperButton
-        mode="outlined"
-        onPress={handleDismiss}
-        style={styles.modalButton}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        Close
-      </PaperButton>
+        <TouchableOpacity
+          style={commentStyles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleDismiss}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={commentStyles.modalContainer}
+          >
+            {/* Handle bar */}
+            <View style={commentStyles.handleBar} />
+
+            {/* Header */}
+            <View style={commentStyles.modalHeader}>
+              <View style={commentStyles.headerContent}>
+                <Text style={commentStyles.modalTitle}>Comments</Text>
+                <Text style={commentStyles.modalSubtitle}>on {authorName}'s post</Text>
+              </View>
+              <TouchableOpacity style={commentStyles.closeButton} onPress={handleDismiss}>
+                <Icon name="close" size={24} color={Colors.mutedSageGray} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Input section */}
+            <View style={commentStyles.inputContainer}>
+              <View style={[
+                commentStyles.inputWrapper,
+                isFocused && commentStyles.inputWrapperFocused,
+              ]}>
+                <TextInput
+                  style={commentStyles.input}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  placeholder="Share a supportive thought..."
+                  placeholderTextColor={Colors.mutedSageGray}
+                  multiline
+                  maxLength={CHARACTER_LIMIT}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  textAlignVertical="top"
+                  editable={!isSubmitting}
+                  accessibilityLabel="Comment input field"
+                  accessibilityHint="Type your comment here"
+                />
+                <TouchableOpacity
+                  style={[
+                    commentStyles.sendButton,
+                    (!commentText.trim() || isSubmitting) && commentStyles.sendButtonDisabled,
+                  ]}
+                  onPress={handleComment}
+                  disabled={!commentText.trim() || isSubmitting}
+                  accessibilityLabel="Send comment"
+                  accessibilityRole="button"
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <Icon
+                      name="send"
+                      size={20}
+                      color={commentText.trim() ? Colors.white : Colors.silverSage}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Character count */}
+              {commentText.length > 0 && (
+                <Text style={[
+                  commentStyles.characterCount,
+                  remainingChars < 50 && commentStyles.characterCountWarning,
+                ]}>
+                  {remainingChars} characters remaining
+                </Text>
+              )}
+
+              {/* Hint text */}
+              {!commentText && !isFocused && (
+                <Text style={commentStyles.inputHint}>
+                  Your thoughtful perspective matters
+                </Text>
+              )}
+
+              {/* Error message */}
+              {error && (
+                <View style={commentStyles.errorContainer}>
+                  <Icon name="alert-circle-outline" size={16} color={Colors.softCoral} />
+                  <Text style={commentStyles.errorText}>{error}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Divider */}
+            <View style={commentStyles.divider} />
+
+            {/* Comments list */}
+            {localComments.length === 0 ? (
+              renderEmptyState()
+            ) : (
+              <ScrollView
+                style={commentStyles.commentsList}
+                showsVerticalScrollIndicator={false}
+              >
+                {localComments.map((comment, index) => renderCommentItem(comment, index))}
+              </ScrollView>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 });
@@ -374,7 +565,7 @@ interface MembersModalProps {
 
 const MembersModal = memo(({ visible, members, ownerId, onDismiss }: MembersModalProps) => {
   return (
-    <Modal
+    <PaperModal
       visible={visible}
       onDismiss={onDismiss}
       contentContainerStyle={styles.membersModal}
@@ -421,7 +612,7 @@ const MembersModal = memo(({ visible, members, ownerId, onDismiss }: MembersModa
       >
         Close
       </PaperButton>
-    </Modal>
+    </PaperModal>
   );
 });
 
@@ -439,29 +630,42 @@ const GroupDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [showComments, setShowComments] = useState<string | null>(null);
+  const [commentPost, setCommentPost] = useState<any | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showCreateChallengeModal, setShowCreateChallengeModal] = useState(false);
   const [canInvite, setCanInvite] = useState(false);
   const [groupChallenges, setGroupChallenges] = useState<Challenge[]>([]);
   const [challengeParticipations, setChallengeParticipations] = useState<Map<string, ChallengeParticipant | null>>(new Map());
+  const [groupPrompt, setGroupPrompt] = useState<GroupPrompt | null>(null);
+  const [promptResponseCount, setPromptResponseCount] = useState(0);
+  const [showSetPrompt, setShowSetPrompt] = useState(false);
+  const [newPromptText, setNewPromptText] = useState('');
 
   // Load group data
   const loadGroupData = useCallback(async () => {
     try {
+      console.log('[GroupDetail] Loading group data for:', groupId);
+
       // Fetch group info
       const groupData = await getGroupInfo(groupId);
       if (!groupData) {
+        console.log('[GroupDetail] Group not found:', groupId);
         Alert.alert('Error', 'Group not found');
         navigation.goBack();
         return;
       }
+      console.log('[GroupDetail] Group loaded:', groupData.name);
       setGroup(groupData);
 
       // Fetch owner profile
-      const ownerProfile = await getUserById(groupData.ownerId);
-      setOwner(ownerProfile);
+      if (groupData.ownerId) {
+        const ownerProfile = await getUserById(groupData.ownerId);
+        setOwner(ownerProfile);
+        console.log('[GroupDetail] Owner loaded:', ownerProfile?.displayName);
+      } else {
+        console.warn('[GroupDetail] Group has no ownerId');
+      }
 
       // Check if user can invite others
       if (user) {
@@ -469,21 +673,48 @@ const GroupDetailScreen: React.FC = () => {
         setCanInvite(canUserInvite);
       }
 
-      // Fetch member profiles (first 20)
+      // Fetch member profiles (first 20) - handle individual failures gracefully
       const memberIds = groupData.members.slice(0, 20);
       const memberProfiles = await Promise.all(
-        memberIds.map(id => getUserById(id))
+        memberIds.map(async (id) => {
+          try {
+            return await getUserById(id);
+          } catch (e) {
+            console.warn('[GroupDetail] Failed to load member profile:', id);
+            return null;
+          }
+        })
       );
       setMembers(memberProfiles.filter((m): m is UserProfile => m !== null));
+      console.log('[GroupDetail] Members loaded:', memberProfiles.filter(m => m !== null).length);
 
-      // Fetch posts
-      const groupPosts = await fetchGroupPosts(groupId);
-
-      // Enrich posts with author info
+      // Fetch posts - wrap in try/catch to handle index errors gracefully
+      let groupPosts: Post[] = [];
+      try {
+        groupPosts = await fetchGroupPosts(groupId);
+        console.log('[GroupDetail] Posts loaded:', groupPosts.length);
+      } catch (postsError: any) {
+        console.error('[GroupDetail] Error fetching posts:', postsError);
+        // If it's an index error, show empty posts but don't fail the whole load
+        if (postsError?.message?.includes('index') || postsError?.code === 'failed-precondition') {
+          console.warn('[GroupDetail] Missing Firestore index for posts query');
+          groupPosts = [];
+        } else {
+          throw postsError;
+        }
+      }
+      // Enrich posts with author info - handle individual failures gracefully
       const enrichedPosts = await Promise.all(
         groupPosts.map(async (post) => {
           const authorId = post.authorId || post.userId;
-          const author = authorId ? await getUserById(authorId) : null;
+          let author = null;
+          if (authorId) {
+            try {
+              author = await getUserById(authorId);
+            } catch (e) {
+              console.warn('[GroupDetail] Failed to load post author:', authorId);
+            }
+          }
           return {
             ...post,
             author,
@@ -494,6 +725,7 @@ const GroupDetailScreen: React.FC = () => {
         })
       );
       setPosts(enrichedPosts);
+      console.log('[GroupDetail] Posts enriched:', enrichedPosts.length);
 
       // Fetch group challenges
       try {
@@ -519,14 +751,34 @@ const GroupDetailScreen: React.FC = () => {
         console.error('Error loading group challenges:', challengeError);
         // Non-critical, don't show error to user
       }
+
+      // Load group prompt
+      try {
+        const prompt = await getGroupPrompt(groupId);
+        setGroupPrompt(prompt);
+        if (prompt) {
+          await ensureWeeklyPromptPost(groupId, prompt);
+        }
+      } catch (promptError) {
+        console.error('Error loading group prompt:', promptError);
+        // Non-critical
+      }
     } catch (error: any) {
-      console.error('Error loading group data:', error);
+      console.error('[GroupDetail] Error loading group data:', {
+        code: error?.code,
+        message: error?.message,
+        stack: error?.stack,
+      });
       // Provide more specific error messages
       let errorMessage = 'Failed to load group data';
       if (error?.code === 'permission-denied') {
         errorMessage = 'You do not have permission to view this group. It may be private or you may need to sign in again.';
       } else if (error?.code === 'not-found') {
         errorMessage = 'This group no longer exists or has been deleted.';
+      } else if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
+        errorMessage = 'The database is still being set up. Please try again in a few minutes.';
+      } else if (error?.code === 'unavailable') {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
       } else if (error?.message) {
         errorMessage = `Error: ${error.message}`;
       }
@@ -625,6 +877,10 @@ const GroupDetailScreen: React.FC = () => {
 
   const handleLikePost = useCallback(async (postId: string) => {
     if (!user) return;
+    if (!group?.members.includes(user.uid)) {
+      Alert.alert('Join Required', 'Join this group to support posts');
+      return;
+    }
     try {
       await togglePostLike(postId, user.uid);
       // Optimistic update
@@ -642,13 +898,17 @@ const GroupDetailScreen: React.FC = () => {
     } catch (error) {
       Alert.alert('Error', 'Failed to like post');
     }
-  }, [user]);
+  }, [user, group]);
 
   const handleCommentSubmit = useCallback(async (postId: string, text: string) => {
     if (!user) return;
+    if (!group?.members.includes(user.uid)) {
+      Alert.alert('Join Required', 'Join this group to comment on posts');
+      return;
+    }
     await addCommentToPost(postId, { userId: user.uid, text });
     await loadGroupData();
-  }, [user, loadGroupData]);
+  }, [user, group, loadGroupData]);
 
   const handleNavigateToChallenge = useCallback((challengeId: string, challengeName: string) => {
     navigation.navigate('ChallengeDetail', { challengeId, challengeName });
@@ -699,49 +959,67 @@ const GroupDetailScreen: React.FC = () => {
           style={styles.backButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
+          <Icon name="arrow-left" size={20} color={Colors.evergreenTeal} />
         </TouchableOpacity>
-        <Text variant="titleMedium" style={styles.backButtonTitle} numberOfLines={1}>
+        <Text style={styles.backButtonTitle} numberOfLines={1}>
           {group?.name || initialGroupName || 'Group'}
         </Text>
-        <View style={styles.backButtonSpacer} />
+        {isMember ? (
+          <TouchableOpacity
+            onPress={() => {
+              const options: any[] = [];
+              if (!isOwner) {
+                options.push({
+                  text: 'Leave Group',
+                  style: 'destructive',
+                  onPress: handleLeaveGroup,
+                });
+              }
+              options.push({ text: 'Cancel', style: 'cancel' });
+              Alert.alert('Options', undefined, options);
+            }}
+            style={styles.overflowButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="dots-horizontal" size={18} color={Colors.mutedSageGray} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.backButtonSpacer} />
+        )}
       </View>
 
       {/* Group Header */}
       <View style={styles.groupHeader}>
         <View style={styles.groupIconContainer}>
-          <Icon name="account-group" size={48} color={Colors.evergreenTeal} />
+          <Text style={styles.groupIconText}>
+            <Icon name="account-group" size={26} color={Colors.evergreenTeal} />
+          </Text>
         </View>
 
-        <Text variant="headlineMedium" style={styles.groupName}>
+        <Text style={styles.groupName}>
           {group?.name}
         </Text>
 
         {group?.description && (
-          <Text variant="bodyMedium" style={styles.groupDescription}>
+          <Text style={styles.groupDescription}>
             {group.description}
           </Text>
         )}
 
-        {/* Group Meta */}
+        {/* Group Meta Badges */}
         <View style={styles.groupMeta}>
-          <Chip
-            icon={group?.isPublic ? 'earth' : 'lock'}
-            mode="outlined"
-            compact
-            style={styles.metaChip}
-          >
-            {group?.isPublic ? 'Public' : 'Private'}
-          </Chip>
+          {group?.category && (
+            <Badge label={group.category} variant="category" />
+          )}
+          <Badge
+            label={group?.isPublic ? 'Public' : 'Private'}
+            variant="active"
+          />
           <TouchableOpacity onPress={() => setShowMembers(true)}>
-            <Chip
-              icon="account-multiple"
-              mode="outlined"
-              compact
-              style={styles.metaChip}
-            >
-              {group?.memberCount || group?.members.length || 0} members
-            </Chip>
+            <Badge
+              label={`${group?.memberCount || group?.members.length || 0} members`}
+              variant="default"
+            />
           </TouchableOpacity>
         </View>
 
@@ -766,15 +1044,25 @@ const GroupDetailScreen: React.FC = () => {
             <>
               <Button
                 variant="primary"
-                style={styles.actionButton}
+                style={styles.actionButtonPrimary}
                 onPress={() => setShowCreatePost(true)}
               >
                 <Icon name="pencil" size={16} color={Colors.textOnPrimary} /> Post
               </Button>
+              <Button
+                variant="outline"
+                style={styles.actionButtonSecondary}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowCreateChallengeModal(true);
+                }}
+              >
+                <Icon name="trophy-outline" size={16} color={Colors.evergreenTeal} /> Challenge
+              </Button>
               {canInvite && (
                 <Button
                   variant="outline"
-                  style={styles.actionButton}
+                  style={styles.actionButtonInvite}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setShowInviteModal(true);
@@ -783,30 +1071,11 @@ const GroupDetailScreen: React.FC = () => {
                   <Icon name="account-plus" size={16} color={Colors.evergreenTeal} /> Invite
                 </Button>
               )}
-              <Button
-                variant="outline"
-                style={styles.actionButton}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setShowCreateChallengeModal(true);
-                }}
-              >
-                <Icon name="trophy-outline" size={16} color={Colors.evergreenTeal} /> Challenge
-              </Button>
-              {!isOwner && (
-                <Button
-                  variant="outline"
-                  style={styles.actionButton}
-                  onPress={handleLeaveGroup}
-                >
-                  Leave
-                </Button>
-              )}
             </>
           ) : (
             <Button
               variant="primary"
-              style={styles.actionButton}
+              style={styles.actionButtonPrimary}
               onPress={handleJoinGroup}
             >
               Join Group
@@ -868,12 +1137,97 @@ const GroupDetailScreen: React.FC = () => {
         </View>
       )}
 
+      {/* Active Challenge Card */}
+      {(() => {
+        const activeChallenges = groupChallenges?.filter((c: Challenge) => c.status === 'active') || [];
+        if (activeChallenges.length > 0) {
+          return (
+            <View style={styles.activeChallengeWrapper}>
+            <View style={styles.activeChallengeCard}>
+              <View style={styles.activeChallengeHeader}>
+                <Text style={styles.activeChallengeHeaderIcon}>◈</Text>
+                <Text style={styles.activeChallengeHeaderText}>Active Challenge</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.activeChallengeContent}
+                onPress={() => navigation.navigate('ChallengeDetail', {
+                  challengeId: activeChallenges[0].id,
+                  challengeName: activeChallenges[0].name
+                })}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.activeChallengeName}>{activeChallenges[0].name}</Text>
+                  <Text style={styles.activeChallengeInfo}>
+                    {formatChallengePosition(activeChallenges[0].startDate, activeChallenges[0].endDate)} · {activeChallenges[0].memberCount || activeChallenges[0].members?.length || 0} participants
+                  </Text>
+                  <View style={styles.activeChallengeProgress}>
+                    <ProgressBar
+                      progress={(() => {
+                        const c = activeChallenges[0];
+                        const start = c.startDate?.toDate ? c.startDate.toDate() : new Date(c.startDate as any);
+                        const end = c.endDate?.toDate ? c.endDate.toDate() : new Date(c.endDate as any);
+                        const total = end.getTime() - start.getTime();
+                        const elapsed = Date.now() - start.getTime();
+                        return total > 0 ? Math.min(Math.max(elapsed / total, 0), 1) : 0;
+                      })()}
+                      color={Colors.evergreenTeal}
+                      style={styles.activeChallengeProgressBar}
+                    />
+                  </View>
+                </View>
+                <Text style={styles.activeChallengeViewLink}>View →</Text>
+              </TouchableOpacity>
+            </View>
+            </View>
+          );
+        }
+        if (activeChallenges.length === 0 && isMember) {
+          return (
+            <View style={styles.noActiveChallengeCard}>
+              <Icon name="trophy-outline" size={24} color={Colors.textSecondary} />
+              <Text style={styles.noActiveChallengeText}>No active challenges yet</Text>
+              <TouchableOpacity
+                style={styles.noActiveChallengeButton}
+                onPress={() => setShowCreateChallengeModal(true)}
+              >
+                <Text style={styles.noActiveChallengeButtonText}>+ Create</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        }
+        return null;
+      })()}
+
+      {/* Weekly Prompt Card */}
+      {groupPrompt && (
+        <View style={styles.promptWrapper}>
+          <View style={styles.promptCard}>
+            <Text style={styles.promptLabel}>WEEKLY REFLECTION</Text>
+            <Text style={styles.promptQuestion}>{groupPrompt.prompt}</Text>
+            <View style={styles.promptFooter}>
+              <Text style={styles.promptResponseCount}>{promptResponseCount} responses this week</Text>
+              <TouchableOpacity onPress={() => setShowCreatePost(true)}>
+                <Text style={styles.promptShareLink}>Share yours →</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Set Weekly Prompt button (owner only) */}
+      {isOwner && (
+        <TouchableOpacity onPress={() => setShowSetPrompt(true)} style={styles.setPromptButton}>
+          <Icon name="message-text-outline" size={16} color={Colors.evergreenTeal} />
+          <Text style={styles.setPromptButtonText}>
+            {groupPrompt ? 'Edit Weekly Prompt' : 'Set Weekly Prompt'}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {/* Posts Section Header */}
-      <View style={styles.sectionHeader}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>
-          Posts
-        </Text>
-        <Text variant="bodySmall" style={styles.sectionSubtitle}>
+      <View style={styles.postsSectionHeader}>
+        <Text style={styles.postsSectionTitle}>Posts</Text>
+        <Text style={styles.postsSectionCount}>
           {posts.length} {posts.length === 1 ? 'post' : 'posts'}
         </Text>
       </View>
@@ -884,8 +1238,11 @@ const GroupDetailScreen: React.FC = () => {
     <PostCard
       post={item}
       onLike={handleLikePost}
-      onComment={setShowComments}
+      onComment={(post) => setCommentPost(post)}
       formatTimestamp={formatTimestamp}
+      disabled={!isMember}
+      disabledMessage="Join this group to support and comment on posts"
+      hideGroupBadge
     />
   );
 
@@ -944,14 +1301,12 @@ const GroupDetailScreen: React.FC = () => {
       </Portal>
 
       {/* Comment Modal */}
-      <Portal>
-        <CommentModal
-          visible={showComments !== null}
-          postId={showComments}
-          onDismiss={() => setShowComments(null)}
-          onSubmit={handleCommentSubmit}
-        />
-      </Portal>
+      <CommentModal
+        visible={commentPost !== null}
+        post={commentPost}
+        onDismiss={() => setCommentPost(null)}
+        onSubmit={handleCommentSubmit}
+      />
 
       {/* Members Modal */}
       <Portal>
@@ -993,6 +1348,44 @@ const GroupDetailScreen: React.FC = () => {
         }}
       />
 
+      {/* Set Weekly Prompt Modal */}
+      <Portal>
+        <PaperModal
+          visible={showSetPrompt}
+          onDismiss={() => setShowSetPrompt(false)}
+          contentContainerStyle={styles.setPromptModal}
+        >
+          <Text variant="headlineSmall" style={styles.setPromptTitle}>Weekly Prompt</Text>
+          <Text style={styles.setPromptSubtitle}>Ask your group a question each week</Text>
+          <TextInput
+            style={styles.setPromptInput}
+            placeholder="What would you like to ask your group each week?"
+            placeholderTextColor={Colors.textSecondary}
+            value={newPromptText}
+            onChangeText={setNewPromptText}
+            multiline
+          />
+          <View style={styles.setPromptActions}>
+            <PaperButton mode="outlined" onPress={() => setShowSetPrompt(false)}>Cancel</PaperButton>
+            <PaperButton
+              mode="contained"
+              buttonColor={Colors.evergreenTeal}
+              onPress={async () => {
+                if (!newPromptText.trim()) return;
+                try {
+                  await createGroupPrompt({ groupId, prompt: newPromptText.trim() });
+                  setShowSetPrompt(false);
+                  setNewPromptText('');
+                  loadGroupData();
+                } catch (e: any) {
+                  Alert.alert('Error', e.message || 'Failed to set prompt');
+                }
+              }}
+            >Save Prompt</PaperButton>
+          </View>
+        </PaperModal>
+      </Portal>
+
       {/* Keyboard Accessory Toolbar (iOS) */}
       {Platform.OS === 'ios' && (
         <InputAccessoryView nativeID={INPUT_ACCESSORY_VIEW_ID}>
@@ -1018,14 +1411,15 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: Spacing.xl,
   },
+  // Header bar
   backButtonHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     backgroundColor: Colors.surface,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: Colors.borderLight,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
   },
   backButton: {
     padding: Spacing.xs,
@@ -1033,37 +1427,47 @@ const styles = StyleSheet.create({
   },
   backButtonTitle: {
     flex: 1,
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.semibold,
+    fontSize: 17,
+    fontWeight: '600',
+    color: Colors.softCharcoal,
   },
   backButtonSpacer: {
-    width: 32, // Same width as back button for centering
+    width: 32,
   },
+  overflowButton: {
+    padding: Spacing.xs,
+  },
+  // Group Header Card
   groupHeader: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.lg,
+    padding: 16,
+    paddingBottom: 0,
     alignItems: 'center',
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: Colors.borderLight,
   },
   groupIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.dewSage,
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: Colors.dewSageLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.base,
   },
-  groupName: {
+  groupIconText: {
+    fontSize: 26,
     color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.bold,
+  },
+  groupName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   groupDescription: {
-    color: Colors.textSecondary,
+    fontSize: 13,
+    color: Colors.mutedSageGray,
     textAlign: 'center',
+    lineHeight: 18,
     marginBottom: Spacing.base,
     paddingHorizontal: Spacing.lg,
   },
@@ -1071,9 +1475,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     marginBottom: Spacing.base,
-  },
-  metaChip: {
-    backgroundColor: Colors.mistWhite,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   ownerInfo: {
     flexDirection: 'row',
@@ -1085,18 +1488,46 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   ownerText: {
-    color: Colors.textSecondary,
+    color: Colors.mutedSageGray,
   },
   ownerName: {
-    color: Colors.textPrimary,
+    color: Colors.softCharcoal,
     fontWeight: Typography.fontWeight.semibold,
   },
+  // Action buttons
   actionButtons: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: 8,
+    marginTop: 16,
+    width: '100%',
   },
-  actionButton: {
-    minWidth: 100,
+  actionButtonPrimary: {
+    flex: 1,
+    height: 36,
+  },
+  actionButtonSecondary: {
+    flex: 1,
+    height: 36,
+  },
+  actionButtonInvite: {
+    height: 36,
+  },
+  // Posts section header
+  postsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: Spacing.base,
+  },
+  postsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.softCharcoal,
+  },
+  postsSectionCount: {
+    fontSize: 13,
+    color: Colors.mutedSageGray,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1159,6 +1590,181 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
   },
+  // Active Challenge Card styles
+  activeChallengeWrapper: {
+    padding: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 0,
+  },
+  activeChallengeCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.dewSage,
+    overflow: 'hidden',
+  },
+  activeChallengeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.dewSageLight,
+    gap: Spacing.sm,
+  },
+  activeChallengeHeaderIcon: {
+    fontSize: 14,
+    color: Colors.evergreenTeal,
+  },
+  activeChallengeHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
+  },
+  activeChallengeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    paddingHorizontal: 16,
+  },
+  activeChallengeName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.softCharcoal,
+    marginBottom: 4,
+  },
+  activeChallengeInfo: {
+    fontSize: 12,
+    color: Colors.mutedSageGray,
+    marginBottom: Spacing.sm,
+  },
+  activeChallengeProgress: {
+    marginTop: 4,
+  },
+  activeChallengeProgressBar: {
+    height: 4,
+    borderRadius: 4,
+    backgroundColor: Colors.dewSageLight,
+  },
+  activeChallengeViewLink: {
+    fontSize: 13,
+    color: Colors.evergreenTeal,
+    fontWeight: '500',
+    marginLeft: Spacing.sm,
+  },
+  noActiveChallengeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.base,
+    padding: Spacing.base,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.borderLight,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.surface,
+    gap: Spacing.sm,
+  },
+  noActiveChallengeText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  noActiveChallengeButton: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.dewSage,
+    borderRadius: Layout.borderRadius.md,
+  },
+  noActiveChallengeButtonText: {
+    fontSize: 13,
+    color: Colors.evergreenTeal,
+    fontWeight: '500',
+  },
+  // Weekly Prompt styles
+  promptWrapper: {
+    padding: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 0,
+  },
+  promptCard: {
+    backgroundColor: Colors.dewSageLight,
+    borderWidth: 1,
+    borderColor: Colors.dewSage,
+    padding: 18,
+    borderRadius: 12,
+  },
+  promptLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.sm,
+  },
+  promptQuestion: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.softCharcoal,
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  promptFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  promptResponseCount: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  promptShareLink: {
+    fontSize: 13,
+    color: Colors.evergreenTeal,
+    fontWeight: '500',
+  },
+  setPromptButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.base,
+    paddingVertical: Spacing.sm,
+  },
+  setPromptButtonText: {
+    fontSize: 13,
+    color: Colors.evergreenTeal,
+    fontWeight: '500',
+  },
+  setPromptModal: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.lg,
+    borderRadius: 12,
+    padding: Spacing.lg,
+  },
+  setPromptTitle: {
+    color: Colors.evergreenTeal,
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+  },
+  setPromptSubtitle: {
+    color: Colors.textSecondary,
+    marginBottom: Spacing.base,
+  },
+  setPromptInput: {
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: Colors.textPrimary,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: Spacing.base,
+  },
+  setPromptActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.sm,
+  },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing.xl * 2,
@@ -1209,21 +1815,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mistWhite,
     minHeight: 120,
     marginBottom: Spacing.base,
-  },
-  commentInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.base,
-  },
-  commentInput: {
-    flex: 1,
-    borderWidth: Layout.borderWidth.thin,
-    borderColor: Colors.border,
-    borderRadius: Layout.borderRadius.md,
-    padding: Spacing.base,
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.mistWhite,
   },
   modalActions: {
     flexDirection: 'row',
@@ -1338,6 +1929,266 @@ const styles = StyleSheet.create({
     color: Colors.textOnPrimary,
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
+  },
+});
+
+// Comment Modal Styles
+const commentStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: Colors.mistWhite,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingBottom: 34,
+    paddingHorizontal: 24,
+    maxHeight: '85%',
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.evergreenTeal,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.silverSage,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  headerContent: {
+    flex: 1,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: Colors.mutedSageGray,
+    fontWeight: '400',
+  },
+  closeButton: {
+    padding: 8,
+    marginTop: -4,
+    marginRight: -8,
+  },
+  // Input styles
+  inputContainer: {
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.dewSage,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 56,
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.evergreenTeal,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  inputWrapperFocused: {
+    borderColor: Colors.evergreenTeal,
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.softCharcoal,
+    maxHeight: 120,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.evergreenTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.evergreenTeal,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  sendButtonDisabled: {
+    backgroundColor: Colors.dewSage,
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0,
+      },
+      android: {
+        elevation: 0,
+      },
+    }),
+  },
+  characterCount: {
+    fontSize: 12,
+    color: Colors.mutedSageGray,
+    textAlign: 'right',
+    marginTop: 8,
+  },
+  characterCountWarning: {
+    color: Colors.softCoral,
+  },
+  inputHint: {
+    fontSize: 13,
+    color: Colors.mutedSageGray,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(217, 122, 110, 0.1)',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.softCoral,
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 13,
+    color: Colors.softCoral,
+    flex: 1,
+  },
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: Colors.divider,
+    marginVertical: 16,
+  },
+  // Empty state
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
+  },
+  // Comments list
+  commentsList: {
+    maxHeight: 300,
+  },
+  commentItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  commentAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.dewSage,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  commentAvatarText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
+  },
+  commentContent: {
+    flex: 1,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  commentAuthor: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.softCharcoal,
+  },
+  authorBadge: {
+    backgroundColor: Colors.tealMedium,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  authorBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  commentTime: {
+    fontSize: 13,
+    color: Colors.mutedSageGray,
+  },
+  commentText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.softCharcoal,
   },
 });
 

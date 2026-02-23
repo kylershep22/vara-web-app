@@ -15,7 +15,7 @@ import { StyleSheet } from 'react-native';
 import { Colors, Layout, Typography, TextStyles } from '../constants';
 
 interface CustomButtonProps extends ButtonProps {
-  variant?: 'primary' | 'secondary' | 'outline' | 'text';
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'outline' | 'text';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
 }
@@ -49,13 +49,24 @@ const Button: React.FC<CustomButtonProps> = ({
         finalButtonColor = buttonColor || Colors.silverSage;
         finalTextColor = textColor || Colors.softCharcoal;
         break;
+      case 'tertiary':
+        // Dew Sage Light background, teal text
+        finalMode = 'contained';
+        finalButtonColor = buttonColor || Colors.dewSageLight;
+        finalTextColor = textColor || Colors.evergreenTeal;
+        break;
+      case 'ghost':
+        // Transparent background, muted text
+        finalMode = 'text';
+        finalTextColor = textColor || Colors.mutedSageGray;
+        break;
       case 'outline':
         // Teal border and text
         finalMode = 'outlined';
         finalTextColor = textColor || Colors.evergreenTeal;
         break;
       case 'text':
-        // Text only (tertiary)
+        // Text only
         finalMode = 'text';
         finalTextColor = textColor || Colors.evergreenTeal;
         break;
