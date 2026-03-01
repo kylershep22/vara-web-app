@@ -372,9 +372,9 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
       };
 
       return (
-        <BaseCard onPress={handleNavigateToDetail}>
+        <BaseCard>
           <View style={styles.habitCardRow}>
-            {/* Checkbox */}
+            {/* Checkbox — isolated touch zone */}
             <View style={styles.checkboxWrapper}>
               <AnimatedCheckbox
                 status={isCompleted ? 'checked' : 'unchecked'}
@@ -383,41 +383,47 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
               />
             </View>
 
-            {/* Content */}
-            <View style={styles.habitCardContent}>
-              <Text
-                style={[
-                  styles.habitCardTitle,
-                  isCompleted && styles.habitCardTitleCompleted,
-                ]}
-              >
-                {habitName}
-              </Text>
-              {metaLine && (
-                <Text style={styles.habitCardMeta}>
-                  {metaLine}
+            {/* Content + Chevron — navigates to detail */}
+            <TouchableOpacity
+              onPress={handleNavigateToDetail}
+              activeOpacity={0.7}
+              style={styles.habitCardTouchable}
+            >
+              <View style={styles.habitCardContent}>
+                <Text
+                  style={[
+                    styles.habitCardTitle,
+                    isCompleted && styles.habitCardTitleCompleted,
+                  ]}
+                >
+                  {habitName}
                 </Text>
-              )}
-              {(item.intention || item.cue?.value) && (
-                <View style={styles.intentionTagRow}>
-                  {item.intention && (
-                    <Text style={styles.intentionTagLabel}>{item.intention.label}</Text>
-                  )}
-                  {item.intention && item.cue?.value && (
-                    <Text style={styles.intentionTagDot}> · </Text>
-                  )}
-                  {item.cue?.value && !item.intention && (
-                    <Text style={styles.intentionTagTime}>{item.cue.value}</Text>
-                  )}
-                  {item.cue?.value && item.intention && (
-                    <Text style={styles.intentionTagTime}>{item.cue.value}</Text>
-                  )}
-                </View>
-              )}
-            </View>
+                {metaLine && (
+                  <Text style={styles.habitCardMeta}>
+                    {metaLine}
+                  </Text>
+                )}
+                {(item.intention || item.cue?.value) && (
+                  <View style={styles.intentionTagRow}>
+                    {item.intention && (
+                      <Text style={styles.intentionTagLabel}>{item.intention.label}</Text>
+                    )}
+                    {item.intention && item.cue?.value && (
+                      <Text style={styles.intentionTagDot}> · </Text>
+                    )}
+                    {item.cue?.value && !item.intention && (
+                      <Text style={styles.intentionTagTime}>{item.cue.value}</Text>
+                    )}
+                    {item.cue?.value && item.intention && (
+                      <Text style={styles.intentionTagTime}>{item.cue.value}</Text>
+                    )}
+                  </View>
+                )}
+              </View>
 
-            {/* Chevron */}
-            <Icon name="chevron-right" size={16} color="#6F7F77" />
+              {/* Chevron */}
+              <Icon name="chevron-right" size={16} color="#6F7F77" />
+            </TouchableOpacity>
           </View>
         </BaseCard>
       );
@@ -717,6 +723,11 @@ const styles = StyleSheet.create({
   },
   checkboxWrapper: {
     paddingTop: 1, // Align with title baseline
+  },
+  habitCardTouchable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   habitCardContent: {
     flex: 1,

@@ -4,10 +4,21 @@ require('dotenv').config({ path: './backend/.env' });
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 const dailyPlanRoute = require('./routes/dailyPlan');
 const generateHabitSuggestions = require('./services/habitSuggestionService');
 const OpenAI = require('openai');
+const { requireAuth } = require('./middleware/auth');
+const {
+  validateAIChat,
+  validateJournalEntries,
+  validateJournalPrompt,
+  validateAISuggestions,
+  validateWeekRecap,
+  validateDailyPlan,
+} = require('./middleware/validate');
 
 // Load environment variables
 dotenv.config();
@@ -20,23 +31,63 @@ if (!process.env.OPENAI_API_KEY) {
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: '2mb' })); // bump a bit for journal text + chat context
+// ---- CORS: restrict to known origins ----
+const allowedOrigins = [
+  'https://vara-4a99f.web.app',
+  'https://vara-4a99f.firebaseapp.com',
+];
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:3000', 'http://localhost:5001');
+}
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
+
+// ---- Security headers ----
+app.use(helmet());
+
+// ---- Body parsing ----
+app.use(express.json({ limit: '2mb' }));
+
+// ---- Rate limiting ----
+// Global: 100 requests per 15 minutes per IP
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+app.use('/api', globalLimiter);
+
+// AI endpoints: 30 requests per hour, keyed by authenticated user
+const aiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.uid || req.ip,
+  message: { error: 'AI rate limit exceeded. Please try again later.' },
+});
+
+// ---- Auth: require Firebase token on all /api routes ----
+app.use('/api', requireAuth);
 
 // ---- OpenAI client (single instance) ----
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Routes
-app.use('/api/generate-daily-plan', dailyPlanRoute);
+app.use('/api/generate-daily-plan', aiLimiter, validateDailyPlan, dailyPlanRoute);
 
 // ✅ AI Suggestions for Goals, Habits, or Tasks
-app.post('/api/openai', async (req, res) => {
+app.post('/api/openai', aiLimiter, validateAISuggestions, async (req, res) => {
   const { type, context, modifier = '' } = req.body;
-
-  if (!type || !context) {
-    return res.status(400).json({ error: 'Missing required fields: type and context' });
-  }
 
   try {
     const text = await generateHabitSuggestions(type, context, modifier);
@@ -48,7 +99,7 @@ app.post('/api/openai', async (req, res) => {
 });
 
 // ✅ Journal Prompt Suggestions
-app.post('/api/journal-prompt', async (req, res) => {
+app.post('/api/journal-prompt', aiLimiter, validateJournalPrompt, async (req, res) => {
   const { prompt } = req.body;
 
   try {
@@ -71,7 +122,7 @@ app.post('/api/journal-prompt', async (req, res) => {
 });
 
 // ✅ Journal Weekly Summary
-app.post('/api/journal-summary', async (req, res) => {
+app.post('/api/journal-summary', aiLimiter, validateJournalEntries, async (req, res) => {
   const { entries } = req.body;
 
   if (!entries || (typeof entries === 'string' && entries.trim().length === 0)) {
@@ -107,7 +158,7 @@ Keep it encouraging and brief (4–6 sentences max), with 1–3 actionable nudge
 
 // ✅ AI Chat (non-streaming) — used by the floating AI Companion widget
 // Expects: { messages: [{role, content}], context: { page: {path,label}, userSummary: {goals:[], habits:[]}} }
-app.post('/api/ai-chat', async (req, res) => {
+app.post('/api/ai-chat', aiLimiter, validateAIChat, async (req, res) => {
   try {
     const { messages = [], context = {} } = req.body || {};
     const { page, userSummary } = context || {};
@@ -168,11 +219,12 @@ Guidelines:
 });
 
 // ✅ Week Recap AI Suggestions (Phase 2)
-app.post('/api/week-recap-suggestions', async (req, res) => {
-  const { userId, weekData, currentRecap } = req.body;
+app.post('/api/week-recap-suggestions', aiLimiter, validateWeekRecap, async (req, res) => {
+  const userId = req.uid; // Use verified UID from auth middleware
+  const { weekData, currentRecap } = req.body;
 
-  if (!userId || !weekData) {
-    return res.status(400).json({ error: 'Missing required fields: userId and weekData' });
+  if (!weekData) {
+    return res.status(400).json({ error: 'Missing required field: weekData' });
   }
 
   try {

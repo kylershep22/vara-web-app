@@ -11,47 +11,72 @@ service firebase.storage {
       return isSignedIn() && request.auth.token.admin == true;
     }
 
+    function isImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isAudioType() {
+      return request.resource.contentType.matches('audio/.*');
+    }
+
+    // 5 MB limit for images
+    function underImageSizeLimit() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // 50 MB limit for audio
+    function underAudioSizeLimit() {
+      return request.resource.size < 50 * 1024 * 1024;
+    }
+
     /* -------- Avatars --------
        Each user may read/write their own avatar files. */
     match /avatars/{userId}/{fileName} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn() && request.auth.uid == userId
+                      && isImageType() && underImageSizeLimit();
     }
 
     /* -------- User Profile Images (avatars and banners) --------
        Each user may read/write their own profile images. */
     match /users/{userId}/{fileName} {
-      allow read: if isSignedIn(); // Anyone signed in can view profile images
-      allow write: if isSignedIn() && request.auth.uid == userId; // Only owner can upload
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId
+                      && isImageType() && underImageSizeLimit();
     }
 
     /* -------- Post Images --------
        Users can upload images for their posts. */
     match /posts/{userId}/{fileName} {
-      allow read: if isSignedIn(); // Anyone signed in can view post images
-      allow write: if isSignedIn() && request.auth.uid == userId; // Only owner can upload
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId
+                      && isImageType() && underImageSizeLimit();
     }
 
     /* -------- Group Post Images --------
-       Users can upload images for group posts. */
-    match /groupPosts/{groupId}/{fileName} {
-      allow read: if isSignedIn(); // Anyone signed in can view group post images
-      allow write: if isSignedIn(); // Any signed in user can upload to groups they're in
+       Users can upload images for group posts.
+       Path includes userId to enforce ownership of uploaded files. */
+    match /groupPosts/{groupId}/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId
+                      && isImageType() && underImageSizeLimit();
     }
 
     /* -------- Community Post Images --------
        Users can upload images for community posts. */
     match /communityPosts/{userId}/{fileName} {
-      allow read: if isSignedIn(); // Anyone signed in can view community post images
-      allow write: if isSignedIn() && request.auth.uid == userId; // Only owner can upload
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId
+                      && isImageType() && underImageSizeLimit();
     }
 
     /* -------- Sleep Audio --------
        Clients may read (stream) when signed in.
        Only admins may upload/overwrite/delete. */
     match /sleep-audio/{allPaths=**} {
-      // Change to 'true' if you want public streaming before login
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdmin()
+                      && isAudioType() && underAudioSizeLimit();
     }
 
     /* -------- Default deny -------- */

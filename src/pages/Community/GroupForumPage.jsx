@@ -161,7 +161,7 @@ export default function GroupForumPage() {
 
   const uploadImages = async (images) => {
     const uploadPromises = images.map(async (image, index) => {
-      const imageRef = ref(storage, `groupPosts/${groupId}/${Date.now()}_${index}`);
+      const imageRef = ref(storage, `groupPosts/${groupId}/${user.uid}/${Date.now()}_${index}`);
       await uploadBytes(imageRef, image);
       return await getDownloadURL(imageRef);
     });

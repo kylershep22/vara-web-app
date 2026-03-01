@@ -1,164 +1,133 @@
 // mobile/src/screens/ConversationsScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   Image,
+  TextInput,
   StyleSheet,
   ActivityIndicator,
   Platform,
+  Modal,
+  Animated,
+  Dimensions,
+  KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback,
+  PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { FAB, Portal, Modal, Button as PaperButton, Searchbar, Avatar as PaperAvatar } from 'react-native-paper';
+import { FAB } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useConversations } from '../hooks/useConversations';
 import { useConnections, useStartConversation } from '../hooks';
-import { Colors as colors, Spacing as spacing, Typography, Layout } from '../constants';
+import { Colors, Spacing, Typography, Layout } from '../constants';
 import { db } from '../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { LoadingSpinner, Card } from '../components';
+import { ConversationListItem, MessagingEmptyState } from '../components/messaging';
 
-interface ConversationItemProps {
-  conversation: any;
-  currentUserId: string;
-  onPress: () => void;
-}
-
-const ConversationItem: React.FC<ConversationItemProps> = ({
-  conversation,
-  currentUserId,
-  onPress,
-}) => {
-  const [otherUser, setOtherUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadOtherUser();
-  }, [conversation]);
-
-  const loadOtherUser = async () => {
-    try {
-      const otherUserId = conversation.participants.find(
-        (id: string) => id !== currentUserId
-      );
-
-      if (otherUserId) {
-        const userDoc = await getDoc(doc(db, 'users', otherUserId));
-        if (userDoc.exists()) {
-          setOtherUser({ id: userDoc.id, ...userDoc.data() });
-        }
-      }
-    } catch (error) {
-      console.error('Error loading other user:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading || !otherUser) {
-    return (
-      <View style={styles.conversationItem}>
-        <View style={styles.avatarPlaceholder} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  const lastMessage = conversation.lastMessage;
-  const isUnread =
-    lastMessage &&
-    lastMessage.senderId !== currentUserId &&
-    (!conversation.lastReadBy ||
-      !conversation.lastReadBy[currentUserId] ||
-      new Date(lastMessage.createdAt?.toDate?.() || lastMessage.createdAt) >
-        new Date(
-          conversation.lastReadBy[currentUserId]?.toDate?.() ||
-            conversation.lastReadBy[currentUserId]
-        ));
-
-  const formatTime = (timestamp: any) => {
-    if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const seconds = Math.floor(diff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (seconds < 60) return 'Just now';
-    if (minutes < 60) return `${minutes}m`;
-    if (hours < 24) return `${hours}h`;
-    if (days < 7) return `${days}d`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  return (
-    <TouchableOpacity style={styles.conversationItem} onPress={onPress}>
-      <View style={styles.avatarContainer}>
-        {otherUser.avatarUrl ? (
-          <Image source={{ uri: otherUser.avatarUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>
-              {otherUser.displayName
-                ? otherUser.displayName[0].toUpperCase()
-                : 'U'}
-            </Text>
-          </View>
-        )}
-        {isUnread && <View style={styles.unreadDot} />}
-      </View>
-
-      <View style={styles.conversationContent}>
-        <View style={styles.conversationHeader}>
-          <Text
-            style={[styles.userName, isUnread && styles.userNameUnread]}
-            numberOfLines={1}
-          >
-            {otherUser.displayName || 'User'}
-          </Text>
-          {lastMessage && (
-            <Text style={styles.timestamp}>
-              {formatTime(lastMessage.createdAt)}
-            </Text>
-          )}
-        </View>
-        <Text
-          style={[
-            styles.lastMessage,
-            isUnread && styles.lastMessageUnread,
-          ]}
-          numberOfLines={1}
-        >
-          {lastMessage
-            ? `${lastMessage.senderId === currentUserId ? 'You: ' : ''}${
-                lastMessage.text
-              }`
-            : 'No messages yet'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.78;
+const SWIPE_THRESHOLD = 80;
 
 const ConversationsScreen = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { conversations, loading } = useConversations();
-  const { connections, getConnectionIds } = useConnections();
+  const { getConnectionIds } = useConnections();
   const { startConversation } = useStartConversation();
+
   const [showNewMessage, setShowNewMessage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sheetSearchQuery, setSheetSearchQuery] = useState('');
   const [connectionProfiles, setConnectionProfiles] = useState<any[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
 
-  // Load connection profiles when modal opens
+  // Bottom sheet animation
+  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const overlayAnim = useRef(new Animated.Value(0)).current;
+
+  const openSheet = useCallback(() => {
+    setShowNewMessage(true);
+    slideAnim.setValue(SHEET_HEIGHT);
+    overlayAnim.setValue(0);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(overlayAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [slideAnim, overlayAnim]);
+
+  const closeSheet = useCallback(() => {
+    Keyboard.dismiss();
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: SHEET_HEIGHT,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(overlayAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowNewMessage(false);
+      setSheetSearchQuery('');
+      setSearchFocused(false);
+    });
+  }, [slideAnim, overlayAnim]);
+
+  // Pan responder for swipe-to-dismiss
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only capture vertical downward drags on the handle area
+        return gestureState.dy > 8 && Math.abs(gestureState.dx) < Math.abs(gestureState.dy);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          slideAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > SWIPE_THRESHOLD || gestureState.vy > 0.5) {
+          closeSheet();
+        } else {
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  // Filter conversations by search query
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations;
+    const q = searchQuery.toLowerCase();
+    return conversations.filter((c) =>
+      c.otherUser?.displayName?.toLowerCase().includes(q)
+    );
+  }, [conversations, searchQuery]);
+
+  // Load connection profiles when sheet opens
   useEffect(() => {
     const loadConnectionProfiles = async () => {
       if (!showNewMessage) return;
@@ -187,15 +156,17 @@ const ConversationsScreen = () => {
   }, [showNewMessage]);
 
   const filteredConnections = connectionProfiles.filter((profile) =>
-    profile.displayName?.toLowerCase().includes(searchQuery.toLowerCase())
+    profile.displayName?.toLowerCase().includes(sheetSearchQuery.toLowerCase())
   );
 
   const handleStartConversation = async (userId: string) => {
     try {
       const conversationId = await startConversation(userId);
-      setShowNewMessage(false);
-      setSearchQuery('');
-      navigation.navigate('Chat', { conversationId, otherUserId: userId });
+      closeSheet();
+      // Small delay to let the sheet close animation finish
+      setTimeout(() => {
+        navigation.navigate('Chat', { conversationId, otherUserId: userId });
+      }, 260);
     } catch (error) {
       console.error('Error starting conversation:', error);
     }
@@ -204,127 +175,204 @@ const ConversationsScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Loading conversations...</Text>
-      </View>
-    );
-  }
-
-  if (conversations.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Ionicons
-          name="chatbubbles-outline"
-          size={64}
-          color={colors.text.secondary}
-        />
-        <Text style={styles.emptyTitle}>No Messages Yet</Text>
-        <Text style={styles.emptyText}>
-          Start a conversation with someone from the community!
-        </Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={conversations}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ConversationItem
-            conversation={item}
-            currentUserId={user?.uid || ''}
-            onPress={() =>
-              navigation.navigate('Chat', {
-                conversationId: item.id,
-                otherUserId: item.participants.find(
-                  (id: string) => id !== user?.uid
-                ),
-              })
-            }
-          />
-        )}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="arrow-back" size={22} color={Colors.evergreenTeal} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Messages</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      {/* Search Bar */}
+      {conversations.length > 0 && (
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputWrapper}>
+            <Ionicons name="search" size={18} color={Colors.mutedSageGray} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search conversations..."
+              placeholderTextColor={Colors.text.secondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close-circle" size={18} color={Colors.mutedSageGray} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Conversation List */}
+      {conversations.length === 0 ? (
+        <MessagingEmptyState
+          icon="chatbubbles-outline"
+          title="No Messages Yet"
+          subtitle="Start a conversation with someone from the community!"
+          actionLabel="New Message"
+          onAction={openSheet}
+        />
+      ) : filteredConversations.length === 0 ? (
+        <MessagingEmptyState
+          icon="search-outline"
+          title="No Results"
+          subtitle={`No conversations matching "${searchQuery}"`}
+        />
+      ) : (
+        <FlatList
+          data={filteredConversations}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ConversationListItem
+              conversation={item}
+              currentUserId={user?.uid || ''}
+              onPress={() =>
+                navigation.navigate('Chat', {
+                  conversationId: item.id,
+                  otherUserId: item.participants.find(
+                    (id: string) => id !== user?.uid
+                  ),
+                })
+              }
+            />
+          )}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          contentContainerStyle={styles.listContent}
+        />
+      )}
 
       {/* FAB for New Message */}
       <FAB
         icon="message-plus"
         label="New Message"
         style={styles.fab}
-        onPress={() => setShowNewMessage(true)}
-        color={colors.textOnPrimary}
+        onPress={openSheet}
+        color={Colors.textOnPrimary}
       />
 
-      {/* New Message Modal */}
-      <Portal>
-        <Modal
-          visible={showNewMessage}
-          onDismiss={() => {
-            setShowNewMessage(false);
-            setSearchQuery('');
-          }}
-          contentContainerStyle={styles.modalContainer}
+      {/* New Message Bottom Sheet */}
+      <Modal
+        visible={showNewMessage}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={closeSheet}
+      >
+        <KeyboardAvoidingView
+          style={styles.sheetWrapper}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.modal}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeaderContent}>
-                <View style={styles.modalIconContainer}>
-                  <Ionicons name="chatbubble-ellipses" size={24} color={colors.evergreenTeal} />
-                </View>
-                <View style={styles.modalTitleContainer}>
-                  <Text style={styles.modalTitle}>New Message</Text>
-                  <Text style={styles.modalSubtitle}>Select a connection to message</Text>
-                </View>
+          {/* Overlay */}
+          <TouchableWithoutFeedback onPress={closeSheet}>
+            <Animated.View
+              style={[
+                styles.overlay,
+                { opacity: overlayAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.3] }) },
+              ]}
+            />
+          </TouchableWithoutFeedback>
+
+          {/* Sheet */}
+          <Animated.View
+            style={[
+              styles.sheet,
+              {
+                height: SHEET_HEIGHT,
+                paddingBottom: insets.bottom,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            {/* Handle Bar (swipe area) */}
+            <View {...panResponder.panHandlers} style={styles.handleArea}>
+              <View style={styles.handleBar} />
+            </View>
+
+            {/* Header */}
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetTitleContainer}>
+                <Text style={styles.sheetTitle}>New Message</Text>
+                <Text style={styles.sheetSubtitle}>Select a connection to message</Text>
               </View>
               <TouchableOpacity
-                onPress={() => {
-                  setShowNewMessage(false);
-                  setSearchQuery('');
-                }}
-                style={styles.modalCloseButton}
+                onPress={closeSheet}
+                style={styles.sheetCloseButton}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
               >
-                <Ionicons name="close" size={24} color={colors.text.secondary} />
+                <Ionicons name="close" size={24} color={Colors.mutedSageGray} />
               </TouchableOpacity>
             </View>
 
-            {/* Search bar */}
-            <View style={styles.modalSearchContainer}>
-              <Searchbar
-                placeholder="Search your connections..."
-                onChangeText={setSearchQuery}
-                value={searchQuery}
-                style={styles.searchbar}
-                iconColor={colors.evergreenTeal}
-                autoFocus={true}
-              />
-              {searchQuery.length > 0 && (
-                <Text style={styles.searchResultsCount}>
-                  {filteredConnections.length} {filteredConnections.length === 1 ? 'connection' : 'connections'} found
-                </Text>
-              )}
+            {/* Search Field */}
+            <View style={styles.sheetSearchContainer}>
+              <View
+                style={[
+                  styles.sheetSearchField,
+                  searchFocused && styles.sheetSearchFieldFocused,
+                ]}
+              >
+                <Ionicons name="search" size={18} color={Colors.mutedSageGray} />
+                <TextInput
+                  style={styles.sheetSearchInput}
+                  placeholder="Search your connections..."
+                  placeholderTextColor={Colors.mutedSageGray}
+                  value={sheetSearchQuery}
+                  onChangeText={setSheetSearchQuery}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
+                  returnKeyType="search"
+                  autoCorrect={false}
+                  autoFocus
+                />
+                {sheetSearchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSheetSearchQuery('')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="close-circle" size={18} color={Colors.mutedSageGray} />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
-            {/* Connection list */}
-            <View style={styles.modalContent}>
+            {/* User List */}
+            <View style={styles.sheetListContainer}>
               {loadingProfiles ? (
-                <View style={styles.modalLoading}>
-                  <ActivityIndicator size="large" color={colors.evergreenTeal} />
+                <View style={styles.sheetLoading}>
+                  <ActivityIndicator size="large" color={Colors.evergreenTeal} />
                   <Text style={styles.loadingText}>Loading connections...</Text>
                 </View>
               ) : filteredConnections.length === 0 ? (
-                <View style={styles.emptyConnections}>
-                  <Ionicons name="people-outline" size={48} color={colors.text.secondary} />
-                  <Text style={styles.emptyConnectionsTitle}>
-                    {searchQuery
-                      ? 'No connections found'
-                      : 'No connections yet'}
+                <View style={styles.sheetEmpty}>
+                  <Ionicons name="people-outline" size={48} color={Colors.mutedSageGray} />
+                  <Text style={styles.sheetEmptyTitle}>
+                    {sheetSearchQuery ? 'No connections found' : 'No connections yet'}
                   </Text>
-                  <Text style={styles.emptyText}>
-                    {searchQuery
-                      ? `No one matching "${searchQuery}"`
+                  <Text style={styles.sheetEmptySubtitle}>
+                    {sheetSearchQuery
+                      ? `No one matching "${sheetSearchQuery}"`
                       : 'Connect with people first to start messaging'}
                   </Text>
                 </View>
@@ -332,13 +380,17 @@ const ConversationsScreen = () => {
                 <FlatList
                   data={filteredConnections}
                   keyExtractor={(item) => item.id}
-                  style={styles.connectionsList}
-                  showsVerticalScrollIndicator={true}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator
+                  contentContainerStyle={styles.sheetListContent}
+                  ItemSeparatorComponent={() => <View style={styles.connectionSeparator} />}
                   renderItem={({ item }) => (
                     <TouchableOpacity
-                      style={styles.connectionItem}
+                      style={styles.connectionRow}
                       onPress={() => handleStartConversation(item.id)}
                       activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Message ${item.displayName || 'User'}`}
                     >
                       {item.avatarUrl ? (
                         <Image source={{ uri: item.avatarUrl }} style={styles.connectionAvatar} />
@@ -349,38 +401,18 @@ const ConversationsScreen = () => {
                           </Text>
                         </View>
                       )}
-                      <View style={styles.connectionInfo}>
-                        <Text style={styles.connectionName}>{item.displayName || 'User'}</Text>
-                        {item.bio && (
-                          <Text style={styles.connectionBio} numberOfLines={1}>
-                            {item.bio}
-                          </Text>
-                        )}
-                      </View>
-                      <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
+                      <Text style={styles.connectionName} numberOfLines={1}>
+                        {item.displayName || 'User'}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color={Colors.silverSage} />
                     </TouchableOpacity>
                   )}
                 />
               )}
             </View>
-
-            {/* Footer */}
-            <View style={styles.modalFooter}>
-              <PaperButton
-                mode="outlined"
-                onPress={() => {
-                  setShowNewMessage(false);
-                  setSearchQuery('');
-                }}
-                style={styles.modalButton}
-                labelStyle={styles.modalButtonLabel}
-              >
-                Cancel
-              </PaperButton>
-            </View>
-          </View>
-        </Modal>
-      </Portal>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };
@@ -388,281 +420,240 @@ const ConversationsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAF6',
+    backgroundColor: Colors.background.default,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FAFAF6',
+    backgroundColor: Colors.background.default,
   },
   loadingText: {
-    marginTop: spacing.md,
+    marginTop: Spacing.md,
     fontSize: Typography.fontSize.sm,
-    color: colors.text.secondary,
+    color: Colors.text.secondary,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
-    backgroundColor: '#FAFAF6',
-  },
-  emptyTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: colors.text.primary,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-  },
-  emptyText: {
-    fontSize: Typography.fontSize.sm,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  conversationItem: {
+  // Header
+  header: {
     flexDirection: 'row',
-    padding: spacing.md,
-    backgroundColor: '#fff',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.white,
+    borderBottomWidth: Layout.borderWidth.thin,
+    borderBottomColor: Colors.borderLight,
   },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: spacing.md,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  avatarPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
+  backButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: Spacing.sm,
   },
-  avatarText: {
+  headerTitle: {
+    flex: 1,
     fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: colors.textOnPrimary,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
   },
-  unreadDot: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.secondary.amber,
-    borderWidth: 2,
-    borderColor: '#fff',
+  headerSpacer: {
+    width: 40,
   },
-  conversationContent: {
-    flex: 1,
-    justifyContent: 'center',
+  // Conversations search
+  searchContainer: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.white,
+    borderBottomWidth: Layout.borderWidth.thin,
+    borderBottomColor: Colors.borderLight,
   },
-  conversationHeader: {
+  searchInputWrapper: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    backgroundColor: Colors.background.default,
+    borderRadius: Layout.borderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    height: 40,
+    gap: Spacing.sm,
   },
-  userName: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: colors.text.primary,
+  searchInput: {
     flex: 1,
-  },
-  userNameUnread: {
-    fontWeight: Typography.fontWeight.bold,
-  },
-  timestamp: {
-    fontSize: Typography.fontSize.xs,
-    color: colors.text.secondary,
-    marginLeft: spacing.sm,
-  },
-  lastMessage: {
     fontSize: Typography.fontSize.sm,
-    color: colors.text.secondary,
+    color: Colors.text.primary,
+    paddingVertical: 0,
   },
-  lastMessageUnread: {
-    fontWeight: Typography.fontWeight.semibold,
-    color: colors.text.primary,
+  // List
+  listContent: {
+    flexGrow: 1,
   },
   separator: {
     height: 1,
-    backgroundColor: '#F0F0F0',
-    marginLeft: spacing.md + 56 + spacing.md,
+    backgroundColor: Colors.borderLight,
+    marginLeft: Spacing.base + 52 + Spacing.md,
   },
   fab: {
     position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.lg,
-    backgroundColor: colors.evergreenTeal,
+    right: Spacing.lg,
+    bottom: Spacing.lg,
+    backgroundColor: Colors.evergreenTeal,
   },
-  modalContainer: {
+
+  // =============================================
+  // Bottom Sheet
+  // =============================================
+  sheetWrapper: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+  },
+  sheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  // Handle
+  handleArea: {
     alignItems: 'center',
-    padding: spacing.lg,
+    paddingTop: 12,
+    paddingBottom: 4,
   },
-  modal: {
-    backgroundColor: colors.surface,
-    borderRadius: Layout.borderRadius.xl,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '85%',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.silverSage,
   },
-  modalHeader: {
+  // Header
+  sheetHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: Layout.borderWidth.thin,
-    borderBottomColor: colors.borderLight,
-    backgroundColor: colors.surface,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: Spacing.sm,
   },
-  modalHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  sheetTitleContainer: {
     flex: 1,
+    marginRight: Spacing.md,
   },
-  modalIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: Layout.borderRadius.lg,
-    backgroundColor: `${colors.evergreenTeal}15`,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  modalTitleContainer: {
-    flex: 1,
-  },
-  modalTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: colors.text.primary,
+  sheetTitle: {
+    fontSize: Typography.fontSize.lg, // 18px
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
     marginBottom: 2,
   },
-  modalSubtitle: {
-    fontSize: Typography.fontSize.sm,
-    color: colors.text.secondary,
+  sheetSubtitle: {
+    fontSize: Typography.fontSize.sm, // 14px
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.mutedSageGray,
   },
-  modalCloseButton: {
-    padding: spacing.xs,
-    marginLeft: spacing.sm,
-    marginTop: -spacing.xs,
+  sheetCloseButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -4,
+    marginRight: -8,
   },
-  modalSearchContainer: {
-    padding: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.surface,
+  // Search
+  sheetSearchContainer: {
+    paddingHorizontal: 24,
+    paddingTop: Spacing.base, // 16px top margin
+    paddingBottom: Spacing.md,
   },
-  searchbar: {
-    backgroundColor: colors.background.default,
-    elevation: 0,
-    borderRadius: Layout.borderRadius.md,
+  sheetSearchField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
+    borderRadius: Layout.borderRadius.md, // 8px
+    paddingHorizontal: 14,
+    gap: Spacing.sm,
   },
-  searchResultsCount: {
-    fontSize: Typography.fontSize.xs,
-    color: colors.text.secondary,
-    marginTop: spacing.xs,
-    marginLeft: spacing.xs,
+  sheetSearchFieldFocused: {
+    borderColor: Colors.evergreenTeal,
   },
-  modalContent: {
+  sheetSearchInput: {
     flex: 1,
-    minHeight: 200,
-    maxHeight: 350,
+    fontSize: 15,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.text.primary,
+    paddingVertical: 0,
   },
-  modalLoading: {
+  // User list
+  sheetListContainer: {
+    flex: 1,
+  },
+  sheetListContent: {
+    paddingBottom: 32,
+  },
+  sheetLoading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xl * 2,
+    paddingVertical: Spacing.xl * 2,
   },
-  emptyConnections: {
+  sheetEmpty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
-  emptyConnectionsTitle: {
+  sheetEmptyTitle: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
-    color: colors.text.primary,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
+    color: Colors.text.primary,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
   },
-  connectionsList: {
-    flex: 1,
-    paddingHorizontal: spacing.md,
+  sheetEmptySubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    textAlign: 'center',
   },
-  connectionItem: {
+  // Connection rows
+  connectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    borderRadius: Layout.borderRadius.md,
-    marginBottom: spacing.xs,
-    backgroundColor: colors.background.default,
+    height: 56,
+    paddingHorizontal: 24,
+  },
+  connectionSeparator: {
+    height: 1,
+    backgroundColor: 'rgba(184, 205, 186, 0.5)', // Silver Sage at 50%
+    marginLeft: 24 + 40 + 12, // padding + avatar + gap
   },
   connectionAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: Layout.borderRadius.full,
-    marginRight: spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
   },
   connectionAvatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: Layout.borderRadius.full,
-    backgroundColor: colors.evergreenTeal,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.evergreenTeal,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.md,
+    marginRight: 12,
   },
   connectionAvatarText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-    color: colors.textOnPrimary,
-  },
-  connectionInfo: {
-    flex: 1,
+    fontSize: Typography.fontSize.sm, // 14px
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textOnPrimary,
   },
   connectionName: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: colors.text.primary,
-    marginBottom: 2,
-  },
-  connectionBio: {
-    fontSize: Typography.fontSize.sm,
-    color: colors.text.secondary,
-  },
-  modalFooter: {
-    padding: spacing.md,
-    paddingTop: spacing.sm,
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: colors.borderLight,
-    backgroundColor: colors.surface,
-  },
-  modalButton: {
-    borderColor: colors.borderLight,
-    borderRadius: Layout.borderRadius.md,
-  },
-  modalButtonLabel: {
-    color: colors.text.secondary,
+    flex: 1,
+    fontSize: Typography.fontSize.base, // 16px
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.softCharcoal,
   },
 });
 

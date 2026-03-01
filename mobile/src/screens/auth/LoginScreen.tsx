@@ -12,9 +12,8 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
-import { Text, Snackbar } from 'react-native-paper';
+import { Text, Snackbar, TextInput as PaperTextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button, Input, AuthHeader } from '../../components';
 import { Colors, Spacing, Typography } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
@@ -118,9 +117,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
+              textContentType="emailAddress"
               error={!!emailError}
               errorText={emailError}
-              left={<Icon name="email-outline" size={20} color={Colors.textSecondary} />}
+              left={<PaperTextInput.Icon icon="email-outline" color={Colors.textSecondary} />}
               style={styles.input}
             />
 
@@ -135,17 +135,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               secureTextEntry={secureTextEntry}
               autoCapitalize="none"
               autoComplete="password"
+              textContentType="password"
               error={!!passwordError}
               errorText={passwordError}
-              left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
+              left={<PaperTextInput.Icon icon="lock-outline" color={Colors.textSecondary} />}
               right={
-                <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
-                  <Icon
-                    name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
-                    size={20}
-                    color={Colors.textSecondary}
-                  />
-                </TouchableOpacity>
+                <PaperTextInput.Icon
+                  icon={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+                  color={Colors.textSecondary}
+                  onPress={() => setSecureTextEntry(!secureTextEntry)}
+                />
               }
               style={styles.input}
             />

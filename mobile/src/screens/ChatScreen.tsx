@@ -1,5 +1,5 @@
 // mobile/src/screens/ChatScreen.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,99 +17,95 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
-import { Colors as colors, Spacing as spacing, Typography, Layout } from '../constants';
+import { useConversation } from '../hooks/useConversations';
+import { Colors, Spacing, Typography, Layout } from '../constants';
 import { db } from '../config/firebase';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { MessageBubble, DateDivider, MessagingEmptyState } from '../components/messaging';
+import type { DirectMessage } from '../services/firebase';
 
 const INPUT_ACCESSORY_VIEW_ID = 'chatInputAccessory';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  serverTimestamp,
-  updateDoc,
-  doc,
-  getDoc,
-} from 'firebase/firestore';
 
-interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  createdAt: any;
-}
+/** Check if two timestamps are on different calendar days */
+const isDifferentDay = (a: any, b: any): boolean => {
+  const dateA = a?.toDate ? a.toDate() : new Date(a);
+  const dateB = b?.toDate ? b.toDate() : new Date(b);
+  return (
+    dateA.getFullYear() !== dateB.getFullYear() ||
+    dateA.getMonth() !== dateB.getMonth() ||
+    dateA.getDate() !== dateB.getDate()
+  );
+};
+
+/** Check if two timestamps are within N minutes of each other */
+const isWithinMinutes = (a: any, b: any, mins: number): boolean => {
+  if (!a || !b) return false;
+  const dateA = a?.toDate ? a.toDate() : new Date(a);
+  const dateB = b?.toDate ? b.toDate() : new Date(b);
+  return Math.abs(dateA.getTime() - dateB.getTime()) < mins * 60 * 1000;
+};
+
+type ListItem =
+  | { type: 'message'; data: DirectMessage; isFirstInGroup: boolean; isLastInGroup: boolean }
+  | { type: 'dateDivider'; date: Date; id: string };
 
 const ChatScreen = () => {
   const { user } = useAuth();
   const route = useRoute<any>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { conversationId, otherUserId } = route.params;
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, loading, sending, sendMessage } = useConversation(conversationId);
   const [newMessage, setNewMessage] = useState('');
-  const [sending, setSending] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [otherUser, setOtherUser] = useState<any>(null);
-  const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     loadOtherUser();
   }, [otherUserId]);
 
-  // Update navigation title with other user's name
+  // Set header title with other user's name
   useEffect(() => {
     if (otherUser?.displayName) {
       navigation.setOptions({
-        title: otherUser.displayName,
+        headerTitle: () => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('UserProfile', { userId: otherUserId })}
+            style={styles.headerTitleContainer}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`View ${otherUser.displayName}'s profile`}
+          >
+            {otherUser.avatarUrl ? (
+              <Image source={{ uri: otherUser.avatarUrl }} style={styles.headerAvatar} />
+            ) : (
+              <View style={styles.headerAvatarPlaceholder}>
+                <Text style={styles.headerAvatarText}>
+                  {otherUser.displayName[0]?.toUpperCase() || 'U'}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.headerName} numberOfLines={1}>
+              {otherUser.displayName}
+            </Text>
+          </TouchableOpacity>
+        ),
       });
     }
   }, [otherUser, navigation]);
 
+  // Mark as read when opening and when messages update
   useEffect(() => {
-    if (!conversationId) return;
-
-    // Subscribe to messages
-    const q = query(
-      collection(db, 'directMessages'),
-      where('conversationId', '==', conversationId),
-      orderBy('createdAt', 'asc')
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const messagesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Message[];
-
-        setMessages(messagesData);
-        setLoading(false);
-
-        // Mark conversation as read
-        markAsRead();
-      },
-      (error) => {
-        console.error('Error fetching messages:', error);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [conversationId]);
+    if (user && conversationId && messages.length > 0) {
+      markAsRead();
+    }
+  }, [conversationId, messages.length]);
 
   const loadOtherUser = async () => {
     if (!otherUserId) return;
-
     try {
       const userDoc = await getDoc(doc(db, 'users', otherUserId));
       if (userDoc.exists()) {
         setOtherUser({ id: userDoc.id, ...userDoc.data() });
-        navigation.setOptions({
-          headerTitle: userDoc.data().displayName || 'Chat',
-        });
       }
     } catch (error) {
       console.error('Error loading other user:', error);
@@ -118,116 +114,116 @@ const ChatScreen = () => {
 
   const markAsRead = async () => {
     if (!user || !conversationId) return;
-
     try {
       const convRef = doc(db, 'conversations', conversationId);
       await updateDoc(convRef, {
         [`lastReadBy.${user.uid}`]: serverTimestamp(),
+        [`unreadCount.${user.uid}`]: 0,
       });
     } catch (error) {
       console.error('Error marking as read:', error);
     }
   };
 
-  const handleSend = async () => {
+  // Build list items with grouping and date dividers
+  // Messages come in ASC order from the hook; we reverse for inverted FlatList
+  const listItems: ListItem[] = useMemo(() => {
+    if (messages.length === 0) return [];
+
+    const items: ListItem[] = [];
+
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      const prevMsg = i > 0 ? messages[i - 1] : null;
+      const nextMsg = i < messages.length - 1 ? messages[i + 1] : null;
+
+      // Insert date divider if this message is on a different day than the previous
+      if (!prevMsg || (msg.createdAt && prevMsg.createdAt && isDifferentDay(prevMsg.createdAt, msg.createdAt))) {
+        const date = msg.createdAt?.toDate ? msg.createdAt.toDate() : new Date(msg.createdAt || Date.now());
+        items.push({
+          type: 'dateDivider',
+          date,
+          id: `date-${date.toISOString().split('T')[0]}-${i}`,
+        });
+      }
+
+      // Determine grouping
+      const sameSenderAsPrev =
+        prevMsg &&
+        prevMsg.senderId === msg.senderId &&
+        msg.createdAt && prevMsg.createdAt &&
+        !isDifferentDay(prevMsg.createdAt, msg.createdAt) &&
+        isWithinMinutes(prevMsg.createdAt, msg.createdAt, 2);
+
+      const sameSenderAsNext =
+        nextMsg &&
+        nextMsg.senderId === msg.senderId &&
+        msg.createdAt && nextMsg.createdAt &&
+        !isDifferentDay(msg.createdAt, nextMsg.createdAt) &&
+        isWithinMinutes(msg.createdAt, nextMsg.createdAt, 2);
+
+      items.push({
+        type: 'message',
+        data: msg,
+        isFirstInGroup: !sameSenderAsPrev,
+        isLastInGroup: !sameSenderAsNext,
+      });
+    }
+
+    // Reverse for inverted FlatList (newest first in data, rendered at bottom)
+    return items.reverse();
+  }, [messages]);
+
+  const handleSend = useCallback(async () => {
     if (!newMessage.trim() || !user || !conversationId) return;
 
     const messageText = newMessage.trim();
     setNewMessage('');
-    setSending(true);
 
     try {
-      await addDoc(collection(db, 'directMessages'), {
-        conversationId,
-        senderId: user.uid,
-        receiverId: otherUserId,
-        text: messageText,
-        createdAt: serverTimestamp(),
-      });
-
-      // Update conversation
-      await updateDoc(doc(db, 'conversations', conversationId), {
-        lastMessage: {
-          text: messageText,
-          senderId: user.uid,
-          createdAt: serverTimestamp(),
-        },
-        updatedAt: serverTimestamp(),
-      });
-
-      // Scroll to bottom
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      await sendMessage(messageText, otherUserId);
     } catch (error) {
       console.error('Error sending message:', error);
+      // Restore message on failure
       setNewMessage(messageText);
-    } finally {
-      setSending(false);
     }
-  };
+  }, [newMessage, user, conversationId, otherUserId, sendMessage]);
 
-  const formatMessageTime = (timestamp: any) => {
-    if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
+  const renderItem = useCallback(
+    ({ item }: { item: ListItem }) => {
+      if (item.type === 'dateDivider') {
+        return <DateDivider date={item.date} />;
+      }
 
-  const renderMessage = ({ item }: { item: Message }) => {
-    const isMyMessage = item.senderId === user?.uid;
+      return (
+        <MessageBubble
+          text={item.data.text}
+          timestamp={item.data.createdAt}
+          isMine={item.data.senderId === user?.uid}
+          senderAvatarUrl={item.data.senderId !== user?.uid ? otherUser?.avatarUrl : undefined}
+          isFirstInGroup={item.isFirstInGroup}
+          isLastInGroup={item.isLastInGroup}
+        />
+      );
+    },
+    [user?.uid, otherUser?.avatarUrl]
+  );
 
-    return (
-      <View
-        style={[
-          styles.messageContainer,
-          isMyMessage ? styles.myMessageContainer : styles.theirMessageContainer,
-        ]}
-      >
-        {!isMyMessage && otherUser?.avatarUrl && (
-          <Image
-            source={{ uri: otherUser.avatarUrl }}
-            style={styles.messageAvatar}
-          />
-        )}
-        <View
-          style={[
-            styles.messageBubble,
-            isMyMessage ? styles.myMessageBubble : styles.theirMessageBubble,
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageText,
-              isMyMessage ? styles.myMessageText : styles.theirMessageText,
-            ]}
-          >
-            {item.text}
-          </Text>
-          <Text
-            style={[
-              styles.messageTime,
-              isMyMessage ? styles.myMessageTime : styles.theirMessageTime,
-            ]}
-          >
-            {formatMessageTime(item.createdAt)}
-          </Text>
-        </View>
-      </View>
-    );
-  };
+  const keyExtractor = useCallback((item: ListItem) => {
+    if (item.type === 'dateDivider') return item.id;
+    return item.data.id;
+  }, []);
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Loading messages...</Text>
       </View>
     );
   }
+
+  const isSendDisabled = !newMessage.trim() || sending;
 
   return (
     <KeyboardAvoidingView
@@ -236,51 +232,46 @@ const ChatScreen = () => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMessage}
+        data={listItems}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        inverted
         contentContainerStyle={styles.messagesList}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons
-              name="chatbubble-ellipses-outline"
-              size={48}
-              color={colors.text.secondary}
+          <View style={styles.emptyWrapper}>
+            <MessagingEmptyState
+              icon="chatbubble-ellipses-outline"
+              title="Start the Conversation"
+              subtitle={`Say hello to ${otherUser?.displayName || 'this user'}!`}
             />
-            <Text style={styles.emptyText}>
-              Start the conversation with {otherUser?.displayName || 'this user'}!
-            </Text>
           </View>
-        }
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: false })
         }
       />
 
+      {/* Input Bar */}
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
           value={newMessage}
           onChangeText={setNewMessage}
           placeholder="Type a message..."
+          placeholderTextColor={Colors.text.secondary}
           multiline
           maxLength={1000}
           inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
           blurOnSubmit={false}
         />
         <TouchableOpacity
-          style={[
-            styles.sendButton,
-            (!newMessage.trim() || sending) && styles.sendButtonDisabled,
-          ]}
+          style={[styles.sendButton, isSendDisabled && styles.sendButtonDisabled]}
           onPress={handleSend}
-          disabled={!newMessage.trim() || sending}
+          disabled={isSendDisabled}
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
         >
           {sending ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={Colors.textOnPrimary} />
           ) : (
-            <Ionicons name="send" size={20} color="#fff" />
+            <Ionicons name="send" size={18} color={Colors.textOnPrimary} />
           )}
         </TouchableOpacity>
       </View>
@@ -292,6 +283,8 @@ const ChatScreen = () => {
             <TouchableOpacity
               onPress={() => Keyboard.dismiss()}
               style={styles.keyboardAccessoryButton}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss keyboard"
             >
               <Text style={styles.keyboardAccessoryButtonText}>Done</Text>
             </TouchableOpacity>
@@ -302,149 +295,114 @@ const ChatScreen = () => {
   );
 };
 
+const HEADER_AVATAR_SIZE = 30;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.default,
+    backgroundColor: Colors.background.default,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background.default,
+    backgroundColor: Colors.background.default,
   },
   loadingText: {
-    marginTop: spacing.md,
+    marginTop: Spacing.md,
     fontSize: Typography.fontSize.sm,
-    color: colors.text.secondary,
+    color: Colors.text.secondary,
   },
-  messagesList: {
-    padding: spacing.md,
-    flexGrow: 1,
+  // Header
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
-  emptyContainer: {
-    flex: 1,
+  headerAvatar: {
+    width: HEADER_AVATAR_SIZE,
+    height: HEADER_AVATAR_SIZE,
+    borderRadius: HEADER_AVATAR_SIZE / 2,
+  },
+  headerAvatarPlaceholder: {
+    width: HEADER_AVATAR_SIZE,
+    height: HEADER_AVATAR_SIZE,
+    borderRadius: HEADER_AVATAR_SIZE / 2,
+    backgroundColor: Colors.evergreenTeal,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: spacing.xl * 2,
   },
-  emptyText: {
-    marginTop: spacing.md,
-    fontSize: Typography.fontSize.sm,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  messageContainer: {
-    flexDirection: 'row',
-    marginBottom: spacing.md,
-    alignItems: 'flex-end',
-  },
-  myMessageContainer: {
-    justifyContent: 'flex-end',
-  },
-  theirMessageContainer: {
-    justifyContent: 'flex-start',
-  },
-  messageAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: Layout.borderRadius['2xl'],
-    marginRight: spacing.xs,
-  },
-  messageBubble: {
-    maxWidth: '75%',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: Layout.borderRadius.lg,
-  },
-  myMessageBubble: {
-    backgroundColor: colors.evergreenTeal,
-    borderBottomRightRadius: Layout.borderRadius.sm,
-  },
-  theirMessageBubble: {
-    backgroundColor: colors.surface,
-    borderBottomLeftRadius: Layout.borderRadius.sm,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  messageText: {
-    fontSize: Typography.fontSize.base,
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
-    marginBottom: 2,
-  },
-  myMessageText: {
-    color: colors.textOnPrimary,
-  },
-  theirMessageText: {
-    color: colors.text.primary,
-  },
-  messageTime: {
+  headerAvatarText: {
     fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textOnPrimary,
   },
-  myMessageTime: {
-    color: 'rgba(255, 255, 255, 0.7)',
+  headerName: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    maxWidth: 200,
   },
-  theirMessageTime: {
-    color: colors.text.secondary,
+  // Messages
+  messagesList: {
+    paddingVertical: Spacing.sm,
+    flexGrow: 1,
   },
+  emptyWrapper: {
+    flex: 1,
+    // Inverted FlatList: empty component renders upside down, so flip it
+    transform: [{ scaleY: -1 }],
+  },
+  // Input
   inputContainer: {
     flexDirection: 'row',
-    padding: spacing.md,
-    backgroundColor: colors.surface,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
     borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: colors.borderLight,
+    borderTopColor: Colors.borderLight,
     alignItems: 'flex-end',
   },
   input: {
     flex: 1,
-    backgroundColor: colors.inputBackground,
+    backgroundColor: Colors.background.default,
     borderRadius: Layout.borderRadius['2xl'],
-    paddingHorizontal: spacing.md,
-    paddingVertical: Platform.OS === 'ios' ? spacing.sm : spacing.xs,
-    marginRight: spacing.sm,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Platform.OS === 'ios' ? Spacing.sm : Spacing.xs,
+    marginRight: Spacing.sm,
     maxHeight: 100,
     fontSize: Typography.fontSize.base,
-    color: colors.text.primary,
+    color: Colors.text.primary,
   },
   sendButton: {
     width: 40,
     height: 40,
-    borderRadius: Layout.borderRadius['2xl'],
-    backgroundColor: colors.evergreenTeal,
+    borderRadius: 20,
+    backgroundColor: Colors.evergreenTeal,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
-  // Keyboard Accessory Toolbar
+  // Keyboard Accessory
   keyboardAccessory: {
-    backgroundColor: colors.surface,
+    backgroundColor: Colors.surface,
     borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: colors.borderLight,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    borderTopColor: Colors.borderLight,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
   keyboardAccessoryButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.evergreenTeal,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.evergreenTeal,
     borderRadius: Layout.borderRadius.md,
   },
   keyboardAccessoryButtonText: {
-    color: colors.textOnPrimary,
+    color: Colors.textOnPrimary,
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
   },

@@ -50,7 +50,7 @@ const HelpSupportScreen: React.FC = () => {
   const [expandedFAQ, setExpandedFAQ] = React.useState<number | null>(null);
 
   const handleEmailSupport = () => {
-    Linking.openURL('mailto:support@varawellness.com?subject=Vara App Support');
+    Linking.openURL('mailto:support@varawellness.co?subject=Vara App Support');
   };
 
   const toggleFAQ = (index: number) => {
@@ -91,7 +91,7 @@ const HelpSupportScreen: React.FC = () => {
               </View>
               <View style={styles.contactContent}>
                 <Text style={styles.contactTitle}>Email Support</Text>
-                <Text style={styles.contactSubtitle}>support@varawellness.com</Text>
+                <Text style={styles.contactSubtitle}>support@varawellness.co</Text>
               </View>
               <Icon name="chevron-right" size={20} color="#d0d0d0" />
             </TouchableOpacity>
@@ -133,7 +133,7 @@ const HelpSupportScreen: React.FC = () => {
           <View style={styles.cardGroup}>
             <TouchableOpacity
               style={styles.resourceItem}
-              onPress={() => Linking.openURL('https://varawellness.com/privacy')}
+              onPress={() => Linking.openURL('https://varawellness.co/privacy')}
               activeOpacity={0.7}
             >
               <Icon name="shield-check-outline" size={20} color={Colors.mutedSageGray} />
@@ -143,7 +143,7 @@ const HelpSupportScreen: React.FC = () => {
             <View style={styles.divider} />
             <TouchableOpacity
               style={styles.resourceItem}
-              onPress={() => Linking.openURL('https://varawellness.com/terms')}
+              onPress={() => Linking.openURL('https://varawellness.co/terms')}
               activeOpacity={0.7}
             >
               <Icon name="file-document-outline" size={20} color={Colors.mutedSageGray} />

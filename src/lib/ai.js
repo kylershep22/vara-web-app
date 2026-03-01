@@ -21,8 +21,7 @@ export async function generateJournalText(prompt) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      // If you later enforce Auth inside the function, add:
-      // ...(await authHeader())
+      ...(await authHeader()),
     },
     body: JSON.stringify({ prompt })
   });

@@ -9,3 +9,4 @@ export { default as ChallengesScreen } from './ChallengesScreen';
 export { default as ChallengeDetailScreen } from './ChallengeDetailScreen';
 export { default as PeopleScreen } from './PeopleScreen';
 export { default as MessagesScreen } from './MessagesScreen';
+export { default as UserProfileScreen } from './UserProfileScreen';

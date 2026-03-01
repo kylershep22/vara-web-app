@@ -17,7 +17,7 @@ export function getAuthErrorMessage(errorCode) {
 
     // Signup errors
     'auth/email-already-in-use': 'An account with this email already exists. Please log in instead.',
-    'auth/weak-password': 'Password is too weak. Please use at least 6 characters.',
+    'auth/weak-password': 'Password is too weak. Please use at least 8 characters with uppercase, lowercase, and a number.',
     'auth/operation-not-allowed': 'Account creation is currently disabled. Please contact support.',
 
     // Password reset errors
@@ -48,8 +48,17 @@ export function getFirebaseErrorCode(error) {
 export function validatePassword(password) {
   const errors = [];
 
-  if (password.length < 6) {
-    errors.push('Password must be at least 6 characters long');
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters long');
+  }
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  }
+  if (!/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one number');
   }
 
   return {

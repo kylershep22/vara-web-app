@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { buildUserContextSummary, pageLabelFromPath } from '../../services/userContextService';
 import { Bot, Send, X, MessageCircle, Loader2 } from 'lucide-react';
+import { authedPost } from '../../lib/apiClient';
 
 export default function AIChatWidget() {
   const { user, isAuthReady } = useAuth?.() || { user: null, isAuthReady: true };
@@ -106,11 +107,7 @@ export default function AIChatWidget() {
       };
 
       // NOTE: Requires CRA proxy ("proxy": "http://localhost:5001") or a configured API base.
-      const res = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const res = await authedPost('/api/ai-chat', payload);
 
       if (!res.ok) {
         throw new Error(`AI chat error (${res.status})`);

@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { EnhancedModal } from '../../';
 import { Colors } from '../../../constants';
@@ -201,14 +201,10 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
         totalSteps={WIZARD_STEPS.length}
         currentStep={currentStepIndex}
       />
-      <ScrollView
-        style={styles.stepContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      <View style={styles.stepContent}>
         {renderStep()}
         <View style={styles.bottomSpacer} />
-      </ScrollView>
+      </View>
     </EnhancedModal>
   );
 };

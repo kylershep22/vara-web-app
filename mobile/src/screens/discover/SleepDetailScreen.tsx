@@ -3,7 +3,7 @@
  * Individual sleep content with audio playback
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Button, Switch, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +13,6 @@ import { Colors, Spacing } from '../../constants';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import { useSleep } from '../../hooks';
 import { LoadingSpinner, ContentCard } from '../../components';
-import { Picker } from '@react-native-picker/picker';
 
 export default function SleepDetailScreen() {
   const route = useRoute();
@@ -22,9 +21,6 @@ export default function SleepDetailScreen() {
 
   const { sounds, stories, meditations, loading } = useSleep();
   const { currentTrack, isPlaying, playTrack, pause, resume, stop, isLooping, setLooping } = useAudioPlayer();
-
-  const [sleepTimer, setSleepTimer] = useState<number | null>(null); // minutes
-  const [timerActive, setTimerActive] = useState(false);
 
   // Get all content based on category
   const allContent = category === 'sounds' ? sounds : category === 'stories' ? stories : meditations;
@@ -51,21 +47,6 @@ export default function SleepDetailScreen() {
 
   const handleStop = async () => {
     await stop();
-    setTimerActive(false);
-  };
-
-  const handleTimerChange = (value: number | null) => {
-    setSleepTimer(value);
-    if (value !== null && isPlaying) {
-      setTimerActive(true);
-      // Set timeout to stop playback
-      setTimeout(() => {
-        stop();
-        setTimerActive(false);
-      }, value * 60 * 1000);
-    } else {
-      setTimerActive(false);
-    }
   };
 
   if (loading) {
@@ -161,40 +142,6 @@ export default function SleepDetailScreen() {
             onValueChange={setLooping}
             color={Colors.evergreenTeal}
           />
-        </View>
-
-        {/* Sleep Timer */}
-        <View style={styles.timerSection}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Sleep Timer
-          </Text>
-          <Text variant="bodyMedium" style={styles.sectionDescription}>
-            Automatically stop playback after a set time
-          </Text>
-
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={sleepTimer}
-              onValueChange={handleTimerChange}
-              style={styles.picker}
-            >
-              <Picker.Item label="No Timer" value={null} />
-              <Picker.Item label="15 minutes" value={15} />
-              <Picker.Item label="30 minutes" value={30} />
-              <Picker.Item label="45 minutes" value={45} />
-              <Picker.Item label="1 hour" value={60} />
-              <Picker.Item label="2 hours" value={120} />
-            </Picker>
-          </View>
-
-          {timerActive && (
-            <View style={styles.timerActive}>
-              <Icon name="timer-sand" size={20} color={Colors.success} />
-              <Text variant="bodyMedium" style={styles.timerActiveText}>
-                Timer active: {sleepTimer} minutes
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* Related Content */}
@@ -326,39 +273,9 @@ const styles = StyleSheet.create({
   settingText: {
     color: Colors.textPrimary,
   },
-  timerSection: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.base,
-    marginBottom: Spacing.lg,
-  },
   sectionTitle: {
     color: Colors.textPrimary,
     marginBottom: Spacing.xs,
-  },
-  sectionDescription: {
-    color: Colors.textSecondary,
-    marginBottom: Spacing.base,
-  },
-  pickerContainer: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-  },
-  timerActive: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.success + '20',
-    borderRadius: 8,
-  },
-  timerActiveText: {
-    color: Colors.success,
   },
   relatedSection: {
     paddingHorizontal: Spacing.base,

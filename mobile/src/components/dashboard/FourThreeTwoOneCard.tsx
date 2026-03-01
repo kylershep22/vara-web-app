@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Keyboard } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, Card, Checkbox, Button, Modal, Portal, TextInput, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -193,7 +193,7 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
           <View style={styles.headerContent}>
             <View style={styles.headerTextContainer}>
               <Text style={styles.title}>4-3-2-1 Daily Practice</Text>
-              <Text style={styles.subtitle}>A gentle daily check-in</Text>
+              <Text style={styles.subtitle}>4 min quiet, 3 wins, 2 body fuels, 1 connection</Text>
             </View>
             <View style={styles.headerRight}>
               <Text style={styles.progressText}>{completionCount}/4</Text>
@@ -345,73 +345,78 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
           }}
           contentContainerStyle={styles.winsModal}
         >
-          <Text variant="titleLarge" style={styles.modalTitle}>
-            3 Wins from Today
-          </Text>
-          <Text variant="bodyMedium" style={styles.modalDescription}>
-            Celebrate small accomplishments! (Optional - or just mark complete)
-          </Text>
-
-          <ScrollView
-            style={styles.winsScrollView}
-            contentContainerStyle={styles.winsScrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
           >
-            <TextInput
-              label="Win #1"
-              value={win1}
-              onChangeText={setWin1}
-              mode="outlined"
-              style={styles.input}
-              placeholder="Made my bed, did the dishes, etc."
-              outlineColor={Colors.border}
-              activeOutlineColor={Colors.evergreenTeal}
-              returnKeyType="next"
-            />
-            <TextInput
-              label="Win #2"
-              value={win2}
-              onChangeText={setWin2}
-              mode="outlined"
-              style={styles.input}
-              placeholder="Small wins count!"
-              outlineColor={Colors.border}
-              activeOutlineColor={Colors.evergreenTeal}
-              returnKeyType="next"
-            />
-            <TextInput
-              label="Win #3"
-              value={win3}
-              onChangeText={setWin3}
-              mode="outlined"
-              style={styles.input}
-              placeholder="Any progress is progress"
-              outlineColor={Colors.border}
-              activeOutlineColor={Colors.evergreenTeal}
-              returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
-            />
-          </ScrollView>
+            <Text variant="titleLarge" style={styles.modalTitle}>
+              3 Wins from Today
+            </Text>
+            <Text variant="bodyMedium" style={styles.modalDescription}>
+              Celebrate small accomplishments! (Optional - or just mark complete)
+            </Text>
 
-          <View style={styles.modalActions}>
-            <Button
-              mode="outlined"
-              onPress={handleMarkWinsWithoutWriting}
-              style={styles.modalButton}
-              textColor={Colors.evergreenTeal}
+            <ScrollView
+              style={styles.winsScrollView}
+              contentContainerStyle={styles.winsScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              Mark Complete
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handleSaveWins}
-              style={styles.modalButton}
-              buttonColor={Colors.evergreenTeal}
-            >
-              Save Wins
-            </Button>
-          </View>
+              <TextInput
+                label="Win #1"
+                value={win1}
+                onChangeText={setWin1}
+                mode="outlined"
+                style={styles.input}
+                placeholder="Made my bed, did the dishes, etc."
+                outlineColor={Colors.border}
+                activeOutlineColor={Colors.evergreenTeal}
+                returnKeyType="next"
+              />
+              <TextInput
+                label="Win #2"
+                value={win2}
+                onChangeText={setWin2}
+                mode="outlined"
+                style={styles.input}
+                placeholder="Small wins count!"
+                outlineColor={Colors.border}
+                activeOutlineColor={Colors.evergreenTeal}
+                returnKeyType="next"
+              />
+              <TextInput
+                label="Win #3"
+                value={win3}
+                onChangeText={setWin3}
+                mode="outlined"
+                style={styles.input}
+                placeholder="Any progress is progress"
+                outlineColor={Colors.border}
+                activeOutlineColor={Colors.evergreenTeal}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+              />
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <Button
+                mode="outlined"
+                onPress={handleMarkWinsWithoutWriting}
+                style={styles.modalButton}
+                textColor={Colors.evergreenTeal}
+              >
+                Mark Complete
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleSaveWins}
+                style={styles.modalButton}
+                buttonColor={Colors.evergreenTeal}
+              >
+                Save Wins
+              </Button>
+            </View>
+          </KeyboardAvoidingView>
         </Modal>
       </Portal>
 

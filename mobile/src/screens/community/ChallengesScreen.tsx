@@ -14,19 +14,15 @@ import {
   Platform,
   TouchableOpacity,
   RefreshControl,
+  TextInput,
 } from 'react-native';
-import {
-  Text,
-  SegmentedButtons,
-  Searchbar,
-  Switch,
-  Chip,
-} from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, LoadingSpinner, Input } from '../../components';
 import { EnhancedModal, ModalFooterActions } from '../../components/shared/EnhancedModal';
 import ChallengeCard from '../../components/community/ChallengeCard';
+import QuickStatusCard from '../../components/community/QuickStatusCard';
 import { InvitePermissionPicker, InvitePermission } from '../../components/community';
 import {
   Colors,
@@ -44,24 +40,42 @@ import {
   joinChallenge,
   fetchMyParticipation,
   checkIn,
+  hasCheckedInToday,
   isUserMemberOfChallenge,
   CreateChallengeInput,
 } from '../../services/firebase/challenges.service';
+import { getUserDisplayInfo } from '../../services/firebase/invites.service';
+import { getGroupInfo } from '../../services/firebase/community.service';
 import { Challenge, ChallengeParticipant, GroupCategory, ChallengeFrequency } from '../../types/models';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { SegmentedButtons, Switch } from 'react-native-paper';
+
+type FilterType = 'all' | 'my' | 'active';
+
+const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'my', label: 'My Challenges' },
+  { value: 'all', label: 'All' },
+];
 
 const ChallengesScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const [filter, setFilter] = useState<'all' | 'my' | 'active'>('active');
+  const [filter, setFilter] = useState<FilterType>('active');
   const [categoryFilter, setCategoryFilter] = useState<GroupCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
 
   // Data state
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [participations, setParticipations] = useState<Record<string, ChallengeParticipant | null>>({});
+  const [checkedInMap, setCheckedInMap] = useState<Record<string, boolean>>({});
+  const [ownerProfiles, setOwnerProfiles] = useState<Record<string, { displayName: string; avatar?: string }>>({});
+  const [groupNames, setGroupNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
+  const [checkingInChallengeId, setCheckingInChallengeId] = useState<string | null>(null);
 
   // Create challenge modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -74,10 +88,10 @@ const ChallengesScreen: React.FC = () => {
   const [isPublic, setIsPublic] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<GroupCategory>('fitness');
   const [frequency, setFrequency] = useState<ChallengeFrequency>('daily');
-  const [targetCount, setTargetCount] = useState('20');
-  const [unit, setUnit] = useState('times');
+  const [targetCount, setTargetCount] = useState('');
+  const [unit, setUnit] = useState('');
   const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // 30 days from now
+  const [endDate, setEndDate] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [invitePermission, setInvitePermission] = useState<InvitePermission>('owner_only');
@@ -88,14 +102,13 @@ const ChallengesScreen: React.FC = () => {
       const data = await fetchChallenges(filter, user?.uid);
       setChallenges(data);
 
-      // Load participation for each challenge the user is part of
       if (user) {
-        const participationPromises = data
-          .filter((c) => c.members.includes(user.uid))
-          .map(async (c) => {
-            const p = await fetchMyParticipation(c.id);
-            return { id: c.id, participation: p };
-          });
+        // Load participation for joined challenges
+        const joinedChallenges = data.filter((c) => c.members.includes(user.uid));
+        const participationPromises = joinedChallenges.map(async (c) => {
+          const p = await fetchMyParticipation(c.id);
+          return { id: c.id, participation: p };
+        });
 
         const results = await Promise.all(participationPromises);
         const participationMap: Record<string, ChallengeParticipant | null> = {};
@@ -103,6 +116,54 @@ const ChallengesScreen: React.FC = () => {
           participationMap[r.id] = r.participation;
         });
         setParticipations(participationMap);
+
+        // Load check-in status for joined active challenges
+        const activeJoined = joinedChallenges.filter((c) => c.status === 'active');
+        const checkInPromises = activeJoined.map(async (c) => {
+          const checked = await hasCheckedInToday(c.id);
+          return { id: c.id, checked };
+        });
+        const checkInResults = await Promise.all(checkInPromises);
+        const checkInMap: Record<string, boolean> = {};
+        checkInResults.forEach((r) => {
+          checkInMap[r.id] = r.checked;
+        });
+        setCheckedInMap(checkInMap);
+
+        // Load owner profiles (deduplicated)
+        const uniqueOwnerIds = [...new Set(data.map((c) => c.ownerId))];
+        const profilePromises = uniqueOwnerIds.map(async (ownerId) => {
+          const info = await getUserDisplayInfo(ownerId);
+          return { ownerId, info };
+        });
+        const profileResults = await Promise.all(profilePromises);
+        const profiles: Record<string, { displayName: string; avatar?: string }> = {};
+        profileResults.forEach((r) => {
+          if (r.info) {
+            profiles[r.ownerId] = { displayName: r.info.displayName, avatar: r.info.avatar };
+          }
+        });
+        setOwnerProfiles(profiles);
+
+        // Load group names for challenges with sourceGroupId
+        const challengesWithGroup = data.filter((c) => c.sourceGroupId);
+        const uniqueGroupIds = [...new Set(challengesWithGroup.map((c) => c.sourceGroupId!))];
+        if (uniqueGroupIds.length > 0) {
+          const groupPromises = uniqueGroupIds.map(async (groupId) => {
+            try {
+              const group = await getGroupInfo(groupId);
+              return { groupId, name: group?.name || null };
+            } catch {
+              return { groupId, name: null };
+            }
+          });
+          const groupResults = await Promise.all(groupPromises);
+          const names: Record<string, string> = {};
+          groupResults.forEach((r) => {
+            if (r.name) names[r.groupId] = r.name;
+          });
+          setGroupNames(names);
+        }
       }
     } catch (error) {
       console.error('Error loading challenges:', error);
@@ -143,28 +204,45 @@ const ChallengesScreen: React.FC = () => {
     return result;
   }, [challenges, searchQuery, categoryFilter]);
 
+  // Joined challenges for quick-status section
+  const joinedActiveChallenges = useMemo(() => {
+    if (!user) return [];
+    return challenges.filter(
+      (c) => c.members.includes(user.uid) && c.status === 'active'
+    );
+  }, [challenges, user]);
+
+  const showQuickStatus = filter !== 'my' && joinedActiveChallenges.length > 0;
+
   // Handlers
   const handleJoinChallenge = async (challengeId: string, challengeName: string) => {
+    setJoiningChallengeId(challengeId);
     try {
       await joinChallenge(challengeId);
       Alert.alert('Success', `You joined "${challengeName}"!`);
       loadChallenges();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to join challenge');
+    } finally {
+      setJoiningChallengeId(null);
     }
   };
 
   const handleCheckIn = async (challengeId: string) => {
+    setCheckingInChallengeId(challengeId);
     try {
       await checkIn(challengeId);
+      setCheckedInMap((prev) => ({ ...prev, [challengeId]: true }));
       Alert.alert('Great job!', "You've checked in for today!");
-      loadChallenges();
     } catch (error: any) {
       if (error.message === 'Already checked in today') {
         Alert.alert('Already Done', "You've already checked in today. Keep up the great work!");
+        setCheckedInMap((prev) => ({ ...prev, [challengeId]: true }));
       } else {
         Alert.alert('Error', error.message || 'Failed to check in');
       }
+    } finally {
+      setCheckingInChallengeId(null);
     }
   };
 
@@ -222,8 +300,8 @@ const ChallengesScreen: React.FC = () => {
     setIsPublic(true);
     setSelectedCategory('fitness');
     setFrequency('daily');
-    setTargetCount('20');
-    setUnit('times');
+    setTargetCount('');
+    setUnit('');
     setStartDate(new Date());
     setEndDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
     setInvitePermission('owner_only');
@@ -233,85 +311,184 @@ const ChallengesScreen: React.FC = () => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Section header text
+  const sectionHeaderText = filter === 'active'
+    ? 'All active challenges'
+    : filter === 'all'
+    ? 'Browse challenges'
+    : null;
+
+  // Empty state type
+  const getEmptyState = () => {
+    if (searchQuery.trim() || categoryFilter !== 'all') return 'no-match';
+    if (filter === 'my') return 'my-empty';
+    return 'no-active';
+  };
+
+  // Render empty state
+  const renderEmptyState = () => {
+    const type = getEmptyState();
+
+    if (type === 'no-match') {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconCircle}>
+            <Text style={styles.emptyIconEmoji}>🔍</Text>
+          </View>
+          <Text style={styles.emptyTitle}>No challenges match this filter</Text>
+          <Text style={styles.emptyBody}>Try a different category or search term</Text>
+        </View>
+      );
+    }
+
+    if (type === 'my-empty') {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconCircle}>
+            <Text style={styles.emptyIconEmoji}>◈</Text>
+          </View>
+          <Text style={styles.emptyTitle}>No challenges yet</Text>
+          <Text style={styles.emptyBody}>
+            Join a challenge to get started with others on a similar path
+          </Text>
+          <TouchableOpacity onPress={() => setFilter('active')}>
+            <Text style={styles.emptyCta}>Browse challenges →</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // no-active
+    return (
+      <View style={styles.emptyContainer}>
+        <View style={styles.emptyIconCircle}>
+          <Text style={styles.emptyIconEmoji}>◈</Text>
+        </View>
+        <Text style={styles.emptyTitle}>No active challenges right now</Text>
+        <Text style={styles.emptyBody}>Check back soon or create one for your group</Text>
+        <TouchableOpacity
+          style={styles.emptyCreateButton}
+          onPress={() => setShowCreateModal(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.emptyCreateButtonText}>+ Create a Challenge</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Render list header (quick-status + section header)
+  const renderListHeader = () => (
+    <View>
+      {/* Quick-Status Section */}
+      {showQuickStatus && (
+        <View style={styles.quickStatusSection}>
+          <Text style={styles.quickStatusTitle}>Your active challenges</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickStatusScroll}
+          >
+            {joinedActiveChallenges.map((challenge) => (
+              <QuickStatusCard
+                key={challenge.id}
+                challenge={challenge}
+                participation={participations[challenge.id]}
+                hasCheckedIn={checkedInMap[challenge.id] || false}
+                checkingIn={checkingInChallengeId === challenge.id}
+                onCheckIn={() => handleCheckIn(challenge.id)}
+                onPress={() => handleNavigateToChallenge(challenge.id, challenge.name)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Section Header */}
+      {sectionHeaderText && (
+        <Text style={styles.sectionHeader}>{sectionHeaderText}</Text>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
-          <View style={styles.headerTitles}>
-            <Text variant="headlineMedium" style={styles.screenTitle}>
-              Challenges
-            </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
-              Join a challenge, build accountability
-            </Text>
-          </View>
+      {/* Section A: Top Navigation Bar */}
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name="arrow-left" size={20} color={Colors.evergreenTeal} />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>Challenges</Text>
+      </View>
+
+      {/* Section B: Title Area */}
+      <View style={styles.titleArea}>
+        <Text style={styles.screenTitle}>Challenges</Text>
+        <Text style={styles.subtitle}>Grow together through shared commitment</Text>
+      </View>
+
+      {/* Section C: Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchInputContainer, searchFocused && styles.searchInputFocused]}>
+          <Icon name="magnify" size={16} color={Colors.mutedSageGray} />
+          <TextInput
+            placeholder="Search challenges..."
+            placeholderTextColor={Colors.mutedSageGray}
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchInput}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+          />
         </View>
       </View>
 
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Search challenges..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-          iconColor={Colors.evergreenTeal}
-        />
-      </View>
-
-      {/* Filter Tabs */}
+      {/* Section D: Filter Pills */}
       <View style={styles.filterContainer}>
-        <SegmentedButtons
-          value={filter}
-          onValueChange={(value) => setFilter(value as 'all' | 'my' | 'active')}
-          buttons={[
-            { value: 'active', label: 'Active' },
-            { value: 'my', label: 'My Challenges' },
-            { value: 'all', label: 'All' },
-          ]}
-          style={styles.segmentedButtons}
-        />
+        {FILTER_OPTIONS.map((option) => {
+          const isActive = filter === option.value;
+          return (
+            <TouchableOpacity
+              key={option.value}
+              style={[styles.filterPill, isActive ? styles.filterPillActive : styles.filterPillInactive]}
+              onPress={() => setFilter(option.value)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.filterPillText, isActive ? styles.filterPillTextActive : styles.filterPillTextInactive]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {/* Category Filter */}
+      {/* Section E: Category Chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.categoryScroll}
         contentContainerStyle={styles.categoryContainer}
       >
-        <Chip
-          selected={categoryFilter === 'all'}
+        <TouchableOpacity
           onPress={() => setCategoryFilter('all')}
           style={[styles.categoryChip, categoryFilter === 'all' && styles.categoryChipSelected]}
-          textStyle={categoryFilter === 'all' ? styles.categoryChipTextSelected : undefined}
+          activeOpacity={0.7}
         >
-          All
-        </Chip>
+          <Text style={[styles.categoryChipText, categoryFilter === 'all' && styles.categoryChipTextSelected]}>
+            All
+          </Text>
+        </TouchableOpacity>
         {GROUP_CATEGORY_LIST.map((cat) => (
-          <Chip
+          <TouchableOpacity
             key={cat.key}
-            selected={categoryFilter === cat.key}
             onPress={() => setCategoryFilter(cat.key)}
-            style={[
-              styles.categoryChip,
-              categoryFilter === cat.key && styles.categoryChipSelected,
-            ]}
-            textStyle={categoryFilter === cat.key ? styles.categoryChipTextSelected : undefined}
-            icon={() => (
-              <Icon
-                name={cat.icon as any}
-                size={16}
-                color={categoryFilter === cat.key ? Colors.textOnPrimary : Colors.textSecondary}
-              />
-            )}
+            style={[styles.categoryChip, categoryFilter === cat.key && styles.categoryChipSelected]}
+            activeOpacity={0.7}
           >
-            {cat.label}
-          </Chip>
+            <Text style={[styles.categoryChipText, categoryFilter === cat.key && styles.categoryChipTextSelected]}>
+              {cat.label}
+            </Text>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
@@ -319,22 +496,7 @@ const ChallengesScreen: React.FC = () => {
       {loading ? (
         <LoadingSpinner message="Loading challenges..." />
       ) : filteredChallenges.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Icon name="trophy-outline" size={64} color={Colors.textSecondary} style={styles.emptyIcon} />
-          <Text variant="titleMedium" style={styles.emptyTitle}>
-            {searchQuery || categoryFilter !== 'all' ? 'No challenges found' : 'No challenges yet'}
-          </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {searchQuery
-              ? 'Try a different search term'
-              : filter === 'my'
-              ? "You haven't joined any challenges yet"
-              : 'Be the first to create a challenge!'}
-          </Text>
-          <Button variant="primary" style={styles.createButton} onPress={() => setShowCreateModal(true)}>
-            Create Challenge
-          </Button>
-        </View>
+        renderEmptyState()
       ) : (
         <FlatList
           data={filteredChallenges}
@@ -343,6 +505,10 @@ const ChallengesScreen: React.FC = () => {
               challenge={item}
               participation={participations[item.id]}
               isMember={isUserMemberOfChallenge(item, user?.uid)}
+              creatorName={ownerProfiles[item.ownerId]?.displayName}
+              creatorAvatar={ownerProfiles[item.ownerId]?.avatar}
+              groupName={item.sourceGroupId ? groupNames[item.sourceGroupId] : undefined}
+              joining={joiningChallengeId === item.id}
               onPress={() => handleNavigateToChallenge(item.id, item.name)}
               onJoin={() => handleJoinChallenge(item.id, item.name)}
               onCheckIn={() => handleCheckIn(item.id)}
@@ -350,6 +516,7 @@ const ChallengesScreen: React.FC = () => {
           )}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={renderListHeader}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.evergreenTeal]} />
           }
@@ -365,13 +532,12 @@ const ChallengesScreen: React.FC = () => {
         />
       )}
 
-      {/* Create Challenge button removed from FAB, now inline in list */}
-
       {/* Create Challenge Modal */}
       <EnhancedModal
         visible={showCreateModal}
         onDismiss={() => {
           Keyboard.dismiss();
+          resetForm();
           setShowCreateModal(false);
         }}
         title="Create a Challenge"
@@ -379,7 +545,7 @@ const ChallengesScreen: React.FC = () => {
         maxHeightPercent={0.92}
         footer={
           <ModalFooterActions
-            onCancel={() => setShowCreateModal(false)}
+            onCancel={() => { resetForm(); setShowCreateModal(false); }}
             onSubmit={handleCreateChallenge}
             cancelLabel="Cancel"
             submitLabel="Create"
@@ -415,7 +581,7 @@ const ChallengesScreen: React.FC = () => {
         />
 
         {/* Category Selection */}
-        <Text variant="bodyLarge" style={styles.sectionLabel}>
+        <Text variant="bodyLarge" style={styles.formSectionLabel}>
           Category
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categorySelectScroll}>
@@ -447,7 +613,7 @@ const ChallengesScreen: React.FC = () => {
         </ScrollView>
 
         {/* Frequency Selection */}
-        <Text variant="bodyLarge" style={styles.sectionLabel}>
+        <Text variant="bodyLarge" style={styles.formSectionLabel}>
           Check-in Frequency
         </Text>
         <SegmentedButtons
@@ -478,7 +644,7 @@ const ChallengesScreen: React.FC = () => {
         </View>
 
         {/* Date Selection */}
-        <Text variant="bodyLarge" style={styles.sectionLabel}>
+        <Text variant="bodyLarge" style={styles.formSectionLabel}>
           Duration
         </Text>
         <View style={styles.dateRow}>
@@ -549,87 +715,161 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.mistWhite,
   },
-  header: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.base,
-  },
-  headerRow: {
+
+  // Section A: Nav Bar
+  navBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.base,
+    gap: Spacing.md,
+    borderBottomWidth: Layout.borderWidth.thin,
+    borderBottomColor: Colors.divider,
   },
   backButton: {
     padding: Spacing.xs,
-    marginRight: Spacing.sm,
   },
-  headerTitles: {
-    flex: 1,
+  navTitle: {
+    fontSize: 17,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+  },
+
+  // Section B: Title Area
+  titleArea: {
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.base,
   },
   screenTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
     color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.bold,
   },
   subtitle: {
-    color: Colors.textSecondary,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
     marginTop: Spacing.xs,
+    marginBottom: Spacing.sm + 6, // ~14px
   },
+
+  // Section C: Search Bar
   searchContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.base,
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.md,
   },
-  searchbar: {
-    backgroundColor: Colors.surface,
-    elevation: 0,
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
+    backgroundColor: Colors.white,
   },
+  searchInputFocused: {
+    borderColor: Colors.evergreenTeal,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.softCharcoal,
+    padding: 0,
+  },
+
+  // Section D: Filter Pills
   filterContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.md,
   },
-  segmentedButtons: {
-    backgroundColor: Colors.surface,
+  filterPill: {
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.base,
+    borderRadius: Layout.borderRadius.pill,
   },
+  filterPillActive: {
+    backgroundColor: Colors.evergreenTeal,
+  },
+  filterPillInactive: {
+    backgroundColor: Colors.dewSageLight,
+  },
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  filterPillTextActive: {
+    color: Colors.white,
+  },
+  filterPillTextInactive: {
+    color: Colors.mutedSageGray,
+  },
+
+  // Section E: Category Chips
   categoryScroll: {
-    maxHeight: 44,
-    marginBottom: Spacing.base,
+    flexGrow: 0,
   },
   categoryContainer: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.xs,
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.sm + 6, // ~14px
+    gap: Spacing.sm,
   },
   categoryChip: {
-    backgroundColor: Colors.surface,
-    marginRight: Spacing.xs,
+    backgroundColor: Colors.white,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+    borderRadius: Layout.borderRadius.pill,
+    borderWidth: Layout.borderWidth.thin,
+    borderColor: Colors.divider,
+    flexShrink: 0,
   },
   categoryChipSelected: {
     backgroundColor: Colors.evergreenTeal,
+    borderColor: Colors.evergreenTeal,
+  },
+  categoryChipText: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.mutedSageGray,
   },
   categoryChipTextSelected: {
-    color: Colors.textOnPrimary,
+    color: Colors.white,
   },
+
+  // Section F: Quick-Status
+  quickStatusSection: {
+    marginBottom: Spacing.sm + 6, // ~14px
+  },
+  quickStatusTitle: {
+    paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.sm + 2, // ~10px
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+  },
+  quickStatusScroll: {
+    paddingHorizontal: Spacing.base,
+    gap: Spacing.sm + 2, // ~10px
+  },
+
+  // Section G: Section Header
+  sectionHeader: {
+    paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.sm + 2, // ~10px
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+  },
+
+  // Challenge List
   listContent: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.base,
     paddingBottom: Spacing.xl * 2,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  emptyIcon: {
-    marginBottom: Spacing.base,
-  },
-  emptyTitle: {
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
-  emptyText: {
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  createButton: {
-    minWidth: 160,
-  },
+
+  // Section H: Create Button
   inlineCreateButton: {
     backgroundColor: Colors.evergreenTeal,
     height: 48,
@@ -637,17 +877,69 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
-    marginTop: Spacing.base,
+    marginTop: Spacing.lg - 4, // ~20px
   },
   inlineCreateButtonText: {
     color: Colors.textOnPrimary,
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,
   },
+
+  // Empty States
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 80,
+    backgroundColor: Colors.dewSageLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.base,
+  },
+  emptyIconEmoji: {
+    fontSize: 32,
+  },
+  emptyTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  emptyBody: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
+    lineHeight: Typography.fontSize.sm * 1.4,
+    marginBottom: Spacing.base,
+  },
+  emptyCta: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
+  },
+  emptyCreateButton: {
+    backgroundColor: Colors.evergreenTeal,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    borderRadius: Layout.borderRadius.md,
+  },
+  emptyCreateButtonText: {
+    color: Colors.white,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+
+  // Modal Form Styles
   input: {
     marginBottom: Spacing.base,
   },
-  sectionLabel: {
+  formSectionLabel: {
     color: Colors.textPrimary,
     fontWeight: Typography.fontWeight.medium,
     marginBottom: Spacing.sm,

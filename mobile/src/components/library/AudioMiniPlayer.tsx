@@ -1,27 +1,55 @@
 /**
  * Audio Mini Player Component
- * Persistent bottom audio player bar for sleep sounds and breathwork
+ * Simplified persistent bottom bar — tappable to expand into full player
+ *
+ * Layout: [Icon] Track Title   1:30/5:00 [Play/Pause] [Close]
+ * With a 2.5px progress bar at the bottom edge
  */
 
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { Text } from 'react-native-paper';
+import React from 'react';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import Slider from '@react-native-community/slider';
-import { Colors, Spacing, Layout, Typography } from '../../constants';
+import * as Haptics from 'expo-haptics';
+import { Colors, Layout } from '../../constants';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 
-export function AudioMiniPlayer() {
-  const { currentTrack, isPlaying, progress, duration, isLooping, pause, resume, stop, setLooping, seek } = useAudioPlayer();
-  const [isSeeking, setIsSeeking] = useState(false);
-  const [tempProgress, setTempProgress] = useState(0);
+// =====================
+// Helpers
+// =====================
 
-  // Don't render if no track is loaded
+const formatTime = (millis: number): string => {
+  const totalSeconds = Math.floor(millis / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
+// =====================
+// Component
+// =====================
+
+export function AudioMiniPlayer() {
+  const {
+    currentTrack,
+    isPlaying,
+    progress,
+    duration,
+    pause,
+    resume,
+    stop,
+    setIsExpanded,
+  } = useAudioPlayer();
+
   if (!currentTrack) {
     return null;
   }
 
+  const handleExpand = () => {
+    setIsExpanded(true);
+  };
+
   const handlePlayPause = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isPlaying) {
       pause();
     } else {
@@ -29,159 +57,137 @@ export function AudioMiniPlayer() {
     }
   };
 
-  const toggleLoop = () => {
-    setLooping(!isLooping);
+  const handleClose = () => {
+    stop();
   };
 
-  const handleSeekStart = () => {
-    setIsSeeking(true);
-  };
-
-  const handleSeekChange = (value: number) => {
-    setTempProgress(value);
-  };
-
-  const handleSeekComplete = async (value: number) => {
-    setIsSeeking(false);
-    await seek(value); // seek expects 0-1, don't multiply by duration
-  };
-
-  const formatTime = (millis: number): string => {
-    const totalSeconds = Math.floor(millis / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const currentProgress = isSeeking ? tempProgress : progress;
-  const currentTime = formatTime(currentProgress * duration);
-  const totalTime = formatTime(duration);
+  const elapsed = formatTime(progress * duration);
+  const total = formatTime(duration);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        {/* Track Info and Time */}
-        <View style={styles.trackInfoRow}>
-          <View style={styles.iconContainer}>
-            <Icon name="music-note" size={18} color={Colors.white} />
-          </View>
-          <View style={styles.trackDetails}>
-            <Text variant="bodyMedium" style={styles.trackTitle} numberOfLines={1}>
-              {currentTrack.title}
-            </Text>
-            <Text variant="bodySmall" style={styles.trackTime}>
-              {currentTime} / {totalTime}
-            </Text>
-          </View>
+    <TouchableOpacity
+      onPress={handleExpand}
+      activeOpacity={0.95}
+      style={styles.outerContainer}
+    >
+      <View style={styles.container}>
+        {/* Track icon */}
+        <View style={styles.iconContainer}>
+          <Icon name="music-note" size={18} color="#1B5E57" />
         </View>
 
-        {/* Seekbar */}
-        <View style={styles.seekbarContainer}>
-          <Slider
-            style={styles.slider}
-            value={currentProgress}
-            onValueChange={handleSeekChange}
-            onSlidingStart={handleSeekStart}
-            onSlidingComplete={handleSeekComplete}
-            minimumValue={0}
-            maximumValue={1}
-            minimumTrackTintColor={Colors.evergreenTeal}
-            maximumTrackTintColor={Colors.borderLight}
-            thumbTintColor={Colors.evergreenTeal}
+        {/* Track info */}
+        <View style={styles.trackInfo}>
+          <Text style={styles.title} numberOfLines={1}>
+            {currentTrack.title}
+          </Text>
+          <Text style={styles.time}>
+            {elapsed} / {total}
+          </Text>
+        </View>
+
+        {/* Play/Pause button */}
+        <TouchableOpacity
+          onPress={handlePlayPause}
+          style={styles.playPauseButton}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        >
+          <Icon
+            name={isPlaying ? 'pause' : 'play'}
+            size={18}
+            color="#FFFFFF"
           />
-        </View>
+        </TouchableOpacity>
 
-        {/* Centered Controls Row */}
-        <View style={styles.controlsRow}>
-          {/* Loop Toggle */}
-          <TouchableOpacity onPress={toggleLoop} style={styles.controlButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Icon
-              name={isLooping ? 'repeat' : 'repeat-off'}
-              size={22}
-              color={isLooping ? Colors.evergreenTeal : Colors.textSecondary}
-            />
-          </TouchableOpacity>
+        {/* Close button */}
+        <TouchableOpacity
+          onPress={handleClose}
+          style={styles.closeButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Icon name="close" size={16} color="#6F7F77" style={{ opacity: 0.6 }} />
+        </TouchableOpacity>
 
-          {/* Play/Pause */}
-          <TouchableOpacity onPress={handlePlayPause} style={styles.playButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Icon
-              name={isPlaying ? 'pause-circle' : 'play-circle'}
-              size={40}
-              color={Colors.evergreenTeal}
-            />
-          </TouchableOpacity>
-
-          {/* Stop/Close */}
-          <TouchableOpacity onPress={stop} style={styles.controlButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Icon name="close-circle" size={22} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
+        {/* Progress bar at bottom */}
+        <View
+          style={[
+            styles.progressBar,
+            { width: `${Math.min(progress * 100, 100)}%` },
+          ]}
+        />
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
+// =====================
+// Styles
+// =====================
+
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
     position: 'absolute',
-    bottom: 60, // Just above bottom tab bar
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-    ...Layout.shadow.lg,
+    bottom: 60, // flush with top of tab bar
+    left: 8,
+    right: 8,
     zIndex: 100,
   },
-  content: {
-    paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.sm,
-  },
-  trackInfoRow: {
+  container: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12, // radius-lg
+    borderWidth: 1,
+    borderColor: 'rgba(184, 205, 186, 0.4)', // Silver Sage 40%
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+    overflow: 'hidden',
+    ...Layout.shadow.md,
   },
   iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.evergreenTeal,
+    width: 40,
+    height: 40,
+    borderRadius: 8, // radius-md
+    backgroundColor: 'rgba(213, 227, 209, 0.5)', // Dew Sage 50%
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.sm,
   },
-  trackDetails: {
+  trackInfo: {
     flex: 1,
   },
-  trackTitle: {
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: 2,
+  title: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#3E3E3E', // Soft Charcoal
   },
-  trackTime: {
-    color: Colors.textSecondary,
-    fontSize: Typography.fontSize.xs,
+  time: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#6F7F77', // Muted Sage Gray
+    fontVariant: ['tabular-nums'],
+    marginTop: 2,
   },
-  seekbarContainer: {
-    paddingHorizontal: Spacing.xs,
-    marginBottom: Spacing.xs,
-  },
-  slider: {
-    width: '100%',
-    height: 30,
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  playPauseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 9999, // full circle
+    backgroundColor: '#1B5E57', // Evergreen Teal
     justifyContent: 'center',
-    gap: Spacing.lg,
+    alignItems: 'center',
   },
-  controlButton: {
-    padding: 6,
+  closeButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  playButton: {
-    padding: 0,
+  progressBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    height: 2.5,
+    backgroundColor: '#1B5E57', // Evergreen Teal
+    borderBottomLeftRadius: 12,
   },
 });

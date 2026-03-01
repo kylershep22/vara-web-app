@@ -130,7 +130,7 @@ const ProfileScreen = () => {
         const userGroups = groupsSnap.docs.map(d => ({ id: d.id, name: d.data().name }));
 
         // Fetch active challenges
-        const challengesQuery = query(collection(db, 'challenges'), where('participants', 'array-contains', user.uid));
+        const challengesQuery = query(collection(db, 'challenges'), where('members', 'array-contains', user.uid));
         const challengesSnap = await getDocs(challengesQuery);
         const now = new Date();
         const activeChallenges = challengesSnap.docs

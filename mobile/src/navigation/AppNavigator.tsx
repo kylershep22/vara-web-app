@@ -51,6 +51,7 @@ import {
   ChallengeDetailScreen,
   PeopleScreen,
   MessagesScreen,
+  UserProfileScreen,
 } from '../screens/community';
 
 // Onboarding screens (new streamlined flow)
@@ -216,7 +217,15 @@ const CommunityNavigator = () => {
         name="Chat"
         component={ChatScreen}
         options={{
-          headerShown: false, // ChatScreen has custom header
+          headerShown: true,
+          headerBackTitleVisible: false,
+        }}
+      />
+      <CommunityStack.Screen
+        name="UserProfile"
+        component={UserProfileScreen}
+        options={{
+          headerShown: false, // UserProfileScreen has custom header
         }}
       />
     </CommunityStack.Navigator>

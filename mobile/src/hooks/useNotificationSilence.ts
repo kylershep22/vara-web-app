@@ -129,6 +129,8 @@ export const useNotificationSilence = (): UseNotificationSilenceReturn => {
           style: 'cancel',
           onPress: () => {
             setNeedsExplanation(false);
+            setIsEnabled(false);
+            AsyncStorage.setItem(PREFERENCE_KEY, 'false');
           },
         },
         {

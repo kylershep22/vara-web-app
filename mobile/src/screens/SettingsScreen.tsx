@@ -30,7 +30,6 @@ interface Settings {
   reminderTime: string;
   tone: 'gentle' | 'encouraging' | 'direct';
   intensity: 'low' | 'standard' | 'high';
-  theme: 'system' | 'light' | 'dark';
   privacy: 'public' | 'connections' | 'private';
   searchable: boolean;
 }
@@ -48,7 +47,6 @@ const SettingsScreen = () => {
     reminderTime: '08:00',
     tone: 'gentle',
     intensity: 'standard',
-    theme: 'system',
     privacy: 'public',
     searchable: true,
   });
@@ -74,7 +72,6 @@ const SettingsScreen = () => {
           reminderTime: data.reminderTime || '08:00',
           tone: data.tone || 'gentle',
           intensity: data.intensity || 'standard',
-          theme: data.theme || 'system',
           privacy: data.privacy || 'public',
           searchable: data.searchable !== false,
         });
@@ -550,41 +547,6 @@ const SettingsScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Appearance</Text>
         <View style={styles.card}>
-          <TouchableOpacity
-            style={styles.settingRow}
-            onPress={() => {
-              Alert.alert(
-                'Theme',
-                'Choose your app theme',
-                [
-                  {
-                    text: 'System',
-                    onPress: () => handleSaveSettings({ theme: 'system' }),
-                  },
-                  {
-                    text: 'Light ☀️',
-                    onPress: () => handleSaveSettings({ theme: 'light' }),
-                  },
-                  {
-                    text: 'Dark 🌙',
-                    onPress: () => handleSaveSettings({ theme: 'dark' }),
-                  },
-                  { text: 'Cancel', style: 'cancel' },
-                ]
-              );
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Theme</Text>
-              <Text style={styles.settingValue}>
-                {settings.theme.charAt(0).toUpperCase() + settings.theme.slice(1)}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Scientific Terminology</Text>
@@ -612,7 +574,7 @@ const SettingsScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Data & Privacy</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} onPress={() => Linking.openURL('https://varawellness.co/privacy')}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Privacy Policy</Text>
             </View>
@@ -621,7 +583,7 @@ const SettingsScreen = () => {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} onPress={() => Linking.openURL('https://varawellness.co/terms')}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Terms of Service</Text>
             </View>
@@ -630,7 +592,16 @@ const SettingsScreen = () => {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => {
+              Alert.alert(
+                'Request Data Export',
+                'To request an export of your data, please contact support@varawellness.co and we\'ll send you a copy.',
+                [{ text: 'OK' }]
+              );
+            }}
+          >
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Request Data Export</Text>
               <Text style={styles.settingDescription}>

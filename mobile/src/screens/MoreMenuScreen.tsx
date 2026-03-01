@@ -148,7 +148,7 @@ const getTimeGreeting = (): string => {
 };
 
 const getFirstName = (displayName: string | null | undefined): string => {
-  if (!displayName) return 'there';
+  if (!displayName) return '';
   return displayName.split(' ')[0];
 };
 
@@ -383,7 +383,7 @@ export default function MoreMenuScreen() {
           <AvatarRing initial={initial} />
           <View style={styles.heroContent}>
             <Text style={styles.greeting}>
-              {greeting}, {firstName}
+              {firstName ? `${greeting}, ${firstName}` : greeting}
             </Text>
             {user?.email && (
               <Text style={styles.email}>{user.email}</Text>

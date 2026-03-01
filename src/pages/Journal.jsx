@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import RichTextEditor from '../components/RichTextEditor';
-import axios from 'axios';
+import { authedPost } from '../lib/apiClient';
 import DOMPurify from 'dompurify';
 
 export default function Journal() {
@@ -56,9 +56,9 @@ export default function Journal() {
   useEffect(() => {
     if (user) {
       fetchAllContent();
-      const savedDraft = localStorage.getItem('journalDraft');
+      const savedDraft = sessionStorage.getItem('journalDraft');
       if (savedDraft) setNewEntry(savedDraft);
-      const savedRefDraft = localStorage.getItem('reflectionDraft');
+      const savedRefDraft = sessionStorage.getItem('reflectionDraft');
       if (savedRefDraft) setRefHtml(savedRefDraft);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -66,14 +66,14 @@ export default function Journal() {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      localStorage.setItem('journalDraft', newEntry);
+      sessionStorage.setItem('journalDraft', newEntry);
     }, 1000);
     return () => clearTimeout(timeout);
   }, [newEntry]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      localStorage.setItem('reflectionDraft', refHtml);
+      sessionStorage.setItem('reflectionDraft', refHtml);
     }, 1000);
     return () => clearTimeout(timeout);
   }, [refHtml]);
@@ -185,7 +185,7 @@ export default function Journal() {
 
       // Journal Insights
       if (journal7.length) {
-        const resInsight = await axios.post(url, {
+        const resInsight = await authedPost(url, {
           entries: journal7.join('\n'),
           type: 'journal',
           guardrails: true,
@@ -196,14 +196,15 @@ export default function Journal() {
             'Highlight recurring themes and mood patterns.'
           ].join(' ')
         });
-        setJournalWeeklyInsight(resInsight?.data?.text || '');
+        const insightData = await resInsight.json();
+        setJournalWeeklyInsight(insightData?.text || '');
       } else {
         setJournalWeeklyInsight('');
       }
 
       // Journal Summary (brief narrative)
       if (journal7.length) {
-        const resSummary = await axios.post(url, {
+        const resSummary = await authedPost(url, {
           entries: journal7.join('\n'),
           type: 'journal',
           guardrails: true,
@@ -213,14 +214,15 @@ export default function Journal() {
             'One gentle, actionable suggestion at the end.'
           ].join(' ')
         });
-        setJournalWeeklySummary(resSummary?.data?.text || '');
+        const summaryData = await resSummary.json();
+        setJournalWeeklySummary(summaryData?.text || '');
       } else {
         setJournalWeeklySummary('');
       }
 
       // Reflection Insights
       if (refl7.length) {
-        const resRInsight = await axios.post(url, {
+        const resRInsight = await authedPost(url, {
           entries: refl7.join('\n'),
           type: 'reflection',
           guardrails: true,
@@ -230,14 +232,15 @@ export default function Journal() {
             'If AM/PM appears, compare them concisely.'
           ].join(' ')
         });
-        setReflectionWeeklyInsight(resRInsight?.data?.text || '');
+        const rInsightData = await resRInsight.json();
+        setReflectionWeeklyInsight(rInsightData?.text || '');
       } else {
         setReflectionWeeklyInsight('');
       }
 
       // Reflection Summary
       if (refl7.length) {
-        const resRSummary = await axios.post(url, {
+        const resRSummary = await authedPost(url, {
           entries: refl7.join('\n'),
           type: 'reflection',
           guardrails: true,
@@ -247,7 +250,8 @@ export default function Journal() {
             'Close with one simple suggestion for the next week.'
           ].join(' ')
         });
-        setReflectionWeeklySummary(resRSummary?.data?.text || '');
+        const rSummaryData = await resRSummary.json();
+        setReflectionWeeklySummary(rSummaryData?.text || '');
       } else {
         setReflectionWeeklySummary('');
       }
@@ -280,7 +284,7 @@ export default function Journal() {
     setNewEntry('');
     setMood('');
     setTags([]);
-    localStorage.removeItem('journalDraft');
+    sessionStorage.removeItem('journalDraft');
     setAiGeneratedPrompt('');
     fetchAllContent();
   };
@@ -414,10 +418,11 @@ export default function Journal() {
   // ------- AI prompt helper -------
   const fetchAISuggestion = async () => {
     try {
-      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/journal-prompt`, {
+      const res = await authedPost(`${process.env.REACT_APP_API_URL}/api/journal-prompt`, {
         prompt: `Give a concise, meaningful daily ${activeTab === 'reflections' ? 'reflection' : 'journal'} prompt related to: ${aiPrompt}. Avoid filler; be specific to the topic.`
       });
-      setAiGeneratedPrompt(res.data.text || '');
+      const data = await res.json();
+      setAiGeneratedPrompt(data.text || '');
     } catch (err) {
       console.error('AI error:', err);
     }
@@ -957,8 +962,10 @@ function safeToDate(ts) {
 }
 
 function stripHtml(html) {
+  const clean = DOMPurify.sanitize(html || '', { ALLOWED_TAGS: [] });
+  // DOMPurify with no allowed tags returns plain text with entities decoded
   const tmp = document.createElement('div');
-  tmp.innerHTML = html || '';
+  tmp.innerHTML = clean;
   return tmp.textContent || tmp.innerText || '';
 }
 

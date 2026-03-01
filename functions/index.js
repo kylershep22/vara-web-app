@@ -264,15 +264,46 @@ Provide 3–5 short, motivating tasks for the day. Keep tone ${tone}. Format as 
  */
 exports.journalPrompt = onRequest(
     {
-      cors: true,
       secrets: [OPENAI_API_KEY],
       timeoutSeconds: 120,
     },
     async (req, res) => {
+      // ---- CORS: restrict to known origins ----
+      const allowedOrigins = [
+        "https://vara-4a99f.web.app",
+        "https://vara-4a99f.firebaseapp.com",
+      ];
+      const origin = req.headers.origin;
+      if (origin && allowedOrigins.includes(origin)) {
+        res.set("Access-Control-Allow-Origin", origin);
+      } else if (!origin) {
+        // Allow requests with no origin (mobile apps)
+        res.set("Access-Control-Allow-Origin", "*");
+      }
+      res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+      res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+      if (req.method === "OPTIONS") {
+        return res.status(204).send("");
+      }
+
       try {
         if (req.method !== "POST") {
           res.status(405).send("Method Not Allowed");
           return;
+        }
+
+        // ---- Auth: verify Firebase ID token ----
+        const authHeader = req.headers.authorization || "";
+        if (!authHeader.startsWith("Bearer ")) {
+          return res.status(401).json({error: "Missing or invalid Authorization header"});
+        }
+        const idToken = authHeader.split("Bearer ")[1];
+        try {
+          await admin.auth().verifyIdToken(idToken);
+        } catch (authErr) {
+          logger.warn("journalPrompt auth failed", {error: authErr.message});
+          return res.status(401).json({error: "Invalid or expired token"});
         }
 
         const {prompt} = req.body || {};
@@ -281,13 +312,21 @@ exports.journalPrompt = onRequest(
           return;
         }
 
+        // Sanitize: truncate and filter prompt injection
+        const sanitizedPrompt = prompt
+            .slice(0, 5000)
+            .trim()
+            .replace(/ignore\s+(previous|all|above)\s+instructions?/gi, "[filtered]")
+            .replace(/you\s+are\s+now\s+/gi, "[filtered]")
+            .replace(/system\s*:\s*/gi, "[filtered]");
+
         const openai = await makeOpenAI();
 
         const completion = await openai.chat.completions.create({
           model: "gpt-4o-mini",
           messages: [
             {role: "system", content: "You are a thoughtful journaling assistant."},
-            {role: "user", content: prompt},
+            {role: "user", content: sanitizedPrompt},
           ],
           temperature: 0.7,
         });
@@ -393,8 +432,18 @@ exports.api = onRequest(
       timeoutSeconds: 120,
     },
     async (req, res) => {
-    // Set CORS headers for mobile apps
-      res.set("Access-Control-Allow-Origin", "*");
+    // Set CORS headers — restrict to known origins
+      const allowedOrigins = [
+        "https://vara-4a99f.web.app",
+        "https://vara-4a99f.firebaseapp.com",
+      ];
+      const origin = req.headers.origin;
+      if (origin && allowedOrigins.includes(origin)) {
+        res.set("Access-Control-Allow-Origin", origin);
+      } else if (!origin) {
+        // Allow requests with no origin (mobile apps, server-to-server)
+        res.set("Access-Control-Allow-Origin", "*");
+      }
       res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
       res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
@@ -405,9 +454,27 @@ exports.api = onRequest(
 
       const path = req.path; // e.g., "/journal-summary", "/ai-chat"
 
+      // Health check endpoint does not require auth
+      if (path === "/" || path === "/api" || path === "/api/") {
+        return res.status(200).send("Wellness AI backend is running ✅");
+      }
+
       try {
-      // Extract userId from request body (all AI endpoints send userId)
-        const userId = req.body?.userId;
+      // Verify Firebase ID token from Authorization header
+        const authHeader = req.headers.authorization || "";
+        if (!authHeader.startsWith("Bearer ")) {
+          return res.status(401).json({error: "Missing or invalid Authorization header"});
+        }
+        const idToken = authHeader.split("Bearer ")[1];
+        let decodedToken;
+        try {
+          decodedToken = await admin.auth().verifyIdToken(idToken);
+        } catch (authErr) {
+          logger.warn("Auth verification failed", {error: authErr.message, path});
+          return res.status(401).json({error: "Invalid or expired token"});
+        }
+        const userId = decodedToken.uid; // Use verified UID, not body-supplied
+        req.authenticatedUid = userId; // Make available to all handler functions
 
         // Check rate limit if userId is present
         if (userId && RATE_LIMITS[path]) {
@@ -442,8 +509,6 @@ exports.api = onRequest(
           return await handleGenerateDailyPlan(req, res);
         } else if (path === "/api/week-recap-suggestions" || path === "/week-recap-suggestions") {
           return await handleWeekRecapSuggestions(req, res);
-        } else if (path === "/" || path === "/api" || path === "/api/") {
-          return res.status(200).send("Wellness AI backend is running ✅");
         } else {
           return res.status(404).json({error: `Route not found: ${path}`});
         }
@@ -763,10 +828,11 @@ async function handleWeekRecapSuggestions(req, res) {
     return res.status(405).json({error: "Method not allowed"});
   }
 
-  const {userId, weekData, currentRecap} = req.body || {};
+  const userId = req.authenticatedUid; // Use verified UID from auth check
+  const {weekData, currentRecap} = req.body || {};
 
-  if (!userId || !weekData) {
-    return res.status(400).json({error: "Missing required fields: userId and weekData"});
+  if (!weekData) {
+    return res.status(400).json({error: "Missing required field: weekData"});
   }
 
   try {
@@ -813,4 +879,127 @@ Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}`;
   }
 }
 
+/* ======================================================================
+ * Account Deletion (GDPR / Privacy compliance)
+ * ====================================================================*/
 
+/**
+ * Callable function to delete a user's account and all associated data.
+ * Requires authentication. Deletes data from all personal collections,
+ * removes user from groups, and finally deletes the Firebase Auth account.
+ */
+exports.deleteAccount = onCall(
+    {
+      timeoutSeconds: 120,
+      memory: "512MiB",
+    },
+    async (request) => {
+      const uid = request.auth?.uid;
+      if (!uid) {
+        throw new HttpsError("unauthenticated", "Must be logged in to delete account");
+      }
+
+      const db = admin.firestore();
+
+      /**
+       * Delete all docs matching a query in batches of 500.
+       * Loops until no more matching documents remain.
+       */
+      async function deleteQueryBatched(query) {
+        let total = 0;
+        let snapshot = await query.limit(500).get();
+        while (!snapshot.empty) {
+          const batch = db.batch();
+          snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+          await batch.commit();
+          total += snapshot.size;
+          if (snapshot.size < 500) break; // last batch
+          snapshot = await query.limit(500).get();
+        }
+        return total;
+      }
+
+      // Collections where documents have a userId field
+      const personalCollections = [
+        "goals", "habits", "tasks", "journalEntries", "journal_entries",
+        "habitCompletions", "joyMoments", "fourThreeTwoOne",
+        "dailyWellnessScores", "morningCheckIns", "brainMetrics",
+        "neuroplasticitySignals", "nervousSystemSessions", "amccChallenges",
+        "sleepLogs", "sleepRoutineRuns", "puzzleCompletions", "focusSessions",
+        "routines", "weeklyRecaps", "wheelOfLife", "reflections",
+        "masterclassProgress", "audioListens", "audioFavorites",
+        "socialConnections", "natureExposure", "energyCheckins",
+        "gratitudeEntries", "bedtimeRoutines", "emotionalCheckins",
+        "cognitiveReframes", "digitalWellbeing", "brainHealthScores",
+        "notifications", "challengeParticipants", "challengeCheckIns",
+      ];
+
+      try {
+        // Delete personal data in batches (loops until all docs are deleted)
+        for (const col of personalCollections) {
+          await deleteQueryBatched(
+              db.collection(col).where("userId", "==", uid),
+          );
+        }
+
+        // Delete user's posts
+        await deleteQueryBatched(
+            db.collection("posts").where("userId", "==", uid),
+        );
+
+        // Delete user's DMs and conversations
+        await deleteQueryBatched(
+            db.collection("conversations").where("participants", "array-contains", uid),
+        );
+        await deleteQueryBatched(
+            db.collection("directMessages").where("senderId", "==", uid),
+        );
+
+        // Delete sleep routine (keyed by userId)
+        const sleepRoutineRef = db.collection("sleepRoutines").doc(uid);
+        const sleepRoutineSnap = await sleepRoutineRef.get();
+        if (sleepRoutineSnap.exists) {
+          await sleepRoutineRef.delete();
+        }
+
+        // Delete user's sub-collections (moods, daily plans)
+        const userRef = db.collection("users").doc(uid);
+        await deleteQueryBatched(userRef.collection("moods"));
+
+        // Delete user profile
+        await userRef.delete();
+
+        // Delete connections involving this user
+        await deleteQueryBatched(
+            db.collection("connections").where("participants", "array-contains", uid),
+        );
+
+        // Remove user from group member lists
+        const groupsSnap = await db.collection("groups")
+            .where("members", "array-contains", uid)
+            .get();
+        for (const groupDoc of groupsSnap.docs) {
+          const members = groupDoc.data().members || [];
+          await groupDoc.ref.update({
+            members: members.filter((m) => m !== uid),
+          });
+        }
+
+        // Delete rate limit tracking data
+        const rateLimitsRef = db.collection("rateLimits").doc(uid);
+        const rateLimitsSnap = await rateLimitsRef.get();
+        if (rateLimitsSnap.exists) {
+          await rateLimitsRef.delete();
+        }
+
+        // Delete Firebase Auth account (must be last)
+        await admin.auth().deleteUser(uid);
+
+        logger.info("Account deleted successfully", {uid});
+        return {success: true};
+      } catch (err) {
+        logger.error("Account deletion failed", {uid, error: err.message});
+        throw new HttpsError("internal", "Failed to delete account. Please contact support.");
+      }
+    },
+);

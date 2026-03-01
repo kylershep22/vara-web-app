@@ -32,8 +32,9 @@ import { ToastProvider } from './src/context/ToastContext';
 // Import navigation
 import AppNavigator from './src/navigation/AppNavigator';
 
-// Import Audio Mini Player
-import { AudioMiniPlayer } from './src/components';
+// Import Audio Player components
+import { AudioMiniPlayer, AudioExpandedPlayer } from './src/components';
+import { useAudioPlayer } from './src/context/AudioPlayerContext';
 
 // Import Error Boundary
 import ErrorBoundary from './src/components/shared/ErrorBoundary';
@@ -50,6 +51,17 @@ const queryClient = new QueryClient({
 
 // DO NOT initialize services at module load time - causes native crashes
 // Services will be initialized in useEffect after React Native bridge is ready
+
+/**
+ * Audio Player Overlay
+ * Conditionally renders mini or expanded player based on context state.
+ * Must be rendered inside AudioPlayerProvider.
+ */
+function AudioPlayerOverlay() {
+  const { currentTrack, isExpanded } = useAudioPlayer();
+  if (!currentTrack) return null;
+  return isExpanded ? <AudioExpandedPlayer /> : <AudioMiniPlayer />;
+}
 
 // Firebase Initialization Error Screen Component
 function FirebaseInitializationError({ error }: { error: Error }) {
@@ -146,7 +158,7 @@ export default function App() {
                     <AudioPlayerProvider>
                       <StatusBar style="auto" />
                       <AppNavigator />
-                      <AudioMiniPlayer />
+                      <AudioPlayerOverlay />
                     </AudioPlayerProvider>
                   </NotificationProvider>
                 </ToastProvider>

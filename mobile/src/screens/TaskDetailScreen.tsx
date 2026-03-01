@@ -3,8 +3,8 @@
  * View and manage individual task details
  */
 
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback, useRef } from 'react';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, TextInput as RNTextInput } from 'react-native';
 import { Text, Checkbox } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -40,6 +40,11 @@ const TaskDetailScreen: React.FC = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Use ref for description text to avoid re-render loops with multiline input
+  const descriptionRef = useRef(task?.description || '');
+  const descriptionInputRef = useRef<RNTextInput>(null);
+  const [descriptionFocused, setDescriptionFocused] = useState(false);
+
   // If task not found, show empty state
   if (!task) {
     return (
@@ -57,6 +62,7 @@ const TaskDetailScreen: React.FC = () => {
   }
 
   const handleEdit = () => {
+    descriptionRef.current = task.description || '';
     setFormData({
       title: task.title,
       description: task.description || '',
@@ -71,9 +77,10 @@ const TaskDetailScreen: React.FC = () => {
       return;
     }
 
+    const submitData = { ...formData, description: descriptionRef.current };
     setSubmitting(true);
     try {
-      await updateTask(task.id, formData);
+      await updateTask(task.id, submitData);
       setEditModalVisible(false);
     } catch (error) {
       console.error('Error updating task:', error);
@@ -226,29 +233,38 @@ const TaskDetailScreen: React.FC = () => {
         <Input
           label="Task Title *"
           value={formData.title}
-          onChangeText={(text) => setFormData({ ...formData, title: text })}
+          onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
           placeholder="e.g., Review project proposal"
           style={styles.input}
           inputAccessoryViewID="task-edit-modal"
         />
 
-        <Input
-          label="Description"
-          value={formData.description}
-          onChangeText={(text) => setFormData({ ...formData, description: text })}
-          placeholder="Add details..."
-          multiline
-          numberOfLines={3}
-          style={styles.input}
-          inputAccessoryViewID="task-edit-modal"
-        />
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.descriptionLabel}>Description</Text>
+          <RNTextInput
+            ref={descriptionInputRef}
+            defaultValue={descriptionRef.current}
+            onChangeText={(text) => { descriptionRef.current = text; }}
+            onFocus={() => setDescriptionFocused(true)}
+            onBlur={() => setDescriptionFocused(false)}
+            placeholder="Add details..."
+            placeholderTextColor={Colors.mutedSageGray}
+            multiline
+            textAlignVertical="top"
+            style={[
+              styles.descriptionInput,
+              descriptionFocused && styles.descriptionInputFocused,
+            ]}
+            inputAccessoryViewID="task-edit-modal"
+          />
+        </View>
 
         <Text style={styles.fieldLabel}>Priority</Text>
         <View style={styles.priorityButtons}>
           {(['low', 'medium', 'high'] as const).map((priority) => (
             <TouchableOpacity
               key={priority}
-              onPress={() => setFormData({ ...formData, priority })}
+              onPress={() => setFormData(prev => ({ ...prev, priority }))}
               style={[
                 styles.priorityButton,
                 formData.priority === priority && styles[`priority${priority.charAt(0).toUpperCase() + priority.slice(1)}Active` as keyof typeof styles],
@@ -376,6 +392,30 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: Spacing.base,
+  },
+  descriptionContainer: {
+    marginBottom: Spacing.base,
+  },
+  descriptionLabel: {
+    color: Colors.textSecondary,
+    fontSize: Typography.fontSize.xs,
+    marginBottom: Spacing.xs,
+    marginLeft: Spacing.xs,
+  },
+  descriptionInput: {
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    borderRadius: Layout.borderRadius.md,
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.sm + 4,
+    paddingBottom: Spacing.sm + 4,
+    fontSize: Typography.fontSize.base,
+    color: Colors.softCharcoal,
+    minHeight: 88,
+  },
+  descriptionInputFocused: {
+    borderColor: Colors.inputBorderFocus,
   },
   fieldLabel: {
     color: Colors.textSecondary,

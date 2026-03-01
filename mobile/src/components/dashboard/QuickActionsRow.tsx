@@ -49,12 +49,12 @@ export const QuickActionsRow: React.FC<QuickActionsRowProps> = ({
         onPress={handleReflectPress}
         activeOpacity={0.8}
         accessibilityRole="button"
-        accessibilityLabel="Open focus and reflection"
+        accessibilityLabel="Open focus"
       >
         <View style={styles.iconContainer}>
           <Icon name="meditation" size={24} color={Colors.evergreenTeal} />
         </View>
-        <Text style={styles.actionLabel}>Reflect</Text>
+        <Text style={styles.actionLabel}>Focus</Text>
       </TouchableOpacity>
     </View>
   );

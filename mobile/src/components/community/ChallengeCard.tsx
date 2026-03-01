@@ -1,386 +1,271 @@
 /**
  * Challenge Card Component
- * Displays challenge info with progress, countdown, and participation status
+ * 3-zone layout: header+badges+goal, progress bar, footer with creator+action
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, ProgressBar } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import Card from '../Card';
 import { Colors, Spacing, Typography, Layout, getGroupCategory } from '../../constants';
 import { Badge } from '../shared/Badge';
+import { CommunityAvatar } from '../shared/CommunityAvatar';
 import { Challenge, ChallengeParticipant } from '../../types/models';
-import {
-  getDaysRemaining,
-  getChallengeProgress,
-  formatChallengeDuration,
-  formatChallengePosition,
-} from '../../services/firebase/challenges.service';
+import { formatChallengePosition } from '../../services/firebase/challenges.service';
 
 interface ChallengeCardProps {
   challenge: Challenge;
   participation?: ChallengeParticipant | null;
   isMember: boolean;
+  creatorName?: string;
+  creatorAvatar?: string | null;
+  groupName?: string;
+  joining?: boolean;
   onPress: () => void;
   onJoin: () => void;
   onCheckIn?: () => void;
 }
 
-// Status Badge
-const StatusBadge: React.FC<{ status: Challenge['status'] }> = ({ status }) => {
-  const label = status.charAt(0).toUpperCase() + status.slice(1);
-  const variant = status === 'active' ? 'active' : 'default';
-  return <Badge label={label} variant={variant} />;
-};
-
-// Progress Ring (simplified as progress bar for now)
-const ProgressDisplay: React.FC<{
-  current: number;
-  target: number;
-  unit?: string;
-}> = ({ current, target, unit = 'times' }) => {
-  const progress = getChallengeProgress(current, target);
-
-  return (
-    <View style={styles.progressContainer}>
-      <View style={styles.progressHeader}>
-        <Text style={styles.progressLabel}>Your Progress</Text>
-        <Text style={styles.progressValue}>
-          {current}/{target} {unit}
-        </Text>
-      </View>
-      <ProgressBar
-        progress={progress / 100}
-        color={Colors.evergreenTeal}
-        style={styles.progressBar}
-      />
-      <Text style={styles.progressPercent}>{progress}% complete</Text>
-    </View>
-  );
-};
-
-// Countdown Display
-const CountdownDisplay: React.FC<{ startDate: any; endDate: any; status: Challenge['status'] }> = ({
-  startDate,
-  endDate,
-  status,
-}) => {
-  if (status === 'completed') {
-    return (
-      <View style={styles.countdown}>
-        <Icon name="flag-checkered" size={16} color={Colors.textSecondary} />
-        <Text style={styles.countdownText}>Challenge ended</Text>
-      </View>
-    );
-  }
-
-  if (status === 'upcoming') {
-    return (
-      <View style={styles.countdown}>
-        <Icon name="calendar-clock" size={16} color={Colors.info} />
-        <Text style={[styles.countdownText, { color: Colors.info }]}>Starts soon</Text>
-      </View>
-    );
-  }
-
-  const positionText = formatChallengePosition(startDate, endDate);
-
-  return (
-    <View style={styles.countdown}>
-      <Icon name="timer-sand" size={16} color={Colors.evergreenTeal} />
-      <Text style={[styles.countdownText, { color: Colors.evergreenTeal }]}>
-        {positionText}
-      </Text>
-    </View>
-  );
-};
+function getTimeProgress(startDate: any, endDate: any): number {
+  const start = startDate?.toDate ? startDate.toDate() : new Date(startDate);
+  const end = endDate?.toDate ? endDate.toDate() : new Date(endDate);
+  const total = end.getTime() - start.getTime();
+  if (total <= 0) return 1;
+  const elapsed = Date.now() - start.getTime();
+  return Math.min(1, Math.max(0, elapsed / total));
+}
 
 export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   challenge,
-  participation,
   isMember,
+  creatorName,
+  creatorAvatar,
+  groupName,
+  joining,
   onPress,
   onJoin,
-  onCheckIn,
 }) => {
   const categoryConfig = getGroupCategory(challenge.category);
   const memberCount = challenge.memberCount || challenge.members?.length || 0;
+  const positionText = formatChallengePosition(challenge.startDate, challenge.endDate);
+  const progress = getTimeProgress(challenge.startDate, challenge.endDate);
+  const statusLabel = challenge.status.charAt(0).toUpperCase() + challenge.status.slice(1);
+  const categoryLabel = categoryConfig.label || challenge.category || 'General';
 
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
-      <Card style={styles.card}>
-        {/* Header Row */}
+    <TouchableOpacity activeOpacity={0.7} onPress={onPress} style={styles.card}>
+      {/* Zone 1: Header Content */}
+      <View style={styles.zone1}>
+        {/* Icon + Name + Badges */}
         <View style={styles.headerRow}>
-          <View style={styles.categoryIcon}>
-            <Icon name={categoryConfig.icon as any} size={24} color={Colors.evergreenTeal} />
+          <View style={styles.iconContainer}>
+            <Icon name={categoryConfig.icon as any} size={20} color={Colors.evergreenTeal} />
           </View>
 
-          <View style={styles.headerInfo}>
-            <View style={styles.titleRow}>
-              <Text variant="titleMedium" style={styles.title} numberOfLines={1}>
+          <View style={styles.headerContent}>
+            {/* Name row */}
+            <View style={styles.nameRow}>
+              <Text style={styles.challengeName} numberOfLines={1}>
                 {challenge.name}
               </Text>
               {isMember && (
-                <Icon name="account-check" size={16} color={Colors.evergreenTeal} style={styles.memberIcon} />
+                <Text style={styles.joinedCheck}>✓</Text>
               )}
             </View>
-            <View style={styles.metaRow}>
-              <StatusBadge status={challenge.status} />
-              <CountdownDisplay startDate={challenge.startDate} endDate={challenge.endDate} status={challenge.status} />
+
+            {/* Badge row */}
+            <View style={styles.badgeRow}>
+              <Badge label={categoryLabel} variant="default" />
+              <Badge label={statusLabel} variant={challenge.status === 'active' ? 'active' : 'default'} />
+              {groupName && (
+                <Badge label={`via ${groupName}`} variant="default" />
+              )}
             </View>
           </View>
         </View>
 
-        {/* Challenge Goal */}
-        <View style={styles.goalSection}>
-          <Icon name="target" size={16} color={Colors.evergreenTeal} />
-          <Text style={styles.goalText}>{challenge.challengeGoal}</Text>
+        {/* Goal text block */}
+        <View style={styles.goalBlock}>
+          <Text style={styles.goalText}>◎ {challenge.challengeGoal}</Text>
         </View>
 
-        {/* Duration & Frequency */}
-        <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Icon name="calendar-range" size={14} color={Colors.textSecondary} />
-            <Text style={styles.statText}>
-              {formatChallengeDuration(challenge.startDate, challenge.endDate)}
-            </Text>
-          </View>
-          <View style={styles.stat}>
-            <Icon name="refresh" size={14} color={Colors.textSecondary} />
-            <Text style={styles.statText}>
-              {challenge.frequency === 'daily'
-                ? 'Check in daily'
-                : challenge.frequency === 'weekly'
-                ? 'Check in weekly'
-                : `${challenge.targetCount} ${challenge.unit || 'times'} total`}
-            </Text>
-          </View>
-          <View style={styles.stat}>
-            <Icon name="account-group" size={14} color={Colors.textSecondary} />
-            <Text style={styles.statText}>
-              {memberCount} {memberCount === 1 ? 'participant' : 'participants'}
-            </Text>
-          </View>
+        {/* Metadata row */}
+        <View style={styles.metadataRow}>
+          <Text style={styles.metadataText}>☺ {memberCount} {memberCount === 1 ? 'participant' : 'participants'}</Text>
+          <Text style={styles.metadataText}>📅 {positionText}</Text>
         </View>
+      </View>
 
-        {/* Progress (if member) */}
-        {isMember && participation && (
-          <ProgressDisplay
-            current={participation.checkInCount}
-            target={challenge.targetCount}
-            unit={challenge.unit}
+      {/* Zone 2: Progress Bar */}
+      <View style={styles.zone2}>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
+        </View>
+      </View>
+
+      {/* Zone 3: Footer */}
+      <View style={styles.zone3}>
+        {/* Left: Creator */}
+        <View style={styles.creatorRow}>
+          <CommunityAvatar
+            name={creatorName || 'Member'}
+            photoURL={creatorAvatar}
+            size={20}
           />
-        )}
-
-        {/* Actions */}
-        <View style={styles.actionsRow}>
-          {isMember ? (
-            <>
-              {challenge.status === 'active' && onCheckIn && (
-                <TouchableOpacity
-                  style={styles.checkInButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    onCheckIn();
-                  }}
-                >
-                  <Icon name="check-bold" size={16} color={Colors.white} />
-                  <Text style={styles.checkInButtonText}>Check In</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.viewButton} onPress={onPress}>
-                <Text style={styles.viewButtonText}>View Details</Text>
-                <Icon name="chevron-right" size={16} color={Colors.evergreenTeal} />
-              </TouchableOpacity>
-            </>
-          ) : (
-            <TouchableOpacity
-              style={styles.joinButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                onJoin();
-              }}
-            >
-              <Icon name="account-plus" size={16} color={Colors.white} />
-              <Text style={styles.joinButtonText}>Join Challenge</Text>
-            </TouchableOpacity>
-          )}
+          <Text style={styles.creatorText}>by {creatorName || 'Community Member'}</Text>
         </View>
-      </Card>
+
+        {/* Right: Action */}
+        {isMember ? (
+          <TouchableOpacity onPress={onPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={styles.viewLink}>View →</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.joinButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              onJoin();
+            }}
+            disabled={joining}
+            activeOpacity={0.7}
+          >
+            {joining ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <Text style={styles.joinButtonText}>Join Challenge</Text>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: Spacing.base,
+    backgroundColor: Colors.white,
+    borderRadius: Layout.borderRadius.lg,
+    overflow: 'hidden',
+    marginBottom: Spacing.sm + 2, // 10px gap between cards
+    ...Layout.shadow.sm,
+  },
+
+  // Zone 1: Header
+  zone1: {
+    paddingTop: Spacing.base,
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.md,
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
+    gap: Spacing.md,
+    marginBottom: Spacing.sm + 2, // 10px
   },
-  categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Layout.borderRadius.lg,
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     backgroundColor: Colors.dewSageLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.base,
+    flexShrink: 0,
   },
-  headerInfo: {
+  headerContent: {
     flex: 1,
   },
-  titleRow: {
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
   },
-  title: {
-    color: Colors.textPrimary,
+  challengeName: {
+    fontSize: 16,
     fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
     flex: 1,
   },
-  memberIcon: {
-    marginLeft: Spacing.xs,
+  joinedCheck: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.evergreenTeal,
+    fontWeight: Typography.fontWeight.semibold,
   },
-  metaRow: {
+  badgeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: Spacing.sm,
+    gap: 6,
+    marginTop: Spacing.xs,
+    flexWrap: 'wrap',
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    gap: 4,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  countdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  countdownText: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
-  goalSection: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  goalBlock: {
     backgroundColor: Colors.dewSageLight,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     borderRadius: Layout.borderRadius.md,
-    marginBottom: Spacing.base,
-    gap: Spacing.sm,
+    marginBottom: Spacing.sm + 2, // 10px
   },
   goalText: {
-    flex: 1,
-    color: Colors.evergreenTeal,
     fontSize: 13,
     fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
   },
-  statsRow: {
+  metadataRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: Spacing.base,
-    marginBottom: Spacing.base,
   },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    color: Colors.mutedSageGray,
+  metadataText: {
     fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
   },
-  progressContainer: {
-    marginBottom: Spacing.base,
-    paddingTop: Spacing.sm,
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.divider,
+
+  // Zone 2: Progress
+  zone2: {
+    paddingHorizontal: Spacing.base,
   },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  progressLabel: {
-    color: Colors.textSecondary,
-    fontSize: Typography.fontSize.sm,
-  },
-  progressValue: {
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.semibold,
-    fontSize: Typography.fontSize.sm,
-  },
-  progressBar: {
-    height: 6,
-    borderRadius: 6,
+  progressTrack: {
+    height: 4,
+    borderRadius: 4,
     backgroundColor: 'rgba(184,205,186,0.3)',
   },
-  progressPercent: {
-    color: Colors.evergreenTeal,
-    fontSize: Typography.fontSize.xs,
-    marginTop: 4,
-    textAlign: 'right',
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingTop: Spacing.sm,
-    borderTopWidth: Layout.borderWidth.thin,
-    borderTopColor: Colors.divider,
-    gap: Spacing.sm,
-  },
-  checkInButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  progressFill: {
+    height: 4,
+    borderRadius: 4,
     backgroundColor: Colors.evergreenTeal,
+  },
+
+  // Zone 3: Footer
+  zone3: {
+    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.xs,
-    borderRadius: Layout.borderRadius.md,
-    gap: 4,
-  },
-  checkInButtonText: {
-    color: Colors.white,
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  viewButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'space-between',
   },
-  viewButtonText: {
-    color: Colors.evergreenTeal,
-    fontSize: Typography.fontSize.sm,
+  creatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  creatorText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+  },
+  viewLink: {
+    fontSize: 13,
     fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
   },
   joinButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: Colors.evergreenTeal,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.base,
+    height: 34,
     borderRadius: Layout.borderRadius.md,
-    gap: Spacing.xs,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   joinButtonText: {
     color: Colors.white,
     fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 

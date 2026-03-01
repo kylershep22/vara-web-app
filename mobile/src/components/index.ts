@@ -28,6 +28,7 @@ export * from './shared';
 export { ContentCard } from './library/ContentCard';
 export { CategoryHeader } from './library/CategoryHeader';
 export { AudioMiniPlayer } from './library/AudioMiniPlayer';
+export { AudioExpandedPlayer } from './library/AudioExpandedPlayer';
 export { BreathworkTimer } from './library/BreathworkTimer';
 export { MasterclassCard } from './library/MasterclassCard';
 

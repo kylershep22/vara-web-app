@@ -4,12 +4,12 @@
  *
  * Features:
  * - Floating "Done" button when keyboard is visible (iOS & Android)
- * - Tap outside inputs to dismiss keyboard
+ * - Dismiss keyboard on drag (via keyboardDismissMode)
  * - Smooth keyboard avoidance
  * - Works in modals and regular screens
  */
 
-import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import React, { useRef, useEffect, useCallback, createContext, useContext } from 'react';
 import {
   View,
   ScrollView,
@@ -17,10 +17,8 @@ import {
   Keyboard,
   Platform,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Animated,
-  Dimensions,
   EmitterSubscription,
   ScrollViewProps,
 } from 'react-native';
@@ -28,8 +26,6 @@ import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
-
-const { height: screenHeight } = Dimensions.get('window');
 
 // Context to share inputAccessoryViewID with child inputs
 interface KeyboardContextValue {
@@ -75,29 +71,43 @@ export const KeyboardAwareScrollView: React.FC<KeyboardAwareScrollViewProps> = (
   ...scrollViewProps
 }) => {
   const insets = useSafeAreaInsets();
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const buttonOpacity = useState(new Animated.Value(0))[0];
-  const buttonTranslateY = useState(new Animated.Value(50))[0];
+
+  // Use refs instead of state to avoid re-render loops when keyboard shows/hides
+  const keyboardVisibleRef = useRef(false);
+  const keyboardHeightRef = useRef(0);
+
+  // Animated values for the done button (drive UI without state re-renders)
+  const buttonOpacity = useRef(new Animated.Value(0)).current;
+  const buttonTranslateY = useRef(new Animated.Value(50)).current;
+  const buttonBottom = useRef(new Animated.Value(Spacing.lg)).current;
 
   useEffect(() => {
     const showSubscription: EmitterSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        setKeyboardVisible(true);
-        setKeyboardHeight(e.endCoordinates.height);
+        keyboardVisibleRef.current = true;
+        keyboardHeightRef.current = e.endCoordinates.height;
 
-        // Animate button in
+        const targetBottom = Platform.OS === 'ios'
+          ? e.endCoordinates.height + Spacing.sm
+          : Spacing.lg;
+
+        // Animate button in — no setState, no re-render
         Animated.parallel([
           Animated.timing(buttonOpacity, {
             toValue: 1,
             duration: 200,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(buttonTranslateY, {
             toValue: 0,
             duration: 200,
-            useNativeDriver: true,
+            useNativeDriver: false,
+          }),
+          Animated.timing(buttonBottom, {
+            toValue: targetBottom,
+            duration: 200,
+            useNativeDriver: false,
           }),
         ]).start();
       }
@@ -106,21 +116,21 @@ export const KeyboardAwareScrollView: React.FC<KeyboardAwareScrollViewProps> = (
     const hideSubscription: EmitterSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        // Animate button out
+        // Animate button out — no setState, no re-render
         Animated.parallel([
           Animated.timing(buttonOpacity, {
             toValue: 0,
             duration: 150,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(buttonTranslateY, {
             toValue: 50,
             duration: 150,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ]).start(() => {
-          setKeyboardVisible(false);
-          setKeyboardHeight(0);
+          keyboardVisibleRef.current = false;
+          keyboardHeightRef.current = 0;
         });
       }
     );
@@ -129,18 +139,12 @@ export const KeyboardAwareScrollView: React.FC<KeyboardAwareScrollViewProps> = (
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, [buttonOpacity, buttonTranslateY]);
+  }, [buttonOpacity, buttonTranslateY, buttonBottom]);
 
   const handleDismissKeyboard = useCallback(() => {
     Keyboard.dismiss();
     onDone?.();
   }, [onDone]);
-
-  const handleScroll = useCallback(() => {
-    if (dismissOnScroll && keyboardVisible) {
-      Keyboard.dismiss();
-    }
-  }, [dismissOnScroll, keyboardVisible]);
 
   const contextValue: KeyboardContextValue = {
     inputAccessoryViewID,
@@ -152,35 +156,24 @@ export const KeyboardAwareScrollView: React.FC<KeyboardAwareScrollViewProps> = (
         style={[styles.scrollView, style]}
         contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={dismissOnScroll ? 'on-drag' : 'none'}
         showsVerticalScrollIndicator={true}
         bounces={true}
-        onScrollBeginDrag={handleScroll}
         {...scrollViewProps}
       >
-        {dismissOnTap ? (
-          <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
-            <View style={styles.touchableContent}>
-              {children}
-            </View>
-          </TouchableWithoutFeedback>
-        ) : (
-          children
-        )}
-        {/* Extra padding at bottom when keyboard is visible */}
-        {keyboardVisible && <View style={{ height: 80 }} />}
+        {children}
       </ScrollView>
 
-      {/* Floating Done Button */}
-      {showDoneButton && keyboardVisible && (
+      {/* Floating Done Button — always mounted, visibility controlled by animated opacity */}
+      {showDoneButton && (
         <Animated.View
+          pointerEvents="box-none"
           style={[
             styles.doneButtonContainer,
             {
               opacity: buttonOpacity,
               transform: [{ translateY: buttonTranslateY }],
-              bottom: Platform.OS === 'ios'
-                ? keyboardHeight + Spacing.sm
-                : Spacing.lg,
+              bottom: buttonBottom,
             },
           ]}
         >
@@ -221,9 +214,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-  },
-  touchableContent: {
-    flex: 1,
   },
   doneButtonContainer: {
     position: 'absolute',

@@ -1,8 +1,8 @@
 // src/components/habits/AIBasedSuggestions.jsx
 
 import React, { useState } from 'react';
-import axios from 'axios';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { authedPost } from '../../lib/apiClient';
 import { db } from '../../firebase';
 
 export default function AIBasedSuggestions({ type, userId, context }) {
@@ -17,14 +17,14 @@ export default function AIBasedSuggestions({ type, userId, context }) {
     setSuggestions([]);
 
     try {
-      const res = await axios.post('/api/openai', {
+      const res = await authedPost('/api/openai', {
         type, // 'goals', 'habits', or 'tasks'
-        userId,
         customPrompt: additionalPrompt,
         context
       });
 
-      const parsed = JSON.parse(res.data.text || '[]');
+      const data = await res.json();
+      const parsed = JSON.parse(data.text || '[]');
       setSuggestions(parsed);
     } catch (err) {
       console.error('Error fetching AI suggestions:', err);

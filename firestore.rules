@@ -14,18 +14,9 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Check if two users are connected (accepted connection)
-    // NOTE: This function cannot work with the current data model because connections
-    // use random document IDs with a members array, and Firestore rules cannot query.
-    // For now, users with "connections" privacy will be treated as public.
-    // To fix this, either:
-    // 1. Change connections to use predictable IDs (pairId pattern)
-    // 2. Use "public" or "private" privacy only
-    function areConnected(otherUserId) {
-      return true; // Temporarily allow - connections privacy acts like public
-    }
-
-    // Check if user can read a profile based on privacy settings
+    // Check if user can read a profile based on privacy settings.
+    // Privacy model: "public" (default) or "private" (owner-only).
+    // Legacy "connections" values are treated as "private".
     function canReadProfile(userId) {
       let profile = get(/databases/$(database)/documents/users/$(userId));
       let privacy = profile.data.privacy;
@@ -33,10 +24,9 @@ service cloud.firestore {
       // Owner can always read their own profile
       return request.auth.uid == userId
         // Default to public if privacy is not set
-        || (privacy == null || privacy == 'public')
-        // Connections-only: check if they're connected
-        || (privacy == 'connections' && areConnected(userId));
-        // Private: only owner can read (covered by first condition)
+        || privacy == null
+        || privacy == 'public';
+      // "private" and "connections" (legacy) → only owner can read
     }
 
     // Check if user is a member of a group
@@ -62,10 +52,8 @@ service cloud.firestore {
     // ========== USER PROFILES ==========
 
     match /users/{userId} {
-      // Read: Allow any authenticated user to read profiles
-      // Privacy filtering would need to happen client-side or use a different data model
-      // This is a security trade-off to make the Community page functional
-      allow read: if isAuthenticated();
+      // Read: Enforce privacy setting (public = anyone, private = owner only)
+      allow read: if isAuthenticated() && canReadProfile(userId);
 
       // Users can only create/update their own profile
       allow create: if request.auth.uid == userId;
@@ -271,10 +259,15 @@ service cloud.firestore {
 
     // Posts (group forum posts)
     match /posts/{postId} {
-      // Read: Allow any authenticated user to read posts
-      // Group membership filtering happens client-side in fetchFeedPosts
-      // This is a security trade-off to allow queries to work
-      allow read: if isAuthenticated();
+      // Read: Public posts (no group) visible to all; group posts require membership
+      allow read: if isAuthenticated() && (
+        // Posts without a groupId are visible to all authenticated users
+        resource.data.groupId == null ||
+        !resource.data.keys().hasAny(['groupId']) ||
+        // Group posts: user must be a member of the group
+        (resource.data.groupId != null &&
+         request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.members)
+      );
 
       // Create: if user is the author (support both userId and authorId fields)
       allow create: if isAuthenticated() &&

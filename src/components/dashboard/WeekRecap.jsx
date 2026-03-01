@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { Sparkles, Save, Edit3, X, Plus, Trash2, Lightbulb } from 'lucide-react';
+import { authedPost } from '../../lib/apiClient';
 
 const WeekRecap = ({ userId, currentWeekRange }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -95,18 +96,13 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
         .slice(0, 5);
 
       // Call AI backend for suggestions
-      const response = await fetch('/api/week-recap-suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          weekData: {
-            goals,
-            habits,
-            recentJournals: journals.map(j => j.content).slice(0, 3)
-          },
-          currentRecap: formData
-        })
+      const response = await authedPost('/api/week-recap-suggestions', {
+        weekData: {
+          goals,
+          habits,
+          recentJournals: journals.map(j => j.content).slice(0, 3)
+        },
+        currentRecap: formData
       });
 
       if (response.ok) {

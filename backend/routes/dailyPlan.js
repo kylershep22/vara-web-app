@@ -7,9 +7,8 @@ const generatePlan = require('../services/openaiService');
 
 // POST /api/generate-daily-plan
 router.post('/', async (req, res) => {
-  const { uid, modifier, forceNew = false } = req.body;
-
-  if (!uid) return res.status(400).json({ error: 'Missing user ID (uid)' });
+  const uid = req.uid; // Use verified UID from auth middleware
+  const { modifier, forceNew = false } = req.body;
 
   try {
     const userRef = db.collection('users').doc(uid);

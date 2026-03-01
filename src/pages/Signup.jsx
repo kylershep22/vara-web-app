@@ -169,7 +169,7 @@ export default function Signup() {
                 value={password}
                 onChange={handlePasswordChange}
                 required
-                placeholder="Password (min. 6 characters)"
+                placeholder="Password (min. 8 characters)"
                 disabled={loading}
                 className="w-full px-4 py-3 pr-12 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition disabled:opacity-60"
               />

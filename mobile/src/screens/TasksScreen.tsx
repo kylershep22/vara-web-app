@@ -3,8 +3,8 @@
  * Task management with priority and completion tracking
  */
 
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform, TextInput as RNTextInput } from 'react-native';
 import { Text, FAB, Checkbox, SegmentedButtons } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -49,6 +49,11 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Use ref for description text to avoid re-render loops with multiline input
+  const descriptionRef = useRef('');
+  const descriptionInputRef = useRef<RNTextInput>(null);
+  const [descriptionFocused, setDescriptionFocused] = useState(false);
+
   // Filter tasks
   const filteredTasks = allTasks.filter((task) => {
     if (filter === 'todo') return !task.completed;
@@ -59,11 +64,13 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
   const handleCreateTask = () => {
     setEditingTask(null);
     setFormData({ title: '', description: '', priority: 'medium' });
+    descriptionRef.current = '';
     setModalVisible(true);
   };
 
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
+    descriptionRef.current = task.description || '';
     setFormData({
       title: task.title,
       description: task.description || '',
@@ -78,14 +85,16 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
       return;
     }
 
+    const submitData = { ...formData, description: descriptionRef.current };
     setSubmitting(true);
     try {
       if (editingTask) {
-        await updateTask(editingTask.id, formData);
+        await updateTask(editingTask.id, submitData);
       } else {
-        await createTask(user!.uid, formData);
+        await createTask(user!.uid, submitData);
       }
       setModalVisible(false);
+      descriptionRef.current = '';
       setFormData({ title: '', description: '', priority: 'medium' });
     } catch (error) {
       console.error('Error saving task:', error);
@@ -299,22 +308,31 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
         <Input
           label="Task Title *"
           value={formData.title}
-          onChangeText={(text) => setFormData({ ...formData, title: text })}
+          onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
           placeholder="e.g., Review project proposal"
           style={styles.input}
           inputAccessoryViewID="task-modal"
         />
 
-        <Input
-          label="Description"
-          value={formData.description}
-          onChangeText={(text) => setFormData({ ...formData, description: text })}
-          placeholder="Add details..."
-          multiline
-          numberOfLines={3}
-          style={styles.input}
-          inputAccessoryViewID="task-modal"
-        />
+        <View style={styles.descriptionContainer}>
+          <Text variant="bodySmall" style={styles.descriptionLabel}>Description</Text>
+          <RNTextInput
+            ref={descriptionInputRef}
+            defaultValue={descriptionRef.current}
+            onChangeText={(text) => { descriptionRef.current = text; }}
+            onFocus={() => setDescriptionFocused(true)}
+            onBlur={() => setDescriptionFocused(false)}
+            placeholder="Add details..."
+            placeholderTextColor={Colors.mutedSageGray}
+            multiline
+            textAlignVertical="top"
+            style={[
+              styles.descriptionInput,
+              descriptionFocused && styles.descriptionInputFocused,
+            ]}
+            inputAccessoryViewID="task-modal"
+          />
+        </View>
 
         <Text variant="bodyMedium" style={styles.fieldLabel}>
           Priority
@@ -323,7 +341,7 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
           {(['low', 'medium', 'high'] as const).map((priority) => (
             <TouchableOpacity
               key={priority}
-              onPress={() => setFormData({ ...formData, priority })}
+              onPress={() => setFormData(prev => ({ ...prev, priority }))}
               style={[
                 styles.priorityButton,
                 formData.priority === priority && styles[`priority${priority.charAt(0).toUpperCase() + priority.slice(1)}Active`],
@@ -426,6 +444,29 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: Spacing.base,
+  },
+  descriptionContainer: {
+    marginBottom: Spacing.base,
+  },
+  descriptionLabel: {
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+    marginLeft: Spacing.xs,
+  },
+  descriptionInput: {
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    borderRadius: Layout.borderRadius.md,
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.sm + 4,
+    paddingBottom: Spacing.sm + 4,
+    fontSize: Typography.fontSize.base,
+    color: Colors.softCharcoal,
+    minHeight: 88,
+  },
+  descriptionInputFocused: {
+    borderColor: Colors.inputBorderFocus,
   },
   fieldLabel: {
     color: Colors.textSecondary,

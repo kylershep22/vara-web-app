@@ -203,8 +203,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     marginHorizontal: Spacing.base,
     borderRadius: Layout.borderRadius.xl,
-    overflow: 'hidden',
-    // Teal-tinted shadow for brand consistency
+    // NOTE: overflow: 'hidden' must NOT be on this Surface — it causes
+    // rapid "overflow hidden on Surface" warnings from react-native-paper.
+    // Clipping is handled by modalInner instead.
     ...Platform.select({
       ios: {
         shadowColor: Colors.evergreenTeal,
@@ -221,6 +222,8 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'column',
     minHeight: 400,
+    overflow: 'hidden',
+    borderRadius: Layout.borderRadius.xl,
   },
   header: {
     paddingHorizontal: Spacing.lg,
