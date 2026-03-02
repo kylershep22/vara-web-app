@@ -754,9 +754,26 @@ const AppNavigator: React.FC = () => {
           async (docSnapshot) => {
             if (docSnapshot.exists()) {
               const userData = docSnapshot.data();
-              setHasCompletedOnboarding(userData.hasCompletedOnboarding === true);
+              // Use !== false so existing users whose document predates
+              // the onboarding system (field is undefined) are treated
+              // as having completed onboarding.
+              // Only users explicitly set to false (new signups) see onboarding.
+              const completed = userData.hasCompletedOnboarding !== false;
+              setHasCompletedOnboarding(completed);
               setCheckingOnboarding(false);
-              console.log('📱 Onboarding status updated:', userData.hasCompletedOnboarding);
+              console.log('📱 Onboarding status updated:', userData.hasCompletedOnboarding, '→ completed:', completed);
+
+              // Backfill: if existing user has no onboarding field, persist it
+              if (completed && userData.hasCompletedOnboarding === undefined) {
+                try {
+                  const { updateDoc } = await import('firebase/firestore');
+                  await updateDoc(userRef, { hasCompletedOnboarding: true });
+                  console.log('📱 Backfilled hasCompletedOnboarding for existing user');
+                } catch (backfillError) {
+                  // Non-critical, will be caught next time
+                  console.warn('Could not backfill onboarding status:', backfillError);
+                }
+              }
             } else {
               // If user document doesn't exist, create it
               try {

@@ -997,7 +997,7 @@
         }
       ],
       "density": "SPARSE_ALL"
-    }
+    },
     {
       "collectionGroup": "notificationPreferences",
       "queryScope": "COLLECTION",

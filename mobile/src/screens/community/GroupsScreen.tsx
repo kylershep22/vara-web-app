@@ -3,7 +3,7 @@
  * Browse and join community groups with enhanced cards
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
   Alert,
   Keyboard,
   ScrollView,
+  Platform,
   TouchableOpacity,
   TextInput,
 } from 'react-native';
@@ -24,7 +25,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, LoadingSpinner, Input, GroupCard } from '../../components';
-import { KeyboardAwareScrollView } from '../../components/shared';
 import { InvitePermissionPicker, InvitePermission } from '../../components/community';
 import {
   Colors,
@@ -97,6 +97,20 @@ const GroupsScreen: React.FC = () => {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
+
+  // Use ref for description to avoid multiline re-render glitch
+  const descriptionRef = useRef('');
+  const [descriptionFocused, setDescriptionFocused] = useState(false);
+
+  // Track keyboard height for modal scroll padding
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
   const [isPublic, setIsPublic] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<GroupCategory>('other');
   const [invitePermission, setInvitePermission] = useState<InvitePermission>('owner_only');
@@ -165,7 +179,7 @@ const GroupsScreen: React.FC = () => {
     try {
       await createGroup({
         name: groupName,
-        description: groupDescription,
+        description: descriptionRef.current,
         visibility: isPublic ? 'public' : 'private',
         ownerId: user!.uid,
         category: selectedCategory,
@@ -174,6 +188,7 @@ const GroupsScreen: React.FC = () => {
       // Reset form
       setGroupName('');
       setGroupDescription('');
+      descriptionRef.current = '';
       setIsPublic(true);
       setSelectedCategory('other');
       setInvitePermission('owner_only');
@@ -410,15 +425,21 @@ const GroupsScreen: React.FC = () => {
           }}
           contentContainerStyle={styles.modal}
         >
-          <KeyboardAwareScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            enableKeyboardAvoidance={false}
-          >
-              <Text variant="headlineSmall" style={styles.modalTitle}>
-                Create New Group
-              </Text>
+          {/* Header */}
+          <Text variant="headlineSmall" style={styles.modalTitle}>
+            Create New Group
+          </Text>
 
+          {/* Scrollable form content */}
+          <ScrollView
+            style={styles.modalScrollView}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.scrollContent,
+              keyboardHeight > 0 && { paddingBottom: keyboardHeight - 40 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+          >
               <Input
                 label="Group Name *"
                 value={groupName}
@@ -427,15 +448,24 @@ const GroupsScreen: React.FC = () => {
                 style={styles.input}
               />
 
-              <Input
-                label="Description"
-                value={groupDescription}
-                onChangeText={setGroupDescription}
-                placeholder="What is this group about?"
-                multiline
-                numberOfLines={3}
-                style={styles.input}
-              />
+              {/* Description — plain RN TextInput to avoid multiline re-render glitch */}
+              <View style={styles.descriptionContainer}>
+                <Text variant="bodySmall" style={styles.descriptionLabel}>Description</Text>
+                <TextInput
+                  defaultValue={descriptionRef.current}
+                  onChangeText={(text) => { descriptionRef.current = text; }}
+                  onFocus={() => setDescriptionFocused(true)}
+                  onBlur={() => setDescriptionFocused(false)}
+                  placeholder="What is this group about?"
+                  placeholderTextColor={Colors.mutedSageGray}
+                  multiline
+                  textAlignVertical="top"
+                  style={[
+                    styles.descriptionInput,
+                    descriptionFocused && styles.descriptionInputFocused,
+                  ]}
+                />
+              </View>
 
               {/* Category Selection */}
               <Text variant="bodyLarge" style={styles.sectionLabel}>
@@ -445,6 +475,7 @@ const GroupsScreen: React.FC = () => {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={styles.categorySelectScroll}
+                nestedScrollEnabled
               >
                 {GROUP_CATEGORY_LIST.map((cat) => (
                   <TouchableOpacity
@@ -496,7 +527,8 @@ const GroupsScreen: React.FC = () => {
                 onChange={setInvitePermission}
               />
 
-              <View style={styles.modalActions}>
+              {/* Action buttons */}
+              <View style={styles.modalFooter}>
                 <PaperButton
                   mode="outlined"
                   onPress={() => setShowCreateGroup(false)}
@@ -515,7 +547,7 @@ const GroupsScreen: React.FC = () => {
                   Create
                 </PaperButton>
               </View>
-          </KeyboardAwareScrollView>
+          </ScrollView>
         </Modal>
       </Portal>
 
@@ -709,19 +741,54 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     marginHorizontal: Spacing.lg,
     borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.lg,
-    maxHeight: '90%',
-  },
-  scrollContent: {
-    paddingBottom: Spacing.base,
+    maxHeight: '85%',
+    overflow: 'hidden',
   },
   modalTitle: {
     color: Colors.evergreenTeal,
-    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.base,
     fontWeight: Typography.fontWeight.semibold,
+  },
+  modalScrollView: {
+    flexShrink: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingTop: Spacing.base,
+    paddingBottom: Spacing.sm,
   },
   input: {
     marginBottom: Spacing.base,
+  },
+  descriptionContainer: {
+    marginBottom: Spacing.base,
+  },
+  descriptionLabel: {
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+    marginLeft: Spacing.xs,
+  },
+  descriptionInput: {
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    borderRadius: Layout.borderRadius.md,
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.sm + 4,
+    paddingBottom: Spacing.sm + 4,
+    fontSize: Typography.fontSize.base,
+    color: Colors.softCharcoal,
+    minHeight: 88,
+  },
+  descriptionInputFocused: {
+    borderColor: Colors.inputBorderFocus,
   },
   sectionLabel: {
     color: Colors.textPrimary,
@@ -774,12 +841,6 @@ const styles = StyleSheet.create({
   },
   switchDescription: {
     color: Colors.textSecondary,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: Spacing.base,
-    gap: Spacing.sm,
   },
   modalButton: {
     flex: 1,

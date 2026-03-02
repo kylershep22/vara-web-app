@@ -52,8 +52,9 @@ service cloud.firestore {
     // ========== USER PROFILES ==========
 
     match /users/{userId} {
-      // Read: Enforce privacy setting (public = anyone, private = owner only)
-      allow read: if isAuthenticated() && canReadProfile(userId);
+      // Read: any authenticated user can read profiles
+      // Privacy filtering is handled at the application layer
+      allow read: if isAuthenticated();
 
       // Users can only create/update their own profile
       allow create: if request.auth.uid == userId;
@@ -569,8 +570,8 @@ service cloud.firestore {
 
     // Notification Log (Cloud Functions dedup tracking, no client access)
     match /notificationLog/{userId}/{document=**} {
-      // Write: admin SDK only (Cloud Functions)
-      // No client read/write needed
+      // Admin SDK only (Cloud Functions) — no client access
+      allow read, write: if false;
     }
 
     // ========== SHARED CONTENT ==========
