@@ -4,11 +4,10 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Input } from '../../';
-import { Colors, Spacing } from '../../../constants';
+import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { WizardStepProps } from './types';
 
 export const ScalingStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormData }) => {
@@ -55,18 +54,18 @@ export const ScalingStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormD
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.base,
   },
   headline: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1B5E57',
-    marginBottom: 4,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6F7F77',
-    marginBottom: 20,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
   },
   input: {
     marginBottom: Spacing.base,
@@ -74,16 +73,16 @@ const styles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
+    gap: Spacing.sm,
     backgroundColor: Colors.dewSage,
-    padding: 10,
-    borderRadius: 6,
-    marginTop: 4,
+    padding: Spacing.md,
+    borderRadius: Layout.borderRadius.md,
+    marginTop: Spacing.xs,
   },
   infoText: {
     flex: 1,
     color: Colors.evergreenTeal,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: Typography.fontSize.xs,
+    lineHeight: 18,
   },
 });

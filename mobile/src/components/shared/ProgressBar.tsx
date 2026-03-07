@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { StyleSheet, View, Text } from 'react-native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
 interface ProgressBarProps {
@@ -41,7 +40,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         />
       </View>
       {showPercentage && (
-        <Text variant="bodySmall" style={styles.percentageText}>
+        <Text style={styles.percentageText}>
           {clampedProgress}% complete
         </Text>
       )}

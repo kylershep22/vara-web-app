@@ -14,8 +14,8 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
   },
   tagline: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.textSecondary,
     marginTop: 2,
   },
@@ -273,9 +273,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   whatsInsideText: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.softCharcoal,
-    lineHeight: 13 * 1.5,
+    lineHeight: 14 * 1.5,
     flex: 1,
   },
   availabilityNote: {
@@ -291,9 +291,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   availabilityText: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.softCharcoal,
-    lineHeight: 13 * 1.5,
+    lineHeight: 14 * 1.5,
     marginLeft: 8,
     flex: 1,
   },
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mutedButtonText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     color: Colors.textSecondary,
   },

@@ -746,24 +746,25 @@ export const getUserById = async (userId: string): Promise<UserProfile | null> =
  * Search users by display name
  */
 export const searchUsers = async (searchQuery: string): Promise<UserProfile[]> => {
+  // Minimum 3 characters to prevent overly broad queries
+  if (!searchQuery || searchQuery.trim().length < 3) return [];
+
   try {
-    // Note: Firestore doesn't support full-text search
-    // This is a basic implementation - consider using Algolia or similar for production
-    const q = query(collection(ensureFirestore(), USERS_COLLECTION), orderBy('displayName'));
+    // Server-side prefix search with limit to avoid fetching all users.
+    // Uses displayName range query with post-fetch filter for searchable opt-out.
+    // TODO: Replace with server-side full-text search (Algolia or Firebase Extension)
+    // for better search quality and scalability.
+    const q = query(
+      collection(ensureFirestore(), USERS_COLLECTION),
+      where('displayName', '>=', searchQuery),
+      where('displayName', '<=', searchQuery + '\uf8ff'),
+      limit(20)
+    );
 
     const snapshot = await getDocs(q);
-    const users = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as UserProfile[];
-
-    // Client-side filtering
-    const lowerQuery = searchQuery.toLowerCase();
-    return users.filter(
-      (user) =>
-        user.displayName?.toLowerCase().includes(lowerQuery) ||
-        user.email?.toLowerCase().includes(lowerQuery)
-    );
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() } as UserProfile))
+      .filter((user) => (user as any).searchable !== false);
   } catch (error) {
     console.error('Error searching users:', error);
     throw error;

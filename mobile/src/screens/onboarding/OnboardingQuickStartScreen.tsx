@@ -4,8 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, FlatList, TouchableOpacity, Alert, Dimensions } from 'react-native';
-import { Text, SegmentedButtons, TextInput as PaperInput, Menu } from 'react-native-paper';
+import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Alert, Dimensions, TextInput as RNTextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button } from '../../components';
@@ -309,24 +308,26 @@ const OnboardingQuickStartScreen: React.FC<OnboardingQuickStartScreenProps> = ({
         </View>
 
         {/* Header */}
-        <Text variant="headlineMedium" style={styles.title}>
+        <Text style={styles.title}>
           Let's get you started!
         </Text>
 
-        <Text variant="bodyLarge" style={styles.subtitle}>
+        <Text style={styles.subtitle}>
           Create your first {activeTab === 'templates' ? 'goal or habit' : customType}
         </Text>
 
         {/* Tab Selector */}
-        <SegmentedButtons
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value as 'templates' | 'custom')}
-          buttons={[
-            { value: 'templates', label: 'Templates' },
-            { value: 'custom', label: 'Custom' },
-          ]}
-          style={styles.tabs}
-        />
+        <View style={[styles.tabs, {flexDirection: 'row', backgroundColor: Colors.dewSage + '30', borderRadius: 12, padding: 4}]}>
+          {[
+            { value: 'templates' as const, label: 'Templates' },
+            { value: 'custom' as const, label: 'Custom' },
+          ].map(btn => (
+            <TouchableOpacity key={btn.value} onPress={() => setActiveTab(btn.value)}
+              style={{flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: activeTab === btn.value ? Colors.surface : 'transparent', alignItems: 'center' as const}}>
+              <Text style={{fontSize: 14, fontWeight: activeTab === btn.value ? '600' : '400', color: activeTab === btn.value ? Colors.evergreenTeal : Colors.textSecondary}}>{btn.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* Templates View */}
         {activeTab === 'templates' && (
@@ -345,14 +346,14 @@ const OnboardingQuickStartScreen: React.FC<OnboardingQuickStartScreenProps> = ({
                   <Icon name={template.icon} size={24} color={Colors.evergreenTeal} />
                 </View>
                 <View style={styles.templateContent}>
-                  <Text variant="titleSmall" style={styles.templateTitle}>
+                  <Text style={styles.templateTitle}>
                     {template.title}
                   </Text>
-                  <Text variant="bodySmall" style={styles.templateDescription}>
+                  <Text style={styles.templateDescription}>
                     {template.description}
                   </Text>
                   <View style={styles.templateBadge}>
-                    <Text variant="labelSmall" style={styles.templateBadgeText}>
+                    <Text style={styles.templateBadgeText}>
                       {template.type === 'goal' ? '🎯 Goal' : '🔄 Habit'}
                     </Text>
                   </View>
@@ -368,59 +369,63 @@ const OnboardingQuickStartScreen: React.FC<OnboardingQuickStartScreenProps> = ({
         {/* Custom View */}
         {activeTab === 'custom' && (
           <View style={styles.customContainer}>
-            <SegmentedButtons
-              value={customType}
-              onValueChange={(value) => {
-                setCustomType(value as 'goal' | 'habit');
-                // Reset habit-specific fields when switching to goal
-                if (value === 'goal') {
-                  setCustomHabitType('daily');
-                  setCustomHabitFrequency(1);
-                  setCustomHabitCategory('');
-                }
-              }}
-              buttons={[
-                { value: 'habit', label: '🔄 Habit' },
-                { value: 'goal', label: '🎯 Goal' },
-              ]}
-              style={styles.typeSelector}
-            />
+            <View style={[styles.typeSelector, {flexDirection: 'row', backgroundColor: Colors.dewSage + '30', borderRadius: 12, padding: 4}]}>
+              {[
+                { value: 'habit' as const, label: 'Habit' },
+                { value: 'goal' as const, label: 'Goal' },
+              ].map(btn => (
+                <TouchableOpacity key={btn.value} onPress={() => {
+                  setCustomType(btn.value);
+                  if (btn.value === 'goal') {
+                    setCustomHabitType('daily');
+                    setCustomHabitFrequency(1);
+                    setCustomHabitCategory('');
+                  }
+                }}
+                  style={{flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: customType === btn.value ? Colors.surface : 'transparent', alignItems: 'center' as const}}>
+                  <Text style={{fontSize: 14, fontWeight: customType === btn.value ? '600' : '400', color: customType === btn.value ? Colors.evergreenTeal : Colors.textSecondary}}>{btn.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-            <PaperInput
-              label={customType === 'goal' ? "What's your goal?" : "What habit do you want to build?"}
-              value={customTitle}
-              onChangeText={setCustomTitle}
-              mode="outlined"
-              placeholder={customType === 'goal' ? 'e.g., Run a 5K' : 'e.g., Meditate daily'}
-              style={styles.customInput}
-              outlineColor={Colors.border}
-              activeOutlineColor={Colors.evergreenTeal}
-            />
+            <View style={styles.customInput}>
+              <Text style={{fontSize: 12, color: Colors.textSecondary, marginBottom: 4}}>
+                {customType === 'goal' ? "What's your goal?" : "What habit do you want to build?"}
+              </Text>
+              <RNTextInput
+                value={customTitle}
+                onChangeText={setCustomTitle}
+                placeholder={customType === 'goal' ? 'e.g., Run a 5K' : 'e.g., Meditate daily'}
+                placeholderTextColor={Colors.textSecondary}
+                style={{backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: Colors.textPrimary}}
+              />
+            </View>
 
             {/* Habit-specific fields */}
             {customType === 'habit' && (
               <>
-                <Text variant="labelLarge" style={styles.fieldLabel}>
+                <Text style={styles.fieldLabel}>
                   Frequency
                 </Text>
-                <SegmentedButtons
-                  value={customHabitType}
-                  onValueChange={(value) => {
-                    setCustomHabitType(value as 'daily' | 'weekly' | 'custom');
-                    // Set default frequency based on type
-                    if (value === 'daily') setCustomHabitFrequency(1);
-                    if (value === 'weekly') setCustomHabitFrequency(3);
-                  }}
-                  buttons={[
-                    { value: 'daily', label: 'Daily' },
-                    { value: 'weekly', label: 'Weekly' },
-                  ]}
-                  style={styles.frequencySelector}
-                />
+                <View style={[styles.frequencySelector, {flexDirection: 'row', backgroundColor: Colors.dewSage + '30', borderRadius: 12, padding: 4}]}>
+                  {[
+                    { value: 'daily' as const, label: 'Daily' },
+                    { value: 'weekly' as const, label: 'Weekly' },
+                  ].map(btn => (
+                    <TouchableOpacity key={btn.value} onPress={() => {
+                      setCustomHabitType(btn.value);
+                      if (btn.value === 'daily') setCustomHabitFrequency(1);
+                      if (btn.value === 'weekly') setCustomHabitFrequency(3);
+                    }}
+                      style={{flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: customHabitType === btn.value ? Colors.surface : 'transparent', alignItems: 'center' as const}}>
+                      <Text style={{fontSize: 14, fontWeight: customHabitType === btn.value ? '600' : '400', color: customHabitType === btn.value ? Colors.evergreenTeal : Colors.textSecondary}}>{btn.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
                 {customHabitType === 'weekly' && (
                   <View style={styles.frequencyInput}>
-                    <Text variant="bodyMedium" style={styles.frequencyLabel}>
+                    <Text style={styles.frequencyLabel}>
                       Times per week:
                     </Text>
                     <View style={styles.frequencyControls}>
@@ -430,7 +435,7 @@ const OnboardingQuickStartScreen: React.FC<OnboardingQuickStartScreenProps> = ({
                       >
                         <Icon name="minus" size={20} color={Colors.evergreenTeal} />
                       </TouchableOpacity>
-                      <Text variant="titleMedium" style={styles.frequencyValue}>
+                      <Text style={styles.frequencyValue}>
                         {customHabitFrequency}
                       </Text>
                       <TouchableOpacity
@@ -445,51 +450,48 @@ const OnboardingQuickStartScreen: React.FC<OnboardingQuickStartScreenProps> = ({
 
                 <View style={styles.categoryContainer}>
                   <Text style={styles.fieldLabel}>Category</Text>
-                  <Menu
-                    visible={categoryMenuVisible}
-                    onDismiss={() => setCategoryMenuVisible(false)}
-                    anchor={
-                      <TouchableOpacity
-                        style={styles.categoryDropdown}
-                        onPress={() => setCategoryMenuVisible(!categoryMenuVisible)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.categoryValueContainer}>
-                          <Text style={styles.categoryValue}>
-                            {customHabitCategory || 'Select a category'}
-                          </Text>
-                        </View>
-                        <Icon
-                          name={categoryMenuVisible ? "chevron-up" : "chevron-down"}
-                          size={20}
-                          color={Colors.textSecondary}
-                        />
-                      </TouchableOpacity>
-                    }
-                    contentStyle={styles.menuContent}
+                  <TouchableOpacity
+                    style={styles.categoryDropdown}
+                    onPress={() => setCategoryMenuVisible(!categoryMenuVisible)}
+                    activeOpacity={0.7}
                   >
-                    <FlatList
-                      data={HABIT_CATEGORIES}
-                      keyExtractor={(item) => item}
-                      renderItem={({ item }) => (
-                        <Menu.Item
-                          onPress={() => {
-                            setCustomHabitCategory(item);
-                            setCategoryMenuVisible(false);
-                          }}
-                          title={item}
-                          titleStyle={
-                            customHabitCategory === item
-                              ? { color: Colors.evergreenTeal, fontWeight: 'bold' }
-                              : { color: Colors.textPrimary }
-                          }
-                        />
-                      )}
-                      style={styles.menuList}
-                      nestedScrollEnabled
-                      showsVerticalScrollIndicator
+                    <View style={styles.categoryValueContainer}>
+                      <Text style={styles.categoryValue}>
+                        {customHabitCategory || 'Select a category'}
+                      </Text>
+                    </View>
+                    <Icon
+                      name={categoryMenuVisible ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color={Colors.textSecondary}
                     />
-                  </Menu>
+                  </TouchableOpacity>
+                  {categoryMenuVisible && (
+                    <View style={[styles.menuContent, {borderWidth: 1, borderColor: Colors.border}]}>
+                      <FlatList
+                        data={HABIT_CATEGORIES}
+                        keyExtractor={(item) => item}
+                        renderItem={({ item }) => (
+                          <TouchableOpacity
+                            onPress={() => {
+                              setCustomHabitCategory(item);
+                              setCategoryMenuVisible(false);
+                            }}
+                            style={{paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: Colors.borderLight}}
+                          >
+                            <Text style={
+                              customHabitCategory === item
+                                ? { color: Colors.evergreenTeal, fontWeight: 'bold', fontSize: 14 }
+                                : { color: Colors.textPrimary, fontSize: 14 }
+                            }>{item}</Text>
+                          </TouchableOpacity>
+                        )}
+                        style={styles.menuList}
+                        nestedScrollEnabled
+                        showsVerticalScrollIndicator
+                      />
+                    </View>
+                  )}
                 </View>
               </>
             )}

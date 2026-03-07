@@ -17,8 +17,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import Button from '../../Button';

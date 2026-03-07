@@ -10,8 +10,7 @@
  */
 
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import {
@@ -115,7 +114,7 @@ const styles = StyleSheet.create({
     borderColor: '#1B5E57',
   },
   chipLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: ColorTokens.textPrimary,
   },

@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { Colors, Spacing, Typography } from '../../constants';
 
 export type DateGroup = 'today' | 'yesterday' | 'thisWeek' | 'lastWeek' | 'earlier';
@@ -141,7 +140,7 @@ export const RelativeDateHeader: React.FC<RelativeDateHeaderProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text variant="bodySmall" style={styles.label}>
+      <Text style={styles.label}>
         {label}
       </Text>
     </View>

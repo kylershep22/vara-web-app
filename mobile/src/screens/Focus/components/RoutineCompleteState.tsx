@@ -12,8 +12,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Animated, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import {

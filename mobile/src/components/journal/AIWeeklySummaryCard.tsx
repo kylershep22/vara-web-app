@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Text, ActivityIndicator, Chip } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -209,9 +208,9 @@ export const AIWeeklySummaryCard: React.FC<AIWeeklySummaryCardProps> = ({
               <Text style={styles.themesLabel}>Top themes</Text>
               <View style={styles.themesRow}>
                 {summary.topThemes.map((theme) => (
-                  <Chip key={theme} style={styles.themeChip} textStyle={styles.themeChipText}>
-                    {theme}
-                  </Chip>
+                  <View key={theme} style={styles.themeChip}>
+                    <Text style={styles.themeChipText}>{theme}</Text>
+                  </View>
                 ))}
               </View>
             </View>
@@ -296,6 +295,9 @@ const styles = StyleSheet.create({
   themeChip: {
     backgroundColor: Colors.surface,
     height: 28,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
   },
   themeChipText: {
     fontSize: Typography.fontSize.xs,

@@ -13,8 +13,8 @@ import {
   Modal,
   TouchableOpacity,
   Dimensions,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   overallScore: {
-    fontSize: 72,
+    fontSize: 32,
     fontWeight: Typography.fontWeight.bold,
     lineHeight: 80,
   },

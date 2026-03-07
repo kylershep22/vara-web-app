@@ -4,7 +4,7 @@ This guide will help you populate the `demo@varawellness.app` account with reali
 
 ## Prerequisites
 
-1. Demo account created: `demo@varawellness.app` / `Demo2026!`
+1. Demo account created: [Demo credentials stored in team secrets manager -- do not commit]
 2. Access to Firebase Console
 3. Demo user UID (get this from Firebase Console → Authentication → Users)
 
@@ -81,7 +81,7 @@ Tags: reflection, self-compassion, mindset
 ### Step 1: Get Demo User UID
 
 1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Select project: **vara-4a99f**
+2. Select project: **your-project-id**
 3. Go to **Authentication → Users**
 4. Find `demo@varawellness.app`
 5. **COPY THE UID** (looks like: `xYz123AbC...`)
@@ -323,7 +323,7 @@ Create 5 entries (copy the text from Option 1 above), structure:
 
 ## Verification Checklist
 
-Once you've populated the data, log in as `demo@varawellness.app` and verify:
+Once you've populated the data, log in as the demo account and verify:
 
 - [ ] Profile has bio and is set to Public
 - [ ] Dashboard shows 3 active goals with progress bars
@@ -344,8 +344,8 @@ Once verified:
 4. Scroll to **Beta App Review Information**
 5. Check **"Sign-in required"**
 6. Enter credentials:
-   - **Username:** `demo@varawellness.app`
-   - **Password:** `Demo2026!`
+   - **Username:** [Demo credentials stored in team secrets manager -- do not commit]
+   - **Password:** [Demo credentials stored in team secrets manager -- do not commit]
 7. **Save**
 8. **Reply to Apple's message** in App Store Connect to notify them
 

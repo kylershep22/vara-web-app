@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { Colors, Spacing } from '../constants';
 
 interface LoadingSpinnerProps {
@@ -27,7 +26,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         style={styles.spinner}
       />
       {message && (
-        <Text variant="bodyMedium" style={styles.message}>
+        <Text style={styles.message}>
           {message}
         </Text>
       )}

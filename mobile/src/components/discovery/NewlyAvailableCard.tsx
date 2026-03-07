@@ -15,8 +15,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
   },
   exploreText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     color: Colors.evergreenTeal,
   },

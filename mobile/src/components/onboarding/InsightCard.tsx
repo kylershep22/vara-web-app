@@ -11,8 +11,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
 interface InsightCardProps {

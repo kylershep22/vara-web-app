@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Text, ActivityIndicator } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -376,7 +375,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.white,
   },
@@ -410,7 +409,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   groupIcon: {
-    backgroundColor: Colors.focusTokens.primaryLight,
+    backgroundColor: Colors.tealLight,
   },
   challengeIcon: {
     backgroundColor: 'rgba(244, 197, 66, 0.15)',

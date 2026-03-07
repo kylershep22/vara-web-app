@@ -33,8 +33,7 @@ export const Layout = {
     md: 8,
     lg: 12,
     xl: 16,
-    '2xl': 20,
-    pill: 20,     // Pill-shaped filter tabs
+    pill: 9999,   // Pill-shaped filter tabs (full-circle intent)
     full: 9999,
   },
 
@@ -49,7 +48,7 @@ export const Layout = {
 
   // Button heights
   buttonHeight: {
-    sm: 36,   // Small buttons (tertiary, inline actions)
+    sm: 48,   // Small buttons (tertiary, inline actions) — 48px min per WCAG
     md: 48,   // Default buttons (primary, secondary)
     lg: 56,   // Large CTAs
   },
@@ -95,7 +94,7 @@ export const Layout = {
         shadowRadius: 16,
       },
       android: {
-        elevation: 6,
+        elevation: 5,
       },
       default: {},
     }),
@@ -124,6 +123,6 @@ export const Layout = {
     postAuthorAvatarSize: 40,
     commentAvatarSize: 32,
     postContentPadding: 16,
-    actionButtonHeight: 36,
+    actionButtonHeight: 48,
   },
 } as const;

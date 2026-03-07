@@ -370,19 +370,8 @@ export async function fetchChallengeLeaderboard(challengeId: string): Promise<Ch
     ...doc.data(),
   })) as ChallengeParticipant[];
 
-  // Sort by checkInCount descending, then by streak
-  participants.sort((a, b) => {
-    if (b.checkInCount !== a.checkInCount) {
-      return b.checkInCount - a.checkInCount;
-    }
-    return b.currentStreak - a.currentStreak;
-  });
-
-  // Assign ranks
-  return participants.map((p, index) => ({
-    ...p,
-    rank: index + 1,
-  }));
+  // Return participants without ranking (retain data for analytics, no competitive display)
+  return participants;
 }
 
 /**
@@ -720,7 +709,7 @@ export async function fetchChallengesByGroup(groupId: string): Promise<Challenge
   const auth = getAuth();
   const currentUserId = auth.currentUser?.uid;
 
-  console.log('[fetchChallengesByGroup] Looking for challenges with sourceGroupId:', groupId);
+  if (__DEV__) console.log('[fetchChallengesByGroup] Looking for challenges with sourceGroupId:', groupId);
 
   try {
     // Strategy: Query challenges the user can access, then filter by sourceGroupId
@@ -736,11 +725,11 @@ export async function fetchChallengesByGroup(groupId: string): Promise<Challenge
         orderBy('startDate', 'desc')
       );
       const publicSnapshot = await getDocs(publicQuery);
-      console.log('[fetchChallengesByGroup] Total public challenges found:', publicSnapshot.docs.length);
+      if (__DEV__) console.log('[fetchChallengesByGroup] Total public challenges found:', publicSnapshot.docs.length);
 
       publicSnapshot.docs.forEach((doc) => {
         const challenge = { id: doc.id, ...doc.data() } as Challenge;
-        console.log('[fetchChallengesByGroup] Public challenge:', challenge.name, '| sourceGroupId:', challenge.sourceGroupId);
+        if (__DEV__) console.log('[fetchChallengesByGroup] Public challenge:', challenge.name, '| sourceGroupId:', challenge.sourceGroupId);
         // Filter for this group's challenges
         if (challenge.sourceGroupId === groupId) {
           challengeMap.set(challenge.id, challenge);
@@ -759,11 +748,11 @@ export async function fetchChallengesByGroup(groupId: string): Promise<Challenge
           orderBy('startDate', 'desc')
         );
         const mySnapshot = await getDocs(myQuery);
-        console.log('[fetchChallengesByGroup] Total user challenges found:', mySnapshot.docs.length);
+        if (__DEV__) console.log('[fetchChallengesByGroup] Total user challenges found:', mySnapshot.docs.length);
 
         mySnapshot.docs.forEach((doc) => {
           const challenge = { id: doc.id, ...doc.data() } as Challenge;
-          console.log('[fetchChallengesByGroup] User challenge:', challenge.name, '| sourceGroupId:', challenge.sourceGroupId);
+          if (__DEV__) console.log('[fetchChallengesByGroup] User challenge:', challenge.name, '| sourceGroupId:', challenge.sourceGroupId);
           // Filter for this group's challenges
           if (challenge.sourceGroupId === groupId) {
             challengeMap.set(challenge.id, challenge);
@@ -782,7 +771,7 @@ export async function fetchChallengesByGroup(groupId: string): Promise<Challenge
       return bDate.getTime() - aDate.getTime();
     });
 
-    console.log('[fetchChallengesByGroup] Final matching challenges:', challenges.length);
+    if (__DEV__) console.log('[fetchChallengesByGroup] Final matching challenges:', challenges.length);
     return challenges;
   } catch (error) {
     console.error('[fetchChallengesByGroup] Error:', error);

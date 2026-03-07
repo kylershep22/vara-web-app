@@ -3,19 +3,21 @@
  * Drop-in replacement for react-native-paper Checkbox with animations
  */
 
-import React, { useCallback } from 'react';
-import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import React, { useCallback, useState, useRef } from 'react';
+import { TouchableOpacity, StyleSheet, ViewStyle, Text, View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withSpring,
   withSequence,
   Easing,
   interpolate,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../constants';
+import { Colors, Typography } from '../../constants';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+
+const ACKNOWLEDGMENTS = ['Done.', 'Noted.', 'Captured.'];
 
 interface AnimatedCheckboxProps {
   status: 'checked' | 'unchecked' | 'indeterminate';
@@ -34,37 +36,57 @@ const AnimatedCheckbox: React.FC<AnimatedCheckboxProps> = ({
   disabled = false,
   style,
 }) => {
+  const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
   const checkOpacity = useSharedValue(status === 'checked' ? 1 : 0);
   const backgroundOpacity = useSharedValue(status === 'checked' ? 1 : 0);
+  const [ackText, setAckText] = useState<string | null>(null);
+  const ackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Update animation values when status changes
   React.useEffect(() => {
     if (status === 'checked') {
-      checkOpacity.value = withTiming(1, { duration: 200, easing: Easing.out(Easing.ease) });
-      backgroundOpacity.value = withTiming(1, { duration: 150 });
+      if (reduceMotion) {
+        checkOpacity.value = 1;
+        backgroundOpacity.value = 1;
+      } else {
+        checkOpacity.value = withTiming(1, { duration: 200, easing: Easing.out(Easing.ease) });
+        backgroundOpacity.value = withTiming(1, { duration: 150 });
+      }
     } else {
-      checkOpacity.value = withTiming(0, { duration: 150 });
-      backgroundOpacity.value = withTiming(0, { duration: 150 });
+      if (reduceMotion) {
+        checkOpacity.value = 0;
+        backgroundOpacity.value = 0;
+      } else {
+        checkOpacity.value = withTiming(0, { duration: 150 });
+        backgroundOpacity.value = withTiming(0, { duration: 150 });
+      }
     }
   }, [status]);
 
   const handlePress = useCallback(async () => {
     if (disabled) return;
 
-    // Trigger haptic feedback
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Animate scale: press down (0.85) -> bounce up (1.15) -> settle (1.0)
-    scale.value = withSequence(
-      withTiming(0.85, { duration: 50, easing: Easing.out(Easing.ease) }),
-      withSpring(1.15, { damping: 15, stiffness: 180 }),
-      withSpring(1, { damping: 15, stiffness: 180 })
-    );
+    if (!reduceMotion) {
+      // Press down to 0.95, then release to 1.0 (no overshoot)
+      scale.value = withSequence(
+        withTiming(0.95, { duration: 50, easing: Easing.out(Easing.ease) }),
+        withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) })
+      );
+    }
 
-    // Call the onPress handler
     onPress();
-  }, [disabled, onPress, scale]);
+
+    // Show brief acknowledgment text when checking (not unchecking)
+    if (status !== 'checked') {
+      const text = ACKNOWLEDGMENTS[Math.floor(Math.random() * ACKNOWLEDGMENTS.length)];
+      setAckText(text);
+      if (ackTimer.current) clearTimeout(ackTimer.current);
+      ackTimer.current = setTimeout(() => setAckText(null), 1500);
+    }
+  }, [disabled, onPress, scale, status, reduceMotion]);
 
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -91,37 +113,46 @@ const AnimatedCheckbox: React.FC<AnimatedCheckboxProps> = ({
   }));
 
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      disabled={disabled}
-      activeOpacity={0.7}
-      style={style}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: status === 'checked', disabled }}
-      accessibilityLabel={status === 'checked' ? 'Checked' : 'Unchecked'}
-    >
-      <Animated.View style={[styles.container, containerStyle]}>
-        <Animated.View style={[styles.checkbox, backgroundStyle]}>
-          <Animated.Text style={[styles.checkmark, checkmarkStyle]}>
-            ✓
-          </Animated.Text>
+    <View style={styles.wrapper}>
+      <TouchableOpacity
+        onPress={handlePress}
+        disabled={disabled}
+        activeOpacity={0.7}
+        style={style}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: status === 'checked', disabled }}
+        accessibilityLabel={status === 'checked' ? 'Checked' : 'Unchecked'}
+      >
+        <Animated.View style={[styles.container, containerStyle]}>
+          <Animated.View style={[styles.checkbox, backgroundStyle]}>
+            <Animated.Text style={[styles.checkmark, checkmarkStyle]}>
+              ✓
+            </Animated.Text>
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+      {ackText && (
+        <Text style={styles.ackText}>{ackText}</Text>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   container: {
-    width: 48, // Accessibility: minimum touch target size
+    width: 48,
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkbox: {
-    width: 28, // Slightly larger visual checkbox
+    width: 28,
     height: 28,
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
@@ -130,6 +161,11 @@ const styles = StyleSheet.create({
     color: Colors.textOnPrimary,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  ackText: {
+    fontSize: 12,
+    color: Colors.mutedSageGray,
+    marginLeft: 4,
   },
 });
 

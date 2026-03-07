@@ -5,8 +5,7 @@
  */
 
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Platform, InputAccessoryView, Keyboard } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, TouchableOpacity, StyleSheet, Platform, InputAccessoryView, Keyboard, Text } from 'react-native';
 import { Colors, Spacing } from '../constants';
 
 interface KeyboardAccessoryToolbarProps {

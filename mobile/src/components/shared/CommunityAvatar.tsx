@@ -1,6 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Image, ImageStyle, ViewStyle, StyleProp } from 'react-native';
-import { Text } from 'react-native-paper';
+import { StyleSheet, View, Image, ImageStyle, ViewStyle, StyleProp, Text } from 'react-native';
 import { Colors } from '../../constants';
 
 interface CommunityAvatarProps {

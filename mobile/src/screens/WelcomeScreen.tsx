@@ -5,54 +5,20 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text, Button } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 
 const WelcomeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text variant="displayMedium" style={styles.title}>
+        <Text style={styles.title}>
           Vara Wellness
         </Text>
 
-        <Text variant="bodyLarge" style={styles.subtitle}>
-          Mobile App Foundation Setup Complete! ✓
+        <Text style={styles.subtitle}>
+          Your wellness journey starts here.
         </Text>
-
-        <View style={styles.infoBox}>
-          <Text variant="titleMedium" style={styles.infoTitle}>
-            Phase 2 Complete:
-          </Text>
-          <Text variant="bodyMedium" style={styles.infoText}>
-            ✓ Expo project initialized
-          </Text>
-          <Text variant="bodyMedium" style={styles.infoText}>
-            ✓ Dependencies installed
-          </Text>
-          <Text variant="bodyMedium" style={styles.infoText}>
-            ✓ Design system configured
-          </Text>
-          <Text variant="bodyMedium" style={styles.infoText}>
-            ✓ Firebase setup ready
-          </Text>
-          <Text variant="bodyMedium" style={styles.infoText}>
-            ✓ Environment variables configured
-          </Text>
-        </View>
-
-        <Text variant="bodyMedium" style={styles.nextSteps}>
-          Next: Configure .env file and continue with Phase 3 (Authentication & Security)
-        </Text>
-
-        <Button
-          mode="contained"
-          onPress={() => console.log('Button pressed!')}
-          style={styles.button}
-        >
-          Test Button
-        </Button>
       </View>
     </View>
   );

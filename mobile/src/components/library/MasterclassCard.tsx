@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Text, Chip, ProgressBar } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Layout, Typography } from '../../constants';
 import { Masterclass } from '../../services/firebase/library.service';
@@ -47,7 +46,7 @@ export function MasterclassCard({ masterclass, progress, onPress }: MasterclassC
         {/* Duration Badge */}
         <View style={styles.durationBadge}>
           <Icon name="clock-outline" size={14} color={Colors.white} />
-          <Text variant="labelSmall" style={styles.durationText}>
+          <Text style={styles.durationText}>
             {masterclass.duration}
           </Text>
         </View>
@@ -56,44 +55,35 @@ export function MasterclassCard({ masterclass, progress, onPress }: MasterclassC
       {/* Content */}
       <View style={styles.content}>
         {/* Title */}
-        <Text variant="titleMedium" style={styles.title} numberOfLines={2}>
+        <Text style={styles.title} numberOfLines={2}>
           {masterclass.title}
         </Text>
 
         {/* Instructor */}
         <View style={styles.instructorRow}>
           <Icon name="account" size={16} color={Colors.textSecondary} />
-          <Text variant="bodySmall" style={styles.instructor}>
+          <Text style={styles.instructor}>
             {masterclass.instructor}
           </Text>
         </View>
 
         {/* Description */}
-        <Text variant="bodySmall" style={styles.description} numberOfLines={2}>
+        <Text style={styles.description} numberOfLines={2}>
           {masterclass.description}
         </Text>
 
         {/* Tags & Difficulty */}
         <View style={styles.metadata}>
-          <Chip
-            mode="flat"
-            compact
-            style={[styles.difficultyChip, { backgroundColor: getDifficultyColor() + '20' }]}
-            textStyle={[styles.difficultyText, { color: getDifficultyColor() }]}
-          >
-            {masterclass.difficulty.charAt(0).toUpperCase() + masterclass.difficulty.slice(1)}
-          </Chip>
+          <View style={[styles.difficultyChip, { backgroundColor: getDifficultyColor() + '20' }]}>
+            <Text style={[styles.difficultyText, { color: getDifficultyColor() }]}>
+              {masterclass.difficulty.charAt(0).toUpperCase() + masterclass.difficulty.slice(1)}
+            </Text>
+          </View>
 
           {masterclass.topics.slice(0, 2).map((topic, index) => (
-            <Chip
-              key={index}
-              mode="outlined"
-              compact
-              style={styles.topicChip}
-              textStyle={styles.topicText}
-            >
-              {topic}
-            </Chip>
+            <View key={index} style={styles.topicChip}>
+              <Text style={styles.topicText}>{topic}</Text>
+            </View>
           ))}
         </View>
 
@@ -101,18 +91,16 @@ export function MasterclassCard({ masterclass, progress, onPress }: MasterclassC
         {progress !== undefined && progress > 0 && (
           <View style={styles.progressSection}>
             <View style={styles.progressHeader}>
-              <Text variant="labelSmall" style={styles.progressLabel}>
+              <Text style={styles.progressLabel}>
                 Progress
               </Text>
-              <Text variant="labelSmall" style={styles.progressPercentage}>
+              <Text style={styles.progressPercentage}>
                 {Math.round(progress * 100)}%
               </Text>
             </View>
-            <ProgressBar
-              progress={progress}
-              color={Colors.evergreenTeal}
-              style={styles.progressBar}
-            />
+            <View style={{height: 4, borderRadius: 9999, backgroundColor: Colors.silverSage + '30', overflow: 'hidden'}}>
+              <View style={{height: 4, borderRadius: 9999, backgroundColor: Colors.evergreenTeal, width: `${progress * 100}%`}} />
+            </View>
           </View>
         )}
       </View>
@@ -202,6 +190,9 @@ const styles = StyleSheet.create({
   },
   difficultyChip: {
     height: 24,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
   },
   difficultyText: {
     fontSize: Typography.fontSize.xs,
@@ -210,6 +201,10 @@ const styles = StyleSheet.create({
   },
   topicChip: {
     height: 24,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
+    borderWidth: 1,
     borderColor: Colors.borderLight,
   },
   topicText: {
@@ -230,10 +225,5 @@ const styles = StyleSheet.create({
   progressPercentage: {
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.semibold,
-  },
-  progressBar: {
-    height: 6,
-    borderRadius: Layout.borderRadius.sm,
-    backgroundColor: Colors.borderLight,
   },
 });

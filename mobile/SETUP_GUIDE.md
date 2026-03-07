@@ -30,7 +30,7 @@ This may take a few minutes. You should see "added XXX packages" when complete.
    ```
 
 2. **Get Firebase configuration:**
-   - Go to [Firebase Console](https://console.firebase.google.com/project/vara-4a99f/settings/general)
+   - Go to [Firebase Console](https://console.firebase.google.com/project/your-project-id/settings/general)
    - **IMPORTANT**: Add iOS and Android apps to your Firebase project first!
 
    **For iOS:**
@@ -55,7 +55,7 @@ This may take a few minutes. You should see "added XXX packages" when complete.
    EXPO_PUBLIC_FIREBASE_ANDROID_APP_ID=your_android_app_id
    ```
 
-   The other values should already be correct (vara-4a99f project).
+   The other values should already be correct (your-project-id project).
 
 4. **Set backend API URL (optional for now):**
    If your backend is running locally:

@@ -6,13 +6,14 @@
 import React, { useState, useCallback } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   Alert,
   Platform,
+  Switch,
 } from 'react-native';
-import { Text, Switch, SegmentedButtons } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -179,19 +180,30 @@ export const CreateChallengeFromGroupModal: React.FC<CreateChallengeFromGroupMod
       />
 
       {/* Frequency Selection */}
-      <Text variant="bodyLarge" style={styles.sectionLabel}>
+      <Text style={styles.sectionLabel}>
         Check-in Frequency
       </Text>
-      <SegmentedButtons
-        value={frequency}
-        onValueChange={(value) => setFrequency(value as ChallengeFrequency)}
-        buttons={[
-          { value: 'daily', label: 'Daily' },
-          { value: 'weekly', label: 'Weekly' },
-          { value: 'total', label: 'Total' },
-        ]}
-        style={styles.segmentedButtons}
-      />
+      <View style={styles.segmentedButtons}>
+        {(['daily', 'weekly', 'total'] as const).map((value) => (
+          <TouchableOpacity
+            key={value}
+            onPress={() => setFrequency(value as ChallengeFrequency)}
+            style={[
+              styles.segmentButton,
+              frequency === value && styles.segmentButtonActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.segmentButtonText,
+                frequency === value && styles.segmentButtonTextActive,
+              ]}
+            >
+              {value.charAt(0).toUpperCase() + value.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Target & Unit */}
       <View style={styles.targetRow}>
@@ -210,7 +222,7 @@ export const CreateChallengeFromGroupModal: React.FC<CreateChallengeFromGroupMod
       </View>
 
       {/* Date Selection */}
-      <Text variant="bodyLarge" style={styles.sectionLabel}>
+      <Text style={styles.sectionLabel}>
         Duration
       </Text>
       <View style={styles.dateRow}>
@@ -255,17 +267,18 @@ export const CreateChallengeFromGroupModal: React.FC<CreateChallengeFromGroupMod
       {/* Auto-invite Members */}
       <View style={styles.switchContainer}>
         <View style={styles.switchLabel}>
-          <Text variant="bodyLarge" style={styles.switchLabelText}>
+          <Text style={styles.switchLabelText}>
             Invite All Group Members
           </Text>
-          <Text variant="bodySmall" style={styles.switchDescription}>
+          <Text style={styles.switchDescription}>
             Automatically send invites to {memberCount - 1} {memberCount - 1 === 1 ? 'member' : 'members'}
           </Text>
         </View>
         <Switch
           value={autoInviteMembers}
           onValueChange={setAutoInviteMembers}
-          color={Colors.evergreenTeal}
+          trackColor={{ false: Colors.silverSage, true: Colors.evergreenTeal }}
+          thumbColor={Colors.white}
         />
       </View>
 
@@ -289,7 +302,29 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   segmentedButtons: {
+    flexDirection: 'row',
     marginBottom: Spacing.base,
+    borderRadius: Layout.borderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    overflow: 'hidden',
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+  },
+  segmentButtonActive: {
+    backgroundColor: Colors.evergreenTeal,
+  },
+  segmentButtonText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+  },
+  segmentButtonTextActive: {
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.semibold,
   },
   targetRow: {
     flexDirection: 'row',

@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
-import { Text, FAB, SegmentedButtons, Menu } from 'react-native-paper';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Platform, Modal as RNModal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Input, Card, LoadingSpinner, ProgressBar, BrainPillarBadge, SwipeableGoalCard, ProgressUpdateModal, GoalMilestoneCheckmark, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton } from '../components';
@@ -329,13 +328,13 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
       <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
         <View style={styles.emptyContainer}>
           <Icon name="alert-circle" size={64} color={Colors.error} />
-          <Text variant="titleMedium" style={[styles.emptyTitle, { color: Colors.error }]}>
+          <Text style={[styles.emptyTitle, { color: Colors.error }]}>
             Unable to Load Goals
           </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <Text style={styles.emptyText}>
             There was a problem loading your goals. Please check your connection and try again.
           </Text>
-          <Text variant="bodySmall" style={[styles.emptyText, { marginTop: Spacing.sm }]}>
+          <Text style={[styles.emptyText, { marginTop: Spacing.sm }]}>
             Error: {goalsError.message}
           </Text>
         </View>
@@ -347,10 +346,10 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
     <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
       {!hideHeader && (
         <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.screenTitle}>
+          <Text style={styles.screenTitle}>
             Goals
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             Track your progress toward your dreams
           </Text>
         </View>
@@ -359,16 +358,18 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
       {/* Filter - Only show when not using external filter from PlanScreen */}
       {!externalFilter && (
         <View style={styles.filterContainer}>
-          <SegmentedButtons
-            value={filter}
-            onValueChange={setFilter}
-            buttons={[
+          <View style={{flexDirection: 'row', backgroundColor: Colors.dewSage + '30', borderRadius: 12, padding: 4}}>
+            {[
               { value: 'all', label: 'All' },
               { value: 'active', label: 'Active' },
               { value: 'completed', label: 'Done' },
-            ]}
-            style={styles.segmentedButtons}
-          />
+            ].map(btn => (
+              <TouchableOpacity key={btn.value} onPress={() => setFilter(btn.value)}
+                style={{flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: filter === btn.value ? Colors.surface : 'transparent', alignItems: 'center' as const}}>
+                <Text style={{fontSize: 14, fontWeight: filter === btn.value ? '600' : '400', color: filter === btn.value ? Colors.evergreenTeal : Colors.textSecondary}}>{btn.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       )}
 
@@ -386,10 +387,10 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
           <View style={styles.emptyIconContainer}>
             <Icon name="leaf" size={32} color={Colors.silverSage} />
           </View>
-          <Text variant="titleMedium" style={styles.emptyTitle}>
+          <Text style={styles.emptyTitle}>
             A fresh space for your goals
           </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <Text style={styles.emptyText}>
             Add a goal whenever you're ready — no rush.
           </Text>
           {!showInlineCreate && (
@@ -413,13 +414,13 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
 
       {/* FAB - Only show when NOT using inline create */}
       {!showInlineCreate && (
-        <FAB
-          icon="plus"
-          label="New Goal"
+        <TouchableOpacity
           style={styles.fab}
           onPress={handleCreateGoal}
-          color={Colors.textOnPrimary}
-        />
+          activeOpacity={0.8}
+        >
+          <Icon name="plus" size={24} color="#fff" />
+        </TouchableOpacity>
       )}
 
       {/* Create/Edit Modal */}
@@ -450,69 +451,67 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
         />
 
         {/* Focus Area Dropdown */}
-        <Text variant="bodyMedium" style={styles.fieldLabel}>
+        <Text style={styles.fieldLabel}>
           Focus Area * (SMART Goal Category)
         </Text>
-        <Menu
-          visible={focusMenuVisible}
-          onDismiss={() => setFocusMenuVisible(false)}
-          anchor={
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => setFocusMenuVisible(true)}
-            >
-              <Text style={formData.primaryFocus ? styles.dropdownText : styles.dropdownPlaceholder}>
-                {formData.primaryFocus || 'Select focus area...'}
-              </Text>
-              <Text style={styles.dropdownArrow}>▼</Text>
-            </TouchableOpacity>
-          }
+        <TouchableOpacity
+          style={styles.dropdownButton}
+          onPress={() => setFocusMenuVisible(!focusMenuVisible)}
         >
-          {FOCUS_OPTIONS.map((option) => (
-            <Menu.Item
-              key={option.value}
-              onPress={() => handleFocusChange(option.value)}
-              title={option.label}
-            />
-          ))}
-        </Menu>
+          <Text style={formData.primaryFocus ? styles.dropdownText : styles.dropdownPlaceholder}>
+            {formData.primaryFocus || 'Select focus area...'}
+          </Text>
+          <Text style={styles.dropdownArrow}>▼</Text>
+        </TouchableOpacity>
+        {focusMenuVisible && (
+          <View style={{backgroundColor: Colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.base, marginTop: -Spacing.base + 4}}>
+            {FOCUS_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                onPress={() => handleFocusChange(option.value)}
+                style={{paddingVertical: 12, paddingHorizontal: Spacing.base, borderBottomWidth: 1, borderBottomColor: Colors.borderLight}}
+              >
+                <Text style={{fontSize: 14, color: Colors.textPrimary}}>{option.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Timeframe Dropdown */}
-        <Text variant="bodyMedium" style={styles.fieldLabel}>
+        <Text style={styles.fieldLabel}>
           Timeframe (Time-bound)
         </Text>
-        <Menu
-          visible={timeframeMenuVisible}
-          onDismiss={() => setTimeframeMenuVisible(false)}
-          anchor={
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => setTimeframeMenuVisible(true)}
-            >
-              <Text style={formData.timeframe ? styles.dropdownText : styles.dropdownPlaceholder}>
-                {formData.timeframe || 'Select timeframe...'}
-              </Text>
-              <Text style={styles.dropdownArrow}>▼</Text>
-            </TouchableOpacity>
-          }
+        <TouchableOpacity
+          style={styles.dropdownButton}
+          onPress={() => setTimeframeMenuVisible(!timeframeMenuVisible)}
         >
-          {TIMEFRAME_OPTIONS.map((option) => (
-            <Menu.Item
-              key={option.value}
-              onPress={() => {
-                setFormData({ ...formData, timeframe: option.value });
-                setTimeframeMenuVisible(false);
-              }}
-              title={option.label}
-            />
-          ))}
-        </Menu>
+          <Text style={formData.timeframe ? styles.dropdownText : styles.dropdownPlaceholder}>
+            {formData.timeframe || 'Select timeframe...'}
+          </Text>
+          <Text style={styles.dropdownArrow}>▼</Text>
+        </TouchableOpacity>
+        {timeframeMenuVisible && (
+          <View style={{backgroundColor: Colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.base, marginTop: -Spacing.base + 4}}>
+            {TIMEFRAME_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                onPress={() => {
+                  setFormData({ ...formData, timeframe: option.value });
+                  setTimeframeMenuVisible(false);
+                }}
+                style={{paddingVertical: 12, paddingHorizontal: Spacing.base, borderBottomWidth: 1, borderBottomColor: Colors.borderLight}}
+              >
+                <Text style={{fontSize: 14, color: Colors.textPrimary}}>{option.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Brain Health Pillars */}
-        <Text variant="bodyMedium" style={styles.fieldLabel}>
+        <Text style={styles.fieldLabel}>
           What does this goal support? (Optional)
         </Text>
-        <Text variant="bodySmall" style={styles.helpText}>
+        <Text style={styles.helpText}>
           Select the areas of wellness this goal will help you build
         </Text>
         <View style={styles.pillarsContainer}>
@@ -693,7 +692,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: Spacing.lg,
     bottom: Spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 9999,
     backgroundColor: Colors.evergreenTeal,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   input: {
     marginBottom: Spacing.base,

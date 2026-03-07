@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card } from '../components';
 import { Colors, Spacing, Typography, Layout } from '../constants';
@@ -27,41 +26,40 @@ const HomeScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Text variant="displayMedium" style={styles.title}>
+          <Text style={styles.title}>
             Welcome, {user?.displayName || 'User'}!
           </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
-            You're successfully logged in 🎉
+          <Text style={styles.subtitle}>
+            You're successfully logged in
           </Text>
         </View>
 
         {/* User Info Card */}
         <Card style={styles.card}>
-          <Text variant="titleMedium" style={styles.cardTitle}>
+          <Text style={styles.cardTitle}>
             Your Account
           </Text>
           <View style={styles.infoRow}>
-            <Text variant="bodyMedium" style={styles.label}>
+            <Text style={styles.label}>
               Name:
             </Text>
-            <Text variant="bodyMedium" style={styles.value}>
+            <Text style={styles.value}>
               {user?.displayName || 'Not set'}
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text variant="bodyMedium" style={styles.label}>
+            <Text style={styles.label}>
               Email:
             </Text>
-            <Text variant="bodyMedium" style={styles.value}>
+            <Text style={styles.value}>
               {user?.email}
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text variant="bodyMedium" style={styles.label}>
+            <Text style={styles.label}>
               Email Verified:
             </Text>
             <Text
-              variant="bodyMedium"
               style={[
                 styles.value,
                 user?.emailVerified ? styles.verified : styles.notVerified,
@@ -71,69 +69,13 @@ const HomeScreen: React.FC = () => {
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text variant="bodyMedium" style={styles.label}>
+            <Text style={styles.label}>
               User ID:
             </Text>
-            <Text variant="bodySmall" style={styles.userId}>
+            <Text style={styles.userId}>
               {user?.uid}
             </Text>
           </View>
-        </Card>
-
-        {/* Phase 3 Complete Card */}
-        <Card style={styles.card}>
-          <Text variant="titleMedium" style={styles.cardTitle}>
-            Phase 3: Authentication ✓
-          </Text>
-          <Text variant="bodyMedium" style={styles.description}>
-            Authentication system is complete and working!
-          </Text>
-          <Text variant="bodySmall" style={styles.feature}>
-            ✓ Email/password login
-          </Text>
-          <Text variant="bodySmall" style={styles.feature}>
-            ✓ User registration
-          </Text>
-          <Text variant="bodySmall" style={styles.feature}>
-            ✓ Email verification
-          </Text>
-          <Text variant="bodySmall" style={styles.feature}>
-            ✓ Password reset
-          </Text>
-          <Text variant="bodySmall" style={styles.feature}>
-            ✓ Protected routes
-          </Text>
-          <Text variant="bodySmall" style={styles.feature}>
-            ✓ Auth state management
-          </Text>
-        </Card>
-
-        {/* Next Steps Card */}
-        <Card style={styles.card}>
-          <Text variant="titleMedium" style={styles.cardTitle}>
-            Next: Phase 4
-          </Text>
-          <Text variant="bodyMedium" style={styles.description}>
-            Coming soon:
-          </Text>
-          <Text variant="bodySmall" style={styles.nextStep}>
-            • Dashboard with wellness insights
-          </Text>
-          <Text variant="bodySmall" style={styles.nextStep}>
-            • Journal with AI prompts
-          </Text>
-          <Text variant="bodySmall" style={styles.nextStep}>
-            • Habit tracking with streaks
-          </Text>
-          <Text variant="bodySmall" style={styles.nextStep}>
-            • Goal management
-          </Text>
-          <Text variant="bodySmall" style={styles.nextStep}>
-            • Community features
-          </Text>
-          <Text variant="bodySmall" style={styles.nextStep}>
-            • Focus tools (Pomodoro, routines)
-          </Text>
         </Card>
 
         {/* Logout Button */}

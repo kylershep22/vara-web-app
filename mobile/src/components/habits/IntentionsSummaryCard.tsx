@@ -5,8 +5,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { Habit } from '../../types';
 
 interface IntentionsSummaryCardProps {
@@ -79,7 +78,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: '#3E3E3E',
   },
@@ -92,7 +91,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
     color: '#1B5E57',
   },

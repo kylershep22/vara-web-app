@@ -1,7 +1,7 @@
 /**
  * Paywall Screen
- * Shown to users when their subscription has expired
- * Displays pricing options and invite code redemption
+ * Shown to users when their subscription has expired or to present pricing.
+ * Displays the Vara value proposition, pricing options, and trial CTA.
  */
 
 import React, { useState } from 'react';
@@ -11,122 +11,69 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Linking,
-  Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { useSubscription } from '../hooks/useSubscription';
+import PricingSelector from '../components/paywall/PricingSelector';
+import {
+  initiatePurchase,
+  restorePurchase,
+} from '../services/subscription.service';
 
-// Pricing configuration
-const PRICING = {
-  monthly: {
-    price: '$10.99',
-    period: '/month',
-    productId: 'vara_monthly',
-  },
-  annual: {
-    price: '$111.99',
-    period: '/year',
-    savings: 'Save 15%',
-    productId: 'vara_annual',
-  },
-};
+// Pricing defaults (read from env at build time)
+const MONTHLY_PRICE = process.env.EXPO_PUBLIC_MONTHLY_PRICE || '9.99';
+const ANNUAL_PRICE = process.env.EXPO_PUBLIC_ANNUAL_PRICE || '79.99';
 
-// Feature list
+// Feature list (max 4 items)
 const FEATURES = [
-  { icon: 'chatbubbles-outline', text: 'Unlimited AI coaching' },
-  { icon: 'library-outline', text: 'Full wellness library access' },
-  { icon: 'trending-up-outline', text: 'Advanced habit tracking & insights' },
-  { icon: 'people-outline', text: 'Community features' },
-  { icon: 'journal-outline', text: 'AI-powered journaling' },
-  { icon: 'analytics-outline', text: 'Brain health dashboard' },
+  'AI-powered brain health guidance',
+  'Full audio and content library',
+  'Unlimited habits, routines, and reflections',
+  'Detailed insights and progress patterns',
 ];
 
-interface PricingCardProps {
-  title: string;
-  price: string;
-  period: string;
-  savings?: string;
-  recommended?: boolean;
-  onPress: () => void;
-  disabled?: boolean;
-}
-
-const PricingCard: React.FC<PricingCardProps> = ({
-  title,
-  price,
-  period,
-  savings,
-  recommended,
-  onPress,
-  disabled,
-}) => (
-  <TouchableOpacity
-    style={[
-      styles.pricingCard,
-      recommended && styles.pricingCardRecommended,
-      disabled && styles.pricingCardDisabled,
-    ]}
-    onPress={onPress}
-    disabled={disabled}
-    activeOpacity={0.8}
-  >
-    {recommended && (
-      <View style={styles.recommendedBadge}>
-        <Text style={styles.recommendedText}>Best Value</Text>
-      </View>
-    )}
-    <Text style={[styles.pricingTitle, recommended && styles.pricingTitleRecommended]}>
-      {title}
-    </Text>
-    <View style={styles.priceRow}>
-      <Text style={[styles.price, recommended && styles.priceRecommended]}>{price}</Text>
-      <Text style={[styles.period, recommended && styles.periodRecommended]}>{period}</Text>
-    </View>
-    {savings && <Text style={styles.savings}>{savings}</Text>}
-  </TouchableOpacity>
-);
-
-interface FeatureItemProps {
-  icon: string;
-  text: string;
-}
-
-const FeatureItem: React.FC<FeatureItemProps> = ({ icon, text }) => (
-  <View style={styles.featureItem}>
-    <Ionicons name={icon as any} size={24} color={Colors.evergreenTeal} />
-    <Text style={styles.featureText}>{text}</Text>
-  </View>
-);
-
 const PaywallScreen: React.FC = () => {
-  const navigation = useNavigation();
   const { status } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
+  const [purchasing, setPurchasing] = useState(false);
+
+  const isExpired = status?.type === 'expired';
 
   const handleSubscribe = async () => {
-    // TODO: Integrate with RevenueCat for actual purchase
-    // For now, show a placeholder message
-    console.log('Subscribe pressed:', selectedPlan);
-
-    // In production, this would trigger the RevenueCat purchase flow:
-    // const offerings = await Purchases.getOfferings();
-    // const pkg = offerings.current?.availablePackages.find(p => p.identifier === selectedPlan);
-    // if (pkg) await Purchases.purchasePackage(pkg);
+    setPurchasing(true);
+    try {
+      const result = await initiatePurchase(selectedPlan);
+      if (!result.success && result.error) {
+        Alert.alert('Not Available', result.error);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setPurchasing(false);
+    }
   };
 
-  const handleRedeemCode = () => {
-    navigation.navigate('RedeemCode' as never);
+  const handleRestore = async () => {
+    try {
+      const result = await restorePurchase();
+      if (!result.success && result.error) {
+        Alert.alert('Restore', result.error);
+      } else if (result.restored) {
+        Alert.alert('Restored', 'Your subscription has been restored.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not restore purchase. Please try again.');
+    }
   };
 
-  const handleRestorePurchases = async () => {
-    // TODO: Integrate with RevenueCat
-    // await Purchases.restorePurchases();
-    console.log('Restore purchases pressed');
-  };
+  // Determine price text for legal copy
+  const priceText =
+    selectedPlan === 'monthly'
+      ? `$${MONTHLY_PRICE}/month`
+      : `$${ANNUAL_PRICE}/year`;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -135,85 +82,75 @@ const PaywallScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="lock-open-outline" size={48} color={Colors.evergreenTeal} />
+        {/* Logo Area */}
+        <View style={styles.logoArea}>
+          <View style={styles.logoCircle}>
+            <Ionicons name="leaf" size={40} color={Colors.evergreenTeal} />
           </View>
-          <Text style={styles.title}>Unlock Your Full Potential</Text>
-          <Text style={styles.subtitle}>
-            {status?.type === 'expired'
-              ? 'Your trial has ended. Subscribe to continue your wellness journey.'
-              : 'Subscribe to access all features and continue growing.'}
-          </Text>
         </View>
 
-        {/* Features List */}
-        <View style={styles.featuresContainer}>
-          <Text style={styles.sectionTitle}>What you'll get:</Text>
+        {/* Heading */}
+        <Text style={styles.heading}>
+          {isExpired ? 'Your free trial has ended' : 'The full Vara experience'}
+        </Text>
+
+        {/* Body */}
+        <Text style={styles.body}>
+          {isExpired
+            ? 'We hope Vara has been useful. To continue, choose a subscription below.'
+            : 'Everything Vara offers \u2014 designed around how your brain actually works.'}
+        </Text>
+
+        {/* Feature List */}
+        <View style={styles.featureList}>
           {FEATURES.map((feature, index) => (
-            <FeatureItem key={index} icon={feature.icon} text={feature.text} />
+            <View key={index} style={styles.featureItem}>
+              <View style={styles.bullet} />
+              <Text style={styles.featureText}>{feature}</Text>
+            </View>
           ))}
         </View>
 
-        {/* Pricing Cards */}
+        {/* Pricing Selector */}
         <View style={styles.pricingContainer}>
-          <PricingCard
-            title="Monthly"
-            price={PRICING.monthly.price}
-            period={PRICING.monthly.period}
-            onPress={() => setSelectedPlan('monthly')}
-            recommended={false}
-          />
-          <PricingCard
-            title="Annual"
-            price={PRICING.annual.price}
-            period={PRICING.annual.period}
-            savings={PRICING.annual.savings}
-            recommended
-            onPress={() => setSelectedPlan('annual')}
+          <PricingSelector
+            selectedPlan={selectedPlan}
+            onSelectPlan={setSelectedPlan}
           />
         </View>
 
-        {/* Subscribe Button */}
+        {/* Primary CTA */}
         <TouchableOpacity
-          style={styles.subscribeButton}
+          style={[styles.ctaButton, purchasing && styles.ctaButtonDisabled]}
           onPress={handleSubscribe}
           activeOpacity={0.8}
+          disabled={purchasing}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isExpired ? 'Continue with Vara' : 'Start your 7-day free trial'
+          }
         >
-          <Text style={styles.subscribeButtonText}>
-            Subscribe {selectedPlan === 'annual' ? 'Annually' : 'Monthly'}
+          <Text style={styles.ctaButtonText}>
+            {isExpired ? 'Continue with Vara' : 'Start your 7-day free trial'}
           </Text>
         </TouchableOpacity>
 
-        {/* Invite Code Option */}
-        <TouchableOpacity style={styles.codeButton} onPress={handleRedeemCode}>
-          <Ionicons name="gift-outline" size={20} color={Colors.evergreenTeal} />
-          <Text style={styles.codeButtonText}>Have an invite code?</Text>
-        </TouchableOpacity>
-
-        {/* Restore Purchases */}
-        <TouchableOpacity style={styles.restoreButton} onPress={handleRestorePurchases}>
-          <Text style={styles.restoreButtonText}>Restore Purchases</Text>
-        </TouchableOpacity>
-
-        {/* Data Retention Notice */}
-        {status?.dataRetentionDaysRemaining && (
-          <View style={styles.noticeContainer}>
-            <Ionicons name="information-circle-outline" size={20} color={Colors.warning} />
-            <Text style={styles.noticeText}>
-              Your data will be kept for {status.dataRetentionDaysRemaining} more days.
-              Subscribe to keep your progress permanently.
-            </Text>
-          </View>
-        )}
-
-        {/* Terms */}
-        <Text style={styles.terms}>
-          Subscriptions will be charged to your payment method through your{' '}
-          {Platform.OS === 'ios' ? 'App Store' : 'Play Store'} account.
-          Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.
+        {/* Legal Text */}
+        <Text style={styles.legalText}>
+          Free for 7 days, then {priceText}. Cancel anytime. Billed automatically
+          unless cancelled before trial ends.
         </Text>
+
+        {/* Restore Purchase */}
+        <TouchableOpacity
+          style={styles.restoreButton}
+          onPress={handleRestore}
+          activeOpacity={0.6}
+          accessibilityRole="button"
+          accessibilityLabel="Restore previous purchase"
+        >
+          <Text style={styles.restoreButtonText}>Restore previous purchase</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -222,188 +159,99 @@ const PaywallScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: Colors.mistWhite,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
+    paddingBottom: Spacing.xl,
   },
-  header: {
+  logoArea: {
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    paddingTop: 32,
+    marginBottom: Spacing.lg,
   },
-  iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.dewSage,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.lg,
   },
-  title: {
+  heading: {
     fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: Typography.fontWeight.bold,
     color: Colors.evergreenTeal,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
-  subtitle: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.textSecondary,
+  body: {
+    fontSize: 16,
+    color: Colors.softCharcoal,
     textAlign: 'center',
     lineHeight: 24,
-  },
-  featuresContainer: {
-    backgroundColor: Colors.surface,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.lg,
     marginBottom: Spacing.xl,
   },
-  sectionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.base,
+  featureList: {
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.sm,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.base,
+  },
+  bullet: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.evergreenTeal,
+    marginRight: Spacing.base,
   },
   featureText: {
     fontSize: Typography.fontSize.base,
-    color: Colors.textPrimary,
-    marginLeft: Spacing.base,
+    color: Colors.softCharcoal,
     flex: 1,
   },
   pricingContainer: {
-    flexDirection: 'row',
-    gap: Spacing.base,
     marginBottom: Spacing.lg,
   },
-  pricingCard: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.lg,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.border,
-  },
-  pricingCardRecommended: {
-    borderColor: Colors.sunriseAmber,
-    backgroundColor: '#FFFDF5',
-  },
-  pricingCardDisabled: {
-    opacity: 0.6,
-  },
-  recommendedBadge: {
-    position: 'absolute',
-    top: -12,
-    backgroundColor: Colors.sunriseAmber,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.xs,
-    borderRadius: Layout.borderRadius.full,
-  },
-  recommendedText: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.white,
-  },
-  pricingTitle: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  pricingTitleRecommended: {
-    color: Colors.evergreenTeal,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  price: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
-  },
-  priceRecommended: {
-    color: Colors.evergreenTeal,
-  },
-  period: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
-  },
-  periodRecommended: {
-    color: Colors.evergreenTeal,
-  },
-  savings: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.success,
-    fontWeight: Typography.fontWeight.medium,
-    marginTop: Spacing.xs,
-  },
-  subscribeButton: {
-    backgroundColor: Colors.sunriseAmber,
-    borderRadius: Layout.borderRadius.lg,
-    paddingVertical: Spacing.base,
-    alignItems: 'center',
-    marginBottom: Spacing.base,
-  },
-  subscribeButtonText: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.white,
-  },
-  codeButton: {
-    flexDirection: 'row',
+  ctaButton: {
+    backgroundColor: Colors.evergreenTeal,
+    borderRadius: 12,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.base,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.base,
   },
-  codeButtonText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.medium,
-    marginLeft: Spacing.sm,
+  ctaButtonDisabled: {
+    opacity: 0.6,
+  },
+  ctaButtonText: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: '#FFFFFF',
+  },
+  legalText: {
+    fontSize: 12,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: Spacing.lg,
   },
   restoreButton: {
     alignItems: 'center',
     paddingVertical: Spacing.sm,
-    marginBottom: Spacing.lg,
+    minHeight: 48,
+    justifyContent: 'center',
   },
   restoreButtonText: {
     fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
+    color: Colors.mutedSageGray,
     textDecorationLine: 'underline',
-  },
-  noticeContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF8E1',
-    borderRadius: Layout.borderRadius.md,
-    padding: Spacing.base,
-    marginBottom: Spacing.lg,
-    alignItems: 'flex-start',
-  },
-  noticeText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textPrimary,
-    marginLeft: Spacing.sm,
-    flex: 1,
-    lineHeight: 20,
-  },
-  terms: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 18,
   },
 });
 

@@ -50,20 +50,18 @@ export function AIAssistantFAB({ context }: AIAssistantFABProps) {
 
   const handlePressIn = () => {
     setIsPressed(true);
-    Animated.spring(scaleAnim, {
-      toValue: 1.08,
-      friction: 4,
-      tension: 100,
+    Animated.timing(scaleAnim, {
+      toValue: 1.05,
+      duration: 150,
       useNativeDriver: true,
     }).start();
   };
 
   const handlePressOut = () => {
     setIsPressed(false);
-    Animated.spring(scaleAnim, {
+    Animated.timing(scaleAnim, {
       toValue: 1,
-      friction: 4,
-      tension: 100,
+      duration: 150,
       useNativeDriver: true,
     }).start();
   };

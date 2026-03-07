@@ -13,7 +13,7 @@ import {
   Animated,
   ScrollView,
 } from 'react-native';
-import { Text, Searchbar, Avatar } from 'react-native-paper';
+import { Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, LoadingSpinner, PersonCard } from '../../components';
@@ -253,21 +253,29 @@ const PeopleScreen: React.FC = () => {
 
       {/* Search */}
       <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Search by name or interests..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={[styles.searchbar, isSearchFocused && styles.searchbarFocused]}
-          iconColor={Colors.evergreenTeal}
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
-        />
+        <View style={[styles.searchbar, isSearchFocused && styles.searchbarFocused, {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12}]}>
+          <Icon name="magnify" size={20} color={Colors.evergreenTeal} style={{marginRight: 8}} />
+          <TextInput
+            placeholder="Search by name or interests..."
+            placeholderTextColor={Colors.mutedSageGray}
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+            style={{flex: 1, fontSize: 14, color: Colors.softCharcoal, paddingVertical: 8}}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+              <Icon name="close-circle" size={18} color={Colors.mutedSageGray} />
+            </TouchableOpacity>
+          )}
+        </View>
         <Animated.View
           style={[styles.searchHint, { opacity: searchHintOpacity }]}
           pointerEvents="none"
         >
           <Icon name="arrow-down" size={14} color={Colors.evergreenTeal} />
-          <Text variant="bodySmall" style={styles.searchHintText}>
+          <Text style={styles.searchHintText}>
             Showing search results below
           </Text>
         </Animated.View>
@@ -299,7 +307,7 @@ const PeopleScreen: React.FC = () => {
       {searchQuery.length > 0 && filter === 'discover' && searchLoading && (
         <View style={styles.searchingIndicator}>
           <Icon name="magnify" size={16} color={Colors.evergreenTeal} />
-          <Text variant="bodySmall" style={styles.searchingText}>
+          <Text style={styles.searchingText}>
             Searching for "{searchQuery}"...
           </Text>
         </View>
@@ -439,7 +447,7 @@ const PeopleScreen: React.FC = () => {
                 color={Colors.mutedSageGray}
                 style={styles.emptyIcon}
               />
-              <Text variant="titleMedium" style={styles.emptyTitle}>
+              <Text style={styles.emptyTitle}>
                 {filter === 'connections'
                   ? 'No connections yet'
                   : filter === 'requests'
@@ -448,7 +456,7 @@ const PeopleScreen: React.FC = () => {
                   ? 'No people found'
                   : 'Find new connections'}
               </Text>
-              <Text variant="bodyMedium" style={styles.emptyText}>
+              <Text style={styles.emptyText}>
                 {filter === 'connections'
                   ? 'Use the search bar above to find and connect with people'
                   : filter === 'requests'
@@ -504,7 +512,7 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
   },
   connectionCount: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.mutedSageGray,
   },
   subtitle: {
@@ -517,7 +525,7 @@ const styles = StyleSheet.create({
   // ── Search ──────────────────────────────────────────
   searchContainer: {
     paddingHorizontal: 16,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   searchbar: {
     backgroundColor: Colors.white,
@@ -546,7 +554,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 16,
   },
   tabPill: {
     flexDirection: 'row',
@@ -554,14 +562,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 7,
-    borderRadius: 20,
+    borderRadius: 16,
     backgroundColor: Colors.dewSageLight,
   },
   tabPillActive: {
     backgroundColor: Colors.evergreenTeal,
   },
   tabPillText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: Colors.mutedSageGray,
   },
@@ -570,9 +578,9 @@ const styles = StyleSheet.create({
   },
   tabBadge: {
     backgroundColor: Colors.dewSageLight,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 1,
-    borderRadius: 10,
+    borderRadius: 12,
     minWidth: 20,
     alignItems: 'center',
   },
@@ -580,7 +588,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.25)',
   },
   tabBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     color: Colors.mutedSageGray,
     fontWeight: '700',
   },
@@ -614,7 +622,7 @@ const styles = StyleSheet.create({
 
   // ── Suggestions Section ─────────────────────────────
   suggestionsSection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -623,7 +631,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.softCharcoal,
   },
@@ -632,7 +640,7 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
   },
   suggestionsScroll: {
-    gap: 10,
+    gap: 12,
   },
   suggestionCard: {
     minWidth: 150,
@@ -647,17 +655,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.softCharcoal,
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: 12,
   },
   suggestionReason: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.mutedSageGray,
     textAlign: 'center',
     marginTop: 4,
-    lineHeight: 11 * 1.3,
+    lineHeight: 12 * 1.3,
   },
   sayHelloBtn: {
-    marginTop: 10,
+    marginTop: 12,
     width: '100%',
     alignItems: 'center',
     paddingVertical: 7,
@@ -666,14 +674,14 @@ const styles = StyleSheet.create({
     borderColor: Colors.evergreenTeal,
   },
   sayHelloBtnText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: Colors.evergreenTeal,
   },
 
   // ── Connection List Section ─────────────────────────
   listSectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.softCharcoal,
     paddingBottom: 4,
@@ -692,7 +700,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   connectionName: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     color: Colors.softCharcoal,
   },

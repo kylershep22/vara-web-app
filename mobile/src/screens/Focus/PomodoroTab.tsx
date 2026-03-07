@@ -12,8 +12,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
@@ -326,7 +325,7 @@ const styles = StyleSheet.create({
     letterSpacing: TypographyTokens.letterSpacingTimer * TypographyTokens.fontTimerLarge,
   },
   taskLabel: {
-    fontSize: 13,
+    fontSize: 14,
     color: ColorTokens.textSecondary,
     marginTop: SpacingTokens.xs,
     maxWidth: 160,

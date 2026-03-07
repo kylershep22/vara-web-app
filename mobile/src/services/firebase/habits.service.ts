@@ -226,7 +226,13 @@ export const getHabitCompletions = async (
     }
 
     return completions;
-  } catch (error) {
+  } catch (error: any) {
+    // Firestore permissions error can occur for newly created habits
+    // where the security rule's get() on the parent document fails
+    // during list queries. Return empty array since new habits have no completions.
+    if (error?.code === 'permission-denied') {
+      return [];
+    }
     console.error('Error getting habit completions:', error);
     throw error;
   }
@@ -292,7 +298,10 @@ export const isHabitCompletedToday = async (habitId: string): Promise<boolean> =
     const completionSnap = await getDoc(completionRef);
 
     return completionSnap.exists();
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'permission-denied') {
+      return false;
+    }
     console.error('Error checking habit completion:', error);
     throw error;
   }

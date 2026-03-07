@@ -54,7 +54,7 @@ Your Firebase project needs iOS and Android app registrations for push notificat
 
 ### Register iOS App
 
-1. Go to [Firebase Console](https://console.firebase.google.com/project/vara-4a99f/settings/general)
+1. Go to [Firebase Console](https://console.firebase.google.com/project/your-project-id/settings/general)
 2. Click **"Add app"** → **iOS**
 3. Enter iOS Bundle ID: `com.vara.wellness`
 4. (Optional) App nickname: "Vara Wellness iOS"
@@ -125,8 +125,8 @@ Apple and Google require publicly accessible URLs for your legal documents.
    ```
 
 5. Your URLs will be:
-   - Privacy: `https://vara-4a99f.web.app/legal/privacy.html`
-   - Terms: `https://vara-4a99f.web.app/legal/terms.html`
+   - Privacy: `https://your-project-id.web.app/legal/privacy.html`
+   - Terms: `https://your-project-id.web.app/legal/terms.html`
 
 ### Option B: GitHub Pages (FREE, Easier)
 

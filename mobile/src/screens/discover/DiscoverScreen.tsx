@@ -4,8 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
-import { Text, IconButton } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -36,7 +35,7 @@ export default function DiscoverScreen() {
       title: 'Sleep',
       icon: 'moon-waning-crescent',
       description: 'Brain cleanup & memory consolidation',
-      color: '#7E57C2', // Purple
+      color: Colors.dewSage, // Dew Sage
       screen: 'Sleep',
     },
     {
@@ -67,38 +66,37 @@ export default function DiscoverScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <IconButton
-              icon="arrow-left"
-              size={24}
-              iconColor={Colors.evergreenTeal}
+            <TouchableOpacity
               onPress={() => navigation.goBack()}
-              style={styles.backButton}
-            />
+              style={[styles.backButton, {width: 48, height: 48, borderRadius: 9999, justifyContent: 'center', alignItems: 'center'}]}
+            >
+              <Icon name="arrow-left" size={24} color={Colors.evergreenTeal} />
+            </TouchableOpacity>
             <View>
-              <Text variant="headlineMedium" style={styles.headerTitle}>
+              <Text style={styles.headerTitle}>
                 Discover
               </Text>
-              <Text variant="bodyMedium" style={styles.headerSubtitle}>
+              <Text style={styles.headerSubtitle}>
                 Science-backed tools for your brain & body
               </Text>
             </View>
           </View>
-          <IconButton
-            icon="account-circle"
-            size={32}
-            iconColor={Colors.evergreenTeal}
+          <TouchableOpacity
             onPress={() => navigation.navigate('ProfileStack' as never)}
-          />
+            style={{width: 48, height: 48, borderRadius: 9999, justifyContent: 'center', alignItems: 'center'}}
+          >
+            <Icon name="account-circle" size={32} color={Colors.evergreenTeal} />
+          </TouchableOpacity>
         </View>
 
         {/* Featured Section */}
         <View style={styles.featuredSection}>
           <View style={styles.featuredCard}>
             <Icon name="star-circle" size={48} color={Colors.sunriseAmber} />
-            <Text variant="titleLarge" style={styles.featuredTitle}>
+            <Text style={styles.featuredTitle}>
               Welcome to Discover
             </Text>
-            <Text variant="bodyMedium" style={styles.featuredText}>
+            <Text style={styles.featuredText}>
               Build focus, energy, resilience, growth, and connection through evidence-based practices.
             </Text>
           </View>
@@ -118,10 +116,10 @@ export default function DiscoverScreen() {
               <View style={[styles.categoryIconContainer, { backgroundColor: category.color + '20' }]}>
                 <Icon name={category.icon} size={32} color={category.color} />
               </View>
-              <Text variant="titleMedium" style={styles.categoryTitle}>
+              <Text style={styles.categoryTitle}>
                 {category.title}
               </Text>
-              <Text variant="bodySmall" style={styles.categoryDescription}>
+              <Text style={styles.categoryDescription}>
                 {category.description}
               </Text>
               <Icon
@@ -145,10 +143,10 @@ export default function DiscoverScreen() {
             >
               <Icon name="meditation" size={24} color={Colors.evergreenTeal} />
               <View style={styles.quickLinkContent}>
-                <Text variant="titleSmall" style={styles.quickLinkTitle}>
+                <Text style={styles.quickLinkTitle}>
                   Box Breathing
                 </Text>
-                <Text variant="bodySmall" style={styles.quickLinkSubtitle}>
+                <Text style={styles.quickLinkSubtitle}>
                   5 min • Calm mind & build resilience
                 </Text>
               </View>
@@ -161,10 +159,10 @@ export default function DiscoverScreen() {
             >
               <Icon name="sleep" size={24} color={Colors.evergreenTeal} />
               <View style={styles.quickLinkContent}>
-                <Text variant="titleSmall" style={styles.quickLinkTitle}>
+                <Text style={styles.quickLinkTitle}>
                   Delta Waves
                 </Text>
-                <Text variant="bodySmall" style={styles.quickLinkSubtitle}>
+                <Text style={styles.quickLinkSubtitle}>
                   3:43 min • Memory consolidation & brain cleanup
                 </Text>
               </View>
@@ -177,10 +175,10 @@ export default function DiscoverScreen() {
             >
               <Icon name="yoga" size={24} color={Colors.evergreenTeal} />
               <View style={styles.quickLinkContent}>
-                <Text variant="titleSmall" style={styles.quickLinkTitle}>
+                <Text style={styles.quickLinkTitle}>
                   Morning Mobility
                 </Text>
-                <Text variant="bodySmall" style={styles.quickLinkSubtitle}>
+                <Text style={styles.quickLinkSubtitle}>
                   10 min • Wake up your body & brain
                 </Text>
               </View>

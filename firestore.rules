@@ -92,8 +92,13 @@ service cloud.firestore {
       // Sub-collection: completions (habit check-ins)
       match /completions/{completionId} {
         // Allow users to read/write completions for habits they own
-        // Use a simpler check that doesn't require fetching the parent document
-        allow read, write: if isAuthenticated() &&
+        // Split read into get/list because list queries don't have resource == null
+        allow get: if isAuthenticated() &&
+          (resource == null ||
+           request.auth.uid == get(/databases/$(database)/documents/habits/$(habitId)).data.userId);
+        allow list: if isAuthenticated() &&
+          request.auth.uid == get(/databases/$(database)/documents/habits/$(habitId)).data.userId;
+        allow write: if isAuthenticated() &&
           (resource == null ||
            request.auth.uid == get(/databases/$(database)/documents/habits/$(habitId)).data.userId);
       }
@@ -301,6 +306,68 @@ service cloud.firestore {
          exists(/databases/$(database)/documents/groups/$(resource.data.groupId)) &&
          request.auth.uid == get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.ownerId)
       );
+    }
+
+    // ========== CONTENT MODERATION ==========
+
+    // Post Reports (user-submitted abuse reports)
+    match /postReports/{reportId} {
+      // Only the reporter can read/list their own reports
+      allow get: if isAuthenticated() &&
+        resource.data.reporterId == request.auth.uid;
+
+      allow list: if isAuthenticated() &&
+        request.auth.uid == resource.data.reporterId;
+
+      // Any authenticated user can create a report for someone else's post
+      allow create: if isAuthenticated() &&
+        request.resource.data.reporterId == request.auth.uid &&
+        request.resource.data.postId is string &&
+        request.resource.data.reportedUserId is string &&
+        request.resource.data.reason is string &&
+        request.resource.data.reporterId != request.resource.data.reportedUserId;
+
+      // Reports are immutable once submitted
+      allow update, delete: if false;
+    }
+
+    // Hidden Posts (user hides a post from their feed)
+    match /hiddenPosts/{hiddenId} {
+      allow get: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+
+      // List queries require the query to filter by userId == auth.uid
+      allow list: if isAuthenticated() &&
+        request.auth.uid == resource.data.userId;
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.postId is string;
+
+      allow delete: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+
+      allow update: if false;
+    }
+
+    // Muted Users (user mutes another user's content)
+    match /mutedUsers/{muteId} {
+      allow get: if isAuthenticated() &&
+        resource.data.muterId == request.auth.uid;
+
+      // List queries require the query to filter by muterId == auth.uid
+      allow list: if isAuthenticated() &&
+        request.auth.uid == resource.data.muterId;
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.muterId == request.auth.uid &&
+        request.resource.data.mutedUserId is string &&
+        request.resource.data.muterId != request.resource.data.mutedUserId;
+
+      allow delete: if isAuthenticated() &&
+        resource.data.muterId == request.auth.uid;
+
+      allow update: if false;
     }
 
     // ========== CHALLENGES ==========

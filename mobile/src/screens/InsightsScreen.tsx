@@ -5,8 +5,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Chip } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   LoadingSpinner,
@@ -548,10 +547,10 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
       {!hideHeader && (
         <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.screenTitle}>
+          <Text style={styles.screenTitle}>
             Insights
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             Track your wellness progress
           </Text>
         </View>
@@ -563,19 +562,15 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.chipContainer}>
               {(['week', 'month', 'quarter', 'year', 'all'] as TimeFrame[]).map((tf) => (
-                <Chip
+                <TouchableOpacity
                   key={tf}
-                  selected={timeFrame === tf}
                   onPress={() => setTimeFrame(tf)}
                   style={[styles.chip, timeFrame === tf && styles.chipSelected]}
-                  textStyle={timeFrame === tf ? styles.chipTextSelected : styles.chipText}
                 >
-                  {tf === 'week' && '7 Days'}
-                  {tf === 'month' && '30 Days'}
-                  {tf === 'quarter' && '90 Days'}
-                  {tf === 'year' && 'Year'}
-                  {tf === 'all' && 'All Time'}
-                </Chip>
+                  <Text style={timeFrame === tf ? styles.chipTextSelected : styles.chipText}>
+                    {tf === 'week' ? '7 Days' : tf === 'month' ? '30 Days' : tf === 'quarter' ? '90 Days' : tf === 'year' ? 'Year' : 'All Time'}
+                  </Text>
+                </TouchableOpacity>
               ))}
             </View>
           </ScrollView>
@@ -593,11 +588,11 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
         <SparklineTrendCardRow
           cards={[
             {
-              label: 'Habit Streak',
-              value: `\uD83D\uDD25 ${metrics.habits.longestStreak}`,
-              data: dailyStreaks,
+              label: 'Days Engaged',
+              value: `${metrics.habits.completions}`,
+              data: dailyCheckIns,
               color: VARA_COLORS.apricot,
-              trend: getStreakTrend(),
+              trend: getCheckInsTrend(),
             },
             {
               label: 'Check-ins',
@@ -718,6 +713,9 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9999,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: 'rgba(27,94,87,0.12)',

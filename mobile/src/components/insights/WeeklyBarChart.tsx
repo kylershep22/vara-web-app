@@ -4,8 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -187,7 +186,7 @@ const styles = StyleSheet.create({
     minHeight: 4,
   },
   dayLabel: {
-    fontSize: 9.5,
+    fontSize: 12,
     marginTop: 4,
   },
 });

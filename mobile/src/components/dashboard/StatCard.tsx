@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { StyleSheet, View, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Card from '../Card';
 import { Colors, Spacing, Typography } from '../../constants';
@@ -35,10 +34,10 @@ export const StatCard: React.FC<StatCardProps> = ({
           style={styles.icon}
         />
       )}
-      <Text variant="headlineMedium" style={[styles.value, { color }]}>
+      <Text style={[styles.value, { color }]}>
         {value}
       </Text>
-      <Text variant="bodySmall" style={styles.label}>
+      <Text style={styles.label}>
         {label}
       </Text>
     </Card>

@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -15,7 +16,6 @@ import {
   Platform,
   Modal,
 } from 'react-native';
-import { Text, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing } from '../../constants';
 import { Button, Card } from '../';
@@ -275,30 +275,26 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
                     </View>
 
                     <View style={styles.activityActions}>
-                      <IconButton
-                        icon="chevron-up"
-                        size={20}
+                      <TouchableOpacity
                         onPress={() => handleMoveUp(index)}
                         disabled={index === 0}
-                        iconColor={index === 0 ? Colors.textSecondary : Colors.evergreenTeal}
-                      />
-                      <IconButton
-                        icon="chevron-down"
-                        size={20}
+                        style={{width: 48, height: 48, borderRadius: 9999, justifyContent: 'center', alignItems: 'center'}}
+                      >
+                        <Icon name="chevron-up" size={20} color={index === 0 ? Colors.textSecondary : Colors.evergreenTeal} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
                         onPress={() => handleMoveDown(index)}
                         disabled={index === activities.length - 1}
-                        iconColor={
-                          index === activities.length - 1
-                            ? Colors.textSecondary
-                            : Colors.evergreenTeal
-                        }
-                      />
-                      <IconButton
-                        icon="delete"
-                        size={20}
+                        style={{width: 48, height: 48, borderRadius: 9999, justifyContent: 'center', alignItems: 'center'}}
+                      >
+                        <Icon name="chevron-down" size={20} color={index === activities.length - 1 ? Colors.textSecondary : Colors.evergreenTeal} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
                         onPress={() => handleRemoveActivity(index)}
-                        iconColor="#D97A6E"
-                      />
+                        style={{width: 48, height: 48, borderRadius: 9999, justifyContent: 'center', alignItems: 'center'}}
+                      >
+                        <Icon name="delete" size={20} color="#D97A6E" />
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </Card>
@@ -385,12 +381,13 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text key="modal-title" style={styles.modalTitle}>Add Activity</Text>
-              <IconButton
+              <TouchableOpacity
                 key="modal-close"
-                icon="close"
-                size={24}
                 onPress={() => setShowActivityLibrary(false)}
-              />
+                style={{width: 48, height: 48, borderRadius: 9999, justifyContent: 'center', alignItems: 'center'}}
+              >
+                <Icon name="close" size={24} color={Colors.textPrimary} />
+              </TouchableOpacity>
             </View>
             <ScrollView style={styles.libraryScroll}>
               <View style={styles.libraryGrid}>
@@ -660,7 +657,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   libraryDuration: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.textSecondary,
   },
 });

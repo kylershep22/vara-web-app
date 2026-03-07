@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '600' as const,
     color: Colors.white,
   },
@@ -199,12 +199,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   location: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.mutedSageGray,
     marginBottom: 12,
   },
   locationInput: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.mutedSageGray,
     textAlign: 'center',
     borderBottomWidth: Layout.borderWidth.thin,

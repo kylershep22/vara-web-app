@@ -5,8 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, TextInput, Text } from 'react-native';
 import { EnhancedModal } from '../';
 import { INTENTION_OPTIONS, INTENTION_CATEGORY_LABELS } from '../../constants/intentions';
 import { IntentionCategory, HabitIntention } from '../../types/models';
@@ -186,7 +185,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1B5E57',
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: '#3E3E3E',
   },

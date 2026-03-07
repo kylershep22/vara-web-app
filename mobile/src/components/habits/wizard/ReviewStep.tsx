@@ -4,11 +4,10 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Input } from '../../';
-import { Colors, Spacing } from '../../../constants';
+import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { INTENTION_CATEGORY_LABELS } from '../../../constants/intentions';
 import { WizardStepProps } from './types';
 
@@ -20,7 +19,7 @@ interface SummaryRowProps {
 
 const SummaryRow: React.FC<SummaryRowProps> = ({ icon, label, value }) => (
   <View style={styles.summaryRow}>
-    <Icon name={icon as any} size={16} color="#1B5E57" />
+    <Icon name={icon as any} size={16} color={Colors.evergreenTeal} />
     <View style={styles.summaryContent}>
       <Text style={styles.summaryLabel}>{label}</Text>
       <Text style={styles.summaryValue}>{value}</Text>
@@ -98,54 +97,54 @@ export const ReviewStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormDa
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.base,
   },
   headline: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1B5E57',
-    marginBottom: 4,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6F7F77',
-    marginBottom: 20,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
   },
   summaryCard: {
-    backgroundColor: '#D5E3D135',
-    borderRadius: 12,
-    padding: 16,
-    gap: 14,
-    marginBottom: 20,
+    backgroundColor: Colors.dewSageLight,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.base,
+    gap: Spacing.base,
+    marginBottom: Spacing.lg,
   },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: Spacing.md,
   },
   summaryContent: {
     flex: 1,
   },
   summaryLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#6F7F77',
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
   summaryValue: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#3E3E3E',
-    marginTop: 1,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
+    marginTop: Spacing['2xs'],
   },
   problemSection: {
-    marginTop: 4,
+    marginTop: Spacing.xs,
   },
   fieldLabel: {
-    fontSize: 14,
-    color: '#6F7F77',
-    marginBottom: 8,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
   },
   input: {
     marginBottom: Spacing.base,

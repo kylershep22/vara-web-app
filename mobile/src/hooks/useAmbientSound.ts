@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '../utils/logger';
 
 const SOUND_PREFERENCE_KEY = '@ambient_sound_selection';
 const TARGET_VOLUME = 0.4; // 40% per spec
@@ -81,7 +82,7 @@ export const useAmbientSound = (): UseAmbientSoundReturn => {
           setSelectedSoundState(saved);
         }
       } catch (err) {
-        console.warn('[AmbientSound] Error loading preference:', err);
+        logger.warn('[AmbientSound] Error loading preference:', err);
       }
     };
     loadPreference();
@@ -103,7 +104,7 @@ export const useAmbientSound = (): UseAmbientSoundReturn => {
           playThroughEarpieceAndroid: false,
         });
       } catch (err) {
-        console.warn('[AmbientSound] Error setting audio mode:', err);
+        logger.warn('[AmbientSound] Error setting audio mode:', err);
       }
     };
     setupAudio();
@@ -147,7 +148,7 @@ export const useAmbientSound = (): UseAmbientSoundReturn => {
         await AsyncStorage.removeItem(SOUND_PREFERENCE_KEY);
       }
     } catch (err) {
-      console.warn('[AmbientSound] Error saving preference:', err);
+      logger.warn('[AmbientSound] Error saving preference:', err);
     }
   }, [cleanupSound]);
 
@@ -156,8 +157,8 @@ export const useAmbientSound = (): UseAmbientSoundReturn => {
 
     const soundFile = getSoundFile(selectedSound);
     if (!soundFile) {
-      console.log('[AmbientSound] Sound file not available:', selectedSound);
-      console.log('[AmbientSound] Add audio files to assets/sounds/ and set SOUNDS_AVAILABLE = true');
+      logger.log('[AmbientSound] Sound file not available:', selectedSound);
+      logger.log('[AmbientSound] Add audio files to assets/sounds/ and set SOUNDS_AVAILABLE = true');
       return false;
     }
 
@@ -179,7 +180,7 @@ export const useAmbientSound = (): UseAmbientSoundReturn => {
       setIsLoading(false);
       return true;
     } catch (err) {
-      console.error('[AmbientSound] Error loading sound:', err);
+      logger.error('[AmbientSound] Error loading sound:', err);
       setError("Sound couldn't load. Try again when ready.");
       setIsLoading(false);
       return false;
@@ -188,15 +189,15 @@ export const useAmbientSound = (): UseAmbientSoundReturn => {
 
   const fadeIn = useCallback(async () => {
     if (!selectedSound) {
-      console.log('[AmbientSound] No sound selected, skipping fadeIn');
+      logger.log('[AmbientSound] No sound selected, skipping fadeIn');
       return;
     }
 
     // Check if sounds are available
     if (!SOUNDS_AVAILABLE) {
-      console.log('[AmbientSound] fadeIn called for:', selectedSound);
-      console.log('[AmbientSound] Sounds not available - this is a placeholder');
-      console.log('[AmbientSound] Would fade in over 2000ms to 40% volume');
+      logger.log('[AmbientSound] fadeIn called for:', selectedSound);
+      logger.log('[AmbientSound] Sounds not available - this is a placeholder');
+      logger.log('[AmbientSound] Would fade in over 2000ms to 40% volume');
       setIsPlaying(true);
       return;
     }
@@ -233,7 +234,7 @@ export const useAmbientSound = (): UseAmbientSoundReturn => {
         try {
           await soundRef.current?.setVolumeAsync(newVolume);
         } catch (err) {
-          console.warn('[AmbientSound] Error setting volume:', err);
+          logger.warn('[AmbientSound] Error setting volume:', err);
         }
 
         if (currentStep >= FADE_STEPS) {
@@ -245,7 +246,7 @@ export const useAmbientSound = (): UseAmbientSoundReturn => {
         }
       }, FADE_INTERVAL);
     } catch (err) {
-      console.error('[AmbientSound] Error starting playback:', err);
+      logger.error('[AmbientSound] Error starting playback:', err);
       setError("Sound couldn't play. Try again when ready.");
       isFadingRef.current = false;
     }
@@ -258,8 +259,8 @@ export const useAmbientSound = (): UseAmbientSoundReturn => {
 
     // Check if sounds are available
     if (!SOUNDS_AVAILABLE) {
-      console.log('[AmbientSound] fadeOut called');
-      console.log('[AmbientSound] Would fade out over 2000ms');
+      logger.log('[AmbientSound] fadeOut called');
+      logger.log('[AmbientSound] Would fade out over 2000ms');
       setIsPlaying(false);
       return;
     }
@@ -289,7 +290,7 @@ export const useAmbientSound = (): UseAmbientSoundReturn => {
       try {
         await soundRef.current?.setVolumeAsync(newVolume);
       } catch (err) {
-        console.warn('[AmbientSound] Error setting volume:', err);
+        logger.warn('[AmbientSound] Error setting volume:', err);
       }
 
       if (currentStep >= FADE_STEPS) {

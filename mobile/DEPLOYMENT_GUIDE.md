@@ -19,7 +19,7 @@ The app uses different API URLs based on the environment:
 | **Development** | `http://localhost:5001` | Expo Go on iOS simulator |
 | **Development (Device)** | `http://192.168.x.x:5001` | Physical device testing |
 | **Staging** | `https://staging-api.yourdomain.com` | Preview builds |
-| **Production** | `https://us-central1-vara-4a99f.cloudfunctions.net` | App Store / Google Play |
+| **Production** | `https://[your-cloud-functions-url]` | App Store / Google Play |
 
 ### How It Works
 
@@ -142,7 +142,7 @@ Before deploying the mobile app, you need to deploy the backend API.
    cd ..
    firebase init functions
    # Select JavaScript/TypeScript
-   # Use existing project: vara-4a99f
+   # Use existing project: your-project-id
    ```
 
 3. **Update function code:**
@@ -163,7 +163,7 @@ Before deploying the mobile app, you need to deploy the backend API.
 
 5. **Your API URL will be:**
    ```
-   https://us-central1-vara-4a99f.cloudfunctions.net/api
+   https://[your-cloud-functions-url]/api
    ```
 
 6. **Update production config:**

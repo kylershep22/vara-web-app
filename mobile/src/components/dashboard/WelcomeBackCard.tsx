@@ -1,100 +1,153 @@
 /**
  * WelcomeBackCard
- * Shown on the Dashboard when a user returns after 3+ days away.
- * Replaces the old inactivity notification with a warm, in-app welcome.
+ * Shown on the Dashboard when a user returns after 48+ hours away.
+ * Dismisses on tap or auto-dismisses after 6 seconds.
  *
  * Brand: No guilt, no "we missed you", no days-away counting.
- * Style: Dew Sage background at 50% opacity, 4px Teal left accent.
  */
 
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { TouchableOpacity, StyleSheet, Platform, Text } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Typography } from '../../constants';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+
+const LAST_OPEN_KEY = 'vara_last_app_open_date';
+const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
+
+const HEADINGS = [
+  'Good to see you.',
+  'Welcome back.',
+  "You're here.",
+];
+
+const BODIES = [
+  "Nothing to catch up on \u2014 just today.",
+  'Pick up wherever feels right.',
+  "Whenever you're ready.",
+];
 
 interface WelcomeBackCardProps {
-  onResume: () => void;
+  onDismiss?: () => void;
 }
 
-const WelcomeBackCard: React.FC<WelcomeBackCardProps> = ({ onResume }) => {
-  const [dismissed, setDismissed] = useState(false);
+const WelcomeBackCard: React.FC<WelcomeBackCardProps> = ({ onDismiss }) => {
+  const reduceMotion = useReducedMotion();
+  const [shouldShow, setShouldShow] = useState(false);
+  const opacity = useSharedValue(0);
+  const headingRef = useRef(HEADINGS[Math.floor(Math.random() * HEADINGS.length)]);
+  const bodyRef = useRef(BODIES[Math.floor(Math.random() * BODIES.length)]);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (dismissed) return null;
+  useEffect(() => {
+    const checkLastOpen = async () => {
+      try {
+        const lastOpenStr = await AsyncStorage.getItem(LAST_OPEN_KEY);
+        const now = Date.now();
+
+        // Update last open date
+        await AsyncStorage.setItem(LAST_OPEN_KEY, now.toString());
+
+        if (lastOpenStr) {
+          const lastOpen = parseInt(lastOpenStr, 10);
+          if (now - lastOpen > FORTY_EIGHT_HOURS) {
+            headingRef.current = HEADINGS[Math.floor(Math.random() * HEADINGS.length)];
+            bodyRef.current = BODIES[Math.floor(Math.random() * BODIES.length)];
+            setShouldShow(true);
+
+            if (!reduceMotion) {
+              opacity.value = withTiming(1, { duration: 200, easing: Easing.in(Easing.ease) });
+            } else {
+              opacity.value = 1;
+            }
+
+            // Auto-dismiss after 6 seconds
+            timerRef.current = setTimeout(handleDismiss, 6000);
+          }
+        }
+      } catch {
+        // Silently fail
+      }
+    };
+
+    checkLastOpen();
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const handleDismiss = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    if (!reduceMotion) {
+      opacity.value = withTiming(0, { duration: 150 });
+      setTimeout(() => {
+        setShouldShow(false);
+        onDismiss?.();
+      }, 150);
+    } else {
+      setShouldShow(false);
+      onDismiss?.();
+    }
+  };
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  if (!shouldShow) return null;
 
   return (
-    <View style={styles.card}>
-      <View style={styles.leftAccent} />
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.headline}>Welcome back</Text>
-          <TouchableOpacity
-            onPress={() => setDismissed(true)}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityLabel="Dismiss welcome back card"
-            accessibilityRole="button"
-          >
-            <Icon name="close" size={18} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.body}>Pick up wherever feels right.</Text>
-        <TouchableOpacity
-          style={styles.cta}
-          onPress={onResume}
-          accessibilityLabel="Resume your routine"
-          accessibilityRole="button"
-        >
-          <Text style={styles.ctaText}>Resume your routine</Text>
-          <Icon name="arrow-right" size={16} color={Colors.evergreenTeal} />
-        </TouchableOpacity>
-      </View>
-    </View>
+    <Animated.View style={animStyle}>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={handleDismiss}
+        activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel={`${headingRef.current} ${bodyRef.current}`}
+        accessibilityHint="Tap to dismiss"
+      >
+        <Text style={styles.heading}>{headingRef.current}</Text>
+        <Text style={styles.body}>{bodyRef.current}</Text>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(213, 227, 209, 0.5)',
+    backgroundColor: Colors.white,
     borderRadius: 12,
-    overflow: 'hidden',
-    marginHorizontal: Spacing.base,
+    padding: 24,
     marginBottom: Spacing.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
-  leftAccent: {
-    width: 4,
-    backgroundColor: Colors.evergreenTeal,
-  },
-  content: {
-    flex: 1,
-    padding: Spacing.base,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  headline: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.medium as any,
+  heading: {
+    fontSize: 18,
+    fontWeight: Typography.fontWeight.semibold,
     color: Colors.evergreenTeal,
+    marginBottom: 4,
   },
   body: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  cta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 48,
-  },
-  ctaText: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium as any,
-    color: Colors.evergreenTeal,
-    marginRight: Spacing.xs,
+    fontSize: 14,
+    color: Colors.mutedSageGray,
   },
 });
 

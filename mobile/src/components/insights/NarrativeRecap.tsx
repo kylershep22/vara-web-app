@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Vara brand colors
@@ -115,7 +114,7 @@ const styles = StyleSheet.create({
     color: VARA_COLORS.teal,
   },
   narrative: {
-    fontSize: 13,
+    fontSize: 14,
     color: VARA_COLORS.charcoal,
     lineHeight: 20,
   },

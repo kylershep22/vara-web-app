@@ -9,13 +9,13 @@
 export const Typography = {
   // ===========================================
   // FONT FAMILIES
-  // TODO: Install Inter font for full brand compliance
   // ===========================================
   fontFamily: {
-    regular: 'System',
-    medium: 'System',
-    semibold: 'System',
-    bold: 'System',
+    regular: 'Inter_18pt-Regular',
+    medium: 'Inter_18pt-Medium',
+    semibold: 'Inter_18pt-SemiBold',
+    bold: 'Inter_18pt-Bold',
+    system: 'System', // Fallback for components not yet migrated
   },
 
   // ===========================================
@@ -29,8 +29,7 @@ export const Typography = {
     xl: 22,       // H2 (section titles)
     '2xl': 26,    // H1 (screen titles)
     '3xl': 32,    // Display (rare, hero only)
-    '4xl': 40,    // Extra large display
-    '5xl': 48,    // Timer display
+    timer: 48,    // Breathwork timer display only
   },
 
   // ===========================================

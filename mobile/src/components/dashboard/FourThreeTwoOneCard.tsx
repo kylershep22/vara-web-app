@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, Card, Checkbox, Button, Modal, Portal, TextInput, Chip } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Keyboard, KeyboardAvoidingView, Platform, Modal, TextInput as RNTextInput } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { FourThreeTwoOneEntry, BodyFuelOption } from '../../types';
@@ -162,11 +161,11 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
 
   if (loading || !entry) {
     return (
-      <Card style={styles.card}>
+      <View style={styles.card}>
         <View style={styles.loadingContainer}>
           <Text>Loading...</Text>
         </View>
-      </Card>
+      </View>
     );
   }
 
@@ -180,7 +179,7 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
 
   return (
     <>
-      <Card style={styles.card}>
+      <View style={styles.card}>
         {/* Collapsible Header */}
         <TouchableOpacity
           style={styles.collapsibleHeader}
@@ -213,7 +212,7 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
             {allCompleted && (
               <View style={styles.completionBanner}>
                 <Icon name="check-circle" size={20} color={Colors.success} />
-                <Text variant="bodyMedium" style={styles.completionText}>
+                <Text style={styles.completionText}>
                   Amazing! You completed today's practice
                 </Text>
               </View>
@@ -226,17 +225,15 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
           activeOpacity={0.7}
         >
           <View style={styles.checkboxContainer}>
-            <Checkbox
-              status={entry.fourMinutes ? 'checked' : 'unchecked'}
-              color={Colors.evergreenTeal}
-              onPress={handleFourMinutesToggle}
-            />
+            <TouchableOpacity onPress={handleFourMinutesToggle} style={{width: 48, height: 48, justifyContent: 'center', alignItems: 'center'}}>
+              <Icon name={entry.fourMinutes ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={entry.fourMinutes ? Colors.evergreenTeal : Colors.silverSage} />
+            </TouchableOpacity>
           </View>
           <View style={styles.itemContent}>
-            <Text variant="bodyLarge" style={styles.itemTitle}>
+            <Text style={styles.itemTitle}>
               4 minutes to yourself
             </Text>
-            <Text variant="bodySmall" style={styles.itemDescription}>
+            <Text style={styles.itemDescription}>
               Uninterrupted alone time
             </Text>
           </View>
@@ -252,17 +249,15 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
           activeOpacity={0.7}
         >
           <View style={styles.checkboxContainer}>
-            <Checkbox
-              status={entry.threeWins.completed ? 'checked' : 'unchecked'}
-              color={Colors.evergreenTeal}
-              onPress={() => setWinsModalVisible(true)}
-            />
+            <TouchableOpacity onPress={() => setWinsModalVisible(true)} style={{width: 48, height: 48, justifyContent: 'center', alignItems: 'center'}}>
+              <Icon name={entry.threeWins.completed ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={entry.threeWins.completed ? Colors.evergreenTeal : Colors.silverSage} />
+            </TouchableOpacity>
           </View>
           <View style={styles.itemContent}>
-            <Text variant="bodyLarge" style={styles.itemTitle}>
+            <Text style={styles.itemTitle}>
               3 wins from the day
             </Text>
-            <Text variant="bodySmall" style={styles.itemDescription}>
+            <Text style={styles.itemDescription}>
               Tap to add wins or mark complete
             </Text>
           </View>
@@ -278,23 +273,21 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
           activeOpacity={0.7}
         >
           <View style={styles.checkboxContainer}>
-            <Checkbox
-              status={entry.twoFuel.completed ? 'checked' : 'unchecked'}
-              color={Colors.evergreenTeal}
-              onPress={() => setFuelModalVisible(true)}
-            />
+            <TouchableOpacity onPress={() => setFuelModalVisible(true)} style={{width: 48, height: 48, justifyContent: 'center', alignItems: 'center'}}>
+              <Icon name={entry.twoFuel.completed ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={entry.twoFuel.completed ? Colors.evergreenTeal : Colors.silverSage} />
+            </TouchableOpacity>
           </View>
           <View style={styles.itemContent}>
-            <Text variant="bodyLarge" style={styles.itemTitle}>
+            <Text style={styles.itemTitle}>
               2 ways you fueled your body
             </Text>
-            <Text variant="bodySmall" style={styles.itemDescription}>
+            <Text style={styles.itemDescription}>
               Nutrition, movement, or rest
             </Text>
             {entry.twoFuel.completed && entry.twoFuel.options && (
               <View style={styles.selectedOptions}>
                 {entry.twoFuel.options.map((opt, idx) => (
-                  <Text key={idx} variant="bodySmall" style={styles.selectedOption}>
+                  <Text key={idx} style={styles.selectedOption}>
                     • {BODY_FUEL_OPTIONS.find(o => o.value === opt)?.label}
                   </Text>
                 ))}
@@ -313,17 +306,15 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
           activeOpacity={0.7}
         >
           <View style={styles.checkboxContainer}>
-            <Checkbox
-              status={entry.oneConnection ? 'checked' : 'unchecked'}
-              color={Colors.evergreenTeal}
-              onPress={handleOneConnectionToggle}
-            />
+            <TouchableOpacity onPress={handleOneConnectionToggle} style={{width: 48, height: 48, justifyContent: 'center', alignItems: 'center'}}>
+              <Icon name={entry.oneConnection ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={entry.oneConnection ? Colors.evergreenTeal : Colors.silverSage} />
+            </TouchableOpacity>
           </View>
           <View style={styles.itemContent}>
-            <Text variant="bodyLarge" style={styles.itemTitle}>
+            <Text style={styles.itemTitle}>
               1 connection with another person
             </Text>
-            <Text variant="bodySmall" style={styles.itemDescription}>
+            <Text style={styles.itemDescription}>
               Friend, family, or colleague
             </Text>
           </View>
@@ -333,26 +324,28 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
         </TouchableOpacity>
           </View>
         )}
-      </Card>
+      </View>
 
       {/* 3 Wins Modal */}
-      <Portal>
-        <Modal
-          visible={winsModalVisible}
-          onDismiss={() => {
-            Keyboard.dismiss();
-            setWinsModalVisible(false);
-          }}
-          contentContainerStyle={styles.winsModal}
-        >
+      <Modal
+        visible={winsModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setWinsModalVisible(false);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+        <View style={styles.winsModal}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
           >
-            <Text variant="titleLarge" style={styles.modalTitle}>
+            <Text style={styles.modalTitle}>
               3 Wins from Today
             </Text>
-            <Text variant="bodyMedium" style={styles.modalDescription}>
+            <Text style={styles.modalDescription}>
               Celebrate small accomplishments! (Optional - or just mark complete)
             </Text>
 
@@ -362,118 +355,107 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <TextInput
-                label="Win #1"
+              <Text style={styles.inputLabel}>Win #1</Text>
+              <RNTextInput
                 value={win1}
                 onChangeText={setWin1}
-                mode="outlined"
                 style={styles.input}
                 placeholder="Made my bed, did the dishes, etc."
-                outlineColor={Colors.border}
-                activeOutlineColor={Colors.evergreenTeal}
+                placeholderTextColor={Colors.textSecondary}
                 returnKeyType="next"
               />
-              <TextInput
-                label="Win #2"
+              <Text style={styles.inputLabel}>Win #2</Text>
+              <RNTextInput
                 value={win2}
                 onChangeText={setWin2}
-                mode="outlined"
                 style={styles.input}
                 placeholder="Small wins count!"
-                outlineColor={Colors.border}
-                activeOutlineColor={Colors.evergreenTeal}
+                placeholderTextColor={Colors.textSecondary}
                 returnKeyType="next"
               />
-              <TextInput
-                label="Win #3"
+              <Text style={styles.inputLabel}>Win #3</Text>
+              <RNTextInput
                 value={win3}
                 onChangeText={setWin3}
-                mode="outlined"
                 style={styles.input}
                 placeholder="Any progress is progress"
-                outlineColor={Colors.border}
-                activeOutlineColor={Colors.evergreenTeal}
+                placeholderTextColor={Colors.textSecondary}
                 returnKeyType="done"
                 onSubmitEditing={Keyboard.dismiss}
               />
             </ScrollView>
 
             <View style={styles.modalActions}>
-              <Button
-                mode="outlined"
+              <TouchableOpacity
                 onPress={handleMarkWinsWithoutWriting}
-                style={styles.modalButton}
-                textColor={Colors.evergreenTeal}
+                style={[styles.modalButton, styles.modalButtonOutline]}
               >
-                Mark Complete
-              </Button>
-              <Button
-                mode="contained"
+                <Text style={styles.modalButtonOutlineText}>Mark Complete</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 onPress={handleSaveWins}
-                style={styles.modalButton}
-                buttonColor={Colors.evergreenTeal}
+                style={[styles.modalButton, styles.modalButtonPrimary]}
               >
-                Save Wins
-              </Button>
+                <Text style={styles.modalButtonPrimaryText}>Save Wins</Text>
+              </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
-        </Modal>
-      </Portal>
+        </View>
+        </View>
+      </Modal>
 
       {/* 2 Fuel Modal */}
-      <Portal>
-        <Modal
-          visible={fuelModalVisible}
-          onDismiss={() => setFuelModalVisible(false)}
-          contentContainerStyle={styles.fuelModal}
-        >
-          <Text variant="titleLarge" style={styles.modalTitle}>
+      <Modal
+        visible={fuelModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFuelModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+        <View style={styles.fuelModal}>
+          <Text style={styles.modalTitle}>
             How Did You Fuel Your Body?
           </Text>
-          <Text variant="bodyMedium" style={styles.modalDescription}>
+          <Text style={styles.modalDescription}>
             Select at least 2 ways you nourished yourself today
           </Text>
 
           <View style={styles.optionsGrid}>
             {BODY_FUEL_OPTIONS.map((option) => (
-              <Chip
+              <TouchableOpacity
                 key={option.value}
-                icon={option.icon}
-                selected={selectedFuelOptions.includes(option.value)}
                 onPress={() => handleToggleFuelOption(option.value)}
                 style={[
                   styles.optionChip,
                   selectedFuelOptions.includes(option.value) && styles.optionChipSelected,
                 ]}
-                selectedColor={Colors.evergreenTeal}
-                textStyle={styles.optionChipText}
               >
-                {option.label}
-              </Chip>
+                <Icon name={option.icon} size={16} color={selectedFuelOptions.includes(option.value) ? Colors.evergreenTeal : Colors.textSecondary} />
+                <Text style={[styles.optionChipText, selectedFuelOptions.includes(option.value) && {color: Colors.evergreenTeal}]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
             ))}
           </View>
 
           <View style={styles.modalActions}>
-            <Button
-              mode="outlined"
+            <TouchableOpacity
               onPress={() => setFuelModalVisible(false)}
-              style={styles.modalButton}
-              textColor={Colors.textSecondary}
+              style={[styles.modalButton, styles.modalButtonOutline]}
             >
-              Cancel
-            </Button>
-            <Button
-              mode="contained"
+              <Text style={styles.modalButtonOutlineText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={handleSaveFuel}
-              style={styles.modalButton}
-              buttonColor={Colors.evergreenTeal}
+              style={[styles.modalButton, styles.modalButtonPrimary, selectedFuelOptions.length < 2 && {opacity: 0.5}]}
               disabled={selectedFuelOptions.length < 2}
             >
-              Save ({selectedFuelOptions.length}/2)
-            </Button>
+              <Text style={styles.modalButtonPrimaryText}>Save ({selectedFuelOptions.length}/2)</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </Portal>
+        </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -481,9 +463,9 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
 const styles = StyleSheet.create({
   card: {
     marginBottom: Spacing.base,
-    padding: 18,
+    padding: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
   },
   loadingContainer: {
     padding: Spacing.lg,
@@ -627,17 +609,56 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: Spacing.sm,
   },
+  inputLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
   input: {
     marginBottom: Spacing.base,
     backgroundColor: Colors.background.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    fontSize: Typography.fontSize.base,
+    color: Colors.textPrimary,
   },
   modalActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
     marginTop: Spacing.base,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modalButton: {
     flex: 1,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalButtonOutline: {
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+  },
+  modalButtonOutlineText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  modalButtonPrimary: {
+    backgroundColor: Colors.evergreenTeal,
+  },
+  modalButtonPrimaryText: {
+    color: Colors.white,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
   optionsGrid: {
     flexDirection: 'row',
@@ -646,6 +667,14 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.base,
   },
   optionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Layout.borderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
     marginBottom: Spacing.xs,
   },
   optionChipSelected: {

@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { logger } from '../utils/logger';
 import {
   Connection,
   UserProfile,
@@ -49,15 +50,15 @@ export const useConnections = () => {
         fetchSentConnectionRequests(user!.uid),
       ]);
 
-      console.log('Loaded connections:', connectionsData.length);
-      console.log('Loaded requests:', requestsData.length);
-      console.log('Loaded sent requests:', sentRequestsData.length);
+      logger.log('Loaded connections:', connectionsData.length);
+      logger.log('Loaded requests:', requestsData.length);
+      logger.log('Loaded sent requests:', sentRequestsData.length);
 
       setConnections(connectionsData);
       setRequests(requestsData);
       setSentRequests(sentRequestsData);
     } catch (err) {
-      console.error('Error loading connections:', err);
+      logger.error('Error loading connections:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -71,7 +72,7 @@ export const useConnections = () => {
       await sendConnectionRequest(user.uid, addresseeId);
       await loadConnections(); // Refresh
     } catch (err) {
-      console.error('Error sending connection request:', err);
+      logger.error('Error sending connection request:', err);
       throw err;
     }
   };
@@ -81,7 +82,7 @@ export const useConnections = () => {
       await acceptConnection(connectionId);
       await loadConnections(); // Refresh
     } catch (err) {
-      console.error('Error accepting connection:', err);
+      logger.error('Error accepting connection:', err);
       throw err;
     }
   };
@@ -91,7 +92,7 @@ export const useConnections = () => {
       await declineConnection(connectionId);
       await loadConnections(); // Refresh
     } catch (err) {
-      console.error('Error declining connection:', err);
+      logger.error('Error declining connection:', err);
       throw err;
     }
   };
@@ -167,7 +168,7 @@ export const useUserSearch = () => {
       const results = await searchUsers(query);
       setUsers(results);
     } catch (err) {
-      console.error('Error searching users:', err);
+      logger.error('Error searching users:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -206,7 +207,7 @@ export const useConnectionProfiles = (connectionIds: string[]) => {
       const profilesData = await Promise.all(profilePromises);
       setProfiles(profilesData.filter((p) => p !== null) as UserProfile[]);
     } catch (err) {
-      console.error('Error loading profiles:', err);
+      logger.error('Error loading profiles:', err);
     } finally {
       setLoading(false);
     }

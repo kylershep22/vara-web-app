@@ -15,8 +15,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants';
@@ -28,6 +28,10 @@ interface NotificationToastProps {
   onDismiss: () => void;
   onTap?: () => void;
   autoDismissDelay?: number;
+  /** Optional action button text (e.g., "Undo") shown on the right side */
+  actionLabel?: string;
+  /** Called when the action button is tapped */
+  onAction?: () => void;
 }
 
 const ICON_CONTAINER_SIZE = 36;
@@ -42,6 +46,8 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
   onDismiss,
   onTap,
   autoDismissDelay = TOAST_DURATION,
+  actionLabel,
+  onAction,
 }) => {
   const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -130,8 +136,17 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
           </View>
           <View style={styles.textContent}>
             <Text style={styles.title} numberOfLines={1}>{title}</Text>
-            <Text style={styles.body} numberOfLines={2}>{body}</Text>
+            {body ? <Text style={styles.body} numberOfLines={2}>{body}</Text> : null}
           </View>
+          {actionLabel && onAction && (
+            <TouchableOpacity
+              onPress={() => { onAction(); handleDismiss(); }}
+              style={styles.actionButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.actionLabel}>{actionLabel}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -188,6 +203,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  actionButton: {
+    marginLeft: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  actionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
   },
 });
 

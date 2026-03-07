@@ -5,10 +5,9 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, TextInput, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { Colors } from '../../../constants';
+import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { INTENTION_OPTIONS, INTENTION_CATEGORY_LABELS } from '../../../constants/intentions';
 import { IntentionCategory, HabitIntention } from '../../../types/models';
 import { WizardStepProps } from './types';
@@ -81,7 +80,7 @@ export const IntentionStep: React.FC<WizardStepProps> = ({ formData, onUpdateFor
       {/* Habit context card */}
       {formData.name ? (
         <View style={styles.contextCard}>
-          <Icon name="refresh" size={16} color="#1B5E57" />
+          <Icon name="refresh" size={16} color={Colors.evergreenTeal} />
           <Text style={styles.contextText}>
             {formData.name} · {formData.type === 'daily' ? 'Daily' : formData.type === 'weekly' ? 'Weekly' : 'Custom'}
           </Text>
@@ -122,7 +121,7 @@ export const IntentionStep: React.FC<WizardStepProps> = ({ formData, onUpdateFor
           value={customText}
           onChangeText={handleCustomTextChange}
           placeholder="e.g., Feel more confident at work"
-          placeholderTextColor="#B8CDBA"
+          placeholderTextColor={Colors.silverSage}
           maxLength={80}
         />
       </View>
@@ -132,79 +131,79 @@ export const IntentionStep: React.FC<WizardStepProps> = ({ formData, onUpdateFor
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.base,
   },
   headline: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1B5E57',
-    marginBottom: 4,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6F7F77',
-    marginBottom: 16,
-    lineHeight: 20,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.base,
+    lineHeight: 21,
   },
   contextCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#D5E3D150',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 20,
+    gap: Spacing.sm,
+    backgroundColor: Colors.dewSageLight,
+    borderRadius: Layout.borderRadius.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.lg,
   },
   contextText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#3E3E3E',
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
   },
   categoryGroup: {
-    marginBottom: 16,
+    marginBottom: Spacing.base,
   },
   categoryLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6F7F77',
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: Spacing.sm,
   },
   chip: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 4,
-    backgroundColor: '#D5E3D199', // color-section 60%
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.base,
+    borderRadius: Layout.borderRadius.sm,
+    backgroundColor: Colors.dewSageLight,
   },
   chipSelected: {
-    backgroundColor: '#1B5E57',
+    backgroundColor: Colors.evergreenTeal,
   },
   chipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#3E3E3E',
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
   },
   chipTextSelected: {
-    color: '#FFFFFF',
+    color: Colors.textOnPrimary,
   },
   customSection: {
-    marginTop: 4,
+    marginTop: Spacing.xs,
   },
   customInput: {
     borderWidth: 1,
-    borderColor: '#B8CDBA',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 14,
-    color: '#3E3E3E',
-    backgroundColor: '#FFFFFF',
+    borderColor: Colors.silverSage,
+    borderRadius: Layout.borderRadius.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.surface,
   },
 });

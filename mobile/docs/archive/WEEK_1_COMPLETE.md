@@ -29,7 +29,7 @@ Congratulations! All critical infrastructure for launching your beta is now in p
 - 100% FREE (no paid plan needed)
 
 **How to use:**
-- View crashes: [Firebase Console → Crashlytics](https://console.firebase.google.com/project/vara-4a99f/crashlytics)
+- View crashes: [Firebase Console → Crashlytics](https://console.firebase.google.com/project/your-project-id/crashlytics)
 - Crashes are automatically logged
 - Set up email alerts in Firebase Console
 - Fix critical crashes first (affecting most users)
@@ -61,7 +61,7 @@ Congratulations! All critical infrastructure for launching your beta is now in p
 - Focus sessions completion
 
 **How to use:**
-- View analytics: [Firebase Console → Analytics](https://console.firebase.google.com/project/vara-4a99f/analytics)
+- View analytics: [Firebase Console → Analytics](https://console.firebase.google.com/project/your-project-id/analytics)
 - Check Daily Active Users (DAU)
 - Monitor user retention (1-day, 7-day)
 - See which features are most popular
@@ -144,7 +144,7 @@ Congratulations! All critical infrastructure for launching your beta is now in p
 
 **Verified:**
 - ✅ Firebase Cloud Functions (2nd gen) deployed
-- ✅ API accessible at: `https://api-u4g4e6pvga-uc.a.run.app`
+- ✅ API accessible at: `https://[your-api-url]`
 - ✅ OpenAI integration configured
 - ✅ Rate limiting enabled
 - ✅ CORS configured for mobile apps

@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, TextInput as RNTextInput } from 'react-native';
-import { Text, Checkbox } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, TextInput as RNTextInput, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Button, Input, PriorityBadge, EnhancedModal, ModalFooterActions, BaseCard } from '../components';
@@ -145,11 +144,13 @@ const TaskDetailScreen: React.FC = () => {
             onPress={handleToggleComplete}
             activeOpacity={0.7}
           >
-            <Checkbox
-              status={task.completed ? 'checked' : 'unchecked'}
-              onPress={handleToggleComplete}
-              color={Colors.evergreenTeal}
-            />
+            <TouchableOpacity onPress={handleToggleComplete} style={{padding: 8}}>
+              <Icon
+                name={task.completed ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                size={24}
+                color={task.completed ? Colors.evergreenTeal : Colors.textSecondary}
+              />
+            </TouchableOpacity>
             <Text style={[
               styles.taskTitle,
               task.completed && styles.taskTitleCompleted,

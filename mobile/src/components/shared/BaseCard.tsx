@@ -20,14 +20,7 @@ import {
   Animated,
   ViewStyle,
 } from 'react-native';
-
-// Design tokens
-const TOKENS = {
-  colorSurface: '#FFFFFF',
-  radiusLg: 12,
-  padding: 20,
-  gap: 10,
-};
+import { Colors, Spacing, Layout } from '../../constants';
 
 interface BaseCardProps {
   children: React.ReactNode;
@@ -115,10 +108,10 @@ export const BaseCard: React.FC<BaseCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: TOKENS.colorSurface,
-    borderRadius: TOKENS.radiusLg,
-    padding: TOKENS.padding,
-    marginBottom: TOKENS.gap,
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
     ...Platform.select({
       ios: {
         shadowColor: '#000',

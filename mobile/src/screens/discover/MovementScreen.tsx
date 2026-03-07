@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing } from '../../constants';
@@ -38,7 +37,7 @@ export default function MovementScreen() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Description */}
       <View style={styles.descriptionSection}>
-        <Text variant="bodyMedium" style={styles.description}>
+        <Text style={styles.description}>
           Movement boosts blood flow to your brain, releases growth signals, and primes your mind for focus and learning.
         </Text>
       </View>
@@ -54,10 +53,10 @@ export default function MovementScreen() {
         />
       ) : (
         <View style={styles.emptyState}>
-          <Text variant="titleMedium" style={styles.emptyTitle}>
+          <Text style={styles.emptyTitle}>
             No movement content yet
           </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <Text style={styles.emptyText}>
             Movement videos will appear here when added to the library.
           </Text>
         </View>

@@ -93,7 +93,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     if (Platform.OS === 'android') {
       Notifications.setNotificationChannelAsync('default', {
         name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
+        importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#1B5E57',
       });

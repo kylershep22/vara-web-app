@@ -4,8 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Menu } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Input } from '../../';
 import { Colors, Spacing, Typography, Layout, HABIT_CATEGORIES } from '../../../constants';
@@ -28,36 +27,49 @@ export const ActionStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormDa
       />
 
       <Text style={styles.fieldLabel}>Category</Text>
-      <Menu
-        visible={categoryMenuVisible}
-        onDismiss={() => setCategoryMenuVisible(false)}
-        anchor={
-          <TouchableOpacity
-            style={styles.categoryDropdown}
-            onPress={() => setCategoryMenuVisible(true)}
-          >
-            <Text style={styles.categoryValue}>
-              {formData.category || 'Select a category'}
-            </Text>
-            <Icon
-              name={categoryMenuVisible ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={Colors.textSecondary}
-            />
-          </TouchableOpacity>
-        }
+      <TouchableOpacity
+        style={styles.categoryDropdown}
+        onPress={() => setCategoryMenuVisible(true)}
       >
-        {HABIT_CATEGORIES.map((category) => (
-          <Menu.Item
-            key={category}
-            onPress={() => {
-              onUpdateFormData({ category });
-              setCategoryMenuVisible(false);
-            }}
-            title={category}
-          />
-        ))}
-      </Menu>
+        <Text style={styles.categoryValue}>
+          {formData.category || 'Select a category'}
+        </Text>
+        <Icon
+          name={categoryMenuVisible ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={Colors.textSecondary}
+        />
+      </TouchableOpacity>
+
+      <Modal
+        visible={categoryMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCategoryMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.dropdownOverlay}
+          activeOpacity={1}
+          onPress={() => setCategoryMenuVisible(false)}
+        >
+          <View style={styles.dropdownMenu}>
+            <ScrollView>
+              {HABIT_CATEGORIES.map((category) => (
+                <TouchableOpacity
+                  key={category}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    onUpdateFormData({ category });
+                    setCategoryMenuVisible(false);
+                  }}
+                >
+                  <Text style={styles.dropdownItemText}>{category}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <Text style={styles.fieldLabel}>Type</Text>
       <View style={styles.typeButtons}>
@@ -87,18 +99,18 @@ export const ActionStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormDa
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.base,
   },
   headline: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1B5E57',
-    marginBottom: 4,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6F7F77',
-    marginBottom: 20,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
   },
   input: {
     marginBottom: Spacing.base,
@@ -106,7 +118,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: Colors.textSecondary,
     marginBottom: Spacing.sm,
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
   },
   categoryDropdown: {
     flexDirection: 'row',
@@ -121,7 +133,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.base,
   },
   categoryValue: {
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     color: Colors.textPrimary,
     flex: 1,
   },
@@ -145,10 +157,31 @@ const styles = StyleSheet.create({
   },
   typeButtonText: {
     color: Colors.textSecondary,
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
   },
   typeButtonTextActive: {
     color: Colors.textOnPrimary,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownMenu: {
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.md,
+    maxHeight: 300,
+    width: '80%',
+    paddingVertical: Spacing.sm,
+  },
+  dropdownItem: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+  },
+  dropdownItemText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textPrimary,
   },
 });

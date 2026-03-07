@@ -10,8 +10,8 @@ import {
   Platform,
   ActivityIndicator,
   Linking,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -197,12 +197,12 @@ const SettingsScreen = () => {
 
   const handleUnlockAllFeatures = () => {
     Alert.alert(
-      'Unlock All Features',
+      'Explore All Features',
       'This will immediately unlock all app features. You can always explore at your own pace, but this removes the gradual unlock schedule.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Unlock All',
+          text: 'Explore All',
           onPress: async () => {
             setUnlockingFeatures(true);
             try {
@@ -240,10 +240,10 @@ const SettingsScreen = () => {
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerTitles}>
-          <Text variant="headlineMedium" style={styles.screenTitle}>
+          <Text style={styles.screenTitle}>
             Settings
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             Customize your experience
           </Text>
         </View>
@@ -351,7 +351,7 @@ const SettingsScreen = () => {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.settingLabel, { color: Colors.evergreenTeal }]}>
-                    Unlock All Features
+                    Explore All Features
                   </Text>
                   <Text style={styles.settingDescription}>
                     Ready for more? Skip the gradual unlock
@@ -540,6 +540,21 @@ const SettingsScreen = () => {
               thumbColor="#fff"
             />
           </View>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => (navigation as any).navigate('MutedAccounts')}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Muted Accounts</Text>
+              <Text style={styles.settingDescription}>
+                Manage people you've muted in the community
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -624,6 +639,11 @@ const SettingsScreen = () => {
               {subscriptionDescription && (
                 <Text style={styles.settingDescription}>{subscriptionDescription}</Text>
               )}
+              {subscriptionStatus?.type === 'trial' && subscriptionStatus.trialDaysRemaining != null && (
+                <Text style={styles.trialIndicator}>
+                  You're in your free trial. {subscriptionStatus.trialDaysRemaining} day{subscriptionStatus.trialDaysRemaining !== 1 ? 's' : ''} remaining.
+                </Text>
+              )}
             </View>
             {subscriptionStatus?.type === 'premium' && (
               <Ionicons name="star" size={20} color={Colors.sunriseAmber} />
@@ -700,12 +720,12 @@ const SettingsScreen = () => {
 
           <TouchableOpacity style={styles.settingRow} onPress={handleDeleteAccount}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.settingLabel, { color: '#EF4444' }]}>Delete Account</Text>
+              <Text style={[styles.settingLabel, { color: Colors.softCoral }]}>Delete Account</Text>
               <Text style={styles.settingDescription}>
                 Permanently delete your account
               </Text>
             </View>
-            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+            <Ionicons name="trash-outline" size={20} color={Colors.softCoral} />
           </TouchableOpacity>
         </View>
       </View>
@@ -850,6 +870,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.medium,
+  },
+  trialIndicator: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    marginTop: 4,
   },
 });
 

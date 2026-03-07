@@ -3,7 +3,7 @@
  * Simpler version using Firebase Web SDK
  *
  * INSTRUCTIONS:
- * 1. Make sure you're logged in as demo@varawellness.app in the app
+ * 1. Make sure you're logged in as [demo-account-email] in the app
  * 2. Copy this entire script
  * 3. Open your app
  * 4. Open React Native Debugger or browser console (if using Expo web)
@@ -260,9 +260,9 @@ console.log('\n=== MANUAL ENTRY GUIDE ===\n');
 console.log('Follow these steps to populate the demo account:\n');
 
 console.log('1. Go to Firebase Console (https://console.firebase.google.com)');
-console.log('2. Select project: vara-4a99f');
+console.log('2. Select project: your-project-id');
 console.log('3. Go to Authentication → Users');
-console.log('4. Find demo@varawellness.app and COPY THE UID\n');
+console.log('4. Find [demo-account-email] and COPY THE UID\n');
 
 console.log('5. Go to Firestore Database');
 console.log('6. Update the users collection document for this UID:\n');
@@ -308,6 +308,6 @@ console.log('   - Add field: createdAt = [timestamp - use "current timestamp" or
 console.log('   - Add field: updatedAt = [timestamp - use "current timestamp" or set specific date]');
 
 console.log('\n\n📝 EASIER ALTERNATIVE: Use the app itself!');
-console.log('   1. Log in as demo@varawellness.app');
+console.log('   1. Log in as [demo-account-email]');
 console.log('   2. Create the goals, habits, tasks, and journal entries manually through the UI');
 console.log('   3. This ensures everything is formatted correctly and integrates with the app\n');

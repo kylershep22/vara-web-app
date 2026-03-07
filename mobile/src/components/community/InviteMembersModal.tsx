@@ -6,13 +6,16 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   Image,
   Alert,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
-import { Text, Avatar, Searchbar, Chip, ActivityIndicator } from 'react-native-paper';
+import CommunityAvatar from '../shared/CommunityAvatar';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { EnhancedModal, ModalFooterActions } from '../shared/EnhancedModal';
@@ -232,19 +235,11 @@ export const InviteMembersModal: React.FC<InviteMembersModalProps> = ({
         activeOpacity={0.7}
       >
         <View style={styles.userAvatarContainer}>
-          {item.avatar || item.avatarUrl ? (
-            <Image
-              source={{ uri: item.avatar || item.avatarUrl }}
-              style={styles.userAvatar}
-            />
-          ) : (
-            <Avatar.Text
-              size={40}
-              label={initials}
-              style={styles.avatarText}
-              color={Colors.white}
-            />
-          )}
+          <CommunityAvatar
+            uri={item.avatar || item.avatarUrl}
+            name={item.displayName}
+            size={40}
+          />
         </View>
         <View style={styles.userInfo}>
           <Text style={[styles.userName, !selectable && styles.userNameDisabled]}>
@@ -292,15 +287,17 @@ export const InviteMembersModal: React.FC<InviteMembersModalProps> = ({
       }
     >
       {/* Search Bar */}
-      <Searchbar
-        placeholder="Search users by name..."
-        onChangeText={handleSearch}
-        value={searchQuery}
-        style={styles.searchBar}
-        inputStyle={styles.searchInput}
-        iconColor={Colors.evergreenTeal}
-        loading={searching}
-      />
+      <View style={styles.searchBar}>
+        <Icon name="magnify" size={20} color={Colors.evergreenTeal} />
+        <TextInput
+          placeholder="Search users by name..."
+          onChangeText={handleSearch}
+          value={searchQuery}
+          style={styles.searchInput}
+          placeholderTextColor={Colors.textSecondary}
+        />
+        {searching && <ActivityIndicator size="small" color={Colors.evergreenTeal} />}
+      </View>
 
       {/* Selected Users Chips */}
       {selectedUsers.length > 0 && (
@@ -308,15 +305,12 @@ export const InviteMembersModal: React.FC<InviteMembersModalProps> = ({
           <Text style={styles.selectedLabel}>Selected ({selectedUsers.length})</Text>
           <View style={styles.chipsContainer}>
             {selectedUsers.map(user => (
-              <Chip
-                key={user.id}
-                onClose={() => removeSelectedUser(user.id)}
-                style={styles.chip}
-                textStyle={styles.chipText}
-                closeIcon="close-circle"
-              >
-                {user.displayName}
-              </Chip>
+              <View key={user.id} style={styles.chip}>
+                <Text style={styles.chipText}>{user.displayName}</Text>
+                <TouchableOpacity onPress={() => removeSelectedUser(user.id)}>
+                  <Icon name="close-circle" size={18} color={Colors.evergreenTeal} />
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         </View>
@@ -353,13 +347,19 @@ export const InviteMembersModal: React.FC<InviteMembersModalProps> = ({
 
 const styles = StyleSheet.create({
   searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.inputBackground,
     borderRadius: Layout.borderRadius.md,
-    elevation: 0,
+    paddingHorizontal: Spacing.sm,
     marginBottom: Spacing.base,
+    height: 48,
+    gap: Spacing.xs,
   },
   searchInput: {
+    flex: 1,
     fontSize: Typography.fontSize.base,
+    color: Colors.textPrimary,
   },
   selectedContainer: {
     marginBottom: Spacing.base,
@@ -376,7 +376,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
     backgroundColor: Colors.dewSage,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Layout.borderRadius.full,
   },
   chipText: {
     color: Colors.evergreenTeal,
@@ -406,7 +412,7 @@ const styles = StyleSheet.create({
   },
   userItemSelected: {
     borderColor: Colors.evergreenTeal,
-    backgroundColor: Colors.focusTokens.primaryLight,
+    backgroundColor: Colors.tealLight,
   },
   userItemDisabled: {
     opacity: 0.5,

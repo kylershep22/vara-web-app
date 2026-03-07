@@ -19,8 +19,8 @@ import {
   Pressable,
   Platform,
   ScrollView,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

@@ -20,17 +20,7 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-
-// Design tokens
-const TOKENS = {
-  colorPrimary: '#1B5E57',        // Evergreen Teal
-  colorSecondary: '#B8CDBA',      // Silver Sage
-  colorSectionBg: '#D5E3D1',      // Dew Sage
-  radiusLg: 12,
-  spacingBase: 16,
-  spacingSm: 8,
-  fontSizeLabel: 14,
-};
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 
 interface InlineCreateButtonProps {
   label: string;
@@ -50,8 +40,10 @@ export const InlineCreateButton: React.FC<InlineCreateButtonProps> = ({
       onPress={onPress}
       activeOpacity={0.7}
       testID={testID}
+      accessibilityLabel={label}
+      accessibilityRole="button"
     >
-      <Icon name="plus" size={18} color={TOKENS.colorPrimary} />
+      <Icon name="plus" size={18} color={Colors.evergreenTeal} />
       <Text style={styles.label}>{label}</Text>
     </TouchableOpacity>
   );
@@ -63,19 +55,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 44,
-    marginHorizontal: TOKENS.spacingBase,
-    marginBottom: 10,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: TOKENS.colorSecondary,
-    borderRadius: TOKENS.radiusLg,
-    gap: TOKENS.spacingSm,
+    borderColor: Colors.silverSage,
+    borderRadius: Layout.borderRadius.lg,
+    gap: Spacing.sm,
     backgroundColor: 'transparent',
   },
   label: {
-    fontSize: TOKENS.fontSizeLabel,
-    fontWeight: '500',
-    color: TOKENS.colorPrimary,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
   },
 });
 

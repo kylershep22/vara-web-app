@@ -1,54 +1,67 @@
 # Vara Wellness Mobile App
 
-React Native mobile application for Vara Wellness platform, built with Expo and TypeScript.
+A comprehensive wellness app that helps users build healthy habits, track goals, journal, and receive AI-powered coaching. Built with React Native and Expo, backed by Firebase.
 
 ## Tech Stack
 
-- **Framework**: React Native 0.81.5
-- **Platform**: Expo SDK 54
-- **Language**: TypeScript
-- **Navigation**: React Navigation v7
-- **UI Library**: React Native Paper (Material Design 3)
-- **State Management**: React Query (TanStack Query)
-- **Backend**: Firebase (Auth, Firestore, Storage)
-- **Forms**: React Hook Form
-- **Subscriptions**: React Native IAP
+- **Framework:** React Native 0.79.6
+- **Platform:** Expo SDK 53
+- **Language:** TypeScript 5.8.3
+- **Navigation:** React Navigation v7
+- **Backend:** Firebase (Auth, Firestore, Storage)
+- **AI:** OpenAI GPT-4o-mini via Express backend
+- **UI:** Custom design token system (`src/constants/`), React Native Paper
+- **Testing:** Jest with React Native Testing Library
+- **Forms:** React Hook Form
+- **Animations:** React Native Reanimated
 
 ## Project Structure
 
 ```
 mobile/
 ├── src/
-│   ├── components/          # Reusable UI components
-│   │   ├── Button.tsx
-│   │   ├── Input.tsx
-│   │   ├── Card.tsx
-│   │   └── LoadingSpinner.tsx
-│   ├── screens/             # Screen components
-│   │   └── WelcomeScreen.tsx
-│   ├── navigation/          # Navigation configuration (TBD)
-│   ├── context/             # React Context providers (TBD)
-│   ├── services/            # API & Firebase services (TBD)
-│   ├── hooks/               # Custom React hooks (TBD)
-│   ├── utils/               # Utility functions (TBD)
-│   ├── constants/           # Design system & configuration
-│   │   ├── colors.ts
-│   │   ├── typography.ts
-│   │   ├── spacing.ts
-│   │   ├── theme.ts
-│   │   └── index.ts
-│   ├── config/              # Environment & Firebase config
-│   │   ├── env.ts
-│   │   ├── firebase.ts
-│   │   └── index.ts
-│   └── types/               # TypeScript type definitions (TBD)
-├── assets/                  # Images, fonts, icons
-├── .env.example            # Environment variables template
-├── .gitignore
-├── app.json                # Expo configuration
-├── App.tsx                 # Root component
-├── package.json
-└── tsconfig.json
+│   ├── components/           # Reusable UI components
+│   │   ├── ai/              # AI chat widget
+│   │   ├── brain/           # Brain health dashboard widgets
+│   │   ├── celebrations/    # Completion acknowledgments (QuietFinish, etc.)
+│   │   ├── community/       # Community features (groups, posts, people)
+│   │   ├── dashboard/       # Dashboard cards and widgets
+│   │   ├── discovery/       # Progressive feature discovery
+│   │   ├── goals/           # Goal tracking components
+│   │   ├── habits/          # Habit tracking and wizard
+│   │   ├── insights/        # Analytics and charts
+│   │   ├── journal/         # Journal entries and filters
+│   │   ├── library/         # Breathwork, movement, sleep content
+│   │   ├── onboarding/      # Onboarding flow components
+│   │   ├── paywall/         # Subscription pricing UI
+│   │   ├── profile/         # User profile components
+│   │   ├── routines/        # Focus routines
+│   │   └── shared/          # BaseCard, Badge, ErrorBoundary, etc.
+│   ├── screens/              # Screen components (one per route)
+│   │   ├── auth/            # Login, Signup, ForgotPassword
+│   │   ├── community/       # Community hub, groups, people
+│   │   ├── discover/        # Breathwork, movement, sleep, masterclass
+│   │   ├── Focus/           # Pomodoro timer and routines
+│   │   └── onboarding/      # Onboarding flow screens
+│   ├── navigation/           # React Navigation config (AppNavigator)
+│   ├── context/              # React Context providers (Auth, Audio, Toast)
+│   ├── services/             # Firebase services and API client
+│   │   └── firebase/        # Firestore CRUD (habits, goals, community, etc.)
+│   ├── hooks/                # Custom hooks (useSubscription, useCelebrations, etc.)
+│   ├── utils/                # Utilities (accessibility, logger, subscription)
+│   ├── constants/            # Design token system (colors, typography, spacing)
+│   ├── config/               # Environment and Firebase configuration
+│   └── types/                # TypeScript type definitions
+├── assets/                   # Images, fonts, icons
+├── __mocks__/                # Jest file mocks
+├── docs/                     # Additional documentation
+├── jest.config.js            # Jest configuration
+├── jest.setup.js             # Test setup (matchers)
+├── app.json                  # Expo configuration
+├── eas.json                  # EAS Build configuration
+├── babel.config.js           # Babel configuration
+├── tsconfig.json             # TypeScript configuration
+└── package.json
 ```
 
 ## Getting Started
@@ -56,217 +69,88 @@ mobile/
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Expo CLI (`npm install -g expo-cli`)
-- iOS: Xcode (for iOS simulator) or Expo Go app
-- Android: Android Studio (for emulator) or Expo Go app
+- Expo CLI: `npm install -g eas-cli`
+- iOS: Xcode 15+ (for simulator) or physical device
+- Android: Android Studio (for emulator) or physical device
 
 ### Installation
 
-1. **Install dependencies:**
-   ```bash
-   cd mobile
-   npm install
-   ```
+```bash
+cd mobile
+npm install
+```
 
-2. **Set up environment variables:**
-   ```bash
-   cp .env.example .env
-   ```
+### Environment Setup
 
-   Then edit `.env` and add your Firebase credentials:
-   - Get values from [Firebase Console](https://console.firebase.google.com/project/vara-4a99f/settings/general)
-   - Add iOS and Android apps to Firebase project first
-   - Copy the config values to `.env`
-
-3. **Start the development server:**
-   ```bash
-   npm start
-   ```
-
-4. **Run on your device/emulator:**
-   - **iOS**: Press `i` in the terminal or scan QR code with Camera app
-   - **Android**: Press `a` in the terminal or scan QR code with Expo Go
-   - **Web**: Press `w` (for testing only, not production-ready)
-
-## Available Scripts
-
-- `npm start` - Start Expo development server
-- `npm run android` - Run on Android emulator/device
-- `npm run ios` - Run on iOS simulator/device
-- `npm run web` - Run in web browser (testing only)
-
-## Design System
-
-The app uses a custom design system based on the Vara brand:
-
-### Colors
-- **Primary**: Evergreen Teal (#1B5E57)
-- **Secondary**: Sunrise Amber (#F4C542)
-- **Accent**: Silver Sage (#B8CDBA), Golden Apricot (#F5B971)
-- **Background**: Mist White (#FAFAF6)
-- **Text**: Soft Charcoal (#3E3E3E)
-
-### Typography
-- System fonts (iOS: San Francisco, Android: Roboto)
-- Sizes: xs (12px) → 5xl (48px)
-- Weights: light, regular, medium, semibold, bold
-
-### Spacing
-- xs: 4px → 4xl: 64px
-- Screen padding: 16px horizontal, 24px vertical
-- Border radius: 8-20px
-
-## Configuration
-
-### Firebase Setup
-
-1. **Add iOS App** (in Firebase Console):
-   - Bundle ID: `com.vara.wellness`
-   - Download `GoogleService-Info.plist` (not needed for Expo, just get config values)
-   - Copy iOS App ID to `.env`
-
-2. **Add Android App** (in Firebase Console):
-   - Package name: `com.vara.wellness`
-   - Download `google-services.json` (not needed for Expo, just get config values)
-   - Copy Android App ID to `.env`
-
-3. **Enable Firebase services**:
-   - Authentication (Email/Password)
-   - Firestore Database
-   - Storage
-   - App Check (for bot prevention)
-
-### App Configuration
-
-Edit `app.json` to update:
-- App name and slug
-- Bundle identifiers (iOS/Android)
-- Expo project ID (after creating EAS project)
-- Owner username
-
-## Building for App Stores
-
-### Setup EAS (Expo Application Services)
-
-1. **Install EAS CLI:**
-   ```bash
-   npm install -g eas-cli
-   ```
-
-2. **Login to Expo:**
-   ```bash
-   eas login
-   ```
-
-3. **Configure EAS:**
-   ```bash
-   eas build:configure
-   ```
-
-4. **Create development build:**
-   ```bash
-   eas build --profile development --platform ios
-   eas build --profile development --platform android
-   ```
-
-5. **Create production build:**
-   ```bash
-   eas build --profile production --platform all
-   ```
-
-### Submit to App Stores
-
-1. **iOS (App Store):**
-   ```bash
-   eas submit --platform ios
-   ```
-   - Requires Apple Developer account
-   - App Store Connect credentials
-
-2. **Android (Google Play):**
-   ```bash
-   eas submit --platform android
-   ```
-   - Requires Google Play Developer account
-   - Service account key JSON
-
-## Development Workflow
-
-### Phase 2 ✅ COMPLETE
-- [x] Project initialization
-- [x] Dependencies installed
-- [x] Design system configured
-- [x] Firebase setup ready
-- [x] Environment variables configured
-- [x] Basic component library
-
-### Phase 3 ✅ COMPLETE
-- [x] Authentication screens (Login, Signup, Forgot Password)
-- [x] Firebase Auth integration
-- [x] Email verification flow
-- [x] Auth Context with useAuth hook
-- [x] Form validation utilities
-- [x] Navigation (Auth stack + App stack)
-- [x] Protected routes
-- [x] Secure token storage
-- [ ] Firebase App Check (requires developer accounts - Phase 1)
-
-### Phase 4 ✅ COMPLETE
-- [x] TypeScript types for all data models
-- [x] Firestore service layer (goals, habits, tasks, journal)
-- [x] API client for Express backend with retry logic
-- [x] Real-time subscription hooks (useGoals, useHabits, etc.)
-- [x] AI service integration (daily plan, chat, prompts)
-- [x] Error handling throughout
-
-### Phase 5 - Next
-- [ ] React Native IAP setup
-- [ ] Trial period tracking
-- [ ] Subscription status management
-- [ ] Paywall screens
-- [ ] Receipt validation (Firebase Functions)
-
-### Upcoming Phases
-- Phase 6: Onboarding flow
-- Phase 7: Core features (Dashboard, Journal, Community, etc.)
-- Phase 8: Navigation & UX polish
-- Phase 9: Scalability & performance
-- Phase 10: Testing & App Store submission
-
-## Environment Variables
+```bash
+cp .env.example .env
+# Edit .env with your Firebase credentials
+```
 
 See `.env.example` for all required variables. Key variables:
 
 - `EXPO_PUBLIC_FIREBASE_*` - Firebase configuration
 - `EXPO_PUBLIC_API_URL` - Backend API URL
-- `EXPO_PUBLIC_IOS_PRODUCT_*` - iOS IAP product IDs
-- `EXPO_PUBLIC_ANDROID_PRODUCT_*` - Android IAP product IDs
+- `EXPO_PUBLIC_ENV` - Environment (development/staging/production)
 
-## Troubleshooting
+### Running Locally
 
-### App won't start
-- Clear cache: `npx expo start -c`
-- Reinstall dependencies: `rm -rf node_modules && npm install`
-- Check `.env` file exists and has valid values
+```bash
+npx expo start          # Start dev server
+npx expo start --ios    # Open in iOS simulator
+npx expo start --android # Open in Android emulator
+npx expo start --clear  # Start with cleared cache
+```
 
-### Firebase errors
-- Verify Firebase config in `.env`
-- Check Firebase Console for iOS/Android app registration
-- Ensure Firebase services are enabled
+### Running Tests
 
-### Build errors
-- Check `app.json` for correct bundle identifiers
-- Verify EAS project is configured
-- Check credentials are set up in EAS
+```bash
+npm test                # Run all tests
+npm run test:watch      # Watch mode
+npm run test:coverage   # With coverage report
+```
 
-## Resources
+### Building
 
-- [Expo Documentation](https://docs.expo.dev/)
-- [React Native Paper](https://callstack.github.io/react-native-paper/)
-- [React Navigation](https://reactnavigation.org/)
-- [Firebase Documentation](https://firebase.google.com/docs)
-- [EAS Build & Submit](https://docs.expo.dev/build/introduction/)
+```bash
+eas build --platform ios --profile development   # Dev build
+eas build --platform ios --profile preview        # TestFlight build
+eas build --platform ios --profile production      # Production build
+```
 
-## Support
+Production builds pull sensitive values from EAS Secrets (see `EAS_SECRETS_SETUP.md`).
 
-For issues or questions, contact the development team or file an issue in the project repository.
+## Architecture
+
+### Key Decisions
+
+- **State management:** Context API for auth, notifications, and audio state. Direct Firestore `onSnapshot()` subscriptions for real-time data.
+- **Design tokens:** Custom token system in `src/constants/` (colors, typography, spacing). All UI components reference tokens rather than hardcoded values.
+- **Auth:** Firebase Authentication with tokens stored in `expo-secure-store` (chunking for large tokens). Periodic token refresh every 30 minutes.
+- **Navigation:** React Navigation v7 with bottom tabs + native stack. Deep linking configured in `src/navigation/linking.ts`.
+- **Subscriptions:** 7-day free trial on signup. Stub service layer (`subscription.service.ts`) ready for RevenueCat or StoreKit integration.
+
+### Design Token System
+
+Colors, typography, and spacing are defined in `src/constants/`:
+
+- **Colors** (`colors.ts`): Evergreen Teal (#1B5E57), Silver Sage (#B8CDBA), Mist White (#FAFAF6), Soft Charcoal (#3E3E3E), plus functional and brain pillar colors.
+- **Typography** (`typography.ts`): Inter font family, sizes from xs (12px) to 3xl (32px), with preset text styles (h1, h2, body, caption, etc.).
+- **Spacing** (`spacing.ts`): Scale from 2xs (2px) to 3xl (64px), plus Layout constants for border radius, shadows, button heights, and avatar sizes.
+
+See `docs/DESIGN_SYSTEM.md` for the complete design system reference.
+
+## Linting and Formatting
+
+```bash
+npm run lint            # Check for lint errors
+npm run lint:fix        # Auto-fix lint errors
+npm run format          # Format with Prettier
+```
+
+## Documentation
+
+- `EAS_SECRETS_SETUP.md` - EAS Secrets and store submission setup
+- `DEPLOYMENT_GUIDE.md` - Deployment procedures
+- `docs/DESIGN_SYSTEM.md` - Complete design token reference
+- `docs/CONTRIBUTING.md` - Contribution guidelines

@@ -26,6 +26,8 @@ interface PostCardProps {
   onGroupPress?: () => void;
   /** Hide group context badge (when viewing inside a group) */
   hideGroupBadge?: boolean;
+  /** Called when the overflow ⋯ icon is tapped */
+  onMorePress?: (post: any) => void;
 }
 
 const PostCardComponent: React.FC<PostCardProps> = ({
@@ -37,6 +39,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({
   disabledMessage = 'Join the group to interact with posts',
   onGroupPress,
   hideGroupBadge = false,
+  onMorePress,
 }) => {
   const authorName = post.author?.displayName || 'Unknown';
   const content = String(post.content || '');
@@ -116,6 +119,17 @@ const PostCardComponent: React.FC<PostCardProps> = ({
               {badge.label}
             </Text>
           </View>
+        )}
+        {onMorePress && (
+          <TouchableOpacity
+            onPress={() => onMorePress(post)}
+            style={styles.overflowButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityLabel={`More options for post by ${authorName}`}
+            accessibilityRole="button"
+          >
+            <Icon name="dots-horizontal" size={20} color={Colors.mutedSageGray} />
+          </TouchableOpacity>
         )}
       </View>
 
@@ -222,7 +236,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     backgroundColor: Colors.dewSageLight,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: Spacing.base,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
@@ -234,7 +248,7 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
   },
   challengeName: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.evergreenTeal,
     flex: 1,
@@ -252,8 +266,8 @@ const styles = StyleSheet.create({
   },
   groupBadge: {
     backgroundColor: Colors.dewSageLight,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: Layout.borderRadius.sm,
     alignSelf: 'flex-start',
   },
@@ -267,15 +281,15 @@ const styles = StyleSheet.create({
   authorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingTop: 10,
+    gap: 12,
+    paddingTop: 12,
     paddingHorizontal: Spacing.base,
   },
   authorInfo: {
     flex: 1,
   },
   authorName: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
   },
@@ -285,10 +299,16 @@ const styles = StyleSheet.create({
     color: Colors.mutedSageGray,
   },
 
+  // Overflow Button
+  overflowButton: {
+    padding: Spacing.xs,
+    marginLeft: 4,
+  },
+
   // Post Type Badge
   postTypeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: Layout.borderRadius.sm,
     marginLeft: 'auto',
   },
@@ -303,7 +323,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
   },
   postContent: {
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 22.5,
     color: Colors.softCharcoal,
   },
@@ -331,7 +351,7 @@ const styles = StyleSheet.create({
   miniAvatar: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: Colors.silverSage,
     borderWidth: 1.5,
     borderColor: Colors.white,
@@ -359,7 +379,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.base,
-    paddingBottom: 14,
+    paddingBottom: 16,
   },
   actionButton: {
     flex: 1,
@@ -377,7 +397,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   actionText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.evergreenTeal,
   },

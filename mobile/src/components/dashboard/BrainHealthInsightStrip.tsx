@@ -5,8 +5,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
@@ -77,10 +76,10 @@ const styles = StyleSheet.create({
   },
   message: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '400',
     color: Colors.textPrimary, // Soft Charcoal
-    lineHeight: 13 * 1.45,
+    lineHeight: 14 * 1.45,
   },
   messageCompact: {
     fontSize: 12,

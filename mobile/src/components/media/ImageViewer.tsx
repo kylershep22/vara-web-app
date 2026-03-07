@@ -7,12 +7,13 @@ import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
+  Text,
   StyleSheet,
   Dimensions,
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
-import { Text, IconButton } from 'react-native-paper';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -20,6 +21,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 interface ImageViewerProps {
   visible: boolean;
@@ -34,6 +36,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   initialIndex,
   onClose,
 }) => {
+  const reduceMotion = useReducedMotion();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -48,6 +51,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     resetZoom();
   }, [initialIndex, visible]);
 
+  // Helper: use spring for pinch-zoom gestures, but skip when reduced motion is on
+  const springOrInstant = (value: number) => {
+    return reduceMotion ? value : withSpring(value);
+  };
+
   // Pinch gesture for zoom
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
@@ -55,9 +63,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     })
     .onEnd(() => {
       if (scale.value < 1) {
-        scale.value = withSpring(1);
+        scale.value = springOrInstant(1);
       } else if (scale.value > 3) {
-        scale.value = withSpring(3);
+        scale.value = springOrInstant(3);
       }
     });
 
@@ -66,11 +74,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     .numberOfTaps(2)
     .onEnd(() => {
       if (scale.value > 1) {
-        scale.value = withSpring(1);
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
+        scale.value = springOrInstant(1);
+        translateX.value = springOrInstant(0);
+        translateY.value = springOrInstant(0);
       } else {
-        scale.value = withSpring(2);
+        scale.value = springOrInstant(2);
       }
     });
 
@@ -82,8 +90,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       translateY.value = e.translationY;
     })
     .onEnd(() => {
-      translateX.value = withSpring(0);
-      translateY.value = withSpring(0);
+      translateX.value = springOrInstant(0);
+      translateY.value = springOrInstant(0);
     });
 
   const composedGesture = Gesture.Simultaneous(
@@ -136,12 +144,12 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           <Text style={styles.counter}>
             {currentIndex + 1} of {imageOnly.length}
           </Text>
-          <IconButton
-            icon="close"
-            iconColor="#fff"
-            size={28}
+          <TouchableOpacity
             onPress={onClose}
-          />
+            style={{width: 48, height: 48, borderRadius: 9999, justifyContent: 'center', alignItems: 'center'}}
+          >
+            <Icon name="close" size={28} color="#fff" />
+          </TouchableOpacity>
         </View>
 
         {/* Image */}
@@ -161,7 +169,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 style={styles.leftArrow}
                 onPress={handleSwipeRight}
               >
-                <IconButton icon="chevron-left" iconColor="#fff" size={40} />
+                <Icon name="chevron-left" size={40} color="#fff" />
               </TouchableOpacity>
             )}
             {currentIndex < imageOnly.length - 1 && (
@@ -169,7 +177,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 style={styles.rightArrow}
                 onPress={handleSwipeLeft}
               >
-                <IconButton icon="chevron-right" iconColor="#fff" size={40} />
+                <Icon name="chevron-right" size={40} color="#fff" />
               </TouchableOpacity>
             )}
           </>

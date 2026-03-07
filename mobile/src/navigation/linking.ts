@@ -4,6 +4,7 @@
  */
 
 import { LinkingOptions } from '@react-navigation/native';
+import { config } from '../config/env';
 
 // Define the navigation param list types (simplified)
 type RootStackParamList = {
@@ -19,7 +20,7 @@ type RootStackParamList = {
 export const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
     'vara://',
-    'https://vara-4a99f.web.app',
+    `https://${config.firebaseProjectId}.web.app`,
     'https://varawellness.co',
   ],
   config: {

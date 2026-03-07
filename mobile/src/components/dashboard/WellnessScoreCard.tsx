@@ -13,8 +13,8 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Svg, { Circle, G } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';

@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -132,7 +131,7 @@ const styles = StyleSheet.create({
   },
   optionSelected: {
     borderColor: Colors.evergreenTeal,
-    backgroundColor: Colors.focusTokens.primaryLight,
+    backgroundColor: Colors.tealLight,
   },
   optionContent: {
     flexDirection: 'row',

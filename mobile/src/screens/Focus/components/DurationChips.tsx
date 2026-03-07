@@ -11,8 +11,7 @@
  */
 
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
   ColorTokens,

@@ -3,16 +3,17 @@
  * Global audio player state for persistent playback across screens
  * Handles sleep sounds, breathwork audio, and guided meditations
  *
- * Features:
- * - Persistent playback across navigation
- * - Sleep timer with absolute-time countdown (survives backgrounding)
- * - Expanded/mini player state management
- * - Audio interruption handling (phone calls)
- * - Content inset for scrollable screens
+ * Split into two contexts for performance:
+ * - AudioPlaybackContext: frequently-changing values (progress, duration, position)
+ * - AudioControlsContext: stable functions and metadata (controls, track info)
+ *
+ * Components that only need controls (play button, track info) consume
+ * AudioControlsContext and do NOT re-render on every progress tick.
  */
 
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { Audio, AVPlaybackStatus, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
+import { logger } from '../utils/logger';
 
 // =====================
 // Type Definitions
@@ -23,24 +24,26 @@ export interface AudioTrack {
   uri: string;
 }
 
-interface AudioPlayerContextValue {
-  // Playback state
-  currentTrack: AudioTrack | null;
+/** Frequently-changing playback values */
+interface AudioPlaybackContextValue {
   isPlaying: boolean;
   isLoading: boolean;
   progress: number; // 0-1
   duration: number; // milliseconds
-  isLooping: boolean;
   error: string | null;
+}
+
+/** Stable functions and metadata */
+interface AudioControlsContextValue {
+  currentTrack: AudioTrack | null;
+  isLooping: boolean;
 
   // Sleep timer state
-  sleepTimer: number | null;        // minutes originally set, null = off
-  sleepTimerEndTime: number | null; // Date.now() + ms when timer was set
+  sleepTimer: number | null;
+  sleepTimerEndTime: number | null;
 
   // Player UI state
   isExpanded: boolean;
-
-  // Content inset (bottom padding for scrollable screens)
   audioBottomInset: number;
 
   // Playback controls
@@ -58,44 +61,52 @@ interface AudioPlayerContextValue {
   setIsExpanded: (expanded: boolean) => void;
 }
 
+/** Combined type for backwards compatibility */
+export type AudioPlayerContextValue = AudioPlaybackContextValue & AudioControlsContextValue;
+
 // =====================
 // Constants
 // =====================
 
-const MINI_PLAYER_HEIGHT = 72; // container height + vertical padding
-const MINI_PLAYER_BUFFER = 8;  // extra buffer below mini player
+const MINI_PLAYER_HEIGHT = 72;
+const MINI_PLAYER_BUFFER = 8;
 
 // =====================
 // Context Creation
 // =====================
 
-const AudioPlayerContext = createContext<AudioPlayerContextValue | undefined>(undefined);
+const AudioPlaybackContext = createContext<AudioPlaybackContextValue | undefined>(undefined);
+const AudioControlsContext = createContext<AudioControlsContextValue | undefined>(undefined);
 
 // =====================
 // Provider Component
 // =====================
 
 export function AudioPlayerProvider({ children }: { children: React.ReactNode }) {
-  // Playback state
-  const [currentTrack, setCurrentTrack] = useState<AudioTrack | null>(null);
+  // Playback state (changes frequently)
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isLooping, setIsLoopingState] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sleep timer state
+  // Controls state (changes infrequently)
+  const [currentTrack, setCurrentTrack] = useState<AudioTrack | null>(null);
+  const [isLooping, setIsLoopingState] = useState(false);
   const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
   const [sleepTimerEndTime, setSleepTimerEndTimeState] = useState<number | null>(null);
-
-  // Player UI state
   const [isExpanded, setIsExpandedState] = useState(false);
 
   // Refs
   const soundRef = useRef<Audio.Sound | null>(null);
   const wasInterruptedRef = useRef(false);
   const userPausedRef = useRef(false);
+  // Ref to track isPlaying for interruption detection without stale closures
+  const isPlayingRef = useRef(false);
+  isPlayingRef.current = isPlaying;
+  // Ref to track duration for seek calculations
+  const durationRef = useRef(0);
+  durationRef.current = duration;
 
   // Configure audio mode on mount
   useEffect(() => {
@@ -119,9 +130,6 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     return () => clearInterval(interval);
   }, [sleepTimerEndTime]);
 
-  /**
-   * Configure audio mode for playback with interruption handling
-   */
   const configureAudioMode = async () => {
     try {
       await Audio.setAudioModeAsync({
@@ -132,17 +140,14 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
       });
     } catch (err) {
-      console.error('Error configuring audio mode:', err);
+      logger.error('Error configuring audio mode:', err);
     }
   };
 
-  /**
-   * Update playback status with interruption detection
-   */
-  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) {
       if (status.error) {
-        console.error('Playback error:', status.error);
+        logger.error('Playback error:', status.error);
         setError(`Playback error: ${status.error}`);
         setIsPlaying(false);
         setIsLoading(false);
@@ -157,77 +162,58 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       setProgress(status.positionMillis / status.durationMillis);
     }
 
-    // Interruption detection: if playback stopped unexpectedly (not user-initiated)
-    if (!status.isPlaying && isPlaying && !userPausedRef.current) {
-      // Audio was interrupted (e.g., phone call)
+    // Interruption detection
+    if (!status.isPlaying && isPlayingRef.current && !userPausedRef.current) {
       wasInterruptedRef.current = true;
     }
 
-    // Auto-resume after interruption
     if (status.isPlaying && wasInterruptedRef.current) {
       wasInterruptedRef.current = false;
     }
 
-    // If we were interrupted and playback is available again, resume
+    // Resume after interruption
     if (!status.isPlaying && wasInterruptedRef.current && status.isLoaded && !status.isBuffering) {
-      // Attempt to resume playback after interruption
       soundRef.current?.playAsync().catch(() => {
-        // If resume fails, clear the flag
         wasInterruptedRef.current = false;
       });
     }
 
     setIsPlaying(status.isPlaying);
 
-    // Handle playback completion
     if (status.didJustFinish && !status.isLooping) {
       setIsPlaying(false);
       setProgress(0);
     }
-  };
+  }, []);
 
-  /**
-   * Cleanup current sound
-   */
   const cleanupSound = async () => {
     if (soundRef.current) {
       try {
         await soundRef.current.unloadAsync();
         soundRef.current = null;
       } catch (err) {
-        console.error('Error cleaning up sound:', err);
+        logger.error('Error cleaning up sound:', err);
       }
     }
   };
 
-  /**
-   * Reset sleep timer state
-   */
   const resetSleepTimer = () => {
     setSleepTimerState(null);
     setSleepTimerEndTimeState(null);
   };
 
-  /**
-   * Play a new track
-   */
-  const playTrack = async (title: string, uri: string, loop: boolean = false) => {
+  const playTrack = useCallback(async (title: string, uri: string, loop: boolean = false) => {
     try {
       setIsLoading(true);
       setError(null);
       userPausedRef.current = false;
       wasInterruptedRef.current = false;
 
-      // Cleanup existing sound
       await cleanupSound();
 
-      // Create and load new sound
       const { sound } = await Audio.Sound.createAsync(
         { uri },
-        {
-          shouldPlay: true,
-          isLooping: loop,
-        },
+        { shouldPlay: true, isLooping: loop },
         onPlaybackStatusUpdate
       );
 
@@ -236,17 +222,14 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       setIsLoopingState(loop);
       setIsPlaying(true);
     } catch (err) {
-      console.error('Error playing track:', err);
+      logger.error('Error playing track:', err);
       setError('Failed to play audio. Please try again.');
       setIsLoading(false);
       setIsPlaying(false);
     }
-  };
+  }, [onPlaybackStatusUpdate]);
 
-  /**
-   * Pause playback
-   */
-  const pause = async () => {
+  const pause = useCallback(async () => {
     if (soundRef.current) {
       try {
         userPausedRef.current = true;
@@ -254,36 +237,30 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         await soundRef.current.pauseAsync();
         setIsPlaying(false);
       } catch (err) {
-        console.error('Error pausing:', err);
+        logger.error('Error pausing:', err);
       }
     }
-  };
+  }, []);
 
-  /**
-   * Resume playback
-   */
-  const resume = async () => {
+  const resume = useCallback(async () => {
     if (soundRef.current) {
       try {
         userPausedRef.current = false;
         await soundRef.current.playAsync();
         setIsPlaying(true);
       } catch (err) {
-        console.error('Error resuming:', err);
+        logger.error('Error resuming:', err);
       }
     }
-  };
+  }, []);
 
-  /**
-   * Stop playback and reset all state
-   */
-  const stopPlayback = async () => {
+  const stopPlayback = useCallback(async () => {
     if (soundRef.current) {
       try {
         await soundRef.current.stopAsync();
         await cleanupSound();
       } catch (err) {
-        console.error('Error stopping:', err);
+        logger.error('Error stopping:', err);
       }
     }
     setIsPlaying(false);
@@ -293,41 +270,31 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     setIsExpandedState(false);
     userPausedRef.current = false;
     wasInterruptedRef.current = false;
-  };
+  }, []);
 
-  /**
-   * Seek to position (0-1)
-   */
-  const seek = async (position: number) => {
-    if (soundRef.current && duration > 0) {
+  const seek = useCallback(async (position: number) => {
+    if (soundRef.current && durationRef.current > 0) {
       try {
-        const positionMillis = position * duration;
+        const positionMillis = position * durationRef.current;
         await soundRef.current.setPositionAsync(positionMillis);
         setProgress(position);
       } catch (err) {
-        console.error('Error seeking:', err);
+        logger.error('Error seeking:', err);
       }
     }
-  };
+  }, []);
 
-  /**
-   * Set looping mode
-   */
-  const setLooping = async (loop: boolean) => {
+  const setLooping = useCallback(async (loop: boolean) => {
     if (soundRef.current) {
       try {
         await soundRef.current.setIsLoopingAsync(loop);
         setIsLoopingState(loop);
       } catch (err) {
-        console.error('Error setting loop:', err);
+        logger.error('Error setting loop:', err);
       }
     }
-  };
+  }, []);
 
-  /**
-   * Set sleep timer
-   * Converts minutes to absolute end time for reliability
-   */
   const setSleepTimer = useCallback((minutes: number | null) => {
     setSleepTimerState(minutes);
     if (minutes === null) {
@@ -337,9 +304,6 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  /**
-   * Set expanded player visibility
-   */
   const setIsExpanded = useCallback((expanded: boolean) => {
     setIsExpandedState(expanded);
   }, []);
@@ -348,56 +312,65 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const miniPlayerVisible = currentTrack !== null && !isExpanded;
   const audioBottomInset = miniPlayerVisible ? MINI_PLAYER_HEIGHT + MINI_PLAYER_BUFFER : 0;
 
-  const value: AudioPlayerContextValue = {
-    // Playback state
-    currentTrack,
+  const playbackValue: AudioPlaybackContextValue = {
     isPlaying,
     isLoading,
     progress,
     duration,
-    isLooping,
     error,
+  };
 
-    // Sleep timer state
+  const controlsValue: AudioControlsContextValue = {
+    currentTrack,
+    isLooping,
     sleepTimer,
     sleepTimerEndTime,
-
-    // Player UI state
     isExpanded,
-
-    // Content inset
     audioBottomInset,
-
-    // Playback controls
     playTrack,
     pause,
     resume,
     stop: stopPlayback,
     seek,
     setLooping,
-
-    // Sleep timer controls
     setSleepTimer,
-
-    // Player UI controls
     setIsExpanded,
   };
 
   return (
-    <AudioPlayerContext.Provider value={value}>
-      {children}
-    </AudioPlayerContext.Provider>
+    <AudioControlsContext.Provider value={controlsValue}>
+      <AudioPlaybackContext.Provider value={playbackValue}>
+        {children}
+      </AudioPlaybackContext.Provider>
+    </AudioControlsContext.Provider>
   );
 }
 
 // =====================
-// Hook
+// Hooks
 // =====================
 
-export function useAudioPlayer(): AudioPlayerContextValue {
-  const context = useContext(AudioPlayerContext);
+/** Use only stable controls and metadata — does NOT re-render on progress changes */
+export function useAudioControls(): AudioControlsContextValue {
+  const context = useContext(AudioControlsContext);
   if (context === undefined) {
-    throw new Error('useAudioPlayer must be used within an AudioPlayerProvider');
+    throw new Error('useAudioControls must be used within an AudioPlayerProvider');
   }
   return context;
+}
+
+/** Use only frequently-changing playback state (progress, duration, isPlaying) */
+export function useAudioPlayback(): AudioPlaybackContextValue {
+  const context = useContext(AudioPlaybackContext);
+  if (context === undefined) {
+    throw new Error('useAudioPlayback must be used within an AudioPlayerProvider');
+  }
+  return context;
+}
+
+/** Combined hook for backwards compatibility — re-renders on ALL changes */
+export function useAudioPlayer(): AudioPlayerContextValue {
+  const controls = useAudioControls();
+  const playback = useAudioPlayback();
+  return { ...controls, ...playback };
 }

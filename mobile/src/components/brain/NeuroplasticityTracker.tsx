@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Checkbox } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Card } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -152,22 +151,20 @@ export const NeuroplasticityTracker: React.FC = () => {
         <View style={styles.headerLeft}>
           <Icon name="sprout" size={24} color={Colors.evergreenTeal} />
           <View>
-            <Text variant="titleMedium" style={styles.title}>
+            <Text style={styles.title}>
               {componentTitle}
             </Text>
-            <Text variant="bodySmall" style={styles.subtitle}>
+            <Text style={styles.subtitle}>
               Did something different today?
             </Text>
           </View>
         </View>
-        <Checkbox
-          status={completedToday ? 'checked' : 'unchecked'}
-          onPress={handleToggle}
-          color={Colors.evergreenTeal}
-        />
+        <TouchableOpacity onPress={handleToggle} style={{width: 48, height: 48, justifyContent: 'center', alignItems: 'center'}}>
+          <Icon name={completedToday ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={completedToday ? Colors.evergreenTeal : Colors.silverSage} />
+        </TouchableOpacity>
       </View>
 
-      <Text variant="bodySmall" style={styles.description}>
+      <Text style={styles.description}>
         {componentDescription}
       </Text>
 
@@ -178,10 +175,10 @@ export const NeuroplasticityTracker: React.FC = () => {
             <Icon name="fire" size={32} color={Colors.sunriseAmber} />
           </View>
           <View>
-            <Text variant="labelSmall" style={styles.streakLabel}>
+            <Text style={styles.streakLabel}>
               Current Streak
             </Text>
-            <Text variant="headlineSmall" style={styles.streakValue}>
+            <Text style={styles.streakValue}>
               {currentStreak} {currentStreak === 1 ? 'day' : 'days'}
             </Text>
           </View>
@@ -194,10 +191,10 @@ export const NeuroplasticityTracker: React.FC = () => {
             <Icon name="trophy" size={32} color={Colors.goldenApricot} />
           </View>
           <View>
-            <Text variant="labelSmall" style={styles.streakLabel}>
+            <Text style={styles.streakLabel}>
               Longest Streak
             </Text>
-            <Text variant="headlineSmall" style={styles.streakValue}>
+            <Text style={styles.streakValue}>
               {longestStreak} {longestStreak === 1 ? 'day' : 'days'}
             </Text>
           </View>
@@ -206,20 +203,20 @@ export const NeuroplasticityTracker: React.FC = () => {
 
       {/* Examples */}
       <View style={styles.examplesContainer}>
-        <Text variant="labelSmall" style={styles.examplesTitle}>
+        <Text style={styles.examplesTitle}>
           Examples of neuroplastic signals:
         </Text>
         <View style={styles.examplesList}>
-          <Text variant="bodySmall" style={styles.exampleText}>
+          <Text style={styles.exampleText}>
             • Tried a new skill or activity
           </Text>
-          <Text variant="bodySmall" style={styles.exampleText}>
+          <Text style={styles.exampleText}>
             • Had an uncomfortable conversation
           </Text>
-          <Text variant="bodySmall" style={styles.exampleText}>
+          <Text style={styles.exampleText}>
             • Challenged yourself physically
           </Text>
-          <Text variant="bodySmall" style={styles.exampleText}>
+          <Text style={styles.exampleText}>
             • Broke from your routine
           </Text>
         </View>

@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { StyleSheet, View, Text } from 'react-native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
 export type Priority = 'high' | 'medium' | 'low';
@@ -34,7 +33,7 @@ export const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, style })
 
   return (
     <View style={[styles.badge, getBadgeStyle(), style]}>
-      <Text variant="bodySmall" style={styles.text}>
+      <Text style={styles.text}>
         {displayText}
       </Text>
     </View>

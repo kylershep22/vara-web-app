@@ -15,6 +15,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Platform, Alert, Linking, AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '../utils/logger';
 
 const PREFERENCE_KEY = '@notification_silence_enabled';
 const PERMISSION_ASKED_KEY = '@notification_silence_permission_asked';
@@ -66,7 +67,7 @@ export const useNotificationSilence = (): UseNotificationSilenceReturn => {
         // In real implementation, check system permission status
         setHasPermission(false);
       } catch (error) {
-        console.warn('[NotificationSilence] Error loading preferences:', error);
+        logger.warn('[NotificationSilence] Error loading preferences:', error);
       }
     };
 
@@ -79,13 +80,13 @@ export const useNotificationSilence = (): UseNotificationSilenceReturn => {
 
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'background' && isCurrentlyActive) {
-        console.log('[NotificationSilence] App backgrounded, starting 30s timer');
+        logger.log('[NotificationSilence] App backgrounded, starting 30s timer');
         backgroundTimer = setTimeout(() => {
-          console.log('[NotificationSilence] 30s elapsed, deactivating DND');
+          logger.log('[NotificationSilence] 30s elapsed, deactivating DND');
           setIsCurrentlyActive(false);
         }, 30000);
       } else if (nextAppState === 'active' && backgroundTimer) {
-        console.log('[NotificationSilence] App returned to foreground, canceling timer');
+        logger.log('[NotificationSilence] App returned to foreground, canceling timer');
         clearTimeout(backgroundTimer);
         backgroundTimer = null;
       }
@@ -108,7 +109,7 @@ export const useNotificationSilence = (): UseNotificationSilenceReturn => {
     try {
       await AsyncStorage.setItem(PREFERENCE_KEY, String(newValue));
     } catch (error) {
-      console.warn('[NotificationSilence] Error saving preference:', error);
+      logger.warn('[NotificationSilence] Error saving preference:', error);
     }
 
     // If enabling for the first time and haven't asked for permission
@@ -116,7 +117,7 @@ export const useNotificationSilence = (): UseNotificationSilenceReturn => {
       setNeedsExplanation(true);
     }
 
-    console.log('[NotificationSilence] Toggle preference:', newValue);
+    logger.log('[NotificationSilence] Toggle preference:', newValue);
   }, [isEnabled, hasAskedBefore, hasPermission]);
 
   const showPermissionExplanation = useCallback(() => {
@@ -145,14 +146,14 @@ export const useNotificationSilence = (): UseNotificationSilenceReturn => {
   }, []);
 
   const requestPermissionInternal = async (): Promise<boolean> => {
-    console.log('[NotificationSilence] Requesting permission');
-    console.log(`[NotificationSilence] Platform: ${Platform.OS}`);
+    logger.log('[NotificationSilence] Requesting permission');
+    logger.log(`[NotificationSilence] Platform: ${Platform.OS}`);
 
     try {
       await AsyncStorage.setItem(PERMISSION_ASKED_KEY, 'true');
       setHasAskedBefore(true);
     } catch (error) {
-      console.warn('[NotificationSilence] Error saving permission asked state:', error);
+      logger.warn('[NotificationSilence] Error saving permission asked state:', error);
     }
 
     if (Platform.OS === 'ios') {
@@ -201,13 +202,13 @@ export const useNotificationSilence = (): UseNotificationSilenceReturn => {
 
   const activate = useCallback(async () => {
     if (!isEnabled) {
-      console.log('[NotificationSilence] Preference disabled, not activating');
+      logger.log('[NotificationSilence] Preference disabled, not activating');
       return;
     }
 
-    console.log('[NotificationSilence] Activating DND');
-    console.log(`[NotificationSilence] Platform: ${Platform.OS}`);
-    console.log('[NotificationSilence] Has permission:', hasPermission);
+    logger.log('[NotificationSilence] Activating DND');
+    logger.log(`[NotificationSilence] Platform: ${Platform.OS}`);
+    logger.log('[NotificationSilence] Has permission:', hasPermission);
 
     // In real implementation:
     // iOS: Enable Vara Focus Mode via Focus API
@@ -221,7 +222,7 @@ export const useNotificationSilence = (): UseNotificationSilenceReturn => {
       return;
     }
 
-    console.log('[NotificationSilence] Deactivating DND');
+    logger.log('[NotificationSilence] Deactivating DND');
 
     // In real implementation:
     // iOS: Disable Vara Focus Mode

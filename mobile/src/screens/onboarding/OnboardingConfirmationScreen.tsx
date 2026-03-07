@@ -7,8 +7,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Animated, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -70,8 +69,10 @@ const OnboardingConfirmationScreen: React.FC<OnboardingConfirmationScreenProps> 
         // Mark onboarding as complete after showing success state
         // AppNavigator will automatically detect this change via Firestore listener
         // and switch to MainNavigator
-        setTimeout(async () => {
-          await completeOnboarding(user.uid);
+        setTimeout(() => {
+          completeOnboarding(user.uid).catch((err) => {
+            console.error('Error completing onboarding:', err);
+          });
         }, 1500);
       }
     } catch (error) {
@@ -81,18 +82,16 @@ const OnboardingConfirmationScreen: React.FC<OnboardingConfirmationScreenProps> 
     }
   };
 
-  const handleMaybeLater = async () => {
+  const handleMaybeLater = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Mark onboarding as complete
+    // Mark onboarding as complete in the background
     // AppNavigator will automatically detect this change via Firestore listener
     // and switch to MainNavigator
     if (user?.uid) {
-      try {
-        await completeOnboarding(user.uid);
-      } catch (error) {
+      completeOnboarding(user.uid).catch((error) => {
         console.error('Error completing onboarding:', error);
-      }
+      });
     }
   };
 
@@ -148,10 +147,10 @@ const OnboardingConfirmationScreen: React.FC<OnboardingConfirmationScreenProps> 
               fullWidth
               loading={isCreatingHabit}
               disabled={isCreatingHabit}
-              accessibilityLabel="Add to my routine"
+              accessibilityLabel="Add this"
               accessibilityRole="button"
             >
-              Add to my routine
+              Add this
             </Button>
 
             <TouchableOpacity

@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, TouchableOpacity } from 'react-native';
-import { Text, Switch } from 'react-native-paper';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Switch } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -138,11 +137,10 @@ export function BreathworkTimer({
   }, [isActive, isPaused, inhale, hold1, exhale, hold2, onComplete, audioCounterEnabled]);
 
   const animateCircle = (scale: number) => {
-    Animated.spring(scaleAnim, {
+    Animated.timing(scaleAnim, {
       toValue: 0.6 + scale * 0.4, // Scale between 0.6 and 1.0
       useNativeDriver: true,
-      friction: 8,
-      tension: 40,
+      duration: 400,
     }).start();
   };
 
@@ -188,18 +186,18 @@ export function BreathworkTimer({
           },
         ]}
       >
-        <Text variant="displaySmall" style={styles.phaseText}>
+        <Text style={styles.phaseText}>
           {phase === 'Hold2' ? 'Hold' : phase}
         </Text>
       </Animated.View>
 
       {/* Timer */}
-      <Text variant="titleLarge" style={styles.timer}>
+      <Text style={styles.timer}>
         {formatTime(totalSeconds)}
       </Text>
 
       {/* Cycle Counter */}
-      <Text variant="bodyMedium" style={styles.cycleText}>
+      <Text style={styles.cycleText}>
         Cycle {currentCycle + 1}
       </Text>
 
@@ -215,7 +213,7 @@ export function BreathworkTimer({
             size={24}
             color={Colors.white}
           />
-          <Text variant="labelMedium" style={styles.controlButtonText}>
+          <Text style={styles.controlButtonText}>
             {isPaused ? 'Resume' : 'Pause'}
           </Text>
         </TouchableOpacity>
@@ -224,13 +222,14 @@ export function BreathworkTimer({
       {/* Audio Counter Toggle */}
       <View style={styles.audioToggle}>
         <Icon name="volume-high" size={20} color={audioCounterEnabled ? Colors.evergreenTeal : Colors.textSecondary} />
-        <Text variant="bodySmall" style={styles.audioToggleLabel}>
+        <Text style={styles.audioToggleLabel}>
           Audio Counter
         </Text>
         <Switch
           value={audioCounterEnabled}
           onValueChange={setAudioCounterEnabled}
-          color={Colors.evergreenTeal}
+          trackColor={{ false: Colors.silverSage, true: Colors.evergreenTeal }}
+          thumbColor={Colors.white}
         />
       </View>
     </View>

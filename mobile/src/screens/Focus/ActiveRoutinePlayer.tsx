@@ -18,8 +18,8 @@ import {
   Modal,
   Alert,
   Dimensions,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   controlLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: ColorTokens.textSecondary,
     marginTop: SpacingTokens.xs,
   },

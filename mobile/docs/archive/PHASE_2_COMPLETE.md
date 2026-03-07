@@ -335,7 +335,7 @@ Before continuing to Phase 3, ensure:
 
 - [ ] You can run the app locally
 - [ ] You see the welcome screen
-- [ ] Firebase console shows vara-4a99f project
+- [ ] Firebase console shows your-project-id project
 - [ ] You have access to Firebase console
 - [ ] You understand the project structure
 - [ ] You've reviewed the README.md

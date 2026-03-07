@@ -63,13 +63,22 @@ export function useSubscription(): UseSubscriptionResult {
         if (snapshot.exists()) {
           const userData = snapshot.data();
           const calculatedStatus = getSubscriptionStatus(userData);
-          setStatus(calculatedStatus);
+          // Only update state if the status actually changed to prevent re-render loops
+          setStatus((prev) => {
+            if (prev && prev.type === calculatedStatus.type && prev.canAccessApp === calculatedStatus.canAccessApp && prev.isActive === calculatedStatus.isActive) {
+              return prev;
+            }
+            return calculatedStatus;
+          });
         } else {
-          // User document doesn't exist - shouldn't happen but handle gracefully
-          setStatus({
-            type: 'expired',
-            isActive: false,
-            canAccessApp: false,
+          // User document doesn't exist yet - grant access during beta
+          setStatus((prev) => {
+            if (prev && prev.type === 'trial' && prev.canAccessApp === true) return prev;
+            return {
+              type: 'trial',
+              isActive: true,
+              canAccessApp: true,
+            };
           });
         }
         setLoading(false);
@@ -78,11 +87,11 @@ export function useSubscription(): UseSubscriptionResult {
         console.error('Error listening to subscription status:', err);
         setError(err instanceof Error ? err : new Error('Failed to load subscription'));
         setLoading(false);
-        // On error, assume access to avoid blocking users incorrectly
+        // On error, default to no access so the paywall is shown
         setStatus({
           type: 'trial',
-          isActive: true,
-          canAccessApp: true,
+          isActive: false,
+          canAccessApp: false,
         });
       }
     );

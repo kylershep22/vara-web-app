@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -41,7 +40,7 @@ export default function MasterclassScreen() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Description */}
       <View style={styles.descriptionSection}>
-        <Text variant="bodyMedium" style={styles.description}>
+        <Text style={styles.description}>
           Expert-led courses on wellness, nutrition, sleep science, and more.
         </Text>
       </View>
@@ -58,28 +57,28 @@ export default function MasterclassScreen() {
       ) : (
         <View style={styles.comingSoonContainer}>
           <Icon name="school" size={64} color={Colors.goldenApricot} />
-          <Text variant="headlineSmall" style={styles.comingSoonTitle}>
+          <Text style={styles.comingSoonTitle}>
             Coming Soon
           </Text>
-          <Text variant="bodyLarge" style={styles.comingSoonText}>
+          <Text style={styles.comingSoonText}>
             Expert-led masterclasses are on the way. Get ready for in-depth learning from leading wellness experts.
           </Text>
           <View style={styles.featuresContainer}>
             <View style={styles.featureItem}>
               <Icon name="check-circle" size={20} color={Colors.success} />
-              <Text variant="bodyMedium" style={styles.featureText}>
+              <Text style={styles.featureText}>
                 Science-backed content
               </Text>
             </View>
             <View style={styles.featureItem}>
               <Icon name="check-circle" size={20} color={Colors.success} />
-              <Text variant="bodyMedium" style={styles.featureText}>
+              <Text style={styles.featureText}>
                 Progress tracking
               </Text>
             </View>
             <View style={styles.featureItem}>
               <Icon name="check-circle" size={20} color={Colors.success} />
-              <Text variant="bodyMedium" style={styles.featureText}>
+              <Text style={styles.featureText}>
                 Expert instructors
               </Text>
             </View>

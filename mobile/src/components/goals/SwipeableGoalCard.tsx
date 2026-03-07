@@ -5,19 +5,21 @@
 
 import React, { useCallback } from 'react';
 import { StyleSheet, View, TouchableOpacity, Dimensions } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Text } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
+  withTiming,
   runOnJS,
   interpolate,
   Extrapolation,
+  Easing,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { CompactProgressBar } from '../shared/AnimatedProgressBar';
 import { Goal } from '../../types/models';
 
@@ -44,24 +46,33 @@ export const SwipeableGoalCard: React.FC<SwipeableGoalCardProps> = ({
   onMoreOptions,
   onPress,
 }) => {
+  const reduceMotion = useReducedMotion();
   const translateX = useSharedValue(0);
   const hapticTriggered = useSharedValue(false);
 
   // Sync external revealed state with animation
   React.useEffect(() => {
     if (isRevealed) {
-      translateX.value = withSpring(MAX_REVEAL_WIDTH, {
-        damping: 20,
-        stiffness: 200,
-      });
+      if (reduceMotion) {
+        translateX.value = MAX_REVEAL_WIDTH;
+      } else {
+        translateX.value = withTiming(MAX_REVEAL_WIDTH, {
+          duration: 300,
+          easing: Easing.out(Easing.ease),
+        });
+      }
     } else {
-      translateX.value = withSpring(0, {
-        damping: 20,
-        stiffness: 200,
-      });
+      if (reduceMotion) {
+        translateX.value = 0;
+      } else {
+        translateX.value = withTiming(0, {
+          duration: 300,
+          easing: Easing.out(Easing.ease),
+        });
+      }
       hapticTriggered.value = false;
     }
-  }, [isRevealed]);
+  }, [isRevealed, reduceMotion]);
 
   const triggerHaptic = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -96,15 +107,15 @@ export const SwipeableGoalCard: React.FC<SwipeableGoalCardProps> = ({
         translateX.value > MAX_REVEAL_WIDTH / 2 || event.velocityX > 500;
 
       if (shouldOpen) {
-        translateX.value = withSpring(MAX_REVEAL_WIDTH, {
-          damping: 20,
-          stiffness: 200,
+        translateX.value = withTiming(MAX_REVEAL_WIDTH, {
+          duration: 300,
+          easing: Easing.out(Easing.ease),
         });
         runOnJS(handleRevealChange)(true);
       } else {
-        translateX.value = withSpring(0, {
-          damping: 20,
-          stiffness: 200,
+        translateX.value = withTiming(0, {
+          duration: 300,
+          easing: Easing.out(Easing.ease),
         });
         runOnJS(handleRevealChange)(false);
         hapticTriggered.value = false;

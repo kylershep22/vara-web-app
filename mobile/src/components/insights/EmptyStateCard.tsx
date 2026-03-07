@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 
 // Vara brand colors
 const VARA_COLORS = {

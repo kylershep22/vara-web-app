@@ -12,8 +12,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Platform, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -193,7 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   pillarBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   content: {
@@ -228,7 +227,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     marginRight: 2,
   },

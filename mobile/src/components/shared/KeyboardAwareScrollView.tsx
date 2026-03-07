@@ -21,8 +21,8 @@ import {
   Animated,
   EmitterSubscription,
   ScrollViewProps,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, Layout } from '../../constants';

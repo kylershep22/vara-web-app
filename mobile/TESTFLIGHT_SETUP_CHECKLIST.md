@@ -28,7 +28,7 @@ eas login
 
 ### 3. Backend Deployment Status
 - [ ] Firebase Functions deployed and accessible
-- [ ] Test backend API: https://us-central1-vara-4a99f.cloudfunctions.net/api/health
+- [ ] Test backend API: https://[your-cloud-functions-url]/api/health
 - [ ] OpenAI API key configured in Firebase Functions
 
 ---
@@ -81,11 +81,11 @@ cp .env.production.example .env.production
 
 Edit `.env.production` with your production values:
 ```env
-EXPO_PUBLIC_API_URL=https://us-central1-vara-4a99f.cloudfunctions.net
+EXPO_PUBLIC_API_URL=https://[your-cloud-functions-url]
 EXPO_PUBLIC_ENV=production
 EXPO_PUBLIC_FIREBASE_API_KEY=your_key_here
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=vara-4a99f.firebaseapp.com
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=vara-4a99f
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
 # ... add all Firebase config values
 ```
 

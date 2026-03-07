@@ -7,11 +7,12 @@
  */
 
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
-import { Auth, getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { Auth, getAuth, initializeAuth } from 'firebase/auth';
 import { Firestore, getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 import { FirebaseStorage, getStorage } from 'firebase/storage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from './env';
+import { secureStorePersistence } from '../utils/secureStorePersistence';
+import { logger } from '../utils/logger';
 
 /**
  * Firebase initialization state
@@ -35,15 +36,10 @@ function validateFirebaseConfig(): boolean {
       { key: 'firebaseAppId', value: config.firebaseAppId },
     ];
 
-    // ALWAYS log config status for debugging (helps diagnose production issues)
-    console.log('🔍 Firebase Configuration Validation:');
+    logger.log('Firebase Configuration Validation:');
     requiredFields.forEach(field => {
-      const value = field.value;
-      const hasValue = !!(value && value.trim());
-      const display = hasValue
-        ? `✓ ${value.substring(0, 8)}...`
-        : '✗ MISSING';
-      console.log(`  - ${field.key}: ${display}`);
+      const hasValue = !!(field.value && field.value.trim());
+      logger.log(`  - ${field.key}: ${hasValue ? 'SET' : 'MISSING'}`);
     });
 
     const missingFields = requiredFields.filter(field => {
@@ -53,17 +49,16 @@ function validateFirebaseConfig(): boolean {
 
     if (missingFields.length > 0) {
       const errorMsg = `Missing Firebase configuration fields: ${missingFields.join(', ')}`;
-      console.error('❌ Firebase config validation failed:', errorMsg);
-      console.error('💡 Tip: Ensure EXPO_PUBLIC_* env vars are set in eas.json for production builds');
-      console.error('💡 Note: process.env.EXPO_PUBLIC_* must use STATIC access (not dynamic bracket notation)');
+      logger.error('Firebase config validation failed:', errorMsg);
+      logger.error('Tip: Ensure EXPO_PUBLIC_* env vars are set in eas.json for production builds');
       firebaseError = new Error(errorMsg);
       return false;
     }
 
-    console.log('✅ Firebase configuration validated successfully');
+    logger.log('Firebase configuration validated successfully');
     return true;
   } catch (error) {
-    console.error('❌ Firebase validation error:', error);
+    logger.error('Firebase validation error:', error);
     firebaseError = error as Error;
     return false;
   }
@@ -88,21 +83,21 @@ const firebaseConfig = {
 function initializeFirebaseApp(): FirebaseApp | null {
   try {
     if (!validateFirebaseConfig()) {
-      console.warn('⚠️ Firebase config invalid, skipping initialization');
+      logger.warn('Firebase config invalid, skipping initialization');
       return null;
     }
 
     if (getApps().length === 0) {
-      console.log('🔥 Initializing Firebase app...');
+      logger.log('Initializing Firebase app...');
       const app = initializeApp(firebaseConfig);
-      console.log('✅ Firebase app initialized');
+      logger.log('Firebase app initialized');
       return app;
     } else {
-      console.log('♻️ Using existing Firebase app');
+      logger.log('Using existing Firebase app');
       return getApp();
     }
   } catch (error) {
-    console.error('❌ Failed to initialize Firebase app:', error);
+    logger.error('Failed to initialize Firebase app:', error);
     firebaseError = error as Error;
     return null;
   }
@@ -114,30 +109,30 @@ function initializeFirebaseApp(): FirebaseApp | null {
  */
 function initializeFirebaseAuth(app: FirebaseApp | null): Auth | null {
   if (!app) {
-    console.warn('⚠️ Firebase app not initialized, skipping auth');
+    logger.warn('Firebase app not initialized, skipping auth');
     return null;
   }
 
   try {
-    console.log('🔐 Initializing Firebase Auth...');
+    logger.log('Initializing Firebase Auth...');
     const authInstance = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
+      persistence: secureStorePersistence,
     });
-    console.log('✅ Firebase Auth initialized');
+    logger.log('Firebase Auth initialized');
     return authInstance;
   } catch (error: any) {
     // If auth is already initialized, just get the instance
     if (error.code === 'auth/already-initialized') {
-      console.log('♻️ Firebase Auth already initialized');
+      logger.log('Firebase Auth already initialized');
       try {
         return getAuth(app);
       } catch (getError) {
-        console.error('❌ Failed to get existing Auth:', getError);
+        logger.error('Failed to get existing Auth:', getError);
         firebaseError = getError as Error;
         return null;
       }
     } else {
-      console.error('❌ Failed to initialize Firebase Auth:', error);
+      logger.error('Failed to initialize Firebase Auth:', error);
       firebaseError = error;
       return null;
     }
@@ -150,30 +145,30 @@ function initializeFirebaseAuth(app: FirebaseApp | null): Auth | null {
  */
 function initializeFirebaseFirestore(app: FirebaseApp | null): Firestore | null {
   if (!app) {
-    console.warn('⚠️ Firebase app not initialized, skipping Firestore');
+    logger.warn('Firebase app not initialized, skipping Firestore');
     return null;
   }
 
   try {
-    console.log('📊 Initializing Firestore...');
+    logger.log('Initializing Firestore...');
     const dbInstance = initializeFirestore(app, {
       cacheSizeBytes: CACHE_SIZE_UNLIMITED,
     });
-    console.log('✅ Firestore initialized');
+    logger.log('Firestore initialized');
     return dbInstance;
   } catch (error: any) {
     // If Firestore is already initialized, just get the instance
     if (error.code === 'failed-precondition') {
-      console.log('♻️ Firestore already initialized');
+      logger.log('Firestore already initialized');
       try {
         return getFirestore(app);
       } catch (getError) {
-        console.error('❌ Failed to get existing Firestore:', getError);
+        logger.error('Failed to get existing Firestore:', getError);
         firebaseError = getError as Error;
         return null;
       }
     } else {
-      console.error('❌ Failed to initialize Firestore:', error);
+      logger.error('Failed to initialize Firestore:', error);
       firebaseError = error;
       return null;
     }
@@ -186,17 +181,17 @@ function initializeFirebaseFirestore(app: FirebaseApp | null): Firestore | null 
  */
 function initializeFirebaseStorage(app: FirebaseApp | null): FirebaseStorage | null {
   if (!app) {
-    console.warn('⚠️ Firebase app not initialized, skipping Storage');
+    logger.warn('Firebase app not initialized, skipping Storage');
     return null;
   }
 
   try {
-    console.log('💾 Initializing Firebase Storage...');
+    logger.log('Initializing Firebase Storage...');
     const storageInstance = getStorage(app);
-    console.log('✅ Firebase Storage initialized');
+    logger.log('Firebase Storage initialized');
     return storageInstance;
   } catch (error) {
-    console.error('❌ Failed to initialize Firebase Storage:', error);
+    logger.error('Failed to initialize Firebase Storage:', error);
     firebaseError = error as Error;
     return null;
   }
@@ -217,27 +212,30 @@ firebaseInitialized = true;
 // Use emulators in development if configured
 if (config.useEmulators && __DEV__ && app && auth && db && storage) {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { connectAuthEmulator } = require('firebase/auth');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { connectFirestoreEmulator } = require('firebase/firestore');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { connectStorageEmulator } = require('firebase/storage');
 
     connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
     connectFirestoreEmulator(db, 'localhost', 8080);
     connectStorageEmulator(storage, 'localhost', 9199);
-    console.log('🔧 Using Firebase Emulators');
+    logger.log('Using Firebase Emulators');
   } catch (error) {
-    console.warn('⚠️ Failed to connect to Firebase Emulators:', error);
+    logger.warn('Failed to connect to Firebase Emulators:', error);
     // Don't set firebaseError for emulator connection failures
   }
 }
 
 // Log final status
 if (firebaseError) {
-  console.error('🚨 Firebase initialization completed with errors:', firebaseError.message);
+  logger.error('Firebase initialization completed with errors:', firebaseError.message);
 } else if (app && auth && db && storage) {
-  console.log('✅ Firebase fully initialized successfully');
+  logger.log('Firebase fully initialized successfully');
 } else {
-  console.warn('⚠️ Firebase partially initialized (some services may be unavailable)');
+  logger.warn('Firebase partially initialized (some services may be unavailable)');
 }
 
 export { app, auth, db, storage };

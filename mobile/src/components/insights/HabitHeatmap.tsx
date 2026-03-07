@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 // Vara brand colors
@@ -158,7 +157,7 @@ const styles = StyleSheet.create({
     color: VARA_COLORS.charcoal,
   },
   subheading: {
-    fontSize: 10.5,
+    fontSize: 12,
     color: VARA_COLORS.sageGray,
     marginTop: 4,
     marginBottom: 10,
@@ -181,7 +180,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   legendText: {
-    fontSize: 9,
+    fontSize: 12,
     color: VARA_COLORS.sageGray,
   },
   legendColors: {

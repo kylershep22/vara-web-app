@@ -11,8 +11,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Text,
 } from 'react-native';
-import { Text, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button, Input, AuthHeader } from '../../components';
@@ -130,7 +130,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
 
               {/* Back to Login */}
               <TouchableOpacity onPress={handleBackToLogin} style={styles.backButton}>
-                <Text variant="bodyMedium" style={styles.backText}>
+                <Text style={styles.backText}>
                   ← Back to Login
                 </Text>
               </TouchableOpacity>
@@ -139,12 +139,12 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
             <View style={styles.successContainer}>
               {/* Success Message */}
               <View style={styles.successBox}>
-                <Text variant="bodyMedium" style={styles.successText}>
+                <Text style={styles.successText}>
                   If an account exists with{' '}
                   <Text style={styles.emailHighlight}>{email}</Text>, you'll receive an email with
                   instructions to reset your password.
                 </Text>
-                <Text variant="bodyMedium" style={styles.successText}>
+                <Text style={styles.successText}>
                   {'\n'}
                   Check your spam folder if you don't see it in a few minutes.
                 </Text>
@@ -177,21 +177,14 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
       </KeyboardAvoidingView>
 
       {/* Snackbar */}
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={4000}
-        action={{
-          label: 'Dismiss',
-          onPress: () => setSnackbarVisible(false),
-        }}
-        style={[
-          styles.snackbar,
-          snackbarType === 'success' && styles.snackbarSuccess,
-        ]}
-      >
-        {snackbarMessage}
-      </Snackbar>
+      {snackbarVisible && (
+        <View style={[styles.snackbar, snackbarType === 'success' && styles.snackbarSuccess, {position: 'absolute', bottom: 24, left: 16, right: 16, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center'}]}>
+          <Text style={{flex: 1, color: '#fff', fontSize: 14}}>{snackbarMessage}</Text>
+          <TouchableOpacity onPress={() => setSnackbarVisible(false)}>
+            <Text style={{color: '#fff', fontWeight: '600'}}>Dismiss</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };

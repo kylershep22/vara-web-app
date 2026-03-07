@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Card } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -13,7 +12,9 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../config/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
-const API_BASE_URL = 'https://us-central1-vara-4a99f.cloudfunctions.net';
+import { config } from '../../config/env';
+
+const API_BASE_URL = config.apiUrl;
 
 export const AIBrainInsightCard: React.FC = () => {
   const { user } = useAuth();
@@ -156,10 +157,10 @@ export const AIBrainInsightCard: React.FC = () => {
         <View style={styles.headerLeft}>
           <Icon name="lightbulb-on" size={24} color={Colors.sunriseAmber} />
           <View>
-            <Text variant="titleMedium" style={styles.title}>
+            <Text style={styles.title}>
               AI Brain Insight
             </Text>
-            <Text variant="bodySmall" style={styles.subtitle}>
+            <Text style={styles.subtitle}>
               Personalized recommendation for today
             </Text>
           </View>
@@ -180,27 +181,27 @@ export const AIBrainInsightCard: React.FC = () => {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={Colors.evergreenTeal} />
-          <Text variant="bodySmall" style={styles.loadingText}>
+          <Text style={styles.loadingText}>
             Analyzing your brain health...
           </Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
           <Icon name="alert-circle" size={32} color={Colors.error} />
-          <Text variant="bodyMedium" style={styles.errorText}>
+          <Text style={styles.errorText}>
             {error}
           </Text>
         </View>
       ) : insight ? (
         <View style={styles.insightContainer}>
-          <Text variant="bodyMedium" style={styles.insightText}>
+          <Text style={styles.insightText}>
             {insight}
           </Text>
         </View>
       ) : (
         <View style={styles.emptyContainer}>
           <Icon name="brain" size={32} color={Colors.textSecondary} />
-          <Text variant="bodySmall" style={styles.emptyText}>
+          <Text style={styles.emptyText}>
             Complete a brain health check-in to receive personalized insights
           </Text>
         </View>

@@ -4,8 +4,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -79,7 +78,7 @@ export const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
           accessibilityLabel="Tasks"
           accessibilityHint="Double tap to view all tasks"
         >
-          <Text variant="titleLarge" style={styles.title}>
+          <Text style={styles.title}>
             Tasks
           </Text>
           <Icon name="chevron-right" size={20} color={Colors.evergreenTeal} />
@@ -233,7 +232,7 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
   },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: Colors.textSecondary,
     textTransform: 'uppercase',

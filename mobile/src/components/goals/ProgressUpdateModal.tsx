@@ -13,17 +13,18 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { AnimatedProgressBar } from '../shared/AnimatedProgressBar';
 import { InlineCheckmark } from '../celebrations/GoalMilestoneCheckmark';
 import { Goal, Milestone } from '../../types/models';
@@ -50,6 +51,7 @@ export const ProgressUpdateModal: React.FC<ProgressUpdateModalProps> = ({
   const [showSuccess, setShowSuccess] = useState(false);
   const [completedMilestones, setCompletedMilestones] = useState<Milestone[]>([]);
 
+  const reduceMotion = useReducedMotion();
   const modalScale = useSharedValue(0.9);
   const modalOpacity = useSharedValue(0);
 
@@ -62,13 +64,23 @@ export const ProgressUpdateModal: React.FC<ProgressUpdateModalProps> = ({
       setShowSuccess(false);
       setCompletedMilestones([]);
 
-      modalScale.value = withSpring(1, { damping: 15, stiffness: 150 });
-      modalOpacity.value = withTiming(1, { duration: 200 });
+      if (reduceMotion) {
+        modalScale.value = 1;
+        modalOpacity.value = 1;
+      } else {
+        modalScale.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.ease) });
+        modalOpacity.value = withTiming(1, { duration: 200 });
+      }
     } else {
-      modalScale.value = withTiming(0.9, { duration: 150 });
-      modalOpacity.value = withTiming(0, { duration: 150 });
+      if (reduceMotion) {
+        modalScale.value = 0.9;
+        modalOpacity.value = 0;
+      } else {
+        modalScale.value = withTiming(0.9, { duration: 150 });
+        modalOpacity.value = withTiming(0, { duration: 150 });
+      }
     }
-  }, [visible]);
+  }, [visible, reduceMotion]);
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: modalScale.value }],

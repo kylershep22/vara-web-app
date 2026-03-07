@@ -5,8 +5,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Layout, Typography, getGroupCategory } from '../../constants';
 import { Challenge, ChallengeParticipant } from '../../types/models';
@@ -46,6 +45,9 @@ export const QuickStatusCard: React.FC<QuickStatusCardProps> = ({
       style={styles.card}
       activeOpacity={0.7}
       onPress={onPress}
+      accessibilityLabel={`${challenge.name} challenge. ${positionText}`}
+      accessibilityRole="button"
+      accessibilityHint="View challenge details"
     >
       {/* Header row */}
       <View style={styles.headerRow}>
@@ -81,6 +83,8 @@ export const QuickStatusCard: React.FC<QuickStatusCardProps> = ({
           }}
           activeOpacity={0.7}
           disabled={checkingIn}
+          accessibilityLabel="Check in to challenge"
+          accessibilityRole="button"
         >
           {checkingIn ? (
             <ActivityIndicator size="small" color={Colors.white} />
@@ -127,7 +131,7 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
   },
   timePosition: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.mutedSageGray,
   },
   progressTrack: {
@@ -143,7 +147,7 @@ const styles = StyleSheet.create({
   },
   checkInButton: {
     width: '100%',
-    height: 32,
+    height: 48,
     borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.evergreenTeal,
     justifyContent: 'center',

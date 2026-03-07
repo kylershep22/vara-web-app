@@ -4,10 +4,9 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { Input } from '../../';
-import { Colors, Spacing } from '../../../constants';
+import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { WizardStepProps } from './types';
 
 export const IdentityStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormData }) => {
@@ -47,18 +46,18 @@ export const IdentityStep: React.FC<WizardStepProps> = ({ formData, onUpdateForm
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.base,
   },
   headline: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1B5E57',
-    marginBottom: 4,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6F7F77',
-    marginBottom: 20,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
   },
   input: {
     marginBottom: Spacing.base,
@@ -66,15 +65,15 @@ const styles = StyleSheet.create({
   identityPreview: {
     backgroundColor: Colors.dewSage,
     padding: Spacing.base,
-    borderRadius: 8,
+    borderRadius: Layout.borderRadius.md,
     marginBottom: Spacing.base,
     borderWidth: 1,
-    borderColor: Colors.evergreenTeal + '40',
+    borderColor: Colors.tealMedium,
   },
   identityPreviewText: {
     color: Colors.evergreenTeal,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     fontStyle: 'italic',
-    fontSize: 15,
+    fontSize: Typography.fontSize.base,
   },
 });

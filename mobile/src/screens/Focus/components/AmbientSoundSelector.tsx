@@ -10,8 +10,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated, LayoutAnimation } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Animated, LayoutAnimation, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
   ColorTokens,
@@ -113,7 +112,7 @@ const styles = StyleSheet.create({
     ...ShadowTokens.sm,
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: ColorTokens.textSecondary,
     marginBottom: SpacingTokens.md,
@@ -142,7 +141,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   soundLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     color: ColorTokens.textSecondary,
     textAlign: 'center',

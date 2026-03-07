@@ -15,8 +15,8 @@ import {
   TextInput,
   Animated,
   Easing,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -278,7 +278,7 @@ export const FirstActionCard: React.FC<FirstActionCardProps> = ({
           <TextInputAction
             placeholder="I'm grateful for..."
             onSubmit={(text) => handleActionComplete({ gratitude: text })}
-            buttonLabel="Save"
+            buttonLabel="Capture this"
           />
         );
       case 'micro_goal':
@@ -286,7 +286,7 @@ export const FirstActionCard: React.FC<FirstActionCardProps> = ({
           <TextInputAction
             placeholder="In the next 24 hours, I will..."
             onSubmit={(text) => handleActionComplete({ goal: text })}
-            buttonLabel="Set Goal"
+            buttonLabel="Set a focus"
           />
         );
       case 'reflection':
@@ -294,7 +294,7 @@ export const FirstActionCard: React.FC<FirstActionCardProps> = ({
           <TextInputAction
             placeholder="Right now, I'm feeling..."
             onSubmit={(text) => handleActionComplete({ reflection: text })}
-            buttonLabel="Save"
+            buttonLabel="Capture this"
           />
         );
       case 'intention':
@@ -302,7 +302,7 @@ export const FirstActionCard: React.FC<FirstActionCardProps> = ({
           <TextInputAction
             placeholder="My guiding word is..."
             onSubmit={(text) => handleActionComplete({ intention: text })}
-            buttonLabel="Set Intention"
+            buttonLabel="Set a focus"
           />
         );
       default:

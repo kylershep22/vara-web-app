@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout, getGroupCategory } from '../../constants';
 import { Badge } from '../shared/Badge';
@@ -204,7 +203,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm + 2, // 10px
   },
   goalText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.evergreenTeal,
   },
@@ -250,7 +249,7 @@ const styles = StyleSheet.create({
     color: Colors.mutedSageGray,
   },
   viewLink: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.evergreenTeal,
   },

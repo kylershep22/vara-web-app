@@ -16,8 +16,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   AccessibilityInfo,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -68,7 +68,7 @@ const DotScaleSelector: React.FC<DotScaleSelectorProps> = ({
     <View style={styles.container}>
       {/* Label Row */}
       <View style={styles.labelRow}>
-        <Text variant="bodyLarge" style={styles.label}>
+        <Text style={styles.label}>
           {label}
         </Text>
         {icon && (
@@ -125,10 +125,10 @@ const DotScaleSelector: React.FC<DotScaleSelectorProps> = ({
 
       {/* Low/High Labels */}
       <View style={styles.scaleLabelsRow}>
-        <Text variant="labelSmall" style={styles.scaleLabel}>
+        <Text style={styles.scaleLabel}>
           {lowLabel}
         </Text>
-        <Text variant="labelSmall" style={styles.scaleLabel}>
+        <Text style={styles.scaleLabel}>
           {highLabel}
         </Text>
       </View>

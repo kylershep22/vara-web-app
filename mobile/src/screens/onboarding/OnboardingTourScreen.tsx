@@ -5,12 +5,11 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Dimensions, ScrollView } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Dimensions, ScrollView, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button } from '../../components';
-import { ConfettiOverlay } from '../../components/celebrations';
+import { QuietFinish } from '../../components/celebrations';
 import { FirstActionCard } from '../../components/onboarding/FirstActionCard';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
@@ -153,11 +152,11 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
         <Icon name={item.icon} size={80} color={item.color} />
       </View>
 
-      <Text variant="headlineMedium" style={styles.slideTitle}>
+      <Text style={styles.slideTitle}>
         {item.title}
       </Text>
 
-      <Text variant="bodyLarge" style={styles.slideDescription}>
+      <Text style={styles.slideDescription}>
         {item.description}
       </Text>
     </View>
@@ -186,11 +185,10 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
           />
         </ScrollView>
 
-        {/* Confetti Celebration */}
-        <ConfettiOverlay
+        {/* Quiet acknowledgment */}
+        <QuietFinish
           visible={showConfetti}
-          onComplete={handleConfettiComplete}
-          duration={3000}
+          onDismiss={handleConfettiComplete}
         />
       </SafeAreaView>
     );
@@ -211,8 +209,8 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
       {showSuccessBanner && currentIndex === 0 && (
         <View style={styles.successBanner}>
           <Icon name="check-circle" size={20} color={Colors.success} />
-          <Text variant="bodyMedium" style={styles.successText}>
-            Great! Your first {createdType} "{createdTitle}" has been created 🎉
+          <Text style={styles.successText}>
+            Great! Your first {createdType} "{createdTitle}" has been created
           </Text>
         </View>
       )}
@@ -258,7 +256,7 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
           fullWidth
           style={styles.nextButton}
         >
-          {currentIndex === TOUR_SLIDES.length - 1 ? 'One More Thing...' : 'Next'}
+          {currentIndex === TOUR_SLIDES.length - 1 ? 'Before you go' : 'Continue'}
         </Button>
 
         {currentIndex < TOUR_SLIDES.length - 1 && (
@@ -267,7 +265,7 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
             onPress={handleSkip}
             fullWidth
           >
-            Skip Tour
+            Skip for now
           </Button>
         )}
       </View>

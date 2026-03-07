@@ -4,14 +4,11 @@
  */
 
 import React, { useEffect } from 'react';
-import { StyleSheet, View, Dimensions } from 'react-native';
-import { Text } from 'react-native-paper';
+import { StyleSheet, View, Dimensions, Text } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withSpring,
-  withSequence,
   withDelay,
   runOnJS,
   Easing,
@@ -19,8 +16,13 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const MESSAGES = [
+  'You made progress on this.',
+  'That took effort. It\'s done.',
+  'Worth acknowledging.',
+];
 
 interface GoalMilestoneCheckmarkProps {
   visible: boolean;
@@ -32,59 +34,59 @@ interface GoalMilestoneCheckmarkProps {
 
 export const GoalMilestoneCheckmark: React.FC<GoalMilestoneCheckmarkProps> = ({
   visible,
-  message = 'Milestone reached!',
+  message,
   subMessage,
   onComplete,
   duration = 2000,
 }) => {
+  const reduceMotion = useReducedMotion();
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.3);
   const checkScale = useSharedValue(0);
   const checkOpacity = useSharedValue(0);
   const textOpacity = useSharedValue(0);
 
+  const displayMessage = message || MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
+
   useEffect(() => {
     if (visible) {
-      // Trigger haptic feedback
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // Animate in
-      opacity.value = withTiming(1, { duration: 200 });
+      if (reduceMotion) {
+        opacity.value = 1;
+        scale.value = 1;
+        checkScale.value = 1;
+        checkOpacity.value = 1;
+        textOpacity.value = 1;
+      } else {
+        opacity.value = withTiming(1, { duration: 200, easing: Easing.out(Easing.ease) });
+        scale.value = withTiming(1, { duration: 250, easing: Easing.out(Easing.ease) });
+        checkScale.value = withDelay(
+          150,
+          withTiming(1, { duration: 250, easing: Easing.out(Easing.ease) })
+        );
+        checkOpacity.value = withDelay(150, withTiming(1, { duration: 200 }));
+        textOpacity.value = withDelay(300, withTiming(1, { duration: 200 }));
+      }
 
-      // Circle scales up with bounce
-      scale.value = withSequence(
-        withSpring(1.1, { damping: 12, stiffness: 200 }),
-        withSpring(1, { damping: 15, stiffness: 180 })
-      );
-
-      // Checkmark appears after circle
-      checkScale.value = withDelay(
-        150,
-        withSequence(
-          withSpring(1.2, { damping: 10, stiffness: 200 }),
-          withSpring(1, { damping: 15, stiffness: 180 })
-        )
-      );
-      checkOpacity.value = withDelay(150, withTiming(1, { duration: 200 }));
-
-      // Text fades in after checkmark
-      textOpacity.value = withDelay(300, withTiming(1, { duration: 200 }));
-
-      // Auto-dismiss after duration
       const dismissTimer = setTimeout(() => {
-        opacity.value = withTiming(0, { duration: 300 });
-        scale.value = withTiming(0.8, { duration: 300 });
+        if (reduceMotion) {
+          opacity.value = 0;
+          scale.value = 0.3;
+        } else {
+          opacity.value = withTiming(0, { duration: 300 });
+          scale.value = withTiming(0.8, { duration: 300 });
+        }
 
         if (onComplete) {
           setTimeout(() => {
             runOnJS(onComplete)();
-          }, 300);
+          }, reduceMotion ? 0 : 300);
         }
       }, duration);
 
       return () => clearTimeout(dismissTimer);
     } else {
-      // Reset values when not visible
       opacity.value = 0;
       scale.value = 0.3;
       checkScale.value = 0;
@@ -112,7 +114,6 @@ export const GoalMilestoneCheckmark: React.FC<GoalMilestoneCheckmarkProps> = ({
   return (
     <View style={styles.overlay} pointerEvents="none">
       <Animated.View style={[styles.container, containerStyle]}>
-        {/* Checkmark circle */}
         <View style={styles.circle}>
           <Animated.View style={checkStyle}>
             <Icon
@@ -123,9 +124,8 @@ export const GoalMilestoneCheckmark: React.FC<GoalMilestoneCheckmarkProps> = ({
           </Animated.View>
         </View>
 
-        {/* Message text */}
         <Animated.View style={textStyle}>
-          <Text style={styles.message}>{message}</Text>
+          <Text style={styles.message}>{displayMessage}</Text>
           {subMessage && (
             <Text style={styles.subMessage}>{subMessage}</Text>
           )}
@@ -149,6 +149,7 @@ export const InlineCheckmark: React.FC<InlineCheckmarkProps> = ({
   color = Colors.evergreenTeal,
   onComplete,
 }) => {
+  const reduceMotion = useReducedMotion();
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -156,19 +157,25 @@ export const InlineCheckmark: React.FC<InlineCheckmarkProps> = ({
     if (visible) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      scale.value = withSequence(
-        withSpring(1.3, { damping: 10, stiffness: 200 }),
-        withSpring(1, { damping: 15, stiffness: 180 })
-      );
-      opacity.value = withTiming(1, { duration: 150 });
+      if (reduceMotion) {
+        scale.value = 1;
+        opacity.value = 1;
+      } else {
+        scale.value = withTiming(1, { duration: 250, easing: Easing.out(Easing.ease) });
+        opacity.value = withTiming(1, { duration: 150 });
+      }
 
-      // Auto-complete callback
       if (onComplete) {
         setTimeout(onComplete, 600);
       }
     } else {
-      scale.value = withTiming(0, { duration: 150 });
-      opacity.value = withTiming(0, { duration: 150 });
+      if (reduceMotion) {
+        scale.value = 0;
+        opacity.value = 0;
+      } else {
+        scale.value = withTiming(0, { duration: 150 });
+        opacity.value = withTiming(0, { duration: 150 });
+      }
     }
   }, [visible, onComplete]);
 
@@ -207,14 +214,14 @@ const styles = StyleSheet.create({
     ...Layout.shadow.lg,
   },
   message: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: 18,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.textOnPrimary,
     textAlign: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: 4,
   },
   subMessage: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: 14,
     color: Colors.textOnPrimary,
     textAlign: 'center',
     opacity: 0.9,

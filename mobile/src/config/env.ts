@@ -37,6 +37,12 @@ interface EnvConfig {
   androidProductAnnual: string;
   trialDurationDays: number;
 
+  // Pricing (displayed on paywall)
+  monthlyPrice: string;
+  annualPrice: string;
+  annualMonthlyEquivalent: string;
+  currency: string;
+
   // Development
   useEmulators: boolean;
 }
@@ -107,6 +113,12 @@ export const config: EnvConfig = {
   androidProductAnnual: process.env.EXPO_PUBLIC_ANDROID_PRODUCT_ANNUAL || 'vara_annual',
   trialDurationDays: parseInt(process.env.EXPO_PUBLIC_TRIAL_DURATION_DAYS || '7', 10),
 
+  // Pricing Configuration
+  monthlyPrice: process.env.EXPO_PUBLIC_MONTHLY_PRICE || '9.99',
+  annualPrice: process.env.EXPO_PUBLIC_ANNUAL_PRICE || '79.99',
+  annualMonthlyEquivalent: process.env.EXPO_PUBLIC_ANNUAL_MONTHLY_EQUIVALENT || '6.67',
+  currency: process.env.EXPO_PUBLIC_CURRENCY || 'USD',
+
   // Development Configuration
   useEmulators: (process.env.EXPO_PUBLIC_USE_EMULATORS || 'false') === 'true',
 };
@@ -127,21 +139,17 @@ if (__DEV__) {
     );
   }
 
-  // Log active configuration
-  console.log('🔧 App Configuration:');
-  console.log(`  📍 Environment: ${config.environment}`);
-  console.log(`  🌐 API URL: ${config.apiUrl}${config.apiBasePath}`);
-  console.log(`  🔥 Firebase Project: ${config.firebaseProjectId}`);
-  console.log(`  🔑 API Key: ${config.firebaseApiKey ? config.firebaseApiKey.substring(0, 10) + '...' : 'MISSING'}`);
-}
-
-// Also log in production for debugging (only key presence, not values)
-if (!__DEV__) {
-  console.log('🔧 Production Config Check:');
-  console.log(`  🔥 Firebase Project: ${config.firebaseProjectId}`);
-  console.log(`  🔑 API Key present: ${!!config.firebaseApiKey}`);
-  console.log(`  📱 App ID present: ${!!config.firebaseAppId}`);
-  console.log(`  📨 Messaging Sender ID present: ${!!config.firebaseMessagingSenderId}`);
+  // Log active configuration (dev only, no secret values)
+  // Using console.log directly since logger may not be initialized yet
+  // and this block is already gated behind __DEV__
+  // eslint-disable-next-line no-console
+  console.log(
+    'App Configuration:\n' +
+    `  Environment: ${config.environment}\n` +
+    `  API URL: ${config.apiUrl}${config.apiBasePath}\n` +
+    `  Firebase Project: ${config.firebaseProjectId}\n` +
+    `  API Key present: ${!!config.firebaseApiKey}`
+  );
 }
 
 // Helper to get full API URL

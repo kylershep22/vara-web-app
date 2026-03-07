@@ -8,7 +8,7 @@
  * Pillars map to brain health pillars: Focus, Energy, Growth, Resilience, Connection
  */
 
-export type BrainPillar = 'focus' | 'energy' | 'growth' | 'resilience' | 'connection';
+export type { BrainPillar } from '../types/models';
 
 export type FeatureId =
   | 'habits_basic'
@@ -55,7 +55,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     subtitle: 'Sharpen your mind',
     description: 'Start with deep work tools, journaling, and breathing exercises to improve concentration.',
     icon: 'target',
-    color: '#2A7C6F', // Evergreen Teal
+    color: '#1B5E57', // Evergreen Teal
     day1Features: ['focus_timer', 'journal', 'breathwork_quick', 'habits_basic', 'tasks_basic'],
   },
   {
@@ -64,7 +64,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     subtitle: 'Restore your vitality',
     description: 'Begin with sleep optimization, movement, and breathing to boost your daily energy.',
     icon: 'lightning-bolt',
-    color: '#E5A530', // Sunrise Amber
+    color: '#E8A838', // Sunrise Amber
     day1Features: ['sleep', 'breathwork_quick', 'movement', 'habits_basic'],
   },
   {
@@ -73,7 +73,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     subtitle: 'Expand your potential',
     description: 'Focus on habits, goals, and learning to build your ideal self.',
     icon: 'sprout',
-    color: '#4CAF50', // Success Green
+    color: '#1B5E57', // Evergreen Teal
     day1Features: ['habits_basic', 'goals_basic', 'tasks_basic', 'journal', 'brain_readiness'],
   },
   {
@@ -82,7 +82,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     subtitle: 'Build inner strength',
     description: 'Start with stress management tools, journaling, and breathing exercises.',
     icon: 'shield-check',
-    color: '#9B8ACB', // Lavender Mist
+    color: '#D5E3D1', // Dew Sage
     day1Features: ['breathwork_quick', 'journal', 'brain_readiness', 'habits_basic'],
   },
   {
@@ -91,7 +91,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     subtitle: 'Strengthen relationships',
     description: 'Begin with community features, reflection, and gratitude practices.',
     icon: 'account-group',
-    color: '#3A7CA5', // Secondary Blue
+    color: '#B8CDBA', // Silver Sage
     day1Features: ['community_view', 'journal', 'habits_basic', 'goals_basic'],
   },
 ];

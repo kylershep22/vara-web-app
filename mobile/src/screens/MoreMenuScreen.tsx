@@ -10,13 +10,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Colors, Spacing } from '../constants';
+import { Colors, Spacing, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { useHabits } from '../hooks';
 
@@ -45,8 +45,8 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     title: 'Insights',
     subtitle: 'Your wellness analytics',
     icon: 'chart-line',
-    iconColor: '#1B5E57',
-    gradientColors: ['#e4f4ed', '#d5e3d1'],
+    iconColor: Colors.evergreenTeal,
+    gradientColors: [Colors.dewSage + '60', Colors.dewSage] as [string, string],
     route: 'Insights',
   },
   {
@@ -54,8 +54,8 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     title: 'Brain Health',
     subtitle: 'Track your cognitive wellness',
     icon: 'brain',
-    iconColor: '#1B5E57',
-    gradientColors: ['#e4f4ed', '#d5e3d1'],
+    iconColor: Colors.evergreenTeal,
+    gradientColors: [Colors.dewSage + '60', Colors.dewSage] as [string, string],
     route: 'BrainHealth',
   },
   {
@@ -63,8 +63,8 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     title: 'Journal',
     subtitle: 'Reflect with AI-guided prompts',
     icon: 'book-open-page-variant',
-    iconColor: '#C17F24',
-    gradientColors: ['#fef3e0', '#fde8c8'],
+    iconColor: Colors.sunriseAmber,
+    gradientColors: [Colors.sunriseAmber + '15', Colors.sunriseAmber + '25'] as [string, string],
     route: 'Journal',
   },
   {
@@ -72,8 +72,8 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     title: 'Breathwork',
     subtitle: 'Guided breathing exercises',
     icon: 'circle-multiple-outline',
-    iconColor: '#4A7BC5',
-    gradientColors: ['#e8f0fe', '#d4e4fc'],
+    iconColor: Colors.evergreenTeal,
+    gradientColors: [Colors.silverSage + '30', Colors.silverSage + '50'] as [string, string],
     route: 'Breathwork',
   },
   {
@@ -81,8 +81,8 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     title: 'Sleep',
     subtitle: 'Rest & recovery tools',
     icon: 'moon-waning-crescent',
-    iconColor: '#7B6BA5',
-    gradientColors: ['#ede8f5', '#ddd6eb'],
+    iconColor: Colors.evergreenTeal,
+    gradientColors: [Colors.dewSage + '40', Colors.dewSage + '60'] as [string, string],
     route: 'Sleep',
   },
   {
@@ -90,8 +90,8 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     title: 'Movement',
     subtitle: 'Exercise & mobility routines',
     icon: 'run',
-    iconColor: '#3D8B6E',
-    gradientColors: ['#e4f4ed', '#d1ebe0'],
+    iconColor: Colors.evergreenTeal,
+    gradientColors: [Colors.dewSage + '60', Colors.dewSage] as [string, string],
     route: 'Movement',
   },
   {
@@ -99,8 +99,8 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     title: 'Masterclass',
     subtitle: 'Expert wellness education',
     icon: 'school-outline',
-    iconColor: '#B8860B',
-    gradientColors: ['#fef6e4', '#fdecd0'],
+    iconColor: Colors.sunriseAmber,
+    gradientColors: [Colors.sunriseAmber + '15', Colors.sunriseAmber + '25'] as [string, string],
     route: 'Masterclass',
   },
   {
@@ -109,7 +109,7 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     subtitle: 'Coming soon — sync your devices',
     icon: 'watch',
     iconColor: Colors.mutedSageGray,
-    gradientColors: ['#f0f2f0', '#e5e8e5'],
+    gradientColors: [Colors.silverSage + '20', Colors.silverSage + '30'] as [string, string],
     route: 'WearableIntegration',
   },
 ];
@@ -121,7 +121,7 @@ const ACCOUNT_ITEMS: MenuItem[] = [
     subtitle: 'Preferences & notifications',
     icon: 'cog-outline',
     iconColor: Colors.mutedSageGray,
-    gradientColors: ['#f0f2ee', '#e8ebe5'],
+    gradientColors: [Colors.silverSage + '20', Colors.silverSage + '30'] as [string, string],
     route: 'ProfileStack',
     params: { screen: 'Settings' },
   },
@@ -131,7 +131,7 @@ const ACCOUNT_ITEMS: MenuItem[] = [
     subtitle: 'FAQs, feedback & contact',
     icon: 'help-circle-outline',
     iconColor: Colors.mutedSageGray,
-    gradientColors: ['#f0f2ee', '#e8ebe5'],
+    gradientColors: [Colors.silverSage + '20', Colors.silverSage + '30'] as [string, string],
     route: 'HelpSupport',
   },
 ];
@@ -189,12 +189,9 @@ const InsightStrip: React.FC<InsightStripProps> = ({ consecutiveDays, hasActivit
   let boldText = '';
   let regularText = '';
 
-  if (consecutiveDays >= 3) {
-    boldText = `${consecutiveDays}-day rhythm`;
-    regularText = ` — you've checked in ${consecutiveDays} days in a row. Steady pace builds lasting patterns.`;
-  } else if (consecutiveDays > 0) {
-    boldText = 'Building momentum';
-    regularText = ` — ${consecutiveDays} day${consecutiveDays > 1 ? 's' : ''} of activity. Every check-in strengthens the habit.`;
+  if (consecutiveDays >= 1) {
+    boldText = 'Active this month';
+    regularText = ` — ${consecutiveDays} day${consecutiveDays > 1 ? 's' : ''} of activity. Every check-in supports your wellbeing.`;
   } else if (hasActivity) {
     boldText = 'Welcome back';
     regularText = ' — picking up where you left off is a sign of resilience, not failure.';
@@ -205,7 +202,7 @@ const InsightStrip: React.FC<InsightStripProps> = ({ consecutiveDays, hasActivit
 
   return (
     <LinearGradient
-      colors={['#D5E3D1', 'rgba(213, 227, 209, 0.4)']}
+      colors={[Colors.dewSage, Colors.dewSage + '66']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.insightStrip}
@@ -249,7 +246,7 @@ const MenuItemRow: React.FC<MenuItemRowProps> = ({ item, onPress, isLast, animat
         <Text style={styles.menuTitle}>{item.title}</Text>
         <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
       </View>
-      <Icon name="chevron-right" size={20} color="#d0d0d0" />
+      <Icon name="chevron-right" size={20} color={Colors.silverSage} />
     </TouchableOpacity>
     {!isLast && <View style={styles.divider} />}
   </Animated.View>
@@ -470,17 +467,17 @@ const styles = StyleSheet.create({
   avatarContainer: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 9999,
   },
   avatarGradient: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    padding: 3,
+    borderRadius: 9999,
+    padding: 4,
   },
   avatarInner: {
     flex: 1,
-    borderRadius: 25,
+    borderRadius: 9999,
     backgroundColor: Colors.mistWhite,
     justifyContent: 'center',
     alignItems: 'center',
@@ -499,15 +496,15 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
   },
   email: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.mutedSageGray,
     marginTop: 2,
   },
   editButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(27, 94, 87, 0.08)',
+    width: 48,
+    height: 48,
+    borderRadius: 9999,
+    backgroundColor: Colors.evergreenTeal + '14',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -516,23 +513,23 @@ const styles = StyleSheet.create({
   insightStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
-    padding: 14,
-    paddingHorizontal: 18,
+    borderRadius: 16,
+    padding: 16,
+    paddingHorizontal: 16,
     marginBottom: Spacing.lg,
   },
   insightIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(27, 94, 87, 0.1)',
+    borderRadius: 12,
+    backgroundColor: Colors.evergreenTeal + '1A',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 16,
   },
   insightText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.evergreenTeal,
     lineHeight: 18,
   },
@@ -545,18 +542,18 @@ const styles = StyleSheet.create({
     marginTop: Spacing.base,
   },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     color: Colors.mutedSageGray,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginBottom: 10,
+    marginBottom: 12,
     marginLeft: 4,
   },
   cardGroup: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    shadowColor: '#000',
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.xl,
+    shadowColor: Colors.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 3,
@@ -568,23 +565,23 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    minHeight: 68,
+    padding: 16,
+    minHeight: 64,
   },
   menuItemWithDivider: {},
   menuIconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 11,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 16,
   },
   menuContent: {
     flex: 1,
   },
   menuTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     color: Colors.softCharcoal,
   },
@@ -595,8 +592,8 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(27, 94, 87, 0.06)',
+    backgroundColor: Colors.silverSage + '15',
     marginLeft: 70,
-    marginRight: 18,
+    marginRight: 16,
   },
 });

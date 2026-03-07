@@ -20,3 +20,4 @@ export * from './featureUnlock.service';
 export * from './invites.service';
 export * from './onboarding.service';
 export * from './featureDiscovery.service';
+export * from './moderation.service';

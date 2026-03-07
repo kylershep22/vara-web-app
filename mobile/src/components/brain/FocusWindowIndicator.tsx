@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Text, Portal, Modal, Button as PaperButton } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Modal } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Card } from '../index';
@@ -153,10 +152,10 @@ export const FocusWindowIndicator: React.FC = () => {
           <View style={styles.headerLeft}>
             <Icon name="clock-outline" size={24} color={Colors.evergreenTeal} />
             <View>
-              <Text variant="titleMedium" style={styles.title}>
+              <Text style={styles.title}>
                 {componentTitle}
               </Text>
-              <Text variant="bodySmall" style={styles.subtitle}>
+              <Text style={styles.subtitle}>
                 {componentDescription}
               </Text>
             </View>
@@ -187,12 +186,12 @@ export const FocusWindowIndicator: React.FC = () => {
             activeOpacity={0.7}
           >
             <Icon name="alarm" size={32} color={Colors.textSecondary} />
-            <Text variant="bodyMedium" style={styles.setupText}>
+            <Text style={styles.setupText}>
               Set your wake time to see your peak cognitive hours
             </Text>
-            <PaperButton mode="outlined" style={styles.setupButton}>
-              Set Wake Time
-            </PaperButton>
+            <TouchableOpacity style={styles.setupButton}>
+              <Text style={styles.setupButtonText}>Set Wake Time</Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         ) : (
           <View>
@@ -203,16 +202,16 @@ export const FocusWindowIndicator: React.FC = () => {
                   size={28}
                   color={inWindow ? Colors.sunriseAmber : Colors.evergreenTeal}
                 />
-                <Text variant="labelLarge" style={[styles.focusTimeLabel, inWindow && styles.focusTimeLabelActive]}>
+                <Text style={[styles.focusTimeLabel, inWindow && styles.focusTimeLabelActive]}>
                   {inWindow ? 'IN YOUR FOCUS WINDOW NOW!' : 'Your Peak Focus Window'}
                 </Text>
               </View>
 
-              <Text variant="headlineSmall" style={[styles.focusTimeValue, inWindow && styles.focusTimeValueActive]}>
+              <Text style={[styles.focusTimeValue, inWindow && styles.focusTimeValueActive]}>
                 {focusWindow?.start} - {focusWindow?.end}
               </Text>
 
-              <Text variant="bodySmall" style={styles.focusTimeDescription}>
+              <Text style={styles.focusTimeDescription}>
                 {inWindow
                   ? 'Your brain is primed for peak performance. Great time for deep work!'
                   : 'Your brain peaks 90-180 minutes after waking. Schedule your hardest tasks here.'}
@@ -220,7 +219,7 @@ export const FocusWindowIndicator: React.FC = () => {
             </View>
 
             <View style={styles.wakeTimeRow}>
-              <Text variant="bodySmall" style={styles.wakeTimeLabel}>
+              <Text style={styles.wakeTimeLabel}>
                 Wake time: {wakeTime}
               </Text>
               <TouchableOpacity
@@ -233,7 +232,7 @@ export const FocusWindowIndicator: React.FC = () => {
                   setModalVisible(true);
                 }}
               >
-                <Text variant="bodySmall" style={styles.changeButton}>
+                <Text style={styles.changeButton}>
                   Change
                 </Text>
               </TouchableOpacity>
@@ -243,16 +242,18 @@ export const FocusWindowIndicator: React.FC = () => {
       </Card>
 
       {/* Wake Time Setup Modal */}
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => setModalVisible(false)}
-          contentContainerStyle={styles.modal}
-        >
-          <Text variant="headlineSmall" style={styles.modalTitle}>
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+        <View style={styles.modal}>
+          <Text style={styles.modalTitle}>
             Set Your Wake Time
           </Text>
-          <Text variant="bodyMedium" style={styles.modalSubtitle}>
+          <Text style={styles.modalSubtitle}>
             When do you typically wake up?
           </Text>
 
@@ -274,7 +275,7 @@ export const FocusWindowIndicator: React.FC = () => {
                   onPress={() => setShowTimePicker(true)}
                 >
                   <Icon name="clock-outline" size={24} color={Colors.evergreenTeal} />
-                  <Text variant="headlineMedium" style={styles.timeButtonText}>
+                  <Text style={styles.timeButtonText}>
                     {formatTimeDisplay(tempWakeTime)}
                   </Text>
                   <Icon name="chevron-down" size={20} color={Colors.textSecondary} />
@@ -293,30 +294,28 @@ export const FocusWindowIndicator: React.FC = () => {
 
           <View style={styles.infoBox}>
             <Icon name="information" size={20} color={Colors.evergreenTeal} />
-            <Text variant="bodySmall" style={styles.infoText}>
+            <Text style={styles.infoText}>
               Your brain reaches peak cognitive performance 90-180 minutes after waking, when your body temperature rises.
             </Text>
           </View>
 
           <View style={styles.modalActions}>
-            <PaperButton
-              mode="outlined"
+            <TouchableOpacity
               onPress={() => setModalVisible(false)}
-              style={styles.modalButton}
+              style={[styles.modalButton, styles.modalButtonOutline]}
             >
-              Cancel
-            </PaperButton>
-            <PaperButton
-              mode="contained"
+              <Text style={styles.modalButtonOutlineText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={handleSaveWakeTime}
-              style={styles.modalButton}
-              buttonColor={Colors.evergreenTeal}
+              style={[styles.modalButton, styles.modalButtonPrimary]}
             >
-              Save
-            </PaperButton>
+              <Text style={styles.modalButtonPrimaryText}>Save</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </Portal>
+        </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -360,6 +359,18 @@ const styles = StyleSheet.create({
   },
   setupButton: {
     marginTop: Spacing.sm,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  setupButtonText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
   focusTimeCard: {
     backgroundColor: Colors.dewSage,
@@ -466,11 +477,38 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     lineHeight: Typography.fontSize.xs * 1.6,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modalActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
   modalButton: {
     flex: 1,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalButtonOutline: {
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+  },
+  modalButtonOutlineText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  modalButtonPrimary: {
+    backgroundColor: Colors.evergreenTeal,
+  },
+  modalButtonPrimaryText: {
+    color: Colors.white,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });

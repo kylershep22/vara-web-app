@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback, memo, useRef } from 'react';
-import { View, StyleSheet, SectionList, TouchableOpacity, Alert, TextInput as RNTextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView } from 'react-native';
-import { Text, Portal, Modal, Button as PaperButton, Chip, IconButton } from 'react-native-paper';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, Alert, TextInput as RNTextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Button,
@@ -158,11 +157,16 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
   return (
     <Modal
       visible={visible}
-      onDismiss={handleDismiss}
-      contentContainerStyle={styles.modal}
+      transparent
+      animationType="fade"
+      onRequestClose={handleDismiss}
     >
+    <TouchableWithoutFeedback onPress={handleDismiss}>
+      <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center'}}>
+        <TouchableWithoutFeedback onPress={() => {}}>
+    <View style={styles.modal}>
       <View style={styles.modalHeader}>
-        <Text variant="headlineSmall" style={styles.modalTitle}>
+        <Text style={styles.modalTitle}>
           {editingEntry ? 'Edit Entry' : 'New Journal Entry'}
         </Text>
       </View>
@@ -179,7 +183,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
         >
 
           {/* Mood Selector */}
-          <Text variant="bodyMedium" style={styles.fieldLabel}>
+          <Text style={styles.fieldLabel}>
             How are you feeling?
           </Text>
           <View style={styles.moodButtons}>
@@ -211,10 +215,10 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
           </View>
 
           {/* Brain Health Reflection Prompts */}
-          <Text variant="bodyMedium" style={styles.fieldLabel}>
+          <Text style={styles.fieldLabel}>
             Reflection Prompts
           </Text>
-          <Text variant="bodySmall" style={styles.helpText}>
+          <Text style={styles.helpText}>
             Tap a prompt to add it to your entry
           </Text>
           <View style={styles.promptsContainer}>
@@ -230,20 +234,20 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
           </View>
 
           {/* AI Prompt Button */}
-          <PaperButton
-            mode="outlined"
+          <TouchableOpacity
             onPress={() => handleGetAIPrompt()}
-            loading={loadingPrompt}
             disabled={loadingPrompt}
-            style={styles.aiPromptButton}
-            icon="lightbulb-outline"
+            style={[styles.aiPromptButton, {flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.evergreenTeal, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, opacity: loadingPrompt ? 0.5 : 1}]}
           >
-            Get AI Writing Prompt
-          </PaperButton>
+            <Ionicons name="bulb-outline" size={18} color={Colors.evergreenTeal} style={{marginRight: 8}} />
+            <Text style={{color: Colors.evergreenTeal, fontSize: 14, fontWeight: '500'}}>
+              {loadingPrompt ? 'Loading...' : 'Get AI Writing Prompt'}
+            </Text>
+          </TouchableOpacity>
 
           {/* Content Input with Voice Button */}
           <View style={styles.contentInputContainer}>
-            <Text variant="bodyMedium" style={styles.fieldLabel}>
+            <Text style={styles.fieldLabel}>
               What's on your mind? *
             </Text>
             <View style={styles.textInputWithVoice}>
@@ -273,7 +277,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
           </View>
 
           {/* Tags Input */}
-          <Text variant="bodyMedium" style={styles.fieldLabel}>
+          <Text style={styles.fieldLabel}>
             Tags (optional)
           </Text>
           <View style={styles.tagInputContainer}>
@@ -290,58 +294,54 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
               blurOnSubmit={true}
               inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
             />
-            <PaperButton
-              mode="contained"
+            <TouchableOpacity
               onPress={() => {
                 handleAddTag();
                 Keyboard.dismiss();
               }}
               disabled={!tagInput.trim()}
-              style={styles.addTagButton}
-              buttonColor={Colors.evergreenTeal}
+              style={[styles.addTagButton, {backgroundColor: Colors.evergreenTeal, borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center', opacity: !tagInput.trim() ? 0.5 : 1}]}
             >
-              Add
-            </PaperButton>
+              <Text style={{color: '#fff', fontSize: 14, fontWeight: '500'}}>Add</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Tags Display */}
           {tags.length > 0 && (
             <View style={styles.tagsDisplay}>
               {tags.map((tag) => (
-                <Chip
-                  key={tag}
-                  style={styles.editTag}
-                  textStyle={styles.tagText}
-                  onClose={() => handleRemoveTag(tag)}
-                >
-                  #{tag}
-                </Chip>
+                <View key={tag} style={[styles.editTag, {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16}]}>
+                  <Text style={styles.tagText}>#{tag}</Text>
+                  <TouchableOpacity onPress={() => handleRemoveTag(tag)} style={{marginLeft: 6}}>
+                    <Ionicons name="close-circle" size={16} color={Colors.evergreenTeal} />
+                  </TouchableOpacity>
+                </View>
               ))}
             </View>
           )}
 
           {/* Modal Actions */}
           <View style={styles.modalActions}>
-            <PaperButton
-              mode="outlined"
+            <TouchableOpacity
               onPress={handleDismiss}
-              style={styles.modalButton}
+              style={[styles.modalButton, {borderWidth: 1, borderColor: Colors.border, borderRadius: 8, paddingVertical: 10, alignItems: 'center' as const}]}
             >
-              Cancel
-            </PaperButton>
-            <PaperButton
-              mode="contained"
+              <Text style={{color: Colors.textPrimary, fontSize: 14, fontWeight: '500'}}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={handleSubmit}
-              loading={submitting}
               disabled={submitting}
-              style={styles.modalButton}
-              buttonColor={Colors.evergreenTeal}
+              style={[styles.modalButton, {backgroundColor: Colors.evergreenTeal, borderRadius: 8, paddingVertical: 10, alignItems: 'center' as const, opacity: submitting ? 0.5 : 1}]}
             >
-              {editingEntry ? 'Update' : 'Save'}
-            </PaperButton>
+              <Text style={{color: '#fff', fontSize: 14, fontWeight: '500'}}>{submitting ? 'Saving...' : (editingEntry ? 'Update' : 'Save')}</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+    </View>
+        </TouchableWithoutFeedback>
+      </View>
+    </TouchableWithoutFeedback>
     </Modal>
   );
 });
@@ -528,10 +528,10 @@ const JournalScreen: React.FC = () => {
           <Ionicons name="chevron-back" size={28} color={Colors.evergreenTeal} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text variant="headlineMedium" style={styles.screenTitle}>
+          <Text style={styles.screenTitle}>
             Journal
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             Reflect on your wellness journey
           </Text>
         </View>
@@ -572,10 +572,10 @@ const JournalScreen: React.FC = () => {
           ) : (
             <>
               <Text style={styles.emptyIcon}>📔</Text>
-              <Text variant="titleMedium" style={styles.emptyTitle}>
+              <Text style={styles.emptyTitle}>
                 {searchQuery || selectedTagFilter ? 'No entries found' : 'No journal entries yet'}
               </Text>
-              <Text variant="bodyMedium" style={styles.emptyText}>
+              <Text style={styles.emptyText}>
                 {searchQuery || selectedTagFilter
                   ? 'Try a different search or filter'
                   : 'Start journaling to track your thoughts and feelings'}
@@ -605,22 +605,24 @@ const JournalScreen: React.FC = () => {
       )}
 
       {/* Create/Edit Modal - Extracted to prevent re-renders */}
-      <Portal>
-        <JournalEntryModal
-          visible={modalVisible}
-          editingEntry={editingEntry}
-          onDismiss={handleCloseModal}
-          onSubmit={handleSubmitEntry}
-        />
-      </Portal>
+      <JournalEntryModal
+        visible={modalVisible}
+        editingEntry={editingEntry}
+        onDismiss={handleCloseModal}
+        onSubmit={handleSubmitEntry}
+      />
 
       {/* Entry Detail Modal */}
-      <Portal>
-        <Modal
-          visible={detailModalVisible}
-          onDismiss={() => setDetailModalVisible(false)}
-          contentContainerStyle={styles.detailModal}
-        >
+      <Modal
+        visible={detailModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDetailModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setDetailModalVisible(false)}>
+          <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center'}}>
+            <TouchableWithoutFeedback onPress={() => {}}>
+        <View style={styles.detailModal}>
           <ScrollView showsVerticalScrollIndicator={true}>
             {selectedEntry && (
               <>
@@ -633,7 +635,7 @@ const JournalScreen: React.FC = () => {
                       </Text>
                     </View>
                     <View style={styles.detailDateContainer}>
-                      <Text variant="titleMedium" style={styles.detailDate}>
+                      <Text style={styles.detailDate}>
                         {selectedEntry.createdAt?.seconds
                           ? new Date(selectedEntry.createdAt.seconds * 1000).toLocaleDateString('en-US', {
                               weekday: 'long',
@@ -643,7 +645,7 @@ const JournalScreen: React.FC = () => {
                             })
                           : 'Date unavailable'}
                       </Text>
-                      <Text variant="bodySmall" style={styles.detailTime}>
+                      <Text style={styles.detailTime}>
                         {selectedEntry.createdAt?.seconds
                           ? new Date(selectedEntry.createdAt.seconds * 1000).toLocaleTimeString('en-US', {
                               hour: 'numeric',
@@ -655,59 +657,57 @@ const JournalScreen: React.FC = () => {
                   </View>
                 </View>
 
-                <Text variant="bodyLarge" style={styles.detailContent}>
+                <Text style={styles.detailContent}>
                   {selectedEntry.text || selectedEntry.content || ''}
                 </Text>
 
                 {selectedEntry.tags && selectedEntry.tags.length > 0 && (
                   <View style={styles.detailTagsContainer}>
                     {selectedEntry.tags.map((tag) => (
-                      <Chip key={tag} style={styles.detailTag} textStyle={styles.tagText}>
-                        #{tag}
-                      </Chip>
+                      <View key={tag} style={[styles.detailTag, {paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16}]}>
+                        <Text style={styles.tagText}>#{tag}</Text>
+                      </View>
                     ))}
                   </View>
                 )}
 
                 <View style={styles.detailActions}>
-                  <PaperButton
-                    mode="outlined"
+                  <TouchableOpacity
                     onPress={() => {
                       setDetailModalVisible(false);
                       handleEditEntry(selectedEntry);
                     }}
-                    style={styles.detailActionButton}
-                    icon="pencil"
+                    style={[styles.detailActionButton, {flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border, borderRadius: 8, paddingVertical: 10}]}
                   >
-                    Edit
-                  </PaperButton>
-                  <PaperButton
-                    mode="outlined"
+                    <Ionicons name="pencil-outline" size={16} color={Colors.textPrimary} style={{marginRight: 6}} />
+                    <Text style={{color: Colors.textPrimary, fontSize: 14, fontWeight: '500'}}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     onPress={() => {
                       setDetailModalVisible(false);
                       handleDeleteEntry(selectedEntry.id);
                     }}
-                    style={styles.detailActionButton}
-                    icon="delete"
-                    textColor={Colors.error}
+                    style={[styles.detailActionButton, {flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border, borderRadius: 8, paddingVertical: 10}]}
                   >
-                    Delete
-                  </PaperButton>
+                    <Ionicons name="trash-outline" size={16} color={Colors.error} style={{marginRight: 6}} />
+                    <Text style={{color: Colors.error, fontSize: 14, fontWeight: '500'}}>Delete</Text>
+                  </TouchableOpacity>
                 </View>
 
-                <PaperButton
-                  mode="contained"
+                <TouchableOpacity
                   onPress={() => setDetailModalVisible(false)}
-                  style={styles.closeButton}
-                  buttonColor={Colors.evergreenTeal}
+                  style={[styles.closeButton, {backgroundColor: Colors.evergreenTeal, borderRadius: 8, paddingVertical: 12, alignItems: 'center' as const}]}
                 >
-                  Close
-                </PaperButton>
+                  <Text style={{color: '#fff', fontSize: 14, fontWeight: '500'}}>Close</Text>
+                </TouchableOpacity>
               </>
             )}
           </ScrollView>
-        </Modal>
-      </Portal>
+        </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       {/* Keyboard Accessory Toolbar (iOS) */}
       {Platform.OS === 'ios' && (

@@ -9,8 +9,7 @@
  */
 
 import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Animated, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -159,11 +158,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(213, 227, 209, 0.33)',
     borderRadius: 12,
     padding: 16,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.softCharcoal,
     marginBottom: Spacing.sm,
@@ -180,10 +179,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 12,
   },
   requirementText: {
-    fontSize: 13,
+    fontSize: 14,
   },
 });
 

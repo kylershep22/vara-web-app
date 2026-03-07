@@ -428,7 +428,7 @@ const calculateConsistencyPillar = (
     label: hasStreakData ? `Active runs: ${activeStreaks}` : 'Streaks: Build consistency',
     hasData: hasStreakData,
     actionRoute: 'Habits',
-    actionLabel: 'Build streaks',
+    actionLabel: 'Keep returning',
   });
 
   if (hasStreakData) {
@@ -658,7 +658,7 @@ const determineInsights = (
     stressLevel: 'Take a few deep breaths or try a calming exercise',
     habitCompliance: 'Complete one more habit to boost your score',
     fourThreeTwoOne: 'Try the 4-3-2-1 practice before bed',
-    streakBonus: 'Keep showing up to build momentum',
+    streakBonus: 'Consistency supports progress',
     mood: 'Try journaling about how you feel',
     journalActivity: 'Take 5 minutes to journal today',
     nervousSystemRegulation: 'Try a physiological sigh to calm your nervous system',

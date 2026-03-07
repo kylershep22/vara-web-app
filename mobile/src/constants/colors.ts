@@ -1,7 +1,9 @@
 /**
  * Vara Color Palette
- * Extracted from web app design system
+ * Canonical color definitions for the Vara mobile app
  */
+
+import { ColorTokens } from '../tokens/design-tokens';
 
 export const Colors = {
   // Primary Colors
@@ -12,7 +14,6 @@ export const Colors = {
   // Secondary Colors
   sunriseAmber: '#F4C542',
   goldenApricot: '#F5B971',
-  warmClay: '#E4BFA1',
   secondary: {
     amber: '#F4C542',
     sage: '#B8CDBA',
@@ -23,11 +24,10 @@ export const Colors = {
   mistWhite: '#FAFAF6',
   softCharcoal: '#3E3E3E',
   white: '#FFFFFF',
-  black: '#000000',
+  shadowColor: '#000000', // Only for shadows, never for text
 
-  // Extended Palette
-  mintCream: '#E8F5F2',        // Soft teal-tinted background
-  mutedSageGray: '#6F7F77',    // Muted sage gray for secondary text/icons (aligned with textSecondary)
+  // Muted Sage Gray for secondary text/icons
+  mutedSageGray: '#6F7F77',
 
   // Derived Alpha Colors
   tealLight: 'rgba(27,94,87,0.08)',       // Selected state tints, active badge bg
@@ -37,8 +37,6 @@ export const Colors = {
 
   // Accent Colors
   dewSage: '#D5E3D1',
-  oliveSage: '#9AAE8C',
-  lavenderMist: '#C7B8EA',
   softCoral: '#D97A6E',
 
   // Functional Colors
@@ -47,46 +45,27 @@ export const Colors = {
     surface: '#FFFFFF',
   },
   surface: '#FFFFFF',
-  error: '#D97A6E',            // Soft Coral - brand compliant (never use red #FF0000)
-  success: '#1B5E57',          // Use primary teal for success states, not bright green
+  error: '#D97A6E',            // Soft Coral - brand compliant (never use red)
+  success: '#1B5E57',          // Use primary teal for success states
   warning: '#F5B971',          // Golden Apricot for warnings
   info: '#1B5E57',             // Use primary for info states
-
-  // Focus Page Spec Tokens (aliases for design system compliance)
-  focusTokens: {
-    primary: '#1B5E57',
-    backgroundPrimary: '#FAFAF6',
-    backgroundSurface: '#FFFFFF',
-    secondary: '#B8CDBA',
-    surfaceTinted: '#D5E3D1',
-    surfaceTintedLight: 'rgba(213, 227, 209, 0.5)',
-    accentWarm: '#F4C542',
-    accentApricot: '#F5B971',
-    textPrimary: '#3E3E3E',
-    textSecondary: '#6F7F77',
-    error: '#D97A6E',
-    primaryLight: 'rgba(27, 94, 87, 0.08)',
-    primaryMedium: 'rgba(27, 94, 87, 0.15)',
-    disabled: 'rgba(184, 205, 186, 0.5)',
-    secondaryLight: 'rgba(184, 205, 186, 0.25)',
-  },
 
   // Text Colors
   text: {
     primary: '#3E3E3E',
-    secondary: '#6F7F77',       // Updated per Focus spec for better brand alignment
-    disabled: '#BDBDBD',
+    secondary: '#6F7F77',
+    disabled: 'rgba(184,205,186,0.5)', // Silver Sage at 50% opacity
     onPrimary: '#FFFFFF',
   },
   textPrimary: '#3E3E3E',
-  textSecondary: '#6F7F77',     // Updated per Focus spec
-  textDisabled: '#BDBDBD',
+  textSecondary: '#6F7F77',
+  textDisabled: 'rgba(184,205,186,0.5)', // Silver Sage at 50% opacity
   textOnPrimary: '#FFFFFF',
 
-  // Border Colors
-  border: '#E0E0E0',
-  borderLight: '#F5F5F5',
-  borderDark: '#D0D0D0',
+  // Border Colors (Silver Sage at varying opacities)
+  border: 'rgba(184,205,186,0.6)',       // Silver Sage at 60%
+  borderLight: 'rgba(184,205,186,0.3)',  // Silver Sage at 30%
+  borderDark: 'rgba(184,205,186,0.8)',   // Silver Sage at 80%
 
   // Input Colors
   inputBackground: '#FFFFFF',
@@ -96,25 +75,34 @@ export const Colors = {
   // Shadow Color
   shadow: '#000000',
 
-  // Priority Colors (for tasks)
+  // Priority Colors (permitted palette at opacity)
   priority: {
-    high: '#FFEBEE',
-    medium: '#FFF3E0',
-    low: '#E8F5E9',
+    high: 'rgba(217,122,110,0.15)',    // Soft Coral at 15%
+    medium: 'rgba(245,185,113,0.15)',  // Golden Apricot (sunriseAmber) at 15%
+    low: 'rgba(213,227,209,1)',        // Dew Sage
   },
 
-  // Brain Health Pillar Colors (Accessible naming)
+  // Brain Health Pillar Colors
   brainPillars: {
-    growth: '#1B5E57',      // Evergreen Teal - learning, adaptation
-    energy: '#F4C542',      // Sunrise Amber - vitality, recharge
-    focus: '#B8CDBA',       // Silver Sage - attention, clarity
-    resilience: '#F5B971',  // Golden Apricot - recovery, strength
-    connection: '#C7B8EA',  // Lavender Mist - relationships, belonging
+    growth: '#1B5E57',      // Evergreen Teal
+    energy: '#F4C542',      // Sunrise Amber
+    focus: '#B8CDBA',       // Silver Sage
+    resilience: '#F5B971',  // Golden Apricot
+    connection: '#D5E3D1',  // Dew Sage (replaced Lavender Mist)
   },
 
   // Overlay
   overlay: 'rgba(0, 0, 0, 0.5)',
   overlayLight: 'rgba(0, 0, 0, 0.3)',
+
+  // Legacy aliases (mapped to permitted palette, will be removed)
+  mintCream: '#D5E3D1',       // → dewSage
+  oliveSage: '#B8CDBA',       // → silverSage
+  lavenderMist: '#D5E3D1',    // → dewSage
+  warmClay: '#D97A6E',        // → softCoral
 } as const;
+
+// Canonical source - all new code should import ColorTokens directly
+export { ColorTokens };
 
 export type ColorKey = keyof typeof Colors;

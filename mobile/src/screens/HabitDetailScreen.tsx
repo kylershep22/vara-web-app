@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Divider } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Button, Input, EnhancedModal, ModalFooterActions, BaseCard } from '../components';
@@ -141,27 +140,17 @@ const HabitDetailScreen: React.FC = () => {
           )}
         </BaseCard>
 
-        {/* Consistency Stats Card */}
+        {/* Monthly Engagement Card */}
         <BaseCard style={styles.statsCard}>
-          <Text style={styles.sectionTitle}>Your Progress</Text>
+          <Text style={styles.sectionTitle}>This Month</Text>
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <View style={styles.statIconContainer}>
                 <Icon name="leaf" size={24} color={Colors.evergreenTeal} />
               </View>
-              <Text style={styles.statValue}>{habit.streak}</Text>
-              <Text style={styles.statLabel}>Current Run</Text>
-            </View>
-
-            <View style={styles.statDivider} />
-
-            <View style={styles.statItem}>
-              <View style={styles.statIconContainer}>
-                <Icon name="trophy" size={24} color={Colors.evergreenTeal} />
-              </View>
-              <Text style={styles.statValue}>{habit.longestStreak}</Text>
-              <Text style={styles.statLabel}>Best Run</Text>
+              <Text style={styles.statValue}>{habit.streak || 0}</Text>
+              <Text style={styles.statLabel}>Days completed this month</Text>
             </View>
           </View>
         </BaseCard>

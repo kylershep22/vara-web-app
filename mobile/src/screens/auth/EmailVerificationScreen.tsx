@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Linking,
   Platform,
+  AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -40,7 +41,7 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navig
     }
   }, [cooldownSeconds, resendState]);
 
-  // Check for email verification status periodically
+  // Check for email verification status periodically and on app focus
   useEffect(() => {
     const checkVerification = async () => {
       try {
@@ -50,9 +51,20 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navig
       }
     };
 
-    // Check every 5 seconds
-    const interval = setInterval(checkVerification, 5000);
-    return () => clearInterval(interval);
+    // Check every 2 seconds for faster detection
+    const interval = setInterval(checkVerification, 2000);
+
+    // Also check immediately when user returns to the app (e.g. from email app)
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        checkVerification();
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+    };
   }, [refreshUser]);
 
   /**

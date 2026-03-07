@@ -34,6 +34,7 @@ import InsightsScreen from '../screens/InsightsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
+import MutedAccountsScreen from '../screens/MutedAccountsScreen';
 import NotificationOptInScreen from '../screens/NotificationOptInScreen';
 import ConversationsScreen from '../screens/ConversationsScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -52,6 +53,9 @@ import {
   PeopleScreen,
   MessagesScreen,
   UserProfileScreen,
+  ReportReasonScreen,
+  ReportDetailScreen,
+  ReportConfirmationScreen,
 } from '../screens/community';
 
 // Onboarding screens (new streamlined flow)
@@ -228,6 +232,21 @@ const CommunityNavigator = () => {
           headerShown: false, // UserProfileScreen has custom header
         }}
       />
+      <CommunityStack.Screen
+        name="ReportReason"
+        component={ReportReasonScreen}
+        options={{ headerShown: false }}
+      />
+      <CommunityStack.Screen
+        name="ReportDetail"
+        component={ReportDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <CommunityStack.Screen
+        name="ReportConfirmation"
+        component={ReportConfirmationScreen}
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
     </CommunityStack.Navigator>
   );
 };
@@ -347,6 +366,13 @@ const ProfileNavigator = () => {
           headerShown: false, // NotificationSettingsScreen has its own header
         }}
       />
+      <ProfileStack.Screen
+        name="MutedAccounts"
+        component={MutedAccountsScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
     </ProfileStack.Navigator>
   );
 };
@@ -371,7 +397,7 @@ const BottomTabsNavigator = () => {
           height: 62,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '600',
         },
       }}
@@ -749,6 +775,8 @@ const AppNavigator: React.FC = () => {
         const userRef = firestoreDoc(db, 'users', user.uid);
 
         // Set up real-time listener for onboarding status
+        let backfillDone = false;
+
         unsubscribe = onSnapshot(
           userRef,
           async (docSnapshot) => {
@@ -759,12 +787,18 @@ const AppNavigator: React.FC = () => {
               // as having completed onboarding.
               // Only users explicitly set to false (new signups) see onboarding.
               const completed = userData.hasCompletedOnboarding !== false;
-              setHasCompletedOnboarding(completed);
-              setCheckingOnboarding(false);
-              console.log('📱 Onboarding status updated:', userData.hasCompletedOnboarding, '→ completed:', completed);
 
-              // Backfill: if existing user has no onboarding field, persist it
-              if (completed && userData.hasCompletedOnboarding === undefined) {
+              // Only update state if value actually changed to prevent re-render loops
+              setHasCompletedOnboarding((prev) => {
+                if (prev === completed) return prev;
+                console.log('📱 Onboarding status updated:', userData.hasCompletedOnboarding, '→ completed:', completed);
+                return completed;
+              });
+              setCheckingOnboarding(false);
+
+              // Backfill: if existing user has no onboarding field, persist it (once)
+              if (completed && userData.hasCompletedOnboarding === undefined && !backfillDone) {
+                backfillDone = true;
                 try {
                   const { updateDoc } = await import('firebase/firestore');
                   await updateDoc(userRef, { hasCompletedOnboarding: true });
@@ -775,20 +809,35 @@ const AppNavigator: React.FC = () => {
                 }
               }
             } else {
-              // If user document doesn't exist, create it
+              // If user document doesn't exist, create it.
+              // Use merge to avoid overwriting if the doc exists but was
+              // missing from the local cache (offline / cache miss).
               try {
-                await setDoc(userRef, {
-                  uid: user.uid,
-                  email: user.email || '',
-                  displayName: user.displayName || '',
-                  hasCompletedOnboarding: false,
-                  createdAt: serverTimestamp(),
-                  updatedAt: serverTimestamp(),
-                });
-                console.log('📱 User document created');
+                const { getDoc: firestoreGetDoc } = await import('firebase/firestore');
+                const freshSnap = await firestoreGetDoc(userRef);
+                if (freshSnap.exists()) {
+                  // Doc actually exists — cache was stale. Read its data.
+                  const userData = freshSnap.data();
+                  const completed = userData.hasCompletedOnboarding !== false;
+                  setHasCompletedOnboarding(completed);
+                  setCheckingOnboarding(false);
+                  console.log('📱 User document found on re-check, onboarding:', completed);
+                } else {
+                  // Truly new — create with merge to be safe
+                  await setDoc(userRef, {
+                    uid: user.uid,
+                    email: user.email || '',
+                    displayName: user.displayName || '',
+                    hasCompletedOnboarding: false,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                  }, { merge: true });
+                  console.log('📱 User document created');
+                }
               } catch (createError) {
                 console.error('Error creating user document:', createError);
-                setHasCompletedOnboarding(false);
+                // On error, assume completed to avoid blocking existing users
+                setHasCompletedOnboarding(true);
                 setCheckingOnboarding(false);
               }
             }
@@ -858,8 +907,8 @@ const AppNavigator: React.FC = () => {
         <OnboardingNavigator />
       // BETA: Paywall disabled during TestFlight testing
       // TODO: Re-enable when ready to launch
-      // ) : subscriptionStatus && !subscriptionStatus.canAccessApp ? (
-      //   // User has expired subscription -> Show paywall
+      // ) : subscriptionStatus?.canAccessApp === false ? (
+      //   // User cannot access app (expired trial or subscription) -> Show paywall
       //   <PaywallNavigator />
       ) : (
         // User is logged in, verified, onboarded, and has active subscription -> Show main app

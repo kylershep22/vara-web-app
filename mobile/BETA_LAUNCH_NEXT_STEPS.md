@@ -8,7 +8,7 @@
 - ✅ Production `.env` file configured with Firebase credentials
 - ✅ Privacy Policy created (`PRIVACY_POLICY.md`)
 - ✅ Terms of Service created (`TERMS_OF_SERVICE.md`)
-- ✅ Backend verified (Firebase Cloud Functions deployed at `https://api-u4g4e6pvga-uc.a.run.app`)
+- ✅ Backend verified (Firebase Cloud Functions deployed at `https://[your-api-url]`)
 
 ---
 
@@ -50,11 +50,11 @@
 
 ### Step 2: Firebase iOS & Android App Registration
 
-Your Firebase project (vara-4a99f) currently only has a web app. You need to register iOS and Android apps for push notifications and mobile-specific features.
+Your Firebase project (your-project-id) currently only has a web app. You need to register iOS and Android apps for push notifications and mobile-specific features.
 
 **Register iOS App:**
 
-1. Go to [Firebase Console](https://console.firebase.google.com/project/vara-4a99f/settings/general)
+1. Go to [Firebase Console](https://console.firebase.google.com/project/your-project-id/settings/general)
 2. Click "Add app" → iOS
 3. Enter iOS Bundle ID: `com.vara.wellness`
 4. Download `GoogleService-Info.plist` (you'll need this later if using native Firebase)
@@ -98,8 +98,8 @@ Apple and Google require publicly accessible URLs for your privacy policy and te
    ```
 
 3. Your URLs will be:
-   - Privacy: `https://vara-4a99f.web.app/legal/privacy.html`
-   - Terms: `https://vara-4a99f.web.app/legal/terms.html`
+   - Privacy: `https://your-project-id.web.app/legal/privacy.html`
+   - Terms: `https://your-project-id.web.app/legal/terms.html`
 
 **Option B: Use GitHub Pages (FREE)**
 
@@ -358,12 +358,12 @@ Thanks for your help! 🙏
 Once testers are using the app, monitor:
 
 **Firebase Crashlytics** (FREE)
-- Go to [Firebase Console → Crashlytics](https://console.firebase.google.com/project/vara-4a99f/crashlytics)
+- Go to [Firebase Console → Crashlytics](https://console.firebase.google.com/project/your-project-id/crashlytics)
 - Monitor crash-free rate (target: >99%)
 - Fix critical crashes immediately
 
 **Firebase Analytics** (FREE)
-- Go to [Firebase Console → Analytics](https://console.firebase.google.com/project/vara-4a99f/analytics)
+- Go to [Firebase Console → Analytics](https://console.firebase.google.com/project/your-project-id/analytics)
 - Track:
   - Daily Active Users (DAU)
   - Sign-ups vs logins
@@ -512,7 +512,7 @@ Before your first build:
 ## Support & Resources
 
 **EAS Documentation:** https://docs.expo.dev/build/introduction/
-**Firebase Console:** https://console.firebase.google.com/project/vara-4a99f
+**Firebase Console:** https://console.firebase.google.com/project/your-project-id
 **App Store Connect:** https://appstoreconnect.apple.com
 **Google Play Console:** https://play.google.com/console
 

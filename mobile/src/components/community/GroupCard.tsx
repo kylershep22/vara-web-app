@@ -4,8 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Platform, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout, getGroupCategory } from '../../constants';
 import { getUserById, UserProfile } from '../../services/firebase/community.service';
@@ -303,7 +302,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.evergreenTeal,
   },
@@ -316,7 +315,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   joinButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.white,
   },

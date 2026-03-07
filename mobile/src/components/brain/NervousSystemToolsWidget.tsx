@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { Text, Portal, Modal, Button as PaperButton } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Card } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -163,17 +162,17 @@ export const NervousSystemToolsWidget: React.FC = () => {
           <View style={styles.headerLeft}>
             <Icon name="meditation" size={24} color={Colors.evergreenTeal} />
             <View>
-              <Text variant="titleMedium" style={styles.title}>
+              <Text style={styles.title}>
                 {componentTitle}
               </Text>
-              <Text variant="bodySmall" style={styles.subtitle}>
+              <Text style={styles.subtitle}>
                 {weeklyCount} sessions this week
               </Text>
             </View>
           </View>
         </View>
 
-        <Text variant="bodySmall" style={styles.description}>
+        <Text style={styles.description}>
           {componentDescription}
         </Text>
 
@@ -187,10 +186,10 @@ export const NervousSystemToolsWidget: React.FC = () => {
             <View style={styles.toolIconContainer}>
               <Icon name="lung" size={32} color={Colors.evergreenTeal} />
             </View>
-            <Text variant="labelMedium" style={styles.toolLabel}>
+            <Text style={styles.toolLabel}>
               {physiologicalSighTitle.replace(' ', '\n')}
             </Text>
-            <Text variant="bodySmall" style={styles.toolDuration}>
+            <Text style={styles.toolDuration}>
               60s
             </Text>
           </TouchableOpacity>
@@ -203,10 +202,10 @@ export const NervousSystemToolsWidget: React.FC = () => {
             <View style={styles.toolIconContainer}>
               <Icon name="eye-outline" size={32} color={Colors.evergreenTeal} />
             </View>
-            <Text variant="labelMedium" style={styles.toolLabel}>
+            <Text style={styles.toolLabel}>
               {panoramicVisionTitle.replace(' ', '\n')}
             </Text>
-            <Text variant="bodySmall" style={styles.toolDuration}>
+            <Text style={styles.toolDuration}>
               60s
             </Text>
           </TouchableOpacity>
@@ -214,17 +213,19 @@ export const NervousSystemToolsWidget: React.FC = () => {
       </Card>
 
       {/* Physiological Sigh Modal */}
-      <Portal>
-        <Modal
-          visible={activeTool === 'physiological-sigh'}
-          onDismiss={handleClose}
-          contentContainerStyle={styles.modal}
-        >
+      <Modal
+        visible={activeTool === 'physiological-sigh'}
+        transparent
+        animationType="fade"
+        onRequestClose={handleClose}
+      >
+        <View style={styles.modalOverlay}>
+        <View style={styles.modal}>
           <View style={styles.modalContent}>
-            <Text variant="headlineSmall" style={styles.modalTitle}>
+            <Text style={styles.modalTitle}>
               Physiological Sigh
             </Text>
-            <Text variant="bodyMedium" style={styles.modalSubtitle}>
+            <Text style={styles.modalSubtitle}>
               Double inhale + long exhale
             </Text>
 
@@ -242,40 +243,39 @@ export const NervousSystemToolsWidget: React.FC = () => {
               </Animated.View>
             </View>
 
-            <Text variant="titleLarge" style={styles.timerText}>
+            <Text style={styles.timerText}>
               {formatTime(timer)}
             </Text>
 
-            <Text variant="bodyMedium" style={styles.instructionText}>
+            <Text style={styles.instructionText}>
               {timer > 50 ? 'Deep inhale through nose...' :
                timer > 49 ? 'Quick second inhale...' :
                timer > 43 ? 'Long exhale through mouth...' :
                'Continue the rhythm...'}
             </Text>
 
-            <PaperButton
-              mode="outlined"
-              onPress={handleClose}
-              style={styles.closeButton}
-            >
-              Close
-            </PaperButton>
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </Portal>
+        </View>
+        </View>
+      </Modal>
 
       {/* Panoramic Vision Modal */}
-      <Portal>
-        <Modal
-          visible={activeTool === 'panoramic-vision'}
-          onDismiss={handleClose}
-          contentContainerStyle={styles.modal}
-        >
+      <Modal
+        visible={activeTool === 'panoramic-vision'}
+        transparent
+        animationType="fade"
+        onRequestClose={handleClose}
+      >
+        <View style={styles.modalOverlay}>
+        <View style={styles.modal}>
           <View style={styles.modalContent}>
-            <Text variant="headlineSmall" style={styles.modalTitle}>
+            <Text style={styles.modalTitle}>
               Panoramic Vision
             </Text>
-            <Text variant="bodyMedium" style={styles.modalSubtitle}>
+            <Text style={styles.modalSubtitle}>
               Soften your gaze and expand awareness
             </Text>
 
@@ -283,27 +283,24 @@ export const NervousSystemToolsWidget: React.FC = () => {
               <Icon name="eye-outline" size={64} color={Colors.evergreenTeal} />
             </View>
 
-            <Text variant="titleLarge" style={styles.timerText}>
+            <Text style={styles.timerText}>
               {formatTime(timer)}
             </Text>
 
-            <Text variant="bodyMedium" style={styles.instructionText}>
+            <Text style={styles.instructionText}>
               {timer > 45 ? 'Soften your gaze and relax your eyes...' :
                timer > 30 ? 'Expand your peripheral vision...' :
                timer > 15 ? 'Notice 5 things without moving your eyes...' :
                'Feel the calming effect...'}
             </Text>
 
-            <PaperButton
-              mode="outlined"
-              onPress={handleClose}
-              style={styles.closeButton}
-            >
-              Close
-            </PaperButton>
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </Portal>
+        </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -418,7 +415,24 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
     lineHeight: Typography.fontSize.base * 1.6,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   closeButton: {
     minWidth: 120,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });

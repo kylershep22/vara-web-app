@@ -6,12 +6,13 @@
 import React, { useState, useMemo } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   Modal,
+  TextInput,
 } from 'react-native';
-import { Text, Searchbar, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import {
@@ -107,15 +108,15 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
             {selectedInterests.map((interestId) => {
               const interest = getInterestById(interestId);
               return (
-                <Chip
-                  key={interestId}
-                  style={styles.chip}
-                  textStyle={styles.chipText}
-                  onClose={() => removeInterest(interestId)}
-                  closeIconAccessibilityLabel="Remove interest"
-                >
-                  {interest?.label || interestId}
-                </Chip>
+                <View key={interestId} style={styles.chip}>
+                  <Text style={styles.chipText}>{interest?.label || interestId}</Text>
+                  <TouchableOpacity
+                    onPress={() => removeInterest(interestId)}
+                    accessibilityLabel="Remove interest"
+                  >
+                    <Icon name="close-circle" size={18} color={Colors.evergreenTeal} />
+                  </TouchableOpacity>
+                </View>
               );
             })}
           </View>
@@ -155,13 +156,16 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
           </View>
 
           {/* Search */}
-          <Searchbar
-            placeholder="Search interests..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={styles.searchbar}
-            iconColor={Colors.evergreenTeal}
-          />
+          <View style={styles.searchbar}>
+            <Icon name="magnify" size={20} color={Colors.evergreenTeal} />
+            <TextInput
+              placeholder="Search interests..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchbarInput}
+              placeholderTextColor={Colors.textSecondary}
+            />
+          </View>
 
           {/* Category Filters */}
           <ScrollView
@@ -316,8 +320,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
     backgroundColor: Colors.mintCream,
     height: 32,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
   },
   chipText: {
     color: Colors.evergreenTeal,
@@ -367,10 +376,20 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   searchbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginHorizontal: Spacing.lg,
     marginVertical: Spacing.base,
     backgroundColor: Colors.surface,
-    elevation: 0,
+    borderRadius: Layout.borderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    height: 48,
+    gap: Spacing.xs,
+  },
+  searchbarInput: {
+    flex: 1,
+    fontSize: Typography.fontSize.base,
+    color: Colors.textPrimary,
   },
   categoryScroll: {
     maxHeight: 50,

@@ -3,7 +3,7 @@
  * Manages user authentication state and provides auth methods
  */
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
   User,
   createUserWithEmailAndPassword,
@@ -14,11 +14,13 @@ import {
   sendEmailVerification,
   updateProfile,
 } from 'firebase/auth';
-import { auth, db, firebaseInitialized, firebaseError } from '../config/firebase';
+import { AppState } from 'react-native';
+import { auth, db } from '../config/firebase';
 import { doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import * as SecureStore from 'expo-secure-store';
 import { setUserId as setCrashReportingUserId, setUserAttributes, clearUser as clearCrashReportingUser } from '../services/crashReporting.service';
 import { setUserId as setAnalyticsUserId, setUserProperties, trackLogin, trackSignup } from '../services/analytics.service';
+import { logger } from '../utils/logger';
 
 // Types
 interface AuthContextType {
@@ -49,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // If Firebase auth is not initialized, mark as ready immediately
     // This allows the app to continue and show appropriate error screens
     if (!auth) {
-      console.warn('⚠️ Firebase Auth not initialized - AuthContext will not function');
+      logger.warn('⚠️ Firebase Auth not initialized - AuthContext will not function');
       setIsAuthReady(true);
       return;
     }
@@ -63,18 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           await SecureStore.setItemAsync('userId', user.uid);
         } catch (e) {
-          console.error('Failed to store user ID:', e);
+          logger.error('Failed to store user ID:', e);
         }
 
-        // Set user ID in crash reporting (Sentry) for crash tracking
-        // These will silently fail in development/Expo Go
+        // Set anonymized user ID in crash reporting (Sentry)
+        // Only UID — no PII (email, displayName) sent to crash reporting
         setCrashReportingUserId(user.uid);
-
-        // Set user attributes for better crash context
-        setUserAttributes({
-          email: user.email || 'unknown',
-          displayName: user.displayName || 'unknown',
-        });
+        setUserAttributes({ userId: user.uid });
 
         // Set user ID in Analytics
         setAnalyticsUserId(user.uid);
@@ -97,6 +94,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return unsubscribe;
+  }, []);
+
+  // Periodic token refresh (every 30 minutes while app is active)
+  const tokenRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!auth) return;
+
+    const startTokenRefresh = () => {
+      if (tokenRefreshRef.current) clearInterval(tokenRefreshRef.current);
+      tokenRefreshRef.current = setInterval(async () => {
+        if (auth.currentUser) {
+          try {
+            await auth.currentUser.getIdToken(true);
+          } catch {
+            logger.warn('Token refresh failed, signing out');
+            signOut(auth).catch(() => {});
+          }
+        }
+      }, 30 * 60 * 1000);
+    };
+
+    const handleAppState = (state: string) => {
+      if (state === 'active') {
+        startTokenRefresh();
+      } else if (tokenRefreshRef.current) {
+        clearInterval(tokenRefreshRef.current);
+        tokenRefreshRef.current = null;
+      }
+    };
+
+    startTokenRefresh();
+    const subscription = AppState.addEventListener('change', handleAppState);
+
+    return () => {
+      if (tokenRefreshRef.current) clearInterval(tokenRefreshRef.current);
+      subscription.remove();
+    };
   }, []);
 
   /**
@@ -143,9 +178,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Track signup event
       await trackSignup('email');
 
-      console.log('✅ Signup successful, verification email sent, user profile created');
+      logger.log('✅ Signup successful, verification email sent, user profile created');
     } catch (error: any) {
-      console.error('❌ Signup error:', error);
+      logger.error('❌ Signup error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -160,7 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Create a Firebase-like error object so it can be handled properly
       const error = new Error('Firebase is not initialized. Please check your internet connection and restart the app.');
       (error as any).code = 'auth/app-not-authorized';
-      console.error('❌ Login error: Firebase auth not initialized');
+      logger.error('❌ Login error: Firebase auth not initialized');
       throw error;
     }
 
@@ -171,9 +206,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Track login event (non-blocking, errors caught internally)
       trackLogin('email');
 
-      console.log('✅ Login successful');
+      logger.log('✅ Login successful');
     } catch (error: any) {
-      console.error('❌ Login error:', error?.code, error?.message);
+      logger.error('❌ Login error:', error?.code, error?.message);
       throw error;
     } finally {
       setIsLoading(false);
@@ -192,9 +227,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signOut(auth);
       await SecureStore.deleteItemAsync('userId');
-      console.log('✅ Logout successful');
+      logger.log('✅ Logout successful');
     } catch (error: any) {
-      console.error('❌ Logout error:', error);
+      logger.error('❌ Logout error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -212,9 +247,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(auth, email);
-      console.log('✅ Password reset email sent');
+      logger.log('✅ Password reset email sent');
     } catch (error: any) {
-      console.error('❌ Password reset error:', error);
+      logger.error('❌ Password reset error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -232,9 +267,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       await sendEmailVerification(user);
-      console.log('✅ Verification email sent');
+      logger.log('✅ Verification email sent');
     } catch (error: any) {
-      console.error('❌ Send verification error:', error);
+      logger.error('❌ Send verification error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -256,7 +291,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(freshUser);
       // Increment counter to force re-renders in components that depend on user state
       setRefreshCounter(prev => prev + 1);
-      console.log('✅ User refreshed, emailVerified:', freshUser?.emailVerified);
+      logger.log('✅ User refreshed, emailVerified:', freshUser?.emailVerified);
     }
   };
 

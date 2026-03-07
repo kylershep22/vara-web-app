@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Checkbox, Portal, Modal, Button as PaperButton } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Card, Input } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -186,23 +185,23 @@ export const AMCCChallengeCard: React.FC = () => {
           <View style={styles.headerLeft}>
             <Icon name="lightning-bolt" size={24} color={Colors.goldenApricot} />
             <View>
-              <Text variant="titleMedium" style={styles.title}>
+              <Text style={styles.title}>
                 {componentTitle}
               </Text>
-              <Text variant="bodySmall" style={styles.subtitle}>
+              <Text style={styles.subtitle}>
                 {componentDescription}
               </Text>
             </View>
           </View>
           <View style={styles.streakBadge}>
             <Icon name="fire" size={16} color={Colors.sunriseAmber} />
-            <Text variant="labelMedium" style={styles.streakText}>
+            <Text style={styles.streakText}>
               {currentStreak}
             </Text>
           </View>
         </View>
 
-        <Text variant="bodySmall" style={styles.description}>
+        <Text style={styles.description}>
           Strengthen your resilience by doing something difficult every day.
         </Text>
 
@@ -217,26 +216,25 @@ export const AMCCChallengeCard: React.FC = () => {
               <Icon name={todayChallenge.icon} size={32} color={Colors.goldenApricot} />
             </View>
             <View style={styles.challengeInfo}>
-              <Text variant="titleSmall" style={styles.challengeTitle}>
+              <Text style={styles.challengeTitle}>
                 {todayChallenge.title}
               </Text>
-              <Text variant="bodySmall" style={styles.challengeDescription}>
+              <Text style={styles.challengeDescription}>
                 {todayChallenge.description}
               </Text>
             </View>
-            <Checkbox
-              status={completedToday ? 'checked' : 'unchecked'}
-              color={Colors.goldenApricot}
-            />
+            <TouchableOpacity style={{width: 48, height: 48, justifyContent: 'center', alignItems: 'center'}}>
+              <Icon name={completedToday ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={completedToday ? Colors.goldenApricot : Colors.silverSage} />
+            </TouchableOpacity>
           </View>
 
           {!completedToday && (
             <View style={styles.examplesSection}>
-              <Text variant="labelSmall" style={styles.examplesLabel}>
+              <Text style={styles.examplesLabel}>
                 Examples:
               </Text>
               {todayChallenge.examples.slice(0, 2).map((example, index) => (
-                <Text key={index} variant="bodySmall" style={styles.exampleText}>
+                <Text key={index} style={styles.exampleText}>
                   • {example}
                 </Text>
               ))}
@@ -245,10 +243,10 @@ export const AMCCChallengeCard: React.FC = () => {
 
           {completedToday && reflection && (
             <View style={styles.reflectionSection}>
-              <Text variant="labelSmall" style={styles.reflectionLabel}>
+              <Text style={styles.reflectionLabel}>
                 Your reflection:
               </Text>
-              <Text variant="bodySmall" style={styles.reflectionText}>
+              <Text style={styles.reflectionText}>
                 {reflection}
               </Text>
             </View>
@@ -257,25 +255,27 @@ export const AMCCChallengeCard: React.FC = () => {
       </Card>
 
       {/* Completion Modal */}
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => setModalVisible(false)}
-          contentContainerStyle={styles.modal}
-        >
-          <Text variant="headlineSmall" style={styles.modalTitle}>
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+        <View style={styles.modal}>
+          <Text style={styles.modalTitle}>
             {todayChallenge.title}
           </Text>
-          <Text variant="bodyMedium" style={styles.modalSubtitle}>
+          <Text style={styles.modalSubtitle}>
             {todayChallenge.description}
           </Text>
 
           <View style={styles.examplesList}>
-            <Text variant="labelMedium" style={styles.examplesListLabel}>
+            <Text style={styles.examplesListLabel}>
               Examples:
             </Text>
             {todayChallenge.examples.map((example, index) => (
-              <Text key={index} variant="bodySmall" style={styles.exampleListItem}>
+              <Text key={index} style={styles.exampleListItem}>
                 • {example}
               </Text>
             ))}
@@ -292,24 +292,22 @@ export const AMCCChallengeCard: React.FC = () => {
           />
 
           <View style={styles.modalActions}>
-            <PaperButton
-              mode="outlined"
+            <TouchableOpacity
               onPress={() => setModalVisible(false)}
-              style={styles.modalButton}
+              style={[styles.modalButton, styles.modalButtonOutline]}
             >
-              Cancel
-            </PaperButton>
-            <PaperButton
-              mode="contained"
+              <Text style={styles.modalButtonOutlineText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={handleComplete}
-              style={styles.modalButton}
-              buttonColor={Colors.goldenApricot}
+              style={[styles.modalButton, styles.modalButtonPrimary]}
             >
-              Complete
-            </PaperButton>
+              <Text style={styles.modalButtonPrimaryText}>Complete</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </Portal>
+        </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -458,11 +456,38 @@ const styles = StyleSheet.create({
   reflectionInput: {
     marginBottom: Spacing.base,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modalActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
   modalButton: {
     flex: 1,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalButtonOutline: {
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+  },
+  modalButtonOutlineText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  modalButtonPrimary: {
+    backgroundColor: Colors.goldenApricot,
+  },
+  modalButtonPrimaryText: {
+    color: Colors.white,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });

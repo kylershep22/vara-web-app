@@ -10,8 +10,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, TextInput, StyleSheet, Text } from 'react-native';
 import {
   ColorTokens,
   SpacingTokens,
@@ -78,7 +77,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: ColorTokens.secondary,
     paddingHorizontal: SpacingTokens.md,
-    fontSize: 15,
+    fontSize: 16,
     color: ColorTokens.textPrimary,
   },
   inputFocused: {

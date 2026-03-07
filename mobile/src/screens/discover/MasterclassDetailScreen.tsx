@@ -4,8 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
-import { Text, Button, Chip, ProgressBar } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -52,12 +51,15 @@ export default function MasterclassDetailScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Icon name="alert-circle" size={64} color={Colors.error} />
-          <Text variant="titleLarge" style={styles.errorText}>
+          <Text style={styles.errorText}>
             Masterclass not found
           </Text>
-          <Button mode="contained" onPress={() => navigation.goBack()}>
-            Go Back
-          </Button>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{backgroundColor: Colors.evergreenTeal, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12}}
+          >
+            <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -86,34 +88,24 @@ export default function MasterclassDetailScreen() {
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.title}>
+            <Text style={styles.title}>
               {masterclass.title}
             </Text>
 
-            <Text variant="bodyLarge" style={styles.instructor}>
+            <Text style={styles.instructor}>
               with {masterclass.instructor}
             </Text>
 
             <View style={styles.badges}>
-              <Chip
-                icon="clock-outline"
-                style={styles.chip}
-                textStyle={styles.chipText}
-              >
-                {masterclass.duration}
-              </Chip>
-              <Chip
-                style={[
-                  styles.chip,
-                  { backgroundColor: getDifficultyColor(masterclass.difficulty) + '20' },
-                ]}
-                textStyle={[
-                  styles.chipText,
-                  { color: getDifficultyColor(masterclass.difficulty) },
-                ]}
-              >
-                {masterclass.difficulty.charAt(0).toUpperCase() + masterclass.difficulty.slice(1)}
-              </Chip>
+              <View style={[styles.chip, {flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9999}]}>
+                <Icon name="clock-outline" size={16} color={Colors.textSecondary} />
+                <Text style={styles.chipText}>{masterclass.duration}</Text>
+              </View>
+              <View style={[styles.chip, {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9999, backgroundColor: getDifficultyColor(masterclass.difficulty) + '20'}]}>
+                <Text style={[styles.chipText, {color: getDifficultyColor(masterclass.difficulty)}]}>
+                  {masterclass.difficulty.charAt(0).toUpperCase() + masterclass.difficulty.slice(1)}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -121,27 +113,25 @@ export default function MasterclassDetailScreen() {
           {userProgress && userProgress.progress > 0 && (
             <View style={styles.progressSection}>
               <View style={styles.progressHeader}>
-                <Text variant="bodyMedium" style={styles.progressText}>
+                <Text style={styles.progressText}>
                   Your Progress
                 </Text>
-                <Text variant="bodyMedium" style={styles.progressPercentage}>
+                <Text style={styles.progressPercentage}>
                   {Math.round(userProgress.progress * 100)}%
                 </Text>
               </View>
-              <ProgressBar
-                progress={userProgress.progress}
-                color={Colors.evergreenTeal}
-                style={styles.progressBar}
-              />
+              <View style={[styles.progressBar, {height: 8, borderRadius: 9999, backgroundColor: Colors.borderLight, overflow: 'hidden'}]}>
+                <View style={{height: 8, borderRadius: 9999, backgroundColor: Colors.evergreenTeal, width: `${userProgress.progress * 100}%`}} />
+              </View>
             </View>
           )}
 
           {/* Description */}
           <View style={styles.section}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle}>
               About This Masterclass
             </Text>
-            <Text variant="bodyLarge" style={styles.description}>
+            <Text style={styles.description}>
               {masterclass.description}
             </Text>
           </View>
@@ -149,13 +139,13 @@ export default function MasterclassDetailScreen() {
           {/* Topics Covered */}
           {masterclass.topics && masterclass.topics.length > 0 && (
             <View style={styles.section}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
+              <Text style={styles.sectionTitle}>
                 What You'll Learn
               </Text>
               {masterclass.topics.map((topic, index) => (
                 <View key={index} style={styles.topicItem}>
                   <Icon name="checkbox-marked-circle" size={20} color={Colors.evergreenTeal} />
-                  <Text variant="bodyMedium" style={styles.topicText}>
+                  <Text style={styles.topicText}>
                     {topic}
                   </Text>
                 </View>
@@ -165,19 +155,20 @@ export default function MasterclassDetailScreen() {
 
           {/* Start/Continue Button */}
           <View style={styles.actionSection}>
-            <Button
-              mode="contained"
+            <TouchableOpacity
               onPress={handleStartContinue}
-              icon={userProgress && userProgress.progress > 0 ? 'play-circle' : 'play'}
-              contentStyle={styles.buttonContent}
+              style={{backgroundColor: Colors.evergreenTeal, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: 12, flexDirection: 'row', justifyContent: 'center', gap: 8}}
             >
-              {userProgress && userProgress.progress > 0 ? 'Continue Learning' : 'Start Masterclass'}
-            </Button>
+              <Icon name={userProgress && userProgress.progress > 0 ? 'play-circle' : 'play'} size={20} color="#FFFFFF" />
+              <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>
+                {userProgress && userProgress.progress > 0 ? 'Continue Learning' : 'Start Masterclass'}
+              </Text>
+            </TouchableOpacity>
 
             {userProgress?.completed && (
               <View style={styles.completedBadge}>
                 <Icon name="check-circle" size={24} color={Colors.success} />
-                <Text variant="bodyLarge" style={styles.completedText}>
+                <Text style={styles.completedText}>
                   Completed
                 </Text>
               </View>
@@ -186,7 +177,7 @@ export default function MasterclassDetailScreen() {
 
           {/* About the Instructor */}
           <View style={styles.instructorSection}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle}>
               About the Instructor
             </Text>
             <View style={styles.instructorCard}>
@@ -194,10 +185,10 @@ export default function MasterclassDetailScreen() {
                 <Icon name="account" size={32} color={Colors.evergreenTeal} />
               </View>
               <View style={styles.instructorInfo}>
-                <Text variant="bodyLarge" style={styles.instructorName}>
+                <Text style={styles.instructorName}>
                   {masterclass.instructor}
                 </Text>
-                <Text variant="bodyMedium" style={styles.instructorBio}>
+                <Text style={styles.instructorBio}>
                   Expert wellness educator and practitioner
                 </Text>
               </View>
@@ -206,24 +197,24 @@ export default function MasterclassDetailScreen() {
 
           {/* Requirements */}
           <View style={styles.requirementsSection}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle}>
               What You'll Need
             </Text>
             <View style={styles.requirementItem}>
               <Icon name="notebook-outline" size={20} color={Colors.textSecondary} />
-              <Text variant="bodyMedium" style={styles.requirementText}>
+              <Text style={styles.requirementText}>
                 Notebook for taking notes (optional)
               </Text>
             </View>
             <View style={styles.requirementItem}>
               <Icon name="clock-outline" size={20} color={Colors.textSecondary} />
-              <Text variant="bodyMedium" style={styles.requirementText}>
+              <Text style={styles.requirementText}>
                 Dedicated time to focus and learn
               </Text>
             </View>
             <View style={styles.requirementItem}>
               <Icon name="lightbulb-outline" size={20} color={Colors.textSecondary} />
-              <Text variant="bodyMedium" style={styles.requirementText}>
+              <Text style={styles.requirementText}>
                 Open mind and curiosity
               </Text>
             </View>

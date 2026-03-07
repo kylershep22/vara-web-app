@@ -13,6 +13,7 @@ import { useState, useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { logger } from '../utils/logger';
 import {
   registerForPushNotifications,
   savePushTokenToUser,
@@ -144,7 +145,7 @@ export function useNotifications() {
       setPermissionStatus(status);
       return status === 'granted';
     } catch (error) {
-      console.log('Notification setup unavailable (expected in Expo Go):', error);
+      logger.log('Notification setup unavailable (expected in Expo Go):', error);
       return false;
     }
   };

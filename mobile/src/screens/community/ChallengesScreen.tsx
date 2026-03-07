@@ -15,8 +15,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   TextInput,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, LoadingSpinner, Input } from '../../components';
@@ -48,7 +48,7 @@ import { getUserDisplayInfo } from '../../services/firebase/invites.service';
 import { getGroupInfo } from '../../services/firebase/community.service';
 import { Challenge, ChallengeParticipant, GroupCategory, ChallengeFrequency } from '../../types/models';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { SegmentedButtons, Switch } from 'react-native-paper';
+import { Switch } from 'react-native';
 
 type FilterType = 'all' | 'my' | 'active';
 
@@ -581,7 +581,7 @@ const ChallengesScreen: React.FC = () => {
         />
 
         {/* Category Selection */}
-        <Text variant="bodyLarge" style={styles.formSectionLabel}>
+        <Text style={styles.formSectionLabel}>
           Category
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categorySelectScroll}>
@@ -613,19 +613,24 @@ const ChallengesScreen: React.FC = () => {
         </ScrollView>
 
         {/* Frequency Selection */}
-        <Text variant="bodyLarge" style={styles.formSectionLabel}>
+        <Text style={styles.formSectionLabel}>
           Check-in Frequency
         </Text>
-        <SegmentedButtons
-          value={frequency}
-          onValueChange={(value) => setFrequency(value as ChallengeFrequency)}
-          buttons={[
+        <View style={[styles.frequencyButtons, { flexDirection: 'row', backgroundColor: Colors.dewSage + '30', borderRadius: 12, padding: 4 }]}>
+          {[
             { value: 'daily', label: 'Daily' },
             { value: 'weekly', label: 'Weekly' },
             { value: 'total', label: 'Total' },
-          ]}
-          style={styles.frequencyButtons}
-        />
+          ].map((btn) => (
+            <TouchableOpacity
+              key={btn.value}
+              onPress={() => setFrequency(btn.value as ChallengeFrequency)}
+              style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: frequency === btn.value ? Colors.surface : 'transparent', alignItems: 'center' }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: frequency === btn.value ? '600' : '400', color: frequency === btn.value ? Colors.evergreenTeal : Colors.textSecondary }}>{btn.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* Target & Unit */}
         <View style={styles.targetRow}>
@@ -644,7 +649,7 @@ const ChallengesScreen: React.FC = () => {
         </View>
 
         {/* Date Selection */}
-        <Text variant="bodyLarge" style={styles.formSectionLabel}>
+        <Text style={styles.formSectionLabel}>
           Duration
         </Text>
         <View style={styles.dateRow}>
@@ -689,14 +694,14 @@ const ChallengesScreen: React.FC = () => {
         {/* Public/Private Switch */}
         <View style={styles.switchContainer}>
           <View style={styles.switchLabel}>
-            <Text variant="bodyLarge" style={styles.switchLabelText}>
+            <Text style={styles.switchLabelText}>
               Public Challenge
             </Text>
-            <Text variant="bodySmall" style={styles.switchDescription}>
+            <Text style={styles.switchDescription}>
               Anyone can discover and join
             </Text>
           </View>
-          <Switch value={isPublic} onValueChange={setIsPublic} color={Colors.evergreenTeal} />
+          <Switch value={isPublic} onValueChange={setIsPublic} trackColor={{ false: Colors.silverSage, true: Colors.evergreenTeal }} thumbColor={Colors.white} />
         </View>
 
         {/* Invite Permissions */}
@@ -730,7 +735,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   navTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
   },
@@ -760,10 +765,10 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: Colors.silverSage,
     backgroundColor: Colors.white,
@@ -786,7 +791,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   filterPill: {
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: Spacing.base,
     borderRadius: Layout.borderRadius.pill,
   },
@@ -797,7 +802,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dewSageLight,
   },
   filterPillText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: Typography.fontWeight.medium,
   },
   filterPillTextActive: {
@@ -818,8 +823,8 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     backgroundColor: Colors.white,
-    paddingVertical: 5,
-    paddingHorizontal: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 16,
     borderRadius: Layout.borderRadius.pill,
     borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.divider,

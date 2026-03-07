@@ -13,6 +13,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
@@ -22,7 +23,6 @@ import {
   Image,
   Animated,
 } from 'react-native';
-import { Text, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button } from '../../components';
@@ -401,21 +401,14 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
       </KeyboardAvoidingView>
 
       {/* Snackbar */}
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={snackbarType === 'success' ? 3000 : 4000}
-        action={{
-          label: 'Dismiss',
-          onPress: () => setSnackbarVisible(false),
-        }}
-        style={[
-          styles.snackbar,
-          snackbarType === 'success' && styles.snackbarSuccess,
-        ]}
-      >
-        {snackbarMessage}
-      </Snackbar>
+      {snackbarVisible && (
+        <View style={[styles.snackbar, snackbarType === 'success' && styles.snackbarSuccess, {position: 'absolute', bottom: 24, left: 16, right: 16, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center'}]}>
+          <Text style={{flex: 1, color: '#fff', fontSize: 14}}>{snackbarMessage}</Text>
+          <TouchableOpacity onPress={() => setSnackbarVisible(false)}>
+            <Text style={{color: '#fff', fontWeight: '600'}}>Dismiss</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -470,14 +463,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '600',
     color: Colors.evergreenTeal,
     marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 15 * 1.5,
@@ -488,7 +481,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mismatchText: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.error,
     marginTop: -8,
     marginBottom: Spacing.base,

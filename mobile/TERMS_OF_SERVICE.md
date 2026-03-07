@@ -1,6 +1,6 @@
 # Terms of Service for Vara Wellness
 
-**Last Updated:** December 2024
+**Last Updated:** March 2026
 
 ## 1. Acceptance of Terms
 
@@ -190,23 +190,22 @@ You may not:
 
 ## 10. Subscriptions and Payments
 
-### Free Tier
+### Free Trial
 
-Basic features are available for free.
-
-### Premium Subscription (If Applicable)
-
-- **Billing:** Charged monthly or annually via App Store/Google Play
-- **Auto-Renewal:** Subscriptions renew automatically unless canceled
-- **Cancellation:** Cancel anytime through App Store/Google Play
-- **Refunds:** Subject to App Store/Google Play policies
-- **Price Changes:** We'll notify you 30 days before price increases
-
-### Free Trial (If Applicable)
-
-- New users may receive a free trial period
-- Cancel before trial ends to avoid charges
+- All new users receive a **7-day free trial** starting from account creation
+- During the trial, you have full access to all Vara features
+- Cancel before the trial ends to avoid charges
 - One trial per user
+- Auto-renewal begins after the trial period unless cancelled
+
+### Premium Subscription
+
+- **Plans:** Monthly ($9.99/month) or Annual ($79.99/year)
+- **Billing:** Charged via App Store/Google Play after trial period
+- **Auto-Renewal:** Subscriptions renew automatically unless canceled at least 24 hours before the end of the current period
+- **Cancellation:** Cancel anytime through your App Store or Google Play subscription settings
+- **Refunds:** Subject to App Store/Google Play refund policies
+- **Price Changes:** We'll notify you at least 30 days before price increases
 
 ## 11. Termination
 
@@ -285,7 +284,7 @@ Continued use after changes means you accept the updated Terms.
 
 ### Governing Law
 
-These Terms are governed by the laws of [Your State/Country], excluding conflict of law provisions.
+These Terms are governed by the laws of the State of Delaware, United States, excluding conflict of law provisions.
 
 ### Arbitration (Optional - Consult Legal Advice)
 
@@ -310,8 +309,8 @@ These Terms, together with our Privacy Policy, constitute the entire agreement b
 If you have questions about these Terms:
 
 **Email:** support@varawellness.com
-**Mail:** Vara Wellness, [Your Address]
-**Website:** [Your Website]
+**Mail:** Vara Wellness, Inc.
+**Website:** https://varawellness.com
 
 ## 21. App Store Terms
 
@@ -343,4 +342,4 @@ Sections that should survive termination (indemnification, limitations of liabil
 
 **By using Vara Wellness, you acknowledge that you've read, understood, and agree to these Terms of Service.**
 
-**Last Updated:** December 2024
+**Last Updated:** March 2026

@@ -11,8 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import DraggableFlatList, {
@@ -390,7 +389,7 @@ const styles = StyleSheet.create({
     borderColor: ColorTokens.secondary,
   },
   editButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: ColorTokens.primary,
   },
@@ -410,7 +409,7 @@ const styles = StyleSheet.create({
     gap: SpacingTokens.xs,
   },
   summaryText: {
-    fontSize: 13,
+    fontSize: 14,
     color: ColorTokens.textSecondary,
   },
   startButton: {

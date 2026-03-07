@@ -17,8 +17,8 @@ import {
   TouchableWithoutFeedback,
   TextInputProps,
   ViewStyle,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: FIELD_HEIGHT,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: Colors.white,
     borderWidth: 1.5,
   },
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: Colors.error,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     marginTop: 4,
     marginLeft: 4,

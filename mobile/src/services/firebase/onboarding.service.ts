@@ -55,7 +55,7 @@ export const saveOnboardingCheckIn = async (
       updatedAt: serverTimestamp(),
     });
 
-    console.log('Onboarding check-in saved for user:', userId);
+    if (__DEV__) console.log('Onboarding check-in saved for user:', userId);
   } catch (error) {
     console.error('Error saving onboarding check-in:', error);
     throw error;
@@ -86,7 +86,7 @@ export const saveOnboardingInsight = async (
       updatedAt: serverTimestamp(),
     });
 
-    console.log('Onboarding insight saved for user:', userId);
+    if (__DEV__) console.log('Onboarding insight saved for user:', userId);
   } catch (error) {
     console.error('Error saving onboarding insight:', error);
     throw error;
@@ -113,7 +113,7 @@ export const saveSelectedFocus = async (
       updatedAt: serverTimestamp(),
     });
 
-    console.log('Selected focus saved for user:', userId, '- Focus:', focus);
+    if (__DEV__) console.log('Selected focus saved for user:', userId, '- Focus:', focus);
   } catch (error) {
     console.error('Error saving selected focus:', error);
     throw error;
@@ -147,7 +147,7 @@ export const saveCompletedActivity = async (
       updatedAt: serverTimestamp(),
     });
 
-    console.log('Completed activity saved for user:', userId, '- Activity:', activity.name);
+    if (__DEV__) console.log('Completed activity saved for user:', userId, '- Activity:', activity.name);
   } catch (error) {
     console.error('Error saving completed activity:', error);
     throw error;
@@ -177,7 +177,7 @@ export const completeOnboarding = async (
       updatedAt: serverTimestamp(),
     });
 
-    console.log('Onboarding completed for user:', userId, '- Habit created:', habitCreated);
+    if (__DEV__) console.log('Onboarding completed for user:', userId, '- Habit created:', habitCreated);
   } catch (error) {
     console.error('Error completing onboarding:', error);
     throw error;
@@ -250,7 +250,7 @@ export const saveOnboardingState = async (
 
     await updateDoc(userRef, updateData);
 
-    console.log('Full onboarding state saved for user:', userId);
+    if (__DEV__) console.log('Full onboarding state saved for user:', userId);
   } catch (error) {
     console.error('Error saving onboarding state:', error);
     throw error;

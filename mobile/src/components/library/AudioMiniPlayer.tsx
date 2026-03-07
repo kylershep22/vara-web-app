@@ -10,7 +10,7 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Colors, Layout } from '../../constants';
+import { Colors, Spacing, Layout } from '../../constants';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 
 // =====================
@@ -73,7 +73,7 @@ export function AudioMiniPlayer() {
       <View style={styles.container}>
         {/* Track icon */}
         <View style={styles.iconContainer}>
-          <Icon name="music-note" size={18} color="#1B5E57" />
+          <Icon name="music-note" size={18} color={Colors.evergreenTeal} />
         </View>
 
         {/* Track info */}
@@ -91,11 +91,13 @@ export function AudioMiniPlayer() {
           onPress={handlePlayPause}
           style={styles.playPauseButton}
           hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          accessibilityRole="button"
+          accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
         >
           <Icon
             name={isPlaying ? 'pause' : 'play'}
             size={18}
-            color="#FFFFFF"
+            color={Colors.surface}
           />
         </TouchableOpacity>
 
@@ -104,8 +106,10 @@ export function AudioMiniPlayer() {
           onPress={handleClose}
           style={styles.closeButton}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Close player"
         >
-          <Icon name="close" size={16} color="#6F7F77" style={{ opacity: 0.6 }} />
+          <Icon name="close" size={16} color={Colors.textSecondary} style={{ opacity: 0.6 }} />
         </TouchableOpacity>
 
         {/* Progress bar at bottom */}
@@ -128,28 +132,28 @@ const styles = StyleSheet.create({
   outerContainer: {
     position: 'absolute',
     bottom: 60, // flush with top of tab bar
-    left: 8,
-    right: 8,
+    left: Spacing.sm,
+    right: Spacing.sm,
     zIndex: 100,
   },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12, // radius-lg
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(184, 205, 186, 0.4)', // Silver Sage 40%
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 12,
+    borderColor: Colors.divider,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    gap: Spacing.md,
     overflow: 'hidden',
     ...Layout.shadow.md,
   },
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 8, // radius-md
-    backgroundColor: 'rgba(213, 227, 209, 0.5)', // Dew Sage 50%
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.dewSageLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -157,28 +161,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
-    color: '#3E3E3E', // Soft Charcoal
+    color: Colors.textPrimary,
   },
   time: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#6F7F77', // Muted Sage Gray
+    color: Colors.textSecondary,
     fontVariant: ['tabular-nums'],
-    marginTop: 2,
+    marginTop: Spacing['2xs'],
   },
   playPauseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 9999, // full circle
-    backgroundColor: '#1B5E57', // Evergreen Teal
+    width: 48,
+    height: 48,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.evergreenTeal,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButton: {
-    width: 32,
-    height: 32,
+    width: 48,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -187,7 +191,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     height: 2.5,
-    backgroundColor: '#1B5E57', // Evergreen Teal
-    borderBottomLeftRadius: 12,
+    backgroundColor: Colors.evergreenTeal,
+    borderBottomLeftRadius: Layout.borderRadius.lg,
   },
 });

@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -50,13 +49,13 @@ export default function SleepScreen() {
         </View>
 
         <View style={styles.contentInfo}>
-          <Text variant="titleSmall" style={styles.contentTitle} numberOfLines={1}>
+          <Text style={styles.contentTitle} numberOfLines={1}>
             {item.title}
           </Text>
-          <Text variant="bodySmall" style={styles.contentMeta}>
+          <Text style={styles.contentMeta}>
             {item.duration} • {item.type}
           </Text>
-          <Text variant="bodySmall" style={styles.contentDescription} numberOfLines={2}>
+          <Text style={styles.contentDescription} numberOfLines={2}>
             {item.description}
           </Text>
         </View>
@@ -77,7 +76,7 @@ export default function SleepScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header Description */}
         <View style={styles.descriptionSection}>
-          <Text variant="bodyMedium" style={styles.description}>
+          <Text style={styles.description}>
             Quality sleep is your brain's cleanup crew. While you rest, your brain clears toxins, consolidates memories, and recharges for the day ahead.
           </Text>
         </View>
@@ -116,10 +115,10 @@ export default function SleepScreen() {
         {stories.length === 0 && meditations.length === 0 && (
           <View style={styles.comingSoonSection}>
             <Icon name="sleep" size={48} color={Colors.textSecondary} />
-            <Text variant="titleMedium" style={styles.comingSoonTitle}>
+            <Text style={styles.comingSoonTitle}>
               More Content Coming Soon
             </Text>
-            <Text variant="bodyMedium" style={styles.comingSoonText}>
+            <Text style={styles.comingSoonText}>
               We're working on adding sleep stories and guided meditations. Check back soon!
             </Text>
           </View>
@@ -129,7 +128,7 @@ export default function SleepScreen() {
         <View style={styles.tipsSection}>
           <CategoryHeader title="Brain-Healthy Sleep Tips" icon="lightbulb-on-outline" />
           <View style={styles.tipsCard}>
-            <Text variant="bodyMedium" style={styles.tipsText}>
+            <Text style={styles.tipsText}>
               💤 Use headphones or speakers at a comfortable volume{'\n\n'}
               🧠 Aim for 7-9 hours — your brain needs this time to clean up and consolidate memories{'\n\n'}
               🌡️ Keep your room cool (65-68°F) — brain cleanup works best when you're cool{'\n\n'}
@@ -156,7 +155,7 @@ const styles = StyleSheet.create({
   descriptionSection: {
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.base,
-    backgroundColor: '#7E57C2' + '10', // Purple tint
+    backgroundColor: Colors.dewSage + '10', // Dew Sage tint
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
   },

@@ -20,7 +20,7 @@ export const generateDailyPlan = async (
 ): Promise<DailyPlanResponse> => {
   try {
     return await apiPost<DailyPlanResponse>('/generate-daily-plan', request, {
-      debug: true,
+      debug: __DEV__,
     });
   } catch (error) {
     console.error('Error generating daily plan:', error);
@@ -36,7 +36,7 @@ export const getAISuggestions = async (
 ): Promise<string[]> => {
   try {
     const response = await apiPost<{ suggestions: string[] }>('/openai', request, {
-      debug: true,
+      debug: __DEV__,
     });
     return response.suggestions;
   } catch (error) {
@@ -56,7 +56,7 @@ export const getJournalPrompt = async (
       prompt: context || '',
       brainFocused: context === 'brain-focused',
     }, {
-      debug: true,
+      debug: __DEV__,
     });
     return response.prompt;
   } catch (error) {
@@ -75,7 +75,7 @@ export const generateJournalSummary = async (
     const response = await apiPost<{ text: string }>('/journal-summary', {
       entries,
     }, {
-      debug: true,
+      debug: __DEV__,
       timeout: 60000, // 60 seconds for summary generation
     });
     return response.text;
@@ -97,7 +97,7 @@ export const generateStructuredJournalSummary = async (
       entries,
       structured: true,
     }, {
-      debug: true,
+      debug: __DEV__,
       timeout: 60000, // 60 seconds for summary generation
     });
     return response;
@@ -133,7 +133,7 @@ export const chatWithAI = async (
       messages,
       context: context || {},
     }, {
-      debug: true,
+      debug: __DEV__,
       timeout: 60000, // 60 seconds for AI chat
     });
     return response.reply;

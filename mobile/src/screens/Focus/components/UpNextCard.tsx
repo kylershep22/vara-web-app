@@ -13,8 +13,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import {
   ColorTokens,
@@ -77,10 +76,10 @@ const styles = StyleSheet.create({
     ...ShadowTokens.sm,
   },
   label: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: ColorTokens.textSecondary,
-    letterSpacing: 0.04 * 11, // 0.04em
+    letterSpacing: 0.04 * 12, // 0.04em
     textTransform: 'uppercase',
     marginBottom: SpacingTokens.sm,
   },

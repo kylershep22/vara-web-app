@@ -4,8 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
-import { Text, Button, Checkbox } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -44,12 +43,15 @@ export default function MovementDetailScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Icon name="alert-circle" size={64} color={Colors.error} />
-          <Text variant="titleLarge" style={styles.errorText}>
+          <Text style={styles.errorText}>
             Workout not found
           </Text>
-          <Button mode="contained" onPress={() => navigation.goBack()}>
-            Go Back
-          </Button>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{backgroundColor: Colors.evergreenTeal, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12}}
+          >
+            <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -78,62 +80,62 @@ export default function MovementDetailScreen() {
 
         {/* Content Info */}
         <View style={styles.contentInfo}>
-          <Text variant="headlineSmall" style={styles.title}>
+          <Text style={styles.title}>
             {movement.title}
           </Text>
 
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Icon name="clock-outline" size={16} color={Colors.textSecondary} />
-              <Text variant="bodyMedium" style={styles.metaText}>
+              <Text style={styles.metaText}>
                 {movement.duration}
               </Text>
             </View>
             <View style={styles.metaItem}>
               <Icon name="tag-outline" size={16} color={Colors.textSecondary} />
-              <Text variant="bodyMedium" style={styles.metaText}>
+              <Text style={styles.metaText}>
                 {movement.category}
               </Text>
             </View>
             <View style={styles.metaItem}>
               <Icon name="video-outline" size={16} color={Colors.textSecondary} />
-              <Text variant="bodyMedium" style={styles.metaText}>
+              <Text style={styles.metaText}>
                 Video
               </Text>
             </View>
           </View>
 
-          <Text variant="bodyLarge" style={styles.description}>
+          <Text style={styles.description}>
             {movement.description}
           </Text>
 
           {/* Start Workout Button */}
-          <Button
-            mode="contained"
+          <TouchableOpacity
             onPress={handleStartWorkout}
-            icon="play"
-            style={styles.startButton}
-            contentStyle={styles.startButtonContent}
+            style={[styles.startButton, {flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: Spacing.sm, borderRadius: 12, backgroundColor: Colors.evergreenTeal}]}
           >
-            Start Workout
-          </Button>
+            <Icon name="play" size={20} color="#FFFFFF" />
+            <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>Start Workout</Text>
+          </TouchableOpacity>
 
           {/* Progress Tracking */}
           <View style={styles.progressSection}>
             <View style={styles.checkboxRow}>
-              <Checkbox
-                status={completed ? 'checked' : 'unchecked'}
-                onPress={() => setCompleted(!completed)}
-                color={Colors.success}
-              />
-              <Text variant="bodyLarge" style={styles.checkboxLabel}>
+              <TouchableOpacity onPress={() => setCompleted(!completed)} style={{padding: 8}}>
+                <Icon
+                  name={completed ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                  size={24}
+                  color={completed ? Colors.success : Colors.textSecondary}
+                />
+              </TouchableOpacity>
+              <Text style={styles.checkboxLabel}>
                 Mark as completed
               </Text>
             </View>
             {completed && (
               <View style={styles.completedBadge}>
                 <Icon name="check-circle" size={20} color={Colors.success} />
-                <Text variant="bodyMedium" style={styles.completedText}>
+                <Text style={styles.completedText}>
                   Great work! Keep up the momentum.
                 </Text>
               </View>
@@ -143,24 +145,24 @@ export default function MovementDetailScreen() {
 
         {/* What You'll Need */}
         <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text style={styles.sectionTitle}>
             What You'll Need
           </Text>
           <View style={styles.needItem}>
             <Icon name="check" size={20} color={Colors.evergreenTeal} />
-            <Text variant="bodyMedium" style={styles.needText}>
+            <Text style={styles.needText}>
               Comfortable workout clothes
             </Text>
           </View>
           <View style={styles.needItem}>
             <Icon name="check" size={20} color={Colors.evergreenTeal} />
-            <Text variant="bodyMedium" style={styles.needText}>
+            <Text style={styles.needText}>
               Yoga mat or soft surface
             </Text>
           </View>
           <View style={styles.needItem}>
             <Icon name="check" size={20} color={Colors.evergreenTeal} />
-            <Text variant="bodyMedium" style={styles.needText}>
+            <Text style={styles.needText}>
               Water bottle
             </Text>
           </View>
@@ -168,24 +170,24 @@ export default function MovementDetailScreen() {
 
         {/* Safety Tips */}
         <View style={styles.tipsSection}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text style={styles.sectionTitle}>
             Safety Tips
           </Text>
           <View style={styles.tipItem}>
             <Icon name="alert-circle-outline" size={20} color={Colors.sunriseAmber} />
-            <Text variant="bodyMedium" style={styles.tipText}>
+            <Text style={styles.tipText}>
               Warm up before starting and cool down after
             </Text>
           </View>
           <View style={styles.tipItem}>
             <Icon name="alert-circle-outline" size={20} color={Colors.sunriseAmber} />
-            <Text variant="bodyMedium" style={styles.tipText}>
+            <Text style={styles.tipText}>
               Listen to your body and modify as needed
             </Text>
           </View>
           <View style={styles.tipItem}>
             <Icon name="alert-circle-outline" size={20} color={Colors.sunriseAmber} />
-            <Text variant="bodyMedium" style={styles.tipText}>
+            <Text style={styles.tipText}>
               Stop if you experience pain or discomfort
             </Text>
           </View>
@@ -194,7 +196,7 @@ export default function MovementDetailScreen() {
         {/* Related Workouts */}
         {relatedContent.length > 0 && (
           <View style={styles.relatedSection}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle}>
               More {movement.category} Workouts
             </Text>
 

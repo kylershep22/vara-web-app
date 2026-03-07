@@ -203,35 +203,61 @@ export async function getSuggestedConnections(
   // Map of groupId -> groupName for resolving names later
   const groupNameMap: Map<string, string> = new Map();
 
-  for (const groupId of userGroups) {
-    if (suggestions.size >= maxSuggestions) break;
+  // Batch-fetch all group docs
+  const groupChunks: string[][] = [];
+  for (let i = 0; i < userGroups.length; i += 10) {
+    groupChunks.push(userGroups.slice(i, i + 10));
+  }
+  const groupDocs = (
+    await Promise.all(
+      groupChunks.map((chunk) =>
+        getDocs(query(collection(db, 'groups'), where('__name__', 'in', chunk)))
+      )
+    )
+  ).flatMap((snap) => snap.docs);
 
-    const groupDoc = await getDoc(doc(db, 'groups', groupId));
-    if (!groupDoc.exists()) continue;
-
+  // Collect all unique member IDs across groups
+  const allMemberIds = new Set<string>();
+  for (const groupDoc of groupDocs) {
     const groupData = groupDoc.data();
-    const groupName = groupData.name || 'Unnamed Group';
-    groupNameMap.set(groupId, groupName);
-    const members = groupData.members || [];
+    groupNameMap.set(groupDoc.id, groupData.name || 'Unnamed Group');
+    const members: string[] = groupData.members || [];
+    members.forEach((id) => {
+      if (id !== currentUserId && !existingConnections.includes(id)) {
+        allMemberIds.add(id);
+      }
+    });
+  }
+
+  // Batch-fetch all member profiles
+  const memberProfiles = new Map<string, EnhancedUserProfile>();
+  const memberIdArray = Array.from(allMemberIds);
+  for (let i = 0; i < memberIdArray.length; i += 10) {
+    const chunk = memberIdArray.slice(i, i + 10);
+    const memberDocs = await getDocs(
+      query(collection(db, 'users'), where('__name__', 'in', chunk))
+    );
+    memberDocs.forEach((mDoc) => {
+      memberProfiles.set(mDoc.id, {
+        id: mDoc.id,
+        uid: mDoc.id,
+        ...mDoc.data(),
+      } as EnhancedUserProfile);
+    });
+  }
+
+  // Build suggestions from cached profiles
+  for (const gDoc of groupDocs) {
+    if (suggestions.size >= maxSuggestions) break;
+    const members: string[] = gDoc.data().members || [];
 
     for (const memberId of members) {
       if (suggestions.size >= maxSuggestions) break;
-      if (memberId === currentUserId || existingConnections.includes(memberId)) continue;
-
-      const memberDoc = await getDoc(doc(db, 'users', memberId));
-      if (memberDoc.exists()) {
+      const profile = memberProfiles.get(memberId);
+      if (profile) {
         const existing = suggestions.get(memberId);
         const sharedGroups = existing?.sharedGroups || [];
-
-        addSuggestion(
-          {
-            id: memberDoc.id,
-            uid: memberDoc.id,
-            ...memberDoc.data(),
-          } as EnhancedUserProfile,
-          'group',
-          [...sharedGroups, groupId]
-        );
+        addSuggestion(profile, 'group', [...sharedGroups, gDoc.id]);
       }
     }
   }

@@ -4,17 +4,18 @@
     "slug": "vara-wellness",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/iOS Icon 2 - 1024x1024.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "scheme": "vara",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/Splash Icon 1 - 512x512.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1B5E57"
+      "backgroundColor": "#FAFAF6"
     },
     "assetBundlePatterns": [
-      "**/*"
+      "assets/**/*",
+      "src/assets/**/*"
     ],
     "ios": {
       "supportsTablet": true,
@@ -25,24 +26,19 @@
       },
       "infoPlist": {
         "NSCameraUsageDescription": "Vara needs access to your camera to upload profile pictures and content.",
-        "NSPhotoLibraryUsageDescription": "Vara needs access to your photo library to upload images.",
-        "NSMicrophoneUsageDescription": "Vara needs access to your microphone for voice notes and recordings."
+        "NSPhotoLibraryUsageDescription": "Vara needs access to your photo library to upload images."
       }
     },
     "android": {
       "package": "com.vara.wellness",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1B5E57"
+        "foregroundImage": "./assets/Adaptive Android Icon 1.png",
+        "backgroundColor": "#D5E3D1"
       },
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.NOTIFICATIONS",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.NOTIFICATIONS"
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -74,19 +70,12 @@
         }
       ],
       [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow Vara to access your camera to upload profile pictures and content."
-        }
-      ],
-      [
         "expo-image-picker",
         {
           "photosPermission": "Allow Vara to access your photo library to upload images."
         }
       ],
       "expo-video",
-      "sentry-expo",
       "expo-asset"
     ],
     "owner": "kylershep",

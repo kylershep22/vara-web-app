@@ -30,6 +30,7 @@ export const isScreenReaderEnabled = async (): Promise<boolean> => {
  */
 export const announceForAccessibility = (message: string): void => {
   AccessibilityInfo.announceForAccessibility(message);
+  // TODO: Add ToastAndroid fallback for Android when TalkBack is not active
 };
 
 /**

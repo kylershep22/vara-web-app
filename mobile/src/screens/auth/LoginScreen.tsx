@@ -11,9 +11,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Text,
 } from 'react-native';
-import { Text, Snackbar, TextInput as PaperTextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button, Input, AuthHeader } from '../../components';
 import { Colors, Spacing, Typography } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
@@ -120,7 +121,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               textContentType="emailAddress"
               error={!!emailError}
               errorText={emailError}
-              left={<PaperTextInput.Icon icon="email-outline" color={Colors.textSecondary} />}
+              left={<Icon name="email-outline" size={20} color={Colors.textSecondary} />}
               style={styles.input}
             />
 
@@ -138,13 +139,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               textContentType="password"
               error={!!passwordError}
               errorText={passwordError}
-              left={<PaperTextInput.Icon icon="lock-outline" color={Colors.textSecondary} />}
+              left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
               right={
-                <PaperTextInput.Icon
-                  icon={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
-                  color={Colors.textSecondary}
-                  onPress={() => setSecureTextEntry(!secureTextEntry)}
-                />
+                <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
+                  <Icon
+                    name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={Colors.textSecondary}
+                  />
+                </TouchableOpacity>
               }
               style={styles.input}
             />
@@ -154,7 +157,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               onPress={() => navigation.navigate('ForgotPassword')}
               style={styles.forgotPasswordButton}
             >
-              <Text variant="bodyMedium" style={styles.forgotPasswordText}>
+              <Text style={styles.forgotPasswordText}>
                 Forgot password?
               </Text>
             </TouchableOpacity>
@@ -173,11 +176,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
             {/* Sign Up Link */}
             <View style={styles.signupContainer}>
-              <Text variant="bodyMedium" style={styles.signupText}>
+              <Text style={styles.signupText}>
                 Don't have an account?{' '}
               </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                <Text variant="bodyMedium" style={styles.signupLink}>
+                <Text style={styles.signupLink}>
                   Sign Up
                 </Text>
               </TouchableOpacity>
@@ -187,18 +190,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       </KeyboardAvoidingView>
 
       {/* Error Snackbar */}
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={4000}
-        action={{
-          label: 'Dismiss',
-          onPress: () => setSnackbarVisible(false),
-        }}
-        style={styles.snackbar}
-      >
-        {snackbarMessage}
-      </Snackbar>
+      {snackbarVisible && (
+        <View style={[styles.snackbar, {position: 'absolute', bottom: 24, left: 16, right: 16, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center'}]}>
+          <Text style={{flex: 1, color: '#fff', fontSize: 14}}>{snackbarMessage}</Text>
+          <TouchableOpacity onPress={() => setSnackbarVisible(false)}>
+            <Text style={{color: '#fff', fontWeight: '600'}}>Dismiss</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };

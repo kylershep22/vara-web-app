@@ -12,8 +12,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.evergreenTeal,
   },
   moodEmoji: {
-    fontSize: 28,
+    fontSize: 26,
     marginBottom: 2,
   },
   optionLabel: {

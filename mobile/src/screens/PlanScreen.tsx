@@ -15,8 +15,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -29,38 +29,6 @@ import { RoutinesTab } from './Focus/RoutinesTab';
 import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
 import { Routine } from '../services/firebase/routines.service';
 
-// Design tokens from spec
-const TOKENS = {
-  // Colors
-  colorPrimary: '#1B5E57',        // Evergreen Teal
-  colorBackground: '#FAFAF6',     // Mist White
-  colorSurface: '#FFFFFF',        // White
-  colorSecondary: '#B8CDBA',      // Silver Sage
-  colorSectionBg: '#D5E3D1',      // Dew Sage
-  colorTextPrimary: '#3E3E3E',    // Soft Charcoal
-  colorTextSecondary: '#6F7F77',  // Muted Sage Gray (per spec)
-
-  // Spacing
-  spacingXs: 4,
-  spacingSm: 8,
-  spacingMd: 12,
-  spacingBase: 16,
-  spacingLg: 24,
-  spacingXl: 32,
-
-  // Radii
-  radiusSm: 4,
-  radiusMd: 8,
-  radiusLg: 12,
-  radiusXl: 16,
-  radiusFull: 9999,
-
-  // Typography
-  fontSizePageTitle: 26,
-  fontSizeSubtitle: 14,
-  fontSizeTabLabel: 14,
-  fontSizeFilterLabel: 13,
-};
 
 type TabType = 'habits' | 'routines' | 'tasks';
 type FilterType = 'all' | 'active' | 'complete';
@@ -182,7 +150,7 @@ const InlineCreateButton: React.FC<InlineCreateButtonProps> = ({ label, onPress 
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Icon name="plus" size={18} color={TOKENS.colorPrimary} />
+      <Icon name="plus" size={18} color={Colors.evergreenTeal} />
       <Text style={styles.inlineCreateLabel}>{label}</Text>
     </TouchableOpacity>
   );
@@ -359,36 +327,36 @@ const PlanScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: TOKENS.colorBackground,
+    backgroundColor: Colors.background.default,
   },
 
   // Header
   header: {
-    paddingHorizontal: TOKENS.spacingBase,
-    paddingTop: TOKENS.spacingBase,
-    paddingBottom: TOKENS.spacingBase,
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.base,
+    paddingBottom: Spacing.base,
   },
   pageTitle: {
-    fontSize: TOKENS.fontSizePageTitle,
+    fontSize: Typography.fontSize.xxl,
     fontWeight: '600',
-    color: TOKENS.colorPrimary,
+    color: Colors.evergreenTeal,
   },
   pageSubtitle: {
-    fontSize: TOKENS.fontSizeSubtitle,
+    fontSize: Typography.fontSize.sm,
     fontWeight: '400',
-    color: TOKENS.colorTextSecondary,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
 
   // Primary Tab Group
   tabWrapper: {
-    paddingHorizontal: TOKENS.spacingBase,
-    marginBottom: TOKENS.spacingMd,
+    paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.md,
   },
   primaryTabContainer: {
     flexDirection: 'row',
-    backgroundColor: TOKENS.colorSurface,
-    borderRadius: TOKENS.radiusLg,
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.lg,
     padding: 3,
     ...Platform.select({
       ios: {
@@ -410,12 +378,12 @@ const styles = StyleSheet.create({
     borderRadius: 9,
   },
   primaryTabActive: {
-    backgroundColor: TOKENS.colorPrimary,
+    backgroundColor: Colors.evergreenTeal,
   },
   primaryTabLabel: {
-    fontSize: TOKENS.fontSizeTabLabel,
+    fontSize: Typography.fontSize.sm,
     fontWeight: '500',
-    color: TOKENS.colorTextSecondary,
+    color: Colors.textSecondary,
   },
   primaryTabLabelActive: {
     color: '#FFFFFF',
@@ -424,42 +392,42 @@ const styles = StyleSheet.create({
   // Sub-Filter Bar
   subFilterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: TOKENS.spacingBase,
-    marginTop: TOKENS.spacingMd,
-    gap: TOKENS.spacingSm,
+    paddingHorizontal: Spacing.base,
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
   },
   subFilterButton: {
     paddingVertical: 6,
-    paddingHorizontal: TOKENS.spacingBase,
-    borderRadius: TOKENS.radiusFull,
+    paddingHorizontal: Spacing.base,
+    borderRadius: Layout.borderRadius.full,
     backgroundColor: 'transparent',
   },
   subFilterButtonActive: {
-    backgroundColor: `${TOKENS.colorSectionBg}AA`, // 67% opacity
+    backgroundColor: `${Colors.dewSage}AA`, // 67% opacity
   },
   subFilterLabel: {
-    fontSize: TOKENS.fontSizeFilterLabel,
+    fontSize: Typography.fontSize.sm,
     fontWeight: '500',
-    color: TOKENS.colorTextSecondary,
+    color: Colors.textSecondary,
   },
   subFilterLabelActive: {
-    color: TOKENS.colorPrimary,
+    color: Colors.evergreenTeal,
   },
 
   // Date Banner
   dateBanner: {
-    marginHorizontal: TOKENS.spacingBase,
-    marginTop: TOKENS.spacingSm,
-    marginBottom: TOKENS.spacingMd,
-    backgroundColor: `${TOKENS.colorSectionBg}50`, // 31% opacity
-    borderRadius: TOKENS.radiusMd,
-    paddingVertical: TOKENS.spacingSm,
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
+    backgroundColor: `${Colors.dewSage}50`, // 31% opacity
+    borderRadius: Layout.borderRadius.md,
+    paddingVertical: Spacing.sm,
     alignItems: 'center',
   },
   dateBannerText: {
-    fontSize: TOKENS.fontSizeFilterLabel,
+    fontSize: Typography.fontSize.sm,
     fontWeight: '500',
-    color: TOKENS.colorPrimary,
+    color: Colors.evergreenTeal,
   },
 
   // Inline Create Button
@@ -468,18 +436,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 44,
-    marginHorizontal: TOKENS.spacingBase,
-    marginBottom: TOKENS.spacingMd,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.md,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: TOKENS.colorSecondary,
-    borderRadius: TOKENS.radiusLg,
-    gap: TOKENS.spacingSm,
+    borderColor: Colors.silverSage,
+    borderRadius: Layout.borderRadius.lg,
+    gap: Spacing.sm,
   },
   inlineCreateLabel: {
-    fontSize: TOKENS.fontSizeTabLabel,
+    fontSize: Typography.fontSize.sm,
     fontWeight: '500',
-    color: TOKENS.colorPrimary,
+    color: Colors.evergreenTeal,
   },
 
   // Content

@@ -4,8 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -202,17 +201,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ringValue: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: VARA_COLORS.charcoal,
   },
   ringLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: VARA_COLORS.charcoal,
   },
   ringSubLabel: {
-    fontSize: 9.5,
+    fontSize: 12,
     color: VARA_COLORS.sageGray,
     marginTop: -2,
   },

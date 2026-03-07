@@ -7,8 +7,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -237,7 +236,7 @@ const OnboardingActivityScreen: React.FC<OnboardingActivityScreenProps> = ({
     setActiveActivity(activity);
   };
 
-  const handleActivityComplete = async (response?: string) => {
+  const handleActivityComplete = (response?: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     if (!activeActivity) return;
@@ -251,37 +250,34 @@ const OnboardingActivityScreen: React.FC<OnboardingActivityScreenProps> = ({
       response,
     };
 
-    // Save to Firebase
-    if (user?.uid) {
-      try {
-        await saveCompletedActivity(user.uid, completedActivity);
-      } catch (error) {
-        console.error('Error saving completed activity:', error);
-      }
-    }
-
-    // Navigate to confirmation
+    // Navigate immediately — don't block on Firestore write
     navigation.navigate('OnboardingConfirmation', {
       checkIn,
       insight,
       selectedFocus,
       completedActivity,
     });
+
+    // Save to Firebase in the background
+    if (user?.uid) {
+      saveCompletedActivity(user.uid, completedActivity).catch((error) => {
+        console.error('Error saving completed activity:', error);
+      });
+    }
   };
 
-  const handleSkip = async () => {
+  const handleSkip = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Mark onboarding as complete
+    // Mark onboarding as complete in the background
     // AppNavigator will automatically detect this change via Firestore listener
     // and switch to MainNavigator
     if (user?.uid) {
-      try {
-        const { completeOnboarding } = await import('../../services/firebase');
-        await completeOnboarding(user.uid);
-      } catch (error) {
-        console.error('Error completing onboarding:', error);
-      }
+      import('../../services/firebase').then(({ completeOnboarding }) => {
+        completeOnboarding(user.uid).catch((error) => {
+          console.error('Error completing onboarding:', error);
+        });
+      });
     }
   };
 
@@ -379,10 +375,10 @@ const OnboardingActivityScreen: React.FC<OnboardingActivityScreenProps> = ({
         <TouchableOpacity
           onPress={handleSkip}
           style={styles.skipButton}
-          accessibilityLabel="Explore on my own"
+          accessibilityLabel="Continue at my own pace"
           accessibilityRole="button"
         >
-          <Text style={styles.skipText}>Explore on my own</Text>
+          <Text style={styles.skipText}>Continue at my own pace</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -5,8 +5,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Platform, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -218,7 +217,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pillarLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: Colors.evergreenTeal,
     textTransform: 'uppercase',
@@ -253,7 +252,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.base,
   },
   tipLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.evergreenTeal,
     marginBottom: 4,
@@ -271,7 +270,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   learnMoreText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: Colors.evergreenTeal,
     marginRight: 4,

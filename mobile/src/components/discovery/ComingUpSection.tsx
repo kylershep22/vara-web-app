@@ -11,8 +11,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography } from '../../constants';
 import { DiscoverableFeatureId } from '../../types/featureDiscovery';

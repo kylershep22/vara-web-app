@@ -6,6 +6,7 @@
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 import { getApiUrl, config } from '../../config';
 import { auth } from '../../config/firebase';
+import { getAuth } from 'firebase/auth';
 
 /**
  * Create axios instance with base configuration
@@ -68,9 +69,19 @@ const createApiClient = (): AxiosInstance => {
 
         switch (status) {
           case 401:
-            // Unauthorized - possibly expired token
-            console.error('Unauthorized API request - token may be expired');
-            // Could trigger logout or token refresh here
+            // Unauthorized - attempt token refresh and retry
+            try {
+              const firebaseAuth = getAuth();
+              if (firebaseAuth.currentUser) {
+                await firebaseAuth.currentUser.getIdToken(true);
+                const originalRequest = error.config!;
+                originalRequest.headers['Authorization'] = `Bearer ${await firebaseAuth.currentUser.getIdToken()}`;
+                return client(originalRequest);
+              }
+            } catch (refreshError) {
+              // Refresh failed - sign out (AuthContext listener handles navigation)
+              try { await getAuth().signOut(); } catch {}
+            }
             break;
           case 403:
             // Forbidden

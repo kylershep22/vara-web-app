@@ -1,14 +1,13 @@
 /**
  * Progress Nudge Card
- * Motivational card showing daily progress and consistency milestones
+ * Gentle encouragement card showing daily progress
  *
  * Design Philosophy: Emphasizes patterns over perfection, growth over streaks.
  * Aligns with Vara's "Progress Without Pressure" brand pillar.
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { Habit } from '../../types';
@@ -16,106 +15,68 @@ import { Habit } from '../../types';
 interface ProgressNudgeCardProps {
   habits: Habit[];
   completedToday: Set<string>;
-  realStreaks: { [habitId: string]: number };
   onHabitPress?: (habitId: string) => void;
 }
 
 interface NudgeContent {
-  type: 'daily_progress' | 'consistency_milestone';
   title: string;
   message: string;
   icon: string;
   iconColor: string;
   backgroundColor: string;
   habitId?: string;
-  habitName?: string;
 }
 
 const ProgressNudgeCard: React.FC<ProgressNudgeCardProps> = ({
   habits,
   completedToday,
-  realStreaks,
   onHabitPress,
 }) => {
-  // Calculate nudge content
   const nudge = useMemo<NudgeContent | null>(() => {
     if (habits.length === 0) return null;
 
     const remainingHabits = habits.filter(h => !completedToday.has(h.id));
-    const completedCount = completedToday.size;
-    const totalCount = habits.length;
     const remainingCount = remainingHabits.length;
-
-    // Check for consistency milestones first (priority nudges)
-    // Milestones: 6 → 7 (week), 29 → 30 (month), 99 → 100 (century)
-    const milestoneThresholds = [6, 29, 99];
-
-    for (const habit of habits) {
-      const currentConsistency = realStreaks[habit.id] || 0;
-      const habitName = habit.name || (habit as any).title || 'this habit';
-
-      // Only show if not completed today and at a threshold
-      if (!completedToday.has(habit.id) && milestoneThresholds.includes(currentConsistency)) {
-        const nextMilestone = currentConsistency === 6 ? 7 : currentConsistency === 29 ? 30 : 100;
-        const milestoneLabel = nextMilestone === 7 ? 'a week' : nextMilestone === 30 ? 'a month' : '100 days';
-        return {
-          type: 'consistency_milestone',
-          title: `Almost ${milestoneLabel} of consistency!`,
-          message: `Complete "${habitName}" to reach ${nextMilestone} days.`,
-          icon: 'leaf',
-          iconColor: Colors.evergreenTeal,
-          backgroundColor: Colors.dewSage,
-          habitId: habit.id,
-          habitName,
-        };
-      }
-    }
+    const totalCount = habits.length;
 
     // Daily progress nudge (only show when 1-3 habits remaining)
     if (remainingCount >= 1 && remainingCount <= 3) {
-      const progressPercent = Math.round((completedCount / totalCount) * 100);
-
       if (remainingCount === 1) {
         const lastHabit = remainingHabits[0];
         const habitName = lastHabit.name || (lastHabit as any).title || 'your last habit';
         return {
-          type: 'daily_progress',
-          title: 'Almost There!',
-          message: `Just "${habitName}" left to complete today. You've got this!`,
-          icon: 'trophy-outline',
+          title: "You've been showing up for yourself.",
+          message: `${habitName} is here whenever you're ready.`,
+          icon: 'leaf',
           iconColor: Colors.evergreenTeal,
           backgroundColor: Colors.dewSage,
           habitId: lastHabit.id,
-          habitName,
         };
       }
 
       return {
-        type: 'daily_progress',
-        title: `${progressPercent}% Complete!`,
-        message: `You're ${remainingCount} habits away from completing today!`,
-        icon: 'lightning-bolt',
+        title: "You've been showing up for yourself.",
+        message: `No rush \u2014 take it at your own pace.`,
+        icon: 'leaf',
         iconColor: Colors.evergreenTeal,
         backgroundColor: Colors.dewSage,
       };
     }
 
-    // If all habits completed, show celebration message
+    // If all habits completed
     if (remainingCount === 0 && totalCount > 0) {
       return {
-        type: 'daily_progress',
-        title: 'All Done!',
-        message: 'Amazing work! You completed all your habits today.',
-        icon: 'star-circle',
-        iconColor: Colors.sunriseAmber,
-        backgroundColor: Colors.sunriseAmber + '20',
+        title: 'Nice day.',
+        message: 'You took care of a lot.',
+        icon: 'check-circle',
+        iconColor: Colors.evergreenTeal,
+        backgroundColor: Colors.dewSage,
       };
     }
 
     return null;
-  }, [habits, completedToday, realStreaks]);
+  }, [habits, completedToday]);
 
-  // Don't render if no nudge
   if (!nudge) return null;
 
   return (
@@ -136,10 +97,10 @@ const ProgressNudgeCard: React.FC<ProgressNudgeCardProps> = ({
         />
       </View>
       <View style={styles.contentContainer}>
-        <Text variant="titleMedium" style={[styles.title, { color: nudge.iconColor }]}>
+        <Text style={[styles.title, { color: nudge.iconColor }]}>
           {nudge.title}
         </Text>
-        <Text variant="bodyMedium" style={styles.message}>
+        <Text style={styles.message}>
           {nudge.message}
         </Text>
       </View>
@@ -178,7 +139,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.xs / 2,
+    marginBottom: 2,
   },
   message: {
     color: Colors.textPrimary,

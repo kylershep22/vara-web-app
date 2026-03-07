@@ -1,147 +1,136 @@
 /**
- * Crash Reporting Service (Sentry)
- * FREE crash reporting and error tracking
- * https://sentry.io
+ * Crash Reporting Service
  *
- * IMPORTANT: Sentry import REMOVED to prevent native crashes during React Native bridge initialization.
- * The import of sentry-expo was loading native modules at module load time, causing crashes.
- * Do NOT re-add the import until we have a safe initialization strategy.
+ * Infrastructure for @sentry/react-native crash reporting.
+ *
+ * ACTIVATION STEPS:
+ * 1. npm uninstall sentry-expo && npm install @sentry/react-native
+ * 2. npx sentry-wizard -i reactNative -p ios android
+ * 3. Add @sentry/react-native plugin to app.json plugins array
+ * 4. Set EXPO_PUBLIC_SENTRY_DSN in .env
+ * 5. Uncomment the Sentry import and function bodies below
+ * 6. Rebuild with EAS (native module required)
  */
 
-// REMOVED: import * as Sentry from 'sentry-expo';
-// This import was loading native Sentry SDK at module load time, causing crashes
+import { logger } from '../utils/logger';
+
+// Uncomment after installing @sentry/react-native:
+// import * as Sentry from '@sentry/react-native';
+
+let isInitialized = false;
 
 /**
- * Initialize Sentry
- * Call this early in app startup
+ * Initialize Sentry crash reporting
+ * Call this early in app startup (App.tsx)
  */
 export const initializeCrashReporting = (): void => {
-  // DISABLED: Sentry initialization causes native crashes during React Native bridge init
-  // Re-enable after fixing native module initialization timing
-  if (__DEV__) {
-    console.log('⚠️  Crash reporting disabled to prevent native crashes');
-  }
-  return;
-
-  // Original code commented out - DO NOT UNCOMMENT until native crash is fixed
+  // Uncomment after installing @sentry/react-native:
   /*
+  const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+  if (!dsn) {
+    logger.warn('SENTRY_DSN not set — crash reporting disabled');
+    return;
+  }
+
   try {
-    // Only initialize if Sentry is available and properly imported
-    if (!Sentry || typeof Sentry.init !== 'function') {
-      if (__DEV__) {
-        console.warn('⚠️  Sentry not available, skipping crash reporting initialization');
-      }
-      return;
-    }
-
     Sentry.init({
-      // Get your DSN from: https://sentry.io/settings/projects/
-      // For now, we'll set it via environment variable
-      dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || '',
-      enableInExpoDevelopment: false, // Don't send crashes during development
-      debug: false, // Disable debug logging to prevent issues
+      dsn,
+      beforeSend: (event) => {
+        // Strip PII from crash events
+        if (event.user) {
+          delete event.user.email;
+          delete event.user.username;
+          delete event.user.ip_address;
+        }
+        // Strip request bodies that may contain health/wellness data
+        if (event.request?.data) {
+          delete event.request.data;
+        }
+        return event;
+      },
       environment: process.env.EXPO_PUBLIC_ENV || 'production',
+      enabled: !__DEV__,
     });
-
-    if (__DEV__) {
-      console.log('🔍 Sentry crash reporting initialized');
-      if (!process.env.EXPO_PUBLIC_SENTRY_DSN) {
-        console.warn('⚠️  SENTRY_DSN not set. Crashes will not be reported.');
-        console.warn('   Sign up at https://sentry.io and add EXPO_PUBLIC_SENTRY_DSN to .env');
-      }
-    }
+    isInitialized = true;
+    logger.log('Crash reporting initialized');
   } catch (error) {
-    // Silently fail in production, log in development
-    if (__DEV__) {
-      console.error('Failed to initialize Sentry:', error);
-    }
-    // Don't throw - allow app to continue without crash reporting
+    logger.error('Failed to initialize crash reporting:', error);
   }
   */
+
+  logger.log('Crash reporting: infrastructure ready, awaiting @sentry/react-native setup');
 };
 
 /**
- * Set user identifier for crash reports
- * @param userId - User ID from Firebase Auth
+ * Set anonymized user identifier for crash reports
+ * Only UID — no PII (email, displayName)
  */
 export const setUserId = (userId: string): void => {
-  // DISABLED: Sentry removed to prevent native crashes
-  return;
+  if (!isInitialized) return;
+  // Sentry.setUser({ id: userId });
 };
 
 /**
- * Set user attributes (email, name, etc.)
- * @param attributes - Key-value pairs of user attributes
+ * Set user attributes for crash context
+ * Only anonymized data — no PII
  */
 export const setUserAttributes = (attributes: Record<string, string>): void => {
-  // DISABLED: Sentry removed to prevent native crashes
-  return;
+  if (!isInitialized) return;
+  // Sentry.setUser({ id: attributes.userId });
 };
 
 /**
  * Clear user data (on logout)
  */
 export const clearUser = (): void => {
-  // DISABLED: Sentry removed to prevent native crashes
-  return;
+  if (!isInitialized) return;
+  // Sentry.setUser(null);
 };
 
 /**
- * Log a non-fatal error
- * Use this for caught exceptions you want to track
- * @param error - Error object
- * @param context - Additional context about the error
+ * Record a non-fatal error
  */
 export const logError = (error: Error, context?: string): void => {
-  // Always log to console (Sentry disabled to prevent native crashes)
   if (__DEV__) {
-    console.error('Error:', error, context ? `Context: ${context}` : '');
+    logger.error('Error:', error);
   }
-  // DISABLED: Sentry removed to prevent native crashes
-  return;
+  if (!isInitialized) return;
+  // Sentry.captureException(error, { extra: { context } });
 };
 
 /**
- * Log a custom message (breadcrumb)
- * Useful for debugging crash context
- * @param message - Log message
- * @param level - Log level (info, warning, error)
+ * Log a breadcrumb for crash context
  */
 export const log = (message: string, level: 'info' | 'warning' | 'error' = 'info'): void => {
-  // DISABLED: Sentry removed to prevent native crashes
-  return;
+  if (!isInitialized) return;
+  // Sentry.addBreadcrumb({ message, level });
 };
 
 /**
- * Set custom key-value pairs for crash context
- * @param key - Key name
- * @param value - Value (string, number, or boolean)
+ * Set custom key-value for crash context
  */
 export const setCustomKey = (key: string, value: string | number | boolean): void => {
-  // DISABLED: Sentry removed to prevent native crashes
-  return;
+  if (!isInitialized) return;
+  // Sentry.setExtra(key, value);
 };
 
 /**
- * Track screen view
- * @param screenName - Name of the screen
+ * Track screen view as breadcrumb
  */
 export const logScreenView = (screenName: string): void => {
-  // DISABLED: Sentry removed to prevent native crashes
-  return;
+  if (!isInitialized) return;
+  // Sentry.addBreadcrumb({ message: `Screen: ${screenName}`, category: 'navigation' });
 };
 
 /**
- * Capture a message (not an error, just info/warning)
- * @param message - Message to capture
- * @param level - Severity level
+ * Capture a message (not an error)
  */
 export const captureMessage = (
   message: string,
   level: 'info' | 'warning' | 'error' = 'info'
 ): void => {
-  // DISABLED: Sentry removed to prevent native crashes
-  return;
+  if (!isInitialized) return;
+  // Sentry.captureMessage(message, level);
 };
 
 export default {

@@ -4,8 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -54,10 +53,10 @@ export const GentleEncouragementCard: React.FC<GentleEncouragementCardProps> = (
       <View style={styles.iconContainer}>
         <Ionicons name="journal-outline" size={32} color={Colors.evergreenTeal} />
       </View>
-      <Text variant="bodyLarge" style={styles.message}>
+      <Text style={styles.message}>
         Every thought matters
       </Text>
-      <Text variant="bodyMedium" style={styles.subMessage}>
+      <Text style={styles.subMessage}>
         whenever you're ready
       </Text>
     </Animated.View>

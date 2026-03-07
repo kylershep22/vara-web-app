@@ -18,8 +18,7 @@ import {
   TouchableWithoutFeedback,
   PanResponder,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { FAB } from 'react-native-paper';
+import { Ionicons, MaterialCommunityIcons as MCIcon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
@@ -262,13 +261,13 @@ const ConversationsScreen = () => {
       )}
 
       {/* FAB for New Message */}
-      <FAB
-        icon="message-plus"
-        label="New Message"
+      <TouchableOpacity
         style={styles.fab}
         onPress={openSheet}
-        color={Colors.textOnPrimary}
-      />
+        activeOpacity={0.8}
+      >
+        <MCIcon name="message-plus" size={24} color="#fff" />
+      </TouchableOpacity>
 
       {/* New Message Bottom Sheet */}
       <Modal
@@ -444,8 +443,8 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.borderLight,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.sm,
@@ -495,7 +494,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: Spacing.lg,
     bottom: Spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 9999,
     backgroundColor: Colors.evergreenTeal,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
 
   // =============================================
@@ -551,8 +560,8 @@ const styles = StyleSheet.create({
     color: Colors.mutedSageGray,
   },
   sheetCloseButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -4,
@@ -580,7 +589,7 @@ const styles = StyleSheet.create({
   },
   sheetSearchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: Typography.fontWeight.regular,
     color: Colors.text.primary,
     paddingVertical: 0,

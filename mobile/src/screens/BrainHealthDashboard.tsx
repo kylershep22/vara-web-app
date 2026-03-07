@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography } from '../constants';
 import {
@@ -26,10 +25,10 @@ export default function BrainHealthDashboard() {
         <View style={styles.headerContent}>
           <Icon name="brain" size={32} color={Colors.evergreenTeal} />
           <View style={styles.headerText}>
-            <Text variant="headlineMedium" style={styles.title}>
+            <Text style={styles.title}>
               Brain Health
             </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
+            <Text style={styles.subtitle}>
               Track your cognitive wellness and performance
             </Text>
           </View>

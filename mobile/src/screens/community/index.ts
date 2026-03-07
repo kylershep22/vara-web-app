@@ -10,3 +10,6 @@ export { default as ChallengeDetailScreen } from './ChallengeDetailScreen';
 export { default as PeopleScreen } from './PeopleScreen';
 export { default as MessagesScreen } from './MessagesScreen';
 export { default as UserProfileScreen } from './UserProfileScreen';
+export { default as ReportReasonScreen } from './ReportReasonScreen';
+export { default as ReportDetailScreen } from './ReportDetailScreen';
+export { default as ReportConfirmationScreen } from './ReportConfirmationScreen';

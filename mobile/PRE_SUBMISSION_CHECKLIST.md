@@ -7,8 +7,8 @@
 ## ✅ Critical Fixes Applied
 
 ### 1. **iOS Firebase Configuration** ✅ FIXED
-- [x] Using correct iOS Firebase App ID: `1:621980275569:ios:f7595075c50313ad575cd0`
-- [x] Using correct iOS API Key: `AIzaSyD4tyzAr7CAUyP0L9okYijDAKkvT06zviI`
+- [x] Using correct iOS Firebase App ID: [stored in secure secrets manager]
+- [x] Using correct iOS API Key: [stored in secure secrets manager]
 - [x] Configuration matches `GoogleService-Info.plist`
 - [x] Updated in `eas.json` production build
 - [x] Updated in `.env.production`
@@ -33,17 +33,17 @@
 
 ### Firebase Configuration
 - [x] **Firestore Indexes Created**
-  - Check: https://console.firebase.google.com/project/vara-4a99f/firestore/indexes
+  - Check: https://console.firebase.google.com/project/your-project-id/firestore/indexes
   - Required index for 4-3-2-1 streak: `completed`, `userId`, `date`
   - **Action:** Verify index status is "Enabled" before submitting
 
 - [x] **Firestore Security Rules Deployed**
   - Rules should be deployed and up-to-date
-  - Check: https://console.firebase.google.com/project/vara-4a99f/firestore/rules
+  - Check: https://console.firebase.google.com/project/your-project-id/firestore/rules
 
 - [x] **Firebase Authentication Enabled**
   - Email/Password provider enabled
-  - Check: https://console.firebase.google.com/project/vara-4a99f/authentication/providers
+  - Check: https://console.firebase.google.com/project/your-project-id/authentication/providers
 
 ### App Configuration
 
@@ -105,7 +105,7 @@
 
 ```bash
 # Go to Firebase Console
-https://console.firebase.google.com/project/vara-4a99f/firestore/indexes
+https://console.firebase.google.com/project/your-project-id/firestore/indexes
 ```
 
 **Look for:**
@@ -286,7 +286,7 @@ Based on previous rejection, they will specifically check:
 **BEFORE YOU RUN THE BUILD COMMAND:**
 
 1. [ ] **Check Firebase Indexes**
-   - Go to: https://console.firebase.google.com/project/vara-4a99f/firestore/indexes
+   - Go to: https://console.firebase.google.com/project/your-project-id/firestore/indexes
    - Verify: `fourThreeTwoOne` index status = "Enabled"
    - If "Building", wait 5-10 minutes
 

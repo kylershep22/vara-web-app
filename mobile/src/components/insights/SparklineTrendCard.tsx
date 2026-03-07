@@ -4,8 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import Svg, { Path, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -195,7 +194,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(27,94,87,0.06)',
   },
   label: {
-    fontSize: 9.5,
+    fontSize: 12,
     fontWeight: '500',
     color: VARA_COLORS.sageGray,
   },
@@ -209,7 +208,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   trend: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 3,
   },

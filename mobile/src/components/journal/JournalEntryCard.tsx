@@ -4,13 +4,11 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
-import { Text, Chip } from 'react-native-paper';
+import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withSpring,
   Easing,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -71,7 +69,7 @@ export const JournalEntryCard: React.FC<JournalEntryCardProps> = ({
 
   const handlePressOut = useCallback(() => {
     if (!reduceMotion) {
-      scale.value = withSpring(1, { damping: 15, stiffness: 180 });
+      scale.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.ease) });
     }
   }, [reduceMotion, scale]);
 
@@ -115,13 +113,13 @@ export const JournalEntryCard: React.FC<JournalEntryCardProps> = ({
         {/* Header with mood dot and time */}
         <View style={styles.header}>
           <MoodGradientDot mood={entry.mood || 'okay'} size={12} />
-          <Text variant="bodySmall" style={styles.time}>
+          <Text style={styles.time}>
             {time}
           </Text>
         </View>
 
         {/* Entry preview text */}
-        <Text variant="bodyMedium" style={styles.preview} numberOfLines={3}>
+        <Text style={styles.preview} numberOfLines={3}>
           {truncateText(content)}
         </Text>
 
@@ -129,12 +127,12 @@ export const JournalEntryCard: React.FC<JournalEntryCardProps> = ({
         {entry.tags && entry.tags.length > 0 && (
           <View style={styles.tagsContainer}>
             {entry.tags.slice(0, 3).map((tag) => (
-              <Chip key={tag} style={styles.tag} textStyle={styles.tagText}>
-                #{tag}
-              </Chip>
+              <View key={tag} style={styles.tag}>
+                <Text style={styles.tagText}>#{tag}</Text>
+              </View>
             ))}
             {entry.tags.length > 3 && (
-              <Text variant="bodySmall" style={styles.moreTagsText}>
+              <Text style={styles.moreTagsText}>
                 +{entry.tags.length - 3}
               </Text>
             )}
@@ -184,6 +182,9 @@ const styles = StyleSheet.create({
   tag: {
     backgroundColor: Colors.dewSage,
     height: 28,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
   },
   tagText: {
     color: Colors.evergreenTeal,

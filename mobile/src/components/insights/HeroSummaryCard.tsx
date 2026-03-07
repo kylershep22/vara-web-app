@@ -4,8 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -169,7 +168,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   eyebrow: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
     color: 'rgba(255,255,255,0.7)',
     letterSpacing: 1,
@@ -197,7 +196,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ringValue: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: VARA_COLORS.white,
   },

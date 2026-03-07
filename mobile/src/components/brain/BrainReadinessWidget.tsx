@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, ProgressBar as PaperProgressBar } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Card } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -168,33 +167,31 @@ export const BrainReadinessWidget: React.FC<BrainReadinessWidgetProps> = ({ onSc
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Icon name="brain" size={24} color={Colors.evergreenTeal} />
-          <Text variant="titleMedium" style={styles.title}>
+          <Text style={styles.title}>
             {componentTitle}
           </Text>
         </View>
         <View style={[styles.scoreBadge, { backgroundColor: scoreColor + '20' }]}>
-          <Text variant="headlineSmall" style={[styles.scoreText, { color: scoreColor }]}>
+          <Text style={[styles.scoreText, { color: scoreColor }]}>
             {readinessScore}
           </Text>
         </View>
       </View>
 
-      <Text variant="bodySmall" style={styles.message}>
+      <Text style={styles.message}>
         {getScoreMessage(readinessScore)}
       </Text>
 
       {/* Progress bar */}
       {readinessScore > 0 && (
-        <PaperProgressBar
-          progress={readinessScore / 100}
-          color={scoreColor}
-          style={styles.progressBar}
-        />
+        <View style={{height: 4, borderRadius: 9999, backgroundColor: Colors.silverSage + '30', overflow: 'hidden', marginBottom: Spacing.lg}}>
+          <View style={{height: 4, borderRadius: 9999, backgroundColor: scoreColor, width: `${readinessScore}%`}} />
+        </View>
       )}
 
       {/* Check-in items */}
       <View style={styles.checkInSection}>
-        <Text variant="labelLarge" style={styles.checkInLabel}>
+        <Text style={styles.checkInLabel}>
           Today's Check-In:
         </Text>
 
@@ -202,7 +199,7 @@ export const BrainReadinessWidget: React.FC<BrainReadinessWidgetProps> = ({ onSc
         <View style={styles.checkInItem}>
           <View style={styles.checkInHeader}>
             <Icon name="sleep" size={20} color={Colors.textSecondary} />
-            <Text variant="bodyMedium" style={styles.checkInTitle}>
+            <Text style={styles.checkInTitle}>
               Sleep Quality
             </Text>
           </View>
@@ -230,7 +227,7 @@ export const BrainReadinessWidget: React.FC<BrainReadinessWidgetProps> = ({ onSc
         <View style={styles.checkInItem}>
           <View style={styles.checkInHeader}>
             <Icon name="water" size={20} color={Colors.textSecondary} />
-            <Text variant="bodyMedium" style={styles.checkInTitle}>
+            <Text style={styles.checkInTitle}>
               Hydration Level
             </Text>
           </View>
@@ -258,7 +255,7 @@ export const BrainReadinessWidget: React.FC<BrainReadinessWidgetProps> = ({ onSc
         <View style={styles.checkInItem}>
           <View style={styles.checkInHeader}>
             <Icon name="brain" size={20} color={Colors.textSecondary} />
-            <Text variant="bodyMedium" style={styles.checkInTitle}>
+            <Text style={styles.checkInTitle}>
               Stress Level
             </Text>
           </View>
@@ -317,11 +314,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: Spacing.base,
     lineHeight: Typography.fontSize.sm * 1.5,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: Layout.borderRadius.sm,
-    marginBottom: Spacing.lg,
   },
   checkInSection: {
     borderTopWidth: Layout.borderWidth.thin,

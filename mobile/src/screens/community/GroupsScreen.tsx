@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   FlatList,
   Alert,
@@ -14,14 +15,9 @@ import {
   Platform,
   TouchableOpacity,
   TextInput,
-} from 'react-native';
-import {
-  Text,
-  Portal,
-  Modal,
-  Button as PaperButton,
   Switch,
-} from 'react-native-paper';
+  Modal as RNModal,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, LoadingSpinner, Input, GroupCard } from '../../components';
@@ -216,10 +212,10 @@ const GroupsScreen: React.FC = () => {
             <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerTitles}>
-            <Text variant="headlineMedium" style={styles.screenTitle}>
+            <Text style={styles.screenTitle}>
               Groups
             </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
+            <Text style={styles.subtitle}>
               Find your community
             </Text>
           </View>
@@ -307,10 +303,10 @@ const GroupsScreen: React.FC = () => {
               color={Colors.textSecondary}
               style={styles.emptyIcon}
             />
-            <Text variant="titleMedium" style={styles.emptyTitle}>
+            <Text style={styles.emptyTitle}>
               No pending invites
             </Text>
-            <Text variant="bodyMedium" style={styles.emptyText}>
+            <Text style={styles.emptyText}>
               When someone invites you to a group, it will appear here.
             </Text>
             <TouchableOpacity onPress={() => setFilter('discover')} activeOpacity={0.7}>
@@ -323,10 +319,10 @@ const GroupsScreen: React.FC = () => {
             renderItem={({ item }) => (
               <View style={styles.inviteCard}>
                 <View style={styles.inviteInfo}>
-                  <Text variant="titleSmall" style={styles.inviteGroupName}>
+                  <Text style={styles.inviteGroupName}>
                     {item.groupName}
                   </Text>
-                  <Text variant="bodySmall" style={styles.inviteFromText}>
+                  <Text style={styles.inviteFromText}>
                     Invited by {item.inviterName}
                   </Text>
                 </View>
@@ -362,12 +358,12 @@ const GroupsScreen: React.FC = () => {
               color={Colors.textSecondary}
               style={styles.emptyIcon}
             />
-            <Text variant="titleMedium" style={styles.emptyTitle}>
+            <Text style={styles.emptyTitle}>
               {searchQuery || categoryFilter !== 'all'
                 ? 'No groups found'
                 : 'No groups available'}
             </Text>
-            <Text variant="bodyMedium" style={styles.emptyText}>
+            <Text style={styles.emptyText}>
               {searchQuery
                 ? 'Try a different search term'
                 : categoryFilter !== 'all'
@@ -416,17 +412,19 @@ const GroupsScreen: React.FC = () => {
       {/* Create Group button removed from FAB, now inline in list */}
 
       {/* Create Group Modal */}
-      <Portal>
-        <Modal
-          visible={showCreateGroup}
-          onDismiss={() => {
-            Keyboard.dismiss();
-            setShowCreateGroup(false);
-          }}
-          contentContainerStyle={styles.modal}
-        >
+      <RNModal
+        visible={showCreateGroup}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setShowCreateGroup(false);
+        }}
+      >
+        <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', paddingHorizontal: Spacing.lg}}>
+        <View style={styles.modal}>
           {/* Header */}
-          <Text variant="headlineSmall" style={styles.modalTitle}>
+          <Text style={styles.modalTitle}>
             Create New Group
           </Text>
 
@@ -450,7 +448,7 @@ const GroupsScreen: React.FC = () => {
 
               {/* Description — plain RN TextInput to avoid multiline re-render glitch */}
               <View style={styles.descriptionContainer}>
-                <Text variant="bodySmall" style={styles.descriptionLabel}>Description</Text>
+                <Text style={styles.descriptionLabel}>Description</Text>
                 <TextInput
                   defaultValue={descriptionRef.current}
                   onChangeText={(text) => { descriptionRef.current = text; }}
@@ -468,7 +466,7 @@ const GroupsScreen: React.FC = () => {
               </View>
 
               {/* Category Selection */}
-              <Text variant="bodyLarge" style={styles.sectionLabel}>
+              <Text style={styles.sectionLabel}>
                 Category
               </Text>
               <ScrollView
@@ -507,17 +505,18 @@ const GroupsScreen: React.FC = () => {
               {/* Public/Private Switch */}
               <View style={styles.switchContainer}>
                 <View style={styles.switchLabel}>
-                  <Text variant="bodyLarge" style={styles.switchLabelText}>
+                  <Text style={styles.switchLabelText}>
                     Public Group
                   </Text>
-                  <Text variant="bodySmall" style={styles.switchDescription}>
+                  <Text style={styles.switchDescription}>
                     Anyone can discover and join
                   </Text>
                 </View>
                 <Switch
                   value={isPublic}
                   onValueChange={setIsPublic}
-                  color={Colors.evergreenTeal}
+                  trackColor={{false: Colors.silverSage, true: Colors.evergreenTeal}}
+                  thumbColor={isPublic ? '#fff' : '#f4f3f4'}
                 />
               </View>
 
@@ -529,27 +528,24 @@ const GroupsScreen: React.FC = () => {
 
               {/* Action buttons */}
               <View style={styles.modalFooter}>
-                <PaperButton
-                  mode="outlined"
+                <TouchableOpacity
                   onPress={() => setShowCreateGroup(false)}
-                  style={styles.modalButton}
+                  style={[styles.modalButton, {borderWidth: 1, borderColor: Colors.border, borderRadius: 8, paddingVertical: 10, alignItems: 'center' as const}]}
                 >
-                  Cancel
-                </PaperButton>
-                <PaperButton
-                  mode="contained"
+                  <Text style={{color: Colors.textPrimary, fontSize: 14, fontWeight: '500'}}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={handleCreateGroup}
-                  loading={submitting}
                   disabled={submitting || !groupName.trim()}
-                  style={styles.modalButton}
-                  buttonColor={Colors.evergreenTeal}
+                  style={[styles.modalButton, {backgroundColor: Colors.evergreenTeal, borderRadius: 8, paddingVertical: 10, alignItems: 'center' as const, opacity: (submitting || !groupName.trim()) ? 0.5 : 1}]}
                 >
-                  Create
-                </PaperButton>
+                  <Text style={{color: '#fff', fontSize: 14, fontWeight: '500'}}>{submitting ? 'Creating...' : 'Create'}</Text>
+                </TouchableOpacity>
               </View>
           </ScrollView>
-        </Modal>
-      </Portal>
+        </View>
+        </View>
+      </RNModal>
 
     </SafeAreaView>
   );
@@ -589,14 +585,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 16,
   },
   tabPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 7,
+    paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: 16,
   },
   tabPillActive: {
     backgroundColor: Colors.evergreenTeal,
@@ -605,7 +601,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dewSageLight,
   },
   tabPillText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: Typography.fontWeight.medium,
   },
   tabPillTextActive: {
@@ -615,10 +611,10 @@ const styles = StyleSheet.create({
     color: Colors.mutedSageGray,
   },
   inviteBadge: {
-    marginLeft: 6,
+    marginLeft: 8,
     paddingVertical: 1,
-    paddingHorizontal: 6,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    borderRadius: 12,
   },
   inviteBadgeActive: {
     backgroundColor: 'rgba(255,255,255,0.25)',
@@ -628,7 +624,7 @@ const styles = StyleSheet.create({
   },
   inviteBadgeText: {
     color: Colors.white,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: Typography.fontWeight.bold,
   },
 
@@ -640,10 +636,10 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: Colors.silverSage,
     backgroundColor: Colors.white,
@@ -666,8 +662,8 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     backgroundColor: Colors.white,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.divider,
@@ -732,7 +728,7 @@ const styles = StyleSheet.create({
   },
   inlineCreateButtonText: {
     color: Colors.white,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: Typography.fontWeight.medium,
   },
 

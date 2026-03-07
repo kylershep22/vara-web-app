@@ -12,8 +12,8 @@ import {
   TouchableOpacity,
   Dimensions,
   TextInput,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button } from '../../components';
@@ -115,10 +115,9 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
 
     // Animate celebration
     Animated.parallel([
-      Animated.spring(celebrationScale, {
+      Animated.timing(celebrationScale, {
         toValue: 1,
-        friction: 4,
-        tension: 40,
+        duration: 400,
         useNativeDriver: true,
       }),
       Animated.timing(celebrationOpacity, {
@@ -220,11 +219,11 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
   // ============================================
   const renderSelection = () => (
     <>
-      <Text variant="headlineMedium" style={styles.title}>
+      <Text style={styles.title}>
         Your First Win
       </Text>
 
-      <Text variant="bodyLarge" style={styles.subtitle}>
+      <Text style={styles.subtitle}>
         Let's start with something small. Pick one activity to try right now:
       </Text>
 
@@ -240,15 +239,15 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
               <Icon name={option.icon as any} size={28} color={Colors.evergreenTeal} />
             </View>
             <View style={styles.optionContent}>
-              <Text variant="titleMedium" style={styles.optionTitle}>
+              <Text style={styles.optionTitle}>
                 {option.title}
               </Text>
-              <Text variant="bodySmall" style={styles.optionDescription}>
+              <Text style={styles.optionDescription}>
                 {option.description}
               </Text>
             </View>
             <View style={styles.optionDuration}>
-              <Text variant="labelSmall" style={styles.durationText}>
+              <Text style={styles.durationText}>
                 {option.duration}
               </Text>
             </View>
@@ -275,7 +274,7 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
         <TouchableOpacity onPress={() => setStep('selection')} style={styles.backButton}>
           <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <Text variant="titleLarge" style={styles.activityTitle}>
+        <Text style={styles.activityTitle}>
           2-Minute Reflection
         </Text>
       </View>
@@ -283,7 +282,7 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
       <View style={styles.activityContent}>
         <View style={styles.promptCard}>
           <Icon name="lightbulb-outline" size={24} color={Colors.sunriseYellow} />
-          <Text variant="bodyLarge" style={styles.promptText}>
+          <Text style={styles.promptText}>
             What's one thing you're grateful for today?
           </Text>
         </View>
@@ -298,7 +297,7 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
           textAlignVertical="top"
         />
 
-        <Text variant="bodySmall" style={styles.hint}>
+        <Text style={styles.hint}>
           It can be something simple - a warm cup of coffee, a kind word, or a moment of peace.
         </Text>
       </View>
@@ -325,7 +324,7 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
         <TouchableOpacity onPress={() => setStep('selection')} style={styles.backButton}>
           <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <Text variant="titleLarge" style={styles.activityTitle}>
+        <Text style={styles.activityTitle}>
           Grounding Breath
         </Text>
       </View>
@@ -334,15 +333,15 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
         {breathPhase === 'idle' ? (
           <>
             <View style={styles.breathInfoCard}>
-              <Text variant="titleMedium" style={styles.breathInfoTitle}>
+              <Text style={styles.breathInfoTitle}>
                 4-7-8 Breathing
               </Text>
-              <Text variant="bodyMedium" style={styles.breathInfoText}>
+              <Text style={styles.breathInfoText}>
                 Inhale for 4 seconds{'\n'}
                 Hold for 7 seconds{'\n'}
                 Exhale for 8 seconds
               </Text>
-              <Text variant="bodySmall" style={styles.breathInfoHint}>
+              <Text style={styles.breathInfoHint}>
                 We'll do 3 cycles together
               </Text>
             </View>
@@ -368,11 +367,11 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
                 ]}
               />
               <View style={styles.breathPhaseOverlay}>
-                <Text variant="headlineMedium" style={styles.breathPhaseText}>
+                <Text style={styles.breathPhaseText}>
                   {breathPhase === 'inhale' ? 'Breathe In' :
                    breathPhase === 'hold' ? 'Hold' : 'Breathe Out'}
                 </Text>
-                <Text variant="titleLarge" style={styles.breathCounter}>
+                <Text style={styles.breathCounter}>
                   {breathCount + 1} / 3
                 </Text>
               </View>
@@ -392,7 +391,7 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
         <TouchableOpacity onPress={() => setStep('selection')} style={styles.backButton}>
           <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <Text variant="titleLarge" style={styles.activityTitle}>
+        <Text style={styles.activityTitle}>
           Quick Check-in
         </Text>
       </View>
@@ -448,11 +447,11 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
         <Icon name="check-circle" size={80} color={Colors.evergreenTeal} />
       </View>
 
-      <Text variant="headlineMedium" style={styles.celebrationTitle}>
+      <Text style={styles.celebrationTitle}>
         First Win Complete!
       </Text>
 
-      <Text variant="bodyLarge" style={styles.celebrationSubtitle}>
+      <Text style={styles.celebrationSubtitle}>
         You just took your first step toward better wellness.
         Small wins lead to big transformations.
       </Text>
@@ -460,11 +459,11 @@ const OnboardingFirstWinScreen: React.FC<OnboardingFirstWinScreenProps> = ({ nav
       <View style={styles.celebrationStats}>
         <View style={styles.statItem}>
           <Icon name="star" size={24} color={Colors.sunriseYellow} />
-          <Text variant="labelLarge" style={styles.statText}>Day 1</Text>
+          <Text style={styles.statText}>Day 1</Text>
         </View>
         <View style={styles.statItem}>
           <Icon name="trending-up" size={24} color={Colors.evergreenTeal} />
-          <Text variant="labelLarge" style={styles.statText}>Journey Started</Text>
+          <Text style={styles.statText}>Journey Started</Text>
         </View>
       </View>
 
@@ -530,7 +529,7 @@ const CheckinSlider: React.FC<CheckinSliderProps> = ({ label, emoji, value, onCh
   return (
     <View style={sliderStyles.container}>
       <View style={sliderStyles.header}>
-        <Text variant="titleSmall" style={sliderStyles.label}>{label}</Text>
+        <Text style={sliderStyles.label}>{label}</Text>
         <Text style={sliderStyles.emoji}>{emoji}</Text>
       </View>
       <View style={sliderStyles.track}>
@@ -546,8 +545,8 @@ const CheckinSlider: React.FC<CheckinSliderProps> = ({ label, emoji, value, onCh
         ))}
       </View>
       <View style={sliderStyles.labels}>
-        <Text variant="labelSmall" style={sliderStyles.labelText}>Low</Text>
-        <Text variant="labelSmall" style={sliderStyles.labelText}>High</Text>
+        <Text style={sliderStyles.labelText}>Low</Text>
+        <Text style={sliderStyles.labelText}>High</Text>
       </View>
     </View>
   );
@@ -568,7 +567,7 @@ const sliderStyles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold as any,
   },
   emoji: {
-    fontSize: 24,
+    fontSize: 26,
   },
   track: {
     flexDirection: 'row',

@@ -5,10 +5,9 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { EnhancedModal } from '../../';
-import { Colors } from '../../../constants';
+import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { Habit } from '../../../types';
 import { StepProgressBar } from './StepProgressBar';
 import { ActionStep } from './ActionStep';
@@ -214,16 +213,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bottomSpacer: {
-    height: 24,
+    height: Spacing.lg,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#B8CDBA40',
+    borderTopColor: Colors.divider,
   },
   footerLeft: {
     flex: 1,
@@ -231,38 +230,38 @@ const styles = StyleSheet.create({
   footerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: Spacing.md,
   },
   backButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
   },
   backButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6F7F77',
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textSecondary,
   },
   skipButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
   },
   skipButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6F7F77',
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textSecondary,
   },
   nextButton: {
-    backgroundColor: '#1B5E57',
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    backgroundColor: Colors.evergreenTeal,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Layout.borderRadius.md,
   },
   nextButtonDisabled: {
     opacity: 0.5,
   },
   nextButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textOnPrimary,
   },
 });

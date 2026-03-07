@@ -11,7 +11,7 @@ The app **automatically** selects the correct API URL based on your environment:
 │                                                                 │
 │  ├─ development  → http://localhost:5001                       │
 │  ├─ staging      → https://staging-api.yourdomain.com          │
-│  └─ production   → https://us-central1-vara-4a99f.cloudfun...  │
+│  └─ production   → https://us-central1-your-project-id.cloudfun...  │
 │                                                                 │
 │  ⚙️  You can override by setting EXPO_PUBLIC_API_URL in .env   │
 │                                                                 │
@@ -79,7 +79,7 @@ Check which API URL is being used - look for this log when the app starts:
 🔧 App Configuration:
   📍 Environment: development
   🌐 API URL: http://localhost:5001/api
-  🔥 Firebase Project: vara-4a99f
+  🔥 Firebase Project: your-project-id
 ```
 
 ## 📚 Files Overview

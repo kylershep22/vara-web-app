@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Text, Chip } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Layout, Typography } from '../../constants';
 
@@ -76,11 +75,11 @@ export function ContentCard({
 
       {/* Content */}
       <View style={styles.content}>
-        <Text variant="titleMedium" style={styles.title} numberOfLines={2}>
+        <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
 
-        <Text variant="bodySmall" style={styles.description} numberOfLines={2}>
+        <Text style={styles.description} numberOfLines={2}>
           {description}
         </Text>
 
@@ -88,31 +87,21 @@ export function ContentCard({
         <View style={styles.metadata}>
           <View style={styles.metadataRow}>
             <Icon name="clock-outline" size={14} color={Colors.textSecondary} />
-            <Text variant="labelSmall" style={styles.metadataText}>
+            <Text style={styles.metadataText}>
               {duration}
             </Text>
           </View>
 
           {category && (
-            <Chip
-              mode="outlined"
-              compact
-              style={styles.categoryChip}
-              textStyle={styles.chipText}
-            >
-              {category}
-            </Chip>
+            <View style={styles.categoryChip}>
+              <Text style={styles.chipText}>{category}</Text>
+            </View>
           )}
 
           {purpose && (
-            <Chip
-              mode="flat"
-              compact
-              style={[styles.purposeChip, { backgroundColor: getPurposeColor() }]}
-              textStyle={styles.purposeText}
-            >
-              {purpose}
-            </Chip>
+            <View style={[styles.purposeChip, { backgroundColor: getPurposeColor() }]}>
+              <Text style={styles.purposeText}>{purpose}</Text>
+            </View>
           )}
         </View>
       </View>
@@ -183,6 +172,10 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     height: 24,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
+    borderWidth: 1,
     borderColor: Colors.borderLight,
   },
   chipText: {
@@ -191,6 +184,9 @@ const styles = StyleSheet.create({
   },
   purposeChip: {
     height: 24,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
   },
   purposeText: {
     fontSize: Typography.fontSize.xs,

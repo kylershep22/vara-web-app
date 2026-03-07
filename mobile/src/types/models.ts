@@ -314,8 +314,8 @@ export interface GroupPrompt {
   createdBy: string;
   active: boolean;
   currentPostId?: string;
-  createdAt: any;
-  updatedAt: any;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 // ==========================================
@@ -501,7 +501,7 @@ export interface Notification {
   title: string;
   body: string;
   read: boolean;
-  data?: Record<string, any>;
+  data?: Record<string, string | number | boolean>;
   createdAt: Timestamp;
 }
 
@@ -518,6 +518,11 @@ export interface NotificationCategory {
   // For push vs in-app control
   push?: boolean;
   inApp?: boolean;
+}
+
+export interface LegacyNotificationPreferences {
+  enabled?: boolean;
+  [key: string]: unknown;
 }
 
 export interface NotificationPreferences {
@@ -560,10 +565,10 @@ export interface NotificationPreferences {
   };
 
   // Legacy fields (kept for backward compat during migration)
-  dailyReminders?: any;
-  milestones?: any;
-  messages?: any;
-  community?: any;
+  dailyReminders?: LegacyNotificationPreferences;
+  milestones?: LegacyNotificationPreferences;
+  messages?: LegacyNotificationPreferences;
+  community?: LegacyNotificationPreferences;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

@@ -7,6 +7,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
@@ -14,8 +15,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
-import { Text, Portal, Modal, Button as PaperButton } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -162,12 +163,14 @@ const QuickStartModal: React.FC<QuickStartModalProps> = ({
   const config = getModalConfig();
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={styles.modal}
-      >
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onDismiss}
+    >
+      <View style={styles.modalOverlay}>
+      <View style={styles.modal}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
@@ -175,7 +178,7 @@ const QuickStartModal: React.FC<QuickStartModalProps> = ({
             <View style={[styles.modalIconContainer, { backgroundColor: config.color + '15' }]}>
               <Icon name={config.icon as any} size={24} color={config.color} />
             </View>
-            <Text variant="titleLarge" style={styles.modalTitle}>
+            <Text style={styles.modalTitle}>
               {config.title}
             </Text>
           </View>
@@ -196,7 +199,7 @@ const QuickStartModal: React.FC<QuickStartModalProps> = ({
 
           {config.examples.length > 0 && (
             <View style={styles.examples}>
-              <Text variant="labelSmall" style={styles.examplesLabel}>
+              <Text style={styles.examplesLabel}>
                 Try:
               </Text>
               <View style={styles.exampleChips}>
@@ -214,27 +217,24 @@ const QuickStartModal: React.FC<QuickStartModalProps> = ({
           )}
 
           <View style={styles.modalActions}>
-            <PaperButton
-              mode="outlined"
+            <TouchableOpacity
               onPress={onDismiss}
-              style={styles.modalButton}
+              style={[styles.modalButton, styles.modalButtonOutline]}
             >
-              Cancel
-            </PaperButton>
-            <PaperButton
-              mode="contained"
+              <Text style={styles.modalButtonOutlineText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={handleSave}
-              style={styles.modalButton}
-              buttonColor={config.color}
-              loading={saving}
+              style={[styles.modalButton, {backgroundColor: config.color}, (!value.trim() || saving) && {opacity: 0.5}]}
               disabled={!value.trim() || saving}
             >
-              Add
-            </PaperButton>
+              <Text style={styles.modalButtonPrimaryText}>{saving ? 'Adding...' : 'Add'}</Text>
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
-    </Portal>
+      </View>
+      </View>
+    </Modal>
   );
 };
 
@@ -302,7 +302,7 @@ export const QuickActionCarousel: React.FC = () => {
   return (
     <>
       <View style={styles.container}>
-        <Text variant="labelLarge" style={styles.sectionTitle}>
+        <Text style={styles.sectionTitle}>
           Quick Actions
         </Text>
         <ScrollView
@@ -316,6 +316,8 @@ export const QuickActionCarousel: React.FC = () => {
               style={[styles.actionButton, { backgroundColor: action.bgColor }]}
               onPress={() => handleActionPress(action)}
               activeOpacity={0.7}
+              accessibilityLabel={action.label}
+              accessibilityRole="button"
             >
               <View style={[styles.iconContainer, { backgroundColor: action.color + '20' }]}>
                 <Icon name={action.icon as any} size={20} color={action.color} />
@@ -428,12 +430,36 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     color: Colors.evergreenTeal,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modalActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
   modalButton: {
     flex: 1,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalButtonOutline: {
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+  },
+  modalButtonOutlineText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  modalButtonPrimaryText: {
+    color: Colors.white,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });
 

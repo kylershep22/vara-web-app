@@ -4,17 +4,18 @@
  */
 
 import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { StyleSheet, View, Text } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
+  withTiming,
   interpolate,
+  Easing,
 } from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { Milestone } from '../../types/models';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 interface AnimatedProgressBarProps {
   progress: number; // 0-100
@@ -39,16 +40,21 @@ export const AnimatedProgressBar: React.FC<AnimatedProgressBarProps> = ({
   onMilestonePress,
   style,
 }) => {
+  const reduceMotion = useReducedMotion();
   const animatedProgress = useSharedValue(0);
   const clampedProgress = Math.min(100, Math.max(0, progress));
 
   // Animate progress changes
   useEffect(() => {
-    animatedProgress.value = withSpring(clampedProgress, {
-      damping: 15,
-      stiffness: 100,
-    });
-  }, [clampedProgress]);
+    if (reduceMotion) {
+      animatedProgress.value = clampedProgress;
+    } else {
+      animatedProgress.value = withTiming(clampedProgress, {
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+      });
+    }
+  }, [clampedProgress, reduceMotion]);
 
   // Animated style for the fill bar
   const animatedFillStyle = useAnimatedStyle(() => ({
@@ -88,7 +94,7 @@ export const AnimatedProgressBar: React.FC<AnimatedProgressBarProps> = ({
 
       {/* Percentage text */}
       {showPercentage && (
-        <Text variant="bodySmall" style={styles.percentageText}>
+        <Text style={styles.percentageText}>
           {Math.round(clampedProgress)}% complete
         </Text>
       )}
@@ -167,15 +173,20 @@ export const CompactProgressBar: React.FC<CompactProgressBarProps> = ({
   height = 6,
   style,
 }) => {
+  const reduceMotion = useReducedMotion();
   const animatedProgress = useSharedValue(0);
   const clampedProgress = Math.min(100, Math.max(0, progress));
 
   useEffect(() => {
-    animatedProgress.value = withSpring(clampedProgress, {
-      damping: 15,
-      stiffness: 100,
-    });
-  }, [clampedProgress]);
+    if (reduceMotion) {
+      animatedProgress.value = clampedProgress;
+    } else {
+      animatedProgress.value = withTiming(clampedProgress, {
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+      });
+    }
+  }, [clampedProgress, reduceMotion]);
 
   const animatedFillStyle = useAnimatedStyle(() => ({
     width: `${animatedProgress.value}%`,

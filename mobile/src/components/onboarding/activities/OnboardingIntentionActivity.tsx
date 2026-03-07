@@ -16,8 +16,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import Button from '../../Button';
@@ -95,7 +95,7 @@ const OnboardingIntentionActivity: React.FC<OnboardingIntentionActivityProps> = 
             disabled={!isValid}
             fullWidth
           >
-            Set My Intention
+            Continue
           </Button>
         </View>
       </View>

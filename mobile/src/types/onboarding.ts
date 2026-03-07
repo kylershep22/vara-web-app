@@ -89,7 +89,7 @@ export interface OnboardingState {
 /**
  * Tracks which app sections the user has visited for contextual tooltips
  */
-export interface FeatureDiscoveryState {
+export interface OnboardingFeatureDiscoveryState {
   dashboardSeen: boolean;         // Home tab
   dailyHubSeen: boolean;          // Track tab
   deepWorkSeen: boolean;          // Focus tab

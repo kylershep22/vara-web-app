@@ -8,11 +8,11 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StyleSheet, View, Text, Platform, TouchableOpacity } from 'react-native';
+import { useFonts } from 'expo-font';
 
 // Import theme
-import { theme } from './src/constants';
+import { Colors, theme } from './src/constants';
 
 // Import Firebase initialization status
 import { firebaseInitialized, firebaseError } from './src/config/firebase';
@@ -39,15 +39,8 @@ import { useAudioPlayer } from './src/context/AudioPlayerContext';
 // Import Error Boundary
 import ErrorBoundary from './src/components/shared/ErrorBoundary';
 
-// Create React Query client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+// Note: @tanstack/react-query was removed (unused). Consider reintroducing
+// in a future sprint to replace manual Firestore subscription patterns.
 
 // DO NOT initialize services at module load time - causes native crashes
 // Services will be initialized in useEffect after React Native bridge is ready
@@ -97,6 +90,13 @@ function FirebaseInitializationError({ error }: { error: Error }) {
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    'Inter_18pt-Regular': require('./assets/fonts/Inter_18pt-Regular.ttf'),
+    'Inter_18pt-Medium': require('./assets/fonts/Inter_18pt-Medium.ttf'),
+    'Inter_18pt-SemiBold': require('./assets/fonts/Inter_18pt-SemiBold.ttf'),
+    'Inter_18pt-Bold': require('./assets/fonts/Inter_18pt-Bold.ttf'),
+  });
+
   const [servicesInitialized, setServicesInitialized] = useState(false);
 
   // Initialize services AFTER React Native bridge is ready
@@ -146,25 +146,27 @@ export default function App() {
     }
   }, []);
 
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.container}>
         <SafeAreaProvider>
-          <QueryClientProvider client={queryClient}>
-            <PaperProvider theme={theme}>
-              <AuthProvider>
-                <ToastProvider>
-                  <NotificationProvider>
-                    <AudioPlayerProvider>
-                      <StatusBar style="auto" />
-                      <AppNavigator />
-                      <AudioPlayerOverlay />
-                    </AudioPlayerProvider>
-                  </NotificationProvider>
-                </ToastProvider>
-              </AuthProvider>
-            </PaperProvider>
-          </QueryClientProvider>
+          <PaperProvider theme={theme}>
+            <AuthProvider>
+              <ToastProvider>
+                <NotificationProvider>
+                  <AudioPlayerProvider>
+                    <StatusBar style="auto" />
+                    <AppNavigator />
+                    <AudioPlayerOverlay />
+                  </AudioPlayerProvider>
+                </NotificationProvider>
+              </ToastProvider>
+            </AuthProvider>
+          </PaperProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Colors.mistWhite,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -193,39 +195,39 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#333',
+    color: Colors.softCharcoal,
     marginBottom: 12,
     textAlign: 'center',
   },
   errorMessage: {
     fontSize: 16,
-    color: '#666',
+    color: Colors.mutedSageGray,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
   },
   errorDetails: {
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.surface,
     padding: 16,
     borderRadius: 8,
     marginBottom: 24,
     width: '100%',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.border,
   },
   errorDetailsText: {
     fontSize: 12,
-    color: '#E53935',
+    color: Colors.error,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   errorButton: {
-    backgroundColor: '#1B5E57',
+    backgroundColor: Colors.evergreenTeal,
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
   },
   errorButtonText: {
-    color: '#FFF',
+    color: Colors.textOnPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

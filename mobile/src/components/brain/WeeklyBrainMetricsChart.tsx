@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Dimensions, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Card } from '../index';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -118,17 +117,17 @@ export const WeeklyBrainMetricsChart: React.FC = () => {
         <View style={styles.headerLeft}>
           <Icon name="chart-line" size={24} color={Colors.evergreenTeal} />
           <View>
-            <Text variant="titleMedium" style={styles.title}>
+            <Text style={styles.title}>
               Weekly Brain Metrics
             </Text>
-            <Text variant="bodySmall" style={styles.subtitle}>
+            <Text style={styles.subtitle}>
               7-day readiness score trend
             </Text>
           </View>
         </View>
         {averageScore > 0 && (
           <View style={[styles.averageBadge, { backgroundColor: getScoreColor(averageScore) + '20' }]}>
-            <Text variant="labelMedium" style={[styles.averageText, { color: getScoreColor(averageScore) }]}>
+            <Text style={[styles.averageText, { color: getScoreColor(averageScore) }]}>
               Avg {averageScore}
             </Text>
           </View>
@@ -147,7 +146,7 @@ export const WeeklyBrainMetricsChart: React.FC = () => {
               <View style={styles.barWrapper}>
                 {day.score > 0 && (
                   <View style={styles.scoreLabel}>
-                    <Text variant="labelSmall" style={styles.scoreLabelText}>
+                    <Text style={styles.scoreLabelText}>
                       {day.score}
                     </Text>
                   </View>
@@ -167,13 +166,11 @@ export const WeeklyBrainMetricsChart: React.FC = () => {
               {/* Day label */}
               <View style={styles.dayLabelContainer}>
                 <Text
-                  variant="labelSmall"
                   style={[styles.dayName, day.isToday && styles.dayNameToday]}
                 >
                   {day.dayName}
                 </Text>
                 <Text
-                  variant="labelSmall"
                   style={[styles.dayNumber, day.isToday && styles.dayNumberToday]}
                 >
                   {day.dayNumber}
@@ -188,19 +185,19 @@ export const WeeklyBrainMetricsChart: React.FC = () => {
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: Colors.evergreenTeal }]} />
-          <Text variant="bodySmall" style={styles.legendText}>
+          <Text style={styles.legendText}>
             75-100: Excellent
           </Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: Colors.sunriseAmber }]} />
-          <Text variant="bodySmall" style={styles.legendText}>
+          <Text style={styles.legendText}>
             50-74: Good
           </Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: Colors.error }]} />
-          <Text variant="bodySmall" style={styles.legendText}>
+          <Text style={styles.legendText}>
             0-49: Needs care
           </Text>
         </View>
@@ -209,7 +206,7 @@ export const WeeklyBrainMetricsChart: React.FC = () => {
       {weeklyMetrics.every(d => d.score === 0) && (
         <View style={styles.emptyState}>
           <Icon name="chart-line" size={48} color={Colors.textSecondary} />
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <Text style={styles.emptyText}>
             Complete daily check-ins to see your brain health trend
           </Text>
         </View>

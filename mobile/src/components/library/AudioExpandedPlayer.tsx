@@ -23,7 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Layout } from '../../constants';
+import { Colors, Spacing, Layout } from '../../constants';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import { useReducedMotion } from '../../hooks';
 
@@ -153,10 +153,10 @@ function SleepVisual({ isPlaying }: { isPlaying: boolean }) {
 
       {/* Center circle */}
       <LinearGradient
-        colors={['#E8F0E4', '#D5E3D1']}
+        colors={['#E8F0E4', Colors.dewSage]}
         style={sleepVisualStyles.centerCircle}
       >
-        <Icon name="weather-night" size={48} color="#1B5E57" />
+        <Icon name="weather-night" size={48} color={Colors.evergreenTeal} />
       </LinearGradient>
     </View>
   );
@@ -169,7 +169,7 @@ const sleepVisualStyles = StyleSheet.create({
     alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: Spacing.lg,
   },
   ring: {
     position: 'absolute',
@@ -177,7 +177,7 @@ const sleepVisualStyles = StyleSheet.create({
     height: 140,
     borderRadius: 70,
     borderWidth: 1.5,
-    borderColor: '#B8CDBA', // Silver Sage
+    borderColor: Colors.silverSage,
   },
   centerCircle: {
     width: 120,
@@ -382,7 +382,7 @@ export function AudioExpandedPlayer() {
           style={styles.collapseButton}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Icon name="chevron-down" size={20} color="#6F7F77" />
+          <Icon name="chevron-down" size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Sleep Visual */}
@@ -403,9 +403,9 @@ export function AudioExpandedPlayer() {
             onSlidingComplete={handleSeekComplete}
             minimumValue={0}
             maximumValue={1}
-            minimumTrackTintColor="#1B5E57"
-            maximumTrackTintColor="rgba(184, 205, 186, 0.3)"
-            thumbTintColor="#1B5E57"
+            minimumTrackTintColor={Colors.evergreenTeal}
+            maximumTrackTintColor={Colors.borderLight}
+            thumbTintColor={Colors.evergreenTeal}
           />
           <View style={styles.timeRow}>
             <Text style={styles.timeLabel}>{elapsed}</Text>
@@ -426,7 +426,7 @@ export function AudioExpandedPlayer() {
             <Icon
               name="repeat"
               size={22}
-              color={isLooping ? '#1B5E57' : '#6F7F77'}
+              color={isLooping ? Colors.evergreenTeal : Colors.textSecondary}
             />
             {isLooping && <View style={styles.activeIndicatorDot} />}
           </TouchableOpacity>
@@ -443,7 +443,7 @@ export function AudioExpandedPlayer() {
               <Icon
                 name={isPlaying ? 'pause' : 'play'}
                 size={28}
-                color="#FFFFFF"
+                color={Colors.surface}
                 style={!isPlaying ? { marginLeft: 3 } : undefined}
               />
             </TouchableOpacity>
@@ -463,7 +463,7 @@ export function AudioExpandedPlayer() {
             <Icon
               name="timer-outline"
               size={22}
-              color={isTimerActive ? '#1B5E57' : '#6F7F77'}
+              color={isTimerActive ? Colors.evergreenTeal : Colors.textSecondary}
             />
             {isTimerActive && timerRemaining !== null && (
               <Text style={styles.timerRemainingText}>{timerRemaining}m</Text>
@@ -501,7 +501,7 @@ export function AudioExpandedPlayer() {
         </View>
 
         {/* Bottom safe area */}
-        <View style={{ height: Math.max(insets.bottom, 48) }} />
+        <View style={{ height: Math.max(insets.bottom, Spacing['2xl']) }} />
       </Animated.View>
     </View>
   );
@@ -522,57 +522,57 @@ const styles = StyleSheet.create({
   },
   overlayBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.30)',
+    backgroundColor: Colors.overlayLight,
   },
   sheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: Layout.borderRadius.xl,
+    borderTopRightRadius: Layout.borderRadius.xl,
     ...Layout.shadow.lg,
   },
   handle: {
     width: 40,
-    height: 4,
-    borderRadius: 9999,
-    backgroundColor: '#B8CDBA', // Silver Sage
+    height: Spacing.xs,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.silverSage,
     alignSelf: 'center',
-    marginTop: 12,
+    marginTop: Spacing.md,
   },
   collapseButton: {
     position: 'absolute',
-    top: 8,
+    top: Spacing.sm,
     right: 20,
-    padding: 8,
+    padding: Spacing.sm,
     zIndex: 10,
   },
 
   // Track info
   trackInfo: {
     alignItems: 'center',
-    marginTop: 24,
-    paddingHorizontal: 24,
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
   trackTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#1B5E57', // Evergreen Teal
+    color: Colors.evergreenTeal,
     textAlign: 'center',
   },
   trackCategory: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#6F7F77', // Muted Sage Gray
-    marginTop: 4,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
 
   // Seekbar
   seekbarContainer: {
-    paddingHorizontal: 24,
-    marginTop: 24,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
   },
   slider: {
     width: '100%',
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   timeLabel: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#6F7F77', // Muted Sage Gray
+    color: Colors.textSecondary,
     fontVariant: ['tabular-nums'],
   },
 
@@ -595,33 +595,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: Spacing.lg,
     gap: 40,
   },
   secondaryControl: {
     width: 48,
     height: 48,
-    borderRadius: 9999,
+    borderRadius: Layout.borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
   secondaryControlActive: {
-    backgroundColor: 'rgba(27, 94, 87, 0.08)', // Evergreen Teal 8%
+    backgroundColor: Colors.tealLight,
   },
   activeIndicatorDot: {
     position: 'absolute',
-    bottom: 4,
-    width: 4,
-    height: 4,
+    bottom: Spacing.xs,
+    width: Spacing.xs,
+    height: Spacing.xs,
     borderRadius: 2,
-    backgroundColor: '#1B5E57',
+    backgroundColor: Colors.evergreenTeal,
   },
   playButton: {
     width: 72,
     height: 72,
-    borderRadius: 9999,
-    backgroundColor: '#1B5E57', // Evergreen Teal
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.evergreenTeal,
     justifyContent: 'center',
     alignItems: 'center',
     ...Layout.shadow.md,
@@ -629,47 +629,47 @@ const styles = StyleSheet.create({
   timerRemainingText: {
     position: 'absolute',
     bottom: 2,
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#1B5E57',
+    color: Colors.evergreenTeal,
   },
 
   // Sleep timer chips
   timerSection: {
-    paddingHorizontal: 24,
-    marginTop: 24,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
   },
   timerLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#6F7F77', // Muted Sage Gray
-    letterSpacing: 0.24, // 0.02em at 12px
+    color: Colors.textSecondary,
+    letterSpacing: 0.24,
     marginBottom: 10,
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: Spacing.sm,
   },
   chip: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 4, // radius-sm
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.base,
+    borderRadius: Layout.borderRadius.sm,
   },
   chipSelected: {
-    backgroundColor: '#1B5E57', // Evergreen Teal
+    backgroundColor: Colors.evergreenTeal,
   },
   chipUnselected: {
-    backgroundColor: 'rgba(213, 227, 209, 0.6)', // Dew Sage 60%
+    backgroundColor: 'rgba(213,227,209,0.6)',
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
   },
   chipTextSelected: {
-    color: '#FFFFFF',
+    color: Colors.surface,
   },
   chipTextUnselected: {
-    color: '#3E3E3E', // Soft Charcoal
+    color: Colors.textPrimary,
   },
 });

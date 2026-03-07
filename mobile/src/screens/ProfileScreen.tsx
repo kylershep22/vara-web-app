@@ -724,14 +724,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.white,
     paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: Layout.borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.evergreenTeal,
   },
   editButtonText: {
     color: colors.evergreenTeal,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500' as const,
   },
   cancelButton: {
@@ -772,10 +772,10 @@ const styles = StyleSheet.create({
     ...Layout.shadow.sm,
   },
   cardHeader: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600' as const,
     color: colors.softCharcoal,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   // Bio
   bioText: {
@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
   addItemContainer: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   addItemInput: {
     flex: 1,
@@ -828,8 +828,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     backgroundColor: colors.dewSageLight,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 4,
   },
   tagText: {
@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
   },
   // Currently Active card
   activeContainer: {
-    paddingTop: 20,
+    paddingTop: 24,
     paddingHorizontal: 16,
   },
   activeCard: {
@@ -919,7 +919,7 @@ const styles = StyleSheet.create({
     ...Layout.shadow.sm,
   },
   activeHeader: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600' as const,
     color: colors.evergreenTeal,
     textTransform: 'uppercase',
@@ -928,17 +928,17 @@ const styles = StyleSheet.create({
   },
   activeItems: {
     flexDirection: 'column',
-    gap: 10,
+    gap: 12,
   },
   activeItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   activeIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: colors.dewSageLight,
     justifyContent: 'center',
     alignItems: 'center',
@@ -967,7 +967,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
   activityItemBorder: {
     borderBottomWidth: 1,

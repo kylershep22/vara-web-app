@@ -5,16 +5,12 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Colors, Spacing, Layout } from '../../../constants';
 
 interface StepProgressBarProps {
   totalSteps: number;
   currentStep: number;
 }
-
-const COLORS = {
-  primary: '#1B5E57',
-  secondary: '#B8CDBA',
-};
 
 export const StepProgressBar: React.FC<StepProgressBarProps> = ({
   totalSteps,
@@ -38,19 +34,19 @@ export const StepProgressBar: React.FC<StepProgressBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
   },
   segment: {
     flex: 1,
-    height: 3,
-    borderRadius: 9999,
+    height: 4,
+    borderRadius: Layout.borderRadius.pill,
   },
   segmentCompleted: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: Colors.evergreenTeal,
   },
   segmentFuture: {
-    backgroundColor: COLORS.secondary + '80',
+    backgroundColor: Colors.dewSage,
   },
 });

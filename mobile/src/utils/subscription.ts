@@ -91,15 +91,16 @@ function isPast(timestamp: Timestamp | undefined): boolean {
  * Get subscription status from user document data
  * Works for both web and mobile since both read from the same Firestore schema
  */
-export function getSubscriptionStatus(userDoc: any): SubscriptionStatus {
+export function getSubscriptionStatus(userDoc: { subscription?: SubscriptionData; [key: string]: unknown }): SubscriptionStatus {
   const sub: SubscriptionData | undefined = userDoc?.subscription;
 
-  // No subscription data = treat as expired (legacy user or data issue)
+  // No subscription data = beta user or legacy user without subscription field
+  // During beta, grant access so the app is usable without subscription setup
   if (!sub || !sub.type) {
     return {
-      type: 'expired',
-      isActive: false,
-      canAccessApp: false,
+      type: 'trial',
+      isActive: true,
+      canAccessApp: true,
     };
   }
 

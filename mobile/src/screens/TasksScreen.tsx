@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform, TextInput as RNTextInput } from 'react-native';
-import { Text, FAB, Checkbox, SegmentedButtons } from 'react-native-paper';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Platform, TextInput as RNTextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Input, LoadingSpinner, PriorityBadge, EnhancedModal, ModalFooterActions, BaseCard, InlineCreateButton } from '../components';
@@ -157,11 +156,9 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
       >
         <View style={styles.taskCardRow}>
           {/* Checkbox */}
-          <Checkbox
-            status={item.completed ? 'checked' : 'unchecked'}
-            onPress={() => handleToggleComplete(item.id)}
-            color={Colors.evergreenTeal}
-          />
+          <TouchableOpacity onPress={() => handleToggleComplete(item.id)} style={{width: 48, height: 48, justifyContent: 'center', alignItems: 'center'}}>
+            <Icon name={item.completed ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={item.completed ? Colors.evergreenTeal : Colors.silverSage} />
+          </TouchableOpacity>
 
           {/* Content area */}
           <TouchableOpacity
@@ -205,10 +202,10 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
     <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
       {!hideHeader && (
         <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.screenTitle}>
+          <Text style={styles.screenTitle}>
             Tasks
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             Stay organized and productive
           </Text>
         </View>
@@ -217,25 +214,18 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
       {/* Filter - hide when externalFilter is provided (PlanScreen controls filter) */}
       {!externalFilter && (
         <View style={styles.filterContainer}>
-          <SegmentedButtons
-            value={filter}
-            onValueChange={setFilter}
-            buttons={[
-              {
-                value: 'todo',
-                label: `To Do (${allTasks.filter(t => !t.completed).length})`,
-              },
-              {
-                value: 'done',
-                label: `Done (${allTasks.filter(t => t.completed).length})`,
-              },
-              {
-                value: 'all',
-                label: 'All',
-              },
-            ]}
-            style={styles.segmentedButtons}
-          />
+          <View style={{flexDirection: 'row', backgroundColor: Colors.dewSage + '30', borderRadius: 12, padding: 4}}>
+            {[
+              { value: 'todo', label: `To Do (${allTasks.filter(t => !t.completed).length})` },
+              { value: 'done', label: `Done (${allTasks.filter(t => t.completed).length})` },
+              { value: 'all', label: 'All' },
+            ].map(btn => (
+              <TouchableOpacity key={btn.value} onPress={() => setFilter(btn.value)}
+                style={{flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: filter === btn.value ? Colors.surface : 'transparent', alignItems: 'center' as const}}>
+                <Text style={{fontSize: 14, fontWeight: filter === btn.value ? '600' : '400', color: filter === btn.value ? Colors.evergreenTeal : Colors.textSecondary}}>{btn.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       )}
 
@@ -258,10 +248,10 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
               color={Colors.evergreenTeal}
             />
           </View>
-          <Text variant="titleMedium" style={styles.emptyTitle}>
+          <Text style={styles.emptyTitle}>
             {filter === 'done' ? 'No completed tasks yet' : 'A clear space for what matters'}
           </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <Text style={styles.emptyText}>
             {filter === 'done'
               ? 'Your completed tasks will appear here'
               : 'Add tasks whenever something comes to mind.'}
@@ -278,13 +268,13 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
 
       {/* FAB - hide when using inline create button */}
       {!showInlineCreate && (
-        <FAB
-          icon="plus"
-          label="New Task"
+        <TouchableOpacity
           style={styles.fab}
           onPress={handleCreateTask}
-          color={Colors.textOnPrimary}
-        />
+          activeOpacity={0.8}
+        >
+          <Icon name="plus" size={24} color="#fff" />
+        </TouchableOpacity>
       )}
 
       {/* Create/Edit Modal */}
@@ -315,7 +305,7 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
         />
 
         <View style={styles.descriptionContainer}>
-          <Text variant="bodySmall" style={styles.descriptionLabel}>Description</Text>
+          <Text style={styles.descriptionLabel}>Description</Text>
           <RNTextInput
             ref={descriptionInputRef}
             defaultValue={descriptionRef.current}
@@ -334,7 +324,7 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
           />
         </View>
 
-        <Text variant="bodyMedium" style={styles.fieldLabel}>
+        <Text style={styles.fieldLabel}>
           Priority
         </Text>
         <View style={styles.priorityButtons}>
@@ -440,7 +430,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: Spacing.lg,
     bottom: Spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 9999,
     backgroundColor: Colors.evergreenTeal,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   input: {
     marginBottom: Spacing.base,

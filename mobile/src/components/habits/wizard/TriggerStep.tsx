@@ -4,11 +4,10 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Input } from '../../';
-import { Colors, Spacing, Layout } from '../../../constants';
+import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { WizardStepProps } from './types';
 
 const CUE_OPTIONS = [
@@ -50,7 +49,7 @@ export const TriggerStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormD
     <View style={styles.container}>
       <Text style={styles.headline}>Your when/where plan</Text>
       <Text style={styles.subtitle}>
-        Clear plans increase success by 3x!
+        Having a clear plan can help you follow through.
       </Text>
 
       <Text style={styles.fieldLabel}>Trigger Type</Text>
@@ -67,7 +66,7 @@ export const TriggerStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormD
             <Icon
               name={cueOption.icon}
               size={16}
-              color={formData.cueType === cueOption.type ? '#FFFFFF' : Colors.textSecondary}
+              color={formData.cueType === cueOption.type ? Colors.textOnPrimary : Colors.textSecondary}
             />
             <Text
               style={[
@@ -103,23 +102,23 @@ export const TriggerStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormD
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.base,
   },
   headline: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1B5E57',
-    marginBottom: 4,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6F7F77',
-    marginBottom: 20,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
   },
   fieldLabel: {
     color: Colors.textSecondary,
-    marginBottom: 8,
-    fontSize: 14,
+    marginBottom: Spacing.sm,
+    fontSize: Typography.fontSize.sm,
   },
   input: {
     marginBottom: Spacing.base,
@@ -127,15 +126,15 @@ const styles = StyleSheet.create({
   cueTypeButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: Spacing.sm,
     marginBottom: Spacing.base,
   },
   cueTypeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     borderRadius: Layout.borderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -147,27 +146,27 @@ const styles = StyleSheet.create({
   },
   cueTypeButtonText: {
     color: Colors.textSecondary,
-    fontSize: 13,
+    fontSize: Typography.fontSize.sm,
   },
   cueTypeButtonTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: Colors.textOnPrimary,
+    fontWeight: Typography.fontWeight.semibold,
   },
   intentionPreview: {
-    backgroundColor: '#FAFAF6',
+    backgroundColor: Colors.background.default,
     padding: Spacing.base,
-    borderRadius: 8,
+    borderRadius: Layout.borderRadius.md,
     borderLeftWidth: 3,
     borderLeftColor: Colors.evergreenTeal,
   },
   intentionPreviewLabel: {
     color: Colors.textSecondary,
-    fontSize: 12,
-    marginBottom: 2,
+    fontSize: Typography.fontSize.xs,
+    marginBottom: Spacing['2xs'],
   },
   intentionPreviewText: {
-    color: '#3E3E3E',
-    fontWeight: '500',
-    fontSize: 14,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
+    fontSize: Typography.fontSize.sm,
   },
 });

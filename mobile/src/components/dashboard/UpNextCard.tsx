@@ -4,8 +4,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Platform, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -73,9 +72,9 @@ export const UpNextCard: React.FC<UpNextCardProps> = ({
       const task = overdueTasks[0];
       return {
         type: 'overdue_task',
-        label: 'OVERDUE',
+        label: 'Past due date',
         title: task.title,
-        subtitle: 'This task needs your attention',
+        subtitle: 'You can update or reschedule this task',
         buttonText: 'View Task',
         icon: 'alert-circle',
         route: 'Track',
@@ -123,7 +122,7 @@ export const UpNextCard: React.FC<UpNextCardProps> = ({
         title: habit.name,
         subtitle: incompleteHabits.length > 1
           ? `${incompleteHabits.length} habits remaining today`
-          : 'Keep your streak going',
+          : 'A few habits are here when you\'re ready',
         buttonText: 'Mark Complete',
         icon: 'checkbox-marked-circle-outline',
         route: 'Track',
@@ -246,17 +245,18 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   label: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.mutedSageGray,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   labelOverdue: {
-    color: Colors.error,
+    color: Colors.mutedSageGray,
+    textTransform: 'none',
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
     marginBottom: 4,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   },
   button: {
     color: Colors.white,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: Typography.fontWeight.medium,
   },
 });

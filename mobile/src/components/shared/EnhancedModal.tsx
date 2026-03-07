@@ -18,8 +18,9 @@ import {
   Platform,
   Keyboard,
   Dimensions,
+  Modal,
+  Text,
 } from 'react-native';
-import { Modal, Portal, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -84,62 +85,67 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
   const accessoryID = inputAccessoryViewID || `modal-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={handleDismiss}
-        contentContainerStyle={[
-          styles.modalContainer,
-          { maxHeight: modalMaxHeight, minHeight: 480 },
-        ]}
-        testID={testID}
-      >
-        {/* Wrapper for proper flex layout */}
-        <View style={styles.modalInner}>
-          {/* Header - Fixed at top */}
-          <View style={styles.header}>
-            <View style={styles.headerContent}>
-              {headerIcon && (
-                <View style={styles.headerIconContainer}>
-                  <Icon name={headerIcon} size={24} color={Colors.evergreenTeal} />
-                </View>
-              )}
-              <View style={styles.headerText}>
-                <Text variant="headlineSmall" style={styles.title}>
-                  {title}
-                </Text>
-                {subtitle && (
-                  <Text variant="bodySmall" style={styles.subtitle}>
-                    {subtitle}
-                  </Text>
+    <Modal
+      visible={visible}
+      onRequestClose={handleDismiss}
+      transparent
+      animationType="fade"
+      testID={testID}
+    >
+      <View style={styles.modalOverlay}>
+        <View
+          style={[
+            styles.modalContainer,
+            { maxHeight: modalMaxHeight, minHeight: 480 },
+          ]}
+        >
+          {/* Wrapper for proper flex layout */}
+          <View style={styles.modalInner}>
+            {/* Header - Fixed at top */}
+            <View style={styles.header}>
+              <View style={styles.headerContent}>
+                {headerIcon && (
+                  <View style={styles.headerIconContainer}>
+                    <Icon name={headerIcon} size={24} color={Colors.evergreenTeal} />
+                  </View>
                 )}
+                <View style={styles.headerText}>
+                  <Text style={styles.title}>
+                    {title}
+                  </Text>
+                  {subtitle && (
+                    <Text style={styles.subtitle}>
+                      {subtitle}
+                    </Text>
+                  )}
+                </View>
               </View>
             </View>
+
+            {/* Content with keyboard-aware scrolling */}
+            <KeyboardAwareScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              inputAccessoryViewID={accessoryID}
+              showDoneButton={hasInputs}
+              enableKeyboardAvoidance={true}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+              nestedScrollEnabled={true}
+            >
+              {children}
+              {/* Extra padding at bottom for keyboard */}
+              <View style={styles.bottomPadding} />
+            </KeyboardAwareScrollView>
+
+            {/* Sticky Footer */}
+            {footer && (
+              <View style={styles.footer}>
+                {footer}
+              </View>
+            )}
           </View>
-
-          {/* Content with keyboard-aware scrolling */}
-          <KeyboardAwareScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            inputAccessoryViewID={accessoryID}
-            showDoneButton={hasInputs}
-            enableKeyboardAvoidance={true}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-            nestedScrollEnabled={true}
-          >
-            {children}
-            {/* Extra padding at bottom for keyboard */}
-            <View style={styles.bottomPadding} />
-          </KeyboardAwareScrollView>
-
-          {/* Sticky Footer */}
-          {footer && (
-            <View style={styles.footer}>
-              {footer}
-            </View>
-          )}
         </View>
-      </Modal>
+      </View>
 
       {/* iOS Keyboard Toolbar */}
       {Platform.OS === 'ios' && showKeyboardToolbar && hasInputs && (
@@ -148,7 +154,7 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
           doneLabel="Done"
         />
       )}
-    </Portal>
+    </Modal>
   );
 };
 
@@ -199,6 +205,11 @@ export const ModalFooterActions: React.FC<ModalFooterActionsProps> = ({
 };
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+  },
   modalContainer: {
     backgroundColor: Colors.surface,
     marginHorizontal: Spacing.base,

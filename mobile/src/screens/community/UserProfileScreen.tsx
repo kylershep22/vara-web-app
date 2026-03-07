@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     ...Layout.shadow.sm,
   },
   cardHeader: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600' as const,
     color: colors.softCharcoal,
     marginBottom: 10,

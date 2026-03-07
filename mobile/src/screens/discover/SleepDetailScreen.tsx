@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Button, Switch, IconButton } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Switch, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -58,12 +57,15 @@ export default function SleepDetailScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Icon name="alert-circle" size={64} color={Colors.error} />
-          <Text variant="titleLarge" style={styles.errorText}>
+          <Text style={styles.errorText}>
             Content not found
           </Text>
-          <Button mode="contained" onPress={() => navigation.goBack()}>
-            Go Back
-          </Button>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{backgroundColor: Colors.evergreenTeal, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12}}
+          >
+            <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -82,26 +84,26 @@ export default function SleepDetailScreen() {
             />
           </View>
 
-          <Text variant="headlineSmall" style={styles.title}>
+          <Text style={styles.title}>
             {content.title}
           </Text>
 
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Icon name="clock-outline" size={16} color={Colors.textSecondary} />
-              <Text variant="bodyMedium" style={styles.metaText}>
+              <Text style={styles.metaText}>
                 {content.duration}
               </Text>
             </View>
             <View style={styles.metaItem}>
               <Icon name="tag-outline" size={16} color={Colors.textSecondary} />
-              <Text variant="bodyMedium" style={styles.metaText}>
+              <Text style={styles.metaText}>
                 {content.type}
               </Text>
             </View>
           </View>
 
-          <Text variant="bodyLarge" style={styles.description}>
+          <Text style={styles.description}>
             {content.description}
           </Text>
         </View>
@@ -109,23 +111,22 @@ export default function SleepDetailScreen() {
         {/* Playback Controls */}
         <View style={styles.controls}>
           <View style={styles.playButtonContainer}>
-            <IconButton
-              icon={isCurrentlyPlaying ? 'pause-circle' : 'play-circle'}
-              size={80}
-              iconColor={Colors.evergreenTeal}
+            <TouchableOpacity
               onPress={handlePlayPause}
-            />
+              style={{width: 80, height: 80, justifyContent: 'center', alignItems: 'center'}}
+            >
+              <Icon name={isCurrentlyPlaying ? 'pause-circle' : 'play-circle'} size={80} color={Colors.evergreenTeal} />
+            </TouchableOpacity>
           </View>
 
           {isPlaying && currentTrack?.uri === content.audioUrl && (
-            <Button
-              mode="outlined"
+            <TouchableOpacity
               onPress={handleStop}
-              icon="stop"
-              style={styles.stopButton}
+              style={[styles.stopButton, {flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, borderWidth: 1}]}
             >
-              Stop
-            </Button>
+              <Icon name="stop" size={18} color={Colors.error} />
+              <Text style={{color: Colors.error, fontSize: 16, fontWeight: '600'}}>Stop</Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -133,21 +134,21 @@ export default function SleepDetailScreen() {
         <View style={styles.settingRow}>
           <View style={styles.settingLabel}>
             <Icon name="repeat" size={24} color={Colors.textPrimary} />
-            <Text variant="bodyLarge" style={styles.settingText}>
+            <Text style={styles.settingText}>
               Loop Audio
             </Text>
           </View>
           <Switch
             value={isLooping}
             onValueChange={setLooping}
-            color={Colors.evergreenTeal}
+            trackColor={{false: Colors.silverSage, true: Colors.evergreenTeal}}
           />
         </View>
 
         {/* Related Content */}
         {relatedContent.length > 0 && (
           <View style={styles.relatedSection}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text style={styles.sectionTitle}>
               More {category === 'sounds' ? 'Sleep Sounds' : category === 'stories' ? 'Sleep Stories' : 'Meditations'}
             </Text>
 
@@ -172,24 +173,24 @@ export default function SleepDetailScreen() {
 
         {/* Sleep Tips */}
         <View style={styles.tipsSection}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text style={styles.sectionTitle}>
             Sleep Tips
           </Text>
           <View style={styles.tipItem}>
             <Icon name="lightbulb-outline" size={20} color={Colors.goldenApricot} />
-            <Text variant="bodyMedium" style={styles.tipText}>
+            <Text style={styles.tipText}>
               Create a dark, cool environment for optimal sleep
             </Text>
           </View>
           <View style={styles.tipItem}>
             <Icon name="lightbulb-outline" size={20} color={Colors.goldenApricot} />
-            <Text variant="bodyMedium" style={styles.tipText}>
+            <Text style={styles.tipText}>
               Avoid screens 30 minutes before bed
             </Text>
           </View>
           <View style={styles.tipItem}>
             <Icon name="lightbulb-outline" size={20} color={Colors.goldenApricot} />
-            <Text variant="bodyMedium" style={styles.tipText}>
+            <Text style={styles.tipText}>
               Use headphones or speakers at a comfortable volume
             </Text>
           </View>

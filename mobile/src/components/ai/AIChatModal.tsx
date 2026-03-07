@@ -17,8 +17,8 @@ import {
   ScrollView,
   Animated,
   Easing,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -218,10 +218,9 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
 
     if (visible) {
       slideAnim.setValue(0);
-      animation = Animated.spring(slideAnim, {
+      animation = Animated.timing(slideAnim, {
         toValue: 1,
-        friction: 8,
-        tension: 65,
+        duration: 300,
         useNativeDriver: true,
       });
       animation.start();
@@ -550,7 +549,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -589,14 +588,14 @@ const styles = StyleSheet.create({
     backgroundColor: ONLINE_GREEN,
   },
   headerSubtitle: {
-    fontSize: 11.5,
+    fontSize: 12,
     color: MUTED_SAGE_GRAY,
     marginTop: 2,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
@@ -607,17 +606,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesList: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 16,
     flexGrow: 1,
-    gap: 14,
+    gap: 16,
   },
 
   // Messages
   messageBubble: {
     maxWidth: '90%',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
   },
   userMessage: {
     alignSelf: 'flex-end',
@@ -625,8 +624,8 @@ const styles = StyleSheet.create({
     backgroundColor: EVERGREEN_TEAL,
     borderRadius: 16,
     borderBottomRightRadius: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   assistantMessage: {
     alignSelf: 'flex-start',
@@ -644,8 +643,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   messageText: {
-    fontSize: 13.5,
-    lineHeight: 13.5 * 1.55,
+    fontSize: 14,
+    lineHeight: 14 * 1.55,
   },
   userMessageText: {
     color: MIST_WHITE,
@@ -654,7 +653,7 @@ const styles = StyleSheet.create({
     color: SOFT_CHARCOAL,
   },
   timestamp: {
-    fontSize: 10.5,
+    fontSize: 12,
     marginTop: 4,
     paddingHorizontal: 4,
   },
@@ -670,8 +669,8 @@ const styles = StyleSheet.create({
   // Typing indicator
   typingContainer: {
     alignSelf: 'flex-start',
-    marginLeft: 14,
-    marginBottom: 14,
+    marginLeft: 16,
+    marginBottom: 16,
     backgroundColor: '#fff',
     borderRadius: 16,
     borderBottomLeftRadius: 4,
@@ -679,8 +678,8 @@ const styles = StyleSheet.create({
     borderColor: BORDER_COLOR,
     borderLeftWidth: 3,
     borderLeftColor: SILVER_SAGE,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   typingDotsRow: {
     flexDirection: 'row',
@@ -697,7 +696,7 @@ const styles = StyleSheet.create({
   // Quick prompts
   quickPromptsScroll: {
     flexGrow: 0,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   quickPromptsContainer: {
     flexDirection: 'row',
@@ -706,6 +705,8 @@ const styles = StyleSheet.create({
   quickPromptChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
+    minHeight: 48,
+    justifyContent: 'center',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: DEW_SAGE,
@@ -721,9 +722,9 @@ const styles = StyleSheet.create({
 
   // Input area
   inputArea: {
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 14,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
     borderTopWidth: 1,
     borderTopColor: BORDER_COLOR,
     backgroundColor: '#fff',
@@ -733,8 +734,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: MIST_WHITE,
-    borderRadius: 14,
-    paddingLeft: 14,
+    borderRadius: 16,
+    paddingLeft: 16,
     paddingRight: 4,
     paddingVertical: 4,
     borderWidth: 1.5,
@@ -742,15 +743,15 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    fontSize: 13.5,
+    fontSize: 14,
     color: SOFT_CHARCOAL,
     maxHeight: 80,
     paddingVertical: 8,
   },
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -762,7 +763,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     textAlign: 'center',
-    fontSize: 10,
+    fontSize: 12,
     color: TIMESTAMP_COLOR,
     marginTop: 8,
   },

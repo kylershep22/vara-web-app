@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
-import { Text, Avatar, FAB, Portal, Modal, Searchbar, Button as PaperButton } from 'react-native-paper';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, TextInput as RNTextInput, Modal as RNModal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Card, LoadingSpinner } from '../../components';
@@ -113,10 +112,10 @@ const MessagesScreen: React.FC = () => {
             <Icon name="chevron-left" size={24} color={Colors.evergreenTeal} />
           </TouchableOpacity>
           <View>
-            <Text variant="headlineMedium" style={styles.screenTitle}>
+            <Text style={styles.screenTitle}>
               Messages
             </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
+            <Text style={styles.subtitle}>
               Your conversations
             </Text>
           </View>
@@ -134,10 +133,10 @@ const MessagesScreen: React.FC = () => {
             color={Colors.textSecondary}
             style={styles.emptyIcon}
           />
-          <Text variant="titleMedium" style={styles.emptyTitle}>
+          <Text style={styles.emptyTitle}>
             No messages yet
           </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <Text style={styles.emptyText}>
             Start a conversation with your connections
           </Text>
         </View>
@@ -153,24 +152,22 @@ const MessagesScreen: React.FC = () => {
                 onPress={() => handleOpenConversation(item.id, otherUserId || '')}
               >
                 <View style={styles.conversationItem}>
-                  <Avatar.Text
-                    size={50}
-                    label={(item.otherUser?.displayName || 'U').substring(0, 2).toUpperCase()}
-                    style={styles.avatar}
-                    color={Colors.textOnPrimary}
-                  />
+                  <View style={[styles.avatar, {width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center'}]}>
+                    <Text style={{color: Colors.textOnPrimary, fontSize: 18, fontWeight: '600'}}>
+                      {(item.otherUser?.displayName || 'U').substring(0, 2).toUpperCase()}
+                    </Text>
+                  </View>
                   <View style={styles.conversationInfo}>
                     <View style={styles.conversationHeader}>
-                      <Text variant="titleMedium" style={styles.userName}>
+                      <Text style={styles.userName}>
                         {item.otherUser?.displayName || 'Unknown'}
                       </Text>
-                      <Text variant="bodySmall" style={styles.time}>
+                      <Text style={styles.time}>
                         {formatTime(item.lastMessage?.createdAt)}
                       </Text>
                     </View>
                     <Text
-                      variant="bodyMedium"
-                      style={[
+                                           style={[
                         styles.lastMessage,
                         item.unreadCount > 0 && styles.unreadMessage,
                       ]}
@@ -181,7 +178,7 @@ const MessagesScreen: React.FC = () => {
                   </View>
                   {item.unreadCount > 0 && (
                     <View style={styles.unreadBadge}>
-                      <Text variant="bodySmall" style={styles.unreadText}>
+                      <Text style={styles.unreadText}>
                         {item.unreadCount}
                       </Text>
                     </View>
@@ -197,24 +194,25 @@ const MessagesScreen: React.FC = () => {
       )}
 
       {/* FAB for New Message */}
-      <FAB
-        icon="message-plus"
-        label="New"
+      <TouchableOpacity
         style={styles.fab}
         onPress={() => setShowNewMessage(true)}
-        color={Colors.textOnPrimary}
-      />
+        activeOpacity={0.8}
+      >
+        <Icon name="message-plus" size={24} color="#fff" />
+      </TouchableOpacity>
 
       {/* New Message Modal */}
-      <Portal>
-        <Modal
-          visible={showNewMessage}
-          onDismiss={() => {
-            setShowNewMessage(false);
-            setSearchQuery('');
-          }}
-          contentContainerStyle={styles.modalContainer}
-        >
+      <RNModal
+        visible={showNewMessage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setShowNewMessage(false);
+          setSearchQuery('');
+        }}
+      >
+        <View style={styles.modalContainer}>
           <View style={styles.modal}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
@@ -223,8 +221,8 @@ const MessagesScreen: React.FC = () => {
                   <Icon name="message-plus" size={24} color={Colors.evergreenTeal} />
                 </View>
                 <View style={styles.modalTitleContainer}>
-                  <Text variant="titleLarge" style={styles.modalTitle}>New Message</Text>
-                  <Text variant="bodySmall" style={styles.modalSubtitle}>Choose a connection to message</Text>
+                  <Text style={styles.modalTitle}>New Message</Text>
+                  <Text style={styles.modalSubtitle}>Choose a connection to message</Text>
                 </View>
               </View>
               <TouchableOpacity
@@ -240,16 +238,24 @@ const MessagesScreen: React.FC = () => {
 
             {/* Search bar */}
             <View style={styles.modalSearchContainer}>
-              <Searchbar
-                placeholder="Search your connections..."
-                onChangeText={setSearchQuery}
-                value={searchQuery}
-                style={styles.modalSearchbar}
-                iconColor={Colors.evergreenTeal}
-                autoFocus={true}
-              />
+              <View style={[styles.modalSearchbar, {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12}]}>
+                <Icon name="magnify" size={20} color={Colors.evergreenTeal} style={{marginRight: 8}} />
+                <RNTextInput
+                  placeholder="Search your connections..."
+                  placeholderTextColor={Colors.textSecondary}
+                  onChangeText={setSearchQuery}
+                  value={searchQuery}
+                  autoFocus={true}
+                  style={{flex: 1, fontSize: 14, color: Colors.textPrimary, paddingVertical: 8}}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <Icon name="close-circle" size={18} color={Colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
               {searchQuery.length > 0 && (
-                <Text variant="bodySmall" style={styles.searchResultsCount}>
+                <Text style={styles.searchResultsCount}>
                   {filteredConnections.length} {filteredConnections.length === 1 ? 'connection' : 'connections'} found
                 </Text>
               )}
@@ -260,19 +266,19 @@ const MessagesScreen: React.FC = () => {
               {loadingProfiles ? (
                 <View style={styles.modalLoading}>
                   <ActivityIndicator size="large" color={Colors.evergreenTeal} />
-                  <Text variant="bodyMedium" style={styles.loadingProfilesText}>
+                  <Text style={styles.loadingProfilesText}>
                     Loading connections...
                   </Text>
                 </View>
               ) : filteredConnections.length === 0 ? (
                 <View style={styles.emptyConnections}>
                   <Icon name="account-group" size={48} color={Colors.textSecondary} />
-                  <Text variant="titleMedium" style={styles.emptyConnectionsTitle}>
+                  <Text style={styles.emptyConnectionsTitle}>
                     {searchQuery
                       ? 'No connections found'
                       : 'No connections yet'}
                   </Text>
-                  <Text variant="bodyMedium" style={styles.emptyConnectionsText}>
+                  <Text style={styles.emptyConnectionsText}>
                     {searchQuery
                       ? `No one matching "${searchQuery}"`
                       : 'Connect with people first to start messaging'}
@@ -300,11 +306,11 @@ const MessagesScreen: React.FC = () => {
                         </View>
                       )}
                       <View style={styles.connectionInfo}>
-                        <Text variant="titleMedium" style={styles.connectionName}>
+                        <Text style={styles.connectionName}>
                           {item.displayName || 'User'}
                         </Text>
                         {item.bio && (
-                          <Text variant="bodySmall" style={styles.connectionBio} numberOfLines={1}>
+                          <Text style={styles.connectionBio} numberOfLines={1}>
                             {item.bio}
                           </Text>
                         )}
@@ -318,20 +324,19 @@ const MessagesScreen: React.FC = () => {
 
             {/* Footer */}
             <View style={styles.modalFooter}>
-              <PaperButton
-                mode="outlined"
+              <TouchableOpacity
                 onPress={() => {
                   setShowNewMessage(false);
                   setSearchQuery('');
                 }}
-                style={styles.modalButton}
+                style={[styles.modalButton, {borderWidth: 1, borderColor: Colors.borderLight, borderRadius: 8, paddingVertical: 10, alignItems: 'center' as const}]}
               >
-                Cancel
-              </PaperButton>
+                <Text style={{color: Colors.textPrimary, fontSize: 14, fontWeight: '500'}}>Cancel</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
-      </Portal>
+        </View>
+      </RNModal>
     </SafeAreaView>
   );
 };
@@ -440,7 +445,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: Spacing.lg,
     bottom: Spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 9999,
     backgroundColor: Colors.evergreenTeal,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   modalContainer: {
     flex: 1,

@@ -11,8 +11,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ColorTokens,
@@ -82,16 +81,16 @@ const styles = StyleSheet.create({
     padding: SpacingTokens.base,
   },
   title: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: ColorTokens.primary,
     marginBottom: SpacingTokens.xs,
   },
   body: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '400',
     color: ColorTokens.textPrimary,
-    lineHeight: 13 * 1.5, // 1.5x line height per spec
+    lineHeight: 14 * 1.5, // 1.5x line height per spec
   },
 });
 

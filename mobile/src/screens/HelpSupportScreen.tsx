@@ -10,8 +10,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     color: Colors.mutedSageGray,
     letterSpacing: 1.2,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contactTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     color: Colors.softCharcoal,
   },
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   },
   faqQuestionText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     color: Colors.softCharcoal,
     paddingRight: 12,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   resourceText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     color: Colors.softCharcoal,
   },
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
   },
   appInfoText: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.mutedSageGray,
   },
   appInfoVersion: {

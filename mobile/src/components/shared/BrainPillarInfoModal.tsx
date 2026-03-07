@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
-import { Modal, Portal, Button as PaperButton, Text } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, useWindowDimensions, Modal, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -142,20 +141,22 @@ export const BrainPillarInfoModal: React.FC<BrainPillarInfoModalProps> = ({
   const modalMaxHeight = screenHeight - insets.top - insets.bottom - 40;
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[styles.modal, { maxHeight: modalMaxHeight }]}
-      >
+    <Modal
+      visible={visible}
+      onRequestClose={onDismiss}
+      transparent
+      animationType="fade"
+    >
+      <View style={styles.modalOverlay}>
+      <View style={[styles.modal, { maxHeight: modalMaxHeight }]}>
         <ScrollView
           showsVerticalScrollIndicator={true}
           contentContainerStyle={styles.scrollContent}
         >
-          <Text variant="headlineSmall" style={styles.modalTitle}>
+          <Text style={styles.modalTitle}>
             Brain Health Pillars
           </Text>
-          <Text variant="bodyMedium" style={styles.modalSubtitle}>
+          <Text style={styles.modalSubtitle}>
             5 science-backed foundations for optimal brain health
           </Text>
 
@@ -167,6 +168,8 @@ export const BrainPillarInfoModal: React.FC<BrainPillarInfoModalProps> = ({
                 highlightPillar === info.pillar && styles.pillarCardHighlight,
                 index === PILLAR_INFO.length - 1 && { marginBottom: 0 },
               ]}
+              accessibilityLabel={`${info.label} pillar: ${info.description}`}
+              accessibilityRole="summary"
             >
               {/* Header */}
               <View style={styles.pillarHeader}>
@@ -179,10 +182,10 @@ export const BrainPillarInfoModal: React.FC<BrainPillarInfoModalProps> = ({
                   <Icon name={info.icon} size={24} color={info.color} />
                 </View>
                 <View style={styles.pillarHeaderText}>
-                  <Text variant="titleMedium" style={[styles.pillarLabel, { color: info.color }]}>
+                  <Text style={[styles.pillarLabel, { color: info.color }]}>
                     {info.label}
                   </Text>
-                  <Text variant="bodySmall" style={styles.pillarDescription}>
+                  <Text style={styles.pillarDescription}>
                     {info.description}
                   </Text>
                 </View>
@@ -190,13 +193,13 @@ export const BrainPillarInfoModal: React.FC<BrainPillarInfoModalProps> = ({
 
               {/* Benefits */}
               <View style={styles.section}>
-                <Text variant="bodyMedium" style={styles.sectionTitle}>
+                <Text style={styles.sectionTitle}>
                   Benefits:
                 </Text>
                 {info.benefits.map((benefit, idx) => (
                   <View key={idx} style={styles.bulletPoint}>
                     <Text style={styles.bullet}>•</Text>
-                    <Text variant="bodySmall" style={styles.bulletText}>
+                    <Text style={styles.bulletText}>
                       {benefit}
                     </Text>
                   </View>
@@ -205,7 +208,7 @@ export const BrainPillarInfoModal: React.FC<BrainPillarInfoModalProps> = ({
 
               {/* Examples */}
               <View style={styles.section}>
-                <Text variant="bodyMedium" style={styles.sectionTitle}>
+                <Text style={styles.sectionTitle}>
                   Supported by:
                 </Text>
                 <View style={styles.examplesContainer}>
@@ -217,7 +220,7 @@ export const BrainPillarInfoModal: React.FC<BrainPillarInfoModalProps> = ({
                         { backgroundColor: info.color + '15', borderColor: info.color + '40' },
                       ]}
                     >
-                      <Text variant="bodySmall" style={styles.exampleText}>
+                      <Text style={styles.exampleText}>
                         {example}
                       </Text>
                     </View>
@@ -228,22 +231,27 @@ export const BrainPillarInfoModal: React.FC<BrainPillarInfoModalProps> = ({
           ))}
 
           <View style={styles.modalActions}>
-            <PaperButton
-              mode="contained"
+            <TouchableOpacity
               onPress={onDismiss}
               style={styles.closeButton}
-              buttonColor={Colors.evergreenTeal}
             >
-              Got it
-            </PaperButton>
+              <Text style={styles.closeButtonText}>Got it</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
-      </Modal>
-    </Portal>
+      </View>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modal: {
     backgroundColor: Colors.surface,
     marginHorizontal: Spacing.lg,
@@ -346,5 +354,14 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     width: '100%',
+    backgroundColor: Colors.evergreenTeal,
+    paddingVertical: Spacing.sm,
+    borderRadius: Layout.borderRadius.md,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: Colors.textOnPrimary,
+    fontWeight: Typography.fontWeight.semibold,
+    fontSize: Typography.fontSize.base,
   },
 });

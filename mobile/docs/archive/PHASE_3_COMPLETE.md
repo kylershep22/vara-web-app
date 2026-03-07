@@ -296,7 +296,7 @@ Now includes:
 #### **Firebase App Check** (Bot Prevention)
 You'll need to enable this in Firebase Console:
 
-1. Go to [Firebase Console](https://console.firebase.google.com/project/vara-4a99f/appcheck)
+1. Go to [Firebase Console](https://console.firebase.google.com/project/your-project-id/appcheck)
 2. Click **"Get Started"** in App Check
 3. **Register iOS app:**
    - Select your iOS app (`com.vara.wellness`)

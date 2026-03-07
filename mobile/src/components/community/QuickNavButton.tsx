@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
-import { Text } from 'react-native-paper';
+import { StyleSheet, TouchableOpacity, View, Platform, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
@@ -66,7 +65,7 @@ const styles = StyleSheet.create({
   text: {
     color: Colors.mutedSageGray,
     marginTop: 6,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: Typography.fontWeight.medium,
     textAlign: 'center',
   },

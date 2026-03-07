@@ -5,8 +5,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { INTENTION_INSIGHTS } from '../../constants/intentions';
 import { HabitIntention } from '../../types/models';
@@ -66,7 +65,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   supportingLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     color: '#6F7F77',
     textTransform: 'uppercase',
@@ -74,13 +73,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   intentionLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     color: '#1B5E57',
     marginBottom: 8,
   },
   insightText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '400',
     fontStyle: 'italic',
     color: '#3E3E3E',

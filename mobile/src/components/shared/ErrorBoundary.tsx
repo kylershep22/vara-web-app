@@ -6,6 +6,7 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { logError } from '../../services/crashReporting.service';
+import { Colors } from '../../constants';
 
 interface Props {
   children: ReactNode;
@@ -65,9 +66,9 @@ class ErrorBoundary extends Component<Props, State> {
         <View style={styles.container}>
           <View style={styles.content}>
             <Text style={styles.emoji}>😔</Text>
-            <Text style={styles.title}>Oops! Something went wrong</Text>
+            <Text style={styles.title}>Something didn't work as expected. We've been notified.</Text>
             <Text style={styles.message}>
-              We've been notified and will fix this soon.
+              We'll look into this soon.
             </Text>
             {__DEV__ && this.state.error && (
               <View style={styles.errorDetails}>
@@ -99,11 +100,11 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   emoji: {
-    fontSize: 64,
+    fontSize: 32,
     marginBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '600',
     color: '#333',
     marginBottom: 12,
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    color: '#E53935',
+    color: Colors.softCoral,
     fontFamily: 'monospace',
   },
   button: {

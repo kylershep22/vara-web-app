@@ -9,7 +9,8 @@ const admin = require('firebase-admin');
 const path = require('path');
 
 // Initialize Firebase Admin
-const serviceAccount = require(path.join(__dirname, '../../backend/vara-4a99f-firebase-adminsdk-ggpjd-9f8d3d2fb9.json'));
+// Service account key file - download from Firebase Console > Project Settings > Service Accounts
+const serviceAccount = require(path.join(__dirname, '../../backend/firebase-service-account.json'));
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -18,7 +19,8 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // Demo account email
-const DEMO_EMAIL = 'demo@varawellness.app';
+// Demo credentials - stored in team secrets manager, do not hardcode
+const DEMO_EMAIL = process.env.DEMO_EMAIL || 'demo@example.com';
 
 /**
  * Get demo user ID from auth
@@ -413,9 +415,7 @@ async function main() {
     await updateUserProfile(userId);
 
     console.log('\n✅ Demo data population complete!');
-    console.log('\nYou can now log in with:');
-    console.log(`  Email: ${DEMO_EMAIL}`);
-    console.log('  Password: Demo2026!');
+    console.log('\nYou can now log in with the demo account credentials from your secrets manager.');
     console.log('\nThe account now has:');
     console.log('  • 3 realistic goals with milestones');
     console.log('  • 5 active habits with completion history');

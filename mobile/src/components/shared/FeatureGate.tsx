@@ -7,8 +7,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useFeatureUnlock } from '../../hooks/useFeatureUnlock';
@@ -138,7 +137,7 @@ export const LockedFeaturePreview: React.FC<LockedFeaturePreviewProps> = ({
           disabled={unlocking}
         >
           <Text style={styles.unlockButtonText}>
-            {unlocking ? 'Unlocking...' : 'Unlock Now'}
+            {unlocking ? 'Unlocking...' : 'Explore Features'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -244,7 +243,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 12,
     color: Colors.silverSage,
     fontWeight: '500',
   },

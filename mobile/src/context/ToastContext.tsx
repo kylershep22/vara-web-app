@@ -26,6 +26,8 @@ interface NotificationToastData {
   title: string;
   body: string;
   onTap?: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 interface ToastContextValue {
@@ -34,7 +36,7 @@ interface ToastContextValue {
   /** Queue multiple toasts (for multiple simultaneous unlocks) */
   queueUnlockToasts: (featureIds: DiscoverableFeatureId[]) => void;
   /** Show a generic notification toast (for foreground consolidation) */
-  showNotificationToast: (title: string, body: string, onTap?: () => void) => void;
+  showNotificationToast: (title: string, body: string, onTap?: () => void, actionLabel?: string, onAction?: () => void) => void;
   /** Dismiss the current toast */
   dismissCurrentToast: () => void;
   /** Check if a toast is currently visible */
@@ -121,10 +123,10 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   }, []);
 
   // Show a generic notification toast
-  const showNotificationToast = useCallback((title: string, body: string, onTap?: () => void) => {
+  const showNotificationToast = useCallback((title: string, body: string, onTap?: () => void, actionLabel?: string, onAction?: () => void) => {
     // Don't show if an unlock toast is visible
     if (isToastVisible) return;
-    setNotificationToast({ title, body, onTap });
+    setNotificationToast({ title, body, onTap, actionLabel, onAction });
     setIsNotificationToastVisible(true);
   }, [isToastVisible]);
 
@@ -168,7 +170,9 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
           visible={isNotificationToastVisible}
           onDismiss={handleNotificationToastDismiss}
           onTap={notificationToast.onTap}
-          autoDismissDelay={TOAST_DISPLAY_DURATION}
+          autoDismissDelay={notificationToast.actionLabel ? 4000 : TOAST_DISPLAY_DURATION}
+          actionLabel={notificationToast.actionLabel}
+          onAction={notificationToast.onAction}
         />
       )}
     </ToastContext.Provider>

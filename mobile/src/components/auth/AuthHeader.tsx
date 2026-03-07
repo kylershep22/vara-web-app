@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing } from '../../constants';
 
@@ -34,10 +33,10 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
           style={styles.icon}
         />
       )}
-      <Text variant="displayMedium" style={styles.title}>
+      <Text style={styles.title}>
         {title}
       </Text>
-      <Text variant="bodyLarge" style={styles.subtitle}>
+      <Text style={styles.subtitle}>
         {subtitle}
       </Text>
     </View>

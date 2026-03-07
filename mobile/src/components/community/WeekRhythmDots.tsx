@@ -46,16 +46,19 @@ export const WeekRhythmDots: React.FC<WeekRhythmDotsProps> = ({ checkIns }) => {
         const isFuture = date > today;
 
         const isChecked = isCheckedIn;
-        const isMissed = isPast && !isToday && !isCheckedIn;
+
+        const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
         return (
-          <View key={index} style={styles.dayColumn}>
+          <View key={index} style={styles.dayColumn} accessible={false}>
             <Text style={styles.dayLabel}>{DAY_LABELS[index]}</Text>
-            <View style={[styles.dot, isChecked ? styles.checkedDot : isMissed ? styles.missedDot : styles.futureDot]}>
+            <View
+              style={[styles.dot, isChecked ? styles.checkedDot : styles.futureDot]}
+              accessible={false}
+              accessibilityLabel={`${dayNames[index]}: ${isChecked ? 'completed' : 'not yet'}`}
+            >
               {isChecked ? (
                 <Icon name="check" size={14} color={Colors.white} />
-              ) : isMissed ? (
-                <View style={styles.innerDotMissed} />
               ) : (
                 <View style={styles.innerDot} />
               )}
@@ -79,7 +82,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   dayLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     color: Colors.mutedSageGray,
   },
@@ -93,9 +96,6 @@ const styles = StyleSheet.create({
   checkedDot: {
     backgroundColor: Colors.evergreenTeal,
   },
-  missedDot: {
-    backgroundColor: 'rgba(215,122,110,0.12)',
-  },
   futureDot: {
     backgroundColor: Colors.dewSageLight,
   },
@@ -104,11 +104,5 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: Colors.silverSage,
-  },
-  innerDotMissed: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.softCoral,
   },
 });

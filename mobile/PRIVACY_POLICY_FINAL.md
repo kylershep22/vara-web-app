@@ -1,6 +1,6 @@
 # Privacy Policy for Vara Wellness
 
-**Last Updated:** December 31, 2025
+**Last Updated:** March 6, 2026
 
 Vara Wellness, Inc. ("Vara," "we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, store, and safeguard your information when you use the Vara Wellness mobile application, website, and related services (collectively, the "Services").
 
@@ -118,7 +118,13 @@ We do not sell, rent, or trade personal information for marketing or advertising
 
 ### 6.2 Service Providers
 
-We may share information with trusted third-party service providers who assist in operating, maintaining, and improving the Services. These providers are contractually obligated to:
+We may share information with trusted third-party service providers who assist in operating, maintaining, and improving the Services. Current service providers include:
+
+- **Google Firebase** (data hosting, authentication, analytics)
+- **Sentry** (error monitoring and crash reporting)
+- **OpenAI** (AI-powered features)
+
+Each provider processes only the minimum data necessary for their specific function. These providers are contractually obligated to:
 - Use information only for authorized purposes
 - Maintain appropriate confidentiality and security safeguards
 - Comply with applicable privacy laws

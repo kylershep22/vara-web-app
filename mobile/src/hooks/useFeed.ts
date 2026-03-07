@@ -3,15 +3,20 @@
  * Hook for managing social feed with posts from connections and groups
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   collection,
   query,
   limit,
+  orderBy,
   onSnapshot,
+  where,
+  documentId,
+  getDocs,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { logger } from '../utils/logger';
 import {
   Post,
   UserProfile,
@@ -20,7 +25,8 @@ import {
   addCommentToPost,
   fetchUserConnections,
   fetchUserGroups,
-  getUserById,
+  fetchHiddenPostIds,
+  fetchMutedUserIds,
 } from '../services/firebase';
 
 export interface EnrichedPost extends Post {
@@ -39,6 +45,8 @@ export const useFeed = () => {
   const [connectionIds, setConnectionIds] = useState<string[]>([]);
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [groupMap, setGroupMap] = useState<Map<string, string>>(new Map()); // groupId -> groupName
+  const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
+  const [mutedUserIds, setMutedUserIds] = useState<string[]>([]);
   const [contextLoaded, setContextLoaded] = useState(false);
 
   // Load user's connections and groups
@@ -50,11 +58,16 @@ export const useFeed = () => {
 
     const loadUserContext = async () => {
       try {
-        console.log('[useFeed] Loading user context for:', user.uid);
-        const [connections, groups] = await Promise.all([
+        logger.log('[useFeed] Loading user context for:', user.uid);
+        const [connections, groups, hidden, muted] = await Promise.all([
           fetchUserConnections(user.uid),
           fetchUserGroups(user.uid),
+          fetchHiddenPostIds(user.uid),
+          fetchMutedUserIds(user.uid),
         ]);
+
+        setHiddenPostIds(hidden);
+        setMutedUserIds(muted);
 
         // Extract connection IDs (service layer normalizes to a/b format)
         const connIds = connections
@@ -67,7 +80,7 @@ export const useFeed = () => {
           .filter((id): id is string => id !== null);
         setConnectionIds(connIds);
 
-        console.log('[useFeed] Loaded connections:', connIds.length, connIds);
+        logger.log('[useFeed] Loaded connections:', connIds.length, connIds);
 
         // Extract group IDs and build group name map
         const grpIds = groups.map((g) => g.id);
@@ -80,12 +93,12 @@ export const useFeed = () => {
         });
         setGroupMap(grpMap);
 
-        console.log('[useFeed] Loaded groups:', grpIds.length, grpIds);
+        logger.log('[useFeed] Loaded groups:', grpIds.length, grpIds);
 
         // Mark context as loaded so feed filtering can proceed
         setContextLoaded(true);
       } catch (err) {
-        console.error('Error loading user context:', err);
+        logger.error('Error loading user context:', err);
         // Still mark as loaded so we don't block forever
         setContextLoaded(true);
       }
@@ -93,6 +106,9 @@ export const useFeed = () => {
 
     loadUserContext();
   }, [user]);
+
+  // Stable serialized key for groupMap to avoid re-subscriptions
+  const groupMapKey = useMemo(() => [...groupMap.keys()].sort().join(','), [groupMap]);
 
   // Subscribe to posts
   useEffect(() => {
@@ -105,11 +121,11 @@ export const useFeed = () => {
     // Wait for context to load before subscribing to posts
     // This prevents showing "empty feed" while connections/groups are still loading
     if (!contextLoaded) {
-      console.log('[useFeed] Waiting for context to load...');
+      logger.log('[useFeed] Waiting for context to load...');
       return;
     }
 
-    console.log('[useFeed] Context loaded, subscribing to posts with:', {
+    logger.log('[useFeed] Context loaded, subscribing to posts with:', {
       connectionIds: connectionIds.length,
       groupIds: groupIds.length,
     });
@@ -118,9 +134,9 @@ export const useFeed = () => {
     // Posts from: user's own posts, connection posts, and group posts
     const postsRef = collection(db, 'posts');
 
-    // Fetch posts with a strict limit to prevent rendering too many at once
-    // This helps prevent "Malformed calls from JS" bridge errors
-    const q = query(postsRef, limit(30));
+    // Fetch recent posts ordered by creation time, with enough headroom for
+    // client-side filtering (own + connections + groups) to yield ~5 results.
+    const q = query(postsRef, orderBy('createdAt', 'desc'), limit(50));
 
     const unsubscribe = onSnapshot(
       q,
@@ -131,72 +147,86 @@ export const useFeed = () => {
             ...doc.data(),
           })) as Post[];
 
-          console.log('Total posts in database:', allPosts.length);
-          console.log('User connections:', connectionIds);
-          console.log('User groups:', groupIds);
+          logger.log('Total posts in database:', allPosts.length);
+          logger.log('User connections:', connectionIds);
+          logger.log('User groups:', groupIds);
 
           // Filter posts: own posts, connection posts, or group posts
           // Support both authorId (web app) and userId (mobile app)
+          // Also filter out hidden posts, muted users, and soft-deleted posts
           const feedPosts = allPosts.filter((post) => {
             const postAuthor = post.authorId || post.userId;
             if (!postAuthor) return false;
 
+            // Filter out soft-deleted posts
+            if ((post as any).deleted) return false;
+
+            // Filter out hidden posts
+            if (hiddenPostIds.includes(post.id)) return false;
+
+            // Filter out posts from muted users
+            if (mutedUserIds.includes(postAuthor)) return false;
+
             // User's own posts
             if (postAuthor === user.uid) {
-              console.log('Including own post:', post.id);
+              logger.log('Including own post:', post.id);
               return true;
             }
 
             // Posts from connections (no groupId = personal/public posts)
             // Include ALL personal posts from connections, regardless of age
             if (!post.groupId && connectionIds.includes(postAuthor)) {
-              console.log('Including connection post:', post.id, 'from:', postAuthor);
+              logger.log('Including connection post:', post.id, 'from:', postAuthor);
               return true;
             }
 
             // Posts from groups user is member of
             if (post.groupId && groupIds.includes(post.groupId)) {
-              console.log('Including group post:', post.id, 'in group:', post.groupId);
+              logger.log('Including group post:', post.id, 'in group:', post.groupId);
               return true;
             }
 
             return false;
           });
 
-          console.log('Filtered feed posts:', feedPosts.length);
+          logger.log('Filtered feed posts:', feedPosts.length);
 
-          // Debug: log comments for each post
-          feedPosts.forEach((post) => {
-            console.log(`[useFeed] Post ${post.id} has ${post.comments?.length || 0} comments:`, post.comments);
-          });
+          // Batch-fetch all unique author profiles (fixes N+1 query issue)
+          const authorIds = [
+            ...new Set(
+              feedPosts
+                .map((post) => post.authorId || post.userId)
+                .filter((id): id is string => !!id)
+            ),
+          ];
 
-          // Enrich posts with author info
-          // Process in batches to prevent "Malformed calls from JS" errors
-          const enrichedPosts: EnrichedPost[] = [];
-          const batchSize = 5;
-
-          for (let i = 0; i < feedPosts.length; i += batchSize) {
-            const batch = feedPosts.slice(i, i + batchSize);
-            const batchResults = await Promise.all(
-              batch.map(async (post) => {
-                const authorId = post.authorId || post.userId;
-                const author = authorId ? await getUserById(authorId) : null;
-
-                // Get group name if this is a group post
-                const groupName = post.groupId ? groupMap.get(post.groupId) : undefined;
-
-                return {
-                  ...post,
-                  author: author || undefined,
-                  isLiked: post.likes?.includes(user.uid) || false,
-                  likesCount: post.likes?.length || 0,
-                  commentsCount: post.comments?.length || 0,
-                  groupName,
-                } as EnrichedPost;
-              })
+          const authorMap = new Map<string, UserProfile>();
+          // Firestore 'in' queries support max 10 values
+          for (let i = 0; i < authorIds.length; i += 10) {
+            const chunk = authorIds.slice(i, i + 10);
+            const authorDocs = await getDocs(
+              query(collection(db, 'users'), where(documentId(), 'in', chunk))
             );
-            enrichedPosts.push(...batchResults);
+            authorDocs.forEach((doc) => {
+              authorMap.set(doc.id, { id: doc.id, ...doc.data() } as UserProfile);
+            });
           }
+
+          // Enrich posts with cached author info
+          const enrichedPosts: EnrichedPost[] = feedPosts.map((post) => {
+            const authorId = post.authorId || post.userId;
+            const author = authorId ? authorMap.get(authorId) : undefined;
+            const groupName = post.groupId ? groupMap.get(post.groupId) : undefined;
+
+            return {
+              ...post,
+              author,
+              isLiked: post.likes?.includes(user.uid) || false,
+              likesCount: post.likes?.length || 0,
+              commentsCount: post.comments?.length || 0,
+              groupName,
+            } as EnrichedPost;
+          });
 
           // Sort by timestamp descending (most recent first)
           // Handle both createdAt (mobile) and timestamp (web) fields
@@ -211,28 +241,29 @@ export const useFeed = () => {
             return getTime(b) - getTime(a);
           });
 
-          // Limit to 5 posts initially to prevent bridge errors
-          const limitedPosts = sortedPosts.slice(0, 5);
-          console.log('[useFeed] Displaying', limitedPosts.length, 'of', sortedPosts.length, 'posts');
+          // Limit displayed posts to prevent bridge performance issues
+          const limitedPosts = sortedPosts.slice(0, 20);
+          logger.log('[useFeed] Displaying', limitedPosts.length, 'of', sortedPosts.length, 'posts');
 
           setPosts(limitedPosts);
           setError(null);
         } catch (err) {
-          console.error('Error processing feed posts:', err);
+          logger.error('Error processing feed posts:', err);
           setError(err as Error);
         } finally {
           setLoading(false);
         }
       },
       (err) => {
-        console.error('Error subscribing to posts:', err);
+        logger.error('Error subscribing to posts:', err);
         setError(err as Error);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [user, connectionIds, groupIds, groupMap, contextLoaded]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, connectionIds, groupIds, groupMapKey, hiddenPostIds, mutedUserIds, contextLoaded]);
 
   const handleCreatePost = async (
     content: string,
@@ -255,7 +286,7 @@ export const useFeed = () => {
         challengeName,
       });
     } catch (err) {
-      console.error('Error creating post:', err);
+      logger.error('Error creating post:', err);
       throw err;
     }
   };
@@ -266,19 +297,33 @@ export const useFeed = () => {
     try {
       await togglePostLike(postId, user.uid);
     } catch (err) {
-      console.error('Error liking post:', err);
+      logger.error('Error liking post:', err);
       throw err;
+    }
+  };
+
+  const refreshFilters = async () => {
+    if (!user) return;
+    try {
+      const [hidden, muted] = await Promise.all([
+        fetchHiddenPostIds(user.uid),
+        fetchMutedUserIds(user.uid),
+      ]);
+      setHiddenPostIds(hidden);
+      setMutedUserIds(muted);
+    } catch (err) {
+      logger.error('Error refreshing filters:', err);
     }
   };
 
   const handleCommentOnPost = async (postId: string, text: string) => {
     if (!user) {
-      console.log('[useFeed] No user, cannot comment');
+      logger.log('[useFeed] No user, cannot comment');
       return;
     }
 
-    console.log('[useFeed] Adding comment to post:', postId);
-    console.log('[useFeed] User:', user.uid, 'displayName:', user.displayName);
+    logger.log('[useFeed] Adding comment to post:', postId);
+    logger.log('[useFeed] User:', user.uid, 'displayName:', user.displayName);
 
     try {
       await addCommentToPost(postId, {
@@ -286,9 +331,9 @@ export const useFeed = () => {
         text,
         authorName: user.displayName || 'Someone',
       });
-      console.log('[useFeed] Comment added successfully');
+      logger.log('[useFeed] Comment added successfully');
     } catch (err) {
-      console.error('[useFeed] Error commenting on post:', err);
+      logger.error('[useFeed] Error commenting on post:', err);
       throw err;
     }
   };
@@ -299,6 +344,11 @@ export const useFeed = () => {
     error,
     connectionIds,
     groupIds,
+    hiddenPostIds,
+    mutedUserIds,
+    setHiddenPostIds,
+    setMutedUserIds,
+    refreshFilters,
     createPost: handleCreatePost,
     likePost: handleLikePost,
     commentOnPost: handleCommentOnPost,

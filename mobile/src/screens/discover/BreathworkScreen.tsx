@@ -15,8 +15,8 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -743,7 +743,7 @@ const styles = StyleSheet.create({
 
   // Search Bar
   searchContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     overflow: 'hidden',
   },
   searchInputWrapper: {
@@ -761,8 +761,8 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 10,
-    fontSize: 15,
+    paddingVertical: 12,
+    fontSize: 16,
     color: Colors.softCharcoal,
   },
   clearButton: {
@@ -771,12 +771,12 @@ const styles = StyleSheet.create({
 
   // Greeting
   greetingContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 16,
     paddingLeft: 32,
     borderLeftWidth: 3,
     borderLeftColor: Colors.dewSage,
-    marginLeft: 20,
+    marginLeft: 24,
     marginTop: 12,
   },
   greetingText: {
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
 
   // Filter Chips
   filterChipsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 12,
     gap: 8,
   },
@@ -795,13 +795,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1.2,
     borderColor: Colors.silverSage,
-    borderRadius: 20,
+    borderRadius: 16,
     paddingVertical: 7,
     paddingHorizontal: 16,
     marginRight: 8,
   },
   filterChipText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: Colors.mutedSageGray,
   },
@@ -814,23 +814,23 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 8,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   sectionLabelWithMargin: {
-    marginTop: 6,
+    marginTop: 8,
   },
 
   // List
   listContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 100,
   },
 
   // Card
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    marginBottom: 14,
+    borderRadius: 16,
+    marginBottom: 16,
     borderLeftWidth: 3.5,
     shadowColor: 'rgba(27, 94, 87, 0.05)',
     shadowOffset: { width: 0, height: 1 },
@@ -846,7 +846,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   cardGradient: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderLeftWidth: 4,
   },
   cardInner: {
@@ -871,16 +871,16 @@ const styles = StyleSheet.create({
     paddingRight: 24,
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.softCharcoal,
     marginBottom: 4,
   },
   cardDescription: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.mutedSageGray,
-    lineHeight: 13 * 1.5,
-    marginBottom: 10,
+    lineHeight: 14 * 1.5,
+    marginBottom: 12,
   },
 
   // Meta Row
@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   purposeTagText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
   },
 
@@ -918,7 +918,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   formatText: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.mutedSageGray,
   },
 
@@ -929,7 +929,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   difficultyLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.mutedSageGray,
   },
   difficultyDots: {
@@ -976,7 +976,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completedText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '500',
     color: Colors.evergreenTeal,
   },
@@ -991,7 +991,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(27, 94, 87, 0.08)',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     alignSelf: 'flex-start',
     marginBottom: 12,
   },
@@ -1022,17 +1022,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+    paddingHorizontal: 24,
+    paddingVertical: 48,
   },
   emptyStateTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     color: Colors.mutedSageGray,
   },
   emptyStateSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.silverSage,
-    marginTop: 6,
+    marginTop: 8,
   },
 });

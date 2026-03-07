@@ -1,6 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle, TextStyle } from 'react-native';
-import { Text } from 'react-native-paper';
+import { StyleSheet, View, ViewStyle, TextStyle, Text } from 'react-native';
 import { Colors, Layout, Typography } from '../../constants';
 
 export type BadgeVariant = 'default' | 'active' | 'category' | 'warm';

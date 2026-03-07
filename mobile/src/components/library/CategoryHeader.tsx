@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography } from '../../constants';
 
@@ -28,12 +27,12 @@ export function CategoryHeader({ title, icon, count, onSeeAll }: CategoryHeaderP
             style={styles.icon}
           />
         )}
-        <Text variant="titleLarge" style={styles.title}>
+        <Text style={styles.title}>
           {title}
         </Text>
         {count !== undefined && (
           <View style={styles.countBadge}>
-            <Text variant="labelSmall" style={styles.countText}>
+            <Text style={styles.countText}>
               {count}
             </Text>
           </View>
@@ -42,7 +41,7 @@ export function CategoryHeader({ title, icon, count, onSeeAll }: CategoryHeaderP
 
       {onSeeAll && (
         <TouchableOpacity onPress={onSeeAll} style={styles.seeAllButton}>
-          <Text variant="bodyMedium" style={styles.seeAllText}>
+          <Text style={styles.seeAllText}>
             See All
           </Text>
           <Icon name="chevron-right" size={20} color={Colors.evergreenTeal} />

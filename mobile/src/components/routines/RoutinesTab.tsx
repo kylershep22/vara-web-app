@@ -9,8 +9,8 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Text,
 } from 'react-native';
-import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing } from '../../constants';
 import { Button, Card, LoadingSpinner } from '../';
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.evergreenTeal,
   },
   typeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: Colors.textPrimary,
     marginTop: Spacing.xs,
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   routineName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: Colors.textPrimary,
     marginBottom: Spacing.xs,

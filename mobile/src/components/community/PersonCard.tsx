@@ -4,8 +4,8 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Text, Avatar } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import CommunityAvatar from '../shared/CommunityAvatar';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Card from '../Card';
 import Button from '../Button';
@@ -90,21 +90,13 @@ export const PersonCard: React.FC<PersonCardProps> = ({
 
         <View style={styles.content}>
           {/* Avatar with teal border */}
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatarBorder}>
-              {user.avatar || user.avatarUrl ? (
-                <Image
-                  source={{ uri: user.avatar || user.avatarUrl }}
-                  style={styles.avatarImage}
-                />
-              ) : (
-                <Avatar.Text
-                  size={52}
-                  label={initials}
-                  style={styles.avatar}
-                  color={Colors.textOnPrimary}
-                />
-              )}
+          <View style={styles.avatarContainer} accessible={false}>
+            <View style={styles.avatarBorder} accessible={false}>
+              <CommunityAvatar
+                uri={user.avatar || user.avatarUrl}
+                name={displayName}
+                size={52}
+              />
             </View>
             {/* Last active indicator */}
             {user.lastActiveAt && (
@@ -119,7 +111,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({
 
           {/* User Info */}
           <View style={styles.info}>
-            <Text variant="titleMedium" style={styles.name} numberOfLines={1}>
+            <Text style={styles.name} numberOfLines={1}>
               {displayName}
             </Text>
 
@@ -127,7 +119,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({
             {user.location && (
               <View style={styles.locationRow}>
                 <Icon name="map-marker" size={14} color={Colors.textSecondary} />
-                <Text variant="bodySmall" style={styles.location} numberOfLines={1}>
+                <Text style={styles.location} numberOfLines={1}>
                   {user.location}
                 </Text>
               </View>
@@ -135,7 +127,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({
 
             {/* Last Active */}
             {user.lastActiveAt && (
-              <Text variant="bodySmall" style={styles.lastActive}>
+              <Text style={styles.lastActive}>
                 {formatLastActive(user.lastActiveAt)}
               </Text>
             )}
@@ -143,7 +135,6 @@ export const PersonCard: React.FC<PersonCardProps> = ({
             {/* Bio */}
             {user.bio && (
               <Text
-                variant="bodySmall"
                 style={styles.bio}
                 numberOfLines={2}
               >
@@ -248,7 +239,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   suggestionText: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.medium,
   },
@@ -290,7 +281,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.surface,
   },
   activeIndicatorOnline: {
-    backgroundColor: '#4CAF50', // Green for online
+    backgroundColor: Colors.evergreenTeal + '99', // 60% opacity teal for online
   },
   info: {
     flex: 1,
@@ -333,12 +324,12 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.full,
   },
   interestTagText: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.medium,
   },
   moreInterests: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.textSecondary,
     alignSelf: 'center',
   },
