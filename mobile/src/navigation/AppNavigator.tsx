@@ -772,6 +772,14 @@ const AppNavigator: React.FC = () => {
         const { doc: firestoreDoc, onSnapshot, setDoc, serverTimestamp } = await import('firebase/firestore');
         const { db } = await import('../config/firebase');
 
+        if (!db) {
+          console.error('Firestore not initialized - cannot check onboarding status');
+          // Assume onboarding is complete to avoid blocking existing users
+          setHasCompletedOnboarding(true);
+          setCheckingOnboarding(false);
+          return;
+        }
+
         const userRef = firestoreDoc(db, 'users', user.uid);
 
         // Set up real-time listener for onboarding status

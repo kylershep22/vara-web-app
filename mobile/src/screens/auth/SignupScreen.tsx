@@ -49,7 +49,7 @@ interface SignupScreenProps {
 }
 
 const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
-  const { signup, isLoading } = useAuth();
+  const { signup } = useAuth();
   const reduceMotion = useReducedMotion();
 
   // Form state
@@ -60,6 +60,9 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [secureConfirmEntry, setSecureConfirmEntry] = useState(true);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Local submission state - guaranteed fresh on mount
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Error state
   const [nameError, setNameError] = useState('');
@@ -193,6 +196,7 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
     }
 
     // Attempt signup
+    setIsSubmitting(true);
     try {
       await signup(email.trim(), password, displayName.trim());
       setSnackbarMessage('Account created! Please check your email to verify your account.');
@@ -203,6 +207,8 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
       setSnackbarMessage(errorMessage);
       setSnackbarType('error');
       setSnackbarVisible(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -369,7 +375,7 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                 onPress={handleSignup}
                 onPressIn={handleButtonPressIn}
                 onPressOut={handleButtonPressOut}
-                disabled={!isFormValid || isLoading}
+                disabled={!isFormValid || isSubmitting}
                 activeOpacity={1}
                 style={styles.buttonWrapper}
               >
@@ -380,7 +386,7 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                     { transform: [{ scale: buttonScale }] },
                   ]}
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <Text style={styles.signupButtonText}>Creating account...</Text>
                   ) : (
                     <Text style={styles.signupButtonText}>Begin at your own pace</Text>

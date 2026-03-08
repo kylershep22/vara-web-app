@@ -5,7 +5,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db, firebaseError } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import {
   getSubscriptionStatus,
@@ -49,6 +49,20 @@ export function useSubscription(): UseSubscriptionResult {
       setStatus(null);
       setLoading(false);
       setError(null);
+      return;
+    }
+
+    // Check if Firebase is properly initialized
+    if (!db) {
+      console.error('Firestore not initialized - cannot load subscription status');
+      setError(firebaseError || new Error('Firestore is not initialized.'));
+      setLoading(false);
+      // Default to allowing access so the app doesn't block on Firestore failure
+      setStatus({
+        type: 'trial',
+        isActive: true,
+        canAccessApp: true,
+      });
       return;
     }
 

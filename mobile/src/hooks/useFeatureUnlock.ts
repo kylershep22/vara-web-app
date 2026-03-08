@@ -52,6 +52,12 @@ export function useFeatureUnlock(): UseFeatureUnlockReturn {
       return;
     }
 
+    if (!db) {
+      console.error('Firestore not initialized - cannot load feature unlock state');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const userRef = doc(db, 'users', user.uid);
 

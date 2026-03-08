@@ -49,7 +49,7 @@ export function useNotificationOptInCards(): UseNotificationOptInCardsReturn {
 
   // Load account age
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || !db) return;
     const loadAccountAge = async () => {
       try {
         const userSnap = await getDoc(doc(db, 'users', user.uid));

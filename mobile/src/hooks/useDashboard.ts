@@ -134,7 +134,7 @@ export function useDashboard() {
 
   // Track lastActiveAt and check for returning user
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || !db) return;
     const checkAndUpdate = async () => {
       try {
         const userRef = doc(db, 'users', user.uid);

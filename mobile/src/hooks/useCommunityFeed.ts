@@ -83,7 +83,7 @@ export function useCommunityFeed() {
   // Load user profile data for avatar
   useEffect(() => {
     const loadUserProfile = async () => {
-      if (!user) return;
+      if (!user || !db) return;
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {

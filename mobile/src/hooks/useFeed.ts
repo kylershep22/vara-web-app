@@ -130,6 +130,12 @@ export const useFeed = () => {
       groupIds: groupIds.length,
     });
 
+    if (!db) {
+      console.error('Firestore not initialized - cannot load feed');
+      setLoading(false);
+      return;
+    }
+
     // Build query for feed posts
     // Posts from: user's own posts, connection posts, and group posts
     const postsRef = collection(db, 'posts');

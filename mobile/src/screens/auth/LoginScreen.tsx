@@ -26,12 +26,16 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
 
   // Form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
+
+  // Local submission state - guaranteed to be fresh on mount
+  // (unlike context isLoading which could be stale from a forced sign-out)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Error state
   const [emailError, setEmailError] = useState('');
@@ -73,6 +77,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
 
     // Attempt login
+    setIsSubmitting(true);
     try {
       await login(email.trim(), password);
       // Navigation will happen automatically via auth state change
@@ -86,6 +91,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       const errorMessage = getAuthErrorMessage(error?.code, error?.message);
       setSnackbarMessage(errorMessage);
       setSnackbarVisible(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -166,8 +173,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <Button
               variant="primary"
               onPress={handleLogin}
-              loading={isLoading}
-              disabled={isLoading || !isFirebaseReady}
+              loading={isSubmitting}
+              disabled={isSubmitting || !isFirebaseReady}
               fullWidth
               style={styles.loginButton}
             >

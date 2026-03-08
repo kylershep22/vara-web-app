@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db, firebaseError } from '../config/firebase';
 import { Task } from '../types';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,6 +18,14 @@ export const useTasks = (completedFilter?: boolean) => {
   useEffect(() => {
     if (!user) {
       setTasks([]);
+      setLoading(false);
+      return;
+    }
+
+    // Check if Firebase is properly initialized
+    if (!db) {
+      console.error('Firestore not initialized - cannot load tasks');
+      setError(firebaseError || new Error('Firestore is not initialized. Please check your Firebase configuration.'));
       setLoading(false);
       return;
     }

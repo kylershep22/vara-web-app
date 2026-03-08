@@ -60,6 +60,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(user);
       setIsAuthReady(true);
 
+      // Safety: reset isLoading when auth state changes (e.g., forced sign-out
+      // from token refresh failure). Prevents the login button from staying
+      // greyed out if a previous operation left isLoading stuck.
+      if (!user) {
+        setIsLoading(false);
+      }
+
       // Store user ID in secure storage for offline access
       if (user) {
         try {
@@ -201,7 +208,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // Wrap signIn with a timeout to prevent the button from staying greyed
+      // if the Firebase call hangs (e.g., network issues, corrupted state)
+      const LOGIN_TIMEOUT_MS = 15000;
+      const signInPromise = signInWithEmailAndPassword(auth, email, password);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          const err = new Error('Login timed out. Please check your connection and try again.');
+          (err as any).code = 'auth/timeout';
+          reject(err);
+        }, LOGIN_TIMEOUT_MS);
+      });
+
+      await Promise.race([signInPromise, timeoutPromise]);
 
       // Track login event (non-blocking, errors caught internally)
       trackLogin('email');

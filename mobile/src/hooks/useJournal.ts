@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db, firebaseError } from '../config/firebase';
 import { JournalEntry } from '../types';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,6 +18,14 @@ export const useJournal = (limitCount?: number) => {
   useEffect(() => {
     if (!user) {
       setEntries([]);
+      setLoading(false);
+      return;
+    }
+
+    // Check if Firebase is properly initialized
+    if (!db) {
+      console.error('Firestore not initialized - cannot load journal entries');
+      setError(firebaseError || new Error('Firestore is not initialized. Please check your Firebase configuration.'));
       setLoading(false);
       return;
     }
