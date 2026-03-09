@@ -110,6 +110,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
  * Save the Expo push token to the user's Firestore document
  */
 export async function savePushTokenToUser(userId: string, pushToken: string): Promise<void> {
+  if (!db) {
+    console.warn('Firestore not initialized - cannot save push token');
+    return;
+  }
   try {
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
@@ -210,6 +214,11 @@ export async function registerAndSaveFCMToken(userId: string): Promise<string | 
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') return null;
 
+    if (!db) {
+      console.warn('Firestore not initialized - cannot save FCM token');
+      return null;
+    }
+
     // Expo's getDevicePushTokenAsync returns the native FCM/APNs token
     const deviceToken = await Notifications.getDevicePushTokenAsync();
     const fcmToken = deviceToken.data;
@@ -235,6 +244,7 @@ export async function registerAndSaveFCMToken(userId: string): Promise<string | 
  * Returns true if server push is active (client can skip local scheduling for covered categories).
  */
 export async function isServerPushEnabled(): Promise<boolean> {
+  if (!db) return false;
   try {
     const configRef = doc(db, 'config', 'notifications');
     const configSnap = await getDoc(configRef);

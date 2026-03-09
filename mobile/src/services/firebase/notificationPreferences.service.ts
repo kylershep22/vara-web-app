@@ -84,6 +84,13 @@ async function migratePreferencesToV2(
   userId: string,
   data: Record<string, any>,
 ): Promise<NotificationPreferences> {
+  if (!db) {
+    return {
+      id: userId,
+      userId,
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+    } as NotificationPreferences;
+  }
   const docRef = doc(db, 'notificationPreferences', userId);
 
   // Map old fields → new categories
@@ -161,6 +168,14 @@ async function migratePreferencesToV2(
 export async function getNotificationPreferences(
   userId: string,
 ): Promise<NotificationPreferences> {
+  if (!db) {
+    console.warn('Firestore not initialized - returning default notification preferences');
+    return {
+      id: userId,
+      userId,
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+    } as NotificationPreferences;
+  }
   try {
     const docRef = doc(db, 'notificationPreferences', userId);
     const docSnap = await getDoc(docRef);
@@ -190,6 +205,14 @@ export async function getNotificationPreferences(
 export async function createDefaultNotificationPreferences(
   userId: string,
 ): Promise<NotificationPreferences> {
+  if (!db) {
+    console.warn('Firestore not initialized - returning default notification preferences');
+    return {
+      id: userId,
+      userId,
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+    } as NotificationPreferences;
+  }
   try {
     const docRef = doc(db, 'notificationPreferences', userId);
     const preferences = {
@@ -218,6 +241,10 @@ export async function updateNotificationPreferences(
   userId: string,
   updates: Partial<Omit<NotificationPreferences, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>,
 ): Promise<void> {
+  if (!db) {
+    console.warn('Firestore not initialized - cannot update notification preferences');
+    return;
+  }
   try {
     const docRef = doc(db, 'notificationPreferences', userId);
     await updateDoc(docRef, {
