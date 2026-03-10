@@ -45,6 +45,7 @@ const USERS_COLLECTION = 'users';
  * Check if a user can invite others to a group
  */
 export async function canUserInviteToGroup(groupId: string, userId: string): Promise<boolean> {
+  if (!db) return false;
   try {
     const groupRef = doc(db, GROUPS_COLLECTION, groupId);
     const groupSnap = await getDoc(groupRef);
@@ -71,6 +72,7 @@ export async function canUserInviteToGroup(groupId: string, userId: string): Pro
  * Check if a user can invite others to a challenge
  */
 export async function canUserInviteToChallenge(challengeId: string, userId: string): Promise<boolean> {
+  if (!db) return false;
   try {
     const challengeRef = doc(db, CHALLENGES_COLLECTION, challengeId);
     const challengeSnap = await getDoc(challengeRef);
@@ -104,6 +106,7 @@ export async function sendGroupInvite(
   groupId: string,
   inviteeId: string
 ): Promise<string> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -199,6 +202,7 @@ async function getExistingGroupInvite(
  * Accept a group invite
  */
 export async function acceptGroupInvite(inviteId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -242,6 +246,7 @@ export async function acceptGroupInvite(inviteId: string): Promise<void> {
  * Decline a group invite
  */
 export async function declineGroupInvite(inviteId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -271,6 +276,7 @@ export async function declineGroupInvite(inviteId: string): Promise<void> {
  * Get pending group invites for the current user
  */
 export async function getPendingGroupInvites(): Promise<GroupInvite[]> {
+  if (!db) return [];
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) return [];
@@ -293,6 +299,7 @@ export async function getPendingGroupInvites(): Promise<GroupInvite[]> {
  * Get invites sent for a specific group
  */
 export async function getGroupInvitesSent(groupId: string): Promise<GroupInvite[]> {
+  if (!db) return [];
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) return [];
@@ -316,6 +323,7 @@ export async function getGroupInvitesSent(groupId: string): Promise<GroupInvite[
  * Cancel a sent group invite
  */
 export async function cancelGroupInvite(inviteId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -345,6 +353,7 @@ export async function sendChallengeInvite(
   challengeId: string,
   inviteeId: string
 ): Promise<string> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -440,6 +449,7 @@ async function getExistingChallengeInvite(
  * Accept a challenge invite
  */
 export async function acceptChallengeInvite(inviteId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -499,6 +509,7 @@ export async function acceptChallengeInvite(inviteId: string): Promise<void> {
  * Decline a challenge invite
  */
 export async function declineChallengeInvite(inviteId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -528,6 +539,7 @@ export async function declineChallengeInvite(inviteId: string): Promise<void> {
  * Get pending challenge invites for the current user
  */
 export async function getPendingChallengeInvites(): Promise<ChallengeInvite[]> {
+  if (!db) return [];
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) return [];
@@ -550,6 +562,7 @@ export async function getPendingChallengeInvites(): Promise<ChallengeInvite[]> {
  * Get invites sent for a specific challenge
  */
 export async function getChallengeInvitesSent(challengeId: string): Promise<ChallengeInvite[]> {
+  if (!db) return [];
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) return [];
@@ -573,6 +586,7 @@ export async function getChallengeInvitesSent(challengeId: string): Promise<Chal
  * Cancel a sent challenge invite
  */
 export async function cancelChallengeInvite(inviteId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -639,6 +653,7 @@ export interface CreateChallengeFromGroupInput {
 export async function createChallengeFromGroup(
   input: CreateChallengeFromGroupInput
 ): Promise<string> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -741,6 +756,7 @@ export async function getUserDisplayInfo(userId: string): Promise<{
   displayName: string;
   avatar?: string;
 } | null> {
+  if (!db) return null;
   try {
     const userRef = doc(db, USERS_COLLECTION, userId);
     const userSnap = await getDoc(userRef);

@@ -130,7 +130,7 @@ const FocusAnalytics = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -146,8 +146,8 @@ const FocusAnalytics = ({ userId }) => {
             onClick={() => setTimeRange(range)}
             className={`px-4 py-2 rounded-lg font-medium capitalize transition ${
               timeRange === range
-                ? 'bg-[#1B5E57] text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-evergreen-teal text-white'
+                : 'bg-dew-sage-light text-soft-charcoal hover:bg-silver-sage/30'
             }`}
           >
             {range === 'all' ? 'All Time' : `This ${range}`}
@@ -173,12 +173,12 @@ const FocusAnalytics = ({ userId }) => {
           <div className="text-3xl font-bold text-blue-900">{formatDuration(stats.totalMinutes)}</div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-4 border border-green-200">
+        <div className="bg-gradient-to-br from-teal-light to-dew-sage rounded-lg p-4 border border-silver-sage">
           <div className="flex items-center gap-2 mb-2">
-            <Target className="text-green-600" size={20} />
-            <span className="text-xs font-medium text-green-700 uppercase">Completion Rate</span>
+            <Target className="text-evergreen-teal" size={20} />
+            <span className="text-xs font-medium text-evergreen-teal uppercase">Completion Rate</span>
           </div>
-          <div className="text-3xl font-bold text-green-900">{stats.completionRate}%</div>
+          <div className="text-3xl font-bold text-evergreen-teal">{stats.completionRate}%</div>
         </div>
 
         <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
@@ -205,8 +205,8 @@ const FocusAnalytics = ({ userId }) => {
 
       {/* Peak Productivity Hours */}
       {peakHours.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Peak Productivity Hours</h3>
+        <div className="bg-white rounded-xl border border-divider p-6">
+          <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Your Peak Productivity Hours</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {peakHours.map((hour, idx) => (
               <div key={idx} className="p-4 bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg text-center">
@@ -215,20 +215,20 @@ const FocusAnalytics = ({ userId }) => {
               </div>
             ))}
           </div>
-          <p className="text-sm text-gray-600 mt-4">
+          <p className="text-sm text-muted-sage-gray mt-4">
             Schedule your most important work during these hours when you're naturally most focused.
           </p>
         </div>
       )}
 
       {/* Session Type Breakdown */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Session Breakdown</h3>
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Session Breakdown</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* By Type */}
           <div>
-            <h4 className="font-medium text-gray-700 mb-3">By Session Type</h4>
+            <h4 className="font-medium text-soft-charcoal mb-3">By Session Type</h4>
             {['pomodoro', 'focus', 'short break', 'long break'].map(type => {
               const typeSessions = sessions.filter(s => s.type === type);
               const percentage = stats.totalSessions > 0
@@ -238,10 +238,10 @@ const FocusAnalytics = ({ userId }) => {
               return (
                 <div key={type} className="mb-3">
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="capitalize text-gray-700">{type}</span>
-                    <span className="font-medium text-gray-900">{typeSessions.length} ({percentage}%)</span>
+                    <span className="capitalize text-soft-charcoal">{type}</span>
+                    <span className="font-medium text-soft-charcoal">{typeSessions.length} ({percentage}%)</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-silver-sage/30 rounded-full h-2">
                     <div
                       className="h-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500"
                       style={{ width: `${percentage}%` }}
@@ -254,7 +254,7 @@ const FocusAnalytics = ({ userId }) => {
 
           {/* By Duration */}
           <div>
-            <h4 className="font-medium text-gray-700 mb-3">By Duration Range</h4>
+            <h4 className="font-medium text-soft-charcoal mb-3">By Duration Range</h4>
             {[
               { label: '< 15 min', min: 0, max: 15 },
               { label: '15-30 min', min: 15, max: 30 },
@@ -271,12 +271,12 @@ const FocusAnalytics = ({ userId }) => {
               return (
                 <div key={range.label} className="mb-3">
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-gray-700">{range.label}</span>
-                    <span className="font-medium text-gray-900">{rangeSessions.length} ({percentage}%)</span>
+                    <span className="text-soft-charcoal">{range.label}</span>
+                    <span className="font-medium text-soft-charcoal">{rangeSessions.length} ({percentage}%)</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-silver-sage/30 rounded-full h-2">
                     <div
-                      className="h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"
+                      className="h-2 rounded-full bg-gradient-to-r from-evergreen-teal to-evergreen-teal"
                       style={{ width: `${percentage}%` }}
                     ></div>
                   </div>
@@ -288,8 +288,8 @@ const FocusAnalytics = ({ userId }) => {
       </div>
 
       {/* Recent Sessions */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Sessions</h3>
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Recent Sessions</h3>
 
         {sessions.length > 0 ? (
           <div className="space-y-2">
@@ -297,24 +297,24 @@ const FocusAnalytics = ({ userId }) => {
               const sessionDate = session.startedAt?.toDate ? session.startedAt.toDate() : new Date(session.startedAt);
 
               return (
-                <div key={session.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-[#1B5E57] transition">
+                <div key={session.id} className="flex items-center justify-between p-3 border border-divider rounded-lg hover:border-evergreen-teal transition">
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
                       session.type === 'pomodoro' ? 'bg-purple-100' :
                       session.type === 'focus' ? 'bg-blue-100' :
-                      'bg-green-100'
+                      'bg-dew-sage'
                     }`}>
                       <Zap className={
                         session.type === 'pomodoro' ? 'text-purple-600' :
                         session.type === 'focus' ? 'text-blue-600' :
-                        'text-green-600'
+                        'text-evergreen-teal'
                       } size={20} />
                     </div>
                     <div>
-                      <div className="font-medium text-gray-900 capitalize">
+                      <div className="font-medium text-soft-charcoal capitalize">
                         {session.duration} minute {session.type || 'focus'} session
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-sage-gray">
                         {sessionDate.toLocaleDateString()} at {sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
@@ -322,8 +322,8 @@ const FocusAnalytics = ({ userId }) => {
 
                   <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                     session.completed
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600'
+                      ? 'bg-dew-sage text-evergreen-teal'
+                      : 'bg-dew-sage-light text-muted-sage-gray'
                   }`}>
                     {session.completed ? '✓ Completed' : 'Incomplete'}
                   </div>
@@ -332,8 +332,8 @@ const FocusAnalytics = ({ userId }) => {
             })}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Zap className="mx-auto mb-2 text-gray-300" size={48} />
+          <div className="text-center py-8 text-muted-sage-gray">
+            <Zap className="mx-auto mb-2 text-muted-sage-gray/60" size={48} />
             <p>No focus sessions yet. Start a Pomodoro session to begin tracking!</p>
           </div>
         )}

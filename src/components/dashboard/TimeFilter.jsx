@@ -11,15 +11,15 @@ const TimeFilter = ({ currentView, onViewChange }) => {
   ];
 
   return (
-    <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg w-fit">
+    <div className="flex items-center gap-2 bg-dew-sage-light p-1 rounded-lg w-fit">
       {views.map(view => (
         <button
           key={view.id}
           onClick={() => onViewChange(view.id)}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
             currentView === view.id
-              ? 'bg-white text-[#1B5E57] shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white text-evergreen-teal shadow-sm'
+              : 'text-muted-sage-gray hover:text-soft-charcoal'
           }`}
         >
           {view.label}

@@ -412,37 +412,37 @@ export default function PeopleSearchPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-vara-lg max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#3E3E3E]">Find People</h1>
-          <p className="text-sm text-gray-600">{headerSubtitle}</p>
+        <div className="mb-vara-lg">
+          <h1 className="text-vara-xl font-bold text-soft-charcoal">Find People</h1>
+          <p className="text-vara-sm text-muted-sage-gray">{headerSubtitle}</p>
         </div>
 
         {/* Filters card */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#D5E3D1] mb-6">
-          <div className="grid grid-cols-1 gap-4">
+        <div className="bg-white rounded-vara-lg p-5 shadow-vara-sm border border-divider mb-vara-lg">
+          <div className="grid grid-cols-1 gap-vara-base">
             {/* Search by name/keyword */}
             <div className="relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-muted-sage-gray absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 value={term}
                 onChange={(e) => setTerm(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && doSearch()}
                 placeholder="Search by name or keyword…"
-                className="w-full pl-9 pr-36 py-2 border border-[#D5E3D1] rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full pl-9 pr-36 py-2 border border-divider rounded-vara-lg focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
               />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-vara-sm">
                 <button
                   onClick={clearFilters}
-                  className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm"
+                  className="px-3 py-1.5 rounded-vara-md bg-dew-sage-light text-soft-charcoal hover:bg-dew-sage-light text-vara-sm"
                 >
                   Clear
                 </button>
                 <button
                   onClick={doSearch}
                   disabled={searching}
-                  className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white text-sm disabled:opacity-60"
+                  className="px-3 py-1.5 rounded-vara-md bg-evergreen-teal text-white text-vara-sm hover:opacity-90 disabled:opacity-60"
                 >
                   {searching ? "Searching…" : "Search"}
                 </button>
@@ -451,7 +451,7 @@ export default function PeopleSearchPage() {
 
             {/* Interests */}
             <div>
-              <div className="text-sm font-medium text-[#3E3E3E] mb-1">
+              <div className="text-vara-sm font-medium text-soft-charcoal mb-1">
                 Interests
               </div>
               <TagPicker
@@ -465,7 +465,7 @@ export default function PeopleSearchPage() {
 
             {/* Focus Areas */}
             <div>
-              <div className="text-sm font-medium text-[#3E3E3E] mb-1">
+              <div className="text-vara-sm font-medium text-soft-charcoal mb-1">
                 Focus Areas
               </div>
               <TagPicker
@@ -482,14 +482,14 @@ export default function PeopleSearchPage() {
         {/* Results */}
         <div className="space-y-3">
           {searching && (
-            <div className="flex items-center gap-2 text-gray-600">
+            <div className="flex items-center gap-vara-sm text-muted-sage-gray">
               <Loader className="w-4 h-4 animate-spin" />
               Searching…
             </div>
           )}
 
           {!searching && results.length === 0 && (
-            <div className="text-sm text-gray-600">
+            <div className="text-vara-sm text-muted-sage-gray">
               No people yet. Try adjusting filters or removing the name search.
             </div>
           )}
@@ -502,7 +502,7 @@ export default function PeopleSearchPage() {
                 ? u.interestsSlugs.slice(0, 6).map((slug) => (
                     <span
                       key={slug}
-                      className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-xs"
+                      className="px-2 py-0.5 rounded-md bg-dew-sage-light text-soft-charcoal text-vara-xs"
                     >
                       {labelFor(slug)}
                     </span>
@@ -510,7 +510,7 @@ export default function PeopleSearchPage() {
                 : (u.interests || []).slice(0, 6).map((i) => (
                     <span
                       key={i}
-                      className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-xs"
+                      className="px-2 py-0.5 rounded-md bg-dew-sage-light text-soft-charcoal text-vara-xs"
                     >
                       {i}
                     </span>
@@ -519,7 +519,7 @@ export default function PeopleSearchPage() {
               const focusChips = (u.focusSlugs || []).slice(0, 4).map((slug) => (
                 <span
                   key={slug}
-                  className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-medium"
+                  className="px-2 py-0.5 rounded-md bg-teal-light text-evergreen-teal text-[11px] font-medium"
                 >
                   {labelFor(slug)}
                 </span>
@@ -528,29 +528,29 @@ export default function PeopleSearchPage() {
               return (
                 <div
                   key={u.id}
-                  className="p-4 rounded-2xl border border-[#E6EEE2] bg-white hover:shadow-sm transition"
+                  className="p-vara-base rounded-vara-lg border border-divider bg-white hover:shadow-vara-sm transition"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-vara-md">
                     <Link to={`/u/${u.id}`} className="shrink-0">
                       <img
                         src={u.avatarUrl || avatarFor(u.displayName)}
                         alt={u.displayName || "User"}
-                        className="w-12 h-12 rounded-xl object-cover ring-2 ring-white shadow-sm hover:opacity-90"
+                        className="w-12 h-12 rounded-vara-lg object-cover ring-2 ring-white shadow-vara-sm hover:opacity-90"
                       />
                     </Link>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center justify-between gap-vara-md">
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-vara-sm">
                             <Link
                               to={`/u/${u.id}`}
-                              className="font-semibold text-[#3E3E3E] truncate hover:underline"
+                              className="font-semibold text-soft-charcoal truncate hover:underline"
                             >
                               {u.displayName || "User"}
                             </Link>
                             {u.location && (
-                              <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                              <span className="inline-flex items-center gap-1 text-vara-xs text-muted-sage-gray">
                                 <MapPin className="w-3 h-3" />
                                 {u.location}
                               </span>
@@ -558,7 +558,7 @@ export default function PeopleSearchPage() {
                           </div>
 
                           {u.bio && (
-                            <p className="text-sm text-gray-700 line-clamp-2 mt-0.5">
+                            <p className="text-vara-sm text-soft-charcoal line-clamp-2 mt-0.5">
                               {u.bio}
                             </p>
                           )}
@@ -566,7 +566,7 @@ export default function PeopleSearchPage() {
                           {(u.interestsSlugs?.length ||
                             u.interests?.length ||
                             u.focusSlugs?.length) ? (
-                            <div className="mt-2 flex flex-wrap gap-2">
+                            <div className="mt-2 flex flex-wrap gap-vara-sm">
                               {interestChips}
                               {focusChips}
                             </div>
@@ -576,7 +576,7 @@ export default function PeopleSearchPage() {
                         {/* View Profile */}
                         <Link
                           to={`/u/${u.id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 shrink-0"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-vara-md text-vara-sm bg-dew-sage-light text-soft-charcoal hover:bg-dew-sage-light shrink-0"
                           title="Open profile"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -585,16 +585,16 @@ export default function PeopleSearchPage() {
                       </div>
 
                       {/* Actions */}
-                      <div className="mt-3 flex items-center gap-2">
+                      <div className="mt-3 flex items-center gap-vara-sm">
                         <button
                           onClick={() => onConnect(u.id)}
                           disabled={pending || connected}
-                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                          className={`inline-flex items-center gap-vara-sm px-3 py-1.5 rounded-vara-md text-vara-sm font-medium transition ${
                             connected
-                              ? "bg-emerald-50 text-emerald-700 cursor-not-allowed"
+                              ? "bg-teal-light text-evergreen-teal cursor-not-allowed"
                               : pending
-                              ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                              : "bg-emerald-600 text-white hover:bg-emerald-700"
+                              ? "bg-dew-sage-light text-muted-sage-gray cursor-not-allowed"
+                              : "bg-evergreen-teal text-white hover:opacity-90"
                           }`}
                         >
                           {connected ? (
@@ -613,7 +613,7 @@ export default function PeopleSearchPage() {
                         </button>
 
                         {/* Quick message */}
-                        <div className="flex-1 flex items-center gap-2">
+                        <div className="flex-1 flex items-center gap-vara-sm">
                           <input
                             value={quickMsg[u.id] || ""}
                             onChange={(e) =>
@@ -621,11 +621,11 @@ export default function PeopleSearchPage() {
                             }
                             onKeyDown={(e) => e.key === "Enter" && onMessage(u)}
                             placeholder="Say hi…"
-                            className="w-full px-3 py-1.5 bg-gray-50 border border-[#E6EEE2] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-full px-3 py-1.5 bg-mist-white border border-divider rounded-vara-md text-vara-sm focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                           />
                           <button
                             onClick={() => onMessage(u)}
-                            className="px-3 py-1.5 rounded-lg bg-gray-900 text-white hover:bg-black"
+                            className="px-3 py-1.5 rounded-vara-md bg-soft-charcoal text-white hover:opacity-90"
                             title="Send"
                           >
                             <Send className="w-4 h-4" />
@@ -640,7 +640,7 @@ export default function PeopleSearchPage() {
         </div>
 
         {/* Hint */}
-        <div className="text-[12px] text-gray-500 mt-6">
+        <div className="text-[12px] text-muted-sage-gray mt-6">
           Tip: profiles that set Interests/Focus are easier to find. Your Edit Profile saves a lightweight
           <code> keywords</code> index for better matching.
         </div>

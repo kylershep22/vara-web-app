@@ -19,7 +19,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db, firebaseError } from '../../config/firebase';
-import { Habit, HabitCompletion } from '../../types';
+import { Habit, HabitCompletion, HabitReflection, ConnectionQuality, CompletionSource } from '../../types';
 
 const COLLECTION = 'habits';
 const COMPLETIONS_SUBCOLLECTION = 'completions';
@@ -39,6 +39,7 @@ const ensureFirestore = () => {
  * Get all habits for a user
  */
 export const listHabits = async (userId: string): Promise<Habit[]> => {
+  if (!db) return [];
   try {
     const q = query(
       collection(db, COLLECTION),
@@ -61,6 +62,7 @@ export const listHabits = async (userId: string): Promise<Habit[]> => {
  * Get a single habit by ID
  */
 export const getHabit = async (id: string): Promise<Habit | null> => {
+  if (!db) return null;
   try {
     const docRef = doc(db, COLLECTION, id);
     const docSnap = await getDoc(docRef);
@@ -124,6 +126,7 @@ export const updateHabit = async (
   id: string,
   data: Partial<Omit<Habit, 'id' | 'userId' | 'createdAt'>>
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, id);
     await updateDoc(docRef, {
@@ -140,6 +143,7 @@ export const updateHabit = async (
  * Delete a habit
  */
 export const deleteHabit = async (id: string): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, id);
     await deleteDoc(docRef);
@@ -149,27 +153,48 @@ export const deleteHabit = async (id: string): Promise<void> => {
   }
 };
 
+/** Optional reflection data passed from HabitCompletionSheet */
+export interface CompletionReflectionData {
+  reflection?: HabitReflection | null;
+  connectionQuality?: ConnectionQuality | null;
+  source?: CompletionSource;
+  crFlagged?: boolean;
+  valueAlignment?: string | null;
+  skippedReflection?: boolean;
+}
+
 /**
  * Mark habit as completed for a specific date
  */
 export const markHabitComplete = async (
   habitId: string,
   userId: string,
-  date: string // YYYY-MM-DD format
+  date: string, // YYYY-MM-DD format
+  reflectionData?: CompletionReflectionData
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const completionRef = doc(db, COLLECTION, habitId, COMPLETIONS_SUBCOLLECTION, date);
 
-    await setDoc(completionRef, {
+    const completionDoc: Record<string, any> = {
       habitId,
       userId,
       date,
       completed: true,
       completedAt: serverTimestamp(),
-    });
+    };
 
-    // Get habit info for notification
-    const habit = await getHabit(habitId);
+    // Merge reflection data if provided (from HabitCompletionSheet)
+    if (reflectionData) {
+      if (reflectionData.reflection !== undefined) completionDoc.reflection = reflectionData.reflection;
+      if (reflectionData.connectionQuality !== undefined) completionDoc.connectionQuality = reflectionData.connectionQuality;
+      if (reflectionData.source) completionDoc.source = reflectionData.source;
+      if (reflectionData.crFlagged !== undefined) completionDoc.crFlagged = reflectionData.crFlagged;
+      if (reflectionData.valueAlignment !== undefined) completionDoc.valueAlignment = reflectionData.valueAlignment;
+      if (reflectionData.skippedReflection !== undefined) completionDoc.skippedReflection = reflectionData.skippedReflection;
+    }
+
+    await setDoc(completionRef, completionDoc);
 
     // Update streak and get the new value
     const newStreak = await updateHabitStreak(habitId);
@@ -187,6 +212,7 @@ export const unmarkHabitComplete = async (
   habitId: string,
   date: string
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const completionRef = doc(db, COLLECTION, habitId, COMPLETIONS_SUBCOLLECTION, date);
     await deleteDoc(completionRef);
@@ -207,6 +233,7 @@ export const getHabitCompletions = async (
   startDate?: string,
   endDate?: string
 ): Promise<HabitCompletion[]> => {
+  if (!db) return [];
   try {
     const completionsRef = collection(db, COLLECTION, habitId, COMPLETIONS_SUBCOLLECTION);
     const snapshot = await getDocs(completionsRef);
@@ -291,6 +318,7 @@ const updateHabitStreak = async (habitId: string): Promise<number> => {
  * Check if habit is completed for today
  */
 export const isHabitCompletedToday = async (habitId: string): Promise<boolean> => {
+  if (!db) return false;
   try {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;

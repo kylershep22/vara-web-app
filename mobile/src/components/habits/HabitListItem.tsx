@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BaseCard } from '../../components';
 import { AnimatedCheckbox } from '../../components/celebrations';
 import { Colors } from '../../constants';
+import { isCognitiveReserveCategory } from '../../constants/habitCategories';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Habit } from '../../types';
 
@@ -25,6 +26,7 @@ export const HabitListItem: React.FC<HabitListItemProps> = ({
   onNavigateToDetail,
 }) => {
   const habitName = habit?.name || (habit as any)?.title || 'Unnamed Habit';
+  const isCR = isCognitiveReserveCategory(habit.category);
 
   // Build metadata line: Category . Frequency . Trigger
   const metaParts: string[] = [];
@@ -50,10 +52,22 @@ export const HabitListItem: React.FC<HabitListItemProps> = ({
           style={styles.touchable}
         >
           <View style={styles.content}>
-            <Text style={[styles.title, isCompleted && styles.titleCompleted]}>
-              {habitName}
-            </Text>
+            <View style={styles.titleRow}>
+              <Text style={[styles.title, isCompleted && styles.titleCompleted]}>
+                {habitName}
+              </Text>
+              {isCR && (
+                <View style={styles.crBadge}>
+                  <Text style={styles.crBadgeText}>🌿 CR</Text>
+                </View>
+              )}
+            </View>
             {metaLine ? <Text style={styles.meta}>{metaLine}</Text> : null}
+            {habit.valueAlignment ? (
+              <View style={styles.valueTag}>
+                <Text style={styles.valueTagText}>→ {habit.valueAlignment}</Text>
+              </View>
+            ) : null}
             {(habit.intention || habit.cue?.value) && (
               <View style={styles.intentionRow}>
                 {habit.intention && (
@@ -92,11 +106,41 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 14,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: {
     fontSize: 16,
     fontWeight: '500',
     color: '#3E3E3E',
     lineHeight: 21,
+    flexShrink: 1,
+  },
+  crBadge: {
+    backgroundColor: '#E6F2EC',
+    borderRadius: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  crBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2A6E4A',
+  },
+  valueTag: {
+    backgroundColor: 'rgba(27, 94, 87, 0.07)',
+    borderRadius: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  valueTagText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#1B5E57',
   },
   titleCompleted: {
     color: '#6F7F77',

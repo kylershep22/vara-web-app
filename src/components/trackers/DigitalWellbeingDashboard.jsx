@@ -144,7 +144,7 @@ const DigitalWellbeingDashboard = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -201,84 +201,84 @@ const DigitalWellbeingDashboard = ({ userId }) => {
 
       {/* Today's Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-3 mb-2">
             <Clock className="text-blue-600" size={24} />
-            <span className="text-sm text-gray-600">Screen Time</span>
+            <span className="text-sm text-muted-sage-gray">Screen Time</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{todayStats.screenTimeMinutes}</div>
-          <div className="text-sm text-gray-600">Minutes today</div>
+          <div className="text-3xl font-bold text-soft-charcoal">{todayStats.screenTimeMinutes}</div>
+          <div className="text-sm text-muted-sage-gray">Minutes today</div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-3 mb-2">
-            <Coffee className="text-green-600" size={24} />
-            <span className="text-sm text-gray-600">Breaks Taken</span>
+            <Coffee className="text-evergreen-teal" size={24} />
+            <span className="text-sm text-muted-sage-gray">Breaks Taken</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{todayStats.breaksTaken}</div>
-          <div className="text-sm text-gray-600">Today</div>
+          <div className="text-3xl font-bold text-soft-charcoal">{todayStats.breaksTaken}</div>
+          <div className="text-sm text-muted-sage-gray">Today</div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-3 mb-2">
             <CheckCircle className="text-purple-600" size={24} />
-            <span className="text-sm text-gray-600">Focus Sessions</span>
+            <span className="text-sm text-muted-sage-gray">Focus Sessions</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{todayStats.focusSessionsCompleted}</div>
-          <div className="text-sm text-gray-600">Completed</div>
+          <div className="text-3xl font-bold text-soft-charcoal">{todayStats.focusSessionsCompleted}</div>
+          <div className="text-sm text-muted-sage-gray">Completed</div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-3 mb-2">
-            <Eye className={todayStats.eyeStrainReported ? 'text-red-600' : 'text-gray-400'} size={24} />
-            <span className="text-sm text-gray-600">Eye Strain</span>
+            <Eye className={todayStats.eyeStrainReported ? 'text-red-600' : 'text-muted-sage-gray/60'} size={24} />
+            <span className="text-sm text-muted-sage-gray">Eye Strain</span>
           </div>
-          <div className="text-xl font-bold text-gray-900">
+          <div className="text-xl font-bold text-soft-charcoal">
             {todayStats.eyeStrainReported ? 'Reported' : 'None'}
           </div>
-          <div className="text-sm text-gray-600">Status</div>
+          <div className="text-sm text-muted-sage-gray">Status</div>
         </div>
       </div>
 
       {/* Weekly Trends */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Weekly Averages</h3>
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Weekly Averages</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Screen Time</span>
-              <span className="text-lg font-bold text-gray-900">{weeklyAvg.screenTime} min/day</span>
+              <span className="text-sm text-muted-sage-gray">Screen Time</span>
+              <span className="text-lg font-bold text-soft-charcoal">{weeklyAvg.screenTime} min/day</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-silver-sage/30 rounded-full h-2">
               <div
                 className="bg-blue-600 h-2 rounded-full transition-all"
                 style={{ width: `${Math.min((weeklyAvg.screenTime / 480) * 100, 100)}%` }}
               ></div>
             </div>
-            <div className="text-xs text-gray-500 mt-1">Target: &lt; 8 hours/day (480 min)</div>
+            <div className="text-xs text-muted-sage-gray mt-1">Target: &lt; 8 hours/day (480 min)</div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Breaks Per Day</span>
-              <span className="text-lg font-bold text-gray-900">{weeklyAvg.breaks} breaks</span>
+              <span className="text-sm text-muted-sage-gray">Breaks Per Day</span>
+              <span className="text-lg font-bold text-soft-charcoal">{weeklyAvg.breaks} breaks</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-silver-sage/30 rounded-full h-2">
               <div
-                className="bg-green-600 h-2 rounded-full transition-all"
+                className="bg-evergreen-teal h-2 rounded-full transition-all"
                 style={{ width: `${Math.min((weeklyAvg.breaks / 8) * 100, 100)}%` }}
               ></div>
             </div>
-            <div className="text-xs text-gray-500 mt-1">Target: 8+ breaks/day (hourly)</div>
+            <div className="text-xs text-muted-sage-gray mt-1">Target: 8+ breaks/day (hourly)</div>
           </div>
         </div>
       </div>
 
       {/* Settings */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Break Reminder Settings</h3>
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Break Reminder Settings</h3>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-dew-sage-light rounded-lg">
             <div>
-              <div className="font-medium text-gray-900">Enable Break Reminders</div>
-              <div className="text-sm text-gray-600">Get notified every hour to take a break</div>
+              <div className="font-medium text-soft-charcoal">Enable Break Reminders</div>
+              <div className="text-sm text-muted-sage-gray">Get notified every hour to take a break</div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -287,7 +287,7 @@ const DigitalWellbeingDashboard = ({ userId }) => {
                 onChange={(e) => setBreakReminder(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-silver-sage/30 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-divider after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
@@ -320,17 +320,17 @@ const DigitalWellbeingDashboard = ({ userId }) => {
           )}
 
           {lastBreak && (
-            <div className="p-4 bg-green-50 rounded-lg">
+            <div className="p-4 bg-teal-light rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-green-900">Last Break</div>
-                  <div className="text-sm text-green-700">
+                  <div className="font-medium text-soft-charcoal">Last Break</div>
+                  <div className="text-sm text-evergreen-teal">
                     {minutesSinceBreak} minutes ago
                   </div>
                 </div>
                 <button
                   onClick={logBreak}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
+                  className="px-4 py-2 bg-evergreen-teal text-white rounded-lg text-sm font-medium hover:bg-evergreen-teal/90 transition"
                 >
                   Reset Timer
                 </button>
@@ -341,7 +341,7 @@ const DigitalWellbeingDashboard = ({ userId }) => {
           {!lastBreak && (
             <button
               onClick={logBreak}
-              className="w-full px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition flex items-center justify-center gap-2"
+              className="w-full px-6 py-3 bg-evergreen-teal text-white rounded-lg font-semibold hover:bg-evergreen-teal/90 transition flex items-center justify-center gap-2"
             >
               <Coffee size={20} />
               Start Break Timer
@@ -351,12 +351,12 @@ const DigitalWellbeingDashboard = ({ userId }) => {
       </div>
 
       {/* Digital Sunset */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         <div className="flex items-start gap-4">
           <Moon className="text-indigo-600" size={32} />
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Digital Sunset</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-semibold text-soft-charcoal mb-2">Digital Sunset</h3>
+            <p className="text-muted-sage-gray mb-4">
               Reduce screen time 1-2 hours before bed to improve sleep quality. Blue light from screens
               can disrupt your circadian rhythm and make it harder to fall asleep.
             </p>

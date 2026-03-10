@@ -212,10 +212,10 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-soft-charcoal">
             Week Recap ({currentWeekRange?.start} → {currentWeekRange?.end})
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-sage-gray mt-1">
             Reflect on your week using the 4-3-2-1 framework
           </p>
         </div>
@@ -223,7 +223,7 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
         {!isEditing && !isEmpty && (
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-divider hover:bg-dew-sage-light transition-colors text-sm font-medium"
           >
             <Edit3 size={16} />
             Edit
@@ -233,15 +233,15 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
 
       {/* Empty State */}
       {isEmpty && (
-        <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
+        <div className="text-center py-12 border-2 border-dashed border-divider rounded-lg">
           <Sparkles className="mx-auto mb-3 text-purple-400" size={48} />
-          <p className="font-medium text-gray-700 mb-2">No recap for this week yet</p>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="font-medium text-soft-charcoal mb-2">No recap for this week yet</p>
+          <p className="text-sm text-muted-sage-gray mb-4">
             Take a moment to reflect on your week
           </p>
           <button
             onClick={() => setIsEditing(true)}
-            className="px-6 py-2 rounded-lg bg-[#1B5E57] text-white hover:bg-[#174C46] transition-colors font-medium"
+            className="px-6 py-2 rounded-lg bg-evergreen-teal text-white hover:opacity-90 transition-colors font-medium"
           >
             Start Week Recap
           </button>
@@ -265,7 +265,7 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
 
           {/* 4 Moments of Joy */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-3">
               ✨ 4 Moments of Joy
             </label>
             <div className="space-y-2">
@@ -276,7 +276,7 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
                   value={moment}
                   onChange={(e) => handleArrayChange('momentsOfJoy', idx, e.target.value)}
                   placeholder={`Moment ${idx + 1}...`}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+                  className="w-full px-4 py-2 rounded-lg border border-divider focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
                 />
               ))}
             </div>
@@ -284,7 +284,7 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
 
           {/* 3 Ways Fueled Mind/Body */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-3">
               💪 3 Ways You Fueled Your Mind or Body
             </label>
             <div className="space-y-2">
@@ -295,7 +295,7 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
                   value={fuel}
                   onChange={(e) => handleArrayChange('mindBodyFuel', idx, e.target.value)}
                   placeholder={`Way ${idx + 1}...`}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                  className="w-full px-4 py-2 rounded-lg border border-divider focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                 />
               ))}
             </div>
@@ -303,7 +303,7 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
 
           {/* 2 Friends Connected */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-3">
               👥 2 Friends You Connected With
             </label>
             <div className="space-y-2">
@@ -314,7 +314,7 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
                   value={friend}
                   onChange={(e) => handleArrayChange('friendsConnected', idx, e.target.value)}
                   placeholder={`Friend ${idx + 1}...`}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-green-400 focus:ring-2 focus:ring-green-100 outline-none transition-all"
+                  className="w-full px-4 py-2 rounded-lg border border-divider focus:border-green-400 focus:ring-2 focus:ring-green-100 outline-none transition-all"
                 />
               ))}
             </div>
@@ -322,7 +322,7 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
 
           {/* 1 Biggest Win */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-3">
               🏆 1 Biggest Win from the Week
             </label>
             <textarea
@@ -330,13 +330,13 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
               onChange={(e) => handleFieldChange('biggestWin', e.target.value)}
               placeholder="What's your biggest accomplishment this week?"
               rows={3}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 outline-none transition-all resize-none"
+              className="w-full px-4 py-3 rounded-lg border border-divider focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 outline-none transition-all resize-none"
             />
           </div>
 
           {/* Obstacles */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-3">
               🛡️ Obstacles You Faced
             </label>
             <textarea
@@ -344,13 +344,13 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
               onChange={(e) => handleFieldChange('obstacles', e.target.value)}
               placeholder="What challenges did you encounter?"
               rows={3}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all resize-none"
+              className="w-full px-4 py-3 rounded-lg border border-divider focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all resize-none"
             />
           </div>
 
           {/* Boundaries for Next Week */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-3">
               🎯 Boundaries for Next Week
             </label>
             <textarea
@@ -358,16 +358,16 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
               onChange={(e) => handleFieldChange('boundaries', e.target.value)}
               placeholder="What boundaries will you set to support your goals?"
               rows={3}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all resize-none"
+              className="w-full px-4 py-3 rounded-lg border border-divider focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all resize-none"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+          <div className="flex items-center gap-3 pt-4 border-t border-divider">
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#1B5E57] text-white hover:bg-[#174C46] transition-colors font-medium disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-evergreen-teal text-white hover:opacity-90 transition-colors font-medium disabled:opacity-50"
             >
               <Save size={16} />
               {isSaving ? 'Saving...' : 'Save Recap'}
@@ -375,7 +375,7 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
             <button
               onClick={handleCancel}
               disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-divider hover:bg-dew-sage-light transition-colors font-medium disabled:opacity-50"
             >
               <X size={16} />
               Cancel
@@ -390,12 +390,12 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
           {/* Moments of Joy */}
           {existingRecap.momentsOfJoy?.length > 0 && (
             <div className="p-4 rounded-lg bg-purple-50 border border-purple-100">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <h4 className="font-semibold text-soft-charcoal mb-2 flex items-center gap-2">
                 ✨ Moments of Joy
               </h4>
               <ul className="space-y-1">
                 {existingRecap.momentsOfJoy.map((moment, idx) => (
-                  <li key={idx} className="text-gray-700 text-sm">• {moment}</li>
+                  <li key={idx} className="text-soft-charcoal text-sm">• {moment}</li>
                 ))}
               </ul>
             </div>
@@ -404,12 +404,12 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
           {/* Mind/Body Fuel */}
           {existingRecap.mindBodyFuel?.length > 0 && (
             <div className="p-4 rounded-lg bg-blue-50 border border-blue-100">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <h4 className="font-semibold text-soft-charcoal mb-2 flex items-center gap-2">
                 💪 Mind & Body Fuel
               </h4>
               <ul className="space-y-1">
                 {existingRecap.mindBodyFuel.map((fuel, idx) => (
-                  <li key={idx} className="text-gray-700 text-sm">• {fuel}</li>
+                  <li key={idx} className="text-soft-charcoal text-sm">• {fuel}</li>
                 ))}
               </ul>
             </div>
@@ -417,13 +417,13 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
 
           {/* Friends Connected */}
           {existingRecap.friendsConnected?.length > 0 && (
-            <div className="p-4 rounded-lg bg-green-50 border border-green-100">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <div className="p-4 rounded-lg bg-teal-light border border-dew-sage">
+              <h4 className="font-semibold text-soft-charcoal mb-2 flex items-center gap-2">
                 👥 Friends Connected
               </h4>
               <ul className="space-y-1">
                 {existingRecap.friendsConnected.map((friend, idx) => (
-                  <li key={idx} className="text-gray-700 text-sm">• {friend}</li>
+                  <li key={idx} className="text-soft-charcoal text-sm">• {friend}</li>
                 ))}
               </ul>
             </div>
@@ -432,30 +432,30 @@ const WeekRecap = ({ userId, currentWeekRange }) => {
           {/* Biggest Win */}
           {existingRecap.biggestWin && (
             <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-100">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <h4 className="font-semibold text-soft-charcoal mb-2 flex items-center gap-2">
                 🏆 Biggest Win
               </h4>
-              <p className="text-gray-700 text-sm">{existingRecap.biggestWin}</p>
+              <p className="text-soft-charcoal text-sm">{existingRecap.biggestWin}</p>
             </div>
           )}
 
           {/* Obstacles */}
           {existingRecap.obstacles && (
             <div className="p-4 rounded-lg bg-orange-50 border border-orange-100">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <h4 className="font-semibold text-soft-charcoal mb-2 flex items-center gap-2">
                 🛡️ Obstacles
               </h4>
-              <p className="text-gray-700 text-sm">{existingRecap.obstacles}</p>
+              <p className="text-soft-charcoal text-sm">{existingRecap.obstacles}</p>
             </div>
           )}
 
           {/* Boundaries */}
           {existingRecap.boundaries && (
             <div className="p-4 rounded-lg bg-indigo-50 border border-indigo-100">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <h4 className="font-semibold text-soft-charcoal mb-2 flex items-center gap-2">
                 🎯 Boundaries for Next Week
               </h4>
-              <p className="text-gray-700 text-sm">{existingRecap.boundaries}</p>
+              <p className="text-soft-charcoal text-sm">{existingRecap.boundaries}</p>
             </div>
           )}
         </div>

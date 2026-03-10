@@ -30,6 +30,7 @@ export const listJournalEntries = async (
   userId: string,
   limitCount?: number
 ): Promise<JournalEntry[]> => {
+  if (!db) return [];
   try {
     let q = query(
       collection(db, COLLECTION),
@@ -56,6 +57,7 @@ export const listJournalEntries = async (
  * Get a single journal entry by ID
  */
 export const getJournalEntry = async (id: string): Promise<JournalEntry | null> => {
+  if (!db) return null;
   try {
     const docRef = doc(db, COLLECTION, id);
     const docSnap = await getDoc(docRef);
@@ -81,6 +83,7 @@ export const createJournalEntry = async (
   userId: string,
   data: Omit<JournalEntry, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
 ): Promise<string> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const entryData = {
       ...data,
@@ -105,6 +108,7 @@ export const updateJournalEntry = async (
   id: string,
   data: Partial<Omit<JournalEntry, 'id' | 'userId' | 'createdAt'>>
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, id);
     await updateDoc(docRef, {
@@ -121,6 +125,7 @@ export const updateJournalEntry = async (
  * Delete a journal entry
  */
 export const deleteJournalEntry = async (id: string): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, id);
     await deleteDoc(docRef);
@@ -138,6 +143,7 @@ export const getJournalEntriesByDateRange = async (
   startDate: Date,
   endDate: Date
 ): Promise<JournalEntry[]> => {
+  if (!db) return [];
   try {
     const q = query(
       collection(db, COLLECTION),
@@ -165,6 +171,7 @@ export const getJournalEntriesByMood = async (
   userId: string,
   mood: JournalEntry['mood']
 ): Promise<JournalEntry[]> => {
+  if (!db) return [];
   try {
     const q = query(
       collection(db, COLLECTION),
@@ -191,6 +198,7 @@ export const searchJournalEntries = async (
   userId: string,
   searchTerm: string
 ): Promise<JournalEntry[]> => {
+  if (!db) return [];
   try {
     // Note: Firestore doesn't support full-text search natively
     // This is a simple implementation - for production, consider using Algolia or similar

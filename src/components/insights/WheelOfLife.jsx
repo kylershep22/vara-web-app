@@ -174,7 +174,7 @@ const WheelOfLife = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-64 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-64 rounded-lg"></div>
         ))}
       </div>
     );
@@ -205,23 +205,23 @@ const WheelOfLife = ({ userId }) => {
 
       {/* Latest Assessment / Chart */}
       {latestAssessment && !showForm && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Current Life Balance</h3>
-              <p className="text-sm text-gray-500">Assessed on {formatDate(latestAssessment.assessmentDate)}</p>
+              <h3 className="text-lg font-semibold text-soft-charcoal">Current Life Balance</h3>
+              <p className="text-sm text-muted-sage-gray">Assessed on {formatDate(latestAssessment.assessmentDate)}</p>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setCompareMode(!compareMode)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center gap-2"
+                className="px-4 py-2 border border-divider rounded-lg hover:bg-dew-sage-light transition flex items-center gap-2"
               >
                 <History size={16} />
                 {compareMode ? 'Hide History' : 'Compare'}
               </button>
               <button
                 onClick={() => setShowForm(true)}
-                className="px-4 py-2 bg-[#1B5E57] text-white rounded-lg hover:bg-[#174C46] transition flex items-center gap-2"
+                className="px-4 py-2 bg-evergreen-teal text-white rounded-lg hover:opacity-90 transition flex items-center gap-2"
               >
                 <Plus size={16} />
                 New Assessment
@@ -267,14 +267,14 @@ const WheelOfLife = ({ userId }) => {
                 {calculateAverage(latestAssessment.ratings)}/10
               </div>
             </div>
-            <div className="p-4 bg-green-50 rounded-lg">
-              <div className="text-sm text-green-600 mb-1">Highest Score</div>
-              <div className="text-lg font-semibold text-green-900">
+            <div className="p-4 bg-teal-light rounded-lg">
+              <div className="text-sm text-evergreen-teal mb-1">Highest Score</div>
+              <div className="text-lg font-semibold text-evergreen-teal">
                 {categories.reduce((max, cat) =>
                   latestAssessment.ratings[cat.key] > latestAssessment.ratings[max.key] ? cat : max
                 , categories[0]).label}
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-2xl font-bold text-evergreen-teal">
                 {Math.max(...Object.values(latestAssessment.ratings))}/10
               </div>
             </div>
@@ -291,9 +291,9 @@ const WheelOfLife = ({ userId }) => {
 
           {/* Notes */}
           {latestAssessment.notes && (
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="text-sm font-semibold text-gray-700 mb-2">Your Notes</div>
-              <p className="text-gray-900">{latestAssessment.notes}</p>
+            <div className="p-4 bg-dew-sage-light rounded-lg">
+              <div className="text-sm font-semibold text-soft-charcoal mb-2">Your Notes</div>
+              <p className="text-soft-charcoal">{latestAssessment.notes}</p>
             </div>
           )}
         </div>
@@ -301,20 +301,20 @@ const WheelOfLife = ({ userId }) => {
 
       {/* Assessment Form */}
       {showForm && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Rate Your Life Balance</h3>
+            <h3 className="text-lg font-semibold text-soft-charcoal">Rate Your Life Balance</h3>
             {latestAssessment && (
               <button
                 onClick={() => setShowForm(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-sage-gray hover:text-soft-charcoal"
               >
                 Cancel
               </button>
             )}
           </div>
 
-          <p className="text-sm text-gray-600 mb-6">
+          <p className="text-sm text-muted-sage-gray mb-6">
             For each area, rate your current level of satisfaction from 0 (not satisfied) to 10 (completely satisfied).
           </p>
 
@@ -323,10 +323,10 @@ const WheelOfLife = ({ userId }) => {
               <div key={category.key}>
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <div className="font-semibold text-gray-900">{category.label}</div>
-                    <div className="text-sm text-gray-600">{category.description}</div>
+                    <div className="font-semibold text-soft-charcoal">{category.label}</div>
+                    <div className="text-sm text-muted-sage-gray">{category.description}</div>
                   </div>
-                  <div className="text-2xl font-bold text-[#1B5E57] min-w-[50px] text-right">
+                  <div className="text-2xl font-bold text-evergreen-teal min-w-[50px] text-right">
                     {currentRatings[category.key]}
                   </div>
                 </div>
@@ -344,7 +344,7 @@ const WheelOfLife = ({ userId }) => {
                     background: `linear-gradient(to right, ${category.color} 0%, ${category.color} ${currentRatings[category.key] * 10}%, #E5E7EB ${currentRatings[category.key] * 10}%, #E5E7EB 100%)`
                   }}
                 />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <div className="flex justify-between text-xs text-muted-sage-gray mt-1">
                   <span>Not Satisfied</span>
                   <span>Completely Satisfied</span>
                 </div>
@@ -354,7 +354,7 @@ const WheelOfLife = ({ userId }) => {
 
           {/* Notes */}
           <div className="mt-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-2">
               Notes (Optional)
             </label>
             <textarea
@@ -362,14 +362,14 @@ const WheelOfLife = ({ userId }) => {
               onChange={(e) => setNotes(e.target.value)}
               rows="3"
               placeholder="Any observations, goals, or reflections about your current life balance..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent resize-none"
             />
           </div>
 
           {/* Save Button */}
           <button
             onClick={saveAssessment}
-            className="mt-6 w-full px-6 py-3 bg-[#1B5E57] text-white rounded-lg font-semibold hover:bg-[#174C46] transition flex items-center justify-center gap-2"
+            className="mt-6 w-full px-6 py-3 bg-evergreen-teal text-white rounded-lg font-semibold hover:opacity-90 transition flex items-center justify-center gap-2"
           >
             <Circle size={20} />
             Save Assessment
@@ -379,10 +379,10 @@ const WheelOfLife = ({ userId }) => {
 
       {/* Insights & Recommendations */}
       {latestAssessment && !showForm && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-2 mb-4">
             <Lightbulb className="text-yellow-500" size={20} />
-            <h3 className="text-lg font-semibold text-gray-900">Insights & Recommendations</h3>
+            <h3 className="text-lg font-semibold text-soft-charcoal">Insights & Recommendations</h3>
           </div>
 
           <div className="space-y-4">
@@ -394,9 +394,9 @@ const WheelOfLife = ({ userId }) => {
                   <li key={cat.key} className="flex items-start gap-2">
                     <TrendingUp className="text-orange-600 mt-0.5 flex-shrink-0" size={16} />
                     <div>
-                      <span className="font-medium text-gray-900">{cat.label}</span>
+                      <span className="font-medium text-soft-charcoal">{cat.label}</span>
                       <span className="text-orange-700"> (Score: {cat.rating}/10)</span>
-                      <p className="text-sm text-gray-600">{cat.description}</p>
+                      <p className="text-sm text-muted-sage-gray">{cat.description}</p>
                     </div>
                   </li>
                 ))}
@@ -422,9 +422,9 @@ const WheelOfLife = ({ userId }) => {
             </div>
 
             {/* Action Items */}
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h4 className="font-semibold text-green-900 mb-2">Suggested Action Steps</h4>
-              <ul className="text-sm text-green-700 space-y-1">
+            <div className="p-4 bg-teal-light border border-silver-sage rounded-lg">
+              <h4 className="font-semibold text-evergreen-teal mb-2">Suggested Action Steps</h4>
+              <ul className="text-sm text-evergreen-teal space-y-1">
                 <li>• Create a goal related to your lowest-scoring category</li>
                 <li>• Schedule time this week for your top priority area</li>
                 <li>• Reflect on what would move your score up by just 1 point</li>
@@ -438,25 +438,25 @@ const WheelOfLife = ({ userId }) => {
 
       {/* Assessment History */}
       {assessments.length > 1 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Calendar className="text-gray-600" size={20} />
-            <h3 className="text-lg font-semibold text-gray-900">Assessment History</h3>
+            <Calendar className="text-muted-sage-gray" size={20} />
+            <h3 className="text-lg font-semibold text-soft-charcoal">Assessment History</h3>
           </div>
 
           <div className="space-y-3">
             {assessments.map((assessment, idx) => (
-              <div key={assessment.id} className="p-4 bg-gray-50 rounded-lg">
+              <div key={assessment.id} className="p-4 bg-dew-sage-light rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900">
+                  <span className="font-medium text-soft-charcoal">
                     {formatDate(assessment.assessmentDate)}
                   </span>
-                  <span className="text-lg font-bold text-[#1B5E57]">
+                  <span className="text-lg font-bold text-evergreen-teal">
                     {calculateAverage(assessment.ratings)}/10
                   </span>
                 </div>
                 {idx > 0 && (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-sage-gray">
                     Change from previous: {(calculateAverage(assessment.ratings) - calculateAverage(assessments[idx - 1].ratings)).toFixed(1)}
                   </div>
                 )}

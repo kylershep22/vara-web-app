@@ -53,9 +53,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { urlFromStoragePath } from '../lib/storage';
 
-const TEAL = '#1B5E57';
-const CHARCOAL = '#3E3E3E';
-const SAGE = '#D5E3D1';
+
 
 function cryptoRandomId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -712,7 +710,7 @@ export default function SleepRecovery() {
     activeRoutineTab === 'wake'
       ? {
           title: 'Wake-up routine',
-          icon: <Sunrise size={16} className="text-[#1B5E57]" />,
+          icon: <Sunrise size={16} className="text-evergreen-teal" />,
           steps: wakeSteps,
           total: totalWakeMinutes,
           kind: 'wake',
@@ -721,7 +719,7 @@ export default function SleepRecovery() {
         }
       : {
           title: 'Bedtime routine',
-          icon: <Moon size={16} className="text-[#1B5E57]" />,
+          icon: <Moon size={16} className="text-evergreen-teal" />,
           steps: bedtimeSteps,
           total: totalBedtimeMinutes,
           kind: 'bedtime',
@@ -731,120 +729,120 @@ export default function SleepRecovery() {
 
   return (
     <SidebarLayout>
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-6 max-w-5xl mx-auto">
         {/* Page Header */}
         <div className="flex items-center gap-3 mb-2">
-          <Moon size={28} className="text-[#1B5E57]" />
-          <h1 className="text-2xl font-semibold text-[#3E3E3E]">Sleep & Recovery</h1>
+          <Moon size={28} className="text-evergreen-teal" />
+          <h1 className="text-2xl font-semibold text-soft-charcoal">Sleep & Recovery</h1>
         </div>
-        <p className="text-[#9AAE8C] mb-6">
+        <p className="text-muted-sage-gray mb-6">
           Design your night & morning, log your sleep, then run routines with a simple step-through timer.
         </p>
 
         {/* Sleep Log & Rating */}
         <section className="mb-8">
-          <h2 className="text-lg font-semibold text-[#3E3E3E] mb-3 flex items-center gap-2">
-            <NotebookPen size={20} className="text-[#1B5E57]" />
+          <h2 className="text-lg font-semibold text-soft-charcoal mb-3 flex items-center gap-2">
+            <NotebookPen size={20} className="text-evergreen-teal" />
             Sleep Log & Rating
           </h2>
 
-          <div className="bg-white/80 border border-[#D5E3D1] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white/80 border border-divider rounded-2xl p-5 shadow-sm">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Rating */}
               <div>
-                <label className="block text-sm font-medium text-[#3E3E3E] mb-2">Quality rating (1–10)</label>
+                <label className="block text-sm font-medium text-soft-charcoal mb-2">Quality rating (1–10)</label>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs text-gray-500">1</span>
+                  <span className="text-xs text-muted-sage-gray">1</span>
                   <input
                     type="range"
                     min={1}
                     max={10}
                     value={rating}
                     onChange={e => setRating(Number(e.target.value))}
-                    className="w-full accent-[#1B5E57]"
+                    className="w-full accent-evergreen-teal"
                   />
-                  <span className="text-xs text-gray-500">10</span>
-                  <div className="min-w-10 text-center font-semibold text-[#1B5E57]">{rating}</div>
+                  <span className="text-xs text-muted-sage-gray">10</span>
+                  <div className="min-w-10 text-center font-semibold text-evergreen-teal">{rating}</div>
                 </div>
               </div>
 
               {/* Times */}
               <div>
-                <label className="block text-sm font-medium text-[#3E3E3E] mb-2">Bedtime</label>
+                <label className="block text-sm font-medium text-soft-charcoal mb-2">Bedtime</label>
                 <input
                   type="time"
                   value={bedtime}
                   onChange={e => setBedtime(e.target.value)}
-                  className="w-full rounded-xl border border-[#D5E3D1] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1B5E57]/30"
+                  className="w-full rounded-xl border border-divider px-3 py-2 focus:outline-none focus:ring-2 focus:ring-evergreen-teal/30"
                 />
-                <label className="block text-sm font-medium text-[#3E3E3E] mb-2 mt-4">Wake time</label>
+                <label className="block text-sm font-medium text-soft-charcoal mb-2 mt-4">Wake time</label>
                 <input
                   type="time"
                   value={wakeTime}
                   onChange={e => setWakeTime(e.target.value)}
-                  className="w-full rounded-xl border border-[#D5E3D1] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1B5E57]/30"
+                  className="w-full rounded-xl border border-divider px-3 py-2 focus:outline-none focus:ring-2 focus:ring-evergreen-teal/30"
                 />
-                <div className="text-xs text-gray-500 mt-2">
+                <div className="text-xs text-muted-sage-gray mt-2">
                   {sleptMinutes != null ? `Estimated duration: ${sleptHoursLabel}` : 'Enter both times to estimate duration'}
                 </div>
               </div>
 
               {/* Flags */}
               <div>
-                <label className="block text-sm font-medium text-[#3E3E3E] mb-2">Last evening factors</label>
+                <label className="block text-sm font-medium text-soft-charcoal mb-2">Last evening factors</label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      className="accent-[#1B5E57]"
+                      className="accent-evergreen-teal"
                       checked={flagScreensLate}
                       onChange={e => setFlagScreensLate(e.target.checked)}
                     />
-                    <span className="text-sm text-[#3E3E3E] flex items-center gap-1">
+                    <span className="text-sm text-soft-charcoal flex items-center gap-1">
                       <Monitor size={14} /> Screens late
                     </span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      className="accent-[#1B5E57]"
+                      className="accent-evergreen-teal"
                       checked={flagCaffeineLate}
                       onChange={e => setFlagCaffeineLate(e.target.checked)}
                     />
-                    <span className="text-sm text-[#3E3E3E] flex items-center gap-1">
+                    <span className="text-sm text-soft-charcoal flex items-center gap-1">
                       <Coffee size={14} /> Caffeine late
                     </span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      className="accent-[#1B5E57]"
+                      className="accent-evergreen-teal"
                       checked={flagLateMeal}
                       onChange={e => setFlagLateMeal(e.target.checked)}
                     />
-                    <span className="text-sm text-[#3E3E3E] flex items-center gap-1">
+                    <span className="text-sm text-soft-charcoal flex items-center gap-1">
                       <StretchHorizontal size={14} /> Late/heavy meal
                     </span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      className="accent-[#1B5E57]"
+                      className="accent-evergreen-teal"
                       checked={flagWorkoutLate}
                       onChange={e => setFlagWorkoutLate(e.target.checked)}
                     />
-                    <span className="text-sm text-[#3E3E3E] flex items-center gap-1">
+                    <span className="text-sm text-soft-charcoal flex items-center gap-1">
                       <Sparkles size={14} /> Late workout
                     </span>
                   </label>
                   <label className="flex items-center gap-2 col-span-2">
                     <input
                       type="checkbox"
-                      className="accent-[#1B5E57]"
+                      className="accent-evergreen-teal"
                       checked={followedRoutine}
                       onChange={e => setFollowedRoutine(e.target.checked)}
                     />
-                    <span className="text-sm text-[#3E3E3E] flex items-center gap-1">
+                    <span className="text-sm text-soft-charcoal flex items-center gap-1">
                       <CheckCircle2 size={14} /> I followed my bedtime routine
                     </span>
                   </label>
@@ -854,13 +852,13 @@ export default function SleepRecovery() {
 
             {/* Notes */}
             <div className="mt-4">
-              <label className="block text-sm font-medium text-[#3E3E3E] mb-2">Notes (optional)</label>
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">Notes (optional)</label>
               <textarea
                 rows={3}
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Anything notable about last night?"
-                className="w-full rounded-xl border border-[#D5E3D1] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1B5E57]/30"
+                className="w-full rounded-xl border border-divider px-3 py-2 focus:outline-none focus:ring-2 focus:ring-evergreen-teal/30"
               />
             </div>
 
@@ -868,7 +866,7 @@ export default function SleepRecovery() {
               <button
                 onClick={saveSleepLog}
                 disabled={savingLog || !user}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white font-medium shadow-sm disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-evergreen-teal to-silver-sage text-white font-medium shadow-sm disabled:opacity-50"
               >
                 {savingLog ? <Loader className="animate-spin" size={16} /> : <Save size={16} />}
                 Save Today’s Log
@@ -882,7 +880,7 @@ export default function SleepRecovery() {
                   setFlagLateMeal(false);
                   setFlagWorkoutLate(false);
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#D5E3D1] text-[#3E3E3E] bg-white"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-divider text-soft-charcoal bg-white"
               >
                 <TimerReset size={16} />
                 Reset
@@ -894,20 +892,20 @@ export default function SleepRecovery() {
         {/* Routines — Single view based on selected pill */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-[#3E3E3E] flex items-center gap-2">
-              <Star size={20} className="text-[#1B5E57]" />
+            <h2 className="text-lg font-semibold text-soft-charcoal flex items-center gap-2">
+              <Star size={20} className="text-evergreen-teal" />
               Routines
             </h2>
 
-            <div className="bg-[#D5E3D1] rounded-full p-1 flex">
+            <div className="bg-dew-sage rounded-full p-1 flex">
               <button
-                className={`px-3 py-1 rounded-full text-sm font-medium ${activeRoutineTab === 'bedtime' ? 'bg-[#1B5E57] text-white' : 'text-[#3E3E3E]'}`}
+                className={`px-3 py-1 rounded-full text-sm font-medium ${activeRoutineTab === 'bedtime' ? 'bg-evergreen-teal text-white' : 'text-soft-charcoal'}`}
                 onClick={() => setActiveRoutineTab('bedtime')}
               >
                 Bedtime
               </button>
               <button
-                className={`px-3 py-1 rounded-full text-sm font-medium ${activeRoutineTab === 'wake' ? 'bg-[#1B5E57] text-white' : 'text-[#3E3E3E]'}`}
+                className={`px-3 py-1 rounded-full text-sm font-medium ${activeRoutineTab === 'wake' ? 'bg-evergreen-teal text-white' : 'text-soft-charcoal'}`}
                 onClick={() => setActiveRoutineTab('wake')}
               >
                 Wake-Up
@@ -915,23 +913,23 @@ export default function SleepRecovery() {
             </div>
           </div>
 
-          <div className="bg-white/80 border border-[#D5E3D1] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white/80 border border-divider rounded-2xl p-5 shadow-sm">
             {loadingRoutines ? (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-muted-sage-gray">
                 <Loader className="animate-spin" size={16} />
                 Loading your routine…
               </div>
             ) : (
-              <div className="border border-[#D5E3D1] rounded-2xl p-4 bg-white/80">
+              <div className="border border-divider rounded-2xl p-4 bg-white/80">
                 {/* Header row */}
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-2 text-sm">
                     {selected.icon}
-                    <span className="font-medium text-[#3E3E3E]">{selected.title}</span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-gray-600">~ {minutesToLabel(selected.total)} active</span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-gray-600">
+                    <span className="font-medium text-soft-charcoal">{selected.title}</span>
+                    <span className="text-muted-sage-gray">•</span>
+                    <span className="text-muted-sage-gray">~ {minutesToLabel(selected.total)} active</span>
+                    <span className="text-muted-sage-gray">•</span>
+                    <span className="text-muted-sage-gray">
                       {selected.steps.filter(s => s.enabled).length} steps
                     </span>
                   </div>
@@ -941,19 +939,19 @@ export default function SleepRecovery() {
                     <div className="flex items-center gap-2">
                       {selected.kind === 'bedtime' ? (
                         <>
-                          <span className="px-2 py-1 rounded-full border border-[#B8CDBA] bg-[#F5FFF8] text-[#1B5E57] text-xs">
+                          <span className="px-2 py-1 rounded-full border border-silver-sage bg-teal-light text-evergreen-teal text-xs">
                             🔥 Streak: <strong className="ml-1">{trendStats.streaks.bedtime.current}</strong>
                           </span>
-                          <span className="px-2 py-1 rounded-full bg-white border border-[#D5E3D1] text-[#3E3E3E] text-xs">
+                          <span className="px-2 py-1 rounded-full bg-white border border-divider text-soft-charcoal text-xs">
                             Best: {trendStats.streaks.bedtime.longest}
                           </span>
                         </>
                       ) : (
                         <>
-                          <span className="px-2 py-1 rounded-full border border-[#B8CDBA] bg-[#F5FFF8] text-[#1B5E57] text-xs">
+                          <span className="px-2 py-1 rounded-full border border-silver-sage bg-teal-light text-evergreen-teal text-xs">
                             🌅 Streak: <strong className="ml-1">{trendStats.streaks.wake.current}</strong>
                           </span>
-                          <span className="px-2 py-1 rounded-full bg-white border border-[#D5E3D1] text-[#3E3E3E] text-xs">
+                          <span className="px-2 py-1 rounded-full bg-white border border-divider text-soft-charcoal text-xs">
                             Best: {trendStats.streaks.wake.longest}
                           </span>
                         </>
@@ -964,7 +962,7 @@ export default function SleepRecovery() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => openRunner(selected.kind)}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1B5E57] text-white"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-evergreen-teal text-white"
                     >
                       <Play size={16} /> Start
                     </button>
@@ -998,7 +996,7 @@ export default function SleepRecovery() {
                       .filter(s => s.enabled)
                       .slice(0, 10)
                       .map(s => (
-                        <span key={s.id} className="text-[11px] px-2 py-0.5 rounded-full bg-[#D5E3D1] text-[#1B5E57]">
+                        <span key={s.id} className="text-[11px] px-2 py-0.5 rounded-full bg-dew-sage text-evergreen-teal">
                           {s.label}
                         </span>
                       ))}
@@ -1009,7 +1007,7 @@ export default function SleepRecovery() {
                   <button
                     onClick={saveRoutines}
                     disabled={savingRoutine || !user}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white font-medium shadow-sm disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-evergreen-teal to-silver-sage text-white font-medium shadow-sm disabled:opacity-50"
                   >
                     {savingRoutine ? <Loader className="animate-spin" size={16} /> : <Save size={16} />}
                     Save {selected.kind === 'wake' ? 'Wake-Up' : 'Bedtime'} Routine
@@ -1022,47 +1020,47 @@ export default function SleepRecovery() {
 
         {/* Sleep Sounds & Stories */}
         <section className="mb-8">
-          <h2 className="text-lg font-semibold text-[#3E3E3E] mb-3 flex items-center gap-2">
-            <Wind size={20} className="text-[#1B5E57]" />
+          <h2 className="text-lg font-semibold text-soft-charcoal mb-3 flex items-center gap-2">
+            <Wind size={20} className="text-evergreen-teal" />
             Sleep Sounds & Stories
           </h2>
-          <div className="bg-white/80 border border-[#D5E3D1] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white/80 border border-divider rounded-2xl p-5 shadow-sm">
             {loadingAudio ? (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-muted-sage-gray">
                 <Loader className="animate-spin" size={16} />
                 Loading audio…
               </div>
             ) : audioItems.length === 0 ? (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-sage-gray">
                 No sleep-focused audio found in your Wellness Library yet. Add items in the Library, and they will appear here.
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {audioItems.map(item => (
-                    <div key={item.id} className="border border-[#D5E3D1] rounded-xl p-4 bg-white/70">
+                    <div key={item.id} className="border border-divider rounded-xl p-4 bg-white/70">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-semibold text-[#3E3E3E]">{item.title || 'Untitled Audio'}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="font-semibold text-soft-charcoal">{item.title || 'Untitled Audio'}</div>
+                          <div className="text-xs text-muted-sage-gray">
                             {item.duration && typeof item.duration === 'number' ? minutesToLabel(item.duration) : '—'}
                           </div>
                         </div>
                         <button
                           onClick={() => playAudio(item.id, item.url || item.audioUrl || '', item.storagePath)}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#D5E3D1] text-[#3E3E3E] bg-white hover:bg-gray-50"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-divider text-soft-charcoal bg-white hover:bg-dew-sage-light"
                         >
                           <Music2 size={16} />
                           {currentAudioId === item.id ? 'Pause' : 'Play'}
                         </button>
                       </div>
                       {item.description ? (
-                        <p className="text-sm text-gray-600 mt-2 line-clamp-3">{item.description}</p>
+                        <p className="text-sm text-muted-sage-gray mt-2 line-clamp-3">{item.description}</p>
                       ) : null}
                       {item.tags && Array.isArray(item.tags) && item.tags.length > 0 ? (
                         <div className="mt-3 flex flex-wrap gap-1">
                           {item.tags.slice(0, 6).map(t => (
-                            <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-[#D5E3D1] text-[#1B5E57]">
+                            <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-dew-sage text-evergreen-teal">
                               {t}
                             </span>
                           ))}
@@ -1079,19 +1077,19 @@ export default function SleepRecovery() {
 
         {/* History & Trends */}
         <section className="mb-8">
-          <h2 className="text-lg font-semibold text-[#3E3E3E] mb-3 flex items-center gap-2">
-            <HistoryIcon size={20} className="text-[#1B5E57]" />
+          <h2 className="text-lg font-semibold text-soft-charcoal mb-3 flex items-center gap-2">
+            <HistoryIcon size={20} className="text-evergreen-teal" />
             Recent Sleep History & Trends
           </h2>
 
-          <div className="bg-white/80 border border-[#D5E3D1] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white/80 border border-divider rounded-2xl p-5 shadow-sm">
             {loadingLogs ? (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-muted-sage-gray">
                 <Loader className="animate-spin" size={16} />
                 Loading history…
               </div>
             ) : sleepLogs.length === 0 ? (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-sage-gray">
                 No logs yet. Save a sleep log above and your history and trends will appear here.
               </div>
             ) : (
@@ -1154,7 +1152,7 @@ export default function SleepRecovery() {
 
                 {/* Sparkline bars */}
                 <div className="mb-4">
-                  <div className="text-xs text-gray-600 mb-2">Last 14 days (higher is better)</div>
+                  <div className="text-xs text-muted-sage-gray mb-2">Last 14 days (higher is better)</div>
                   <div className="flex items-end gap-1 h-20">
                     {sleepLogs
                       .slice(0, 14)
@@ -1167,7 +1165,7 @@ export default function SleepRecovery() {
                             key={log.id}
                             title={`Day ${14 - idx}: ${val}/10`}
                             className="w-3 rounded-t"
-                            style={{ height: `${height}px`, background: 'linear-gradient(180deg, #1B5E57, #B8CDBA)' }}
+                            style={{ height: `${height}px`, background: 'linear-gradient(180deg, var(--evergreen-teal), var(--silver-sage))' }}
                           />
                         );
                       })}
@@ -1175,10 +1173,10 @@ export default function SleepRecovery() {
                 </div>
 
                 {/* Table */}
-                <div className="overflow-auto rounded-xl border border-[#D5E3D1]">
+                <div className="overflow-auto rounded-xl border border-divider">
                   <table className="min-w-full text-sm">
-                    <thead className="bg-[#F8FBF7]">
-                      <tr className="text-left text-[#3E3E3E]">
+                    <thead className="bg-mist-white">
+                      <tr className="text-left text-soft-charcoal">
                         <th className="px-4 py-2">Date</th>
                         <th className="px-4 py-2">Rating</th>
                         <th className="px-4 py-2">Duration</th>
@@ -1206,12 +1204,12 @@ export default function SleepRecovery() {
                           .filter(Boolean)
                           .join(', ');
                         return (
-                          <tr key={row.id} className="border-t border-[#D5E3D1]">
-                            <td className="px-4 py-2 text-[#3E3E3E]">{dateLabel}</td>
-                            <td className="px-4 py-2 font-medium text-[#1B5E57]">{row.rating ?? '—'}</td>
-                            <td className="px-4 py-2 text-[#3E3E3E]">{duration}</td>
-                            <td className="px-4 py-2 text-[#3E3E3E]">{flags || '—'}</td>
-                            <td className="px-4 py-2 text-[#3E3E3E]">
+                          <tr key={row.id} className="border-t border-divider">
+                            <td className="px-4 py-2 text-soft-charcoal">{dateLabel}</td>
+                            <td className="px-4 py-2 font-medium text-evergreen-teal">{row.rating ?? '—'}</td>
+                            <td className="px-4 py-2 text-soft-charcoal">{duration}</td>
+                            <td className="px-4 py-2 text-soft-charcoal">{flags || '—'}</td>
+                            <td className="px-4 py-2 text-soft-charcoal">
                               <span className="line-clamp-2">{row.notes || '—'}</span>
                             </td>
                           </tr>
@@ -1227,12 +1225,12 @@ export default function SleepRecovery() {
 
         {/* Evening Reflection Hand-Off */}
         <section className="mb-10">
-          <h2 className="text-lg font-semibold text-[#3E3E3E] mb-3 flex items-center gap-2">
-            <BookOpenCheck size={20} className="text-[#1B5E57]" />
+          <h2 className="text-lg font-semibold text-soft-charcoal mb-3 flex items-center gap-2">
+            <BookOpenCheck size={20} className="text-evergreen-teal" />
             Evening Reflection (via Journal)
           </h2>
-          <div className="bg-white/80 border border-[#D5E3D1] rounded-2xl p-5 shadow-sm flex items-center justify-between gap-4">
-            <p className="text-[#3E3E3E] text-sm">
+          <div className="bg-white/80 border border-divider rounded-2xl p-5 shadow-sm flex items-center justify-between gap-4">
+            <p className="text-soft-charcoal text-sm">
               Keep journaling centralized. We’ll send you to your Journal with a sleep-focused prompt so everything stays in one place.
             </p>
             <button
@@ -1244,7 +1242,7 @@ export default function SleepRecovery() {
                   }
                 });
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#D5E3D1] hover:bg-gray-50 text-[#3E3E3E]"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-divider hover:bg-dew-sage-light text-soft-charcoal"
             >
               <NotebookPen size={16} />
               Open Journal with Prompt
@@ -1264,24 +1262,24 @@ export default function SleepRecovery() {
           />
           {/* Modal */}
           <div className="relative z-10 w-[95%] max-w-xl">
-            <div className="rounded-2xl shadow-2xl border border-[#D5E3D1] bg-white">
+            <div className="rounded-2xl shadow-2xl border border-divider bg-white">
               <div className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2">
                   {runnerKind === 'wake' ? (
-                    <Sunrise size={18} className="text-[#1B5E57]" />
+                    <Sunrise size={18} className="text-evergreen-teal" />
                   ) : (
-                    <Moon size={18} className="text-[#1B5E57]" />
+                    <Moon size={18} className="text-evergreen-teal" />
                   )}
-                  <div className="font-semibold text-[#3E3E3E]">
+                  <div className="font-semibold text-soft-charcoal">
                     {runnerKind === 'wake' ? 'Wake-up routine' : 'Bedtime routine'}
                   </div>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-sage-gray">
                     • {runnerPercent}% • {minutesToLabel(Math.round(runnerTotalSeconds / 60))}
                   </span>
                 </div>
                 <button
                   onClick={closeRunner}
-                  className="p-1 rounded-lg hover:bg-gray-100 text-gray-600"
+                  className="p-1 rounded-lg hover:bg-dew-sage-light text-muted-sage-gray"
                   title="Close"
                 >
                   <X size={18} />
@@ -1290,12 +1288,12 @@ export default function SleepRecovery() {
 
               {/* Progress */}
               <div className="px-4">
-                <div className="w-full h-2 bg-[#EEF5EF] rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-dew-sage-light rounded-full overflow-hidden">
                   <div
                     className="h-full"
                     style={{
                       width: `${runnerPercent}%`,
-                      background: 'linear-gradient(90deg, #1B5E57, #B8CDBA)'
+                      background: 'linear-gradient(90deg, var(--evergreen-teal), var(--silver-sage))'
                     }}
                   />
                 </div>
@@ -1307,30 +1305,30 @@ export default function SleepRecovery() {
                   <>
                     <div className="flex items-center justify-between">
                       <div className="text-sm">
-                        <div className="text-[#9AAE8C] font-medium mb-1">
+                        <div className="text-muted-sage-gray font-medium mb-1">
                           Step {runnerIndex + 1} of {runnerSteps.length}
                         </div>
-                        <div className="text-[#3E3E3E] font-semibold">
+                        <div className="text-soft-charcoal font-semibold">
                           {runnerSteps[runnerIndex]?.label}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-muted-sage-gray">
                           {minutesToLabel(runnerSteps[runnerIndex]?.minutes || 0)}
                         </div>
                       </div>
-                      <div className="text-2xl font-mono text-[#1B5E57]">{secondsToClock(runnerRemaining || 0)}</div>
+                      <div className="text-2xl font-mono text-evergreen-teal">{secondsToClock(runnerRemaining || 0)}</div>
                     </div>
 
                     <div className="mt-3 flex items-center gap-2">
                       <button
                         onClick={toggleRunner}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1B5E57] text-white"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-evergreen-teal text-white"
                       >
                         {runnerActive ? <Pause size={16} /> : <Play size={16} />}
                         {runnerActive ? 'Pause' : 'Start'}
                       </button>
                       <button
                         onClick={() => handleNextStep('manual')}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#D5E3D1] bg-white text-[#3E3E3E]"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-divider bg-white text-soft-charcoal"
                       >
                         <SkipForward size={16} />
                         Next
@@ -1350,7 +1348,7 @@ export default function SleepRecovery() {
                           // trigger completion flow
                           handleNextStep('auto'); // will log run and close
                         }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#D5E3D1] bg-white text-[#3E3E3E]"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-divider bg-white text-soft-charcoal"
                       >
                         <Square size={16} />
                         Finish
@@ -1366,7 +1364,7 @@ export default function SleepRecovery() {
                           <label
                             key={s.id}
                             className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg border mb-2 ${
-                              done ? 'bg-[#F5FFF8] border-[#B8CDBA]' : 'bg-white border-[#D5E3D1]'
+                              done ? 'bg-teal-light border-silver-sage' : 'bg-white border-divider'
                             }`}
                           >
                             <div className="flex items-center gap-2">
@@ -1387,25 +1385,25 @@ export default function SleepRecovery() {
                                     handleNextStep('auto');
                                   }
                                 }}
-                                className="accent-[#1B5E57]"
+                                className="accent-evergreen-teal"
                               />
-                              <span className={`text-sm ${done ? 'line-through text-gray-500' : 'text-[#3E3E3E]'}`}>
+                              <span className={`text-sm ${done ? 'line-through text-muted-sage-gray' : 'text-soft-charcoal'}`}>
                                 {s.label}
                               </span>
                             </div>
-                            <span className="text-xs text-gray-500">{minutesToLabel(s.minutes || 0)}</span>
+                            <span className="text-xs text-muted-sage-gray">{minutesToLabel(s.minutes || 0)}</span>
                           </label>
                         );
                       })}
                     </div>
 
-                    <div className="mt-3 text-xs text-gray-600">
+                    <div className="mt-3 text-xs text-muted-sage-gray">
                       Tip: when you finish, the “I followed my bedtime routine” box in your Sleep Log will already be
                       checked.
                     </div>
                   </>
                 ) : (
-                  <div className="text-sm text-gray-600">No steps enabled.</div>
+                  <div className="text-sm text-muted-sage-gray">No steps enabled.</div>
                 )}
               </div>
             </div>
@@ -1422,7 +1420,7 @@ function InlineEditorToggle({ open, setOpen, label }) {
   return (
     <button
       onClick={() => setOpen(!open)}
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#D5E3D1] bg-white text-[#3E3E3E]"
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-divider bg-white text-soft-charcoal"
     >
       {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
       {open ? 'Hide editor' : label}
@@ -1432,19 +1430,19 @@ function InlineEditorToggle({ open, setOpen, label }) {
 
 function RoutineList({ kind, steps, onAdd, onUpdate, onRemove, onMove, totalMinutes }) {
   const headerIcon =
-    kind === 'wake' ? <Sunrise size={16} className="text-[#1B5E57]" /> : <Moon size={16} className="text-[#1B5E57]" />;
+    kind === 'wake' ? <Sunrise size={16} className="text-evergreen-teal" /> : <Moon size={16} className="text-evergreen-teal" />;
   return (
     <>
       <div className="flex items-center justify-between">
-        <div className="text-sm text-[#3E3E3E] flex items-center gap-2">
+        <div className="text-sm text-soft-charcoal flex items-center gap-2">
           {headerIcon}
           <span className="font-medium">{kind === 'wake' ? 'Wake-Up' : 'Bedtime'} routine</span>
-          <span className="text-gray-500">•</span>
-          <span className="text-gray-600">~ {minutesToLabel(totalMinutes)} active</span>
+          <span className="text-muted-sage-gray">•</span>
+          <span className="text-muted-sage-gray">~ {minutesToLabel(totalMinutes)} active</span>
         </div>
         <button
           onClick={onAdd}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#D5E3D1] text-[#3E3E3E] bg-white hover:bg-gray-50"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-divider text-soft-charcoal bg-white hover:bg-dew-sage-light"
         >
           <Plus size={16} />
           Add step
@@ -1453,28 +1451,28 @@ function RoutineList({ kind, steps, onAdd, onUpdate, onRemove, onMove, totalMinu
 
       <div className="mt-4 space-y-3">
         {steps.length === 0 ? (
-          <div className="text-sm text-gray-600">No steps yet—add your first step.</div>
+          <div className="text-sm text-muted-sage-gray">No steps yet—add your first step.</div>
         ) : (
           steps.map(s => (
-            <div key={s.id} className="border border-[#D5E3D1] rounded-xl p-3 bg-white/70">
+            <div key={s.id} className="border border-divider rounded-xl p-3 bg-white/70">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                 <div className="md:col-span-5">
-                  <label className="text-xs text-gray-600 block mb-1">Label</label>
+                  <label className="text-xs text-muted-sage-gray block mb-1">Label</label>
                   <input
                     type="text"
                     value={s.label}
                     onChange={e => onUpdate(kind, s.id, { label: e.target.value })}
-                    className="w-full rounded-lg border border-[#D5E3D1] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1B5E57]/30"
+                    className="w-full rounded-lg border border-divider px-3 py-2 focus:outline-none focus:ring-2 focus:ring-evergreen-teal/30"
                     placeholder={kind === 'wake' ? 'e.g., Morning light' : 'e.g., Read fiction'}
                   />
                 </div>
 
                 <div className="md:col-span-3">
-                  <label className="text-xs text-gray-600 block mb-1">Type</label>
+                  <label className="text-xs text-muted-sage-gray block mb-1">Type</label>
                   <select
                     value={s.type}
                     onChange={e => onUpdate(kind, s.id, { type: e.target.value })}
-                    className="w-full rounded-lg border border-[#D5E3D1] px-3 py-2 bg-white"
+                    className="w-full rounded-lg border border-divider px-3 py-2 bg-white"
                   >
                     <option value="custom">Custom</option>
                     <option value="breathwork">Breathwork</option>
@@ -1489,24 +1487,24 @@ function RoutineList({ kind, steps, onAdd, onUpdate, onRemove, onMove, totalMinu
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="text-xs text-gray-600 block mb-1">Minutes</label>
+                  <label className="text-xs text-muted-sage-gray block mb-1">Minutes</label>
                   <input
                     type="number"
                     min={0}
                     value={s.minutes}
                     onChange={e => onUpdate(kind, s.id, { minutes: Number(e.target.value) })}
-                    className="w-full rounded-lg border border-[#D5E3D1] px-3 py-2"
+                    className="w-full rounded-lg border border-divider px-3 py-2"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="text-xs text-gray-600 block mb-1">Enabled</label>
+                  <label className="text-xs text-muted-sage-gray block mb-1">Enabled</label>
                   <div className="flex items-center h-[42px]">
                     <input
                       type="checkbox"
                       checked={!!s.enabled}
                       onChange={e => onUpdate(kind, s.id, { enabled: e.target.checked })}
-                      className="accent-[#1B5E57] scale-110"
+                      className="accent-evergreen-teal scale-110"
                     />
                   </div>
                 </div>
@@ -1515,14 +1513,14 @@ function RoutineList({ kind, steps, onAdd, onUpdate, onRemove, onMove, totalMinu
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onMove(kind, s.id, 'up')}
-                      className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-[#D5E3D1] text-[#3E3E3E] bg-white"
+                      className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-divider text-soft-charcoal bg-white"
                       title="Move up"
                     >
                       <ArrowUp size={16} /> Up
                     </button>
                     <button
                       onClick={() => onMove(kind, s.id, 'down')}
-                      className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-[#D5E3D1] text-[#3E3E3E] bg-white"
+                      className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-divider text-soft-charcoal bg-white"
                       title="Move down"
                     >
                       <ArrowDown size={16} /> Down
@@ -1549,7 +1547,7 @@ function TrendChip({ label, value, muted = false }) {
   return (
     <div
       className={`px-3 py-1.5 rounded-full border ${
-        muted ? 'border-[#D5E3D1] bg-white text-gray-600' : 'border-[#B8CDBA] bg-[#F5FFF8] text-[#1B5E57]'
+        muted ? 'border-divider bg-white text-muted-sage-gray' : 'border-silver-sage bg-teal-light text-evergreen-teal'
       } text-xs font-medium`}
     >
       {label}: <span className="ml-1 font-semibold">{value ?? '—'}</span>

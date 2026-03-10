@@ -5,6 +5,7 @@
 
 import { Timestamp } from 'firebase/firestore';
 import { BrainPillar } from './models';
+import { ValueId } from '../constants/values';
 
 // ==========================================
 // CHECK-IN DATA
@@ -120,5 +121,18 @@ export type OnboardingStackParamList = {
     insight: OnboardingInsightResult;
     selectedFocus: BrainPillar;
     completedActivity: CompletedOnboardingActivity;
+  };
+  OnboardingValues: {
+    checkIn: OnboardingCheckInData;
+    insight: OnboardingInsightResult;
+    selectedFocus: BrainPillar;
+    completedActivity: CompletedOnboardingActivity | null;
+  };
+  OnboardingPersonalizedEntry: {
+    checkIn: OnboardingCheckInData;
+    insight: OnboardingInsightResult;
+    selectedFocus: BrainPillar;
+    completedActivity: CompletedOnboardingActivity | null;
+    selectedValues: ValueId[];
   };
 };

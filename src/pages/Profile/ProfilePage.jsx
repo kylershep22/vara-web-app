@@ -355,7 +355,7 @@ async function fetchUserPosts(userId, lastDoc = null, limitCount = 10) {
 
 // small util
 const Pill = ({ children, className = '' }) => (
-  <span className={`inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium ${className}`}>
+  <span className={`inline-flex items-center px-3 py-1 rounded-full bg-teal-light text-evergreen-teal text-vara-xs font-medium ${className}`}>
     {children}
   </span>
 );
@@ -366,10 +366,10 @@ const Pill = ({ children, className = '' }) => (
 const ActivityTab = ({ active, label, onClick }) => (
   <button
     onClick={onClick}
-    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+    className={`px-vara-base py-2 text-vara-sm font-medium border-b-2 transition-colors ${
       active
-        ? 'border-emerald-600 text-emerald-600'
-        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+        ? 'border-evergreen-teal text-evergreen-teal'
+        : 'border-transparent text-muted-sage-gray hover:text-soft-charcoal hover:border-divider'
     }`}
   >
     {label}
@@ -388,14 +388,14 @@ const ProfileStatsCard = ({ stats, isMe }) => {
   ];
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Profile Stats</h3>
-      <div className="grid grid-cols-2 gap-4">
+    <div className="bg-white rounded-vara-lg p-vara-lg shadow-vara-sm border border-divider">
+      <h3 className="text-vara-sm font-semibold text-soft-charcoal mb-vara-base">Profile Stats</h3>
+      <div className="grid grid-cols-2 gap-vara-base">
         {statItems.map((item, idx) => {
           const content = (
             <>
-              <div className="text-2xl font-bold text-emerald-600">{item.value}</div>
-              <div className="text-xs text-gray-600 mt-1">{item.label}</div>
+              <div className="text-vara-xl font-bold text-evergreen-teal">{item.value}</div>
+              <div className="text-vara-xs text-muted-sage-gray mt-1">{item.label}</div>
             </>
           );
 
@@ -404,7 +404,7 @@ const ProfileStatsCard = ({ stats, isMe }) => {
               <Link
                 key={idx}
                 to={item.link}
-                className="text-center hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer"
+                className="text-center hover:bg-dew-sage-light rounded-vara-md p-2 transition-colors cursor-pointer"
               >
                 {content}
               </Link>
@@ -431,18 +431,18 @@ const PostCard = ({ post, authorProfile, onLike, onComment, isMe }) => {
   const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0;
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-vara-lg p-vara-lg shadow-vara-sm border border-divider hover:shadow-vara-md transition-shadow">
       {/* Post Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between mb-vara-base">
+        <div className="flex items-center gap-vara-md">
           <img
             src={authorProfile?.avatarUrl || avatarFor(authorProfile?.displayName)}
             alt={authorProfile?.displayName}
             className="w-10 h-10 rounded-full object-cover"
           />
           <div>
-            <div className="font-semibold text-gray-900">{authorProfile?.displayName || 'User'}</div>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
+            <div className="font-semibold text-soft-charcoal">{authorProfile?.displayName || 'User'}</div>
+            <div className="flex items-center gap-vara-sm text-vara-xs text-muted-sage-gray">
               <span>{formatDate(post.timestamp)}</span>
               <span>•</span>
               <span className="flex items-center gap-1">
@@ -452,26 +452,26 @@ const PostCard = ({ post, authorProfile, onLike, onComment, isMe }) => {
             </div>
           </div>
         </div>
-        <button className="p-2 rounded-lg hover:bg-gray-100">
-          <MoreHorizontal className="w-5 h-5 text-gray-400" />
+        <button className="p-2 rounded-vara-md hover:bg-dew-sage-light">
+          <MoreHorizontal className="w-5 h-5 text-muted-sage-gray" />
         </button>
       </div>
 
       {/* Post Content */}
-      <div className="mb-4">
-        <p className="text-gray-800 whitespace-pre-wrap">{post.content || post.body}</p>
+      <div className="mb-vara-base">
+        <p className="text-soft-charcoal whitespace-pre-wrap">{post.content || post.body}</p>
       </div>
 
       {/* Post Images (if any) */}
       {post.images && post.images.length > 0 && (
-        <div className={`mb-4 grid gap-2 ${
+        <div className={`mb-vara-base grid gap-vara-sm ${
           post.images.length === 1 ? 'grid-cols-1' :
           post.images.length === 2 ? 'grid-cols-2' :
           post.images.length === 3 ? 'grid-cols-3' :
           'grid-cols-2'
         }`}>
           {post.images.map((imageUrl, idx) => (
-            <div key={idx} className="rounded-xl overflow-hidden">
+            <div key={idx} className="rounded-vara-lg overflow-hidden">
               <img
                 src={imageUrl}
                 alt={`Post image ${idx + 1}`}
@@ -483,43 +483,43 @@ const PostCard = ({ post, authorProfile, onLike, onComment, isMe }) => {
       )}
 
       {/* Engagement Bar */}
-      <div className="flex items-center justify-between py-3 border-t border-gray-100">
-        <div className="flex items-center gap-6">
+      <div className="flex items-center justify-between py-3 border-t border-divider">
+        <div className="flex items-center gap-vara-lg">
           <button
             onClick={onLike}
-            className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors"
+            className="flex items-center gap-vara-sm text-muted-sage-gray hover:text-evergreen-teal transition-colors"
           >
-            <Heart className={`w-5 h-5 ${likesCount > 0 ? 'fill-emerald-600 text-emerald-600' : ''}`} />
-            <span className="text-sm font-medium">{likesCount}</span>
+            <Heart className={`w-5 h-5 ${likesCount > 0 ? 'fill-evergreen-teal text-evergreen-teal' : ''}`} />
+            <span className="text-vara-sm font-medium">{likesCount}</span>
           </button>
           <button
             onClick={() => setShowComments(!showComments)}
-            className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors"
+            className="flex items-center gap-vara-sm text-muted-sage-gray hover:text-evergreen-teal transition-colors"
           >
             <MessageSquare className="w-5 h-5" />
-            <span className="text-sm font-medium">{commentsCount}</span>
+            <span className="text-vara-sm font-medium">{commentsCount}</span>
           </button>
-          <button className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors">
+          <button className="flex items-center gap-vara-sm text-muted-sage-gray hover:text-evergreen-teal transition-colors">
             <Share2 className="w-5 h-5" />
           </button>
         </div>
-        <button className="text-gray-600 hover:text-emerald-600">
+        <button className="text-muted-sage-gray hover:text-evergreen-teal">
           <Bookmark className="w-5 h-5" />
         </button>
       </div>
 
       {/* Comments Section */}
       {showComments && commentsCount > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+        <div className="mt-4 pt-4 border-t border-divider space-y-3">
           {post.comments?.slice(0, 3).map((comment, idx) => (
-            <div key={idx} className="flex gap-2">
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+            <div key={idx} className="flex gap-vara-sm">
+              <div className="w-8 h-8 rounded-full bg-dew-sage-light flex-shrink-0" />
               <div className="flex-1">
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="font-medium text-sm text-gray-900">{comment.authorName || 'User'}</div>
-                  <p className="text-sm text-gray-700 mt-1">{comment.text}</p>
+                <div className="bg-mist-white rounded-vara-md p-3">
+                  <div className="font-medium text-vara-sm text-soft-charcoal">{comment.authorName || 'User'}</div>
+                  <p className="text-vara-sm text-soft-charcoal mt-1">{comment.text}</p>
                 </div>
-                <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 ml-2">
+                <div className="flex items-center gap-vara-md mt-1 text-vara-xs text-muted-sage-gray ml-2">
                   <span>{formatDate(comment.createdAt)}</span>
                   <button className="hover:underline">Like</button>
                   <button className="hover:underline">Reply</button>
@@ -528,7 +528,7 @@ const PostCard = ({ post, authorProfile, onLike, onComment, isMe }) => {
             </div>
           ))}
           {commentsCount > 3 && (
-            <button className="text-sm text-emerald-600 hover:underline ml-10">
+            <button className="text-vara-sm text-evergreen-teal hover:underline ml-10">
               View all {commentsCount} comments
             </button>
           )}
@@ -821,10 +821,10 @@ const ProfilePage = () => {
 
   if (!isAuthReady || !viewedUserId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-mist-white flex items-center justify-center">
         <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading profile…</p>
+          <Loader className="w-8 h-8 animate-spin text-evergreen-teal mx-auto mb-vara-base" />
+          <p className="text-muted-sage-gray">Loading profile…</p>
         </div>
       </div>
     );
@@ -832,12 +832,12 @@ const ProfilePage = () => {
 
   return (
     <SidebarLayout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto p-6">
+      <div className="min-h-screen bg-mist-white">
+        <div className="max-w-5xl mx-auto p-vara-lg">
           {/* Header / Banner */}
-          <div className="relative mb-6">
+          <div className="relative mb-vara-lg">
             {/* Banner with fun gradient pattern */}
-            <div className="relative h-44 md:h-56 rounded-2xl overflow-hidden">
+            <div className="relative h-44 md:h-56 rounded-vara-lg overflow-hidden">
               {profile.bannerUrl ? (
                 <img
                   src={profile.bannerUrl}
@@ -845,10 +845,10 @@ const ProfilePage = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 relative">
+                <div className="w-full h-full bg-gradient-to-br from-teal-medium via-evergreen-teal to-evergreen-teal relative">
                   {/* Decorative circles */}
                   <div className="absolute top-4 right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-                  <div className="absolute bottom-10 left-16 w-40 h-40 bg-emerald-300/20 rounded-full blur-3xl" />
+                  <div className="absolute bottom-10 left-16 w-40 h-40 bg-teal-medium/20 rounded-full blur-3xl" />
                   <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-teal-300/15 rounded-full blur-2xl" />
                 </div>
               )}
@@ -878,13 +878,13 @@ const ProfilePage = () => {
               )}
             </div>
 
-            <div className="absolute -bottom-8 left-6 flex items-end gap-4">
+            <div className="absolute -bottom-8 left-6 flex items-end gap-vara-base">
               {/* Avatar with edit button */}
               <div className="relative">
                 <img
                   src={profile.avatarUrl || avatarFor(profile.displayName)}
                   alt="avatar"
-                  className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white shadow-md bg-white"
+                  className="w-24 h-24 rounded-vara-lg object-cover ring-4 ring-white shadow-vara-md bg-white"
                 />
                 {isMe && (
                   <>
@@ -898,7 +898,7 @@ const ProfilePage = () => {
                     <button
                       onClick={() => avatarInputRef.current?.click()}
                       disabled={uploading.avatar}
-                      className="absolute bottom-0 right-0 p-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all"
+                      className="absolute bottom-0 right-0 p-1.5 rounded-full bg-evergreen-teal hover:opacity-90 text-white shadow-vara-lg transition-all"
                     >
                       {uploading.avatar ? (
                         <Loader className="w-4 h-4 animate-spin" />
@@ -910,25 +910,25 @@ const ProfilePage = () => {
                 )}
               </div>
               <div className="pb-2">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-gray-900">{profile.displayName || 'User'}</h1>
+                <div className="flex items-center gap-vara-sm">
+                  <h1 className="text-vara-xl font-bold text-soft-charcoal">{profile.displayName || 'User'}</h1>
                   <Pill>
                     {profile.privacy === 'public' && <><Globe className="w-3 h-3 mr-1" /> Public</>}
                     {profile.privacy === 'connections' && <><Users className="w-3 h-3 mr-1" /> Connections</>}
                     {profile.privacy === 'private' && <><Lock className="w-3 h-3 mr-1" /> Private</>}
                   </Pill>
                 </div>
-                <p className="text-gray-600">{profile.location || (isMe ? 'Add your location' : '')}</p>
+                <p className="text-muted-sage-gray">{profile.location || (isMe ? 'Add your location' : '')}</p>
               </div>
             </div>
 
             {/* Right-side banner actions */}
-            <div className="absolute right-6 -bottom-6 flex items-center gap-2">
+            <div className="absolute right-6 -bottom-6 flex items-center gap-vara-sm">
               {isMe ? (
                 <>
                   <button
                     onClick={() => setEditOpen(true)}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="inline-flex items-center gap-vara-sm px-3 py-2 rounded-vara-md bg-evergreen-teal text-white hover:opacity-90"
                   >
                     <Edit3 className="w-4 h-4" /> Edit Profile
                   </button>
@@ -937,13 +937,13 @@ const ProfilePage = () => {
                 <>
                   <button
                     onClick={onMessage}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-900 text-white hover:bg-black"
+                    className="inline-flex items-center gap-vara-sm px-3 py-2 rounded-vara-md bg-soft-charcoal text-white hover:bg-black"
                   >
                     <MessageCircle className="w-4 h-4" /> Message
                   </button>
                   <button
                     onClick={onConnect}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="inline-flex items-center gap-vara-sm px-3 py-2 rounded-vara-md bg-evergreen-teal text-white hover:opacity-90"
                   >
                     <UserPlus className="w-4 h-4" /> {isConnected ? 'Connected' : 'Connect'}
                   </button>
@@ -953,41 +953,41 @@ const ProfilePage = () => {
           </div>
 
           {/* Main grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-vara-lg mt-10">
             {/* Left Sidebar: About + Stats */}
             <div className="space-y-6">
               {/* About card */}
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">About</h2>
+              <div className="bg-white rounded-vara-lg p-vara-lg shadow-vara-sm border border-divider">
+                <div className="flex items-center justify-between mb-vara-base">
+                  <h2 className="text-vara-lg font-bold text-soft-charcoal">About</h2>
                   {isMe && (
                     <button
                       onClick={() => setEditOpen(true)}
-                      className="p-2 rounded-lg hover:bg-gray-100"
+                      className="p-2 rounded-vara-md hover:bg-dew-sage-light"
                     >
-                      <Edit3 className="w-4 h-4 text-gray-600" />
+                      <Edit3 className="w-4 h-4 text-muted-sage-gray" />
                     </button>
                   )}
                 </div>
-                <p className="text-gray-800 text-sm whitespace-pre-wrap">{profile.bio || (isMe ? 'Tell the community about your wellness journey…' : '')}</p>
+                <p className="text-soft-charcoal text-vara-sm whitespace-pre-wrap">{profile.bio || (isMe ? 'Tell the community about your wellness journey…' : '')}</p>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-vara-sm">
                   {(profile.interests || []).slice(0, 6).map((i) => (
-                    <span key={i} className="px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs">{i}</span>
+                    <span key={i} className="px-2 py-1 rounded-full bg-dew-sage-light text-soft-charcoal text-vara-xs">{i}</span>
                   ))}
                   {(profile.interests || []).length === 0 && isMe && (
-                    <span className="text-gray-500 text-xs">Add interests to connect with others</span>
+                    <span className="text-muted-sage-gray text-vara-xs">Add interests to connect with others</span>
                   )}
                 </div>
 
                 {profile.goals?.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                  <div className="mt-4 pt-4 border-t border-divider">
+                    <h3 className="text-vara-xs font-semibold text-soft-charcoal mb-2 flex items-center gap-1">
                       <Target className="w-3 h-3" /> Top Goals
                     </h3>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-vara-sm">
                       {profile.goals.slice(0, 3).map((g) => (
-                        <span key={g} className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">{g}</span>
+                        <span key={g} className="px-2 py-1 rounded-full bg-teal-light text-evergreen-teal text-vara-xs">{g}</span>
                       ))}
                     </div>
                   </div>
@@ -1000,13 +1000,13 @@ const ProfilePage = () => {
               {/* Requests + People search (self only) */}
               {isMe && (
                 <>
-                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <div className="bg-white rounded-vara-lg p-vara-base shadow-vara-sm border border-divider">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-bold text-gray-900">Requests</h3>
+                      <h3 className="font-bold text-soft-charcoal">Requests</h3>
                       <Pill>{incoming.length} pending</Pill>
                     </div>
                     {incoming.length === 0 ? (
-                      <p className="text-sm text-gray-500">No incoming requests.</p>
+                      <p className="text-vara-sm text-muted-sage-gray">No incoming requests.</p>
                     ) : (
                       <div className="space-y-3">
                         {incoming.map((inv) => (
@@ -1022,7 +1022,7 @@ const ProfilePage = () => {
 
                     {outgoing.length > 0 && (
                       <>
-                        <div className="mt-5 mb-2 text-xs font-semibold text-gray-500">Outgoing</div>
+                        <div className="mt-5 mb-2 text-vara-xs font-semibold text-muted-sage-gray">Outgoing</div>
                         <div className="space-y-2">
                           {outgoing.map((inv) => (
                             <OutgoingRow key={inv.id} invite={inv} />
@@ -1032,28 +1032,28 @@ const ProfilePage = () => {
                     )}
                   </div>
 
-                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                    <h3 className="font-bold text-gray-900 mb-3">Find people</h3>
+                  <div className="bg-white rounded-vara-lg p-vara-base shadow-vara-sm border border-divider">
+                    <h3 className="font-bold text-soft-charcoal mb-3">Find people</h3>
                     <div className="relative mb-3">
-                      <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Search className="w-4 h-4 text-muted-sage-gray absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && doSearch()}
                         placeholder="Search by name…"
-                        className="w-full pl-9 pr-24 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full pl-9 pr-24 py-2 border border-divider rounded-vara-lg focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                       />
                       <button
                         onClick={doSearch}
                         disabled={searching}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 disabled:opacity-50"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-vara-md bg-evergreen-teal text-white text-vara-sm hover:opacity-90 disabled:opacity-50"
                       >
                         {searching ? 'Searching…' : 'Search'}
                       </button>
                     </div>
 
                     {results.length === 0 && !searching ? (
-                      <div className="text-sm text-gray-500">
+                      <div className="text-vara-sm text-muted-sage-gray">
                         Search for people in your wellness community
                       </div>
                     ) : (
@@ -1080,28 +1080,28 @@ const ProfilePage = () => {
             {/* Right: Activity Feed (2 columns) */}
             <div className="lg:col-span-2 space-y-6">
               {/* Tab Navigation */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-                <div className="border-b border-gray-100 flex">
+              <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider">
+                <div className="border-b border-divider flex">
                   <ActivityTab active={activeTab === 'posts'} label="Posts" onClick={() => setActiveTab('posts')} />
                   <ActivityTab active={activeTab === 'about'} label="About" onClick={() => setActiveTab('about')} />
                 </div>
 
                 {/* Tab Content */}
-                <div className="p-6">
+                <div className="p-vara-lg">
                   {activeTab === 'posts' && (
                     <div className="space-y-6">
                       {postsLoading && posts.length === 0 ? (
                         <div className="flex items-center justify-center py-12">
-                          <Loader className="w-8 h-8 animate-spin text-emerald-600" />
+                          <Loader className="w-8 h-8 animate-spin text-evergreen-teal" />
                         </div>
                       ) : posts.length === 0 ? (
                         <div className="text-center py-12">
-                          <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                          <p className="text-gray-600">{isMe ? 'You haven\'t posted anything yet' : 'No posts yet'}</p>
+                          <MessageSquare className="w-12 h-12 text-muted-sage-gray mx-auto mb-vara-base" />
+                          <p className="text-muted-sage-gray">{isMe ? 'You haven\'t posted anything yet' : 'No posts yet'}</p>
                           {isMe && (
                             <button
                               onClick={() => navigate('/community')}
-                              className="mt-4 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                              className="mt-4 px-vara-base py-2 rounded-vara-md bg-evergreen-teal text-white hover:opacity-90"
                             >
                               Share your first post
                             </button>
@@ -1120,12 +1120,12 @@ const ProfilePage = () => {
                             />
                           ))}
                           {hasMore && (
-                            <div ref={observerTarget} className="flex justify-center py-4">
-                              {postsLoading && <Loader className="w-6 h-6 animate-spin text-emerald-600" />}
+                            <div ref={observerTarget} className="flex justify-center py-vara-base">
+                              {postsLoading && <Loader className="w-6 h-6 animate-spin text-evergreen-teal" />}
                             </div>
                           )}
                           {!hasMore && posts.length > 0 && (
-                            <div className="text-center py-4 text-sm text-gray-500">
+                            <div className="text-center py-vara-base text-vara-sm text-muted-sage-gray">
                               You've reached the end
                             </div>
                           )}
@@ -1137,18 +1137,18 @@ const ProfilePage = () => {
                   {activeTab === 'about' && (
                     <div className="space-y-6">
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-700 mb-3">Full Bio</h3>
-                        <p className="text-gray-800 whitespace-pre-wrap">
+                        <h3 className="text-vara-sm font-semibold text-soft-charcoal mb-3">Full Bio</h3>
+                        <p className="text-soft-charcoal whitespace-pre-wrap">
                           {profile.bio || (isMe ? 'Share your wellness journey with the community…' : 'No bio yet')}
                         </p>
                       </div>
 
                       {profile.interests && profile.interests.length > 0 && (
-                        <div className="pt-6 border-t border-gray-100">
-                          <h3 className="text-sm font-semibold text-gray-700 mb-3">Interests</h3>
-                          <div className="flex flex-wrap gap-2">
+                        <div className="pt-6 border-t border-divider">
+                          <h3 className="text-vara-sm font-semibold text-soft-charcoal mb-3">Interests</h3>
+                          <div className="flex flex-wrap gap-vara-sm">
                             {profile.interests.map((i) => (
-                              <span key={i} className="px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 text-sm">
+                              <span key={i} className="px-3 py-1.5 rounded-full bg-dew-sage-light text-soft-charcoal text-vara-sm">
                                 {i}
                               </span>
                             ))}
@@ -1157,13 +1157,13 @@ const ProfilePage = () => {
                       )}
 
                       {profile.goals && profile.goals.length > 0 && (
-                        <div className="pt-6 border-t border-gray-100">
-                          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <div className="pt-6 border-t border-divider">
+                          <h3 className="text-vara-sm font-semibold text-soft-charcoal mb-3 flex items-center gap-vara-sm">
                             <Target className="w-4 h-4" /> Wellness Goals
                           </h3>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-vara-sm">
                             {profile.goals.map((g) => (
-                              <span key={g} className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm">
+                              <span key={g} className="px-3 py-1.5 rounded-full bg-teal-light text-evergreen-teal text-vara-sm">
                                 {g}
                               </span>
                             ))}
@@ -1205,21 +1205,21 @@ const InviteRow = ({ invite, onAccept, onDecline }) => {
   }, [invite.from]);
 
   return (
-    <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50">
+    <div className="flex items-center gap-vara-md p-2 rounded-vara-lg hover:bg-dew-sage-light">
       <img
         src={(fromUser?.avatarUrl) || avatarFor(fromUser?.displayName)}
         alt={fromUser?.displayName || 'User'}
-        className="w-9 h-9 rounded-lg object-cover"
+        className="w-9 h-9 rounded-vara-md object-cover"
       />
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 truncate text-sm">{fromUser?.displayName || 'Someone'}</p>
-        <p className="text-xs text-gray-500">wants to connect</p>
+        <p className="font-medium text-soft-charcoal truncate text-vara-sm">{fromUser?.displayName || 'Someone'}</p>
+        <p className="text-vara-xs text-muted-sage-gray">wants to connect</p>
       </div>
       <div className="flex gap-1">
-        <button onClick={onAccept} className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs hover:bg-emerald-700">
+        <button onClick={onAccept} className="px-2.5 py-1.5 rounded-vara-md bg-evergreen-teal text-white text-vara-xs hover:opacity-90">
           <Check className="w-4 h-4" />
         </button>
-        <button onClick={onDecline} className="px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-xs hover:bg-gray-200">
+        <button onClick={onDecline} className="px-2.5 py-1.5 rounded-vara-md bg-dew-sage-light text-soft-charcoal text-vara-xs hover:bg-dew-sage">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -1239,15 +1239,15 @@ const OutgoingRow = ({ invite }) => {
   }, [invite.to]);
 
   return (
-    <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50">
+    <div className="flex items-center gap-vara-md p-2 rounded-vara-lg hover:bg-dew-sage-light">
       <img
         src={(toUser?.avatarUrl) || avatarFor(toUser?.displayName)}
         alt={toUser?.displayName || 'User'}
-        className="w-8 h-8 rounded-lg object-cover"
+        className="w-8 h-8 rounded-vara-md object-cover"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">{toUser?.displayName || 'User'}</p>
-        <p className="text-xs text-gray-500 flex items-center gap-1"><ArrowLeftRight className="w-3 h-3" /> pending…</p>
+        <p className="text-vara-sm font-medium text-soft-charcoal truncate">{toUser?.displayName || 'User'}</p>
+        <p className="text-vara-xs text-muted-sage-gray flex items-center gap-1"><ArrowLeftRight className="w-3 h-3" /> pending…</p>
       </div>
     </div>
   );
@@ -1257,45 +1257,45 @@ const UserResultRow = ({ me, user, outgoing, onConnect, quickMsg, setQuickMsg, o
   const pending = outgoing.some(i => i.to === user.id && i.status === 'pending');
 
   return (
-    <div className="p-3 rounded-xl border border-gray-100 hover:shadow-sm transition bg-white">
-      <div className="flex items-start gap-3">
+    <div className="p-3 rounded-vara-lg border border-divider hover:shadow-vara-sm transition bg-white">
+      <div className="flex items-start gap-vara-md">
         <Link to={`/profile/${user.id}`} className="shrink-0">
           <img
             src={user.avatarUrl || avatarFor(user.displayName)}
             alt={user.displayName || 'User'}
-            className="w-10 h-10 rounded-lg object-cover hover:opacity-90"
+            className="w-10 h-10 rounded-vara-md object-cover hover:opacity-90"
           />
         </Link>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <Link to={`/profile/${user.id}`} className="font-semibold text-gray-900 text-sm truncate hover:underline">
+            <Link to={`/profile/${user.id}`} className="font-semibold text-soft-charcoal text-vara-sm truncate hover:underline">
               {user.displayName || 'User'}
             </Link>
-            <span className="text-xs text-gray-500">{user.location}</span>
+            <span className="text-vara-xs text-muted-sage-gray">{user.location}</span>
           </div>
 
-          {user.bio && <p className="text-sm text-gray-700 line-clamp-2 mt-0.5">{user.bio}</p>}
+          {user.bio && <p className="text-vara-sm text-soft-charcoal line-clamp-2 mt-0.5">{user.bio}</p>}
 
           <div className="mt-2 flex flex-wrap gap-1">
             {(user.interests || []).slice(0, 3).map((i) => (
-              <span key={i} className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-xs">{i}</span>
+              <span key={i} className="px-2 py-0.5 rounded-md bg-dew-sage-light text-soft-charcoal text-vara-xs">{i}</span>
             ))}
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-vara-sm">
             <button
               disabled={pending}
               onClick={onConnect}
-              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition
-                ${pending ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-vara-md text-vara-xs font-medium transition
+                ${pending ? 'bg-dew-sage-light text-muted-sage-gray cursor-not-allowed' : 'bg-evergreen-teal text-white hover:opacity-90'}`}
             >
               <UserPlus className="w-3 h-3" /> {pending ? 'Requested' : 'Connect'}
             </button>
 
             <Link
               to={`/profile/${user.id}`}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 hover:bg-gray-50"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-vara-md text-vara-xs font-medium border border-divider hover:bg-dew-sage-light"
             >
               View Profile
             </Link>
@@ -1320,75 +1320,75 @@ const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-gray-900">Edit Profile</h3>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100">
-            <X className="w-5 h-5 text-gray-600" />
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-vara-base">
+      <div className="w-full max-w-2xl bg-white rounded-vara-lg shadow-xl overflow-hidden">
+        <div className="p-vara-base border-b border-divider flex items-center justify-between">
+          <h3 className="text-vara-lg font-bold text-soft-charcoal">Edit Profile</h3>
+          <button onClick={onClose} className="p-2 rounded-vara-md hover:bg-dew-sage-light">
+            <X className="w-5 h-5 text-muted-sage-gray" />
           </button>
         </div>
 
-        <form onSubmit={onSave} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={onSave} className="p-vara-lg space-y-5 max-h-[80vh] overflow-y-auto">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+            <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">Display Name</label>
             <input
               value={profile.displayName}
               onChange={(e) => setProfile(p => ({ ...p, displayName: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+            <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">Bio</label>
             <textarea
               value={profile.bio}
               onChange={(e) => setProfile(p => ({ ...p, bio: e.target.value }))}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
               placeholder="Share your wellness journey…"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Location (optional)</label>
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">Location (optional)</label>
               <input
                 value={profile.location}
                 onChange={(e) => setProfile(p => ({ ...p, location: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                 placeholder="City, Country"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Privacy</label>
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">Privacy</label>
               <select
                 value={profile.privacy}
                 onChange={(e) => setProfile(p => ({ ...p, privacy: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
               >
                 <option value="public">Public</option>
                 <option value="connections">Connections</option>
                 <option value="private">Private</option>
               </select>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-vara-sm mt-2">
                 <input
                   id="searchable"
                   type="checkbox"
                   checked={!!profile.searchable}
                   onChange={(e) => setProfile(p => ({ ...p, searchable: e.target.checked }))}
-                  className="rounded text-emerald-600"
+                  className="rounded text-evergreen-teal"
                 />
-                <label htmlFor="searchable" className="text-sm text-gray-700">Allow people to find me in search</label>
+                <label htmlFor="searchable" className="text-vara-sm text-soft-charcoal">Allow people to find me in search</label>
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Interests</label>
-            <div className="flex items-center gap-2">
+            <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">Interests</label>
+            <div className="flex items-center gap-vara-sm">
               <input
                 value={interestInput}
                 onChange={(e) => setInterestInput(e.target.value)}
@@ -1400,19 +1400,19 @@ const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
                   }
                 }}
                 placeholder="Add an interest and press Enter"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
               />
               <button
                 type="button"
                 onClick={() => { addChip(interestInput, 'interests'); setInterestInput(''); }}
-                className="px-3 py-2 rounded-lg bg-gray-900 text-white hover:bg-black"
+                className="px-3 py-2 rounded-vara-md bg-soft-charcoal text-white hover:bg-black"
               >
                 Add
               </button>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-vara-sm">
               {(profile.interests || []).map((i) => (
-                <span key={i} className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs inline-flex items-center gap-2">
+                <span key={i} className="px-3 py-1 rounded-full bg-dew-sage-light text-soft-charcoal text-vara-xs inline-flex items-center gap-vara-sm">
                   {i}
                   <button type="button" onClick={() => setProfile(p => ({ ...p, interests: p.interests.filter(x => x !== i) }))}>
                     <X className="w-3 h-3" />
@@ -1423,8 +1423,8 @@ const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Goals</label>
-            <div className="flex items-center gap-2">
+            <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">Goals</label>
+            <div className="flex items-center gap-vara-sm">
               <input
                 value={goalInput}
                 onChange={(e) => setGoalInput(e.target.value)}
@@ -1436,19 +1436,19 @@ const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
                   }
                 }}
                 placeholder="Add a goal and press Enter"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
               />
               <button
                 type="button"
                 onClick={() => { addChip(goalInput, 'goals'); setGoalInput(''); }}
-                className="px-3 py-2 rounded-lg bg-gray-900 text-white hover:bg-black"
+                className="px-3 py-2 rounded-vara-md bg-soft-charcoal text-white hover:bg-black"
               >
                 Add
               </button>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-vara-sm">
               {(profile.goals || []).map((g) => (
-                <span key={g} className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs inline-flex items-center gap-2">
+                <span key={g} className="px-3 py-1 rounded-full bg-teal-light text-evergreen-teal text-vara-xs inline-flex items-center gap-vara-sm">
                   {g}
                   <button type="button" onClick={() => setProfile(p => ({ ...p, goals: p.goals.filter(x => x !== g) }))}>
                     <X className="w-3 h-3" />
@@ -1458,11 +1458,11 @@ const EditProfileModal = ({ profile, setProfile, onClose, onSave }) => {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200">
+          <div className="flex items-center justify-end gap-vara-md pt-2 border-t border-divider">
+            <button type="button" onClick={onClose} className="px-vara-base py-2 rounded-vara-md bg-dew-sage-light text-soft-charcoal hover:bg-dew-sage">
               Cancel
             </button>
-            <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
+            <button type="submit" className="px-vara-base py-2 rounded-vara-md bg-evergreen-teal text-white hover:opacity-90">
               Save Changes
             </button>
           </div>

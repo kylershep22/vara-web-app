@@ -23,19 +23,19 @@ const BrainHealthHub = ({ userId }) => {
     const colors = {
       purple: isActive
         ? 'bg-purple-100 border-purple-500 text-purple-700'
-        : 'bg-white border-gray-200 text-gray-600 hover:border-purple-300 hover:bg-purple-50',
+        : 'bg-white border-divider text-muted-sage-gray hover:border-purple-300 hover:bg-purple-50',
       blue: isActive
         ? 'bg-blue-100 border-blue-500 text-blue-700'
-        : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50',
+        : 'bg-white border-divider text-muted-sage-gray hover:border-blue-300 hover:bg-blue-50',
       green: isActive
-        ? 'bg-green-100 border-green-500 text-green-700'
-        : 'bg-white border-gray-200 text-gray-600 hover:border-green-300 hover:bg-green-50',
+        ? 'bg-dew-sage border-evergreen-teal text-evergreen-teal'
+        : 'bg-white border-divider text-muted-sage-gray hover:border-silver-sage hover:bg-teal-light',
       yellow: isActive
         ? 'bg-yellow-100 border-yellow-500 text-yellow-700'
-        : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-300 hover:bg-yellow-50',
+        : 'bg-white border-divider text-muted-sage-gray hover:border-yellow-300 hover:bg-yellow-50',
       indigo: isActive
         ? 'bg-indigo-100 border-indigo-500 text-indigo-700'
-        : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:bg-indigo-50'
+        : 'bg-white border-divider text-muted-sage-gray hover:border-indigo-300 hover:bg-indigo-50'
     };
     return colors[color];
   };
@@ -90,7 +90,7 @@ const BrainHealthHub = ({ userId }) => {
       </div>
 
       {/* Tracker Content */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         {activeTracker === 'score' && <BrainHealthScore userId={userId} />}
         {activeTracker === 'social' && <SocialConnectionTracker userId={userId} />}
         {activeTracker === 'nature' && <NatureExposureLogger userId={userId} />}

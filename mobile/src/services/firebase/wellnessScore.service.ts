@@ -96,6 +96,7 @@ const moodToNumber = (mood: string | undefined): number => {
  * Get or create today's morning check-in
  */
 export const getMorningCheckIn = async (userId: string): Promise<MorningCheckIn | null> => {
+  if (!db) return null;
   try {
     const todayDate = getTodayDate();
     const checkInId = `${userId}_${todayDate}`;
@@ -121,6 +122,7 @@ export const saveMorningCheckIn = async (
   mood: number,
   note?: string
 ): Promise<MorningCheckIn> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const todayDate = getTodayDate();
     const checkInId = `${userId}_${todayDate}`;
@@ -698,6 +700,7 @@ const calculateDataCompleteness = (data: WellnessDataSources): { completeness: n
  * Calculate the complete wellness score
  */
 export const calculateWellnessScore = async (userId: string): Promise<DailyWellnessScore> => {
+  if (!db) throw new Error('Firestore is not initialized');
   // Fetch all data
   const data = await fetchWellnessData(userId);
 
@@ -812,6 +815,7 @@ export const calculateWellnessScore = async (userId: string): Promise<DailyWelln
  * Get today's wellness score (cached if already calculated)
  */
 export const getTodayWellnessScore = async (userId: string): Promise<DailyWellnessScore | null> => {
+  if (!db) return null;
   try {
     const todayDate = getTodayDate();
     const scoreId = `${userId}_${todayDate}`;
@@ -832,6 +836,7 @@ export const getTodayWellnessScore = async (userId: string): Promise<DailyWellne
  * Save today's wellness score
  */
 export const saveWellnessScore = async (score: DailyWellnessScore): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, WELLNESS_SCORES_COLLECTION, score.id);
     await setDoc(docRef, {
@@ -860,6 +865,7 @@ export const getWellnessScoreHistory = async (
   userId: string,
   days: number = 7
 ): Promise<DailyWellnessScore[]> => {
+  if (!db) return [];
   try {
     const scoresQuery = query(
       collection(db, WELLNESS_SCORES_COLLECTION),
@@ -901,6 +907,7 @@ export const getScoreLabel = (score: number): string => {
  * Get whether wellness score tracking is enabled for a user
  */
 export const getWellnessScoreEnabled = async (userId: string): Promise<boolean> => {
+  if (!db) return false;
   try {
     const userDocRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userDocRef);
@@ -921,6 +928,7 @@ export const getWellnessScoreEnabled = async (userId: string): Promise<boolean> 
  * Set whether wellness score tracking is enabled for a user
  */
 export const setWellnessScoreEnabled = async (userId: string, enabled: boolean): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const userDocRef = doc(db, 'users', userId);
     await updateDoc(userDocRef, {

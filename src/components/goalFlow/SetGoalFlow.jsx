@@ -37,7 +37,7 @@ const goalTemplates = {
 
 // Research-backed timeframe options
 const timeframeOptions = [
-  { value: 21, label: '21 days', subtitle: 'Build a new habit', color: 'bg-green-500', icon: Flame },
+  { value: 21, label: '21 days', subtitle: 'Build a new habit', color: 'bg-evergreen-teal', icon: Flame },
   { value: 30, label: '30 days', subtitle: 'Monthly challenge', color: 'bg-blue-500', icon: Calendar },
   { value: 66, label: '66 days', subtitle: 'Make it stick', color: 'bg-purple-500', icon: Target },
   { value: 90, label: '90 days', subtitle: 'Transform your life', color: 'bg-orange-500', icon: Trophy },
@@ -187,7 +187,7 @@ const SetGoalFlow = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-teal-light via-white to-blue-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Progress Bar */}
         <div className="mb-8">
@@ -195,21 +195,21 @@ const SetGoalFlow = () => {
             {[1, 2, 3].map((num) => (
               <React.Fragment key={num}>
                 <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm transition-all ${
-                  num < step ? 'bg-emerald-600 text-white' :
-                  num === step ? 'bg-emerald-500 text-white ring-4 ring-emerald-200' :
-                  'bg-gray-200 text-gray-500'
+                  num < step ? 'bg-evergreen-teal text-white' :
+                  num === step ? 'bg-evergreen-teal text-white ring-4 ring-evergreen-teal' :
+                  'bg-silver-sage/30 text-muted-sage-gray'
                 }`}>
                   {num}
                 </div>
                 {num < 3 && (
                   <div className={`h-1 w-16 rounded-full transition-all ${
-                    num < step ? 'bg-emerald-600' : 'bg-gray-200'
+                    num < step ? 'bg-evergreen-teal' : 'bg-silver-sage/30'
                   }`} />
                 )}
               </React.Fragment>
             ))}
           </div>
-          <div className="text-center text-sm text-gray-600">
+          <div className="text-center text-sm text-muted-sage-gray">
             Step {step} of 3: {
               step === 1 ? "What's Your Goal?" :
               step === 2 ? "Make it Specific" :
@@ -222,8 +222,8 @@ const SetGoalFlow = () => {
         {step === 1 && (
           <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">What's Your Goal?</h2>
-              <p className="text-gray-600">Choose a category to see popular goals, or create your own</p>
+              <h2 className="text-3xl font-bold text-soft-charcoal mb-2">What's Your Goal?</h2>
+              <p className="text-muted-sage-gray">Choose a category to see popular goals, or create your own</p>
             </div>
 
             {/* Category Cards */}
@@ -255,29 +255,29 @@ const SetGoalFlow = () => {
               <div className="space-y-4">
                 <button
                   onClick={() => setSelectedCategory(null)}
-                  className="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1"
+                  className="text-evergreen-teal hover:text-evergreen-teal font-medium text-sm flex items-center gap-1"
                 >
                   ← Back to categories
                 </button>
-                <h3 className="text-xl font-bold text-gray-900">Popular {getCategoryLabel(selectedCategory)} Goals</h3>
+                <h3 className="text-xl font-bold text-soft-charcoal">Popular {getCategoryLabel(selectedCategory)} Goals</h3>
                 <div className="space-y-3">
                   {goalTemplates[selectedCategory].map((template, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleTemplateSelect(template)}
-                      className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left group"
+                      className="w-full p-4 border-2 border-divider rounded-xl hover:border-evergreen-teal/30 hover:bg-teal-light transition-all text-left group"
                     >
-                      <div className="font-semibold text-gray-900 group-hover:text-emerald-700">{template.title}</div>
-                      <div className="text-sm text-gray-600 mt-1">
+                      <div className="font-semibold text-soft-charcoal group-hover:text-evergreen-teal">{template.title}</div>
+                      <div className="text-sm text-muted-sage-gray mt-1">
                         {template.target} {template.unit} • {template.timeframe} days
                       </div>
                     </button>
                   ))}
                   <button
                     onClick={handleCustomGoal}
-                    className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                    className="w-full p-4 border-2 border-dashed border-divider rounded-xl hover:border-evergreen-teal/30 hover:bg-teal-light transition-all text-center"
                   >
-                    <div className="font-semibold text-emerald-600">+ Create Custom Goal</div>
+                    <div className="font-semibold text-evergreen-teal">+ Create Custom Goal</div>
                   </button>
                 </div>
               </div>
@@ -289,68 +289,68 @@ const SetGoalFlow = () => {
         {step === 2 && (
           <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Make it Specific & Measurable</h2>
-              <p className="text-gray-600">SMART goals are more likely to succeed</p>
+              <h2 className="text-3xl font-bold text-soft-charcoal mb-2">Make it Specific & Measurable</h2>
+              <p className="text-muted-sage-gray">SMART goals are more likely to succeed</p>
             </div>
 
             <div className="space-y-4">
               {/* Goal Title */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Goal Title</label>
+                <label className="block text-sm font-semibold text-soft-charcoal mb-2">Goal Title</label>
                 <input
                   type="text"
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="E.g., Exercise 3x per week"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                  className="w-full px-4 py-3 border-2 border-divider rounded-lg focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal outline-none transition-all"
                 />
               </div>
 
               {/* Action */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">What will you do?</label>
+                <label className="block text-sm font-semibold text-soft-charcoal mb-2">What will you do?</label>
                 <input
                   type="text"
                   name="action"
                   value={formData.action}
                   onChange={handleChange}
                   placeholder="E.g., Exercise, Meditate, Read"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                  className="w-full px-4 py-3 border-2 border-divider rounded-lg focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal outline-none transition-all"
                 />
               </div>
 
               {/* Target & Unit */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">How much/often?</label>
+                  <label className="block text-sm font-semibold text-soft-charcoal mb-2">How much/often?</label>
                   <input
                     type="number"
                     name="target"
                     value={formData.target}
                     onChange={handleChange}
                     placeholder="E.g., 3"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                    className="w-full px-4 py-3 border-2 border-divider rounded-lg focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal outline-none transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Unit</label>
+                  <label className="block text-sm font-semibold text-soft-charcoal mb-2">Unit</label>
                   <input
                     type="text"
                     name="unit"
                     value={formData.unit}
                     onChange={handleChange}
                     placeholder="E.g., times/week"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                    className="w-full px-4 py-3 border-2 border-divider rounded-lg focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal outline-none transition-all"
                   />
                 </div>
               </div>
 
               {/* Live Preview */}
               {formData.action && formData.target && formData.unit && (
-                <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4">
-                  <div className="text-sm text-emerald-700 font-medium mb-1">Your Goal Preview:</div>
-                  <div className="text-lg font-bold text-emerald-900">
+                <div className="bg-teal-light border-2 border-evergreen-teal/30 rounded-lg p-4">
+                  <div className="text-sm text-evergreen-teal font-medium mb-1">Your Goal Preview:</div>
+                  <div className="text-lg font-bold text-evergreen-teal">
                     {formData.action} {formData.target} {formData.unit}
                   </div>
                 </div>
@@ -363,8 +363,8 @@ const SetGoalFlow = () => {
         {step === 3 && (
           <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Set Your Timeline</h2>
-              <p className="text-gray-600">Research-backed timeframes for lasting change</p>
+              <h2 className="text-3xl font-bold text-soft-charcoal mb-2">Set Your Timeline</h2>
+              <p className="text-muted-sage-gray">Research-backed timeframes for lasting change</p>
             </div>
 
             {/* Timeframe Options */}
@@ -377,19 +377,19 @@ const SetGoalFlow = () => {
                     onClick={() => setFormData({ ...formData, timeframe: option.value })}
                     className={`p-5 rounded-xl border-2 transition-all text-left ${
                       formData.timeframe === option.value
-                        ? 'border-emerald-500 bg-emerald-50 shadow-lg scale-105'
-                        : 'border-gray-200 hover:border-emerald-300 hover:shadow-md'
+                        ? 'border-evergreen-teal/30 bg-teal-light shadow-lg scale-105'
+                        : 'border-divider hover:border-evergreen-teal/30 hover:shadow-md'
                     }`}
                   >
                     <div className="flex items-center gap-3 mb-2">
                       <div className={`${option.color} p-2 rounded-lg`}>
                         <IconComponent className="w-5 h-5 text-white" />
                       </div>
-                      <div className="font-bold text-lg text-gray-900">{option.label}</div>
+                      <div className="font-bold text-lg text-soft-charcoal">{option.label}</div>
                     </div>
-                    <div className="text-sm text-gray-600">{option.subtitle}</div>
+                    <div className="text-sm text-muted-sage-gray">{option.subtitle}</div>
                     {formData.timeframe === option.value && (
-                      <div className="text-xs text-emerald-700 font-medium mt-2">
+                      <div className="text-xs text-evergreen-teal font-medium mt-2">
                         Complete by {calculateEndDate(option.value)}
                       </div>
                     )}
@@ -400,8 +400,8 @@ const SetGoalFlow = () => {
 
             {/* Why (Optional) */}
             {formData.timeframe && (
-              <div className="pt-4 border-t border-gray-200">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <div className="pt-4 border-t border-divider">
+                <label className="block text-sm font-semibold text-soft-charcoal mb-2">
                   Why is this goal important to you? (Optional)
                 </label>
                 <textarea
@@ -410,14 +410,14 @@ const SetGoalFlow = () => {
                   onChange={handleChange}
                   placeholder="This will help keep you motivated..."
                   rows="3"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
+                  className="w-full px-4 py-3 border-2 border-divider rounded-lg focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal outline-none transition-all resize-none"
                 />
               </div>
             )}
 
             {/* Review Card */}
             {formData.timeframe && (
-              <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl p-6 shadow-xl">
+              <div className="bg-gradient-to-br from-evergreen-teal to-silver-sage text-white rounded-xl p-6 shadow-xl">
                 <div className="text-sm opacity-90 mb-2">Your SMART Goal</div>
                 <div className="text-2xl font-bold mb-4">{formData.title}</div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -444,7 +444,7 @@ const SetGoalFlow = () => {
           {step > 1 && (
             <button
               onClick={handleBack}
-              className="px-6 py-3 text-gray-700 font-semibold hover:text-gray-900 transition-colors"
+              className="px-6 py-3 text-soft-charcoal font-semibold hover:text-soft-charcoal transition-colors"
             >
               ← Back
             </button>
@@ -455,8 +455,8 @@ const SetGoalFlow = () => {
               disabled={!canProceed()}
               className={`ml-auto px-8 py-3 rounded-lg font-semibold transition-all ${
                 canProceed()
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg hover:shadow-xl'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  ? 'bg-evergreen-teal text-white hover:opacity-90 shadow-lg hover:shadow-xl'
+                  : 'bg-silver-sage/30 text-muted-sage-gray cursor-not-allowed'
               }`}
             >
               Continue →
@@ -467,8 +467,8 @@ const SetGoalFlow = () => {
               disabled={loading || !canProceed()}
               className={`ml-auto px-8 py-3 rounded-lg font-semibold transition-all ${
                 canProceed() && !loading
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg hover:shadow-xl'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  ? 'bg-evergreen-teal text-white hover:opacity-90 shadow-lg hover:shadow-xl'
+                  : 'bg-silver-sage/30 text-muted-sage-gray cursor-not-allowed'
               }`}
             >
               {loading ? 'Creating Your Goal...' : 'Start My Goal! 🎯'}

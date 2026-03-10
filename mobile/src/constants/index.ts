@@ -6,7 +6,21 @@ export { Colors } from './colors';
 export { Typography, TextStyles } from './typography';
 export { Spacing, Layout } from './spacing';
 export { theme, lightTheme, darkTheme } from './theme';
-export { HABIT_CATEGORIES, type HabitCategory } from './habitCategories';
+export {
+  HABIT_CATEGORIES,
+  COGNITIVE_RESERVE_CATEGORIES,
+  isCognitiveReserveCategory,
+  CR_CALLOUT_CONTENT,
+  CR_CALLOUT_FALLBACK,
+  type HabitCategory,
+} from './habitCategories';
+export {
+  ALL_BRAIN_STATE_WINDOWS,
+  getBrainStateForTimeString,
+  getBrainStateWindow,
+  parseHourFromTimeString,
+  type BrainStateWindow,
+} from './brainStateWindows';
 export {
   GROUP_CATEGORIES,
   GROUP_CATEGORY_LIST,
@@ -65,6 +79,15 @@ export {
   INTENTION_CATEGORY_LABELS,
   INTENTION_INSIGHTS,
 } from './intentions';
+export {
+  VARA_VALUES,
+  MIN_VALUES,
+  MAX_VALUES,
+  toggleValue,
+  getValueById,
+  type ValueId,
+  type VaraValue,
+} from './values';
 export {
   ALL_DISCOVERABLE_FEATURES,
   PILLAR_INITIAL_FEATURES,

@@ -60,11 +60,11 @@ const TaskQuickAdd = ({ onAdd, defaultQuadrant = 'urgent-important' }) => {
     return (
       <button
         onClick={() => setIsExpanded(true)}
-        className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#1B5E57] hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-gray-600 hover:text-[#1B5E57] font-medium"
+        className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-silver-sage hover:border-evergreen-teal hover:bg-dew-sage-light transition-all flex items-center justify-center gap-2 text-muted-sage-gray hover:text-evergreen-teal font-medium"
       >
         <Plus size={20} />
         <span>Quick Add Task</span>
-        <kbd className="hidden sm:inline-block px-2 py-1 text-xs bg-gray-100 rounded border border-gray-300 ml-auto">
+        <kbd className="hidden sm:inline-block px-2 py-1 text-xs bg-dew-sage-light rounded border border-silver-sage ml-auto">
           ⌘K
         </kbd>
       </button>
@@ -72,7 +72,7 @@ const TaskQuickAdd = ({ onAdd, defaultQuadrant = 'urgent-important' }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border-2 border-[#1B5E57] p-4 shadow-lg">
+    <form onSubmit={handleSubmit} className="bg-white rounded-xl border-2 border-evergreen-teal p-4 shadow-lg">
       {/* Title Input */}
       <input
         ref={inputRef}
@@ -81,7 +81,7 @@ const TaskQuickAdd = ({ onAdd, defaultQuadrant = 'urgent-important' }) => {
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="What needs to be done?"
-        className="w-full text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none mb-3"
+        className="w-full text-base font-medium text-soft-charcoal placeholder-muted-sage-gray/60 focus:outline-none mb-3"
       />
 
       {/* Actions Row */}
@@ -93,8 +93,8 @@ const TaskQuickAdd = ({ onAdd, defaultQuadrant = 'urgent-important' }) => {
             onClick={() => setShowDatePicker(!showDatePicker)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
               showDatePicker || dueDate
-                ? 'bg-[#1B5E57] text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-evergreen-teal text-white'
+                : 'bg-dew-sage-light text-soft-charcoal hover:bg-divider'
             }`}
           >
             <Calendar size={16} />
@@ -107,7 +107,7 @@ const TaskQuickAdd = ({ onAdd, defaultQuadrant = 'urgent-important' }) => {
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B5E57]"
+              className="px-3 py-1.5 rounded-lg border border-silver-sage text-sm focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
             />
           )}
         </div>
@@ -117,7 +117,7 @@ const TaskQuickAdd = ({ onAdd, defaultQuadrant = 'urgent-important' }) => {
           <button
             type="button"
             onClick={handleCancel}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-2 rounded-lg hover:bg-dew-sage-light text-muted-sage-gray transition-colors"
             title="Cancel (Esc)"
           >
             <X size={18} />
@@ -127,7 +127,7 @@ const TaskQuickAdd = ({ onAdd, defaultQuadrant = 'urgent-important' }) => {
           <button
             type="submit"
             disabled={!title.trim()}
-            className="px-4 py-2 rounded-lg bg-[#1B5E57] text-white font-medium hover:bg-[#174C46] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            className="px-4 py-2 rounded-lg bg-evergreen-teal text-white font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
           >
             Add Task
           </button>
@@ -135,9 +135,9 @@ const TaskQuickAdd = ({ onAdd, defaultQuadrant = 'urgent-important' }) => {
       </div>
 
       {/* Hint */}
-      <p className="text-xs text-gray-500 mt-2">
-        Press <kbd className="px-1.5 py-0.5 bg-gray-100 rounded border border-gray-300">Enter</kbd> to save,
-        <kbd className="px-1.5 py-0.5 bg-gray-100 rounded border border-gray-300 ml-1">Esc</kbd> to cancel
+      <p className="text-xs text-muted-sage-gray mt-2">
+        Press <kbd className="px-1.5 py-0.5 bg-dew-sage-light rounded border border-silver-sage">Enter</kbd> to save,
+        <kbd className="px-1.5 py-0.5 bg-dew-sage-light rounded border border-silver-sage ml-1">Esc</kbd> to cancel
       </p>
     </form>
   );

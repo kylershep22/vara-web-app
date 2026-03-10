@@ -66,8 +66,8 @@ export default function RichTextEditor({
       title={title}
       className={`p-2 rounded transition ${
         active
-          ? 'bg-[#1B5E57] text-white'
-          : 'text-[#3E3E3E] hover:bg-[#D5E3D1]'
+          ? 'bg-evergreen-teal text-white'
+          : 'text-soft-charcoal hover:bg-divider'
       } ${disabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       {children}
@@ -75,9 +75,9 @@ export default function RichTextEditor({
   );
 
   return (
-    <div className={`border border-[#D5E3D1] rounded-lg overflow-hidden ${className}`}>
+    <div className={`border border-divider rounded-lg overflow-hidden ${className}`}>
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-2 bg-[#F9FAF8] border-b border-[#D5E3D1]">
+      <div className="flex items-center gap-1 p-2 bg-mist-white border-b border-divider">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive('bold')}
@@ -94,7 +94,7 @@ export default function RichTextEditor({
           <Italic size={16} />
         </ToolbarButton>
 
-        <div className="w-px h-6 bg-[#D5E3D1] mx-1" />
+        <div className="w-px h-6 bg-divider mx-1" />
 
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -112,7 +112,7 @@ export default function RichTextEditor({
           <ListOrdered size={16} />
         </ToolbarButton>
 
-        <div className="w-px h-6 bg-[#D5E3D1] mx-1" />
+        <div className="w-px h-6 bg-divider mx-1" />
 
         <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}

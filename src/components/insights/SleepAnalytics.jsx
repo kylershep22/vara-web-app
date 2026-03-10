@@ -90,24 +90,24 @@ const SleepAnalytics = ({ userId }) => {
 
   const getQualityColor = (quality) => {
     switch (quality) {
-      case 'excellent': return 'from-green-500 to-emerald-500';
+      case 'excellent': return 'from-evergreen-teal to-evergreen-teal';
       case 'good': return 'from-blue-500 to-cyan-500';
       case 'fair': return 'from-yellow-500 to-orange-500';
       case 'poor': return 'from-orange-500 to-red-500';
-      default: return 'from-gray-500 to-gray-600';
+      default: return 'from-muted-sage-gray to-muted-sage-gray';
     }
   };
 
   const getQualityBadge = (quality) => {
     const colors = {
-      excellent: 'bg-green-100 text-green-700',
+      excellent: 'bg-dew-sage text-evergreen-teal',
       good: 'bg-blue-100 text-blue-700',
       fair: 'bg-yellow-100 text-yellow-700',
       poor: 'bg-red-100 text-red-700'
     };
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${colors[quality] || 'bg-gray-100 text-gray-700'}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${colors[quality] || 'bg-dew-sage-light text-soft-charcoal'}`}>
         {quality}
       </span>
     );
@@ -123,7 +123,7 @@ const SleepAnalytics = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -133,15 +133,15 @@ const SleepAnalytics = ({ userId }) => {
     <div className="space-y-6">
       {/* Time Range Filter */}
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-700">Time Range:</span>
+        <span className="text-sm font-medium text-soft-charcoal">Time Range:</span>
         {[7, 14, 30, 90].map(days => (
           <button
             key={days}
             onClick={() => setTimeRange(days)}
             className={`px-4 py-2 rounded-lg font-medium transition ${
               timeRange === days
-                ? 'bg-[#1B5E57] text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-evergreen-teal text-white'
+                : 'bg-dew-sage-light text-soft-charcoal hover:bg-silver-sage/30'
             }`}
           >
             {days} days
@@ -168,13 +168,13 @@ const SleepAnalytics = ({ userId }) => {
           <div className="text-2xl font-bold text-purple-900 capitalize">{stats.avgQuality}</div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-4 border border-green-200">
+        <div className="bg-gradient-to-br from-teal-light to-dew-sage rounded-lg p-4 border border-silver-sage">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="text-green-600" size={20} />
-            <span className="text-xs font-medium text-green-700 uppercase">Consistency</span>
+            <TrendingUp className="text-evergreen-teal" size={20} />
+            <span className="text-xs font-medium text-evergreen-teal uppercase">Consistency</span>
           </div>
-          <div className="text-3xl font-bold text-green-900">{stats.consistency}%</div>
-          <div className="text-xs text-green-600 mt-1">Sleep schedule</div>
+          <div className="text-3xl font-bold text-evergreen-teal">{stats.consistency}%</div>
+          <div className="text-xs text-evergreen-teal mt-1">Sleep schedule</div>
         </div>
 
         <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
@@ -203,10 +203,10 @@ const SleepAnalytics = ({ userId }) => {
       )}
 
       {/* Sleep Trend Chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="text-gray-600" size={20} />
-          <h3 className="text-lg font-semibold text-gray-900">Sleep Trend</h3>
+          <Calendar className="text-muted-sage-gray" size={20} />
+          <h3 className="text-lg font-semibold text-soft-charcoal">Sleep Trend</h3>
         </div>
 
         {sleepLogs.length > 0 ? (
@@ -216,12 +216,12 @@ const SleepAnalytics = ({ userId }) => {
 
               return (
                 <div key={log.id} className="flex items-center gap-3">
-                  <div className="text-xs text-gray-500 min-w-[80px]">
+                  <div className="text-xs text-muted-sage-gray min-w-[80px]">
                     {formatDate(log.date)}
                   </div>
 
                   <div className="flex-1">
-                    <div className="w-full bg-gray-200 rounded-full h-6 relative overflow-hidden">
+                    <div className="w-full bg-silver-sage/30 rounded-full h-6 relative overflow-hidden">
                       <div
                         className={`h-6 rounded-full bg-gradient-to-r ${getQualityColor(log.quality)} flex items-center justify-end pr-2 transition-all`}
                         style={{ width: `${percentage}%` }}
@@ -241,8 +241,8 @@ const SleepAnalytics = ({ userId }) => {
             })}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Moon className="mx-auto mb-2 text-gray-300" size={48} />
+          <div className="text-center py-8 text-muted-sage-gray">
+            <Moon className="mx-auto mb-2 text-muted-sage-gray/60" size={48} />
             <p>No sleep logs yet. Start tracking your sleep to see trends!</p>
           </div>
         )}
@@ -250,8 +250,8 @@ const SleepAnalytics = ({ userId }) => {
 
       {/* Quality Distribution */}
       {sleepLogs.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Sleep Quality Distribution</h3>
+        <div className="bg-white rounded-xl border border-divider p-6">
+          <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Sleep Quality Distribution</h3>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {['excellent', 'good', 'fair', 'poor'].map(quality => {
@@ -259,10 +259,10 @@ const SleepAnalytics = ({ userId }) => {
               const percentage = Math.round((count / sleepLogs.length) * 100);
 
               return (
-                <div key={quality} className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="text-3xl font-bold text-gray-900 mb-1">{count}</div>
-                  <div className="text-xs text-gray-600 capitalize mb-2">{quality}</div>
-                  <div className="text-lg font-semibold text-gray-700">{percentage}%</div>
+                <div key={quality} className="text-center p-4 bg-dew-sage-light rounded-lg border border-divider">
+                  <div className="text-3xl font-bold text-soft-charcoal mb-1">{count}</div>
+                  <div className="text-xs text-muted-sage-gray capitalize mb-2">{quality}</div>
+                  <div className="text-lg font-semibold text-soft-charcoal">{percentage}%</div>
                 </div>
               );
             })}
@@ -273,13 +273,13 @@ const SleepAnalytics = ({ userId }) => {
       {/* Best & Worst Nights */}
       {sleepLogs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+          <div className="bg-gradient-to-br from-teal-light to-teal-light border border-silver-sage rounded-lg p-6">
             <div className="flex items-center gap-2 mb-3">
-              <Award className="text-green-600" size={20} />
-              <h3 className="font-semibold text-green-900">Best Night</h3>
+              <Award className="text-evergreen-teal" size={20} />
+              <h3 className="font-semibold text-evergreen-teal">Best Night</h3>
             </div>
-            <div className="text-4xl font-bold text-green-900 mb-2">{stats.bestNight}h</div>
-            <p className="text-sm text-green-700">Your longest sleep in this period</p>
+            <div className="text-4xl font-bold text-evergreen-teal mb-2">{stats.bestNight}h</div>
+            <p className="text-sm text-evergreen-teal">Your longest sleep in this period</p>
           </div>
 
           <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-lg p-6">
@@ -319,7 +319,7 @@ const SleepAnalytics = ({ userId }) => {
               </p>
             )}
             {stats.avgHours >= 7 && stats.avgHours < 9 && (
-              <p className="text-green-700 font-semibold">
+              <p className="text-evergreen-teal font-semibold">
                 • ✓ You're in the optimal 7-9 hour range for brain health and cognitive performance.
               </p>
             )}
@@ -329,10 +329,10 @@ const SleepAnalytics = ({ userId }) => {
 
       {/* Empty State */}
       {sleepLogs.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-          <Moon className="mx-auto mb-3 text-gray-300" size={64} />
-          <h3 className="font-semibold text-gray-700 mb-2">No Sleep Data Yet</h3>
-          <p className="text-gray-500 mb-4">
+        <div className="text-center py-12 bg-dew-sage-light rounded-lg border-2 border-dashed border-divider">
+          <Moon className="mx-auto mb-3 text-muted-sage-gray/60" size={64} />
+          <h3 className="font-semibold text-soft-charcoal mb-2">No Sleep Data Yet</h3>
+          <p className="text-muted-sage-gray mb-4">
             Start logging your sleep in the Fuel & Recovery section to track trends and optimize your rest.
           </p>
         </div>

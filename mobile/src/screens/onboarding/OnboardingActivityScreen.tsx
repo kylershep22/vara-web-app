@@ -250,8 +250,8 @@ const OnboardingActivityScreen: React.FC<OnboardingActivityScreenProps> = ({
       response,
     };
 
-    // Navigate immediately — don't block on Firestore write
-    navigation.navigate('OnboardingConfirmation', {
+    // Navigate to Values screen — don't block on Firestore write
+    navigation.navigate('OnboardingValues', {
       checkIn,
       insight,
       selectedFocus,
@@ -269,16 +269,13 @@ const OnboardingActivityScreen: React.FC<OnboardingActivityScreenProps> = ({
   const handleSkip = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Mark onboarding as complete in the background
-    // AppNavigator will automatically detect this change via Firestore listener
-    // and switch to MainNavigator
-    if (user?.uid) {
-      import('../../services/firebase').then(({ completeOnboarding }) => {
-        completeOnboarding(user.uid).catch((error) => {
-          console.error('Error completing onboarding:', error);
-        });
-      });
-    }
+    // Navigate to Values screen even when skipping activity
+    navigation.navigate('OnboardingValues', {
+      checkIn,
+      insight,
+      selectedFocus,
+      completedActivity: null,
+    });
   };
 
   // Render activity execution view

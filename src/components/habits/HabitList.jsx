@@ -96,12 +96,12 @@ export default function HabitList({ userId, goalId }) {
   }, [userId, goalId]);
 
   if (loading) return <p>Loading habits...</p>;
-  if (habits.length === 0) return <p className="text-gray-500">No habits yet.</p>;
+  if (habits.length === 0) return <p className="text-muted-sage-gray">No habits yet.</p>;
 
   return (
     <div className="space-y-4 relative">
       {celebration && (
-        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[9999] bg-white border border-[#F4C542] px-6 py-3 rounded-xl shadow-lg text-[#1B5E57] text-center font-semibold animate-fadeIn">
+        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[9999] bg-white border border-sunrise-amber px-6 py-3 rounded-xl shadow-lg text-evergreen-teal text-center font-semibold animate-fadeIn">
           {celebration}
         </div>
       )}
@@ -114,7 +114,7 @@ export default function HabitList({ userId, goalId }) {
         return (
           <div
             key={habit.id}
-            className="p-4 bg-white rounded-xl border border-[#D5E3D1] shadow space-y-2"
+            className="p-4 bg-white rounded-xl border border-divider shadow space-y-2"
           >
             {editingHabitId === habit.id ? (
               <EditHabitForm
@@ -126,8 +126,8 @@ export default function HabitList({ userId, goalId }) {
               <>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[#3E3E3E] font-medium">{habit.title}</p>
-                    <p className="text-sm text-[#9AAE8C]">Streak: {habit.streak || 0}</p>
+                    <p className="text-soft-charcoal font-medium">{habit.title}</p>
+                    <p className="text-sm text-muted-sage-gray">Streak: {habit.streak || 0}</p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -141,8 +141,8 @@ export default function HabitList({ userId, goalId }) {
                       disabled={completedToday}
                       className={`px-4 py-2 rounded-lg text-sm transition ${
                         completedToday
-                          ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                          : "bg-[#1B5E57] text-white hover:bg-[#144d47]"
+                          ? "bg-silver-sage text-muted-sage-gray cursor-not-allowed"
+                          : "bg-evergreen-teal text-white hover:opacity-90"
                       }`}
                     >
                       {completedToday ? "Done Today" : "Mark Done"}
@@ -158,10 +158,10 @@ export default function HabitList({ userId, goalId }) {
                     );
                     return (
                       <div key={label} className="flex flex-col items-center">
-                        <span className="text-xs text-gray-500">{label}</span>
+                        <span className="text-xs text-muted-sage-gray">{label}</span>
                         <div
                           className={`w-5 h-5 rounded-full mt-1 ${
-                            done ? "bg-[#1B5E57]" : "bg-gray-300"
+                            done ? "bg-evergreen-teal" : "bg-silver-sage"
                           }`}
                         ></div>
                       </div>

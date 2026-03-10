@@ -1,148 +1,110 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import SidebarLayout from '../components/layout/SidebarLayout';
-import { Target, Clock, Music, Calendar, BarChart3 } from 'lucide-react';
+import { Timer, Clock, Music, Calendar, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import PomodoroTimer from '../components/focus/PomodoroTimer';
 import FocusSessionHistory from '../components/focus/FocusSessionHistory';
 import BinauraBeatsLibrary from '../components/focus/BinauraBeatsLibrary';
 import RoutineDesigner from '../components/focus/RoutineDesigner';
 
+const tabs = [
+  { id: 'timer', label: 'Pomodoro', icon: Clock },
+  { id: 'history', label: 'History', icon: BarChart3 },
+  { id: 'music', label: 'Focus Music', icon: Music },
+  { id: 'routines', label: 'Routines', icon: Calendar },
+];
+
 export default function Focus() {
   const { user } = useAuth();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState('timer'); // 'timer' | 'history' | 'music' | 'routines'
+  const [activeTab, setActiveTab] = useState('timer');
   const [sessionsRefreshKey, setSessionsRefreshKey] = useState(0);
   const [initialRoutineType, setInitialRoutineType] = useState(null);
 
-  // Handle deep linking from other pages (e.g., Sleep section)
   useEffect(() => {
-    if (location.state?.tab) {
-      setActiveTab(location.state.tab);
-    }
-    if (location.state?.routineType) {
-      setInitialRoutineType(location.state.routineType);
-    }
+    if (location.state?.tab) setActiveTab(location.state.tab);
+    if (location.state?.routineType) setInitialRoutineType(location.state.routineType);
   }, [location.state]);
 
-  const handleSessionComplete = (duration) => {
-    // Refresh session history when a new session completes
-    setSessionsRefreshKey(prev => prev + 1);
+  const handleSessionComplete = () => {
+    setSessionsRefreshKey((prev) => prev + 1);
   };
 
   return (
     <SidebarLayout>
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Target className="text-[#1B5E57]" size={32} />
-            <h1 className="text-3xl font-bold text-[#3E3E3E]">Focus</h1>
+      <div className="max-w-5xl mx-auto px-vara-base py-vara-lg">
+        {/* Header */}
+        <div className="mb-vara-lg">
+          <div className="flex items-center gap-3 mb-vara-2xs">
+            <Timer className="text-evergreen-teal" size={28} />
+            <h1 className="text-vara-2xl font-semibold text-evergreen-teal tracking-tight">Focus</h1>
           </div>
-          <p className="text-[#6B7280]">
+          <p className="text-vara-sm text-muted-sage-gray">
             Tools and techniques for deep work and sustained concentration
           </p>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab('timer')}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 ${
-              activeTab === 'timer'
-                ? 'border-[#1B5E57] text-[#1B5E57]'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-            }`}
-          >
-            <Clock size={20} />
-            Pomodoro Timer
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 ${
-              activeTab === 'history'
-                ? 'border-[#1B5E57] text-[#1B5E57]'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-            }`}
-          >
-            <BarChart3 size={20} />
-            Session History
-          </button>
-          <button
-            onClick={() => setActiveTab('music')}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 ${
-              activeTab === 'music'
-                ? 'border-[#1B5E57] text-[#1B5E57]'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-            }`}
-          >
-            <Music size={20} />
-            Focus Music
-          </button>
-          <button
-            onClick={() => setActiveTab('routines')}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 ${
-              activeTab === 'routines'
-                ? 'border-[#1B5E57] text-[#1B5E57]'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-            }`}
-          >
-            <Calendar size={20} />
-            Routines
-          </button>
+        {/* Segmented Tab Bar */}
+        <div className="flex items-center gap-1 p-1 bg-dew-sage-light rounded-vara-lg mb-vara-lg">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-vara-md text-vara-sm font-medium transition-all flex-1 justify-center ${
+                  isActive
+                    ? 'bg-white text-evergreen-teal shadow-vara-sm'
+                    : 'text-muted-sage-gray hover:text-soft-charcoal'
+                }`}
+              >
+                <Icon size={18} />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab Content */}
-        <div className="mt-6">
-          {/* Pomodoro Timer Tab */}
+        <div>
           {activeTab === 'timer' && (
             <div className="max-w-2xl mx-auto">
               <PomodoroTimer userId={user?.uid} onSessionComplete={handleSessionComplete} />
             </div>
           )}
-
-          {/* Session History Tab */}
           {activeTab === 'history' && (
-            <div>
-              <FocusSessionHistory key={sessionsRefreshKey} userId={user?.uid} />
-            </div>
+            <FocusSessionHistory key={sessionsRefreshKey} userId={user?.uid} />
           )}
-
-          {/* Focus Music Tab */}
           {activeTab === 'music' && (
-            <div>
-              <BinauraBeatsLibrary userId={user?.uid} />
-            </div>
+            <BinauraBeatsLibrary userId={user?.uid} />
           )}
-
-          {/* Routines Tab */}
           {activeTab === 'routines' && (
-            <div>
-              <RoutineDesigner userId={user?.uid} initialRoutineType={initialRoutineType} />
-            </div>
+            <RoutineDesigner userId={user?.uid} initialRoutineType={initialRoutineType} />
           )}
         </div>
 
-        {/* Focus Tips Section */}
-        <div className="mt-8 bg-white rounded-xl shadow-sm border border-[#D5E3D1] p-6">
-          <h3 className="text-xl font-semibold text-[#3E3E3E] mb-4">Tips for Deep Focus</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Focus Tips */}
+        <div className="mt-vara-xl bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-lg">
+          <h3 className="text-vara-lg font-semibold text-soft-charcoal mb-vara-base">Tips for Deep Focus</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-vara-base">
             <div>
-              <h4 className="font-semibold text-gray-900 mb-2">Before You Start:</h4>
-              <ul className="space-y-1 text-[#6B7280] text-sm">
-                <li>• Close unnecessary browser tabs and apps</li>
-                <li>• Turn off notifications on your devices</li>
-                <li>• Have water and snacks within reach</li>
-                <li>• Set a clear intention for the session</li>
+              <h4 className="font-semibold text-soft-charcoal mb-2 text-vara-sm">Before You Start:</h4>
+              <ul className="space-y-1 text-muted-sage-gray text-vara-sm">
+                <li>Close unnecessary browser tabs and apps</li>
+                <li>Turn off notifications on your devices</li>
+                <li>Have water and snacks within reach</li>
+                <li>Set a clear intention for the session</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-gray-900 mb-2">During Your Session:</h4>
-              <ul className="space-y-1 text-[#6B7280] text-sm">
-                <li>• Work on ONE task at a time</li>
-                <li>• Take breaks to prevent burnout</li>
-                <li>• Use the 20-20-20 rule for eye strain</li>
-                <li>• Track your peak performance hours</li>
+              <h4 className="font-semibold text-soft-charcoal mb-2 text-vara-sm">During Your Session:</h4>
+              <ul className="space-y-1 text-muted-sage-gray text-vara-sm">
+                <li>Work on ONE task at a time</li>
+                <li>Take breaks to prevent burnout</li>
+                <li>Use the 20-20-20 rule for eye strain</li>
+                <li>Track your peak performance hours</li>
               </ul>
             </div>
           </div>

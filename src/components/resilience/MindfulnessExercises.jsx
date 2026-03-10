@@ -31,7 +31,7 @@ const MindfulnessExercises = ({ userId }) => {
       title: '3-Minute Breathing Space',
       duration: 3,
       description: 'A quick reset for stressful moments',
-      color: 'from-green-500 to-emerald-500',
+      color: 'from-evergreen-teal to-evergreen-teal',
       steps: [
         { instruction: 'Acknowledge: Notice what you\'re thinking and feeling right now', duration: 60 },
         { instruction: 'Gather: Focus all attention on the breath for 6 slow cycles', duration: 60 },
@@ -169,7 +169,7 @@ const MindfulnessExercises = ({ userId }) => {
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={togglePlayPause}
-              className="px-8 py-3 bg-white text-gray-900 rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
+              className="px-8 py-3 bg-white text-soft-charcoal rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
             >
               {isPlaying ? (
                 <>
@@ -195,7 +195,7 @@ const MindfulnessExercises = ({ userId }) => {
 
       {/* Exercise Library */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">
           {activeExercise ? 'Other Exercises' : 'Choose an Exercise'}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -203,7 +203,7 @@ const MindfulnessExercises = ({ userId }) => {
             <div
               key={exercise.id}
               className={`bg-white rounded-xl border-2 transition-all hover:shadow-lg ${
-                activeExercise?.id === exercise.id ? 'border-[#1B5E57] shadow-md' : 'border-gray-200'
+                activeExercise?.id === exercise.id ? 'border-evergreen-teal shadow-md' : 'border-divider'
               }`}
             >
               {/* Card Header */}
@@ -220,15 +220,15 @@ const MindfulnessExercises = ({ userId }) => {
 
               {/* Card Body */}
               <div className="p-4">
-                <p className="text-gray-600 text-sm mb-4">{exercise.description}</p>
+                <p className="text-muted-sage-gray text-sm mb-4">{exercise.description}</p>
 
                 {/* Steps Preview */}
                 <div className="mb-4">
-                  <p className="text-xs font-semibold text-gray-700 mb-2">Steps:</p>
+                  <p className="text-xs font-semibold text-soft-charcoal mb-2">Steps:</p>
                   <div className="space-y-1">
                     {exercise.steps.map((step, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-xs text-gray-600">
-                        <CheckCircle size={12} className="text-green-500 mt-0.5 flex-shrink-0" />
+                      <div key={idx} className="flex items-start gap-2 text-xs text-muted-sage-gray">
+                        <CheckCircle size={12} className="text-evergreen-teal mt-0.5 flex-shrink-0" />
                         <span className="line-clamp-1">{step.instruction}</span>
                       </div>
                     ))}
@@ -240,8 +240,8 @@ const MindfulnessExercises = ({ userId }) => {
                   onClick={() => startExercise(exercise)}
                   className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
                     activeExercise?.id === exercise.id
-                      ? 'bg-gray-100 text-gray-600'
-                      : 'bg-[#1B5E57] hover:bg-[#174C46] text-white'
+                      ? 'bg-dew-sage-light text-muted-sage-gray'
+                      : 'bg-evergreen-teal hover:opacity-90 text-white'
                   }`}
                 >
                   <Play size={20} />

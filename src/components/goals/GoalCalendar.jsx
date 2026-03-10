@@ -48,20 +48,20 @@ export default function GoalCalendar() {
       return goalDate.toDateString() === date.toDateString();
     });
 
-    return hasGoal ? <div className="bg-[#B8CDBA] rounded-full w-2 h-2 mx-auto mt-1" /> : null;
+    return hasGoal ? <div className="bg-silver-sage rounded-full w-2 h-2 mx-auto mt-1" /> : null;
   };
 
   return (
-    <div className="bg-white p-4 rounded-xl border border-[#D5E3D1] shadow-sm">
+    <div className="bg-white p-4 rounded-xl border border-divider shadow-sm">
       <Calendar
         onClickDay={handleDateClick}
         value={value}
         tileContent={tileContent}
       />
       {selectedGoals.length > 0 && (
-        <div className="mt-4 bg-[#F9FAF9] p-4 border border-[#D5E3D1] rounded-lg">
-          <h3 className="text-lg font-semibold text-[#1B5E57] mb-2">Goals for {value.toDateString()}</h3>
-          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+        <div className="mt-4 bg-mist-white p-4 border border-divider rounded-lg">
+          <h3 className="text-lg font-semibold text-evergreen-teal mb-2">Goals for {value.toDateString()}</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm text-soft-charcoal">
             {selectedGoals.map(goal => (
               <li key={goal.id}>{goal.title}</li>
             ))}

@@ -120,7 +120,7 @@ const GratitudePractice = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -164,20 +164,20 @@ const GratitudePractice = ({ userId }) => {
 
       {/* Today's Gratitude Entry */}
       {!todayEntry ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Plus className="text-[#1B5E57]" size={20} />
-            <h3 className="text-lg font-semibold text-gray-900">Today's Gratitude</h3>
+            <Plus className="text-evergreen-teal" size={20} />
+            <h3 className="text-lg font-semibold text-soft-charcoal">Today's Gratitude</h3>
           </div>
 
-          <p className="text-gray-600 text-sm mb-4">
+          <p className="text-muted-sage-gray text-sm mb-4">
             What are 3 things you're grateful for today? They can be big or small.
           </p>
 
           <div className="space-y-3">
             {[0, 1, 2].map(idx => (
               <div key={idx} className="flex items-start gap-3">
-                <div className="mt-3 w-6 h-6 rounded-full bg-[#1B5E57] text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                <div className="mt-3 w-6 h-6 rounded-full bg-evergreen-teal text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
                   {idx + 1}
                 </div>
                 <textarea
@@ -189,7 +189,7 @@ const GratitudePractice = ({ userId }) => {
                   }}
                   placeholder="I'm grateful for..."
                   rows="2"
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent resize-none"
+                  className="flex-1 px-4 py-3 border border-silver-sage rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent resize-none"
                 />
               </div>
             ))}
@@ -200,8 +200,8 @@ const GratitudePractice = ({ userId }) => {
             disabled={gratitudeItems.every(item => item.trim() === '')}
             className={`mt-4 w-full px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
               gratitudeItems.every(item => item.trim() === '')
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : 'bg-[#1B5E57] text-white hover:bg-[#174C46]'
+                ? 'bg-divider text-muted-sage-gray cursor-not-allowed'
+                : 'bg-evergreen-teal text-white hover:opacity-90'
             }`}
           >
             <Heart size={20} />
@@ -209,42 +209,42 @@ const GratitudePractice = ({ userId }) => {
           </button>
         </div>
       ) : (
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+        <div className="bg-gradient-to-br from-teal-light to-teal-light border border-silver-sage rounded-lg p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Heart className="text-green-600" size={20} />
-            <h3 className="text-lg font-semibold text-green-900">Today's Gratitude ✓</h3>
+            <Heart className="text-evergreen-teal" size={20} />
+            <h3 className="text-lg font-semibold text-soft-charcoal">Today's Gratitude ✓</h3>
           </div>
           <div className="space-y-2">
             {todayEntry.items.map((item, idx) => (
               <div key={idx} className="flex items-start gap-3">
-                <div className="mt-1 w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                <div className="mt-1 w-6 h-6 rounded-full bg-dew-sage text-evergreen-teal flex items-center justify-center text-sm font-semibold flex-shrink-0">
                   {idx + 1}
                 </div>
-                <p className="text-gray-900">{item}</p>
+                <p className="text-soft-charcoal">{item}</p>
               </div>
             ))}
           </div>
-          <p className="text-sm text-green-700 mt-4">Come back tomorrow to continue your practice!</p>
+          <p className="text-sm text-evergreen-teal mt-4">Come back tomorrow to continue your practice!</p>
         </div>
       )}
 
       {/* Past Entries */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="text-gray-600" size={20} />
-          <h3 className="text-lg font-semibold text-gray-900">Gratitude Journal</h3>
+          <Calendar className="text-muted-sage-gray" size={20} />
+          <h3 className="text-lg font-semibold text-soft-charcoal">Gratitude Journal</h3>
         </div>
 
         {gratitudeEntries.length > 0 ? (
           <div className="space-y-4">
             {gratitudeEntries.slice(0, 10).map(entry => (
-              <div key={entry.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="text-sm text-gray-500 mb-2">{formatDate(entry.date)}</div>
+              <div key={entry.id} className="p-4 bg-dew-sage-light rounded-lg border border-divider">
+                <div className="text-sm text-muted-sage-gray mb-2">{formatDate(entry.date)}</div>
                 <div className="space-y-1">
                   {entry.items.map((item, idx) => (
                     <div key={idx} className="flex items-start gap-2">
                       <Heart className="text-pink-500 mt-1 flex-shrink-0" size={14} />
-                      <p className="text-gray-900 text-sm">{item}</p>
+                      <p className="text-soft-charcoal text-sm">{item}</p>
                     </div>
                   ))}
                 </div>
@@ -252,8 +252,8 @@ const GratitudePractice = ({ userId }) => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Heart className="mx-auto mb-2 text-gray-300" size={48} />
+          <div className="text-center py-8 text-muted-sage-gray">
+            <Heart className="mx-auto mb-2 text-silver-sage" size={48} />
             <p>No gratitude entries yet. Start your practice today!</p>
           </div>
         )}

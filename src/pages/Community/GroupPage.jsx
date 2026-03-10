@@ -244,7 +244,7 @@ const GroupPage = () => {
 
   const getColorClass = (color) => {
     const colors = {
-      emerald: 'from-emerald-400 to-emerald-600',
+      emerald: 'from-teal-medium to-evergreen-teal',
       blue: 'from-blue-400 to-blue-600',
       purple: 'from-purple-400 to-purple-600',
       pink: 'from-pink-400 to-pink-600',
@@ -254,7 +254,7 @@ const GroupPage = () => {
     return colors[color] || colors.emerald;
   };
 
-  const renderGroupIcon = (iconName, className = "w-10 h-10 text-emerald-600") => {
+  const renderGroupIcon = (iconName, className = "w-10 h-10 text-evergreen-teal") => {
     const iconMap = {
       Users, Target, Trophy, Flame, Heart, Star, Zap, Sparkles,
       Leaf, Brain, Activity, Dumbbell, Apple, Coffee, Moon, Sun,
@@ -299,11 +299,11 @@ const GroupPage = () => {
   if (!isAuthReady || loading) {
     return (
       <SidebarLayout>
-        <div className="p-6">
+        <div className="p-vara-lg">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
+            <div className="h-8 bg-dew-sage-light rounded w-1/3"></div>
+            <div className="h-4 bg-dew-sage-light rounded w-2/3"></div>
+            <div className="h-32 bg-dew-sage-light rounded"></div>
           </div>
         </div>
       </SidebarLayout>
@@ -358,7 +358,7 @@ const GroupPage = () => {
     ];
 
     const colors = [
-      { value: 'emerald', label: 'Emerald', class: 'from-emerald-400 to-emerald-600' },
+      { value: 'emerald', label: 'Teal', class: 'from-teal-medium to-evergreen-teal' },
       { value: 'blue', label: 'Blue', class: 'from-blue-400 to-blue-600' },
       { value: 'purple', label: 'Purple', class: 'from-purple-400 to-purple-600' },
       { value: 'pink', label: 'Pink', class: 'from-pink-400 to-pink-600' },
@@ -393,22 +393,22 @@ const GroupPage = () => {
     if (!showManageModal) return null;
 
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-vara-base">
+        <div className="bg-white rounded-vara-lg w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            <h2 className="text-2xl font-bold text-gray-900">Manage Group</h2>
+          <div className="flex items-center justify-between p-vara-lg border-b">
+            <h2 className="text-vara-xl font-bold text-soft-charcoal">Manage Group</h2>
             <button
               onClick={() => setShowManageModal(false)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-dew-sage-light rounded-vara-md transition-colors"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5 text-muted-sage-gray" />
             </button>
           </div>
 
           {/* Tabs */}
-          <div className="px-6 pt-4">
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+          <div className="px-vara-lg pt-4">
+            <div className="flex gap-1 bg-dew-sage-light p-1 rounded-vara-md w-fit">
               {[
                 { id: 'edit', label: 'Edit Group', icon: Edit2 },
                 { id: 'members', label: 'Members', icon: Users },
@@ -419,10 +419,10 @@ const GroupPage = () => {
                   <button
                     key={tab.id}
                     onClick={() => setManageTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    className={`flex items-center gap-vara-sm px-vara-base py-2 rounded-md text-vara-sm font-medium transition-all ${
                       manageTab === tab.id
-                        ? 'bg-white shadow-sm text-emerald-600'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-white shadow-vara-sm text-evergreen-teal'
+                        : 'text-muted-sage-gray hover:text-soft-charcoal'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -434,33 +434,33 @@ const GroupPage = () => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-vara-lg">
             {/* Edit Tab */}
             {manageTab === 'edit' && (
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Group Name</label>
+                  <label className="block text-vara-sm font-medium text-soft-charcoal mb-2">Group Name</label>
                   <input
                     type="text"
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <label className="block text-vara-sm font-medium text-soft-charcoal mb-2">Description</label>
                   <textarea
                     value={editForm.description}
                     onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Group Icon</label>
-                  <div className="grid grid-cols-6 md:grid-cols-8 gap-2">
+                  <label className="block text-vara-sm font-medium text-soft-charcoal mb-2">Group Icon</label>
+                  <div className="grid grid-cols-6 md:grid-cols-8 gap-vara-sm">
                     {icons.map((icon) => {
                       const IconComponent = icon.component;
                       return (
@@ -468,13 +468,13 @@ const GroupPage = () => {
                           key={icon.name}
                           type="button"
                           onClick={() => setEditForm({ ...editForm, icon: icon.name })}
-                          className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
+                          className={`p-3 rounded-vara-md border-2 transition-all hover:scale-105 ${
                             editForm.icon === icon.name
-                              ? 'border-emerald-500 bg-emerald-50'
-                              : 'border-gray-200 hover:border-gray-300'
+                              ? 'border-evergreen-teal bg-teal-light'
+                              : 'border-divider hover:border-divider'
                           }`}
                         >
-                          <IconComponent className={`w-6 h-6 ${editForm.icon === icon.name ? 'text-emerald-600' : 'text-gray-600'}`} />
+                          <IconComponent className={`w-6 h-6 ${editForm.icon === icon.name ? 'text-evergreen-teal' : 'text-muted-sage-gray'}`} />
                         </button>
                       );
                     })}
@@ -482,32 +482,32 @@ const GroupPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Group Color</label>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                  <label className="block text-vara-sm font-medium text-soft-charcoal mb-2">Group Color</label>
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-vara-sm">
                     {colors.map((color) => (
                       <button
                         key={color.value}
                         type="button"
                         onClick={() => setEditForm({ ...editForm, color: color.value })}
-                        className={`h-12 rounded-lg bg-gradient-to-br ${color.class} transition-all ${
-                          editForm.color === color.value ? 'ring-4 ring-offset-2 ring-gray-400' : 'hover:scale-105'
+                        className={`h-12 rounded-vara-md bg-gradient-to-br ${color.class} transition-all ${
+                          editForm.color === color.value ? 'ring-4 ring-offset-2 ring-silver-sage' : 'hover:scale-105'
                         }`}
                       />
                     ))}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <div className="flex items-center gap-vara-base p-vara-base bg-mist-white rounded-vara-md">
+                  <label className="flex items-center gap-vara-sm cursor-pointer">
                     <input
                       type="checkbox"
                       checked={editForm.isPublic}
                       onChange={(e) => setEditForm({ ...editForm, isPublic: e.target.checked })}
-                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                      className="w-4 h-4 text-evergreen-teal rounded focus:ring-evergreen-teal"
                     />
                     <div>
-                      <span className="text-sm font-medium text-gray-900">Public Group</span>
-                      <p className="text-xs text-gray-600">Anyone can find and join this group</p>
+                      <span className="text-vara-sm font-medium text-soft-charcoal">Public Group</span>
+                      <p className="text-vara-xs text-muted-sage-gray">Anyone can find and join this group</p>
                     </div>
                   </label>
                 </div>
@@ -515,7 +515,7 @@ const GroupPage = () => {
                 <button
                   onClick={handleSaveChanges}
                   disabled={isSaving}
-                  className="w-full py-2.5 px-4 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-vara-base bg-evergreen-teal text-white font-medium rounded-vara-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-vara-sm"
                 >
                   <Save className="w-4 h-4" />
                   {isSaving ? 'Saving...' : 'Save Changes'}
@@ -526,28 +526,28 @@ const GroupPage = () => {
             {/* Members Tab */}
             {manageTab === 'members' && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">{members.length} total members</p>
+                <p className="text-vara-sm text-muted-sage-gray">{members.length} total members</p>
                 {members.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
+                  <div key={member.id} className="flex items-center justify-between p-3 bg-mist-white rounded-vara-md">
+                    <div className="flex items-center gap-vara-md">
                       <img
                         src={member.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.displayName || 'User')}&background=10b981&color=fff`}
                         alt={member.displayName}
                         className="w-10 h-10 rounded-full object-cover"
                       />
                       <div>
-                        <p className="font-medium text-gray-900">{member.displayName || member.name}</p>
-                        <p className="text-sm text-gray-500">{member.email}</p>
+                        <p className="font-medium text-soft-charcoal">{member.displayName || member.name}</p>
+                        <p className="text-vara-sm text-muted-sage-gray">{member.email}</p>
                       </div>
                     </div>
                     {(member.id === group.createdBy || member.id === group.ownerId || member.id === group.creatorId) ? (
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-full">
+                      <span className="px-3 py-1 bg-teal-light text-evergreen-teal text-vara-sm font-medium rounded-full">
                         Creator
                       </span>
                     ) : (
                       <button
                         onClick={() => handleRemoveMember(member.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-vara-md transition-colors"
                         title="Remove member"
                       >
                         <UserMinus className="w-5 h-5" />
@@ -561,14 +561,14 @@ const GroupPage = () => {
             {/* Danger Zone Tab */}
             {manageTab === 'danger' && (
               <div className="space-y-4">
-                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-red-900 mb-2">Delete Group</h3>
-                  <p className="text-sm text-red-700 mb-4">
+                <div className="bg-red-50 border-2 border-red-200 rounded-vara-md p-vara-base">
+                  <h3 className="text-vara-lg font-bold text-red-900 mb-2">Delete Group</h3>
+                  <p className="text-vara-sm text-red-700 mb-vara-base">
                     Once you delete this group, there is no going back. This will permanently delete all posts, members, and data associated with this group.
                   </p>
                   <button
                     onClick={handleDeleteGroup}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                    className="flex items-center gap-vara-sm px-vara-base py-2 bg-red-600 text-white font-medium rounded-vara-md hover:bg-red-700 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                     Delete Group Permanently
@@ -587,23 +587,23 @@ const GroupPage = () => {
       {showManageModal && <ManageGroupModal />}
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className={`bg-gradient-to-br ${getColorClass(group.color)} p-8 rounded-b-3xl shadow-lg mb-6`}>
+        <div className={`bg-gradient-to-br ${getColorClass(group.color)} p-8 rounded-b-3xl shadow-vara-lg mb-vara-lg`}>
           <button
             onClick={() => navigate('/community')}
-            className="flex items-center gap-2 text-white/90 hover:text-white mb-4 transition-colors"
+            className="flex items-center gap-vara-sm text-white/90 hover:text-white mb-vara-base transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back to Community</span>
+            <span className="text-vara-sm">Back to Community</span>
           </button>
 
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                {renderGroupIcon(group.icon || group.emoji, "w-10 h-10 text-emerald-600")}
+            <div className="flex items-center gap-vara-base">
+              <div className="w-20 h-20 bg-white rounded-vara-lg flex items-center justify-center shadow-vara-lg">
+                {renderGroupIcon(group.icon || group.emoji, "w-10 h-10 text-evergreen-teal")}
               </div>
               <div className="text-white">
-                <h1 className="text-3xl font-bold mb-2">{group.name}</h1>
-                <div className="flex items-center gap-4 text-sm opacity-90">
+                <h1 className="text-vara-2xl font-bold mb-2">{group.name}</h1>
+                <div className="flex items-center gap-vara-base text-vara-sm opacity-90">
                   <span className="flex items-center gap-1">
                     {group.isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                     {group.isPublic ? 'Public' : 'Private'}
@@ -616,11 +616,11 @@ const GroupPage = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-vara-sm">
               {!isMember ? (
                 <button
                   onClick={handleJoinGroup}
-                  className="bg-white text-emerald-600 px-4 py-2 rounded-lg font-medium hover:bg-emerald-50 transition-colors shadow-md flex items-center gap-2"
+                  className="bg-white text-evergreen-teal px-vara-base py-2 rounded-vara-md font-medium hover:bg-teal-light transition-colors shadow-vara-md flex items-center gap-vara-sm"
                 >
                   <UserPlus className="w-4 h-4" />
                   Join Group
@@ -630,7 +630,7 @@ const GroupPage = () => {
                   {isCreator && (
                     <button
                       onClick={() => setShowManageModal(true)}
-                      className="bg-white/20 backdrop-blur text-white px-4 py-2 rounded-lg font-medium hover:bg-white/30 transition-colors flex items-center gap-2"
+                      className="bg-white/20 backdrop-blur text-white px-vara-base py-2 rounded-vara-md font-medium hover:bg-white/30 transition-colors flex items-center gap-vara-sm"
                     >
                       <Settings className="w-4 h-4" />
                       Manage
@@ -639,7 +639,7 @@ const GroupPage = () => {
                   {!isCreator && (
                     <button
                       onClick={handleLeaveGroup}
-                      className="bg-white/20 backdrop-blur text-white px-4 py-2 rounded-lg font-medium hover:bg-red-500 hover:bg-opacity-20 transition-colors flex items-center gap-2"
+                      className="bg-white/20 backdrop-blur text-white px-vara-base py-2 rounded-vara-md font-medium hover:bg-red-500 hover:bg-opacity-20 transition-colors flex items-center gap-vara-sm"
                     >
                       <LogOut className="w-4 h-4" />
                       Leave
@@ -652,8 +652,8 @@ const GroupPage = () => {
         </div>
 
         {/* Tabs */}
-        <div className="px-6 mb-6">
-          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        <div className="px-vara-lg mb-vara-lg">
+          <div className="flex items-center gap-1 bg-dew-sage-light p-1 rounded-vara-lg w-fit">
             {[
               { id: 'feed', label: 'Feed', icon: MessageSquare },
               { id: 'members', label: 'Members', icon: Users },
@@ -664,10 +664,10 @@ const GroupPage = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-vara-sm px-vara-base py-2 rounded-vara-md text-vara-sm font-medium transition-all ${
                     activeTab === tab.id
-                      ? 'bg-white text-emerald-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white text-evergreen-teal shadow-vara-sm'
+                      : 'text-muted-sage-gray hover:text-soft-charcoal'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -679,26 +679,26 @@ const GroupPage = () => {
         </div>
 
         {/* Content */}
-        <div className="px-6 pb-6">
+        <div className="px-vara-lg pb-6">
           {/* Feed Tab */}
           {activeTab === 'feed' && (
             <div className="space-y-6">
               {/* Post Composer */}
               {isMember && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-base">
                   <form onSubmit={handlePost} className="space-y-3">
                     <textarea
                       value={newPostContent}
                       onChange={(e) => setNewPostContent(e.target.value)}
                       placeholder="Share something with the group..."
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                      className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal resize-none"
                     />
                     <div className="flex justify-end">
                       <button
                         type="submit"
                         disabled={!newPostContent.trim() || isPosting}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center gap-vara-sm px-vara-base py-2 bg-evergreen-teal text-white rounded-vara-md font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         <Send className="w-4 h-4" />
                         {isPosting ? 'Posting...' : 'Post'}
@@ -716,28 +716,28 @@ const GroupPage = () => {
                     return (
                       <div
                         key={post.id}
-                        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
+                        className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-base"
                       >
-                        <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center gap-vara-md mb-3">
                           <img
                             src={author?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(author?.displayName || 'User')}&background=10b981&color=fff`}
                             alt={author?.displayName || 'User'}
                             className="w-10 h-10 rounded-full object-cover"
                           />
                           <div>
-                            <p className="font-medium text-gray-900">{author?.displayName || 'Anonymous'}</p>
-                            <p className="text-sm text-gray-500">{formatTimeAgo(post.timestamp || post.createdAt)}</p>
+                            <p className="font-medium text-soft-charcoal">{author?.displayName || 'Anonymous'}</p>
+                            <p className="text-vara-sm text-muted-sage-gray">{formatTimeAgo(post.timestamp || post.createdAt)}</p>
                           </div>
                         </div>
-                        <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+                        <p className="text-soft-charcoal whitespace-pre-wrap leading-relaxed">{post.content}</p>
                       </div>
                     );
                   })
                 ) : (
-                  <div className="text-center py-12 bg-gray-50 rounded-2xl">
-                    <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600 mb-2">No posts yet</p>
-                    <p className="text-sm text-gray-500">Be the first to share something!</p>
+                  <div className="text-center py-12 bg-mist-white rounded-vara-lg">
+                    <MessageSquare className="w-12 h-12 text-muted-sage-gray mx-auto mb-3" />
+                    <p className="text-muted-sage-gray mb-2">No posts yet</p>
+                    <p className="text-vara-sm text-muted-sage-gray">Be the first to share something!</p>
                   </div>
                 )}
               </div>
@@ -746,22 +746,22 @@ const GroupPage = () => {
 
           {/* Members Tab */}
           {activeTab === 'members' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Members ({members.length})</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-lg">
+              <h3 className="text-vara-lg font-bold text-soft-charcoal mb-vara-base">Members ({members.length})</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-vara-base">
                 {members.map((member) => (
-                  <div key={member.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                  <div key={member.id} className="flex items-center gap-vara-md p-3 rounded-vara-lg hover:bg-mist-white transition-colors">
                     <img
                       src={member.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.displayName || member.name || 'User')}&background=10b981&color=fff`}
                       alt={member.displayName || member.name}
                       className="w-12 h-12 rounded-full object-cover"
                     />
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{member.displayName || member.name || 'Anonymous'}</p>
-                      <p className="text-sm text-gray-500">{member.email}</p>
+                      <p className="font-medium text-soft-charcoal">{member.displayName || member.name || 'Anonymous'}</p>
+                      <p className="text-vara-sm text-muted-sage-gray">{member.email}</p>
                     </div>
                     {(member.id === group.createdBy || member.id === group.ownerId || member.id === group.creatorId) && (
-                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                      <span className="px-2 py-1 bg-teal-light text-evergreen-teal text-vara-xs font-medium rounded-full">
                         Creator
                       </span>
                     )}
@@ -773,27 +773,27 @@ const GroupPage = () => {
 
           {/* About Tab */}
           {activeTab === 'about' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+            <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-lg space-y-6">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">About</h3>
-                <p className="text-gray-700 leading-relaxed">{group.description}</p>
+                <h3 className="text-vara-lg font-bold text-soft-charcoal mb-2">About</h3>
+                <p className="text-soft-charcoal leading-relaxed">{group.description}</p>
               </div>
 
               <div className="border-t pt-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">Category</h3>
-                <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                <h3 className="text-vara-lg font-bold text-soft-charcoal mb-3">Category</h3>
+                <span className="inline-block px-3 py-1 bg-dew-sage-light text-soft-charcoal rounded-full text-vara-sm">
                   {group.category || 'General'}
                 </span>
               </div>
 
               {group.tags && group.tags.length > 0 && (
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">Tags</h3>
-                  <div className="flex flex-wrap gap-2">
+                  <h3 className="text-vara-lg font-bold text-soft-charcoal mb-3">Tags</h3>
+                  <div className="flex flex-wrap gap-vara-sm">
                     {group.tags.map((tag, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm"
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-teal-light text-evergreen-teal rounded-full text-vara-sm"
                       >
                         <Hash className="w-3 h-3" />
                         {tag}
@@ -804,8 +804,8 @@ const GroupPage = () => {
               )}
 
               <div className="border-t pt-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">Details</h3>
-                <div className="space-y-2 text-sm text-gray-600">
+                <h3 className="text-vara-lg font-bold text-soft-charcoal mb-3">Details</h3>
+                <div className="space-y-2 text-vara-sm text-muted-sage-gray">
                   <p>Created: {group.createdAt ? new Date(group.createdAt.seconds * 1000).toLocaleDateString() : 'Recently'}</p>
                   <p>Privacy: {group.isPublic ? 'Public - Anyone can join' : 'Private - Invite only'}</p>
                   <p>Members: {group.memberCount || group.members?.length || 0}</p>

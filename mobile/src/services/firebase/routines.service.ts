@@ -44,6 +44,7 @@ export interface Routine {
  * Fetch all routines for a user
  */
 export async function fetchUserRoutines(userId: string): Promise<Routine[]> {
+  if (!db) return [];
   try {
     const routinesQuery = query(
       collection(db, 'routines'),
@@ -70,6 +71,7 @@ export async function fetchActiveRoutineByType(
   userId: string,
   type: RoutineType
 ): Promise<Routine | null> {
+  if (!db) return null;
   try {
     const routinesQuery = query(
       collection(db, 'routines'),
@@ -102,6 +104,7 @@ export async function createRoutine(
   userId: string,
   routineData: Omit<Routine, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     // First, deactivate all existing routines of the same type
     await deactivateRoutinesOfType(userId, routineData.type);
@@ -129,6 +132,7 @@ export async function updateRoutine(
   routineId: string,
   updates: Partial<Omit<Routine, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>
 ): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const routineRef = doc(db, 'routines', routineId);
     await updateDoc(routineRef, {
@@ -145,6 +149,7 @@ export async function updateRoutine(
  * Delete a routine
  */
 export async function deleteRoutine(routineId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const routineRef = doc(db, 'routines', routineId);
     await deleteDoc(routineRef);
@@ -161,6 +166,7 @@ async function deactivateRoutinesOfType(
   userId: string,
   type: RoutineType
 ): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const routinesQuery = query(
       collection(db, 'routines'),

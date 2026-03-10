@@ -59,8 +59,8 @@ export default function ChatWindow({ groupId }) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-lg max-w-2xl mx-auto flex flex-col h-[500px]">
-      <div className="px-4 py-3 border-b bg-gradient-to-r from-emerald-700 to-emerald-500 text-white rounded-t-xl">
+    <div className="bg-white rounded-xl border border-divider shadow-lg max-w-2xl mx-auto flex flex-col h-[500px]">
+      <div className="px-4 py-3 border-b bg-gradient-to-r from-evergreen-teal to-evergreen-teal/80 text-white rounded-t-xl">
         <h2 className="font-semibold text-lg">Group Chat</h2>
       </div>
 

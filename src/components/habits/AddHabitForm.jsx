@@ -65,11 +65,11 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
   };
 
   return (
-    <form onSubmit={handleAddHabit} className="space-y-4 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-      <h2 className="text-xl font-semibold text-gray-800">Add a New Habit</h2>
+    <form onSubmit={handleAddHabit} className="space-y-4 bg-white p-6 rounded-xl border border-divider shadow-sm">
+      <h2 className="text-xl font-semibold text-soft-charcoal">Add a New Habit</h2>
 
       <div>
-        <label className="block text-sm font-medium text-gray-600">Habit Title</label>
+        <label className="block text-sm font-medium text-muted-sage-gray">Habit Title</label>
         <input
           type="text"
           value={title}
@@ -81,7 +81,7 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-600">Category (Brain Health)</label>
+        <label className="block text-sm font-medium text-muted-sage-gray">Category (Brain Health)</label>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -94,7 +94,7 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
             </option>
           ))}
         </select>
-        <p className="mt-1 text-xs text-gray-500">Choose a category to see brain health impacts</p>
+        <p className="mt-1 text-xs text-muted-sage-gray">Choose a category to see brain health impacts</p>
       </div>
 
       {/* Brain Health Preview */}
@@ -122,7 +122,7 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
 
       <div className="flex gap-4">
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-600">Type</label>
+          <label className="block text-sm font-medium text-muted-sage-gray">Type</label>
           <select value={type} onChange={(e) => setType(e.target.value)} className="mt-1 w-full border rounded-lg p-2">
             <option value="build">Build</option>
             <option value="maintain">Maintain</option>
@@ -131,7 +131,7 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
         </div>
 
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-600">Frequency</label>
+          <label className="block text-sm font-medium text-muted-sage-gray">Frequency</label>
           <select value={frequency} onChange={(e) => setFrequency(e.target.value)} className="mt-1 w-full border rounded-lg p-2">
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -141,7 +141,7 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-600">Trigger (optional)</label>
+        <label className="block text-sm font-medium text-muted-sage-gray">Trigger (optional)</label>
         <input
           type="text"
           value={trigger}
@@ -152,7 +152,7 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-600">Reward (optional)</label>
+        <label className="block text-sm font-medium text-muted-sage-gray">Reward (optional)</label>
         <input
           type="text"
           value={reward}
@@ -165,7 +165,7 @@ export default function AddHabitForm({ goalId, onHabitAdded, onSuccess, userId: 
       <button
         type="submit"
         disabled={loading}
-        className="bg-[#1B5E57] text-white px-4 py-2 rounded-lg hover:bg-[#164e48] transition"
+        className="bg-evergreen-teal text-white px-4 py-2 rounded-lg hover:opacity-90 transition"
       >
         {loading ? 'Adding...' : 'Add Habit'}
       </button>

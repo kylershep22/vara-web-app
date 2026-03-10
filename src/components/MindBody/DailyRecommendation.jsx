@@ -30,11 +30,11 @@ const DailyRecommendation = () => {
   if (!recommendation) return null;
 
   return (
-    <div className="p-4 bg-emerald-100 border border-emerald-200 rounded-xl shadow">
-      <h3 className="text-lg font-semibold text-emerald-900">🌿 Daily Recommendation</h3>
-      <p className="text-emerald-800 mt-2 font-medium">{recommendation.title}</p>
-      <p className="text-sm text-gray-700">{recommendation.detail}</p>
-      <button className="mt-2 text-sm text-emerald-700 underline hover:text-emerald-900">
+    <div className="p-4 bg-dew-sage border border-silver-sage rounded-xl shadow">
+      <h3 className="text-lg font-semibold text-evergreen-teal">🌿 Daily Recommendation</h3>
+      <p className="text-evergreen-teal mt-2 font-medium">{recommendation.title}</p>
+      <p className="text-sm text-soft-charcoal">{recommendation.detail}</p>
+      <button className="mt-2 text-sm text-evergreen-teal underline hover:text-evergreen-teal">
         Start Now
       </button>
     </div>

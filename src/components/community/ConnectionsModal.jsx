@@ -12,7 +12,7 @@ import {
 } from "../../services/communityService";
 
 export default function ConnectionsModal({ userId, open, onClose }) {
-  const [tab, setTab] = useState("incoming"); // incoming | connections | sent
+  const [tab, setTab] = useState("incoming");
   const [incoming, setIncoming] = useState([]);
   const [sent, setSent] = useState([]);
   const [connections, setConnections] = useState([]);
@@ -41,43 +41,45 @@ export default function ConnectionsModal({ userId, open, onClose }) {
 
   if (!open) return null;
 
+  const tabItems = [
+    { key: "incoming", label: "Requests", count: incoming.length },
+    { key: "connections", label: "Connections", count: connections.length },
+    { key: "sent", label: "Sent", count: sent.length },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-vara-base">
+      <div className="bg-white w-full max-w-3xl rounded-vara-lg shadow-vara-lg overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-              <Users className="text-emerald-700" size={20} />
+        <div className="flex items-center justify-between px-vara-lg py-vara-base border-b border-divider">
+          <div className="flex items-center gap-vara-md">
+            <div className="w-10 h-10 rounded-vara-md bg-teal-light flex items-center justify-center">
+              <Users className="text-evergreen-teal" size={20} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-800">Connections</h3>
-              <p className="text-xs text-gray-500">Manage requests and your network</p>
+              <h3 className="text-vara-lg font-semibold text-soft-charcoal">Connections</h3>
+              <p className="text-vara-xs text-muted-sage-gray">Manage requests and your network</p>
             </div>
           </div>
-          <button className="p-2 rounded-lg hover:bg-gray-100" onClick={onClose}>
+          <button className="p-2 rounded-vara-md hover:bg-dew-sage-light text-muted-sage-gray" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="px-6 pt-4">
-          <div className="flex bg-gray-100 rounded-xl p-1 w-fit">
-            {[
-              { key: "incoming", label: "Requests", count: incoming.length },
-              { key: "connections", label: "Your Connections", count: connections.length },
-              { key: "sent", label: "Sent", count: sent.length },
-            ].map((t) => (
+        {/* Segmented Tabs */}
+        <div className="px-vara-lg pt-vara-base">
+          <div className="flex bg-dew-sage-light rounded-vara-lg p-1 w-fit">
+            {tabItems.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  tab === t.key ? "bg-white shadow-sm" : "text-gray-600"
+                className={`px-vara-base py-2 rounded-vara-md text-vara-sm font-medium transition-all ${
+                  tab === t.key ? "bg-white text-evergreen-teal shadow-vara-sm" : "text-muted-sage-gray hover:text-soft-charcoal"
                 }`}
               >
                 {t.label}
                 {t.count > 0 && (
-                  <span className="ml-2 text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full">
+                  <span className="ml-2 text-vara-xs bg-evergreen-teal text-white px-2 py-0.5 rounded-vara-pill">
                     {t.count}
                   </span>
                 )}
@@ -87,30 +89,24 @@ export default function ConnectionsModal({ userId, open, onClose }) {
         </div>
 
         {/* Body */}
-        <div className="p-6 max-h-[70vh] overflow-y-auto">
+        <div className="p-vara-lg max-h-[70vh] overflow-y-auto">
           {loading && (
-            <div className="flex items-center gap-2 text-gray-500">
-              <Loader className="animate-spin" size={16} /> Loading…
+            <div className="flex items-center gap-vara-sm text-muted-sage-gray">
+              <Loader className="animate-spin" size={16} /> Loading...
             </div>
           )}
 
           {!loading && tab === "incoming" && (
-            <div className="space-y-3">
+            <div className="space-y-vara-md">
               {incoming.length === 0 ? (
-                <div className="text-sm text-gray-500">No pending requests.</div>
+                <div className="text-vara-sm text-muted-sage-gray">No pending requests.</div>
               ) : (
                 incoming.map((req) => (
                   <IncomingRow
                     key={req.id}
                     req={req}
-                    onAccept={async () => {
-                      await acceptConnection(req);
-                      await refresh();
-                    }}
-                    onDecline={async () => {
-                      await declineConnection(req.id);
-                      await refresh();
-                    }}
+                    onAccept={async () => { await acceptConnection(req); await refresh(); }}
+                    onDecline={async () => { await declineConnection(req.id); await refresh(); }}
                   />
                 ))
               )}
@@ -118,19 +114,16 @@ export default function ConnectionsModal({ userId, open, onClose }) {
           )}
 
           {!loading && tab === "connections" && (
-            <div className="space-y-3">
+            <div className="space-y-vara-md">
               {connections.length === 0 ? (
-                <div className="text-sm text-gray-500">You have no connections yet.</div>
+                <div className="text-vara-sm text-muted-sage-gray">You have no connections yet.</div>
               ) : (
                 connections.map((conn) => (
                   <ConnectionRow
                     key={conn.id}
                     conn={conn}
                     selfId={userId}
-                    onRemove={async () => {
-                      await removeConnection(conn.id);
-                      await refresh();
-                    }}
+                    onRemove={async () => { await removeConnection(conn.id); await refresh(); }}
                   />
                 ))
               )}
@@ -138,18 +131,15 @@ export default function ConnectionsModal({ userId, open, onClose }) {
           )}
 
           {!loading && tab === "sent" && (
-            <div className="space-y-3">
+            <div className="space-y-vara-md">
               {sent.length === 0 ? (
-                <div className="text-sm text-gray-500">No sent requests.</div>
+                <div className="text-vara-sm text-muted-sage-gray">No sent requests.</div>
               ) : (
                 sent.map((req) => (
                   <SentRow
                     key={req.id}
                     req={req}
-                    onCancel={async () => {
-                      await cancelConnectionRequest(req.id);
-                      await refresh();
-                    }}
+                    onCancel={async () => { await cancelConnectionRequest(req.id); await refresh(); }}
                   />
                 ))
               )}
@@ -170,44 +160,30 @@ function IncomingRow({ req, onAccept, onDecline }) {
   }, [req.fromUserId]);
 
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-          <Inbox size={18} className="text-emerald-700" />
+    <div className="flex items-center justify-between p-vara-base bg-mist-white rounded-vara-lg">
+      <div className="flex items-center gap-vara-md">
+        <div className="w-10 h-10 rounded-full bg-teal-light flex items-center justify-center">
+          <Inbox size={18} className="text-evergreen-teal" />
         </div>
         <div>
-          <div className="font-medium text-gray-800">
+          <div className="font-medium text-soft-charcoal text-vara-sm">
             {info?.displayName || info?.name || "New user"}
           </div>
-          <div className="text-xs text-gray-500">{info?.email}</div>
+          <div className="text-vara-xs text-muted-sage-gray">{info?.email}</div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-vara-sm">
         <button
           disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await onAccept();
-            } finally {
-              setBusy(false);
-            }
-          }}
-          className="inline-flex items-center gap-1 px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-60"
+          onClick={async () => { setBusy(true); try { await onAccept(); } finally { setBusy(false); } }}
+          className="inline-flex items-center gap-1 px-3 py-2 bg-evergreen-teal text-white rounded-vara-md text-vara-sm hover:opacity-90 disabled:opacity-60"
         >
           <Check size={16} /> Accept
         </button>
         <button
           disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await onDecline();
-            } finally {
-              setBusy(false);
-            }
-          }}
-          className="inline-flex items-center gap-1 px-3 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm hover:bg-gray-300 disabled:opacity-60"
+          onClick={async () => { setBusy(true); try { await onDecline(); } finally { setBusy(false); } }}
+          className="inline-flex items-center gap-1 px-3 py-2 bg-dew-sage-light text-soft-charcoal rounded-vara-md text-vara-sm hover:bg-dew-sage disabled:opacity-60"
         >
           <X size={16} /> Decline
         </button>
@@ -225,21 +201,21 @@ function ConnectionRow({ conn, selfId, onRemove }) {
   }, [conn, selfId]);
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-          <Users size={18} className="text-blue-700" />
+    <div className="flex items-center justify-between p-vara-base bg-white border border-divider rounded-vara-lg">
+      <div className="flex items-center gap-vara-md">
+        <div className="w-10 h-10 rounded-full bg-dew-sage-light flex items-center justify-center">
+          <Users size={18} className="text-evergreen-teal" />
         </div>
         <div>
-          <div className="font-medium text-gray-800">
+          <div className="font-medium text-soft-charcoal text-vara-sm">
             {other?.displayName || other?.name || "User"}
           </div>
-          <div className="text-xs text-gray-500">{other?.email}</div>
+          <div className="text-vara-xs text-muted-sage-gray">{other?.email}</div>
         </div>
       </div>
       <button
         onClick={onRemove}
-        className="inline-flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm hover:bg-red-200"
+        className="inline-flex items-center gap-1 px-3 py-2 bg-[rgba(217,122,110,0.15)] text-soft-coral rounded-vara-md text-vara-sm hover:opacity-80"
       >
         <Trash2 size={16} /> Remove
       </button>
@@ -256,29 +232,22 @@ function SentRow({ req, onCancel }) {
   }, [req.toUserId]);
 
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-          <UserPlus size={18} className="text-gray-600" />
+    <div className="flex items-center justify-between p-vara-base bg-mist-white rounded-vara-lg">
+      <div className="flex items-center gap-vara-md">
+        <div className="w-10 h-10 rounded-full bg-dew-sage-light flex items-center justify-center">
+          <UserPlus size={18} className="text-muted-sage-gray" />
         </div>
         <div>
-          <div className="font-medium text-gray-800">
+          <div className="font-medium text-soft-charcoal text-vara-sm">
             {info?.displayName || info?.name || "User"}
           </div>
-          <div className="text-xs text-gray-500">{info?.email}</div>
+          <div className="text-vara-xs text-muted-sage-gray">{info?.email}</div>
         </div>
       </div>
       <button
         disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          try {
-            await onCancel();
-          } finally {
-            setBusy(false);
-          }
-        }}
-        className="inline-flex items-center gap-1 px-3 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm hover:bg-gray-300 disabled:opacity-60"
+        onClick={async () => { setBusy(true); try { await onCancel(); } finally { setBusy(false); } }}
+        className="inline-flex items-center gap-1 px-3 py-2 bg-dew-sage-light text-soft-charcoal rounded-vara-md text-vara-sm hover:bg-dew-sage disabled:opacity-60"
       >
         <X size={16} /> Cancel
       </button>

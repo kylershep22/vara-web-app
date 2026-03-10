@@ -232,7 +232,7 @@ const AIInsights = ({ userId }) => {
       case 'high': return 'from-red-500 to-orange-500';
       case 'medium': return 'from-yellow-500 to-orange-500';
       case 'low': return 'from-blue-500 to-cyan-500';
-      default: return 'from-gray-500 to-gray-600';
+      default: return 'from-muted-sage-gray to-muted-sage-gray';
     }
   };
 
@@ -249,7 +249,7 @@ const AIInsights = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -274,10 +274,10 @@ const AIInsights = ({ userId }) => {
 
       {/* Patterns Detected */}
       {patterns.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle className="text-orange-600" size={20} />
-            <h3 className="text-lg font-semibold text-gray-900">Patterns Detected</h3>
+            <h3 className="text-lg font-semibold text-soft-charcoal">Patterns Detected</h3>
           </div>
 
           <div className="space-y-3">
@@ -289,8 +289,8 @@ const AIInsights = ({ userId }) => {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="text-orange-600 mt-1" size={20} />
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">{pattern.title}</h4>
-                    <p className="text-sm text-gray-700">{pattern.description}</p>
+                    <h4 className="font-semibold text-soft-charcoal mb-1">{pattern.title}</h4>
+                    <p className="text-sm text-soft-charcoal">{pattern.description}</p>
                   </div>
                 </div>
               </div>
@@ -301,10 +301,10 @@ const AIInsights = ({ userId }) => {
 
       {/* Insights */}
       {insights.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="text-purple-600" size={20} />
-            <h3 className="text-lg font-semibold text-gray-900">Key Insights</h3>
+            <h3 className="text-lg font-semibold text-soft-charcoal">Key Insights</h3>
           </div>
 
           <div className="space-y-3">
@@ -315,20 +315,20 @@ const AIInsights = ({ userId }) => {
                 <div
                   key={insight.id}
                   className={`p-4 rounded-lg border ${
-                    insight.type === 'strength' ? 'border-green-200 bg-green-50' :
+                    insight.type === 'strength' ? 'border-silver-sage bg-teal-light' :
                     insight.type === 'opportunity' ? 'border-blue-200 bg-blue-50' :
-                    'border-gray-200 bg-gray-50'
+                    'border-divider bg-dew-sage-light'
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <Icon className={
-                      insight.type === 'strength' ? 'text-green-600' :
+                      insight.type === 'strength' ? 'text-evergreen-teal' :
                       insight.type === 'opportunity' ? 'text-blue-600' :
-                      'text-gray-600'
+                      'text-muted-sage-gray'
                     } size={20} />
                     <div>
-                      <h4 className="font-semibold text-gray-900 mb-1">{insight.title}</h4>
-                      <p className="text-sm text-gray-700">{insight.description}</p>
+                      <h4 className="font-semibold text-soft-charcoal mb-1">{insight.title}</h4>
+                      <p className="text-sm text-soft-charcoal">{insight.description}</p>
                     </div>
                   </div>
                 </div>
@@ -340,10 +340,10 @@ const AIInsights = ({ userId }) => {
 
       {/* Recommendations */}
       {recommendations.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-2 mb-4">
             <Lightbulb className="text-yellow-600" size={20} />
-            <h3 className="text-lg font-semibold text-gray-900">Personalized Recommendations</h3>
+            <h3 className="text-lg font-semibold text-soft-charcoal">Personalized Recommendations</h3>
           </div>
 
           <div className="space-y-3">
@@ -354,8 +354,8 @@ const AIInsights = ({ userId }) => {
                     {idx + 1}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-1">{rec.title}</h4>
-                    <p className="text-sm text-gray-700">{rec.description}</p>
+                    <h4 className="font-semibold text-soft-charcoal mb-1">{rec.title}</h4>
+                    <p className="text-sm text-soft-charcoal">{rec.description}</p>
                   </div>
                   {rec.actionable && (
                     <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
@@ -371,10 +371,10 @@ const AIInsights = ({ userId }) => {
 
       {/* Empty State */}
       {patterns.length === 0 && insights.length === 0 && recommendations.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-          <Brain className="mx-auto mb-3 text-gray-300" size={64} />
-          <h3 className="font-semibold text-gray-700 mb-2">Not Enough Data Yet</h3>
-          <p className="text-gray-500 mb-4">
+        <div className="text-center py-12 bg-dew-sage-light rounded-lg border-2 border-dashed border-divider">
+          <Brain className="mx-auto mb-3 text-muted-sage-gray/60" size={64} />
+          <h3 className="font-semibold text-soft-charcoal mb-2">Not Enough Data Yet</h3>
+          <p className="text-muted-sage-gray mb-4">
             Keep tracking your habits, goals, focus sessions, and sleep for a week. We'll analyze your patterns and provide personalized insights.
           </p>
         </div>

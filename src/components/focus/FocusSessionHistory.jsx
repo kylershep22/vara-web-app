@@ -136,7 +136,7 @@ const FocusSessionHistory = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-16 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-16 rounded-lg"></div>
         ))}
       </div>
     );
@@ -152,8 +152,8 @@ const FocusSessionHistory = ({ userId }) => {
             onClick={() => setTimeRange(range)}
             className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
               timeRange === range
-                ? 'bg-[#1B5E57] text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-evergreen-teal text-white shadow-sm'
+                : 'bg-dew-sage-light text-muted-sage-gray hover:bg-divider'
             }`}
           >
             {range.charAt(0).toUpperCase() + range.slice(1)}
@@ -180,13 +180,13 @@ const FocusSessionHistory = ({ userId }) => {
           <div className="text-2xl font-bold text-blue-900">{formatDuration(stats.thisWeekMinutes)}</div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+        <div className="bg-gradient-to-br from-teal-light to-dew-sage rounded-lg p-4 border border-silver-sage">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="text-green-600" size={20} />
-            <span className="text-xs font-medium text-green-700 uppercase">Total</span>
+            <TrendingUp className="text-evergreen-teal" size={20} />
+            <span className="text-xs font-medium text-evergreen-teal uppercase">Total</span>
           </div>
-          <div className="text-2xl font-bold text-green-900">{formatDuration(stats.totalMinutes)}</div>
-          <div className="text-xs text-green-600 mt-1">{stats.totalSessions} sessions</div>
+          <div className="text-2xl font-bold text-soft-charcoal">{formatDuration(stats.totalMinutes)}</div>
+          <div className="text-xs text-evergreen-teal mt-1">{stats.totalSessions} sessions</div>
         </div>
 
         <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
@@ -201,13 +201,13 @@ const FocusSessionHistory = ({ userId }) => {
 
       {/* Session List */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Recent Sessions</h3>
+        <h3 className="text-sm font-semibold text-soft-charcoal mb-3">Recent Sessions</h3>
         {sessions.length > 0 ? (
           <div className="space-y-2">
             {sessions.map(session => (
               <div
                 key={session.id}
-                className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-[#1B5E57]/30 hover:shadow-sm transition-all bg-white"
+                className="flex items-center justify-between p-4 rounded-lg border border-divider hover:border-evergreen-teal/30 hover:shadow-sm transition-all bg-white"
               >
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
@@ -216,10 +216,10 @@ const FocusSessionHistory = ({ userId }) => {
                     <Clock className={session.type === 'pomodoro' ? 'text-purple-600' : 'text-blue-600'} size={20} />
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-soft-charcoal">
                       {session.duration} minute {session.type === 'pomodoro' ? 'Pomodoro' : 'Focus'} session
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-muted-sage-gray">
                       {formatDate(session.startedAt)}
                       {session.interrupted && (
                         <span className="ml-2 text-orange-600 text-xs">(Interrupted)</span>
@@ -231,8 +231,8 @@ const FocusSessionHistory = ({ userId }) => {
                 <div className="text-right">
                   <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                     session.completed
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600'
+                      ? 'bg-dew-sage text-evergreen-teal'
+                      : 'bg-dew-sage-light text-muted-sage-gray'
                   }`}>
                     {session.completed ? '✓ Completed' : 'Incomplete'}
                   </div>
@@ -241,10 +241,10 @@ const FocusSessionHistory = ({ userId }) => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-            <Clock className="mx-auto mb-3 text-gray-300" size={48} />
-            <p className="font-medium text-gray-700 mb-1">No focus sessions yet</p>
-            <p className="text-sm text-gray-500">Start a Pomodoro session to begin tracking</p>
+          <div className="text-center py-12 bg-dew-sage-light rounded-lg border-2 border-dashed border-divider">
+            <Clock className="mx-auto mb-3 text-silver-sage" size={48} />
+            <p className="font-medium text-soft-charcoal mb-1">No focus sessions yet</p>
+            <p className="text-sm text-muted-sage-gray">Start a Pomodoro session to begin tracking</p>
           </div>
         )}
       </div>

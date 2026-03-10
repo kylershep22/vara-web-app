@@ -65,6 +65,8 @@ import {
   OnboardingInsightScreen,
   OnboardingActivityScreen,
   OnboardingConfirmationScreen,
+  OnboardingValuesScreen,
+  OnboardingPersonalizedEntryScreen,
 } from '../screens/onboarding';
 
 // Discover screens
@@ -93,7 +95,7 @@ const PaywallStack = createNativeStackNavigator();
 /**
  * Onboarding Stack Navigator
  * Streamlined 6-screen onboarding flow for new users
- * Flow: Welcome → Check-in → Insight (aha!) → Activity → Confirmation → Home
+ * Flow: Welcome → Check-in → Insight (aha!) → Activity → Values → Personalized Entry → Home
  */
 const OnboardingNavigator = () => {
   return (
@@ -107,7 +109,8 @@ const OnboardingNavigator = () => {
       <OnboardingStack.Screen name="OnboardingCheckIn" component={OnboardingCheckInScreen} />
       <OnboardingStack.Screen name="OnboardingInsight" component={OnboardingInsightScreen} />
       <OnboardingStack.Screen name="OnboardingActivity" component={OnboardingActivityScreen} />
-      <OnboardingStack.Screen name="OnboardingConfirmation" component={OnboardingConfirmationScreen} />
+      <OnboardingStack.Screen name="OnboardingValues" component={OnboardingValuesScreen} />
+      <OnboardingStack.Screen name="OnboardingPersonalizedEntry" component={OnboardingPersonalizedEntryScreen} />
     </OnboardingStack.Navigator>
   );
 };

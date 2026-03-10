@@ -11,7 +11,7 @@ export default function CalendarView({ userId, goalId }) {
   return (
     <div className="grid grid-cols-7 gap-2 text-sm">
       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-        <div key={d} className="text-center text-[#9AAE8C] font-medium">
+        <div key={d} className="text-center text-muted-sage-gray font-medium">
           {d}
         </div>
       ))}
@@ -22,8 +22,8 @@ export default function CalendarView({ userId, goalId }) {
           className={`h-10 w-10 flex items-center justify-center rounded-lg text-xs
             ${
               format(day, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
-                ? 'bg-[#B8CDBA] text-white font-semibold'
-                : 'bg-[#FAFAF6] border border-[#D5E3D1] text-[#3E3E3E]'
+                ? 'bg-silver-sage text-white font-semibold'
+                : 'bg-mist-white border border-divider text-soft-charcoal'
             }
           `}
         >

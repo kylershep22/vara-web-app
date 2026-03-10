@@ -51,15 +51,15 @@ const MeditationLibrary = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((m) => (
           <div key={m.id} className="p-4 bg-white rounded shadow hover:shadow-lg transition">
-            <h3 className="font-semibold text-emerald-800">{m.title}</h3>
-            <p className="text-sm text-gray-600">{m.duration} min • {m.mood} • {m.purpose}</p>
-            <button className="mt-2 text-sm text-emerald-700 underline hover:text-emerald-900">
+            <h3 className="font-semibold text-evergreen-teal">{m.title}</h3>
+            <p className="text-sm text-muted-sage-gray">{m.duration} min • {m.mood} • {m.purpose}</p>
+            <button className="mt-2 text-sm text-evergreen-teal underline hover:text-evergreen-teal">
               Add to Favorites
             </button>
           </div>
         ))}
         {filtered.length === 0 && (
-          <p className="text-gray-500 col-span-full">No meditations match your filters.</p>
+          <p className="text-muted-sage-gray col-span-full">No meditations match your filters.</p>
         )}
       </div>
     </div>

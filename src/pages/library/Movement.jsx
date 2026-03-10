@@ -28,36 +28,36 @@ export default function Movement() {
 
   const renderTrack = (title, items) => (
     <div className="mb-10" key={title}>
-      <h2 className="text-xl font-semibold text-[#3E3E3E] mb-3">{title}</h2>
-      <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#D5E3D1]">
+      <h2 className="text-vara-lg font-semibold text-soft-charcoal mb-3">{title}</h2>
+      <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-silver-sage">
         {items.map((item, index) => (
           <div
             key={index}
-            className="min-w-[240px] flex-shrink-0 bg-white border border-[#D5E3D1] rounded-xl p-4 shadow-sm hover:shadow-md transition"
+            className="min-w-[240px] flex-shrink-0 bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm hover:shadow-vara-md transition"
           >
             {item.type === 'video' && item.thumbnail && (
               <img
                 src={item.thumbnail}
                 alt={`${item.title} thumbnail`}
-                className="w-full h-32 object-cover rounded-lg mb-3"
+                className="w-full h-32 object-cover rounded-vara-md mb-3"
               />
             )}
 
-            <h3 className="text-md font-semibold text-[#1B5E57] mb-1">{item.title}</h3>
-            <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-            <div className="text-xs text-gray-500">{item.duration}</div>
+            <h3 className="text-md font-semibold text-evergreen-teal mb-1">{item.title}</h3>
+            <p className="text-vara-sm text-muted-sage-gray mb-2">{item.description}</p>
+            <div className="text-vara-xs text-muted-sage-gray">{item.duration}</div>
 
             {item.type === 'video' ? (
               <button
                 onClick={() => playVideo(item.title, item.videoSrc)}
-                className="mt-4 px-4 py-2 bg-[#1B5E57] text-white text-sm rounded-lg hover:bg-[#164e48] transition"
+                className="mt-4 px-4 py-2 bg-evergreen-teal text-white text-vara-sm rounded-vara-md hover:opacity-90 transition"
               >
                 Watch
               </button>
             ) : (
               <button
                 onClick={() => playTrack(item.title, item.audioSrc)}
-                className="mt-4 px-4 py-2 bg-[#1B5E57] text-white text-sm rounded-lg hover:bg-[#164e48] transition"
+                className="mt-4 px-4 py-2 bg-evergreen-teal text-white text-vara-sm rounded-vara-md hover:opacity-90 transition"
               >
                 Play
               </button>
@@ -70,21 +70,21 @@ export default function Movement() {
 
   return (
     <SidebarLayout>
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="px-vara-base py-vara-lg max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
-          <Dumbbell size={28} className="text-[#1B5E57]" />
+          <Dumbbell size={28} className="text-evergreen-teal" />
           <div>
-            <h1 className="text-2xl font-semibold text-[#3E3E3E]">Movement Library</h1>
-            <p className="text-sm text-[#1B5E57] font-medium">Blood Flow Boost & Cognitive Priming</p>
+            <h1 className="text-vara-2xl font-semibold text-evergreen-teal tracking-tight">Movement Library</h1>
+            <p className="text-sm text-evergreen-teal font-medium">Blood Flow Boost & Cognitive Priming</p>
           </div>
         </div>
-        <p className="text-[#9AAE8C] mb-4 max-w-2xl">
+        <p className="text-muted-sage-gray mb-vara-base max-w-2xl">
           Movement is medicine for your brain. Physical activity increases blood flow to your brain, releases growth factors that build new neurons, and triggers osteocalcin - a bone hormone that enhances memory and learning.
         </p>
-        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 mb-8 max-w-2xl">
-          <h3 className="text-sm font-semibold text-emerald-900 mb-2">Brain Health Benefits of Movement</h3>
-          <ul className="text-sm text-emerald-800 space-y-1">
+        <div className="bg-teal-light border border-teal-medium/20 rounded-vara-lg p-vara-base mb-8 max-w-2xl">
+          <h3 className="text-sm font-semibold text-evergreen-teal mb-2">Brain Health Benefits of Movement</h3>
+          <ul className="text-sm text-evergreen-teal/80 space-y-1">
             <li>• <strong>Increased Blood Flow:</strong> Delivers oxygen and nutrients to brain cells</li>
             <li>• <strong>BDNF Release:</strong> Brain-Derived Neurotrophic Factor promotes neuron growth</li>
             <li>• <strong>Osteocalcin:</strong> Bone-derived hormone that crosses blood-brain barrier to enhance cognition</li>

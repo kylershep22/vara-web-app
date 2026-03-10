@@ -162,9 +162,9 @@ const BinauraBeatsLibrary = ({ userId }) => {
       case 'beta':
         return 'from-purple-500 to-pink-500';
       case 'theta':
-        return 'from-green-500 to-emerald-500';
+        return 'from-evergreen-teal to-evergreen-teal';
       default:
-        return 'from-gray-500 to-gray-600';
+        return 'from-muted-sage-gray to-soft-charcoal';
     }
   };
 
@@ -198,7 +198,7 @@ const BinauraBeatsLibrary = ({ userId }) => {
       <div className="flex flex-col md:flex-row gap-4">
         {/* Wave Type Filter */}
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Wave Type</label>
+          <label className="block text-sm font-medium text-soft-charcoal mb-2">Wave Type</label>
           <div className="flex gap-2 flex-wrap">
             {['all', 'alpha', 'beta', 'theta'].map(type => (
               <button
@@ -206,8 +206,8 @@ const BinauraBeatsLibrary = ({ userId }) => {
                 onClick={() => setSelectedWaveType(type)}
                 className={`px-4 py-2 rounded-lg font-medium transition-all capitalize ${
                   selectedWaveType === type
-                    ? 'bg-[#1B5E57] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-evergreen-teal text-white shadow-sm'
+                    : 'bg-dew-sage-light text-soft-charcoal hover:bg-silver-sage/30'
                 }`}
               >
                 {type}
@@ -218,7 +218,7 @@ const BinauraBeatsLibrary = ({ userId }) => {
 
         {/* Duration Filter */}
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+          <label className="block text-sm font-medium text-soft-charcoal mb-2">Duration</label>
           <div className="flex gap-2 flex-wrap">
             {[
               { value: 'all', label: 'All' },
@@ -231,8 +231,8 @@ const BinauraBeatsLibrary = ({ userId }) => {
                 onClick={() => setSelectedDuration(option.value)}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   selectedDuration === option.value
-                    ? 'bg-[#1B5E57] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-evergreen-teal text-white shadow-sm'
+                    : 'bg-dew-sage-light text-soft-charcoal hover:bg-silver-sage/30'
                 }`}
               >
                 {option.label}
@@ -253,7 +253,7 @@ const BinauraBeatsLibrary = ({ userId }) => {
             <div
               key={beat.id}
               className={`bg-white rounded-xl border-2 transition-all hover:shadow-lg ${
-                isCurrentTrack ? 'border-[#1B5E57] shadow-md' : 'border-gray-200'
+                isCurrentTrack ? 'border-evergreen-teal shadow-md' : 'border-divider'
               }`}
             >
               {/* Card Header with Gradient */}
@@ -283,16 +283,16 @@ const BinauraBeatsLibrary = ({ userId }) => {
 
               {/* Card Body */}
               <div className="p-4">
-                <p className="text-gray-600 text-sm mb-3">{beat.description}</p>
+                <p className="text-muted-sage-gray text-sm mb-3">{beat.description}</p>
 
                 {/* Benefits */}
                 <div className="mb-4">
-                  <p className="text-xs font-semibold text-gray-700 mb-1">Benefits:</p>
+                  <p className="text-xs font-semibold text-soft-charcoal mb-1">Benefits:</p>
                   <div className="flex flex-wrap gap-1">
                     {beat.benefits.map((benefit, idx) => (
                       <span
                         key={idx}
-                        className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600"
+                        className="text-xs px-2 py-1 rounded-full bg-dew-sage-light text-muted-sage-gray"
                       >
                         {benefit}
                       </span>
@@ -312,7 +312,7 @@ const BinauraBeatsLibrary = ({ userId }) => {
                   className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
                     isCurrentlyPlaying
                       ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                      : 'bg-[#1B5E57] hover:bg-[#174C46] text-white'
+                      : 'bg-evergreen-teal hover:opacity-90 text-white'
                   }`}
                 >
                   {isCurrentlyPlaying ? (
@@ -335,10 +335,10 @@ const BinauraBeatsLibrary = ({ userId }) => {
 
       {/* Empty State */}
       {filteredBeats.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-          <Waves className="mx-auto mb-3 text-gray-300" size={48} />
-          <p className="font-medium text-gray-700 mb-1">No tracks match your filters</p>
-          <p className="text-sm text-gray-500">Try adjusting your wave type or duration filters</p>
+        <div className="text-center py-12 bg-dew-sage-light rounded-lg border-2 border-dashed border-divider">
+          <Waves className="mx-auto mb-3 text-muted-sage-gray/60" size={48} />
+          <p className="font-medium text-soft-charcoal mb-1">No tracks match your filters</p>
+          <p className="text-sm text-muted-sage-gray">Try adjusting your wave type or duration filters</p>
         </div>
       )}
 
@@ -355,7 +355,7 @@ const BinauraBeatsLibrary = ({ userId }) => {
       </div>
 
       {/* Disclaimer */}
-      <div className="text-xs text-gray-500 text-center">
+      <div className="text-xs text-muted-sage-gray text-center">
         <p>
           Note: Binaural beats are not medical treatment. If you have epilepsy or other neurological conditions,
           consult a healthcare provider before use.

@@ -64,7 +64,7 @@ const GoalsProgress = ({ userId }) => {
   };
 
   const getProgressColor = (progress) => {
-    if (progress >= 80) return 'from-green-500 to-emerald-500';
+    if (progress >= 80) return 'from-evergreen-teal to-evergreen-teal';
     if (progress >= 60) return 'from-blue-500 to-cyan-500';
     if (progress >= 40) return 'from-yellow-500 to-orange-500';
     return 'from-orange-500 to-red-500';
@@ -73,11 +73,11 @@ const GoalsProgress = ({ userId }) => {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'completed':
-        return <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Completed</span>;
+        return <span className="px-2 py-1 bg-dew-sage text-evergreen-teal text-xs font-medium rounded-full">Completed</span>;
       case 'in-progress':
         return <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">In Progress</span>;
       default:
-        return <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">Not Started</span>;
+        return <span className="px-2 py-1 bg-dew-sage-light text-soft-charcoal text-xs font-medium rounded-full">Not Started</span>;
     }
   };
 
@@ -91,7 +91,7 @@ const GoalsProgress = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -109,12 +109,12 @@ const GoalsProgress = ({ userId }) => {
           <div className="text-3xl font-bold text-blue-900">{stats.total}</div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-4 border border-green-200">
+        <div className="bg-gradient-to-br from-teal-light to-dew-sage rounded-lg p-4 border border-silver-sage">
           <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="text-green-600" size={20} />
-            <span className="text-xs font-medium text-green-700 uppercase">Completed</span>
+            <CheckCircle className="text-evergreen-teal" size={20} />
+            <span className="text-xs font-medium text-evergreen-teal uppercase">Completed</span>
           </div>
-          <div className="text-3xl font-bold text-green-900">{stats.completed}</div>
+          <div className="text-3xl font-bold text-evergreen-teal">{stats.completed}</div>
         </div>
 
         <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
@@ -135,8 +135,8 @@ const GoalsProgress = ({ userId }) => {
       </div>
 
       {/* Goals by Focus Area */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Goals by Focus Area</h3>
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Goals by Focus Area</h3>
 
         {Object.keys(groupedGoals).length > 0 ? (
           <div className="space-y-6">
@@ -145,16 +145,16 @@ const GoalsProgress = ({ userId }) => {
               const focusCompletionRate = Math.round((completed / focusGoals.length) * 100);
 
               return (
-                <div key={focus} className="border border-gray-200 rounded-lg p-4">
+                <div key={focus} className="border border-divider rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900 capitalize">{focus}</h4>
-                    <div className="text-sm text-gray-600">
+                    <h4 className="font-semibold text-soft-charcoal capitalize">{focus}</h4>
+                    <div className="text-sm text-muted-sage-gray">
                       {completed} of {focusGoals.length} completed ({focusCompletionRate}%)
                     </div>
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                  <div className="w-full bg-silver-sage/30 rounded-full h-2 mb-4">
                     <div
                       className={`h-2 rounded-full bg-gradient-to-r ${getProgressColor(focusCompletionRate)}`}
                       style={{ width: `${focusCompletionRate}%` }}
@@ -164,11 +164,11 @@ const GoalsProgress = ({ userId }) => {
                   {/* Goals in this focus area */}
                   <div className="space-y-2">
                     {focusGoals.map(goal => (
-                      <div key={goal.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div key={goal.id} className="flex items-center justify-between p-2 bg-dew-sage-light rounded">
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">{goal.title}</div>
+                          <div className="font-medium text-soft-charcoal">{goal.title}</div>
                           {goal.refinedFocus && (
-                            <div className="text-xs text-gray-500">{goal.refinedFocus}</div>
+                            <div className="text-xs text-muted-sage-gray">{goal.refinedFocus}</div>
                           )}
                         </div>
                         {getStatusBadge(goal.status)}
@@ -180,8 +180,8 @@ const GoalsProgress = ({ userId }) => {
             })}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Target className="mx-auto mb-2 text-gray-300" size={48} />
+          <div className="text-center py-8 text-muted-sage-gray">
+            <Target className="mx-auto mb-2 text-muted-sage-gray/60" size={48} />
             <p>No goals yet. Create your first goal to start tracking progress!</p>
           </div>
         )}
@@ -189,10 +189,10 @@ const GoalsProgress = ({ userId }) => {
 
       {/* Active Goals Timeline */}
       {stats.active > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Calendar className="text-gray-600" size={20} />
-            <h3 className="text-lg font-semibold text-gray-900">Active Goals</h3>
+            <Calendar className="text-muted-sage-gray" size={20} />
+            <h3 className="text-lg font-semibold text-soft-charcoal">Active Goals</h3>
           </div>
 
           <div className="space-y-4">
@@ -202,24 +202,24 @@ const GoalsProgress = ({ userId }) => {
                 const progress = goal.progress || 0;
 
                 return (
-                  <div key={goal.id} className="border border-gray-200 rounded-lg p-4 hover:border-[#1B5E57] transition">
+                  <div key={goal.id} className="border border-divider rounded-lg p-4 hover:border-evergreen-teal transition">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 mb-1">{goal.title}</h4>
-                        <div className="text-sm text-gray-600">{goal.refinedFocus || goal.primaryFocus}</div>
+                        <h4 className="font-semibold text-soft-charcoal mb-1">{goal.title}</h4>
+                        <div className="text-sm text-muted-sage-gray">{goal.refinedFocus || goal.primaryFocus}</div>
                       </div>
-                      <div className="text-2xl font-bold text-gray-900">{progress}%</div>
+                      <div className="text-2xl font-bold text-soft-charcoal">{progress}%</div>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                    <div className="w-full bg-silver-sage/30 rounded-full h-3 mb-2">
                       <div
                         className={`h-3 rounded-full bg-gradient-to-r ${getProgressColor(progress)} transition-all`}
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex items-center justify-between text-xs text-muted-sage-gray">
                       <div>Timeframe: {goal.timeframe || 'Not set'}</div>
                       <div>Created: {formatDate(goal.createdAt)}</div>
                     </div>
@@ -232,22 +232,22 @@ const GoalsProgress = ({ userId }) => {
 
       {/* Completed Goals */}
       {stats.completed > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-2 mb-4">
             <Award className="text-yellow-600" size={20} />
-            <h3 className="text-lg font-semibold text-gray-900">Completed Goals</h3>
+            <h3 className="text-lg font-semibold text-soft-charcoal">Completed Goals</h3>
           </div>
 
           <div className="space-y-2">
             {goals
               .filter(g => g.status === 'completed')
               .map(goal => (
-                <div key={goal.id} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div key={goal.id} className="flex items-center justify-between p-3 bg-teal-light border border-silver-sage rounded-lg">
                   <div>
-                    <div className="font-medium text-gray-900">{goal.title}</div>
-                    <div className="text-xs text-gray-600">{goal.refinedFocus || goal.primaryFocus}</div>
+                    <div className="font-medium text-soft-charcoal">{goal.title}</div>
+                    <div className="text-xs text-muted-sage-gray">{goal.refinedFocus || goal.primaryFocus}</div>
                   </div>
-                  <CheckCircle className="text-green-600" size={20} />
+                  <CheckCircle className="text-evergreen-teal" size={20} />
                 </div>
               ))}
           </div>

@@ -4,14 +4,32 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Animated } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Input } from '../../';
 import { Colors, Spacing, Typography, Layout, HABIT_CATEGORIES } from '../../../constants';
+import { isCognitiveReserveCategory, CR_CALLOUT_CONTENT, CR_CALLOUT_FALLBACK } from '../../../constants/habitCategories';
 import { WizardStepProps } from './types';
 
 export const ActionStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormData }) => {
   const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
+  const [crFadeAnim] = useState(new Animated.Value(0));
+  const isCR = isCognitiveReserveCategory(formData.category);
+  const crCallout = formData.category
+    ? CR_CALLOUT_CONTENT[formData.category] || (isCR ? CR_CALLOUT_FALLBACK : null)
+    : null;
+
+  React.useEffect(() => {
+    if (isCR) {
+      Animated.timing(crFadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      crFadeAnim.setValue(0);
+    }
+  }, [isCR, crFadeAnim]);
 
   return (
     <View style={styles.container}>
@@ -70,6 +88,13 @@ export const ActionStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormDa
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {isCR && crCallout && (
+        <Animated.View style={[styles.crCallout, { opacity: crFadeAnim }]}>
+          <Text style={styles.crCalloutHeadline}>🌿 {crCallout.headline}</Text>
+          <Text style={styles.crCalloutBody}>{crCallout.body}</Text>
+        </Animated.View>
+      )}
 
       <Text style={styles.fieldLabel}>Type</Text>
       <View style={styles.typeButtons}>
@@ -183,5 +208,25 @@ const styles = StyleSheet.create({
   dropdownItemText: {
     fontSize: Typography.fontSize.sm,
     color: Colors.textPrimary,
+  },
+  crCallout: {
+    backgroundColor: '#E6F2EC',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  crCalloutHeadline: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2A6E4A',
+    marginBottom: 2,
+  },
+  crCalloutBody: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: 'rgba(42, 110, 74, 0.85)',
+    lineHeight: 12 * 1.55,
   },
 });

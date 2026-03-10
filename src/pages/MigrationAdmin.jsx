@@ -71,10 +71,10 @@ export default function MigrationAdmin() {
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Database className="text-[#1B5E57]" size={32} />
-            <h1 className="text-3xl font-bold text-[#3E3E3E]">Migration Admin</h1>
+            <Database className="text-evergreen-teal" size={32} />
+            <h1 className="text-3xl font-bold text-soft-charcoal">Migration Admin</h1>
           </div>
-          <p className="text-[#6B7280]">
+          <p className="text-muted-sage-gray">
             Run data migrations and maintenance tasks
           </p>
         </div>
@@ -93,15 +93,15 @@ export default function MigrationAdmin() {
         </div>
 
         {/* Migration Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-divider p-6 mb-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Bedtime Routines Migration</h2>
-              <p className="text-sm text-gray-600 mb-4">
+              <h2 className="text-xl font-bold text-soft-charcoal mb-2">Bedtime Routines Migration</h2>
+              <p className="text-sm text-muted-sage-gray mb-4">
                 Consolidates duplicate bedtime routine features by migrating data from{' '}
-                <code className="px-2 py-0.5 bg-gray-100 rounded text-xs">bedtimeRoutines</code> collection to{' '}
-                <code className="px-2 py-0.5 bg-gray-100 rounded text-xs">routines</code> collection with{' '}
-                <code className="px-2 py-0.5 bg-gray-100 rounded text-xs">type='bedtime'</code>
+                <code className="px-2 py-0.5 bg-dew-sage-light rounded text-xs">bedtimeRoutines</code> collection to{' '}
+                <code className="px-2 py-0.5 bg-dew-sage-light rounded text-xs">routines</code> collection with{' '}
+                <code className="px-2 py-0.5 bg-dew-sage-light rounded text-xs">type='bedtime'</code>
               </p>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -122,7 +122,7 @@ export default function MigrationAdmin() {
             <button
               onClick={handleMigration}
               disabled={isRunning}
-              className="flex items-center gap-2 px-6 py-3 bg-[#1B5E57] text-white rounded-lg hover:bg-[#174C46] transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-3 bg-evergreen-teal text-white rounded-lg hover:opacity-90 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isRunning ? (
                 <>
@@ -152,14 +152,14 @@ export default function MigrationAdmin() {
         {migrationStatus && (
           <div className={`rounded-xl shadow-sm border p-6 ${
             migrationStatus === 'success'
-              ? 'bg-green-50 border-green-200'
+              ? 'bg-teal-light border-silver-sage'
               : migrationStatus === 'error'
               ? 'bg-red-50 border-red-200'
               : 'bg-blue-50 border-blue-200'
           }`}>
             <div className="flex items-start gap-3">
               {migrationStatus === 'success' && (
-                <CheckCircle className="text-green-600 flex-shrink-0" size={24} />
+                <CheckCircle className="text-evergreen-teal flex-shrink-0" size={24} />
               )}
               {migrationStatus === 'error' && (
                 <XCircle className="text-red-600 flex-shrink-0" size={24} />
@@ -171,7 +171,7 @@ export default function MigrationAdmin() {
               <div className="flex-1">
                 <h3 className={`font-semibold mb-2 ${
                   migrationStatus === 'success'
-                    ? 'text-green-900'
+                    ? 'text-soft-charcoal'
                     : migrationStatus === 'error'
                     ? 'text-red-900'
                     : 'text-blue-900'
@@ -220,9 +220,9 @@ export default function MigrationAdmin() {
         )}
 
         {/* Instructions */}
-        <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-3">Instructions</h3>
-          <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+        <div className="bg-dew-sage-light rounded-lg p-6 border border-divider">
+          <h3 className="font-semibold text-soft-charcoal mb-3">Instructions</h3>
+          <ol className="text-sm text-soft-charcoal space-y-2 list-decimal list-inside">
             <li>Open the browser console (F12) to monitor migration progress</li>
             <li>Click "Run Migration" to start the migration process</li>
             <li>Review the console logs for detailed information</li>

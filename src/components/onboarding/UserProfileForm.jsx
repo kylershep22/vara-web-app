@@ -88,16 +88,16 @@ export default function UserProfileForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-[#FAFAF6] to-[#D5E3D1]">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-mist-white to-dew-sage">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-2xl bg-white/90 backdrop-blur-lg p-8 rounded-2xl shadow-xl"
       >
-        <h2 className="text-2xl font-bold text-[#1B5E57] mb-4 text-center">
+        <h2 className="text-2xl font-bold text-evergreen-teal mb-4 text-center">
           Personalize Your Experience
         </h2>
 
-        <p className="text-sm text-center text-[#6B7B6A] mb-6">
+        <p className="text-sm text-center text-muted-sage-gray mb-6">
           This information is used only to enhance your experience with personalized
           recommendations and coaching. We will <strong>NEVER</strong> sell or share
           your data — it stays securely within Vara.
@@ -183,7 +183,7 @@ export default function UserProfileForm() {
 
         {/* Health checkboxes */}
         <div className="mt-4">
-          <p className="text-sm font-medium text-[#3E3E3E] mb-2">Any health considerations?</p>
+          <p className="text-sm font-medium text-soft-charcoal mb-2">Any health considerations?</p>
           <div className="flex flex-wrap gap-3">
             {healthOptions.map((option) => (
               <label key={option} className="flex items-center space-x-2">
@@ -211,13 +211,13 @@ export default function UserProfileForm() {
           <button
             type="button"
             onClick={() => navigate('/onboarding/set-goal')}
-            className="text-[#1B5E57] underline text-sm"
+            className="text-evergreen-teal underline text-sm"
           >
             Skip for now
           </button>
           <button
             type="submit"
-            className="px-6 py-3 rounded-lg bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold hover:brightness-105 transition"
+            className="px-6 py-3 rounded-lg bg-gradient-to-r from-sunrise-amber to-golden-apricot text-white font-semibold hover:brightness-105 transition"
           >
             Save & Continue
           </button>

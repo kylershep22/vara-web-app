@@ -26,7 +26,7 @@ export default function EditGoalModal({ goal, onClose, onSave }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
       <div className="bg-white rounded-lg shadow p-6 w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-4 text-[#1B5E57]">Edit Goal</h2>
+        <h2 className="text-xl font-semibold mb-4 text-evergreen-teal">Edit Goal</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
             type="text"
@@ -73,13 +73,13 @@ export default function EditGoalModal({ goal, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded"
+              className="px-4 py-2 bg-divider text-soft-charcoal rounded"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-[#1B5E57] text-white rounded"
+              className="px-4 py-2 bg-evergreen-teal text-white rounded"
             >
               Save
             </button>

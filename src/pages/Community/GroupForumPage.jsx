@@ -364,39 +364,39 @@ export default function GroupForumPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+      <div className="flex justify-center items-center min-h-screen bg-mist-white">
         <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading group forum...</p>
+          <Loader className="w-8 h-8 animate-spin text-evergreen-teal mx-auto mb-vara-base" />
+          <p className="text-muted-sage-gray">Loading group forum...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto py-6 px-4">
+    <div className="min-h-screen bg-mist-white">
+      <div className="max-w-2xl mx-auto py-6 px-vara-base">
         {/* Group Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-2xl">
+        <div className="bg-white rounded-vara-lg shadow-vara-sm p-vara-lg mb-vara-lg border">
+          <div className="flex items-center gap-vara-base mb-vara-base">
+            <div className="w-16 h-16 bg-teal-light rounded-full flex items-center justify-center text-vara-xl">
               {group?.emoji || '👥'}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{group?.name}</h1>
-              <div className="flex items-center gap-2 text-gray-600">
+              <h1 className="text-vara-xl font-bold text-soft-charcoal">{group?.name}</h1>
+              <div className="flex items-center gap-vara-sm text-muted-sage-gray">
                 <Users className="w-4 h-4" />
-                <span className="text-sm">{group?.memberCount || 0} members</span>
+                <span className="text-vara-sm">{group?.memberCount || 0} members</span>
               </div>
             </div>
           </div>
-          <p className="text-gray-700">{group?.description}</p>
+          <p className="text-soft-charcoal">{group?.description}</p>
         </div>
 
         {/* Create Post */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border">
+        <div className="bg-white rounded-vara-lg shadow-vara-sm p-vara-base mb-vara-lg border">
           <form onSubmit={handlePostSubmit}>
-            <div className="flex gap-3 mb-4">
+            <div className="flex gap-vara-md mb-vara-base">
               <img
                 src={user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || 'You')}&background=10b981&color=fff`}
                 alt="Your avatar"
@@ -406,26 +406,26 @@ export default function GroupForumPage() {
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
                 placeholder="What's on your mind?"
-                className="flex-1 border-none resize-none focus:outline-none placeholder-gray-500 text-gray-900"
+                className="flex-1 border-none resize-none focus:outline-none placeholder-muted-sage-gray text-soft-charcoal"
                 rows={3}
               />
             </div>
 
             {/* Image Previews */}
             {imagePreview.length > 0 && (
-              <div className="mb-4">
-                <div className={`grid gap-2 ${imagePreview.length === 1 ? 'grid-cols-1' : imagePreview.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+              <div className="mb-vara-base">
+                <div className={`grid gap-vara-sm ${imagePreview.length === 1 ? 'grid-cols-1' : imagePreview.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
                   {imagePreview.map((preview, index) => (
                     <div key={index} className="relative">
                       <img
                         src={preview}
                         alt={`Preview ${index + 1}`}
-                        className="w-full h-48 object-cover rounded-lg"
+                        className="w-full h-48 object-cover rounded-vara-md"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 bg-gray-900 bg-opacity-60 text-white rounded-full p-1 hover:bg-opacity-80"
+                        className="absolute top-2 right-2 bg-soft-charcoal bg-opacity-60 text-white rounded-full p-1 hover:bg-opacity-80"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -435,15 +435,15 @@ export default function GroupForumPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between pt-4 border-t border-divider">
+              <div className="flex items-center gap-vara-base">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors"
+                  className="flex items-center gap-vara-sm text-muted-sage-gray hover:text-evergreen-teal transition-colors"
                 >
                   <ImageIcon className="w-5 h-5" />
-                  <span className="text-sm font-medium">Photo</span>
+                  <span className="text-vara-sm font-medium">Photo</span>
                 </button>
                 <input
                   ref={fileInputRef}
@@ -458,10 +458,10 @@ export default function GroupForumPage() {
               <button
                 type="submit"
                 disabled={isPosting || (!newPost.trim() && selectedImages.length === 0)}
-                className="bg-emerald-600 text-white px-6 py-2 rounded-full font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="bg-evergreen-teal text-white px-vara-lg py-2 rounded-full font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isPosting ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-vara-sm">
                     <Loader className="w-4 h-4 animate-spin" />
                     Posting...
                   </div>
@@ -481,29 +481,29 @@ export default function GroupForumPage() {
             const userLiked = post.likes?.includes(user.uid);
             
             return (
-              <div key={post.id} className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow">
+              <div key={post.id} className="bg-white rounded-vara-lg shadow-vara-sm border hover:shadow-vara-md transition-shadow">
                 {/* Post Header */}
-                <div className="p-4 pb-0">
+                <div className="p-vara-base pb-0">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-vara-md">
                       <img
                         src={authorInfo.avatar}
                         alt={authorInfo.name}
                         className="w-10 h-10 rounded-full object-cover"
                       />
                       <div>
-                        <h3 className="font-semibold text-gray-900">{authorInfo.name}</h3>
-                        <p className="text-sm text-gray-500">{formatTimeAgo(post.timestamp)}</p>
+                        <h3 className="font-semibold text-soft-charcoal">{authorInfo.name}</h3>
+                        <p className="text-vara-sm text-muted-sage-gray">{formatTimeAgo(post.timestamp)}</p>
                       </div>
                     </div>
-                    <button className="text-gray-400 hover:text-gray-600 p-2">
+                    <button className="text-muted-sage-gray hover:text-muted-sage-gray p-2">
                       <MoreHorizontal className="w-5 h-5" />
                     </button>
                   </div>
 
                   {/* Post Content */}
                   {post.content && (
-                    <p className="text-gray-900 mb-3 whitespace-pre-wrap leading-relaxed">
+                    <p className="text-soft-charcoal mb-3 whitespace-pre-wrap leading-relaxed">
                       {post.content}
                     </p>
                   )}
@@ -511,8 +511,8 @@ export default function GroupForumPage() {
 
                 {/* Post Images */}
                 {post.images && post.images.length > 0 && (
-                  <div className="px-4 pb-3">
-                    <div className={`grid gap-1 rounded-lg overflow-hidden ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+                  <div className="px-vara-base pb-3">
+                    <div className={`grid gap-1 rounded-vara-md overflow-hidden ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
                       {post.images.map((imageUrl, index) => (
                         <img
                           key={index}
@@ -528,7 +528,7 @@ export default function GroupForumPage() {
 
                 {/* Reaction Summary */}
                 {(post.likes?.length > 0 || post.comments?.length > 0) && (
-                  <div className="px-4 py-2 flex items-center justify-between text-sm text-gray-500 border-b border-gray-100">
+                  <div className="px-vara-base py-2 flex items-center justify-between text-vara-sm text-muted-sage-gray border-b border-divider">
                     <div className="flex items-center gap-1">
                       {post.likes?.length > 0 && (
                         <span>{post.likes.length} like{post.likes.length !== 1 ? 's' : ''}</span>
@@ -546,13 +546,13 @@ export default function GroupForumPage() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="px-4 py-3 flex items-center justify-around border-b border-gray-100">
+                <div className="px-vara-base py-3 flex items-center justify-around border-b border-divider">
                   <button
                     onClick={() => handleLike(post.id, post.likes || [])}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    className={`flex items-center gap-vara-sm px-vara-base py-2 rounded-vara-md transition-colors ${
                       userLiked 
-                        ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' 
-                        : 'text-gray-600 hover:bg-gray-100'
+                        ? 'text-evergreen-teal bg-teal-light hover:bg-teal-light' 
+                        : 'text-muted-sage-gray hover:bg-dew-sage-light'
                     }`}
                   >
                     <ThumbsUp className={`w-5 h-5 ${userLiked ? 'fill-current' : ''}`} />
@@ -561,13 +561,13 @@ export default function GroupForumPage() {
                   
                   <button
                     onClick={() => toggleComments(post.id)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+                    className="flex items-center gap-vara-sm px-vara-base py-2 rounded-vara-md text-muted-sage-gray hover:bg-dew-sage-light transition-colors"
                   >
                     <MessageCircle className="w-5 h-5" />
                     <span className="font-medium">Comment</span>
                   </button>
                   
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                  <button className="flex items-center gap-vara-sm px-vara-base py-2 rounded-vara-md text-muted-sage-gray hover:bg-dew-sage-light transition-colors">
                     <Share2 className="w-5 h-5" />
                     <span className="font-medium">Share</span>
                   </button>
@@ -575,26 +575,26 @@ export default function GroupForumPage() {
 
                 {/* Comments Section */}
                 {showComments[post.id] && (
-                  <div className="px-4 py-3">
+                  <div className="px-vara-base py-3">
                     {/* Add Comment */}
-                    <div className="flex gap-3 mb-4">
+                    <div className="flex gap-vara-md mb-vara-base">
                       <img
                         src={user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || 'You')}&background=10b981&color=fff`}
                         alt="Your avatar"
                         className="w-8 h-8 rounded-full object-cover"
                       />
-                      <div className="flex-1 flex gap-2">
+                      <div className="flex-1 flex gap-vara-sm">
                         <input
                           type="text"
                           placeholder="Write a comment..."
                           value={commentText[post.id] || ''}
                           onChange={(e) => setCommentText(prev => ({ ...prev, [post.id]: e.target.value }))}
                           onKeyPress={(e) => e.key === 'Enter' && handleCommentSubmit(post.id)}
-                          className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                          className="flex-1 bg-dew-sage-light rounded-full px-vara-base py-2 text-vara-sm focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                         />
                         <button
                           onClick={() => handleCommentSubmit(post.id)}
-                          className="text-emerald-600 hover:text-emerald-700 p-2"
+                          className="text-evergreen-teal hover:text-evergreen-teal p-2"
                         >
                           <Send className="w-4 h-4" />
                         </button>
@@ -610,21 +610,21 @@ export default function GroupForumPage() {
                           return (
                             <div key={comment.id || index}>
                               {/* Main Comment */}
-                              <div className="flex gap-3">
+                              <div className="flex gap-vara-md">
                                 <img
                                   src={commentAuthor.avatar}
                                   alt={commentAuthor.name}
                                   className="w-8 h-8 rounded-full object-cover"
                                 />
                                 <div className="flex-1">
-                                  <div className="bg-gray-100 rounded-2xl px-4 py-2">
-                                    <p className="font-semibold text-sm text-gray-900">{commentAuthor.name}</p>
-                                    <p className="text-gray-800">{comment.text}</p>
+                                  <div className="bg-dew-sage-light rounded-vara-lg px-vara-base py-2">
+                                    <p className="font-semibold text-vara-sm text-soft-charcoal">{commentAuthor.name}</p>
+                                    <p className="text-soft-charcoal">{comment.text}</p>
                                   </div>
-                                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                                  <div className="flex items-center gap-vara-base mt-1 text-vara-xs text-muted-sage-gray">
                                     <span>{formatTimeAgo(comment.timestamp)}</span>
                                     <button 
-                                      className={`hover:underline ${commentLiked ? 'text-emerald-600 font-medium' : ''}`}
+                                      className={`hover:underline ${commentLiked ? 'text-evergreen-teal font-medium' : ''}`}
                                       onClick={() => handleCommentLike(post.id, index, comment.likes || [])}
                                     >
                                       Like
@@ -642,13 +642,13 @@ export default function GroupForumPage() {
                                   
                                   {/* Reply Input */}
                                   {activeReply === `${post.id}_${index}` && (
-                                    <div className="mt-2 flex gap-2">
+                                    <div className="mt-2 flex gap-vara-sm">
                                       <img
                                         src={user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || 'You')}&background=10b981&color=fff`}
                                         alt="Your avatar"
                                         className="w-6 h-6 rounded-full object-cover"
                                       />
-                                      <div className="flex-1 flex gap-2">
+                                      <div className="flex-1 flex gap-vara-sm">
                                         <input
                                           type="text"
                                           value={replyText[`${post.id}_${index}`] || ''}
@@ -662,10 +662,10 @@ export default function GroupForumPage() {
                                               handleReplySubmit(post.id, index, replyText[`${post.id}_${index}`]);
                                             }
                                           }}
-                                          className="flex-1 bg-gray-100 rounded-full px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                          className="flex-1 bg-dew-sage-light rounded-full px-3 py-1 text-vara-sm focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                                         />
                                         <button
-                                          className="text-emerald-600 hover:text-emerald-700 p-1"
+                                          className="text-evergreen-teal hover:text-evergreen-teal p-1"
                                           onClick={() => handleReplySubmit(post.id, index, replyText[`${post.id}_${index}`])}
                                         >
                                           <Send className="w-3 h-3" />
@@ -683,21 +683,21 @@ export default function GroupForumPage() {
                                     const replyAuthor = getUserDisplayInfo(reply.authorId);
                                     const replyLiked = reply.likes?.includes(user.uid);
                                     return (
-                                      <div key={reply.id || replyIdx} className="flex gap-3">
+                                      <div key={reply.id || replyIdx} className="flex gap-vara-md">
                                         <img
                                           src={replyAuthor.avatar}
                                           alt={replyAuthor.name}
                                           className="w-6 h-6 rounded-full object-cover"
                                         />
                                         <div className="flex-1">
-                                          <div className="bg-gray-100 rounded-2xl px-4 py-2">
-                                            <p className="font-semibold text-sm text-gray-900">{replyAuthor.name}</p>
-                                            <p className="text-gray-800 text-sm">{reply.text}</p>
+                                          <div className="bg-dew-sage-light rounded-vara-lg px-vara-base py-2">
+                                            <p className="font-semibold text-vara-sm text-soft-charcoal">{replyAuthor.name}</p>
+                                            <p className="text-soft-charcoal text-vara-sm">{reply.text}</p>
                                           </div>
-                                          <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                                          <div className="flex items-center gap-vara-base mt-1 text-vara-xs text-muted-sage-gray">
                                             <span>{formatTimeAgo(reply.timestamp)}</span>
                                             <button 
-                                              className={`hover:underline ${replyLiked ? 'text-emerald-600 font-medium' : ''}`}
+                                              className={`hover:underline ${replyLiked ? 'text-evergreen-teal font-medium' : ''}`}
                                               onClick={() => handleReplyLike(post.id, index, replyIdx, reply.likes || [])}
                                             >
                                               Like
@@ -726,11 +726,11 @@ export default function GroupForumPage() {
 
         {posts.length === 0 && (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="w-8 h-8 text-gray-400" />
+            <div className="w-16 h-16 bg-dew-sage-light rounded-full flex items-center justify-center mx-auto mb-vara-base">
+              <MessageCircle className="w-8 h-8 text-muted-sage-gray" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
-            <p className="text-gray-600">Be the first to share something with the group!</p>
+            <h3 className="text-vara-lg font-semibold text-soft-charcoal mb-2">No posts yet</h3>
+            <p className="text-muted-sage-gray">Be the first to share something with the group!</p>
           </div>
         )}
       </div>

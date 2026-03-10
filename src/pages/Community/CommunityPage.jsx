@@ -656,28 +656,28 @@ const CommunityPage = () => {
     const isOwnPost = post.authorId === user.uid;
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
-        <div className="p-4 pb-3">
+      <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider hover:shadow-vara-md transition-all duration-200">
+        <div className="p-vara-base pb-3">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-vara-md">
               <img
                 src={authorInfo.avatar}
                 alt={authorInfo.name}
-                className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm"
+                className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-vara-sm"
               />
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-900">{authorInfo.name}</h3>
+                <div className="flex items-center gap-vara-sm">
+                  <h3 className="font-semibold text-soft-charcoal">{authorInfo.name}</h3>
                   {isGroupPost && (post.groupInfo || groups.find((g) => g.id === post.groupId)) && (
                     <>
-                      <span className="text-gray-400">→</span>
-                      <span className="text-emerald-600 font-medium text-sm">
+                      <span className="text-muted-sage-gray">→</span>
+                      <span className="text-evergreen-teal font-medium text-vara-sm">
                         {(post.groupInfo || groups.find((g) => g.id === post.groupId))?.name}
                       </span>
                     </>
                   )}
                 </div>
-                <p className="text-sm text-gray-500">{formatTimeAgo(post.timestamp)}</p>
+                <p className="text-vara-sm text-muted-sage-gray">{formatTimeAgo(post.timestamp)}</p>
               </div>
             </div>
             {isOwnPost && (
@@ -687,18 +687,18 @@ const CommunityPage = () => {
                     e.stopPropagation();
                     setOpenPostMenu(openPostMenu === post.id ? null : post.id);
                   }}
-                  className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
+                  className="text-muted-sage-gray hover:text-muted-sage-gray p-2 rounded-full hover:bg-dew-sage-light"
                 >
                   <MoreHorizontal className="w-5 h-5" />
                 </button>
                 {openPostMenu === post.id && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-10"
+                    className="absolute right-0 mt-2 w-48 bg-white rounded-vara-lg shadow-vara-lg border border-divider py-1 z-10"
                   >
                     <button
                       onClick={() => handleDeletePost(post.id)}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      className="w-full px-vara-base py-2 text-left text-vara-sm text-red-600 hover:bg-red-50 flex items-center gap-vara-sm"
                     >
                       <X className="w-4 h-4" />
                       Delete Post
@@ -710,16 +710,16 @@ const CommunityPage = () => {
           </div>
 
           {post.content && (
-            <p className="text-gray-900 mb-3 whitespace-pre-wrap leading-relaxed">
+            <p className="text-soft-charcoal mb-3 whitespace-pre-wrap leading-relaxed">
               {post.content}
             </p>
           )}
         </div>
 
         {post.images && post.images.length > 0 && (
-          <div className="px-4 pb-3">
+          <div className="px-vara-base pb-3">
             <div
-              className={`grid gap-1 rounded-xl overflow-hidden ${
+              className={`grid gap-1 rounded-vara-lg overflow-hidden ${
                 post.images.length === 1
                   ? 'grid-cols-1'
                   : post.images.length === 2
@@ -741,11 +741,11 @@ const CommunityPage = () => {
         )}
 
         {(post.likes?.length > 0 || post.comments?.length > 0) && (
-          <div className="px-4 py-2 flex items-center justify-between text-sm text-gray-500 border-t border-gray-50">
+          <div className="px-vara-base py-2 flex items-center justify-between text-vara-sm text-muted-sage-gray border-t border-divider">
             <div className="flex items-center gap-1">
               {post.likes?.length > 0 && (
                 <div className="flex items-center gap-1">
-                  <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                  <div className="w-5 h-5 bg-evergreen-teal rounded-full flex items-center justify-center">
                     <ThumbsUp className="w-3 h-3 text-white fill-current" />
                   </div>
                   <span>{post.likes.length}</span>
@@ -760,13 +760,13 @@ const CommunityPage = () => {
           </div>
         )}
 
-        <div className="px-4 py-3 flex items-center justify-around border-t border-gray-50">
+        <div className="px-vara-base py-3 flex items-center justify-around border-t border-divider">
           <button
             onClick={() => handleLike(post.id, post.likes || [])}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
+            className={`flex items-center gap-vara-sm px-vara-base py-2 rounded-vara-lg transition-all ${
               userLiked
-                ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'text-evergreen-teal bg-teal-light hover:bg-teal-light'
+                : 'text-muted-sage-gray hover:bg-dew-sage-light'
             }`}
           >
             <ThumbsUp className={`w-5 h-5 ${userLiked ? 'fill-current' : ''}`} />
@@ -775,21 +775,21 @@ const CommunityPage = () => {
 
           <button
             onClick={() => toggleComments(post.id)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-all"
+            className="flex items-center gap-vara-sm px-vara-base py-2 rounded-vara-lg text-muted-sage-gray hover:bg-dew-sage-light transition-all"
           >
             <MessageCircle className="w-5 h-5" />
             <span className="font-medium">Comment</span>
           </button>
 
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-all">
+          <button className="flex items-center gap-vara-sm px-vara-base py-2 rounded-vara-lg text-muted-sage-gray hover:bg-dew-sage-light transition-all">
             <Share2 className="w-5 h-5" />
             <span className="font-medium">Share</span>
           </button>
         </div>
 
         {showComments[post.id] && (
-          <div className="px-4 pb-4 border-t border-gray-50">
-            <div className="flex gap-3 pt-4 mb-4">
+          <div className="px-vara-base pb-4 border-t border-divider">
+            <div className="flex gap-vara-md pt-4 mb-vara-base">
               <img
                 src={
                   users[user?.uid]?.avatarUrl ||
@@ -800,7 +800,7 @@ const CommunityPage = () => {
                 alt="Your avatar"
                 className="w-8 h-8 rounded-full object-cover"
               />
-              <div className="flex-1 flex gap-2">
+              <div className="flex-1 flex gap-vara-sm">
                 <input
                   type="text"
                   placeholder="Write a comment..."
@@ -809,11 +809,11 @@ const CommunityPage = () => {
                   onKeyDown={(e) =>
                     e.key === 'Enter' && handleCommentSubmit(post.id, localComment, setLocalComment)
                   }
-                  className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white"
+                  className="flex-1 bg-dew-sage-light rounded-full px-vara-base py-2 text-vara-sm focus:outline-none focus:ring-2 focus:ring-evergreen-teal focus:bg-white"
                 />
                 <button
                   onClick={() => handleCommentSubmit(post.id, localComment, setLocalComment)}
-                  className="text-emerald-600 hover:text-emerald-700 p-2 rounded-full hover:bg-emerald-50"
+                  className="text-evergreen-teal hover:text-evergreen-teal p-2 rounded-full hover:bg-teal-light"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -826,19 +826,19 @@ const CommunityPage = () => {
                   const commentAuthor = getUserDisplayInfo(comment.authorId);
                   const replyKey = `${post.id}_${index}`;
                   return (
-                    <div key={comment.id || index} className="flex gap-3">
+                    <div key={comment.id || index} className="flex gap-vara-md">
                       <img
                         src={commentAuthor.avatar}
                         alt={commentAuthor.name}
                         className="w-8 h-8 rounded-full object-cover"
                       />
                       <div className="flex-1">
-                        <div className="bg-gray-100 rounded-2xl px-4 py-2">
-                          <p className="font-semibold text-sm text-gray-900">{commentAuthor.name}</p>
-                          <p className="text-gray-800">{comment.text}</p>
+                        <div className="bg-dew-sage-light rounded-vara-lg px-vara-base py-2">
+                          <p className="font-semibold text-vara-sm text-soft-charcoal">{commentAuthor.name}</p>
+                          <p className="text-soft-charcoal">{comment.text}</p>
                         </div>
 
-                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                        <div className="flex items-center gap-vara-base mt-1 text-vara-xs text-muted-sage-gray">
                           <span>{formatTimeAgo(comment.timestamp)}</span>
                           <button
                             className="hover:underline"
@@ -857,7 +857,7 @@ const CommunityPage = () => {
                         </div>
 
                         {activeReply === replyKey && (
-                          <div className="mt-2 flex gap-2">
+                          <div className="mt-2 flex gap-vara-sm">
                             <img
                               src={
                                 users[user?.uid]?.avatarUrl ||
@@ -868,7 +868,7 @@ const CommunityPage = () => {
                               alt="Your avatar"
                               className="w-6 h-6 rounded-full object-cover"
                             />
-                            <div className="flex-1 flex gap-2">
+                            <div className="flex-1 flex gap-vara-sm">
                               <input
                                 type="text"
                                 autoFocus
@@ -890,10 +890,10 @@ const CommunityPage = () => {
                                     }
                                   }
                                 }}
-                                className="flex-1 bg-gray-100 rounded-full px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                className="flex-1 bg-dew-sage-light rounded-full px-3 py-1 text-vara-sm focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                               />
                               <button
-                                className="text-emerald-600 hover:text-emerald-700 p-1"
+                                className="text-evergreen-teal hover:text-evergreen-teal p-1"
                                 onClick={() => handleReplySubmit(post.id, index, replyText[replyKey])}
                               >
                                 <Send className="w-3 h-3" />
@@ -907,15 +907,15 @@ const CommunityPage = () => {
                             {comment.replies.map((r, rIdx) => {
                               const rAuthor = getUserDisplayInfo(r.authorId);
                               return (
-                                <div key={r.id || rIdx} className="flex gap-2 items-start">
+                                <div key={r.id || rIdx} className="flex gap-vara-sm items-start">
                                   <img
                                     src={rAuthor.avatar}
                                     alt={rAuthor.name}
                                     className="w-6 h-6 rounded-full object-cover"
                                   />
-                                  <div className="bg-gray-50 rounded-2xl px-3 py-1.5">
-                                    <p className="text-xs font-semibold text-gray-900">{rAuthor.name}</p>
-                                    <p className="text-sm text-gray-800">{r.text}</p>
+                                  <div className="bg-mist-white rounded-vara-lg px-3 py-1.5">
+                                    <p className="text-vara-xs font-semibold text-soft-charcoal">{rAuthor.name}</p>
+                                    <p className="text-vara-sm text-soft-charcoal">{r.text}</p>
                                   </div>
                                 </div>
                               );
@@ -952,20 +952,20 @@ const CommunityPage = () => {
     const isCreator = group.createdBy === user?.uid;
 
     return (
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+      <div className="bg-white rounded-vara-lg p-vara-base shadow-vara-sm border border-divider hover:shadow-vara-md transition-all duration-200">
         <div
           onClick={() => navigate(`/group/${group.id}`)}
           className="cursor-pointer"
         >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm">
+          <div className="flex items-center gap-vara-md mb-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-teal-medium to-evergreen-teal rounded-vara-lg flex items-center justify-center shadow-vara-sm">
               {renderGroupIcon(group.icon || group.emoji)}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 hover:text-emerald-600 line-clamp-1 transition-colors">
+              <h3 className="font-semibold text-soft-charcoal hover:text-evergreen-teal line-clamp-1 transition-colors">
                 {group.name}
               </h3>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
+              <div className="flex items-center gap-vara-sm text-vara-xs text-muted-sage-gray">
                 {group.isPublic ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                 <span>{group.memberCount || 0} members</span>
                 {isCreator && <Star className="w-3 h-3 text-yellow-500 fill-current" />}
@@ -973,19 +973,19 @@ const CommunityPage = () => {
             </div>
           </div>
 
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">{group.description}</p>
+          <p className="text-vara-sm text-muted-sage-gray mb-3 line-clamp-2 leading-relaxed">{group.description}</p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-vara-sm">
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleJoinGroup(group.id, isMember);
             }}
-            className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${
+            className={`flex-1 py-2 px-3 rounded-vara-lg text-vara-sm font-medium transition-all ${
               isMember
-                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                ? 'bg-dew-sage-light text-muted-sage-gray hover:bg-dew-sage-light'
+                : 'bg-evergreen-teal text-white hover:opacity-90 shadow-vara-sm'
             }`}
           >
             {isMember ? 'Joined' : 'Join'}
@@ -995,7 +995,7 @@ const CommunityPage = () => {
               e.stopPropagation();
               navigate(`/group/${group.id}`);
             }}
-            className="px-3 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all"
+            className="px-3 py-2 border border-divider rounded-vara-lg text-vara-sm font-medium text-soft-charcoal hover:bg-dew-sage-light transition-all"
           >
             View
           </button>
@@ -1126,7 +1126,7 @@ const CommunityPage = () => {
     ];
 
     const colors = [
-      { value: 'emerald', label: 'Emerald', class: 'from-emerald-400 to-emerald-600' },
+      { value: 'emerald', label: 'Teal', class: 'from-teal-medium to-evergreen-teal' },
       { value: 'blue', label: 'Blue', class: 'from-blue-400 to-blue-600' },
       { value: 'purple', label: 'Purple', class: 'from-purple-400 to-purple-600' },
       { value: 'pink', label: 'Pink', class: 'from-pink-400 to-pink-600' },
@@ -1135,11 +1135,11 @@ const CommunityPage = () => {
     ];
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Create New Group</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-vara-base">
+        <div className="bg-white rounded-vara-lg p-vara-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-vara-lg">
+            <h2 className="text-vara-xl font-bold text-soft-charcoal">Create New Group</h2>
+            <button onClick={onClose} className="text-muted-sage-gray hover:text-muted-sage-gray p-2 rounded-full hover:bg-dew-sage-light">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -1147,12 +1147,12 @@ const CommunityPage = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Group Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Group Name</label>
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-2">Group Name</label>
               <input
                 type="text"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                 placeholder="e.g., Morning Runners, Meditation Buddies"
                 required
               />
@@ -1160,8 +1160,8 @@ const CommunityPage = () => {
 
             {/* Icon Selector */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Group Icon</label>
-              <div className="grid grid-cols-6 md:grid-cols-8 gap-2">
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-2">Group Icon</label>
+              <div className="grid grid-cols-6 md:grid-cols-8 gap-vara-sm">
                 {icons.map((icon) => {
                   const IconComponent = icon.component;
                   return (
@@ -1169,14 +1169,14 @@ const CommunityPage = () => {
                       key={icon.name}
                       type="button"
                       onClick={() => setGroupIcon(icon.name)}
-                      className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
+                      className={`p-3 rounded-vara-md border-2 transition-all hover:scale-105 ${
                         groupIcon === icon.name
-                          ? 'border-emerald-500 bg-emerald-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-evergreen-teal bg-teal-light'
+                          : 'border-divider hover:border-divider'
                       }`}
                       title={icon.name}
                     >
-                      <IconComponent className={`w-6 h-6 ${groupIcon === icon.name ? 'text-emerald-600' : 'text-gray-600'}`} />
+                      <IconComponent className={`w-6 h-6 ${groupIcon === icon.name ? 'text-evergreen-teal' : 'text-muted-sage-gray'}`} />
                     </button>
                   );
                 })}
@@ -1185,20 +1185,20 @@ const CommunityPage = () => {
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-2">Category</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-vara-sm">
                 {categories.map((cat) => (
                   <button
                     key={cat.value}
                     type="button"
                     onClick={() => setCategory(cat.value)}
-                    className={`p-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                    className={`p-3 rounded-vara-md border-2 transition-all text-vara-sm font-medium ${
                       category === cat.value
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        ? 'border-evergreen-teal bg-teal-light text-evergreen-teal'
+                        : 'border-divider hover:border-divider text-soft-charcoal'
                     }`}
                   >
-                    <div className="text-xl mb-1">{cat.icon}</div>
+                    <div className="text-vara-lg mb-1">{cat.icon}</div>
                     {cat.label}
                   </button>
                 ))}
@@ -1207,12 +1207,12 @@ const CommunityPage = () => {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-2">Description</label>
               <textarea
                 value={groupDescription}
                 onChange={(e) => setGroupDescription(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                 placeholder="What is this group about? What will members do together?"
                 required
               />
@@ -1220,16 +1220,16 @@ const CommunityPage = () => {
 
             {/* Tags */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-2">
                 Tags (up to 5)
               </label>
-              <div className="flex gap-2 mb-2">
+              <div className="flex gap-vara-sm mb-2">
                 <input
                   type="text"
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                   placeholder="Add a tag (e.g., beginners, 30-day-challenge)"
                   disabled={tags.length >= 5}
                 />
@@ -1237,23 +1237,23 @@ const CommunityPage = () => {
                   type="button"
                   onClick={addTag}
                   disabled={tags.length >= 5 || !newTag.trim()}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-vara-base py-2 bg-evergreen-teal text-white rounded-vara-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Add
                 </button>
               </div>
               {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-vara-sm">
                   {tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm"
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-teal-light text-evergreen-teal rounded-full text-vara-sm"
                     >
                       #{tag}
                       <button
                         type="button"
                         onClick={() => removeTag(tag)}
-                        className="hover:text-emerald-900"
+                        className="hover:opacity-80"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -1265,15 +1265,15 @@ const CommunityPage = () => {
 
             {/* Color Theme */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Group Color</label>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-2">Group Color</label>
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-vara-sm">
                 {colors.map((color) => (
                   <button
                     key={color.value}
                     type="button"
                     onClick={() => setGroupColor(color.value)}
-                    className={`h-12 rounded-lg bg-gradient-to-br ${color.class} transition-all ${
-                      groupColor === color.value ? 'ring-4 ring-offset-2 ring-gray-400' : 'hover:scale-105'
+                    className={`h-12 rounded-vara-md bg-gradient-to-br ${color.class} transition-all ${
+                      groupColor === color.value ? 'ring-4 ring-offset-2 ring-silver-sage' : 'hover:scale-105'
                     }`}
                     title={color.label}
                   />
@@ -1282,33 +1282,33 @@ const CommunityPage = () => {
             </div>
 
             {/* Privacy */}
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-              <label className="flex items-center gap-2 cursor-pointer">
+            <div className="flex items-center gap-vara-base p-vara-base bg-mist-white rounded-vara-md">
+              <label className="flex items-center gap-vara-sm cursor-pointer">
                 <input
                   type="checkbox"
                   checked={isPublic}
                   onChange={(e) => setIsPublic(e.target.checked)}
-                  className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                  className="w-4 h-4 text-evergreen-teal rounded focus:ring-evergreen-teal"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-900">Public Group</span>
-                  <p className="text-xs text-gray-600">Anyone can find and join this group</p>
+                  <span className="text-vara-sm font-medium text-soft-charcoal">Public Group</span>
+                  <p className="text-vara-xs text-muted-sage-gray">Anyone can find and join this group</p>
                 </div>
               </label>
             </div>
 
             {/* Buttons */}
-            <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <div className="flex gap-vara-md pt-4 border-t border-divider">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 px-4 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2.5 px-vara-base border border-divider rounded-vara-md text-soft-charcoal font-medium hover:bg-dew-sage-light transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 py-2.5 px-4 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+                className="flex-1 py-2.5 px-vara-base bg-evergreen-teal text-white font-medium rounded-vara-md hover:opacity-90 transition-colors shadow-vara-sm"
               >
                 Create Group
               </button>
@@ -1322,10 +1322,10 @@ const CommunityPage = () => {
   // Render
   if (!isAuthReady || !user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-mist-white flex items-center justify-center">
         <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading community...</p>
+          <Loader className="w-8 h-8 animate-spin text-evergreen-teal mx-auto mb-vara-base" />
+          <p className="text-muted-sage-gray">Loading community...</p>
         </div>
       </div>
     );
@@ -1333,27 +1333,27 @@ const CommunityPage = () => {
 
   return (
     <SidebarLayout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto p-6">
+      <div className="min-h-screen bg-mist-white">
+        <div className="max-w-5xl mx-auto p-vara-lg">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-vara-lg">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Community</h1>
-              <p className="text-gray-600">
+              <h1 className="text-vara-2xl font-semibold text-soft-charcoal mb-2">Community</h1>
+              <p className="text-muted-sage-gray">
                 Connect, share, and grow together on your wellness journey.
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-vara-md">
               {incomingRequests.length > 0 && (
                 <button
                   onClick={() => setShowRequestsModal(true)}
-                  className="relative flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors"
+                  className="relative flex items-center gap-vara-sm px-vara-base py-2 bg-teal-light text-evergreen-teal rounded-vara-lg hover:bg-teal-light transition-colors"
                 >
                   <UserCheck className="w-4 h-4" />
                   <span className="font-medium">
                     {incomingRequests.length} Request{incomingRequests.length > 1 ? 's' : ''}
                   </span>
-                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-600 text-white text-xs rounded-full flex items-center justify-center">
+                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-evergreen-teal text-white text-vara-xs rounded-full flex items-center justify-center">
                     {incomingRequests.length}
                   </div>
                 </button>
@@ -1362,18 +1362,18 @@ const CommunityPage = () => {
               {pendingInvitations.length > 0 && (
                 <button
                   onClick={() => {}}
-                  className="relative flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 rounded-xl hover:bg-orange-100 transition-colors"
+                  className="relative flex items-center gap-vara-sm px-vara-base py-2 bg-orange-50 text-orange-700 rounded-vara-lg hover:bg-orange-100 transition-colors"
                 >
                   <Bell className="w-4 h-4" />
                   <span className="font-medium">{pendingInvitations.length} Invites</span>
-                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center">
+                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-orange-500 text-white text-vara-xs rounded-full flex items-center justify-center">
                     {pendingInvitations.length}
                   </div>
                 </button>
               )}
               <button
                 onClick={() => setShowModal(true)}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition-colors font-semibold shadow-sm"
+                className="flex items-center gap-vara-sm bg-evergreen-teal text-white px-vara-base py-2 rounded-vara-lg hover:opacity-90 transition-colors font-semibold shadow-vara-sm"
               >
                 <Plus className="w-4 h-4" />
                 <span>Create Group</span>
@@ -1382,10 +1382,11 @@ const CommunityPage = () => {
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+          <div className="flex items-center gap-1 mb-vara-lg bg-dew-sage-light p-1 rounded-vara-lg w-fit">
             {[
               { id: 'feed', label: 'Feed', icon: MessageCircle },
               { id: 'discover', label: 'Discover', icon: TrendingUp },
+              { id: 'challenges', label: 'Challenges', icon: Trophy, href: '/community/challenges' },
               { id: 'messages', label: 'Messages', icon: MessageSquare }
             ].map((tab) => {
               const Icon = tab.icon;
@@ -1393,17 +1394,17 @@ const CommunityPage = () => {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  onClick={() => tab.href ? navigate(tab.href) : setActiveTab(tab.id)}
+                  className={`relative flex items-center gap-vara-sm px-vara-base py-2 rounded-vara-md text-vara-sm font-medium transition-all ${
                     activeTab === tab.id
-                      ? 'bg-white text-emerald-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white text-evergreen-teal shadow-vara-sm'
+                      : 'text-muted-sage-gray hover:text-soft-charcoal'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
                   {hasUnread && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-white"></div>
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-evergreen-teal rounded-full ring-2 ring-white"></div>
                   )}
                 </button>
               );
@@ -1411,18 +1412,18 @@ const CommunityPage = () => {
           </div>
 
           {/* Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-vara-lg">
             {/* Main Left/Center */}
             <div className="lg:col-span-3">
               {/* Feed */}
               {activeTab === 'feed' && (
                 <div className="space-y-6">
                   {/* Composer */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                  <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-base">
                     <form onSubmit={handlePostSubmit}>
-                      <div className="flex gap-3 mb-4">
-                        <div className="flex flex-col gap-2 w-full mb-4">
-                          <div className="flex gap-3 items-start">
+                      <div className="flex gap-vara-md mb-vara-base">
+                        <div className="flex flex-col gap-vara-sm w-full mb-vara-base">
+                          <div className="flex gap-vara-md items-start">
                             <img
                               src={
                                 users[user?.uid]?.avatarUrl ||
@@ -1431,13 +1432,13 @@ const CommunityPage = () => {
                                 )}&background=10b981&color=fff`
                               }
                               alt="Your avatar"
-                              className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm"
+                              className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-vara-sm"
                             />
-                            <div className="flex-1 flex flex-col gap-2">
+                            <div className="flex-1 flex flex-col gap-vara-sm">
                               <select
                                 value={selectedGroupId || ''}
                                 onChange={(e) => setSelectedGroupId(e.target.value || null)}
-                                className="w-full text-sm text-gray-700 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                className="w-full text-vara-sm text-soft-charcoal border border-divider rounded-vara-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                               >
                                 <option value="">🌍 Post publicly to your connections</option>
                                 {groups
@@ -1453,7 +1454,7 @@ const CommunityPage = () => {
                                 value={newPost}
                                 onChange={(e) => setNewPost(e.target.value)}
                                 placeholder="What's on your mind? Share your wellness journey..."
-                                className="flex-1 border-none resize-none focus:outline-none placeholder-gray-500 text-gray-900 text-lg"
+                                className="flex-1 border-none resize-none focus:outline-none placeholder-muted-sage-gray text-soft-charcoal text-vara-lg"
                                 rows={3}
                               />
                             </div>
@@ -1462,9 +1463,9 @@ const CommunityPage = () => {
                       </div>
 
                       {imagePreview.length > 0 && (
-                        <div className="mb-4">
+                        <div className="mb-vara-base">
                           <div
-                            className={`grid gap-2 ${
+                            className={`grid gap-vara-sm ${
                               imagePreview.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
                             }`}
                           >
@@ -1473,12 +1474,12 @@ const CommunityPage = () => {
                                 <img
                                   src={preview}
                                   alt={`Preview ${index + 1}`}
-                                  className="w-full h-48 object-cover rounded-xl"
+                                  className="w-full h-48 object-cover rounded-vara-lg"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => removeImage(index)}
-                                  className="absolute top-2 right-2 bg-gray-900 bg-opacity-60 text-white rounded-full p-1.5 hover:bg-opacity-80"
+                                  className="absolute top-2 right-2 bg-soft-charcoal bg-opacity-60 text-white rounded-full p-1.5 hover:bg-opacity-80"
                                 >
                                   <X className="w-4 h-4" />
                                 </button>
@@ -1488,15 +1489,15 @@ const CommunityPage = () => {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-between pt-4 border-t border-divider">
+                        <div className="flex items-center gap-vara-base">
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors px-3 py-2 rounded-lg hover:bg-emerald-50"
+                            className="flex items-center gap-vara-sm text-muted-sage-gray hover:text-evergreen-teal transition-colors px-3 py-2 rounded-vara-md hover:bg-teal-light"
                           >
                             <Image className="w-5 h-5" />
-                            <span className="text-sm font-medium">Photo</span>
+                            <span className="text-vara-sm font-medium">Photo</span>
                           </button>
                           <input
                             ref={fileInputRef}
@@ -1511,10 +1512,10 @@ const CommunityPage = () => {
                         <button
                           type="submit"
                           disabled={isPosting || (!newPost.trim() && selectedImages.length === 0)}
-                          className="bg-emerald-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                          className="bg-evergreen-teal text-white px-vara-lg py-2 rounded-vara-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-vara-sm"
                         >
                           {isPosting ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-vara-sm">
                               <Loader className="w-4 h-4 animate-spin" />
                               Posting...
                             </div>
@@ -1530,18 +1531,18 @@ const CommunityPage = () => {
                   {loading ? (
                     <div className="space-y-6">
                       {[1, 2, 3].map((i) => (
-                        <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-pulse">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                        <div key={i} className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-base animate-pulse">
+                          <div className="flex items-center gap-vara-md mb-3">
+                            <div className="w-10 h-10 bg-dew-sage-light rounded-full"></div>
                             <div className="flex-1">
-                              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                              <div className="h-3 bg-gray-200 rounded w-1/6"></div>
+                              <div className="h-4 bg-dew-sage-light rounded w-1/4 mb-2"></div>
+                              <div className="h-3 bg-dew-sage-light rounded w-1/6"></div>
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <div className="h-4 bg-gray-200 rounded w-full"></div>
-                            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                            <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+                            <div className="h-4 bg-dew-sage-light rounded w-full"></div>
+                            <div className="h-4 bg-dew-sage-light rounded w-5/6"></div>
+                            <div className="h-4 bg-dew-sage-light rounded w-4/6"></div>
                           </div>
                         </div>
                       ))}
@@ -1553,15 +1554,15 @@ const CommunityPage = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-100">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <MessageCircle className="w-8 h-8 text-gray-400" />
+                    <div className="text-center py-12 bg-white rounded-vara-lg shadow-vara-sm border border-divider">
+                      <div className="w-16 h-16 bg-dew-sage-light rounded-full flex items-center justify-center mx-auto mb-vara-base">
+                        <MessageCircle className="w-8 h-8 text-muted-sage-gray" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Your feed is empty</h3>
-                      <p className="text-gray-600 mb-4">Join some groups to see posts from your community!</p>
+                      <h3 className="text-vara-lg font-semibold text-soft-charcoal mb-2">Your feed is empty</h3>
+                      <p className="text-muted-sage-gray mb-vara-base">Join some groups to see posts from your community!</p>
                       <button
                         onClick={() => setActiveTab('discover')}
-                        className="bg-emerald-600 text-white px-6 py-2 rounded-xl hover:bg-emerald-700 transition-colors font-semibold"
+                        className="bg-evergreen-teal text-white px-vara-lg py-2 rounded-vara-lg hover:opacity-90 transition-colors font-semibold"
                       >
                         Discover Groups
                       </button>
@@ -1574,49 +1575,49 @@ const CommunityPage = () => {
               {activeTab === 'discover' && (
                 <div className="space-y-6">
                   {/* Search */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                  <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-base">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-sage-gray w-5 h-5" />
                       <input
                         type="text"
                         placeholder="Search groups, topics, or people..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-3 border border-divider rounded-vara-lg focus:outline-none focus:ring-2 focus:ring-evergreen-teal focus:border-transparent"
                       />
                     </div>
                   </div>
 
                   {/* Quick Actions */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-vara-base">
                     <div
-                      className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-6 rounded-2xl shadow-sm cursor-pointer hover:opacity-95"
+                      className="bg-gradient-to-br from-evergreen-teal to-evergreen-teal text-white p-vara-lg rounded-vara-lg shadow-vara-sm cursor-pointer hover:opacity-95"
                       onClick={() => navigate('/community/people')}
                     >
                       <Users className="w-8 h-8 mb-3" />
                       <h3 className="font-semibold mb-2">Find Partners</h3>
-                      <p className="text-sm opacity-90">Connect with accountability partners</p>
+                      <p className="text-vara-sm opacity-90">Connect with accountability partners</p>
                     </div>
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-2xl shadow-sm">
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-vara-lg rounded-vara-lg shadow-vara-sm">
                       <Video className="w-8 h-8 mb-3" />
                       <h3 className="font-semibold mb-2">Live Sessions</h3>
-                      <p className="text-sm opacity-90">Join live wellness sessions</p>
+                      <p className="text-vara-sm opacity-90">Join live wellness sessions</p>
                     </div>
                     <div
-                      className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-2xl shadow-sm cursor-pointer hover:opacity-95"
+                      className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-vara-lg rounded-vara-lg shadow-vara-sm cursor-pointer hover:opacity-95"
                       onClick={() => setShowModal(true)}
                     >
                       <SettingsIcon className="w-8 h-8 mb-3" />
                       <h3 className="font-semibold mb-2">Create Group</h3>
-                      <p className="text-sm opacity-90">Build your wellness community</p>
+                      <p className="text-vara-sm opacity-90">Build your wellness community</p>
                     </div>
                   </div>
 
                   {/* Trending Groups */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Trending Groups</h2>
+                  <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-lg">
+                    <h2 className="text-vara-lg font-bold text-soft-charcoal mb-vara-base">Trending Groups</h2>
                     {groups.filter((group) => group.isPublic).length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-vara-base">
                         {groups
                           .filter(
                             (group) =>
@@ -1630,9 +1631,9 @@ const CommunityPage = () => {
                       </div>
                     ) : (
                       <div className="text-center py-8">
-                        <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No public groups yet</h3>
-                        <p className="text-gray-600">Be the first to create a public group!</p>
+                        <TrendingUp className="w-12 h-12 text-muted-sage-gray mx-auto mb-vara-base" />
+                        <h3 className="text-vara-lg font-semibold text-soft-charcoal mb-2">No public groups yet</h3>
+                        <p className="text-muted-sage-gray">Be the first to create a public group!</p>
                       </div>
                     )}
                   </div>
@@ -1641,14 +1642,14 @@ const CommunityPage = () => {
 
               {/* Messages */}
               {activeTab === 'messages' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 h-[32rem] grid grid-cols-1 md:grid-cols-3 overflow-hidden">
+                <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider h-[32rem] grid grid-cols-1 md:grid-cols-3 overflow-hidden">
                   {/* Conversations list */}
-                  <div className="border-r border-gray-100 hidden md:block">
-                    <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                      <h2 className="text-lg font-bold text-gray-900">Messages</h2>
+                  <div className="border-r border-divider hidden md:block">
+                    <div className="p-vara-base border-b border-divider flex items-center justify-between">
+                      <h2 className="text-vara-lg font-bold text-soft-charcoal">Messages</h2>
                       <button
                         onClick={() => setShowNewChatModal(true)}
-                        className="text-emerald-600 text-sm font-medium hover:text-emerald-700"
+                        className="text-evergreen-teal text-vara-sm font-medium hover:text-evergreen-teal"
                       >
                         New
                       </button>
@@ -1671,21 +1672,21 @@ const CommunityPage = () => {
                           <button
                             key={c.id}
                             onClick={() => setActiveConversationId(c.id)}
-                            className={`relative w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 ${
-                              active ? 'bg-emerald-50' : ''
+                            className={`relative w-full flex items-center gap-vara-md px-vara-base py-3 text-left hover:bg-dew-sage-light ${
+                              active ? 'bg-teal-light' : ''
                             }`}
                           >
                             <div className="relative">
                               <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover" />
                               {isUnread && (
-                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full ring-2 ring-white"></div>
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-evergreen-teal rounded-full ring-2 ring-white"></div>
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className={`truncate ${isUnread ? 'font-bold text-gray-900' : 'font-medium text-gray-900'}`}>
+                              <p className={`truncate ${isUnread ? 'font-bold text-soft-charcoal' : 'font-medium text-soft-charcoal'}`}>
                                 {name}
                               </p>
-                              <p className={`text-sm truncate ${isUnread ? 'font-medium text-gray-700' : 'text-gray-500'}`}>
+                              <p className={`text-vara-sm truncate ${isUnread ? 'font-medium text-soft-charcoal' : 'text-muted-sage-gray'}`}>
                                 {preview}
                               </p>
                             </div>
@@ -1693,12 +1694,12 @@ const CommunityPage = () => {
                         );
                       })}
                       {dmConversations.length === 0 && (
-                        <div className="p-6 text-center">
-                          <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                          <p className="text-sm text-gray-600 mb-3">No conversations yet</p>
+                        <div className="p-vara-lg text-center">
+                          <MessageSquare className="w-12 h-12 text-muted-sage-gray mx-auto mb-3" />
+                          <p className="text-vara-sm text-muted-sage-gray mb-3">No conversations yet</p>
                           <button
                             onClick={() => setShowNewChatModal(true)}
-                            className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                            className="text-vara-sm text-evergreen-teal hover:text-evergreen-teal font-medium"
                           >
                             Start a conversation
                           </button>
@@ -1710,7 +1711,7 @@ const CommunityPage = () => {
                   {/* Chat pane */}
                   <div className="col-span-2 flex flex-col h-full">
                     {/* Header */}
-                    <div className="p-4 border-b border-gray-100 flex items-center gap-3">
+                    <div className="p-vara-base border-b border-divider flex items-center gap-vara-md">
                       {(() => {
                         const current =
                           dmConversations.find((c) => c.id === activeConversationId) || null;
@@ -1734,55 +1735,55 @@ const CommunityPage = () => {
                                 className="w-8 h-8 rounded-full object-cover"
                               />
                             )}
-                            <h3 className="font-semibold text-gray-900">{name}</h3>
+                            <h3 className="font-semibold text-soft-charcoal">{name}</h3>
                           </>
                         );
                       })()}
                     </div>
 
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
+                    <div className="flex-1 overflow-y-auto p-vara-base space-y-2 bg-mist-white">
                       {activeConversationId ? (
                         dmMessages.map((m) => {
                           const mine = m.senderId === user.uid;
                           return (
                             <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
                               <div
-                                className={`px-3 py-2 rounded-2xl max-w-[75%] text-sm ${
+                                className={`px-3 py-2 rounded-vara-lg max-w-[75%] text-vara-sm ${
                                   mine
-                                    ? 'bg-emerald-600 text-white rounded-br-sm'
-                                    : 'bg-white text-gray-900 border border-gray-100 rounded-bl-sm'
+                                    ? 'bg-evergreen-teal text-white rounded-br-sm'
+                                    : 'bg-white text-soft-charcoal border border-divider rounded-bl-sm'
                                 }`}
                               >
                                 {m.text}
                               </div>
-                              <span className="text-xs text-gray-400 mt-0.5 px-1">
+                              <span className="text-vara-xs text-muted-sage-gray mt-0.5 px-1">
                                 {formatTimeAgo(m.createdAt)}
                               </span>
                             </div>
                           );
                         })
                       ) : (
-                        <div className="h-full flex items-center justify-center text-gray-500">
+                        <div className="h-full flex items-center justify-center text-muted-sage-gray">
                           Select a conversation to start chatting
                         </div>
                       )}
                     </div>
 
                     {/* Composer */}
-                    <div className="p-3 border-t border-gray-100 flex items-center gap-2">
+                    <div className="p-3 border-t border-divider flex items-center gap-vara-sm">
                       <input
                         value={dmText}
                         onChange={(e) => setDmText(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSendDM()}
                         placeholder="Write a message…"
                         disabled={!activeConversationId}
-                        className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
+                        className="flex-1 px-3 py-2 bg-white border border-divider rounded-vara-lg focus:outline-none focus:ring-2 focus:ring-evergreen-teal disabled:opacity-60"
                       />
                       <button
                         onClick={handleSendDM}
                         disabled={!activeConversationId || !dmText.trim()}
-                        className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50"
+                        className="px-vara-base py-2 bg-evergreen-teal text-white rounded-vara-lg hover:opacity-90 disabled:opacity-50"
                       >
                         Send
                       </button>
@@ -1795,10 +1796,10 @@ const CommunityPage = () => {
             {/* Right Sidebar */}
             <div className="lg:col-span-1 space-y-6">
               {/* My Groups */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-gray-900">My Groups</h3>
-                  <button className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">
+              <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-base">
+                <div className="flex items-center justify-between mb-vara-base">
+                  <h3 className="font-bold text-soft-charcoal">My Groups</h3>
+                  <button className="text-evergreen-teal hover:text-evergreen-teal text-vara-sm font-medium">
                     See all
                   </button>
                 </div>
@@ -1810,24 +1811,24 @@ const CommunityPage = () => {
                       <div
                         key={group.id}
                         onClick={() => navigate(`/group/${group.id}`)}
-                        className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                        className="flex items-center gap-vara-md p-2 rounded-vara-lg hover:bg-dew-sage-light transition-colors cursor-pointer"
                       >
-                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
+                        <div className="w-10 h-10 bg-gradient-to-br from-teal-medium to-evergreen-teal rounded-vara-md flex items-center justify-center shadow-vara-sm">
                           {renderGroupIcon(group.icon || group.emoji, "w-5 h-5 text-white")}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{group.name}</p>
-                          <p className="text-xs text-gray-500">{group.memberCount || 0} members</p>
+                          <p className="font-medium text-soft-charcoal truncate">{group.name}</p>
+                          <p className="text-vara-xs text-muted-sage-gray">{group.memberCount || 0} members</p>
                         </div>
                       </div>
                     ))}
                   {groups.filter((group) => group.members?.includes(user?.uid)).length === 0 && (
-                    <div className="text-center py-6">
-                      <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 mb-3">No groups joined yet</p>
+                    <div className="text-center py-vara-lg">
+                      <Users className="w-8 h-8 text-muted-sage-gray mx-auto mb-2" />
+                      <p className="text-vara-sm text-muted-sage-gray mb-3">No groups joined yet</p>
                       <button
                         onClick={() => setActiveTab('discover')}
-                        className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                        className="text-vara-sm text-evergreen-teal hover:text-evergreen-teal font-medium"
                       >
                         Discover groups
                       </button>
@@ -1837,18 +1838,18 @@ const CommunityPage = () => {
               </div>
 
               {/* Vara Connections */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-gray-900">Vara Connections</h3>
-                  <div className="flex items-center gap-2">
+              <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-base">
+                <div className="flex items-center justify-between mb-vara-base">
+                  <h3 className="font-bold text-soft-charcoal">Vara Connections</h3>
+                  <div className="flex items-center gap-vara-sm">
                     <button
-                      className="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+                      className="text-evergreen-teal hover:text-evergreen-teal text-vara-sm font-medium"
                       onClick={() => navigate('/community/people')}
                     >
                       Find more
                     </button>
                     <button
-                      className="text-sm text-gray-500 hover:text-gray-700"
+                      className="text-vara-sm text-muted-sage-gray hover:text-soft-charcoal"
                       onClick={() => setShowRequestsModal(true)}
                     >
                       Requests{incomingRequests.length ? ` (${incomingRequests.length})` : ''}
@@ -1862,7 +1863,7 @@ const CommunityPage = () => {
                     return (
                       <div
                         key={connection.id}
-                        className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                        className="flex items-center gap-vara-md p-2 rounded-vara-lg hover:bg-dew-sage-light transition-colors cursor-pointer"
                       >
                         <img
                           src={
@@ -1875,19 +1876,19 @@ const CommunityPage = () => {
                           className="w-8 h-8 rounded-full object-cover"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">
+                          <p className="font-medium text-soft-charcoal truncate">
                             {otherUser?.displayName || 'User'}
                           </p>
-                          <p className="text-xs text-gray-500">Connected</p>
+                          <p className="text-vara-xs text-muted-sage-gray">Connected</p>
                         </div>
                         <div className="flex gap-1">
                           <button
-                            className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            className="p-1.5 text-muted-sage-gray hover:text-evergreen-teal hover:bg-teal-light rounded-vara-md transition-colors"
                             onClick={() => openChatWith(otherUserId)}
                           >
                             <MessageCircle className="w-4 h-4" />
                           </button>
-                          <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                          <button className="p-1.5 text-muted-sage-gray hover:text-blue-600 hover:bg-blue-50 rounded-vara-md transition-colors">
                             <Video className="w-4 h-4" />
                           </button>
                         </div>
@@ -1895,11 +1896,11 @@ const CommunityPage = () => {
                     );
                   })}
                   {connections.length === 0 && (
-                    <div className="text-center py-6">
-                      <UserCheck className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">No connections yet</p>
+                    <div className="text-center py-vara-lg">
+                      <UserCheck className="w-8 h-8 text-muted-sage-gray mx-auto mb-2" />
+                      <p className="text-vara-sm text-muted-sage-gray">No connections yet</p>
                       <button
-                        className="text-emerald-600 hover:text-emerald-700 text-sm font-medium mt-2"
+                        className="text-evergreen-teal hover:text-evergreen-teal text-vara-sm font-medium mt-2"
                         onClick={() => navigate('/community/people')}
                       >
                         Find connections
@@ -1911,27 +1912,27 @@ const CommunityPage = () => {
 
               {/* Invitations */}
               {pendingInvitations.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                  <h3 className="font-bold text-gray-900 mb-4">Group Invitations</h3>
+                <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-base">
+                  <h3 className="font-bold text-soft-charcoal mb-vara-base">Group Invitations</h3>
                   <div className="space-y-3">
                     {pendingInvitations.slice(0, 3).map((invitation) => (
-                      <div key={invitation.id} className="p-3 bg-orange-50 rounded-xl border border-orange-100">
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-8 h-8 bg-orange-200 rounded-lg flex items-center justify-center text-sm">
+                      <div key={invitation.id} className="p-3 bg-orange-50 rounded-vara-lg border border-orange-100">
+                        <div className="flex items-start gap-vara-md mb-3">
+                          <div className="w-8 h-8 bg-orange-200 rounded-vara-md flex items-center justify-center text-vara-sm">
                             {invitation.groupEmoji || '🎯'}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 text-sm">{invitation.groupName}</p>
-                            <p className="text-xs text-gray-600">
+                            <p className="font-medium text-soft-charcoal text-vara-sm">{invitation.groupName}</p>
+                            <p className="text-vara-xs text-muted-sage-gray">
                               Invited by {users[invitation.invitedBy]?.displayName || 'Someone'}
                             </p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <button className="flex-1 bg-emerald-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
+                        <div className="flex gap-vara-sm">
+                          <button className="flex-1 bg-evergreen-teal text-white py-2 px-3 rounded-vara-md text-vara-sm font-medium hover:opacity-90 transition-colors">
                             Accept
                           </button>
-                          <button className="flex-1 bg-gray-200 text-gray-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors">
+                          <button className="flex-1 bg-dew-sage-light text-soft-charcoal py-2 px-3 rounded-vara-md text-vara-sm font-medium hover:bg-dew-sage transition-colors">
                             Decline
                           </button>
                         </div>
@@ -1942,8 +1943,8 @@ const CommunityPage = () => {
               )}
 
               {/* Suggested Groups */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                <h3 className="font-bold text-gray-900 mb-4">Suggested Groups</h3>
+              <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-base">
+                <h3 className="font-bold text-soft-charcoal mb-vara-base">Suggested Groups</h3>
                 <div className="space-y-3">
                   {groups
                     .filter((group) => group.isPublic && !group.members?.includes(user?.uid))
@@ -1952,12 +1953,12 @@ const CommunityPage = () => {
                       <GroupCard key={group.id} group={group} />
                     ))}
                   {groups.filter((g) => g.isPublic && !g.members?.includes(user?.uid)).length === 0 && (
-                    <div className="text-center py-6">
-                      <TrendingUp className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 mb-3">No suggestions available</p>
+                    <div className="text-center py-vara-lg">
+                      <TrendingUp className="w-8 h-8 text-muted-sage-gray mx-auto mb-2" />
+                      <p className="text-vara-sm text-muted-sage-gray mb-3">No suggestions available</p>
                       <button
                         onClick={() => setShowModal(true)}
-                        className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                        className="text-vara-sm text-evergreen-teal hover:text-evergreen-teal font-medium"
                       >
                         Create a group
                       </button>
@@ -1967,21 +1968,21 @@ const CommunityPage = () => {
               </div>
 
               {/* Quick Stats */}
-              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 text-white">
+              <div className="bg-gradient-to-br from-evergreen-teal to-evergreen-teal rounded-vara-lg p-vara-base text-white">
                 <h3 className="font-bold mb-3">Your Community Impact</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm opacity-90">Groups Joined</span>
+                    <span className="text-vara-sm opacity-90">Groups Joined</span>
                     <span className="font-bold">
                       {groups.filter((g) => g.members?.includes(user?.uid)).length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm opacity-90">Connections</span>
+                    <span className="text-vara-sm opacity-90">Connections</span>
                     <span className="font-bold">{connections.length}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm opacity-90">Posts This Month</span>
+                    <span className="text-vara-sm opacity-90">Posts This Month</span>
                     <span className="font-bold">
                       {posts.filter((p) => p.authorId === user.uid).length}
                     </span>
@@ -1996,13 +1997,13 @@ const CommunityPage = () => {
 
           {/* New Chat Modal */}
           {showNewChatModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">Start New Chat</h2>
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-vara-base">
+              <div className="bg-white rounded-vara-lg p-vara-lg w-full max-w-md">
+                <div className="flex items-center justify-between mb-vara-base">
+                  <h2 className="text-vara-lg font-bold text-soft-charcoal">Start New Chat</h2>
                   <button
                     onClick={() => setShowNewChatModal(false)}
-                    className="text-gray-400 hover:text-gray-600 p-2"
+                    className="text-muted-sage-gray hover:text-muted-sage-gray p-2"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -2010,11 +2011,11 @@ const CommunityPage = () => {
 
                 <div className="space-y-4">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-sage-gray w-4 h-4" />
                     <input
                       type="text"
                       placeholder="Search connections..."
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-3 border border-divider rounded-vara-lg focus:outline-none focus:ring-2 focus:ring-evergreen-teal focus:border-transparent"
                     />
                   </div>
 
@@ -2032,7 +2033,7 @@ const CommunityPage = () => {
                         <button
                           key={connection.id}
                           onClick={() => openChatWith(otherUserId)}
-                          className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors text-left"
+                          className="w-full flex items-center gap-vara-md p-3 rounded-vara-lg hover:bg-dew-sage-light transition-colors text-left"
                         >
                           <img
                             src={avatar}
@@ -2040,28 +2041,28 @@ const CommunityPage = () => {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                           <div>
-                            <p className="font-medium text-gray-900">{name}</p>
-                            <p className="text-sm text-gray-500">Start conversation</p>
+                            <p className="font-medium text-soft-charcoal">{name}</p>
+                            <p className="text-vara-sm text-muted-sage-gray">Start conversation</p>
                           </div>
                         </button>
                       );
                     })}
                     {connections.length === 0 && (
-                      <div className="text-center py-6">
-                        <UserCheck className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600">No connections available</p>
+                      <div className="text-center py-vara-lg">
+                        <UserCheck className="w-8 h-8 text-muted-sage-gray mx-auto mb-2" />
+                        <p className="text-vara-sm text-muted-sage-gray">No connections available</p>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex gap-3 pt-4 border-t border-gray-100">
+                  <div className="flex gap-vara-md pt-4 border-t border-divider">
                     <button
                       onClick={() => setShowNewChatModal(false)}
-                      className="flex-1 py-2 px-4 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex-1 py-2 px-vara-base border border-divider rounded-vara-lg text-soft-charcoal hover:bg-dew-sage-light transition-colors"
                     >
                       Cancel
                     </button>
-                    <button className="flex-1 py-2 px-4 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors">
+                    <button className="flex-1 py-2 px-vara-base bg-evergreen-teal text-white rounded-vara-lg hover:opacity-90 transition-colors">
                       Create Group Chat
                     </button>
                   </div>
@@ -2072,17 +2073,17 @@ const CommunityPage = () => {
 
           {/* Connection Requests Modal */}
           {showRequestsModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">Connection Requests</h2>
-                  <button onClick={() => setShowRequestsModal(false)} className="text-gray-400 hover:text-gray-600 p-2">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-vara-base">
+              <div className="bg-white rounded-vara-lg p-vara-lg w-full max-w-md">
+                <div className="flex items-center justify-between mb-vara-base">
+                  <h2 className="text-vara-lg font-bold text-soft-charcoal">Connection Requests</h2>
+                  <button onClick={() => setShowRequestsModal(false)} className="text-muted-sage-gray hover:text-muted-sage-gray p-2">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {incomingRequests.length === 0 ? (
-                  <div className="text-sm text-gray-600 py-8 text-center">
+                  <div className="text-vara-sm text-muted-sage-gray py-8 text-center">
                     No pending requests.
                   </div>
                 ) : (
@@ -2096,24 +2097,24 @@ const CommunityPage = () => {
                         `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=10b981&color=fff`;
 
                       return (
-                        <div key={req.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-xl">
-                          <div className="flex items-center gap-3">
+                        <div key={req.id} className="flex items-center justify-between p-3 border border-divider rounded-vara-lg">
+                          <div className="flex items-center gap-vara-md">
                             <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover" />
                             <div>
-                              <p className="font-medium text-gray-900">{name}</p>
-                              <p className="text-xs text-gray-500">wants to connect</p>
+                              <p className="font-medium text-soft-charcoal">{name}</p>
+                              <p className="text-vara-xs text-muted-sage-gray">wants to connect</p>
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-vara-sm">
                             <button
                               onClick={() => handleDeclineRequest(req.id)}
-                              className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+                              className="px-3 py-1.5 text-vara-sm rounded-vara-md border border-divider text-soft-charcoal hover:bg-dew-sage-light"
                             >
                               Decline
                             </button>
                             <button
                               onClick={() => handleAcceptRequest(req.id)}
-                              className="px-3 py-1.5 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                              className="px-3 py-1.5 text-vara-sm rounded-vara-md bg-evergreen-teal text-white hover:opacity-90"
                             >
                               Accept
                             </button>

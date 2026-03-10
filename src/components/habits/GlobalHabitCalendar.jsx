@@ -86,18 +86,18 @@ export default function GlobalHabitCalendar() {
     <div className="mt-12">
       {/* Header and Navigation */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-semibold text-[#1B5E57] flex items-center gap-2">
+        <h3 className="text-xl font-semibold text-evergreen-teal flex items-center gap-2">
           🗓️ All Habits This Month - {format(currentMonth, 'MMMM yyyy')}
         </h3>
         <div className="space-x-2">
           <button
-            className="px-3 py-1 text-sm rounded bg-[#D5E3D1] text-[#1B5E57]"
+            className="px-3 py-1 text-sm rounded bg-divider text-evergreen-teal"
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
           >
             Previous
           </button>
           <button
-            className="px-3 py-1 text-sm rounded bg-[#D5E3D1] text-[#1B5E57]"
+            className="px-3 py-1 text-sm rounded bg-divider text-evergreen-teal"
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
           >
             Next
@@ -109,7 +109,7 @@ export default function GlobalHabitCalendar() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-4">
         {['goalId', 'status', 'type', 'trigger', 'reward'].map((key) => (
           <div key={key} className="text-sm">
-            <p className="text-[#1B5E57] font-medium mb-1">
+            <p className="text-evergreen-teal font-medium mb-1">
               {key.charAt(0).toUpperCase() + key.slice(1)}
             </p>
             <div className="flex flex-wrap gap-1">
@@ -119,8 +119,8 @@ export default function GlobalHabitCalendar() {
                   onClick={() => toggleFilterValue(key, val)}
                   className={`px-2 py-1 border rounded text-xs ${
                     filters[key].includes(val)
-                      ? 'bg-[#1B5E57] text-white border-[#1B5E57]'
-                      : 'bg-white text-[#3E3E3E] border-[#D5E3D1]'
+                      ? 'bg-evergreen-teal text-white border-evergreen-teal'
+                      : 'bg-white text-soft-charcoal border-divider'
                   }`}
                 >
                   {val}
@@ -133,7 +133,7 @@ export default function GlobalHabitCalendar() {
 
       <button
         onClick={clearFilters}
-        className="mb-6 text-sm text-[#1B5E57] underline hover:text-[#3E3E3E]"
+        className="mb-6 text-sm text-evergreen-teal underline hover:text-soft-charcoal"
       >
         Clear all filters
       </button>
@@ -141,11 +141,11 @@ export default function GlobalHabitCalendar() {
       {/* Legend */}
       <div className="flex items-center gap-6 mb-4 text-sm">
         <div className="flex items-center gap-2">
-          <span className="w-4 h-4 bg-[#B8CDBA] rounded"></span>
+          <span className="w-4 h-4 bg-silver-sage rounded"></span>
           <span>Completed</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-4 h-4 bg-[#F4C542] rounded"></span>
+          <span className="w-4 h-4 bg-sunrise-amber rounded"></span>
           <span>Open</span>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function GlobalHabitCalendar() {
       {/* Calendar Grid */}
       <div className="grid grid-cols-7 gap-2 text-sm">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-          <div key={d} className="text-center text-[#9AAE8C] font-medium">
+          <div key={d} className="text-center text-muted-sage-gray font-medium">
             {d}
           </div>
         ))}
@@ -168,10 +168,10 @@ export default function GlobalHabitCalendar() {
               key={day.toISOString()}
               className={`h-14 w-14 flex flex-col items-center justify-center rounded-lg text-xs relative border transition-all duration-200
                 ${completed
-                  ? 'bg-[#B8CDBA] text-white border-[#B8CDBA]'
+                  ? 'bg-silver-sage text-white border-silver-sage'
                   : open
-                  ? 'bg-[#F4C542] text-white border-[#F4C542]'
-                  : 'bg-[#FAFAF6] text-[#3E3E3E] border-[#D5E3D1]'}
+                  ? 'bg-sunrise-amber text-white border-sunrise-amber'
+                  : 'bg-mist-white text-soft-charcoal border-divider'}
               `}
             >
               <div>{day.getDate()}</div>

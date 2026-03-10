@@ -55,6 +55,7 @@ export interface ComputedFeatureAccess {
  * Get feature unlock state from user document
  */
 export async function getFeatureUnlockState(userId: string): Promise<FeatureUnlockState | null> {
+  if (!db) return null;
   try {
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
@@ -83,6 +84,7 @@ export async function getFeatureUnlockState(userId: string): Promise<FeatureUnlo
  * This also starts the progressive unlock timer
  */
 export async function setSelectedPillar(userId: string, pillar: BrainPillar): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
@@ -103,6 +105,7 @@ export async function setSelectedPillar(userId: string, pillar: BrainPillar): Pr
  * This is the "escape hatch" allowing users to skip progressive unlocking
  */
 export async function unlockAllFeatures(userId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {

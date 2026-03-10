@@ -300,8 +300,8 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
               }}
               className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
                 selectedRoutineType === type.value
-                  ? 'bg-[#1B5E57] text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-evergreen-teal text-white shadow-sm'
+                  : 'bg-dew-sage-light text-soft-charcoal hover:bg-silver-sage/30'
               }`}
             >
               <Icon size={20} />
@@ -313,14 +313,14 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
 
       {/* Editing View */}
       {editingRoutine ? (
-        <div className="bg-white rounded-xl border-2 border-[#1B5E57] p-6 space-y-6">
+        <div className="bg-white rounded-xl border-2 border-evergreen-teal p-6 space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-gray-900">
+            <h3 className="text-xl font-bold text-soft-charcoal">
               {editingRoutine.isNew ? 'Create New Routine' : 'Edit Routine'}
             </h3>
             <button
               onClick={cancelEdit}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-muted-sage-gray hover:text-soft-charcoal"
             >
               <X size={24} />
             </button>
@@ -328,7 +328,7 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
 
           {/* Routine Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-soft-charcoal mb-2">
               Routine Name
             </label>
             <input
@@ -336,17 +336,17 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
               value={routineName}
               onChange={(e) => setRoutineName(e.target.value)}
               placeholder="My Morning Routine"
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-[#1B5E57] focus:ring-2 focus:ring-[#1B5E57]/20 outline-none"
+              className="w-full px-4 py-2 rounded-lg border border-divider focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal/20 outline-none"
             />
           </div>
 
           {/* Activities List */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-soft-charcoal">
                 Activities ({activities.length})
               </label>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-sage-gray">
                 Total: {getTotalDuration()} minutes
               </div>
             </div>
@@ -356,23 +356,23 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
                 {activities.map((activity, index) => (
                   <div
                     key={activity.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50"
+                    className="flex items-center gap-3 p-3 rounded-lg border border-divider bg-dew-sage-light"
                   >
                     <div className={`w-10 h-10 rounded-full bg-${activity.color}-100 flex items-center justify-center text-${activity.color}-600`}>
                       {getIconComponent(activity.icon, 20)}
                     </div>
 
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{activity.name}</div>
+                      <div className="font-medium text-soft-charcoal">{activity.name}</div>
                       <div className="flex items-center gap-2 mt-1">
-                        <Clock size={14} className="text-gray-400" />
+                        <Clock size={14} className="text-muted-sage-gray/60" />
                         <input
                           type="number"
                           value={activity.duration}
                           onChange={(e) => updateActivityDuration(activity.id, e.target.value)}
-                          className="w-16 px-2 py-1 text-sm rounded border border-gray-300 focus:border-[#1B5E57] outline-none"
+                          className="w-16 px-2 py-1 text-sm rounded border border-divider focus:border-evergreen-teal outline-none"
                         />
-                        <span className="text-sm text-gray-600">min</span>
+                        <span className="text-sm text-muted-sage-gray">min</span>
                       </div>
                     </div>
 
@@ -380,14 +380,14 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
                       <button
                         onClick={() => moveActivity(index, 'up')}
                         disabled={index === 0}
-                        className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-1 rounded hover:bg-dew-sage-light disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <ChevronUp size={18} />
                       </button>
                       <button
                         onClick={() => moveActivity(index, 'down')}
                         disabled={index === activities.length - 1}
-                        className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-1 rounded hover:bg-dew-sage-light disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <ChevronDown size={18} />
                       </button>
@@ -402,15 +402,15 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 mb-4">
-                <p className="text-gray-500">No activities yet</p>
+              <div className="text-center py-8 bg-dew-sage-light rounded-lg border-2 border-dashed border-divider mb-4">
+                <p className="text-muted-sage-gray">No activities yet</p>
               </div>
             )}
 
             {/* Add Activity Button */}
             <button
               onClick={() => setShowActivityLibrary(!showActivityLibrary)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-700 hover:border-[#1B5E57] hover:text-[#1B5E57] transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-divider text-soft-charcoal hover:border-evergreen-teal hover:text-evergreen-teal transition-all"
             >
               <Plus size={20} />
               Add Activity
@@ -431,10 +431,10 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
                         {getIconComponent(activity.icon, 16)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate">
+                        <div className="text-sm font-medium text-soft-charcoal truncate">
                           {activity.name}
                         </div>
-                        <div className="text-xs text-gray-500">{activity.duration}m</div>
+                        <div className="text-xs text-muted-sage-gray">{activity.duration}m</div>
                       </div>
                     </button>
                   ))}
@@ -445,30 +445,30 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
 
           {/* Reminder Time */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-soft-charcoal mb-2">
               Daily Reminder (Optional)
             </label>
             <input
               type="time"
               value={reminderTime}
               onChange={(e) => setReminderTime(e.target.value)}
-              className="px-4 py-2 rounded-lg border border-gray-300 focus:border-[#1B5E57] focus:ring-2 focus:ring-[#1B5E57]/20 outline-none"
+              className="px-4 py-2 rounded-lg border border-divider focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal/20 outline-none"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+          <div className="flex items-center gap-3 pt-4 border-t border-divider">
             <button
               onClick={saveRoutine}
               disabled={loading}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#1B5E57] text-white hover:bg-[#174C46] transition-all font-semibold disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-evergreen-teal text-white hover:opacity-90 transition-all font-semibold disabled:opacity-50"
             >
               <Save size={20} />
               {loading ? 'Saving...' : 'Save Routine'}
             </button>
             <button
               onClick={cancelEdit}
-              className="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-semibold"
+              className="px-6 py-3 rounded-lg border border-divider text-soft-charcoal hover:bg-dew-sage-light transition-all font-semibold"
             >
               Cancel
             </button>
@@ -487,12 +487,12 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
         // View Mode
         <div>
           {currentRoutine ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-white rounded-xl border border-divider p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900">{currentRoutine.name}</h3>
+                <h3 className="text-xl font-bold text-soft-charcoal">{currentRoutine.name}</h3>
                 <button
                   onClick={() => editExistingRoutine(currentRoutine)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-divider text-soft-charcoal hover:bg-dew-sage-light transition-all"
                 >
                   <Edit3 size={16} />
                   Edit
@@ -502,18 +502,18 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
               {/* Activities Timeline */}
               <div className="space-y-3 mb-4">
                 {currentRoutine.activities.map((activity, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                  <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-dew-sage-light">
                     <div className={`w-10 h-10 rounded-full bg-${activity.color}-100 flex items-center justify-center text-${activity.color}-600`}>
                       {getIconComponent(activity.icon, 20)}
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{activity.name}</div>
-                      <div className="text-sm text-gray-600 flex items-center gap-1">
+                      <div className="font-medium text-soft-charcoal">{activity.name}</div>
+                      <div className="text-sm text-muted-sage-gray flex items-center gap-1">
                         <Clock size={14} />
                         {activity.duration} minutes
                       </div>
                     </div>
-                    <div className="text-sm font-semibold text-gray-400">
+                    <div className="text-sm font-semibold text-muted-sage-gray/60">
                       #{index + 1}
                     </div>
                   </div>
@@ -521,16 +521,16 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-divider">
                 <div>
-                  <div className="text-sm text-gray-600">Total Duration</div>
-                  <div className="text-2xl font-bold text-[#1B5E57]">
+                  <div className="text-sm text-muted-sage-gray">Total Duration</div>
+                  <div className="text-2xl font-bold text-evergreen-teal">
                     {currentRoutine.activities.reduce((sum, a) => sum + a.duration, 0)} min
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-600">Activities</div>
-                  <div className="text-2xl font-bold text-[#1B5E57]">
+                  <div className="text-sm text-muted-sage-gray">Activities</div>
+                  <div className="text-2xl font-bold text-evergreen-teal">
                     {currentRoutine.activities.length}
                   </div>
                 </div>
@@ -545,17 +545,17 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
               )}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-              <CalendarIcon className="mx-auto mb-3 text-gray-300" size={48} />
-              <p className="font-medium text-gray-700 mb-2">
+            <div className="text-center py-12 bg-dew-sage-light rounded-lg border-2 border-dashed border-divider">
+              <CalendarIcon className="mx-auto mb-3 text-muted-sage-gray/60" size={48} />
+              <p className="font-medium text-soft-charcoal mb-2">
                 No {selectedRoutineType} routine yet
               </p>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-muted-sage-gray mb-4">
                 Create a routine to optimize your {selectedRoutineType} for success
               </p>
               <button
                 onClick={startNewRoutine}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#1B5E57] text-white hover:bg-[#174C46] transition-all font-semibold"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-evergreen-teal text-white hover:opacity-90 transition-all font-semibold"
               >
                 <Plus size={20} />
                 Create {selectedRoutineType.charAt(0).toUpperCase() + selectedRoutineType.slice(1)} Routine

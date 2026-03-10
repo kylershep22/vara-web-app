@@ -30,6 +30,11 @@ export const INTENTION_OPTIONS: Record<IntentionCategory, string[]> = {
     'Recover from burnout',
     'Sustain energy throughout the day',
   ],
+  brain_health: [
+    'Build cognitive reserve',
+    'Support long-term clarity',
+    'Strengthen my brain\'s resilience',
+  ],
 };
 
 /**
@@ -40,6 +45,7 @@ export const INTENTION_CATEGORY_LABELS: Record<IntentionCategory, string> = {
   regulation_recovery: 'Regulation & Recovery',
   sustainable_consistency: 'Sustainable Consistency',
   energy_resilience: 'Energy & Resilience',
+  brain_health: 'Brain Health',
 };
 
 /**
@@ -71,5 +77,11 @@ export const INTENTION_INSIGHTS: Record<IntentionCategory, string[]> = {
     'Your body\'s energy systems adapt to consistent habits within weeks.',
     'Strategic recovery habits are as important as active energy-building ones.',
     'Energy resilience means bouncing back faster — and your habits train that response.',
+  ],
+  brain_health: [
+    'Cognitive reserve is built through consistent, varied mental stimulation.',
+    'Your brain\'s resilience grows with every habit that challenges it in new ways.',
+    'Long-term brain health depends on the daily habits you build now.',
+    'Small daily investments in brain health compound into lasting cognitive strength.',
   ],
 };

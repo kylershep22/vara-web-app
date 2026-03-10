@@ -53,17 +53,17 @@ export default function Reflections() {
     <SidebarLayout>
       <div className="p-6 max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-2">
-          <NotebookPen size={28} className="text-[#1B5E57]" />
-          <h1 className="text-2xl font-semibold text-[#3E3E3E]">Reflections</h1>
+          <NotebookPen size={28} className="text-evergreen-teal" />
+          <h1 className="text-vara-xl font-semibold text-soft-charcoal">Reflections</h1>
         </div>
-        <p className="text-[#9AAE8C] mb-6">
+        <p className="text-muted-sage-gray mb-6">
           Your daily AM/PM notes—scan for patterns, progress, and moments that mattered.
         </p>
 
         {/* Controls */}
         <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6">
-          <div className="flex items-center gap-2 bg-white border border-[#D5E3D1] rounded-xl px-3 py-2 w-full md:w-80">
-            <Search size={16} className="text-gray-500" />
+          <div className="flex items-center gap-2 bg-white border border-divider rounded-xl px-3 py-2 w-full md:w-80">
+            <Search size={16} className="text-muted-sage-gray" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -73,11 +73,11 @@ export default function Reflections() {
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
-            <Filter size={16} className="text-gray-500" />
+            <Filter size={16} className="text-muted-sage-gray" />
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
-              className="text-sm border border-[#D5E3D1] rounded-lg px-2 py-1 bg-white"
+              className="text-sm border border-divider rounded-lg px-2 py-1 bg-white"
             >
               <option value="all">All (AM + PM)</option>
               <option value="am">Morning only</option>
@@ -88,14 +88,14 @@ export default function Reflections() {
 
         {/* List */}
         {grouped.length === 0 ? (
-          <div className="bg-white/80 border border-[#D5E3D1] rounded-2xl p-6 text-sm text-gray-600">
+          <div className="bg-white/80 border border-divider rounded-2xl p-6 text-sm text-muted-sage-gray">
             No reflections yet.
           </div>
         ) : (
           <div className="space-y-6">
             {grouped.map(([dateKey, items]) => (
               <div key={dateKey}>
-                <div className="flex items-center gap-2 mb-2 text-[#1B5E57]">
+                <div className="flex items-center gap-2 mb-2 text-evergreen-teal">
                   <CalendarDays size={18} />
                   <h2 className="font-semibold">{prettyDate(dateKey)}</h2>
                 </div>
@@ -103,12 +103,12 @@ export default function Reflections() {
                   {items.map((e) => (
                     <article
                       key={e.id}
-                      className="bg-white/80 border border-[#D5E3D1] rounded-xl p-4 shadow-sm"
+                      className="bg-white/80 border border-divider rounded-xl p-4 shadow-sm"
                     >
-                      <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">
+                      <div className="text-xs text-muted-sage-gray mb-1 uppercase tracking-wide">
                         {e.period === "am" ? "Morning" : e.period === "pm" ? "Evening" : "Anytime"}
                       </div>
-                      <p className="text-sm text-[#3E3E3E] whitespace-pre-wrap">{e.text}</p>
+                      <p className="text-sm text-soft-charcoal whitespace-pre-wrap">{e.text}</p>
                     </article>
                   ))}
                 </div>

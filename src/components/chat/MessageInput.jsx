@@ -24,14 +24,14 @@ export default function MessageInput({ onSend }) {
     <div className="relative">
       {/* Optional mini emoji bar (no external libs) */}
       {showEmojiBar && (
-        <div className="absolute bottom-12 left-0 z-10 bg-white border border-[#D5E3D1] rounded-xl shadow-lg p-2">
+        <div className="absolute bottom-12 left-0 z-10 bg-white border border-divider rounded-xl shadow-lg p-2">
           <div className="flex flex-wrap gap-2">
             {EMOJIS.map((e) => (
               <button
                 key={e}
                 type="button"
                 onClick={() => handleEmojiSelect(e)}
-                className="px-2 py-1 rounded-lg hover:bg-[#D5E3D1]/40"
+                className="px-2 py-1 rounded-lg hover:bg-dew-sage-light"
                 aria-label={`Insert ${e}`}
               >
                 <span className="text-lg">{e}</span>
@@ -45,7 +45,7 @@ export default function MessageInput({ onSend }) {
         <button
           type="button"
           onClick={() => setShowEmojiBar((prev) => !prev)}
-          className="text-[#3E3E3E]/70 hover:text-[#1B5E57]"
+          className="text-soft-charcoal/70 hover:text-evergreen-teal"
           aria-label="Toggle emoji bar"
           title="Toggle emoji bar (Tip: Win + . or ⌃⌘Space for OS emoji)"
         >
@@ -57,7 +57,7 @@ export default function MessageInput({ onSend }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 border border-[#D5E3D1] rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-[#B8CDBA] bg-white"
+          className="flex-1 border border-divider rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-silver-sage bg-white"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -70,7 +70,7 @@ export default function MessageInput({ onSend }) {
         <button
           type="button"
           onClick={handleSend}
-          className="bg-gradient-to-br from-[#1B5E57] to-[#B8CDBA] text-white px-4 py-2 rounded-lg hover:opacity-95 text-sm font-semibold disabled:opacity-50"
+          className="bg-gradient-to-br from-evergreen-teal to-silver-sage text-white px-4 py-2 rounded-lg hover:opacity-95 text-sm font-semibold disabled:opacity-50"
           disabled={!text.trim()}
           aria-label="Send message"
         >

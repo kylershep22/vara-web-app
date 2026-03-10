@@ -55,7 +55,7 @@ const Notifications = () => {
           {notifications.map((notif) => (
             <li
               key={notif.id}
-              className={`p-4 border rounded-md shadow-sm cursor-pointer hover:bg-gray-50 ${!notif.read ? 'bg-emerald-50' : 'bg-white'
+              className={`p-4 border rounded-md shadow-sm cursor-pointer hover:bg-dew-sage-light ${!notif.read ? 'bg-teal-light' : 'bg-white'
                 }`}
               onClick={() => handleNotificationClick(notif)}
             >
@@ -67,7 +67,7 @@ const Notifications = () => {
                       ? 'Your new daily wellness plan is ready.'
                       : 'You have a new notification.')}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-sage-gray mt-1">
                 {notif.createdAt?.toDate
                   ? notif.createdAt.toDate().toLocaleString()
                   : ''}
@@ -75,7 +75,7 @@ const Notifications = () => {
             </li>
           ))}
           {notifications.length === 0 && (
-            <p className="text-gray-500 text-sm">You're all caught up!</p>
+            <p className="text-muted-sage-gray text-sm">You're all caught up!</p>
           )}
         </ul>
       </div>

@@ -12,9 +12,9 @@ export default function Step4ChooseTimeframe({ data, setData, nextStep, prevStep
   };
 
   return (
-    <div className="max-w-xl mx-auto text-center p-6 bg-[#FAFAF6] rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-[#1B5E57] mb-4">Step 4 of 6</h2>
-      <p className="mb-6 text-[#3E3E3E]">
+    <div className="max-w-xl mx-auto text-center p-6 bg-mist-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold text-evergreen-teal mb-4">Step 4 of 6</h2>
+      <p className="mb-6 text-soft-charcoal">
         How long would you like to focus on this goal?
       </p>
 
@@ -25,8 +25,8 @@ export default function Step4ChooseTimeframe({ data, setData, nextStep, prevStep
             onClick={() => setTimeframe(label)}
             className={`w-full py-3 px-4 rounded font-medium transition ${
               timeframe === label
-                ? 'bg-[#1B5E57] text-white'
-                : 'bg-[#F4C542] text-white hover:bg-[#F5B971]'
+                ? 'bg-evergreen-teal text-white'
+                : 'bg-sunrise-amber text-white hover:bg-golden-apricot'
             }`}
           >
             {label}
@@ -35,26 +35,26 @@ export default function Step4ChooseTimeframe({ data, setData, nextStep, prevStep
       </div>
 
       <div className="mb-6">
-        <label className="block text-[#3E3E3E] mb-2">Optional: Set a target date</label>
+        <label className="block text-soft-charcoal mb-2">Optional: Set a target date</label>
         <input
           type="date"
           value={targetDate}
           onChange={(e) => setTargetDate(e.target.value)}
-          className="w-full px-4 py-2 border border-[#E4BFA1] rounded focus:outline-none focus:ring focus:border-[#1B5E57]"
+          className="w-full px-4 py-2 border border-golden-apricot rounded focus:outline-none focus:ring focus:border-evergreen-teal"
         />
       </div>
 
       <div className="flex justify-between">
         <button
           onClick={prevStep}
-          className="text-[#1B5E57] underline hover:text-[#3E3E3E] transition"
+          className="text-evergreen-teal underline hover:text-soft-charcoal transition"
         >
           ← Back to Step 3
         </button>
         <button
           onClick={handleNext}
           disabled={!timeframe}
-          className="px-6 py-2 bg-[#1B5E57] text-white rounded hover:bg-[#3E3E3E] transition disabled:opacity-50"
+          className="px-6 py-2 bg-evergreen-teal text-white rounded hover:opacity-90 transition disabled:opacity-50"
         >
           Continue
         </button>

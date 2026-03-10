@@ -59,15 +59,15 @@ export default function SeedTagsTool() {
   return (
     <SidebarLayout>
       <div className="max-w-xl mx-auto p-6">
-        <h1 className="text-xl font-semibold text-[#3E3E3E] mb-3">Seed Tags</h1>
-        <p className="text-sm text-gray-600 mb-6">
+        <h1 className="text-xl font-semibold text-soft-charcoal mb-3">Seed Tags</h1>
+        <p className="text-sm text-muted-sage-gray mb-6">
           Click once to write starter Interests & Focus Areas to <code>tags</code>.
           You can safely run this again; it upserts by slug.
         </p>
         <button
           onClick={seedAll}
           disabled={busy || done}
-          className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white disabled:opacity-60"
+          className="px-4 py-2 rounded-lg bg-gradient-to-r from-evergreen-teal to-silver-sage text-white disabled:opacity-60"
         >
           {busy ? "Seeding…" : done ? "Seeded ✅" : "Seed starter tags"}
         </button>

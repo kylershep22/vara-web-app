@@ -160,8 +160,8 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
           onClick={() => setSessionType('focus')}
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
             sessionType === 'focus'
-              ? 'bg-[#1B5E57] text-white shadow-sm'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-evergreen-teal text-white shadow-sm'
+              : 'bg-dew-sage-light text-muted-sage-gray hover:bg-silver-sage/30'
           }`}
         >
           Focus
@@ -173,8 +173,8 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
           }}
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
             sessionType === 'short-break'
-              ? 'bg-green-500 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-evergreen-teal text-white shadow-sm'
+              : 'bg-dew-sage-light text-muted-sage-gray hover:bg-silver-sage/30'
           }`}
         >
           Short Break (5m)
@@ -187,7 +187,7 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
             sessionType === 'long-break'
               ? 'bg-blue-500 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              : 'bg-dew-sage-light text-muted-sage-gray hover:bg-silver-sage/30'
           }`}
         >
           Long Break (15m)
@@ -224,13 +224,13 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
 
           {/* Timer Text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="text-6xl font-bold text-gray-900 mb-2">
+            <div className="text-6xl font-bold text-soft-charcoal mb-2">
               {formatTime(minutes, seconds)}
             </div>
-            <div className="text-sm text-gray-500 uppercase tracking-wide">
+            <div className="text-sm text-muted-sage-gray uppercase tracking-wide">
               {sessionType.replace('-', ' ')}
             </div>
-            <div className="text-xs text-gray-400 mt-1">
+            <div className="text-xs text-muted-sage-gray/60 mt-1">
               {selectedDuration} minute session
             </div>
           </div>
@@ -242,7 +242,7 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
         {!isActive ? (
           <button
             onClick={startTimer}
-            className="flex items-center gap-2 px-8 py-4 rounded-xl bg-[#1B5E57] text-white hover:bg-[#174C46] transition-all shadow-lg hover:shadow-xl font-semibold text-lg"
+            className="flex items-center gap-2 px-8 py-4 rounded-xl bg-evergreen-teal text-white hover:opacity-90 transition-all shadow-lg hover:shadow-xl font-semibold text-lg"
           >
             <Play size={24} />
             Start
@@ -250,7 +250,7 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
         ) : isPaused ? (
           <button
             onClick={resumeTimer}
-            className="flex items-center gap-2 px-8 py-4 rounded-xl bg-green-600 text-white hover:bg-green-700 transition-all shadow-lg hover:shadow-xl font-semibold text-lg"
+            className="flex items-center gap-2 px-8 py-4 rounded-xl bg-evergreen-teal text-white hover:opacity-90 transition-all shadow-lg hover:shadow-xl font-semibold text-lg"
           >
             <Play size={24} />
             Resume
@@ -267,7 +267,7 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
 
         <button
           onClick={resetTimer}
-          className="flex items-center gap-2 px-6 py-4 rounded-xl border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-semibold"
+          className="flex items-center gap-2 px-6 py-4 rounded-xl border-2 border-divider text-soft-charcoal hover:bg-dew-sage-light transition-all font-semibold"
         >
           <RotateCcw size={20} />
           Reset
@@ -278,7 +278,7 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
       {sessionType === 'focus' && (
         <div className="space-y-4">
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-700 mb-3">Quick Presets</p>
+            <p className="text-sm font-medium text-soft-charcoal mb-3">Quick Presets</p>
             <div className="flex items-center justify-center gap-2 flex-wrap">
               {presets.map(preset => (
                 <button
@@ -287,8 +287,8 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
                   disabled={isActive}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     selectedDuration === preset.value
-                      ? 'bg-[#1B5E57] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-evergreen-teal text-white'
+                      : 'bg-dew-sage-light text-soft-charcoal hover:bg-silver-sage/30'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {preset.label}
@@ -307,12 +307,12 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
               min="1"
               max="180"
               disabled={isActive}
-              className="w-32 px-3 py-2 rounded-lg border border-gray-300 focus:border-[#1B5E57] focus:ring-2 focus:ring-[#1B5E57]/20 outline-none disabled:opacity-50"
+              className="w-32 px-3 py-2 rounded-lg border border-divider focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal/20 outline-none disabled:opacity-50"
             />
             <button
               onClick={handleCustomDuration}
               disabled={isActive || !customDuration}
-              className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-lg bg-silver-sage/30 text-soft-charcoal hover:bg-dew-sage-light transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Set
             </button>

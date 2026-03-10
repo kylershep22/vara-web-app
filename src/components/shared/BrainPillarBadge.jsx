@@ -103,9 +103,9 @@ export function NeurochemicalTag({ impact, size = 'small' }) {
   const arrow = impact.direction === 'increase' ? '↑' : '↓';
   const isIncrease = impact.direction === 'increase';
 
-  const bgColor = isIncrease ? 'bg-green-50' : 'bg-blue-50';
-  const textColor = isIncrease ? 'text-green-700' : 'text-blue-700';
-  const borderColor = isIncrease ? 'border-green-200' : 'border-blue-200';
+  const bgColor = isIncrease ? 'bg-teal-light' : 'bg-blue-50';
+  const textColor = isIncrease ? 'text-evergreen-teal' : 'text-blue-700';
+  const borderColor = isIncrease ? 'border-silver-sage' : 'border-blue-200';
 
   const sizeClasses = {
     small: 'px-2 py-0.5 text-xs',
@@ -144,7 +144,7 @@ export function NeurochemicalTagList({ impacts, size = 'small', maxDisplay = nul
         <NeurochemicalTag key={idx} impact={impact} size={size} />
       ))}
       {remaining > 0 && (
-        <span className="text-xs text-gray-500">+{remaining} more</span>
+        <span className="text-xs text-muted-sage-gray">+{remaining} more</span>
       )}
     </div>
   );

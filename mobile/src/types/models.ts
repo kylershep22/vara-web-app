@@ -6,6 +6,15 @@
 import { Timestamp } from 'firebase/firestore';
 
 // ==========================================
+// VALUE MODELS
+// ==========================================
+
+export interface UserValue {
+  id: string;
+  label: string; // e.g. "Clarity", "Resilience"
+}
+
+// ==========================================
 // USER MODELS
 // ==========================================
 
@@ -18,8 +27,16 @@ export interface UserProfile {
   avatarUrl?: string; // Alternative field name used in some places
   bannerUrl?: string;
   location?: string;
+  // Personal values (set during onboarding, displayed in habit wizard Step 5)
+  values?: string[];
+  // Value alignment objects (id + label pairs for habit completion sheet)
+  userValues?: UserValue[];
+
   privacy: 'public' | 'connections' | 'private';
   searchable?: boolean;
+
+  // Habit completion reflections master toggle (default: true)
+  reflectionEnabled?: boolean;
 
   // Standardized interests (IDs from WELLNESS_INTERESTS)
   interests?: string[];
@@ -87,7 +104,8 @@ export type IntentionCategory =
   | 'focus_clarity'
   | 'regulation_recovery'
   | 'sustainable_consistency'
-  | 'energy_resilience';
+  | 'energy_resilience'
+  | 'brain_health';
 
 export interface HabitIntention {
   label: string;
@@ -152,9 +170,16 @@ export interface Habit {
   // Intention System
   intention?: HabitIntention;
 
+  // Values alignment (from Step 5 — links habit to a personal value)
+  valueAlignment?: string | null;
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+export type HabitReflection = 'smooth' | 'okay' | 'hard';
+export type ConnectionQuality = 'nourishing' | 'fine' | 'draining';
+export type CompletionSource = 'track' | 'home';
 
 export interface HabitCompletion {
   id: string;
@@ -168,6 +193,23 @@ export interface HabitCompletion {
   versionCompleted?: 'full' | 'quick_start' | 'just_show_up'; // Which version did they do?
   satisfaction?: 'great' | 'good' | 'okay'; // How did they feel after?
   quickNote?: string; // Optional 1-line reflection
+
+  // Completion reflection (from HabitCompletionSheet)
+  reflection?: HabitReflection | null;        // For non-Connection habits
+  connectionQuality?: ConnectionQuality | null; // For Connection-category habits
+  source?: CompletionSource;                   // Where the completion was triggered
+  crFlagged?: boolean;                         // Denormalized from habit at completion time
+  valueAlignment?: string | null;              // Denormalized from habit at completion time
+  skippedReflection?: boolean;                 // True when user explicitly tapped skip
+}
+
+/** Data passed from HabitCompletionSheet to the completion handler */
+export interface CompletionData {
+  habitId: string;
+  reflection: HabitReflection | null;
+  connectionQuality: ConnectionQuality | null;
+  skippedReflection: boolean;
+  source: CompletionSource;
 }
 
 // ==========================================

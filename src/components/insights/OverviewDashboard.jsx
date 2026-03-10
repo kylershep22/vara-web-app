@@ -148,7 +148,7 @@ const OverviewDashboard = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -159,13 +159,13 @@ const OverviewDashboard = ({ userId }) => {
       {/* Hero Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Habit Completion */}
-        <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-6 border border-green-200">
+        <div className="bg-gradient-to-br from-teal-light to-dew-sage rounded-xl p-6 border border-silver-sage">
           <div className="flex items-center justify-between mb-3">
-            <CheckCircle className="text-green-600" size={28} />
-            <div className="text-3xl font-bold text-green-900">{stats.habitCompletionRate}%</div>
+            <CheckCircle className="text-evergreen-teal" size={28} />
+            <div className="text-3xl font-bold text-evergreen-teal">{stats.habitCompletionRate}%</div>
           </div>
-          <div className="text-sm font-semibold text-green-700 uppercase mb-1">Today's Habits</div>
-          <div className="text-xs text-green-600">{stats.habitsToday} of {stats.totalHabits} completed</div>
+          <div className="text-sm font-semibold text-evergreen-teal uppercase mb-1">Today's Habits</div>
+          <div className="text-xs text-evergreen-teal">{stats.habitsToday} of {stats.totalHabits} completed</div>
         </div>
 
         {/* Active Goals */}
@@ -215,36 +215,36 @@ const OverviewDashboard = ({ userId }) => {
       )}
 
       {/* This Week Summary */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="text-gray-600" size={20} />
-          <h3 className="text-lg font-semibold text-gray-900">This Week at a Glance</h3>
+          <Calendar className="text-muted-sage-gray" size={20} />
+          <h3 className="text-lg font-semibold text-soft-charcoal">This Week at a Glance</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <div className="text-2xl font-bold text-gray-900 mb-1">{stats.habitsToday}/{stats.totalHabits}</div>
-            <div className="text-sm text-gray-600">Habits completed today</div>
+            <div className="text-2xl font-bold text-soft-charcoal mb-1">{stats.habitsToday}/{stats.totalHabits}</div>
+            <div className="text-sm text-muted-sage-gray">Habits completed today</div>
           </div>
 
           <div>
-            <div className="text-2xl font-bold text-gray-900 mb-1">{formatDuration(stats.focusMinutesThisWeek)}</div>
-            <div className="text-sm text-gray-600">Deep focus time</div>
+            <div className="text-2xl font-bold text-soft-charcoal mb-1">{formatDuration(stats.focusMinutesThisWeek)}</div>
+            <div className="text-sm text-muted-sage-gray">Deep focus time</div>
           </div>
 
           <div>
-            <div className="text-2xl font-bold text-gray-900 mb-1">{stats.avgSleepThisWeek}h</div>
-            <div className="text-sm text-gray-600">Average sleep</div>
+            <div className="text-2xl font-bold text-soft-charcoal mb-1">{stats.avgSleepThisWeek}h</div>
+            <div className="text-sm text-muted-sage-gray">Average sleep</div>
           </div>
         </div>
       </div>
 
       {/* Recent Wins */}
       {recentWins.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-2 mb-4">
             <Award className="text-yellow-600" size={20} />
-            <h3 className="text-lg font-semibold text-gray-900">Recent Wins</h3>
+            <h3 className="text-lg font-semibold text-soft-charcoal">Recent Wins</h3>
           </div>
 
           <div className="space-y-3">
@@ -257,8 +257,8 @@ const OverviewDashboard = ({ userId }) => {
                   <Award className="text-yellow-600" size={16} />
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-gray-900">{win.content}</div>
-                  <div className="text-xs text-gray-500 mt-1">{formatDate(win.createdAt)}</div>
+                  <div className="font-medium text-soft-charcoal">{win.content}</div>
+                  <div className="text-xs text-muted-sage-gray mt-1">{formatDate(win.createdAt)}</div>
                 </div>
               </div>
             ))}
@@ -267,7 +267,7 @@ const OverviewDashboard = ({ userId }) => {
       )}
 
       {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] rounded-xl shadow-lg p-6 text-white">
+      <div className="bg-gradient-to-r from-evergreen-teal to-silver-sage rounded-xl shadow-lg p-6 text-white">
         <h3 className="text-xl font-semibold mb-4">What would you like to explore?</h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[

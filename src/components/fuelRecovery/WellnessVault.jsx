@@ -174,22 +174,22 @@ const WellnessVault = ({ userId }) => {
     switch (type) {
       case 'article': return 'from-blue-500 to-cyan-500';
       case 'video': return 'from-purple-500 to-pink-500';
-      case 'research': return 'from-green-500 to-emerald-500';
-      default: return 'from-gray-500 to-gray-600';
+      case 'research': return 'from-evergreen-teal to-evergreen-teal';
+      default: return 'from-muted-sage-gray to-soft-charcoal';
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-6">
+      <div className="bg-gradient-to-r from-dew-sage-light to-dew-sage-light border border-silver-sage rounded-xl p-6">
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-indigo-100 rounded-lg">
-            <BookOpen className="text-indigo-600" size={32} />
+          <div className="p-3 bg-dew-sage rounded-lg">
+            <BookOpen className="text-evergreen-teal" size={32} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-indigo-900 mb-2">Wellness Vault</h2>
-            <p className="text-indigo-700">
+            <h2 className="text-2xl font-bold text-soft-charcoal mb-2">Wellness Vault</h2>
+            <p className="text-muted-sage-gray">
               Curated library of articles, videos, and research on brain health, stress management, recovery, and performance.
               All content is evidence-based and actionable.
             </p>
@@ -199,13 +199,13 @@ const WellnessVault = ({ userId }) => {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-sage-gray/60" size={20} />
         <input
           type="text"
           placeholder="Search by title, description, or tags..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent"
+          className="w-full pl-12 pr-4 py-3 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent"
         />
       </div>
 
@@ -214,8 +214,8 @@ const WellnessVault = ({ userId }) => {
         {/* Category Filter */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Filter size={16} className="text-gray-600" />
-            <label className="text-sm font-medium text-gray-700">Filter by Topic</label>
+            <Filter size={16} className="text-muted-sage-gray" />
+            <label className="text-sm font-medium text-soft-charcoal">Filter by Topic</label>
           </div>
           <div className="flex flex-wrap gap-2">
             {categories.map(cat => (
@@ -224,8 +224,8 @@ const WellnessVault = ({ userId }) => {
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   selectedCategory === cat.id
-                    ? 'bg-[#1B5E57] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-evergreen-teal text-white shadow-sm'
+                    : 'bg-dew-sage-light text-soft-charcoal hover:bg-silver-sage/30'
                 }`}
               >
                 {cat.label} ({cat.count})
@@ -236,7 +236,7 @@ const WellnessVault = ({ userId }) => {
 
         {/* Type Filter */}
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Filter by Type</label>
+          <label className="text-sm font-medium text-soft-charcoal mb-2 block">Filter by Type</label>
           <div className="flex flex-wrap gap-2">
             {types.map(type => {
               const Icon = type.icon;
@@ -246,8 +246,8 @@ const WellnessVault = ({ userId }) => {
                   onClick={() => setSelectedType(type.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                     selectedType === type.id
-                      ? 'bg-[#1B5E57] text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-evergreen-teal text-white shadow-sm'
+                      : 'bg-dew-sage-light text-soft-charcoal hover:bg-silver-sage/30'
                   }`}
                 >
                   <Icon size={16} />
@@ -260,7 +260,7 @@ const WellnessVault = ({ userId }) => {
       </div>
 
       {/* Results Count */}
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-muted-sage-gray">
         Showing {filteredContent.length} of {vaultContent.length} resources
       </div>
 
@@ -273,7 +273,7 @@ const WellnessVault = ({ userId }) => {
             return (
               <div
                 key={item.id}
-                className="bg-white rounded-xl border-2 border-gray-200 hover:border-[#1B5E57] hover:shadow-lg transition-all"
+                className="bg-white rounded-xl border-2 border-divider hover:border-evergreen-teal hover:shadow-lg transition-all"
               >
                 {/* Card Header */}
                 <div className={`bg-gradient-to-r ${getTypeColor(item.type)} p-4 rounded-t-xl`}>
@@ -288,14 +288,14 @@ const WellnessVault = ({ userId }) => {
 
                 {/* Card Body */}
                 <div className="p-4">
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{item.description}</p>
+                  <p className="text-muted-sage-gray text-sm mb-3 line-clamp-2">{item.description}</p>
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1 mb-3">
                     {item.tags.slice(0, 3).map((tag, idx) => (
                       <span
                         key={idx}
-                        className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600"
+                        className="text-xs px-2 py-1 rounded-full bg-dew-sage-light text-muted-sage-gray"
                       >
                         {tag}
                       </span>
@@ -303,14 +303,14 @@ const WellnessVault = ({ userId }) => {
                   </div>
 
                   {/* Duration */}
-                  <div className="text-xs text-gray-500 mb-3">{item.duration}</div>
+                  <div className="text-xs text-muted-sage-gray mb-3">{item.duration}</div>
 
                   {/* View Button */}
                   <a
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#1B5E57] hover:bg-[#174C46] text-white rounded-lg font-semibold transition-all"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-evergreen-teal hover:opacity-90 text-white rounded-lg font-semibold transition-all"
                   >
                     View
                     <ExternalLink size={16} />
@@ -321,17 +321,17 @@ const WellnessVault = ({ userId }) => {
           })}
         </div>
       ) : (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-          <BookOpen className="mx-auto mb-3 text-gray-300" size={48} />
-          <p className="font-medium text-gray-700 mb-1">No resources match your filters</p>
-          <p className="text-sm text-gray-500">Try adjusting your search or filters</p>
+        <div className="text-center py-12 bg-dew-sage-light rounded-lg border-2 border-dashed border-divider">
+          <BookOpen className="mx-auto mb-3 text-muted-sage-gray/60" size={48} />
+          <p className="font-medium text-soft-charcoal mb-1">No resources match your filters</p>
+          <p className="text-sm text-muted-sage-gray">Try adjusting your search or filters</p>
         </div>
       )}
 
       {/* Coming Soon Notice */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-1">More Content Coming Soon</h3>
-        <p className="text-sm text-blue-700">
+      <div className="bg-dew-sage-light border border-silver-sage rounded-lg p-4">
+        <h3 className="font-semibold text-soft-charcoal mb-1">More Content Coming Soon</h3>
+        <p className="text-sm text-muted-sage-gray">
           We're constantly adding new articles, videos, and research to the Wellness Vault.
           All links above are placeholders—real content will be added soon!
         </p>

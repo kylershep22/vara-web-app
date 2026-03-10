@@ -188,37 +188,37 @@ const SleepSection = ({ userId }) => {
   return (
     <div className="space-y-6">
       {/* Bedtime Routine Preview/Link Card */}
-      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border-2 border-indigo-200">
+      <div className="bg-gradient-to-br from-dew-sage-light to-dew-sage-light rounded-xl p-6 border-2 border-silver-sage">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3 flex-1">
-            <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-evergreen-teal flex items-center justify-center flex-shrink-0">
               <Moon className="text-white" size={24} />
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-indigo-900 mb-1">Bedtime Routine</h3>
-              <p className="text-sm text-indigo-700 mb-3">
+              <h3 className="text-xl font-bold text-soft-charcoal mb-1">Bedtime Routine</h3>
+              <p className="text-sm text-muted-sage-gray mb-3">
                 Build a consistent routine to improve your sleep quality
               </p>
 
               {bedtimeRoutine ? (
                 <div className="space-y-3">
-                  <div className="bg-white/60 rounded-lg p-3 border border-indigo-200">
+                  <div className="bg-white/60 rounded-lg p-3 border border-silver-sage">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-indigo-900">
+                      <span className="text-sm font-semibold text-soft-charcoal">
                         ✓ {bedtimeRoutine.name}
                       </span>
-                      <span className="text-xs text-indigo-600">
+                      <span className="text-xs text-evergreen-teal">
                         {bedtimeRoutine.activities?.length || 0} activities
                       </span>
                     </div>
-                    <div className="text-xs text-indigo-700">
+                    <div className="text-xs text-muted-sage-gray">
                       Total: {bedtimeRoutine.activities?.reduce((sum, a) => sum + (a.duration || 0), 0) || 0} minutes
                     </div>
                   </div>
 
                   <button
                     onClick={() => navigate('/focus', { state: { tab: 'routines', routineType: 'bedtime' } })}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-medium text-sm"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-evergreen-teal text-white rounded-lg hover:opacity-90 transition-all font-medium text-sm"
                   >
                     View & Edit Routine
                     <ArrowRight size={16} />
@@ -227,7 +227,7 @@ const SleepSection = ({ userId }) => {
               ) : (
                 <button
                   onClick={() => navigate('/focus', { state: { tab: 'routines', routineType: 'bedtime' } })}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-medium text-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-evergreen-teal text-white rounded-lg hover:opacity-90 transition-all font-medium text-sm"
                 >
                   <Plus size={16} />
                   Create Bedtime Routine
@@ -239,13 +239,13 @@ const SleepSection = ({ userId }) => {
       </div>
 
       {/* Sub-tab Navigation */}
-      <div className="flex items-center gap-2 border-b border-gray-200">
+      <div className="flex items-center gap-2 border-b border-divider">
         <button
           onClick={() => setActiveSubTab('sounds')}
           className={`px-4 py-2 font-medium transition-all border-b-2 ${
             activeSubTab === 'sounds'
-              ? 'border-[#1B5E57] text-[#1B5E57]'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-evergreen-teal text-evergreen-teal'
+              : 'border-transparent text-muted-sage-gray hover:text-soft-charcoal'
           }`}
         >
           Sleep Sounds
@@ -254,8 +254,8 @@ const SleepSection = ({ userId }) => {
           onClick={() => setActiveSubTab('tracker')}
           className={`px-4 py-2 font-medium transition-all border-b-2 ${
             activeSubTab === 'tracker'
-              ? 'border-[#1B5E57] text-[#1B5E57]'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-evergreen-teal text-evergreen-teal'
+              : 'border-transparent text-muted-sage-gray hover:text-soft-charcoal'
           }`}
         >
           Sleep Tracker
@@ -266,9 +266,9 @@ const SleepSection = ({ userId }) => {
       {activeSubTab === 'sounds' && (
         <div className="space-y-6">
           {/* Info Banner */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-4">
-            <h3 className="font-semibold text-indigo-900 mb-2">Quality Sleep is Brain Health</h3>
-            <p className="text-sm text-indigo-700">
+          <div className="bg-gradient-to-r from-dew-sage-light to-dew-sage-light border border-silver-sage rounded-lg p-4">
+            <h3 className="font-semibold text-soft-charcoal mb-2">Quality Sleep is Brain Health</h3>
+            <p className="text-sm text-muted-sage-gray">
               Sleep consolidates memories, clears brain toxins, and builds cognitive reserve. Aim for 7-9 hours of quality sleep each night for optimal brain performance.
             </p>
           </div>
@@ -284,10 +284,10 @@ const SleepSection = ({ userId }) => {
                 <div
                   key={sound.id}
                   className={`bg-white rounded-xl border-2 transition-all hover:shadow-lg ${
-                    isCurrentTrack ? 'border-[#1B5E57] shadow-md' : 'border-gray-200'
+                    isCurrentTrack ? 'border-evergreen-teal shadow-md' : 'border-divider'
                   }`}
                 >
-                  <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-6 rounded-t-xl">
+                  <div className="bg-gradient-to-r from-evergreen-teal to-evergreen-teal p-6 rounded-t-xl">
                     <div className="flex items-start justify-between mb-3">
                       <Moon className="text-white" size={24} />
                       <button
@@ -312,7 +312,7 @@ const SleepSection = ({ userId }) => {
                   </div>
 
                   <div className="p-4">
-                    <p className="text-gray-600 text-sm mb-4">{sound.description}</p>
+                    <p className="text-muted-sage-gray text-sm mb-4">{sound.description}</p>
 
                     <button
                       onClick={() => {
@@ -325,7 +325,7 @@ const SleepSection = ({ userId }) => {
                       className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
                         isCurrentlyPlaying
                           ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                          : 'bg-[#1B5E57] hover:bg-[#174C46] text-white'
+                          : 'bg-evergreen-teal hover:opacity-90 text-white'
                       }`}
                     >
                       {isCurrentlyPlaying ? (
@@ -353,31 +353,31 @@ const SleepSection = ({ userId }) => {
         <div className="space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+            <div className="bg-gradient-to-br from-dew-sage-light to-dew-sage rounded-lg p-4 border border-silver-sage">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="text-blue-600" size={20} />
-                <span className="text-xs font-medium text-blue-700 uppercase">Avg Hours</span>
+                <TrendingUp className="text-evergreen-teal" size={20} />
+                <span className="text-xs font-medium text-muted-sage-gray uppercase">Avg Hours</span>
               </div>
-              <div className="text-2xl font-bold text-blue-900">{stats.avgHours}h</div>
-              <div className="text-xs text-blue-600 mt-1">Last 7 days</div>
+              <div className="text-2xl font-bold text-soft-charcoal">{stats.avgHours}h</div>
+              <div className="text-xs text-evergreen-teal mt-1">Last 7 days</div>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+            <div className="bg-gradient-to-br from-dew-sage-light to-dew-sage rounded-lg p-4 border border-silver-sage">
               <div className="flex items-center gap-2 mb-2">
-                <Moon className="text-purple-600" size={20} />
-                <span className="text-xs font-medium text-purple-700 uppercase">Avg Quality</span>
+                <Moon className="text-evergreen-teal" size={20} />
+                <span className="text-xs font-medium text-muted-sage-gray uppercase">Avg Quality</span>
               </div>
-              <div className="text-2xl font-bold text-purple-900 capitalize">{stats.avgQuality}</div>
-              <div className="text-xs text-purple-600 mt-1">Last 7 days</div>
+              <div className="text-2xl font-bold text-soft-charcoal capitalize">{stats.avgQuality}</div>
+              <div className="text-xs text-evergreen-teal mt-1">Last 7 days</div>
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+            <div className="bg-gradient-to-br from-teal-light to-teal-light rounded-lg p-4 border border-evergreen-teal/30">
               <div className="flex items-center gap-2 mb-2">
-                <Calendar className="text-green-600" size={20} />
-                <span className="text-xs font-medium text-green-700 uppercase">Logs</span>
+                <Calendar className="text-evergreen-teal" size={20} />
+                <span className="text-xs font-medium text-soft-charcoal uppercase">Logs</span>
               </div>
-              <div className="text-2xl font-bold text-green-900">{sleepLogs.length}</div>
-              <div className="text-xs text-green-600 mt-1">Last 7 days</div>
+              <div className="text-2xl font-bold text-soft-charcoal">{sleepLogs.length}</div>
+              <div className="text-xs text-evergreen-teal mt-1">Last 7 days</div>
             </div>
           </div>
 
@@ -385,18 +385,18 @@ const SleepSection = ({ userId }) => {
           <div>
             <button
               onClick={() => setShowLogForm(!showLogForm)}
-              className="mb-4 px-4 py-2 bg-[#1B5E57] text-white rounded-lg hover:bg-[#174C46] transition flex items-center gap-2"
+              className="mb-4 px-4 py-2 bg-evergreen-teal text-white rounded-lg hover:opacity-90 transition flex items-center gap-2"
             >
               <Plus size={16} />
               Log Last Night's Sleep
             </button>
 
             {showLogForm && (
-              <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                <h3 className="font-semibold text-gray-900 mb-4">Log Sleep</h3>
+              <div className="bg-white border border-divider rounded-lg p-6 mb-6">
+                <h3 className="font-semibold text-soft-charcoal mb-4">Log Sleep</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-soft-charcoal mb-2">
                       Hours Slept: {logForm.hoursSlept}h
                     </label>
                     <input
@@ -411,7 +411,7 @@ const SleepSection = ({ userId }) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Sleep Quality</label>
+                    <label className="block text-sm font-medium text-soft-charcoal mb-2">Sleep Quality</label>
                     <div className="grid grid-cols-4 gap-2">
                       {['poor', 'fair', 'good', 'excellent'].map(quality => (
                         <button
@@ -419,8 +419,8 @@ const SleepSection = ({ userId }) => {
                           onClick={() => setLogForm({ ...logForm, quality })}
                           className={`px-4 py-2 rounded-lg font-medium capitalize transition ${
                             logForm.quality === quality
-                              ? 'bg-[#1B5E57] text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              ? 'bg-evergreen-teal text-white'
+                              : 'bg-dew-sage-light text-soft-charcoal hover:bg-dew-sage-light'
                           }`}
                         >
                           {quality}
@@ -430,12 +430,12 @@ const SleepSection = ({ userId }) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
+                    <label className="block text-sm font-medium text-soft-charcoal mb-2">Notes (optional)</label>
                     <textarea
                       value={logForm.notes}
                       onChange={(e) => setLogForm({ ...logForm, notes: e.target.value })}
                       rows="3"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent"
                       placeholder="What affected your sleep? Dreams, interruptions, etc."
                     />
                   </div>
@@ -443,13 +443,13 @@ const SleepSection = ({ userId }) => {
                   <div className="flex gap-2">
                     <button
                       onClick={logSleep}
-                      className="px-4 py-2 bg-[#1B5E57] text-white rounded-lg hover:bg-[#174C46] transition"
+                      className="px-4 py-2 bg-evergreen-teal text-white rounded-lg hover:opacity-90 transition"
                     >
                       Save Log
                     </button>
                     <button
                       onClick={() => setShowLogForm(false)}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                      className="px-4 py-2 bg-dew-sage-light text-soft-charcoal rounded-lg hover:bg-dew-sage-light transition"
                     >
                       Cancel
                     </button>
@@ -461,26 +461,26 @@ const SleepSection = ({ userId }) => {
 
           {/* Sleep Log History */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Recent Sleep Logs</h3>
+            <h3 className="text-sm font-semibold text-soft-charcoal mb-3">Recent Sleep Logs</h3>
             {sleepLogs.length > 0 ? (
               <div className="space-y-2">
                 {sleepLogs.map(log => (
                   <div
                     key={log.id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-[#1B5E57]/30 hover:shadow-sm transition bg-white"
+                    className="flex items-center justify-between p-4 rounded-lg border border-divider hover:border-evergreen-teal/30 hover:shadow-sm transition bg-white"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                        <Moon className="text-indigo-600" size={20} />
+                      <div className="w-12 h-12 rounded-full bg-dew-sage flex items-center justify-center">
+                        <Moon className="text-evergreen-teal" size={20} />
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-soft-charcoal">
                           {log.hoursSlept}h sleep - {log.quality} quality
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-muted-sage-gray">
                           {log.date?.toDate ? log.date.toDate().toLocaleDateString() : 'Recently'}
                           {log.notes && (
-                            <span className="ml-2 text-gray-400">• {log.notes}</span>
+                            <span className="ml-2 text-muted-sage-gray/60">• {log.notes}</span>
                           )}
                         </div>
                       </div>
@@ -489,10 +489,10 @@ const SleepSection = ({ userId }) => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                <Moon className="mx-auto mb-3 text-gray-300" size={48} />
-                <p className="font-medium text-gray-700 mb-1">No sleep logs yet</p>
-                <p className="text-sm text-gray-500">Start tracking your sleep to see trends</p>
+              <div className="text-center py-12 bg-dew-sage-light rounded-lg border-2 border-dashed border-divider">
+                <Moon className="mx-auto mb-3 text-muted-sage-gray/60" size={48} />
+                <p className="font-medium text-soft-charcoal mb-1">No sleep logs yet</p>
+                <p className="text-sm text-muted-sage-gray">Start tracking your sleep to see trends</p>
               </div>
             )}
           </div>

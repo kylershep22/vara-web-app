@@ -19,17 +19,17 @@ const BreathworkSessions = () => {
             className="p-4 bg-white rounded shadow hover:shadow-lg transition cursor-pointer"
             onClick={() => setSelected(session)}
           >
-            <h3 className="font-semibold text-emerald-800">{session.title}</h3>
-            <p className="text-sm text-gray-600">{session.duration}-minute • {session.purpose}</p>
+            <h3 className="font-semibold text-evergreen-teal">{session.title}</h3>
+            <p className="text-sm text-muted-sage-gray">{session.duration}-minute • {session.purpose}</p>
           </div>
         ))}
       </div>
 
       {/* Session Modal / Panel */}
       {selected && (
-        <div className="p-4 border rounded bg-emerald-50 shadow-md">
+        <div className="p-4 border rounded bg-teal-light shadow-md">
           <div className="flex justify-between items-center mb-2">
-            <h4 className="text-lg font-semibold text-emerald-900">{selected.title}</h4>
+            <h4 className="text-lg font-semibold text-evergreen-teal">{selected.title}</h4>
             <button
               className="text-sm text-red-500 hover:underline"
               onClick={() => setSelected(null)}
@@ -37,12 +37,12 @@ const BreathworkSessions = () => {
               Close
             </button>
           </div>
-          <p className="text-gray-700 mb-4">
+          <p className="text-soft-charcoal mb-4">
             Inhale deeply... hold... exhale slowly. Follow the {selected.duration}-minute guided breath cycle.
           </p>
-          <div className="w-full h-4 bg-emerald-100 rounded">
+          <div className="w-full h-4 bg-dew-sage rounded">
             <div
-              className="h-full bg-emerald-500 rounded animate-pulse"
+              className="h-full bg-evergreen-teal rounded animate-pulse"
               style={{ width: '25%' }}
             />
           </div>

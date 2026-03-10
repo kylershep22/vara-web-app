@@ -72,10 +72,10 @@ export default function ForgotPassword() {
           />
         </div>
 
-        <h2 className="text-2xl font-semibold text-[#1B5E57] text-center mb-2">
+        <h2 className="text-2xl font-semibold text-evergreen-teal text-center mb-2">
           Reset Password
         </h2>
-        <p className="text-sm text-[#6B7B6A] text-center italic mb-6">
+        <p className="text-sm text-muted-sage-gray text-center italic mb-6">
           "Every journey back to wellness starts with a single step."
         </p>
 
@@ -89,11 +89,11 @@ export default function ForgotPassword() {
 
             <form onSubmit={handleReset} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[#3E3E3E] mb-2">
+                <label className="block text-sm font-medium text-soft-charcoal mb-2">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-sage-gray/60" size={20} />
                   <input
                     type="email"
                     placeholder="Enter your email"
@@ -101,10 +101,10 @@ export default function ForgotPassword() {
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
                     required
-                    className="w-full pl-10 pr-4 py-3 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition disabled:opacity-60"
+                    className="w-full pl-10 pr-4 py-3 border border-divider rounded-lg bg-mist-white focus:outline-none focus:ring-2 focus:ring-sunrise-amber focus:border-transparent transition disabled:opacity-60"
                   />
                 </div>
-                <p className="mt-2 text-xs text-gray-600">
+                <p className="mt-2 text-xs text-muted-sage-gray">
                   We'll send you a link to reset your password
                 </p>
               </div>
@@ -112,7 +112,7 @@ export default function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold rounded-lg hover:brightness-105 transition-all ease-in-out duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-gradient-to-r from-sunrise-amber to-golden-apricot text-white font-semibold rounded-lg hover:brightness-105 transition-all ease-in-out duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? 'Sending...' : 'Send Reset Link'}
               </button>
@@ -121,18 +121,18 @@ export default function ForgotPassword() {
         ) : (
           <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="text-green-600" size={32} />
+              <div className="w-16 h-16 bg-teal-light rounded-full flex items-center justify-center">
+                <CheckCircle className="text-evergreen-teal" size={32} />
               </div>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-[#3E3E3E] mb-2">
+              <h3 className="text-lg font-semibold text-soft-charcoal mb-2">
                 Check Your Email
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-sage-gray">
                 We've sent a password reset link to <strong>{email}</strong>
               </p>
-              <p className="text-xs text-gray-500 mt-3">
+              <p className="text-xs text-muted-sage-gray mt-3">
                 Didn't receive it? Check your spam folder or try again in a few minutes.
               </p>
             </div>
@@ -142,7 +142,7 @@ export default function ForgotPassword() {
         <div className="mt-6 text-center">
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 text-sm text-[#1B5E57] hover:underline transition"
+            className="inline-flex items-center gap-2 text-sm text-evergreen-teal hover:underline transition"
           >
             <ArrowLeft size={16} />
             Back to Login

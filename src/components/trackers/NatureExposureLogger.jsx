@@ -38,15 +38,15 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
 
   const weathers = [
     { id: 'sunny', label: 'Sunny', icon: Sun, color: 'text-yellow-500' },
-    { id: 'cloudy', label: 'Cloudy', icon: Cloud, color: 'text-gray-500' },
+    { id: 'cloudy', label: 'Cloudy', icon: Cloud, color: 'text-muted-sage-gray' },
     { id: 'rainy', label: 'Rainy', icon: CloudRain, color: 'text-blue-500' }
   ];
 
   const moods = [
     { id: 'energized', label: 'Energized', emoji: '⚡', color: 'from-yellow-400 to-orange-400' },
     { id: 'calm', label: 'Calm', emoji: '😌', color: 'from-blue-400 to-cyan-400' },
-    { id: 'refreshed', label: 'Refreshed', emoji: '✨', color: 'from-green-400 to-emerald-400' },
-    { id: 'grounded', label: 'Grounded', emoji: '🌳', color: 'from-green-600 to-teal-600' }
+    { id: 'refreshed', label: 'Refreshed', emoji: '✨', color: 'from-evergreen-teal to-evergreen-teal' },
+    { id: 'grounded', label: 'Grounded', emoji: '🌳', color: 'from-evergreen-teal to-evergreen-teal' }
   ];
 
   useEffect(() => {
@@ -146,7 +146,7 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -154,29 +154,29 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
 
   if (compactMode) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-white rounded-xl border border-divider p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Leaf className="text-green-600" size={20} />
-            <h3 className="font-semibold text-gray-900">Nature Time</h3>
+            <Leaf className="text-evergreen-teal" size={20} />
+            <h3 className="font-semibold text-soft-charcoal">Nature Time</h3>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-dew-sage-light rounded-lg transition"
           >
-            <Plus size={18} className="text-green-600" />
+            <Plus size={18} className="text-evergreen-teal" />
           </button>
         </div>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-2 mb-4">
-          <div className="text-center p-2 bg-green-50 rounded-lg">
-            <div className="text-xl font-bold text-green-900">{weeklyStats.count}</div>
-            <div className="text-xs text-green-600">Times This Week</div>
+          <div className="text-center p-2 bg-teal-light rounded-lg">
+            <div className="text-xl font-bold text-soft-charcoal">{weeklyStats.count}</div>
+            <div className="text-xs text-evergreen-teal">Times This Week</div>
           </div>
-          <div className="text-center p-2 bg-emerald-50 rounded-lg">
-            <div className="text-xl font-bold text-emerald-900">{weeklyStats.totalMinutes}m</div>
-            <div className="text-xs text-emerald-600">Total Time</div>
+          <div className="text-center p-2 bg-teal-light rounded-lg">
+            <div className="text-xl font-bold text-evergreen-teal">{weeklyStats.totalMinutes}m</div>
+            <div className="text-xs text-evergreen-teal">Total Time</div>
           </div>
         </div>
 
@@ -184,19 +184,19 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
         {showForm && (
           <div className="space-y-3 border-t pt-4">
             <div>
-              <label className="text-xs text-gray-600">Duration (minutes)</label>
+              <label className="text-xs text-muted-sage-gray">Duration (minutes)</label>
               <input
                 type="number"
                 min="5"
                 step="5"
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-transparent"
+                className="w-full px-3 py-2 border border-divider rounded-lg text-sm focus:ring-2 focus:ring-evergreen-teal focus:border-transparent"
               />
             </div>
             <button
               onClick={saveExposure}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm"
+              className="w-full px-4 py-2 bg-evergreen-teal text-white rounded-lg hover:opacity-90 transition font-medium text-sm"
             >
               Log Nature Time
             </button>
@@ -209,18 +209,18 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
   return (
     <div className="space-y-6">
       {/* Info Banner */}
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
+      <div className="bg-gradient-to-r from-teal-light to-teal-light border border-evergreen-teal/30 rounded-xl p-6">
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-green-100 rounded-lg">
-            <Leaf className="text-green-600" size={32} />
+          <div className="p-3 bg-teal-light rounded-lg">
+            <Leaf className="text-evergreen-teal" size={32} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-green-900 mb-2">Nature Exposure Logger</h2>
-            <p className="text-green-700 mb-2">
+            <h2 className="text-2xl font-bold text-soft-charcoal mb-2">Nature Exposure Logger</h2>
+            <p className="text-soft-charcoal mb-2">
               Time in nature reduces stress, improves mood, enhances creativity, and supports cognitive function.
               Even 20-30 minutes can have measurable benefits for your brain health.
             </p>
-            <p className="text-sm text-green-600">
+            <p className="text-sm text-evergreen-teal">
               Goal: Aim for 30+ minutes outdoors daily, or 2+ hours per week.
             </p>
           </div>
@@ -229,40 +229,40 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
 
       {/* Weekly Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-3 mb-2">
-            <Calendar className="text-green-600" size={24} />
-            <span className="text-sm text-gray-600">This Week</span>
+            <Calendar className="text-evergreen-teal" size={24} />
+            <span className="text-sm text-muted-sage-gray">This Week</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{weeklyStats.count}</div>
-          <div className="text-sm text-gray-600">Nature Sessions</div>
+          <div className="text-3xl font-bold text-soft-charcoal">{weeklyStats.count}</div>
+          <div className="text-sm text-muted-sage-gray">Nature Sessions</div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="text-emerald-600" size={24} />
-            <span className="text-sm text-gray-600">Total Time</span>
+            <TrendingUp className="text-evergreen-teal" size={24} />
+            <span className="text-sm text-muted-sage-gray">Total Time</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{weeklyStats.totalMinutes}</div>
-          <div className="text-sm text-gray-600">Minutes</div>
+          <div className="text-3xl font-bold text-soft-charcoal">{weeklyStats.totalMinutes}</div>
+          <div className="text-sm text-muted-sage-gray">Minutes</div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-3 mb-2">
-            <Leaf className="text-teal-600" size={24} />
-            <span className="text-sm text-gray-600">Average Session</span>
+            <Leaf className="text-evergreen-teal" size={24} />
+            <span className="text-sm text-muted-sage-gray">Average Session</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{weeklyStats.avgDuration}</div>
-          <div className="text-sm text-gray-600">Minutes</div>
+          <div className="text-3xl font-bold text-soft-charcoal">{weeklyStats.avgDuration}</div>
+          <div className="text-sm text-muted-sage-gray">Minutes</div>
         </div>
       </div>
 
       {/* Log New Exposure */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Log Nature Time</h3>
+          <h3 className="text-lg font-semibold text-soft-charcoal">Log Nature Time</h3>
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+              className="px-4 py-2 bg-evergreen-teal text-white rounded-lg hover:opacity-90 transition flex items-center gap-2"
             >
               <Plus size={18} />
               Add Entry
@@ -275,8 +275,8 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
             {/* Duration */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700">Duration</label>
-                <span className="text-lg font-bold text-green-600">{formData.duration} minutes</span>
+                <label className="text-sm font-medium text-soft-charcoal">Duration</label>
+                <span className="text-lg font-bold text-evergreen-teal">{formData.duration} minutes</span>
               </div>
               <input
                 type="range"
@@ -285,9 +285,9 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
                 step="5"
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                className="w-full h-2 bg-silver-sage/30 rounded-lg appearance-none cursor-pointer accent-evergreen-teal"
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-muted-sage-gray mt-1">
                 <span>5 min</span>
                 <span>3 hours</span>
               </div>
@@ -295,7 +295,7 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
 
             {/* Activity */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Activity</label>
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">Activity</label>
               <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                 {activities.map(activity => (
                   <button
@@ -303,12 +303,12 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
                     onClick={() => setFormData({ ...formData, activity: activity.id })}
                     className={`p-3 rounded-lg border-2 transition-all text-center ${
                       formData.activity === activity.id
-                        ? 'border-green-600 bg-green-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-evergreen-teal/30 bg-teal-light'
+                        : 'border-divider hover:border-divider'
                     }`}
                   >
                     <div className="text-2xl mb-1">{activity.icon}</div>
-                    <div className="text-xs font-medium text-gray-700">{activity.label}</div>
+                    <div className="text-xs font-medium text-soft-charcoal">{activity.label}</div>
                   </button>
                 ))}
               </div>
@@ -316,7 +316,7 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">Location</label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {locations.map(loc => {
                   const Icon = typeof loc.icon === 'string' ? null : loc.icon;
@@ -326,12 +326,12 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
                       onClick={() => setFormData({ ...formData, location: loc.id })}
                       className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2 ${
                         formData.location === loc.id
-                          ? 'border-green-600 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-evergreen-teal/30 bg-teal-light'
+                          : 'border-divider hover:border-divider'
                       }`}
                     >
                       {Icon ? <Icon size={18} /> : <span className="text-lg">{loc.icon}</span>}
-                      <span className="text-sm font-medium text-gray-700">{loc.label}</span>
+                      <span className="text-sm font-medium text-soft-charcoal">{loc.label}</span>
                     </button>
                   );
                 })}
@@ -340,7 +340,7 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
 
             {/* Weather */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Weather</label>
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">Weather</label>
               <div className="flex gap-3">
                 {weathers.map(weather => {
                   const Icon = weather.icon;
@@ -350,12 +350,12 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
                       onClick={() => setFormData({ ...formData, weather: weather.id })}
                       className={`flex-1 p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
                         formData.weather === weather.id
-                          ? 'border-green-600 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-evergreen-teal/30 bg-teal-light'
+                          : 'border-divider hover:border-divider'
                       }`}
                     >
                       <Icon className={weather.color} size={20} />
-                      <span className="text-sm font-medium text-gray-700">{weather.label}</span>
+                      <span className="text-sm font-medium text-soft-charcoal">{weather.label}</span>
                     </button>
                   );
                 })}
@@ -364,7 +364,7 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
 
             {/* Mood After */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">How did you feel after?</label>
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">How did you feel after?</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {moods.map(mood => (
                   <button
@@ -372,12 +372,12 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
                     onClick={() => setFormData({ ...formData, mood: mood.id })}
                     className={`p-3 rounded-lg border-2 transition-all ${
                       formData.mood === mood.id
-                        ? 'border-green-600 bg-gradient-to-br ' + mood.color + ' bg-opacity-20'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-evergreen-teal/30 bg-gradient-to-br ' + mood.color + ' bg-opacity-20'
+                        : 'border-divider hover:border-divider'
                     }`}
                   >
                     <div className="text-2xl mb-1">{mood.emoji}</div>
-                    <div className="text-xs font-medium text-gray-700">{mood.label}</div>
+                    <div className="text-xs font-medium text-soft-charcoal">{mood.label}</div>
                   </button>
                 ))}
               </div>
@@ -387,13 +387,13 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowForm(false)}
-                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition"
+                className="flex-1 px-6 py-3 border border-divider rounded-lg font-semibold hover:bg-dew-sage-light transition"
               >
                 Cancel
               </button>
               <button
                 onClick={saveExposure}
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition"
+                className="flex-1 px-6 py-3 bg-evergreen-teal text-white rounded-lg font-semibold hover:opacity-90 transition"
               >
                 Save Entry
               </button>
@@ -403,8 +403,8 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
       </div>
 
       {/* History */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Nature Time</h3>
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Recent Nature Time</h3>
 
         {exposures.length > 0 ? (
           <div className="space-y-3">
@@ -416,18 +416,18 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
               const WeatherIcon = weather?.icon || Sun;
 
               return (
-                <div key={exp.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div key={exp.id} className="p-4 bg-dew-sage-light rounded-lg border border-divider">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{activity?.icon}</span>
                       <div>
-                        <div className="font-semibold text-gray-900">{activity?.label || exp.activity}</div>
-                        <div className="text-sm text-gray-600">{location?.label || exp.location}</div>
+                        <div className="font-semibold text-soft-charcoal">{activity?.label || exp.activity}</div>
+                        <div className="text-sm text-muted-sage-gray">{location?.label || exp.location}</div>
                       </div>
                     </div>
-                    <span className="text-sm text-gray-500">{formatDate(exp.date)}</span>
+                    <span className="text-sm text-muted-sage-gray">{formatDate(exp.date)}</span>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-4 text-sm text-muted-sage-gray">
                     <span className="font-medium">{exp.duration} minutes</span>
                     <span>•</span>
                     <div className="flex items-center gap-1">
@@ -445,17 +445,17 @@ const NatureExposureLogger = ({ userId, compactMode = false }) => {
             })}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Leaf className="mx-auto mb-2 text-gray-300" size={48} />
+          <div className="text-center py-8 text-muted-sage-gray">
+            <Leaf className="mx-auto mb-2 text-muted-sage-gray/60" size={48} />
             <p>No nature time logged yet. Get outside and start tracking!</p>
           </div>
         )}
       </div>
 
       {/* Benefits */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-        <h3 className="font-semibold text-emerald-900 mb-2">Benefits of Nature Exposure</h3>
-        <ul className="text-sm text-emerald-700 space-y-1">
+      <div className="bg-teal-light border border-evergreen-teal/30 rounded-lg p-4">
+        <h3 className="font-semibold text-evergreen-teal mb-2">Benefits of Nature Exposure</h3>
+        <ul className="text-sm text-evergreen-teal space-y-1">
           <li>• Reduces cortisol (stress hormone) by up to 21%</li>
           <li>• Improves focus and attention span</li>
           <li>• Boosts creativity and problem-solving</li>

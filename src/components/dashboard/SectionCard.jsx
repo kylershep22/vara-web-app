@@ -3,20 +3,7 @@ import React from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 /**
- * SectionCard - Reusable card wrapper with consistent styling
- *
- * @param {string} title - Section title
- * @param {React.ReactNode} icon - Optional icon to display next to title
- * @param {React.ReactNode} action - Optional action button/link (top right)
- * @param {React.ReactNode} children - Card content
- * @param {React.ReactNode} footer - Optional footer content
- * @param {string} className - Additional CSS classes
- * @param {string} headerClassName - Additional classes for header
- * @param {string} gradient - Optional gradient background class
- * @param {boolean} collapsible - Whether the section can be collapsed
- * @param {boolean} isCollapsed - Current collapsed state
- * @param {function} onToggleCollapse - Callback when toggling collapse
- * @param {string|number} count - Item count to show when collapsed
+ * SectionCard - Collapsible card section matching Vara design.
  */
 const SectionCard = ({
   title,
@@ -25,38 +12,27 @@ const SectionCard = ({
   children,
   footer,
   className = '',
-  headerClassName = '',
-  gradient,
   collapsible = false,
   isCollapsed = false,
   onToggleCollapse,
-  count
+  count,
 }) => {
-  const bgClass = gradient
-    ? `bg-gradient-to-br ${gradient}`
-    : 'bg-white';
-
-  const borderClass = gradient ? '' : 'border border-gray-200';
-
   return (
-    <div className={`${bgClass} ${borderClass} rounded-2xl shadow-sm ${className}`}>
+    <div className={`bg-white border border-divider rounded-vara-lg shadow-vara-sm ${className}`}>
       {/* Header */}
       {(title || action || icon) && (
-        <div className={`flex items-center justify-between p-6 ${isCollapsed ? 'pb-6' : 'pb-4'} ${headerClassName}`}>
-          {/* Title with optional icon */}
+        <div className={`flex items-center justify-between px-vara-lg pt-vara-lg ${isCollapsed ? 'pb-vara-lg' : 'pb-vara-sm'}`}>
           <div className="flex items-center gap-3">
             {icon && (
-              <div className={`flex items-center justify-center ${gradient ? 'text-white' : 'text-gray-700'}`}>
+              <div className="w-8 h-8 flex items-center justify-center rounded-vara-md bg-teal-light text-evergreen-teal">
                 {icon}
               </div>
             )}
             {title && (
               <div className="flex items-center gap-2">
-                <h3 className={`text-lg font-semibold ${gradient ? 'text-white' : 'text-gray-900'}`}>
-                  {title}
-                </h3>
+                <h3 className="text-vara-lg font-semibold text-soft-charcoal">{title}</h3>
                 {isCollapsed && count !== undefined && (
-                  <span className={`text-sm px-2 py-0.5 rounded-full ${gradient ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                  <span className="text-vara-xs px-2 py-0.5 rounded-vara-pill bg-dew-sage-light text-muted-sage-gray font-medium">
                     {count}
                   </span>
                 )}
@@ -64,21 +40,13 @@ const SectionCard = ({
             )}
           </div>
 
-          {/* Actions container */}
           <div className="flex items-center gap-2">
-            {/* Action buttons (only show when not collapsed) */}
             {!isCollapsed && action && <div>{action}</div>}
-
-            {/* Collapse toggle button */}
             {collapsible && (
               <button
                 onClick={onToggleCollapse}
-                className={`p-2 rounded-lg transition-colors ${
-                  gradient
-                    ? 'hover:bg-white/10 text-white'
-                    : 'hover:bg-gray-100 text-gray-600'
-                }`}
-                title={isCollapsed ? 'Expand section' : 'Collapse section'}
+                className="p-2 rounded-vara-md hover:bg-dew-sage-light text-muted-sage-gray transition-colors"
+                aria-label={isCollapsed ? 'Expand section' : 'Collapse section'}
               >
                 {isCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
               </button>
@@ -87,16 +55,14 @@ const SectionCard = ({
         </div>
       )}
 
-      {/* Content - only show when not collapsed */}
+      {/* Content */}
       {!isCollapsed && (
         <>
-          <div className={title || action || icon ? 'px-6 pb-6' : 'p-6'}>
+          <div className={title || action || icon ? 'px-vara-lg pb-vara-lg' : 'p-vara-lg'}>
             {children}
           </div>
-
-          {/* Optional Footer */}
           {footer && (
-            <div className="px-6 pb-6 pt-0">
+            <div className="px-vara-lg pb-vara-lg border-t border-divider pt-vara-base">
               {footer}
             </div>
           )}

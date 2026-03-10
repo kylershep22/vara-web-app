@@ -28,6 +28,7 @@ export interface HabitFormData {
 
   // Step 5: Intention (skippable)
   intention?: HabitIntention;
+  valueAlignment?: string | null;
 
   // Step 6: Review
   problem: string;
@@ -63,5 +64,6 @@ export const DEFAULT_FORM_DATA: HabitFormData = {
   cueType: 'time',
   cueValue: '',
   implementationIntention: '',
+  valueAlignment: null,
   problem: '',
 };

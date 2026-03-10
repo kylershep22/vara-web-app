@@ -92,7 +92,7 @@ const StressManagementSection = ({ userId }) => {
       id: 'recovery-practices',
       title: 'Active Recovery Practices',
       icon: Heart,
-      color: 'from-green-500 to-emerald-500',
+      color: 'from-evergreen-teal to-evergreen-teal',
       summary: 'Practical techniques to actively manage and recover from stress.',
       content: [
         {
@@ -151,18 +151,18 @@ const StressManagementSection = ({ userId }) => {
   return (
     <div className="space-y-6">
       {/* Hero Banner */}
-      <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-6">
+      <div className="bg-gradient-to-r from-dew-sage-light to-dew-sage-light border border-silver-sage rounded-xl p-6">
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-orange-100 rounded-lg">
-            <Zap className="text-orange-600" size={32} />
+          <div className="p-3 bg-dew-sage rounded-lg">
+            <Zap className="text-evergreen-teal" size={32} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-orange-900 mb-2">Stress is Not the Enemy</h2>
-            <p className="text-orange-700 mb-3">
+            <h2 className="text-2xl font-bold text-soft-charcoal mb-2">Stress is Not the Enemy</h2>
+            <p className="text-muted-sage-gray mb-3">
               You've been told to "reduce stress" and "avoid burnout," but what if stress isn't the villain?
               What if the real problem is how we respond to stress and fail to recover from it?
             </p>
-            <p className="text-orange-700">
+            <p className="text-muted-sage-gray">
               This section will teach you how to reframe stress, understand your nervous system,
               and build practices that turn stress into a tool for growth and resilience.
             </p>
@@ -172,26 +172,26 @@ const StressManagementSection = ({ userId }) => {
 
       {/* Key Principles Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
-          <Shield className="text-blue-600 mb-2" size={24} />
-          <h3 className="font-semibold text-blue-900 mb-1">Build Resilience</h3>
-          <p className="text-sm text-blue-700">
+        <div className="bg-gradient-to-br from-dew-sage-light to-dew-sage border border-silver-sage rounded-lg p-4">
+          <Shield className="text-evergreen-teal mb-2" size={24} />
+          <h3 className="font-semibold text-soft-charcoal mb-1">Build Resilience</h3>
+          <p className="text-sm text-muted-sage-gray">
             Small doses of stress make you stronger. Recovery builds capacity.
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-4">
-          <Brain className="text-purple-600 mb-2" size={24} />
-          <h3 className="font-semibold text-purple-900 mb-1">Regulate Your System</h3>
-          <p className="text-sm text-purple-700">
+        <div className="bg-gradient-to-br from-dew-sage-light to-dew-sage border border-silver-sage rounded-lg p-4">
+          <Brain className="text-evergreen-teal mb-2" size={24} />
+          <h3 className="font-semibold text-soft-charcoal mb-1">Regulate Your System</h3>
+          <p className="text-sm text-muted-sage-gray">
             Learn to shift between activation and rest intentionally.
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
-          <Heart className="text-green-600 mb-2" size={24} />
-          <h3 className="font-semibold text-green-900 mb-1">Complete the Cycle</h3>
-          <p className="text-sm text-green-700">
+        <div className="bg-gradient-to-br from-teal-light to-dew-sage border border-silver-sage rounded-lg p-4">
+          <Heart className="text-evergreen-teal mb-2" size={24} />
+          <h3 className="font-semibold text-soft-charcoal mb-1">Complete the Cycle</h3>
+          <p className="text-sm text-muted-sage-gray">
             Stress needs physical release. Movement and rest complete the cycle.
           </p>
         </div>
@@ -199,54 +199,54 @@ const StressManagementSection = ({ userId }) => {
 
       {/* Educational Topics */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">Deep Dives</h3>
+        <h3 className="text-lg font-semibold text-soft-charcoal">Deep Dives</h3>
         {stressTopics.map(topic => {
           const Icon = topic.icon;
           const isExpanded = expandedTopic === topic.id;
 
           return (
-            <div key={topic.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div key={topic.id} className="bg-white border border-divider rounded-xl overflow-hidden">
               {/* Topic Header */}
               <button
                 onClick={() => toggleTopic(topic.id)}
-                className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition"
+                className="w-full flex items-center justify-between p-6 hover:bg-dew-sage-light transition"
               >
                 <div className="flex items-center gap-4">
                   <div className={`p-3 bg-gradient-to-br ${topic.color} rounded-lg`}>
                     <Icon className="text-white" size={24} />
                   </div>
                   <div className="text-left">
-                    <h4 className="font-semibold text-gray-900 text-lg">{topic.title}</h4>
-                    <p className="text-sm text-gray-600">{topic.summary}</p>
+                    <h4 className="font-semibold text-soft-charcoal text-lg">{topic.title}</h4>
+                    <p className="text-sm text-muted-sage-gray">{topic.summary}</p>
                   </div>
                 </div>
                 <BookOpen
-                  className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                  className={`text-muted-sage-gray/60 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                   size={20}
                 />
               </button>
 
               {/* Topic Content */}
               {isExpanded && (
-                <div className="px-6 pb-6 space-y-6 border-t border-gray-100">
+                <div className="px-6 pb-6 space-y-6 border-t border-dew-sage-light">
                   {/* Content Sections */}
                   {topic.content.map((section, idx) => (
                     <div key={idx} className="pt-4">
-                      <h5 className="font-semibold text-gray-900 mb-2">{section.heading}</h5>
-                      <p className="text-gray-700 leading-relaxed">{section.text}</p>
+                      <h5 className="font-semibold text-soft-charcoal mb-2">{section.heading}</h5>
+                      <p className="text-soft-charcoal leading-relaxed">{section.text}</p>
                     </div>
                   ))}
 
                   {/* Practices */}
-                  <div className="bg-gray-50 rounded-lg p-4 mt-4">
-                    <h5 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <div className="bg-dew-sage-light rounded-lg p-4 mt-4">
+                    <h5 className="font-semibold text-soft-charcoal mb-3 flex items-center gap-2">
                       <Target size={18} />
                       Practical Applications
                     </h5>
                     <ul className="space-y-2">
                       {topic.practices.map((practice, idx) => (
-                        <li key={idx} className="text-gray-700 flex items-start gap-2">
-                          <span className="text-[#1B5E57] mt-1">•</span>
+                        <li key={idx} className="text-soft-charcoal flex items-start gap-2">
+                          <span className="text-evergreen-teal mt-1">•</span>
                           <span>{practice}</span>
                         </li>
                       ))}
@@ -260,7 +260,7 @@ const StressManagementSection = ({ userId }) => {
       </div>
 
       {/* Call to Action */}
-      <div className="bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] rounded-xl shadow-lg p-6 text-white">
+      <div className="bg-gradient-to-r from-evergreen-teal to-silver-sage rounded-xl shadow-lg p-6 text-white">
         <h3 className="text-xl font-semibold mb-2">Ready to Apply These Principles?</h3>
         <p className="mb-4 opacity-90">
           Combine stress management with the other tools in Fuel & Recovery: Sleep for recovery,
@@ -269,7 +269,7 @@ const StressManagementSection = ({ userId }) => {
         <div className="flex gap-3">
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="px-4 py-2 bg-white text-[#1B5E57] rounded-lg font-medium hover:shadow-lg transition"
+            className="px-4 py-2 bg-white text-evergreen-teal rounded-lg font-medium hover:shadow-lg transition"
           >
             Explore Other Tools
           </button>
@@ -277,23 +277,23 @@ const StressManagementSection = ({ userId }) => {
       </div>
 
       {/* Resources Section */}
-      <div className="border border-gray-200 rounded-lg p-6">
-        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+      <div className="border border-divider rounded-lg p-6">
+        <h3 className="font-semibold text-soft-charcoal mb-4 flex items-center gap-2">
           <BookOpen size={20} />
           Recommended Resources
         </h3>
         <div className="space-y-3">
           <div>
-            <h4 className="font-medium text-gray-900">The Upside of Stress</h4>
-            <p className="text-sm text-gray-600">Kelly McGonigal - How to use stress to your advantage</p>
+            <h4 className="font-medium text-soft-charcoal">The Upside of Stress</h4>
+            <p className="text-sm text-muted-sage-gray">Kelly McGonigal - How to use stress to your advantage</p>
           </div>
           <div>
-            <h4 className="font-medium text-gray-900">Why Zebras Don't Get Ulcers</h4>
-            <p className="text-sm text-gray-600">Robert Sapolsky - Understanding stress physiology</p>
+            <h4 className="font-medium text-soft-charcoal">Why Zebras Don't Get Ulcers</h4>
+            <p className="text-sm text-muted-sage-gray">Robert Sapolsky - Understanding stress physiology</p>
           </div>
           <div>
-            <h4 className="font-medium text-gray-900">Burnout</h4>
-            <p className="text-sm text-gray-600">Emily & Amelia Nagoski - Completing the stress cycle</p>
+            <h4 className="font-medium text-soft-charcoal">Burnout</h4>
+            <p className="text-sm text-muted-sage-gray">Emily & Amelia Nagoski - Completing the stress cycle</p>
           </div>
         </div>
       </div>

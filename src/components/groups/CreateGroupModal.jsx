@@ -58,8 +58,8 @@ export default function CreateGroupModal({ isOpen, onClose, onCreate }) {
 
         <div className="relative bg-white rounded-xl max-w-lg w-full mx-auto shadow-xl p-6 z-10">
           <div className="flex items-center justify-between mb-4">
-            <Dialog.Title className="text-xl font-semibold text-emerald-700">Create a Group</Dialog.Title>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <Dialog.Title className="text-xl font-semibold text-evergreen-teal">Create a Group</Dialog.Title>
+            <button onClick={onClose} className="text-muted-sage-gray/60 hover:text-muted-sage-gray">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -72,7 +72,7 @@ export default function CreateGroupModal({ isOpen, onClose, onCreate }) {
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-400"
+                className="w-full border border-silver-sage rounded-lg px-4 py-2 focus:ring-2 focus:ring-evergreen-teal/40"
                 placeholder="e.g., Mindful Mornings"
               />
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
@@ -84,7 +84,7 @@ export default function CreateGroupModal({ isOpen, onClose, onCreate }) {
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-400"
+                className="w-full border border-silver-sage rounded-lg px-4 py-2 focus:ring-2 focus:ring-evergreen-teal/40"
                 rows={3}
                 placeholder="Tell others what this group is about"
               />
@@ -123,7 +123,7 @@ export default function CreateGroupModal({ isOpen, onClose, onCreate }) {
                 name="category"
                 value={form.category}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-400"
+                className="w-full border border-silver-sage rounded-lg px-4 py-2 focus:ring-2 focus:ring-evergreen-teal/40"
               >
                 <option value="">Select category</option>
                 {categories.map((cat) => (
@@ -138,7 +138,7 @@ export default function CreateGroupModal({ isOpen, onClose, onCreate }) {
                 name="groupType"
                 value={form.groupType}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-400"
+                className="w-full border border-silver-sage rounded-lg px-4 py-2 focus:ring-2 focus:ring-evergreen-teal/40"
               >
                 <option value="">Select type</option>
                 {groupTypes.map((type) => (
@@ -148,13 +148,13 @@ export default function CreateGroupModal({ isOpen, onClose, onCreate }) {
             </div>
 
             <div>
-              <label className="block font-medium text-sm mb-1">Max Members <span className="text-gray-400">(optional)</span></label>
+              <label className="block font-medium text-sm mb-1">Max Members <span className="text-muted-sage-gray/60">(optional)</span></label>
               <input
                 type="number"
                 name="maxMembers"
                 value={form.maxMembers}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-400"
+                className="w-full border border-silver-sage rounded-lg px-4 py-2 focus:ring-2 focus:ring-evergreen-teal/40"
               />
             </div>
 
@@ -169,21 +169,21 @@ export default function CreateGroupModal({ isOpen, onClose, onCreate }) {
             </div>
 
             <div>
-              <label className="block font-medium text-sm mb-1">Tags <span className="text-gray-400">(comma separated)</span></label>
+              <label className="block font-medium text-sm mb-1">Tags <span className="text-muted-sage-gray/60">(comma separated)</span></label>
               <input
                 type="text"
                 name="tags"
                 value={form.tags}
                 onChange={handleChange}
                 placeholder="e.g., morning, mindfulness, community"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-400"
+                className="w-full border border-silver-sage rounded-lg px-4 py-2 focus:ring-2 focus:ring-evergreen-teal/40"
               />
             </div>
 
             <div className="pt-4">
               <button
                 type="submit"
-                className="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition-colors font-semibold"
+                className="w-full bg-evergreen-teal text-white py-2 rounded-lg hover:opacity-90 transition-colors font-semibold"
               >
                 Create Group
               </button>

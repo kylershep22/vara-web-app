@@ -9,26 +9,38 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Input } from '../../';
 import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { INTENTION_CATEGORY_LABELS } from '../../../constants/intentions';
+import { isCognitiveReserveCategory } from '../../../constants/habitCategories';
 import { WizardStepProps } from './types';
 
 interface SummaryRowProps {
   icon: string;
   label: string;
   value: string;
+  badge?: React.ReactNode;
 }
 
-const SummaryRow: React.FC<SummaryRowProps> = ({ icon, label, value }) => (
+const SummaryRow: React.FC<SummaryRowProps> = ({ icon, label, value, badge }) => (
   <View style={styles.summaryRow}>
     <Icon name={icon as any} size={16} color={Colors.evergreenTeal} />
     <View style={styles.summaryContent}>
       <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={styles.summaryValue}>{value}</Text>
+      <View style={styles.summaryValueRow}>
+        <Text style={styles.summaryValue}>{value}</Text>
+        {badge}
+      </View>
     </View>
+  </View>
+);
+
+const CRBadge = () => (
+  <View style={styles.crBadge}>
+    <Text style={styles.crBadgeText}>🌿 CR</Text>
   </View>
 );
 
 export const ReviewStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormData }) => {
   const typeDisplay = formData.type.charAt(0).toUpperCase() + formData.type.slice(1);
+  const isCR = isCognitiveReserveCategory(formData.category);
 
   return (
     <View style={styles.container}>
@@ -41,7 +53,12 @@ export const ReviewStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormDa
         <SummaryRow icon="lightning-bolt" label="Habit" value={formData.name || '(not set)'} />
 
         {formData.category ? (
-          <SummaryRow icon="tag" label="Category" value={formData.category} />
+          <SummaryRow
+            icon="tag"
+            label="Category"
+            value={formData.category}
+            badge={isCR ? <CRBadge /> : undefined}
+          />
         ) : null}
 
         <SummaryRow icon="calendar" label="Type" value={typeDisplay} />
@@ -75,6 +92,14 @@ export const ReviewStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormDa
             icon="heart"
             label="Intention"
             value={`${formData.intention.label}${formData.intention.isCustom ? '' : ` (${INTENTION_CATEGORY_LABELS[formData.intention.category]})`}`}
+          />
+        ) : null}
+
+        {formData.valueAlignment ? (
+          <SummaryRow
+            icon="arrow-right"
+            label="Value"
+            value={`→ ${formData.valueAlignment}`}
           />
         ) : null}
       </View>
@@ -132,11 +157,27 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
+  summaryValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: Spacing['2xs'],
+  },
   summaryValue: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.textPrimary,
-    marginTop: Spacing['2xs'],
+  },
+  crBadge: {
+    backgroundColor: '#E6F2EC',
+    borderRadius: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  crBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2A6E4A',
   },
   problemSection: {
     marginTop: Spacing.xs,

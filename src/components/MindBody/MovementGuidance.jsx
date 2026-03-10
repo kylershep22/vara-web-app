@@ -12,15 +12,15 @@ const MovementGuidance = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {flows.map((flow) => (
           <div key={flow.id} className="p-4 bg-white rounded shadow hover:shadow-lg transition">
-            <h3 className="text-emerald-800 font-semibold">{flow.title}</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="text-evergreen-teal font-semibold">{flow.title}</h3>
+            <p className="text-sm text-muted-sage-gray">
               {flow.duration}-minute • {flow.type}
             </p>
             <div className="flex justify-between mt-3">
-              <button className="text-sm text-emerald-700 underline hover:text-emerald-900">
+              <button className="text-sm text-evergreen-teal underline hover:text-evergreen-teal/90">
                 Preview
               </button>
-              <button className="text-sm text-emerald-500 hover:underline">
+              <button className="text-sm text-evergreen-teal hover:underline">
                 Log as Completed
               </button>
             </div>

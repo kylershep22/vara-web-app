@@ -25,6 +25,8 @@ import Sleep from './pages/library/Sleep';
 import Movement from './pages/library/Movement';
 import GoalsHabits from './pages/GoalsHabits';
 import GroupForumPage from './pages/Community/GroupForumPage';
+import ChallengesPage from './pages/Community/ChallengesPage';
+import ChallengeDetailPage from './pages/Community/ChallengeDetailPage';
 
 // New Brain Health pages
 import BrainHealth from './pages/BrainHealth';
@@ -39,6 +41,11 @@ import { VideoPlayerProvider } from './context/VideoPlayerContext';
 import NowPlayingBar from './components/audio/NowPlayingBar';
 import VideoPlayerBar from './components/video/VideoPlayerBar';
 import UserProfileForm from './components/onboarding/UserProfileForm';
+import OnboardingWelcome from './pages/onboarding/OnboardingWelcome';
+import OnboardingCheckIn from './pages/onboarding/OnboardingCheckIn';
+import OnboardingInsight from './pages/onboarding/OnboardingInsight';
+import OnboardingActivity from './pages/onboarding/OnboardingActivity';
+import OnboardingConfirmation from './pages/onboarding/OnboardingConfirmation';
 import EditProfile from './pages/Profile/EditProfile';
 import PeopleSearchPage from './pages/Community/PeopleSearchPage';
 import SeedTagsTool from "./dev/SeedTagsTool";
@@ -67,6 +74,11 @@ function App() {
           <Route path="/terms" element={<TermsOfService />} />
 
           {/* Onboarding Flow */}
+          <Route path="/onboarding/welcome" element={<ProtectedRoute><OnboardingWelcome /></ProtectedRoute>} />
+          <Route path="/onboarding/check-in" element={<ProtectedRoute><OnboardingCheckIn /></ProtectedRoute>} />
+          <Route path="/onboarding/insight" element={<ProtectedRoute><OnboardingInsight /></ProtectedRoute>} />
+          <Route path="/onboarding/activity" element={<ProtectedRoute><OnboardingActivity /></ProtectedRoute>} />
+          <Route path="/onboarding/confirmation" element={<ProtectedRoute><OnboardingConfirmation /></ProtectedRoute>} />
           <Route path="/onboarding/set-goal" element={<SetGoalFlow />} />
 
           {/* Protected Routes */}
@@ -309,6 +321,22 @@ function App() {
             }
           />
           <Route
+            path="/community/challenges"
+            element={
+              <ProtectedRoute>
+                <ChallengesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community/challenges/:challengeId"
+            element={
+              <ProtectedRoute>
+                <ChallengeDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dev/seed-tags"
             element={
               <ProtectedRoute>
@@ -340,14 +368,6 @@ function App() {
               </ProtectedRoute>
             }
           /> 
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <MyProfileRedirect />
-              </ProtectedRoute>
-            } 
-          />
         </Routes>
 
         {/* Persistent Media Bars */}

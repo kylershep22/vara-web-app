@@ -432,21 +432,21 @@ export default function Journal() {
 
   return (
     <SidebarLayout>
-      <div className="p-6 max-w-6xl mx-auto space-y-12">
+      <div className="p-vara-lg max-w-6xl mx-auto space-y-12">
         {/* Header + streak */}
-        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <BookOpen size={28} className="text-[#1B5E57]" />
-            <h1 className="text-3xl font-semibold text-[#3E3E3E]">Journal</h1>
+        <div className="flex flex-col md:flex-row justify-between md:items-center gap-vara-base">
+          <div className="flex items-center gap-vara-md">
+            <BookOpen size={28} className="text-evergreen-teal" />
+            <h1 className="text-vara-2xl font-semibold text-soft-charcoal">Journal</h1>
           </div>
-          <div className="flex items-center gap-2 text-[#9AAE8C] text-sm">
-            <Flame size={18} className="text-[#1B5E57]" />
+          <div className="flex items-center gap-vara-sm text-muted-sage-gray text-vara-sm">
+            <Flame size={18} className="text-evergreen-teal" />
             Daily Streak: <strong>{streak} days</strong>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="inline-flex rounded-xl border border-[#D5E3D1] overflow-hidden">
+        <div className="inline-flex rounded-vara-lg border border-divider overflow-hidden">
           {[
             { key: 'journal', label: 'Journal' },
             { key: 'reflections', label: 'Reflections' }
@@ -455,8 +455,8 @@ export default function Journal() {
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 text-sm font-medium transition ${
-                activeTab === tab.key ? 'bg-[#1B5E57] text-white' : 'text-[#3E3E3E] hover:bg-[#D5E3D1]'
+              className={`px-vara-base py-2 text-vara-sm font-medium transition ${
+                activeTab === tab.key ? 'bg-evergreen-teal text-white' : 'text-soft-charcoal hover:bg-dew-sage'
               }`}
             >
               {tab.label}
@@ -465,24 +465,24 @@ export default function Journal() {
         </div>
 
         {/* Modern helper: "Which should I use?" */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-white border border-[#D5E3D1] rounded-xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <HelpCircle className="text-[#1B5E57]" size={18} />
-              <h3 className="text-sm font-semibold text-[#1B5E57] uppercase tracking-wide">Journal</h3>
+        <div className="grid md:grid-cols-2 gap-vara-base">
+          <div className="bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm">
+            <div className="flex items-center gap-vara-sm mb-1">
+              <HelpCircle className="text-evergreen-teal" size={18} />
+              <h3 className="text-vara-sm font-semibold text-evergreen-teal uppercase tracking-wide">Journal</h3>
             </div>
-            <ul className="text-sm text-[#3E3E3E] space-y-2">
+            <ul className="text-vara-sm text-soft-charcoal space-y-2">
               <li>• Longer-form thoughts with <strong>rich text</strong>, <strong>mood</strong>, and <strong>tags</strong>.</li>
               <li>• Use for deeper processing, stories, and key moments.</li>
               <li>• Great for patterns over time and searching by tag.</li>
             </ul>
           </div>
-          <div className="bg-white border border-[#D5E3D1] rounded-xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="text-[#1B5E57]" size={18} />
-              <h3 className="text-sm font-semibold text-[#1B5E57] uppercase tracking-wide">Reflections</h3>
+          <div className="bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm">
+            <div className="flex items-center gap-vara-sm mb-1">
+              <Sparkles className="text-evergreen-teal" size={18} />
+              <h3 className="text-vara-sm font-semibold text-evergreen-teal uppercase tracking-wide">Reflections</h3>
             </div>
-            <ul className="text-sm text-[#3E3E3E] space-y-2">
+            <ul className="text-vara-sm text-soft-charcoal space-y-2">
               <li>• <strong>AM/PM</strong> quick notes with rich text, mood, and tags.</li>
               <li>• Capture intentions (AM) and wins/gratitude (PM).</li>
               <li>• Perfect for daily cadence and fast check-ins.</li>
@@ -493,7 +493,7 @@ export default function Journal() {
         {/* JOURNAL TAB */}
         {activeTab === 'journal' && (
           <>
-            <div className="bg-white border border-[#D5E3D1] rounded-xl p-6 space-y-4 shadow">
+            <div className="bg-white border border-divider rounded-vara-lg p-vara-lg space-y-4 shadow">
               <RichTextEditor
                 value={newEntry}
                 onChange={setNewEntry}
@@ -501,10 +501,10 @@ export default function Journal() {
                 minHeight={220}
               />
 
-              <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex flex-wrap gap-vara-sm items-center">
                 <select
                   aria-label="Mood"
-                  className="border border-[#D5E3D1] rounded px-3 py-2 text-sm"
+                  className="border border-divider rounded px-3 py-2 text-vara-sm"
                   value={mood}
                   onChange={(e) => setMood(e.target.value)}
                 >
@@ -514,31 +514,31 @@ export default function Journal() {
                   ))}
                 </select>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-vara-sm">
                   <input
                     type="text"
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     placeholder="Add tag…"
-                    className="border border-[#D5E3D1] rounded px-3 py-2 text-sm"
+                    className="border border-divider rounded px-3 py-2 text-vara-sm"
                     onKeyDown={(e) => e.key === 'Enter' && addTag()}
                   />
                   <button
                     onClick={addTag}
-                    className="bg-[#1B5E57] text-white px-3 py-2 rounded text-xs hover:bg-[#164e48]"
+                    className="bg-evergreen-teal text-white px-3 py-2 rounded text-vara-xs hover:opacity-90"
                   >
                     Add
                   </button>
                 </div>
 
                 {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-vara-sm">
                     {tags.map((t, i) => (
                       <button
                         type="button"
                         key={i}
                         onClick={() => removeTag(t)}
-                        className="bg-[#D5E3D1] text-[#1B5E57] text-xs px-2 py-1 rounded-full"
+                        className="bg-dew-sage text-evergreen-teal text-vara-xs px-2 py-1 rounded-full"
                         title="Remove tag"
                       >
                         #{t} ✕
@@ -549,7 +549,7 @@ export default function Journal() {
 
                 <button
                   onClick={() => handleVoiceInput('journal')}
-                  className="text-sm text-[#1B5E57] flex items-center gap-1 ml-auto"
+                  className="text-vara-sm text-evergreen-teal flex items-center gap-1 ml-auto"
                   title={recording ? 'Stop recording' : 'Dictate with your voice'}
                 >
                   {recording ? <MicOff size={16} /> : <Mic size={16} />} {recording ? 'Stop' : 'Voice'}
@@ -557,26 +557,26 @@ export default function Journal() {
 
                 <button
                   onClick={saveEntry}
-                  className="bg-[#1B5E57] text-white px-4 py-2 rounded hover:bg-[#164e48] transition text-sm"
+                  className="bg-evergreen-teal text-white px-vara-base py-2 rounded hover:opacity-90 transition text-vara-sm"
                 >
                   {editingId ? 'Update Entry' : 'Save Entry'}
                 </button>
               </div>
 
               {aiGeneratedPrompt && (
-                <div className="bg-[#F4F7F4] border border-[#D5E3D1] rounded-xl p-4 mt-2 shadow-sm">
-                  <h4 className="text-[#1B5E57] font-semibold mb-2">✨ Suggested Prompt</h4>
-                  <p className="text-[#3E3E3E] text-sm italic">"{aiGeneratedPrompt}"</p>
-                  <div className="flex gap-2">
+                <div className="bg-mist-white border border-divider rounded-vara-lg p-vara-base mt-2 shadow-vara-sm">
+                  <h4 className="text-evergreen-teal font-semibold mb-2">✨ Suggested Prompt</h4>
+                  <p className="text-soft-charcoal text-vara-sm italic">"{aiGeneratedPrompt}"</p>
+                  <div className="flex gap-vara-sm">
                     <button
                       onClick={() => setNewEntry(aiGeneratedPrompt)}
-                      className="mt-2 text-sm text-[#1B5E57] underline hover:text-[#164e48]"
+                      className="mt-2 text-vara-sm text-evergreen-teal underline hover:opacity-80"
                     >
                       Use in editor
                     </button>
                     <button
                       onClick={() => setAiGeneratedPrompt('')}
-                      className="mt-2 text-sm text-[#1B5E57] underline hover:text-[#164e48]"
+                      className="mt-2 text-vara-sm text-evergreen-teal underline hover:opacity-80"
                     >
                       Dismiss
                     </button>
@@ -586,16 +586,16 @@ export default function Journal() {
             </div>
 
             {/* Prompt helper (shared) */}
-            <div className="bg-[#F9FAF8] border border-[#D5E3D1] p-4 rounded-xl flex gap-2 items-center">
+            <div className="bg-mist-white border border-divider p-vara-base rounded-vara-lg flex gap-vara-sm items-center">
               <input
                 placeholder="Ask AI for a journaling prompt…"
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
-                className="flex-1 border border-[#D5E3D1] rounded p-2 text-sm"
+                className="flex-1 border border-divider rounded p-2 text-vara-sm"
               />
               <button
                 onClick={fetchAISuggestion}
-                className="text-sm px-4 py-2 bg-[#B8CDBA] text-[#1B5E57] rounded hover:bg-[#9AAE8C]"
+                className="text-vara-sm px-vara-base py-2 bg-silver-sage text-evergreen-teal rounded hover:bg-dew-sage"
               >
                 Get Prompt
               </button>
@@ -607,23 +607,23 @@ export default function Journal() {
         {activeTab === 'reflections' && (
           <>
             {/* Quick-add reflection (now rich + parity controls) */}
-            <div className="bg-white border border-[#D5E3D1] rounded-xl p-6 space-y-3 shadow">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <p className="text-sm text-gray-600">
+            <div className="bg-white border border-divider rounded-vara-lg p-vara-lg space-y-3 shadow">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-vara-md">
+                <p className="text-vara-sm text-muted-sage-gray">
                   Add a quick {refPeriod.toUpperCase()} note for <span className="font-medium">{prettyDate(todayStr)}</span>.
                 </p>
-                <div className="inline-flex items-center rounded-lg border border-[#D5E3D1] overflow-hidden">
+                <div className="inline-flex items-center rounded-vara-md border border-divider overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setRefPeriod('am')}
-                    className={`px-3 py-1 text-xs font-medium transition ${refPeriod === 'am' ? 'bg-[#1B5E57] text-white' : 'text-[#3E3E3E] hover:bg-[#D5E3D1]'}`}
+                    className={`px-3 py-1 text-vara-xs font-medium transition ${refPeriod === 'am' ? 'bg-evergreen-teal text-white' : 'text-soft-charcoal hover:bg-dew-sage'}`}
                   >
                     Morning
                   </button>
                   <button
                     type="button"
                     onClick={() => setRefPeriod('pm')}
-                    className={`px-3 py-1 text-xs font-medium transition ${refPeriod === 'pm' ? 'bg-[#1B5E57] text-white' : 'text-[#3E3E3E] hover:bg-[#D5E3D1]'}`}
+                    className={`px-3 py-1 text-vara-xs font-medium transition ${refPeriod === 'pm' ? 'bg-evergreen-teal text-white' : 'text-soft-charcoal hover:bg-dew-sage'}`}
                   >
                     Evening
                   </button>
@@ -637,10 +637,10 @@ export default function Journal() {
                 minHeight={160}
               />
 
-              <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex flex-wrap gap-vara-sm items-center">
                 <select
                   aria-label="Mood"
-                  className="border border-[#D5E3D1] rounded px-3 py-2 text-sm"
+                  className="border border-divider rounded px-3 py-2 text-vara-sm"
                   value={refMood}
                   onChange={(e) => setRefMood(e.target.value)}
                 >
@@ -650,31 +650,31 @@ export default function Journal() {
                   ))}
                 </select>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-vara-sm">
                   <input
                     type="text"
                     value={refTagInput}
                     onChange={(e) => setRefTagInput(e.target.value)}
                     placeholder="Add tag…"
-                    className="border border-[#D5E3D1] rounded px-3 py-2 text-sm"
+                    className="border border-divider rounded px-3 py-2 text-vara-sm"
                     onKeyDown={(e) => e.key === 'Enter' && addRefTag()}
                   />
                   <button
                     onClick={addRefTag}
-                    className="bg-[#1B5E57] text-white px-3 py-2 rounded text-xs hover:bg-[#164e48]"
+                    className="bg-evergreen-teal text-white px-3 py-2 rounded text-vara-xs hover:opacity-90"
                   >
                     Add
                   </button>
                 </div>
 
                 {refTags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-vara-sm">
                     {refTags.map((t, i) => (
                       <button
                         type="button"
                         key={i}
                         onClick={() => removeRefTag(t)}
-                        className="bg-[#D5E3D1] text-[#1B5E57] text-xs px-2 py-1 rounded-full"
+                        className="bg-dew-sage text-evergreen-teal text-vara-xs px-2 py-1 rounded-full"
                         title="Remove tag"
                       >
                         #{t} ✕
@@ -685,46 +685,46 @@ export default function Journal() {
 
                 <button
                   onClick={() => handleVoiceInput('reflection')}
-                  className="text-sm text-[#1B5E57] flex items-center gap-1 ml-auto"
+                  className="text-vara-sm text-evergreen-teal flex items-center gap-1 ml-auto"
                   title={recording ? 'Stop recording' : 'Dictate with your voice'}
                 >
                   {recording ? <MicOff size={16} /> : <Mic size={16} />} {recording ? 'Stop' : 'Voice'}
                 </button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-vara-sm">
                   <button
                     onClick={() => setRefHtml('')}
-                    className="px-3 py-2 border border-[#D5E3D1] rounded-lg text-sm text-[#3E3E3E] hover:bg-[#F3F6F2] transition"
+                    className="px-3 py-2 border border-divider rounded-vara-md text-vara-sm text-soft-charcoal hover:bg-dew-sage-light transition"
                   >
                     Clear
                   </button>
                   <button
                     onClick={saveReflection}
                     disabled={!user || !stripHtml(refHtml).trim()}
-                    className={`px-4 py-2 rounded-lg text-sm transition ${
+                    className={`px-vara-base py-2 rounded-vara-md text-vara-sm transition ${
                       !user || !stripHtml(refHtml).trim()
-                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        : 'bg-[#1B5E57] text-white hover:bg-[#164e48]'
+                        ? 'bg-dew-sage-light text-muted-sage-gray cursor-not-allowed'
+                        : 'bg-evergreen-teal text-white hover:opacity-90'
                     }`}
                   >
                     Save Reflection
                   </button>
                 </div>
               </div>
-              {!user && <p className="text-xs text-gray-500">Sign in to save reflections.</p>}
+              {!user && <p className="text-vara-xs text-muted-sage-gray">Sign in to save reflections.</p>}
             </div>
 
             {/* Prompt helper (shared wording) */}
-            <div className="bg-[#F9FAF8] border border-[#D5E3D1] p-4 rounded-xl flex gap-2 items-center">
+            <div className="bg-mist-white border border-divider p-vara-base rounded-vara-lg flex gap-vara-sm items-center">
               <input
                 placeholder="Ask AI for a reflection prompt…"
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
-                className="flex-1 border border-[#D5E3D1] rounded p-2 text-sm"
+                className="flex-1 border border-divider rounded p-2 text-vara-sm"
               />
               <button
                 onClick={fetchAISuggestion}
-                className="text-sm px-4 py-2 bg-[#B8CDBA] text-[#1B5E57] rounded hover:bg-[#9AAE8C]"
+                className="text-vara-sm px-vara-base py-2 bg-silver-sage text-evergreen-teal rounded hover:bg-dew-sage"
               >
                 Get Prompt
               </button>
@@ -733,36 +733,36 @@ export default function Journal() {
         )}
 
         {/* Weekly insights & summaries (split) */}
-        <section className="grid lg:grid-cols-2 gap-6">
+        <section className="grid lg:grid-cols-2 gap-vara-lg">
           {/* Journal panel */}
-          <div className="bg-[#F4F7F4] border border-[#D5E3D1] rounded-xl p-4 shadow-sm space-y-4">
-            <h3 className="text-[#1B5E57] font-semibold text-sm uppercase tracking-wide">🧠 Journal — Weekly Insights</h3>
+          <div className="bg-mist-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm space-y-4">
+            <h3 className="text-evergreen-teal font-semibold text-vara-sm uppercase tracking-wide">🧠 Journal — Weekly Insights</h3>
             {journalWeeklyInsight ? (
-              <p className="text-sm text-[#3E3E3E] whitespace-pre-wrap">{journalWeeklyInsight}</p>
+              <p className="text-vara-sm text-soft-charcoal whitespace-pre-wrap">{journalWeeklyInsight}</p>
             ) : (
               <EmptyWeeklyPlaceholder type="journal" />
             )}
 
-            <h4 className="text-[#1B5E57] font-semibold mt-2">📊 Journal — Weekly Summary</h4>
+            <h4 className="text-evergreen-teal font-semibold mt-2">📊 Journal — Weekly Summary</h4>
             {journalWeeklySummary ? (
-              <p className="text-sm text-[#3E3E3E] whitespace-pre-wrap">{journalWeeklySummary}</p>
+              <p className="text-vara-sm text-soft-charcoal whitespace-pre-wrap">{journalWeeklySummary}</p>
             ) : (
               <EmptyWeeklyPlaceholder type="journal" summary />
             )}
           </div>
 
           {/* Reflections panel */}
-          <div className="bg-[#F4F7F4] border border-[#D5E3D1] rounded-xl p-4 shadow-sm space-y-4">
-            <h3 className="text-[#1B5E57] font-semibold text-sm uppercase tracking-wide">✨ Reflections — Weekly Insights</h3>
+          <div className="bg-mist-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm space-y-4">
+            <h3 className="text-evergreen-teal font-semibold text-vara-sm uppercase tracking-wide">✨ Reflections — Weekly Insights</h3>
             {reflectionWeeklyInsight ? (
-              <p className="text-sm text-[#3E3E3E] whitespace-pre-wrap">{reflectionWeeklyInsight}</p>
+              <p className="text-vara-sm text-soft-charcoal whitespace-pre-wrap">{reflectionWeeklyInsight}</p>
             ) : (
               <EmptyWeeklyPlaceholder type="reflections" />
             )}
 
-            <h4 className="text-[#1B5E57] font-semibold mt-2">📈 Reflections — Weekly Summary</h4>
+            <h4 className="text-evergreen-teal font-semibold mt-2">📈 Reflections — Weekly Summary</h4>
             {reflectionWeeklySummary ? (
-              <p className="text-sm text-[#3E3E3E] whitespace-pre-wrap">{reflectionWeeklySummary}</p>
+              <p className="text-vara-sm text-soft-charcoal whitespace-pre-wrap">{reflectionWeeklySummary}</p>
             ) : (
               <EmptyWeeklyPlaceholder type="reflections" summary />
             )}
@@ -770,18 +770,18 @@ export default function Journal() {
         </section>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex flex-wrap gap-vara-md items-center">
           <input
             type="text"
             placeholder={`Search ${activeTab === 'reflections' ? 'reflections' : 'entries'}…`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-[#D5E3D1] rounded px-3 py-2 text-sm"
+            className="border border-divider rounded px-3 py-2 text-vara-sm"
           />
 
           {/* Mood + tag filters now available on both tabs */}
           <select
-            className="border border-[#D5E3D1] rounded px-3 py-2 text-sm"
+            className="border border-divider rounded px-3 py-2 text-vara-sm"
             value={filterMood}
             onChange={(e) => setFilterMood(e.target.value)}
           >
@@ -796,14 +796,14 @@ export default function Journal() {
             placeholder="Filter by tag…"
             value={filterTag}
             onChange={(e) => setFilterTag(e.target.value)}
-            className="border border-[#D5E3D1] rounded px-3 py-2 text-sm"
+            className="border border-divider rounded px-3 py-2 text-vara-sm"
           />
 
           {(filterMood || filterTag) && (
             <button
               type="button"
               onClick={() => { setFilterMood(''); setFilterTag(''); }}
-              className="text-xs underline text-[#1B5E57]"
+              className="text-vara-xs underline text-evergreen-teal"
             >
               Clear filters
             </button>
@@ -813,20 +813,20 @@ export default function Journal() {
         {/* List */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-[#3E3E3E]">
+            <h2 className="text-vara-lg font-semibold text-soft-charcoal">
               {activeTab === 'reflections' ? 'My Reflections' : 'My Entries'}
             </h2>
           </div>
 
           {visibleEntries.length === 0 ? (
-            <div className="bg-white border border-[#D5E3D1] rounded-xl p-6 text-sm text-[#9AAE8C]">
+            <div className="bg-white border border-divider rounded-vara-lg p-vara-lg text-vara-sm text-muted-sage-gray">
               {activeTab === 'reflections'
                 ? (
                   <div>
                     <p className="mb-2">No reflections yet. Start with a quick AM intention or PM win.</p>
                     <button
                       onClick={() => setActiveTab('reflections')}
-                      className="px-3 py-2 bg-[#1B5E57] text-white rounded text-xs"
+                      className="px-3 py-2 bg-evergreen-teal text-white rounded text-vara-xs"
                     >
                       Add first reflection
                     </button>
@@ -837,7 +837,7 @@ export default function Journal() {
                     <p className="mb-2">No journal entries yet. Capture a thought to begin your streak.</p>
                     <button
                       onClick={() => setActiveTab('journal')}
-                      className="px-3 py-2 bg-[#1B5E57] text-white rounded text-xs"
+                      className="px-3 py-2 bg-evergreen-teal text-white rounded text-vara-xs"
                     >
                       Write your first entry
                     </button>
@@ -848,13 +848,13 @@ export default function Journal() {
             visibleEntries.map(entry => (
               <div
                 key={entry.id}
-                className="bg-white border border-[#D5E3D1] rounded-xl p-4 shadow-sm"
+                className="bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-vara-sm text-muted-sage-gray">
                     {toReadable(entry.createdAt)}
                     {entry.entryType === 'reflection' && (
-                      <span className="ml-2 text-xs text-[#1B5E57] border border-[#B8CDBA] rounded px-2 py-0.5">
+                      <span className="ml-2 text-vara-xs text-evergreen-teal border border-silver-sage rounded px-2 py-0.5">
                         Reflection {entry.period ? `(${entry.period.toUpperCase()})` : ''}
                       </span>
                     )}
@@ -862,16 +862,16 @@ export default function Journal() {
 
                   {/* Edit/delete for journal entries only (adjust if you want to edit reflections later) */}
                   {entry.entryType !== 'reflection' && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-vara-sm">
                       <button
                         onClick={() => startEditing(entry)}
-                        className="text-xs text-[#1B5E57] flex items-center gap-1 hover:underline"
+                        className="text-vara-xs text-evergreen-teal flex items-center gap-1 hover:underline"
                       >
                         <Pencil size={14} /> Edit
                       </button>
                       <button
                         onClick={() => deleteEntry(entry.id)}
-                        className="text-xs text-red-500 flex items-center gap-1 hover:underline"
+                        className="text-vara-xs text-red-500 flex items-center gap-1 hover:underline"
                       >
                         <Trash2 size={14} /> Delete
                       </button>
@@ -881,7 +881,7 @@ export default function Journal() {
 
                 {entry.isHtml ? (
                   <div
-                    className="text-[#3E3E3E] text-sm"
+                    className="text-soft-charcoal text-vara-sm"
                     dangerouslySetInnerHTML={{
                       __html: DOMPurify.sanitize(entry.text, {
                         ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li'],
@@ -890,27 +890,27 @@ export default function Journal() {
                     }}
                   />
                 ) : (
-                  <p className="text-[#3E3E3E] text-sm whitespace-pre-wrap">{entry.text}</p>
+                  <p className="text-soft-charcoal text-vara-sm whitespace-pre-wrap">{entry.text}</p>
                 )}
 
                 {(entry.mood || (entry.tags && entry.tags.length > 0)) && (
-                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <div className="mt-2 flex flex-wrap items-center gap-vara-md">
                     {entry.mood && (
                       <span
                         onClick={() => setFilterMood(entry.mood)}
-                        className="text-xs text-[#1B5E57] font-medium cursor-pointer underline underline-offset-2"
+                        className="text-vara-xs text-evergreen-teal font-medium cursor-pointer underline underline-offset-2"
                         title="Filter by this mood"
                       >
                         Mood: {entry.mood}
                       </span>
                     )}
                     {entry.tags && entry.tags.length > 0 && (
-                      <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-vara-sm flex-wrap">
                         {entry.tags.map((t, i) => (
                           <button
                             key={i}
                             onClick={() => setFilterTag((t || '').toLowerCase())}
-                            className="bg-[#D5E3D1] text-[#1B5E57] text-xs px-2 py-1 rounded-full"
+                            className="bg-dew-sage text-evergreen-teal text-vara-xs px-2 py-1 rounded-full"
                             title="Filter by this tag"
                           >
                             #{t}
@@ -927,12 +927,12 @@ export default function Journal() {
 
         {/* Export */}
         <div className="mt-12">
-          <h3 className="text-lg font-semibold text-[#3E3E3E] mb-4 flex items-center gap-2">
-            <Share2 className="text-[#1B5E57]" size={20} /> Export or Share
+          <h3 className="text-vara-lg font-semibold text-soft-charcoal mb-vara-base flex items-center gap-vara-sm">
+            <Share2 className="text-evergreen-teal" size={20} /> Export or Share
           </h3>
-          <div className="bg-white/80 border border-[#D5E3D1] rounded-2xl p-5 shadow-sm flex items-center justify-between">
-            <p className="text-[#3E3E3E]">Export all entries and reflections as a secure PDF or .txt file.</p>
-            <button className="px-4 py-2 bg-[#1B5E57] text-white rounded-lg flex items-center gap-2 text-sm hover:scale-105 transition">
+          <div className="bg-white/80 border border-divider rounded-vara-lg p-5 shadow-vara-sm flex items-center justify-between">
+            <p className="text-soft-charcoal">Export all entries and reflections as a secure PDF or .txt file.</p>
+            <button className="px-vara-base py-2 bg-evergreen-teal text-white rounded-vara-md flex items-center gap-vara-sm text-vara-sm hover:scale-105 transition">
               <FileText size={16} /> Export
             </button>
           </div>
@@ -995,8 +995,8 @@ function EmptyWeeklyPlaceholder({ type, summary = false }) {
       ? 'Write at least one journal entry this week to unlock personalized analysis.'
       : 'Add an AM or PM reflection to see tailored insights.';
   return (
-    <div className="border border-dashed border-[#D5E3D1] rounded-lg p-3 bg-white/50">
-      <p className="text-sm text-[#9AAE8C]">
+    <div className="border border-dashed border-divider rounded-vara-md p-3 bg-white/50">
+      <p className="text-vara-sm text-muted-sage-gray">
         <strong>{title}.</strong> {blurb}
       </p>
     </div>

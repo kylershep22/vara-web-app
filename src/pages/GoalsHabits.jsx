@@ -395,42 +395,42 @@ export default function GoalsHabits() {
   const IntegrationModal = () =>
     showIntegrations && (
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-white rounded-3xl p-8 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto border border-[#B8CDBA]">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white rounded-3xl p-8 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto border border-silver-sage">
+          <div className="flex items-center justify-between mb-vara-lg">
             <div>
-              <h2 className="text-2xl font-bold text-[#1B5E57]">App Integrations</h2>
-              <p className="text-gray-600 mt-1">Connect your favorite apps to automatically track habits</p>
+              <h2 className="text-vara-xl font-bold text-evergreen-teal">App Integrations</h2>
+              <p className="text-muted-sage-gray mt-1">Connect your favorite apps to automatically track habits</p>
             </div>
             <button
               onClick={() => setShowIntegrations(false)}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              className="p-2 hover:bg-dew-sage-light rounded-vara-lg transition-colors"
             >
-              <X size={24} className="text-gray-400" />
+              <X size={24} className="text-muted-sage-gray" />
             </button>
           </div>
 
           <div className="space-y-4">
             {connectedApps.map((app) => (
-              <div key={app.id} className="bg-gray-50 rounded-2xl p-6 hover:bg-gray-100 transition-colors border border-[#D5E3D1]">
+              <div key={app.id} className="bg-mist-white rounded-vara-lg p-vara-lg hover:bg-dew-sage-light transition-colors border border-divider">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-vara-base">
                     <div
-                      className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                        app.connected ? 'bg-green-100' : 'bg-gray-200'
+                      className={`w-12 h-12 rounded-vara-lg flex items-center justify-center ${
+                        app.connected ? 'bg-dew-sage' : 'bg-dew-sage-light'
                       }`}
                     >
-                      <app.icon size={24} className={app.connected ? 'text-green-600' : 'text-gray-500'} />
+                      <app.icon size={24} className={app.connected ? 'text-evergreen-teal' : 'text-muted-sage-gray'} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-800">{app.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
+                      <h3 className="font-semibold text-soft-charcoal">{app.name}</h3>
+                      <div className="flex items-center gap-vara-sm mt-1">
                         {app.connected ? (
-                          <span className="flex items-center gap-1 text-sm text-green-600">
+                          <span className="flex items-center gap-1 text-vara-sm text-evergreen-teal">
                             <CheckCircle2 size={14} />
                             Connected
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1 text-sm text-gray-500">
+                          <span className="flex items-center gap-1 text-vara-sm text-muted-sage-gray">
                             <XCircle size={14} />
                             Not connected
                           </span>
@@ -438,7 +438,7 @@ export default function GoalsHabits() {
                       </div>
                       <div className="flex flex-wrap gap-1 mt-2">
                         {app.capabilities.map((capability) => (
-                          <span key={capability} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                          <span key={capability} className="text-vara-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                             {capability}
                           </span>
                         ))}
@@ -447,10 +447,10 @@ export default function GoalsHabits() {
                   </div>
                   <button
                     onClick={() => setConnectedApps((apps) => apps.map((a) => a.id === app.id ? { ...a, connected: !a.connected } : a))}
-                    className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                    className={`px-vara-lg py-3 rounded-vara-lg font-medium transition-all ${
                       app.connected
                         ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                        : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'bg-dew-sage text-evergreen-teal hover:bg-silver-sage'
                     }`}
                   >
                     {app.connected ? 'Disconnect' : 'Connect'}
@@ -460,9 +460,9 @@ export default function GoalsHabits() {
             ))}
           </div>
 
-          <div className="mt-8 p-6 bg-blue-50 rounded-2xl border border-[#B8CDBA]">
-            <h3 className="font-semibold text-[#1B5E57] mb-2">How it works</h3>
-            <ul className="text-sm text-gray-700 space-y-1">
+          <div className="mt-8 p-vara-lg bg-blue-50 rounded-vara-lg border border-silver-sage">
+            <h3 className="font-semibold text-evergreen-teal mb-2">How it works</h3>
+            <ul className="text-vara-sm text-soft-charcoal space-y-1">
               <li>• Connect your fitness and wellness apps</li>
               <li>• Create habits that match activities in those apps</li>
               <li>• Habits automatically complete when activities are detected</li>
@@ -482,40 +482,40 @@ export default function GoalsHabits() {
     const brainPillars = goal.brainPillars || [];
 
     return (
-      <div className="bg-white border border-[#D5E3D1] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white border border-divider rounded-vara-lg p-vara-lg shadow-vara-sm hover:shadow-vara-md transition-all">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <div className={`w-2.5 h-2.5 rounded-full ${goal.status === 'completed' ? 'bg-emerald-400' : 'bg-[#1B5E57]'}`} />
-              <h3 className="text-lg font-semibold text-gray-900">{goal.title}</h3>
+            <div className="flex items-center gap-vara-sm mb-2 flex-wrap">
+              <div className={`w-2.5 h-2.5 rounded-full ${goal.status === 'completed' ? 'bg-evergreen-teal/70' : 'bg-evergreen-teal'}`} />
+              <h3 className="text-vara-lg font-semibold text-soft-charcoal">{goal.title}</h3>
               <span
-                className={`ml-2 text-xs px-2 py-0.5 rounded-full border ${
+                className={`ml-2 text-vara-xs px-2 py-0.5 rounded-full border ${
                   goal.status === 'completed'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-gray-50 text-gray-700 border-gray-200'
+                    ? 'bg-teal-light text-evergreen-teal border-evergreen-teal/20'
+                    : 'bg-mist-white text-soft-charcoal border-divider'
                 }`}
               >
                 {goal.status === 'completed' ? 'Completed' : 'Active'}
               </span>
             </div>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-vara-sm text-muted-sage-gray mb-3">
               {goal.category} • {goal.target} {goal.unit} {goal.timeframe ? `• ${goal.timeframe}` : ''}
             </p>
 
             {/* Brain Pillars */}
             {brainPillars.length > 0 && (
               <div className="mb-3">
-                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 block">Brain Health Focus</span>
+                <span className="text-vara-xs font-semibold text-muted-sage-gray uppercase tracking-wide mb-1 block">Brain Health Focus</span>
                 <BrainPillarBadgeList pillars={brainPillars} size="small" />
               </div>
             )}
 
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2 mb-vara-base">
               <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-500">Progress</span>
-                <span className="text-sm font-medium text-[#1B5E57]">{goal.progress || 0}%</span>
+                <span className="text-vara-xs text-muted-sage-gray">Progress</span>
+                <span className="text-vara-sm font-medium text-evergreen-teal">{goal.progress || 0}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-dew-sage-light rounded-full h-2">
                 <div
                   className="h-2 rounded-full"
                   style={{ width: `${goal.progress || 0}%`, background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}
@@ -523,29 +523,29 @@ export default function GoalsHabits() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap gap-vara-base text-vara-sm">
+              <div className="flex items-center gap-vara-sm">
                 <Sparkles size={16} className="text-blue-500" />
-                <span className="text-gray-700">{attachedHabitsCount} {attachedHabitsCount === 1 ? 'habit' : 'habits'}</span>
+                <span className="text-soft-charcoal">{attachedHabitsCount} {attachedHabitsCount === 1 ? 'habit' : 'habits'}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-vara-sm">
                 <CalendarIcon size={16} className="text-purple-500" />
-                <span className="text-gray-700">{attachedTasksCount} {attachedTasksCount === 1 ? 'task' : 'tasks'}</span>
+                <span className="text-soft-charcoal">{attachedTasksCount} {attachedTasksCount === 1 ? 'task' : 'tasks'}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 ml-4">
+          <div className="flex flex-col gap-vara-sm ml-4">
             <button
               onClick={() => setSelectedGoal(goal)}
-              className="p-2 rounded-lg border border-[#D5E3D1] hover:bg-gray-50"
+              className="p-2 rounded-vara-md border border-divider hover:bg-mist-white"
               title="View details"
             >
               <Eye size={16} />
             </button>
             <button
               onClick={() => setEditingGoal(goal)}
-              className="p-2 rounded-lg border border-[#D5E3D1] hover:bg-gray-50"
+              className="p-2 rounded-vara-md border border-divider hover:bg-mist-white"
               title="Edit goal"
             >
               <PencilLine size={16} />
@@ -553,7 +553,7 @@ export default function GoalsHabits() {
             {goal.status !== 'completed' && (
               <button
                 onClick={() => markGoalCompleted(goal.id)}
-                className="p-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                className="p-2 rounded-vara-md bg-evergreen-teal text-white hover:opacity-90"
                 title="Mark completed"
               >
                 <Check size={16} />
@@ -561,7 +561,7 @@ export default function GoalsHabits() {
             )}
             <button
               onClick={() => handleDeleteGoal(goal.id)}
-              className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"
+              className="p-2 rounded-vara-md bg-red-50 text-red-600 hover:bg-red-100"
               title="Delete goal"
             >
               <X size={16} />
@@ -648,31 +648,31 @@ export default function GoalsHabits() {
     };
 
     return (
-      <div className="bg-white border border-[#D5E3D1] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-        <div className="px-6 pt-6">
+      <div className="bg-white border border-divider rounded-vara-lg overflow-hidden shadow-vara-sm hover:shadow-vara-md transition-all">
+        <div className="px-vara-lg pt-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-vara-sm flex-wrap">
               <div
                 className={`w-2.5 h-2.5 rounded-full ${
-                  habit.type === 'daily' ? 'bg-emerald-500' : habit.type === 'weekly' ? 'bg-blue-500' : 'bg-purple-500'
+                  habit.type === 'daily' ? 'bg-evergreen-teal' : habit.type === 'weekly' ? 'bg-blue-500' : 'bg-purple-500'
                 }`}
               />
-              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-              <span className="text-xs px-2 py-0.5 rounded-full border bg-gray-50 text-gray-700 border-gray-200">
+              <h3 className="text-vara-lg font-semibold text-soft-charcoal">{title}</h3>
+              <span className="text-vara-xs px-2 py-0.5 rounded-full border bg-mist-white text-soft-charcoal border-divider">
                 {habit.type || 'custom'}
               </span>
               <span
-                className={`text-xs px-2 py-0.5 rounded-full border ${
+                className={`text-vara-xs px-2 py-0.5 rounded-full border ${
                   habit.status === 'completed'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-gray-50 text-gray-700 border-gray-200'
+                    ? 'bg-teal-light text-evergreen-teal border-evergreen-teal/20'
+                    : 'bg-mist-white text-soft-charcoal border-divider'
                 }`}
               >
                 {habit.status === 'completed' ? 'Completed' : 'Active'}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-vara-sm text-vara-sm">
               <div className="flex items-center gap-1 bg-orange-50 text-orange-700 px-2.5 py-1 rounded-full border border-orange-100">
                 <Flame size={14} />
                 <span>{streak.current}d</span>
@@ -685,13 +685,13 @@ export default function GoalsHabits() {
             <div className="mt-3 space-y-2">
               {neurochemicalTags.length > 0 && (
                 <div>
-                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 block">Brain Impact</span>
+                  <span className="text-vara-xs font-semibold text-muted-sage-gray uppercase tracking-wide mb-1 block">Brain Impact</span>
                   <NeurochemicalTagList impacts={neurochemicalTags} size="small" maxDisplay={4} />
                 </div>
               )}
               {brainPillars.length > 0 && (
                 <div>
-                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 block">Brain Pillars</span>
+                  <span className="text-vara-xs font-semibold text-muted-sage-gray uppercase tracking-wide mb-1 block">Brain Pillars</span>
                   <BrainPillarBadgeList pillars={brainPillars} size="small" />
                 </div>
               )}
@@ -699,23 +699,23 @@ export default function GoalsHabits() {
           )}
 
           {(habit.trigger || habit.reward) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-vara-md mt-3">
               {habit.trigger && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-                  <div className="flex items-center gap-2 mb-1">
+                <div className="bg-blue-50 border border-blue-100 rounded-vara-lg p-3">
+                  <div className="flex items-center gap-vara-sm mb-1">
                     <Zap size={14} className="text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">Trigger</span>
+                    <span className="text-vara-sm font-medium text-blue-800">Trigger</span>
                   </div>
-                  <p className="text-blue-700 text-sm">{habit.trigger}</p>
+                  <p className="text-blue-700 text-vara-sm">{habit.trigger}</p>
                 </div>
               )}
               {habit.reward && (
-                <div className="bg-green-50 border border-green-100 rounded-xl p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Award size={14} className="text-green-600" />
-                    <span className="text-sm font-medium text-green-800">Reward</span>
+                <div className="bg-teal-light border border-dew-sage rounded-vara-lg p-3">
+                  <div className="flex items-center gap-vara-sm mb-1">
+                    <Award size={14} className="text-evergreen-teal" />
+                    <span className="text-vara-sm font-medium text-soft-charcoal">Reward</span>
                   </div>
-                  <p className="text-green-700 text-sm">{habit.reward}</p>
+                  <p className="text-evergreen-teal text-vara-sm">{habit.reward}</p>
                 </div>
               )}
             </div>
@@ -723,14 +723,14 @@ export default function GoalsHabits() {
 
           {habit.goalIds && habit.goalIds.length > 0 && (
             <div className="mt-3">
-              <span className="text-sm font-medium text-gray-700">Linked Goals</span>
-              <div className="flex flex-wrap gap-2 mt-2">
+              <span className="text-vara-sm font-medium text-soft-charcoal">Linked Goals</span>
+              <div className="flex flex-wrap gap-vara-sm mt-2">
                 {habit.goalIds.map((gId) => {
                   const goal = goals.find((g) => g.id === gId);
                   return (
                     <span
                       key={gId}
-                      className="text-xs bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200"
+                      className="text-vara-xs bg-teal-light text-evergreen-teal px-3 py-1 rounded-full border border-silver-sage"
                     >
                       {goal ? goal.title : 'Unknown Goal'}
                     </span>
@@ -740,8 +740,8 @@ export default function GoalsHabits() {
             </div>
           )}
 
-          <div className="mt-5 pb-5 border-t border-gray-100 pt-4">
-            <div className="flex justify-between text-xs text-gray-600 mb-2">
+          <div className="mt-5 pb-5 border-t border-divider pt-4">
+            <div className="flex justify-between text-vara-xs text-muted-sage-gray mb-2">
               <div className="flex items-center gap-1">
                 <Medal size={12} className="text-amber-500" />
                 <span>Best: {streak.best} days</span>
@@ -753,10 +753,10 @@ export default function GoalsHabits() {
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="flex gap-2">
+              <div className="flex gap-vara-sm">
                 <button
                   onClick={() => setSelectedHabit(habit)}
-                  className="px-3 py-2 text-sm rounded-lg border border-[#D5E3D1] hover:bg-gray-50 flex items-center gap-2"
+                  className="px-3 py-2 text-vara-sm rounded-vara-md border border-divider hover:bg-mist-white flex items-center gap-vara-sm"
                 >
                   <Eye size={14} />
                   View
@@ -764,7 +764,7 @@ export default function GoalsHabits() {
                 {/* Ensure Edit opens the EDIT modal, not create-new */}
                 <button
                   onClick={() => setEditingHabit(habit)}
-                  className="px-3 py-2 text-sm rounded-lg border border-[#D5E3D1] hover:bg-gray-50 flex items-center gap-2"
+                  className="px-3 py-2 text-vara-sm rounded-vara-md border border-divider hover:bg-mist-white flex items-center gap-vara-sm"
                 >
                   <PencilLine size={14} />
                   Edit
@@ -772,7 +772,7 @@ export default function GoalsHabits() {
                 {habit.status !== 'completed' && (
                   <button
                     onClick={() => markHabitCompleted(habit.id)}
-                    className="px-3 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2"
+                    className="px-3 py-2 text-vara-sm rounded-vara-md bg-evergreen-teal text-white hover:opacity-90 flex items-center gap-vara-sm"
                   >
                     <Check size={14} />
                     Complete
@@ -780,10 +780,10 @@ export default function GoalsHabits() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-vara-sm">
                 <button
                   onClick={handleLogToday}
-                  className="px-4 py-2 text-sm rounded-lg"
+                  className="px-vara-base py-2 text-vara-sm rounded-vara-md"
                   style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})`, color: 'white' }}
                   title="Log completion for today"
                 >
@@ -791,7 +791,7 @@ export default function GoalsHabits() {
                 </button>
                 <button
                   onClick={() => handleDeleteHabit(habit.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-vara-md"
                   title="Delete habit"
                 >
                   <X size={16} />
@@ -869,28 +869,28 @@ export default function GoalsHabits() {
       const iso = toISO(anchor);
       const items = isoMap.get(iso) || [];
       return (
-        <div className="bg-white border border-[#D5E3D1] rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <CalendarIcon size={20} className="text-[#1B5E57]" />
-              <h3 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white border border-divider rounded-vara-lg p-vara-lg">
+          <div className="flex items-center justify-between mb-vara-base">
+            <div className="flex items-center gap-vara-md">
+              <CalendarIcon size={20} className="text-evergreen-teal" />
+              <h3 className="text-vara-lg font-semibold text-soft-charcoal">
                 {anchor.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
               </h3>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date(anchor.getTime() - 24*3600*1000))}>Prev</button>
-              <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date())}>Today</button>
-              <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date(anchor.getTime() + 24*3600*1000))}>Next</button>
+            <div className="flex items-center gap-vara-sm">
+              <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date(anchor.getTime() - 24*3600*1000))}>Prev</button>
+              <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date())}>Today</button>
+              <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date(anchor.getTime() + 24*3600*1000))}>Next</button>
             </div>
           </div>
           {items.length === 0 ? (
-            <div className="text-sm text-gray-600">No activity logged.</div>
+            <div className="text-vara-sm text-muted-sage-gray">No activity logged.</div>
           ) : (
             <ul className="space-y-2">
               {items.map((it, idx) => (
-                <li key={idx} className="flex items-center gap-2 text-sm">
-                  <div className={`w-2 h-2 rounded-full ${it.type === 'habit' ? 'bg-blue-500' : it.event === 'completed' ? 'bg-emerald-500' : 'bg-[#1B5E57]'}`} />
-                  <span className="text-gray-800">
+                <li key={idx} className="flex items-center gap-vara-sm text-vara-sm">
+                  <div className={`w-2 h-2 rounded-full ${it.type === 'habit' ? 'bg-blue-500' : it.event === 'completed' ? 'bg-evergreen-teal' : 'bg-evergreen-teal'}`} />
+                  <span className="text-soft-charcoal">
                     {it.type === 'habit' ? `Habit: ${(it.ref.title ?? it.ref.name)} completed` : `Goal ${it.event}: ${it.ref.title}`}
                   </span>
                 </li>
@@ -905,33 +905,33 @@ export default function GoalsHabits() {
       const start = startOfWeek(anchor);
       const days = Array.from({ length: 7 }).map((_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
       return (
-        <div className="bg-white border border-[#D5E3D1] rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <CalendarIcon size={20} className="text-[#1B5E57]" />
-              <h3 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white border border-divider rounded-vara-lg p-vara-lg">
+          <div className="flex items-center justify-between mb-vara-base">
+            <div className="flex items-center gap-vara-md">
+              <CalendarIcon size={20} className="text-evergreen-teal" />
+              <h3 className="text-vara-lg font-semibold text-soft-charcoal">
                 Week of {days[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
               </h3>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date(anchor.getTime() - 7*24*3600*1000))}>Prev</button>
-              <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date())}>Today</button>
-              <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date(anchor.getTime() + 7*24*3600*1000))}>Next</button>
+            <div className="flex items-center gap-vara-sm">
+              <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date(anchor.getTime() - 7*24*3600*1000))}>Prev</button>
+              <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date())}>Today</button>
+              <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date(anchor.getTime() + 7*24*3600*1000))}>Next</button>
             </div>
           </div>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-vara-sm">
             {days.map((d, i) => {
               const iso = toISO(d);
               const items = isoMap.get(iso) || [];
               return (
-                <div key={i} className="p-3 rounded-lg border border-[#D5E3D1]">
-                  <div className="text-xs text-gray-500 mb-2">{d.toLocaleDateString(undefined, { weekday: 'short' })}</div>
-                  <div className="text-sm font-medium text-gray-800 mb-2">{d.getDate()}</div>
+                <div key={i} className="p-3 rounded-vara-md border border-divider">
+                  <div className="text-vara-xs text-muted-sage-gray mb-2">{d.toLocaleDateString(undefined, { weekday: 'short' })}</div>
+                  <div className="text-vara-sm font-medium text-soft-charcoal mb-2">{d.getDate()}</div>
                   <div className="flex flex-wrap gap-1">
                     {items.slice(0, 4).map((it, idx) => (
                       <span
                         key={idx}
-                        className={`w-2 h-2 rounded-full ${it.type === 'habit' ? 'bg-blue-500' : it.event === 'completed' ? 'bg-emerald-500' : 'bg-[#1B5E57]'}`}
+                        className={`w-2 h-2 rounded-full ${it.type === 'habit' ? 'bg-blue-500' : it.event === 'completed' ? 'bg-evergreen-teal' : 'bg-evergreen-teal'}`}
                         title={it.type === 'habit' ? `Habit: ${(it.ref.title ?? it.ref.name)}` : `Goal ${it.event}: ${it.ref.title}`}
                       />
                     ))}
@@ -948,25 +948,25 @@ export default function GoalsHabits() {
       const year = anchor.getFullYear();
       const months = Array.from({ length: 12 }).map((_, m) => new Date(year, m, 1));
       return (
-        <div className="bg-white border border-[#D5E3D1] rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <CalendarIcon size={20} className="text-[#1B5E57]" />
-              <h3 className="text-lg font-semibold text-gray-900">{year}</h3>
+        <div className="bg-white border border-divider rounded-vara-lg p-vara-lg">
+          <div className="flex items-center justify-between mb-vara-base">
+            <div className="flex items-center gap-vara-md">
+              <CalendarIcon size={20} className="text-evergreen-teal" />
+              <h3 className="text-vara-lg font-semibold text-soft-charcoal">{year}</h3>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date(year - 1, anchor.getMonth(), anchor.getDate()))}>Prev</button>
-              <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date())}>This Year</button>
-              <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date(year + 1, anchor.getMonth(), anchor.getDate()))}>Next</button>
+            <div className="flex items-center gap-vara-sm">
+              <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date(year - 1, anchor.getMonth(), anchor.getDate()))}>Prev</button>
+              <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date())}>This Year</button>
+              <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date(year + 1, anchor.getMonth(), anchor.getDate()))}>Next</button>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-vara-base">
             {months.map((m, idx) => {
               const days = Array.from({ length: daysInMonth(m) }).map((_, i) => new Date(m.getFullYear(), m.getMonth(), i + 1));
               const hasActivity = days.some((d) => (isoMap.get(toISO(d)) || []).length > 0);
               return (
-                <div key={idx} className={`border rounded-xl p-3 ${hasActivity ? 'border-[#B8CDBA]' : 'border-gray-200'}`}>
-                  <div className="text-sm font-semibold text-gray-800 mb-2">
+                <div key={idx} className={`border rounded-vara-lg p-3 ${hasActivity ? 'border-silver-sage' : 'border-divider'}`}>
+                  <div className="text-vara-sm font-semibold text-soft-charcoal mb-2">
                     {m.toLocaleString(undefined, { month: 'long' })}
                   </div>
                   <div className="grid grid-cols-7 gap-1">
@@ -975,7 +975,7 @@ export default function GoalsHabits() {
                       return (
                         <div
                           key={i}
-                          className={`h-2 rounded ${items.length === 0 ? 'bg-gray-100' : 'bg-[#1B5E57]'}`}
+                          className={`h-2 rounded ${items.length === 0 ? 'bg-dew-sage-light' : 'bg-evergreen-teal'}`}
                           title={items.length ? `${items.length} activities` : 'No activity'}
                         />
                       );
@@ -1000,39 +1000,39 @@ export default function GoalsHabits() {
     for (let d = 1; d <= total; d++) cells.push(new Date(year, month, d));
 
     return (
-      <div className="bg-white border border-[#D5E3D1] rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <CalendarIcon size={20} className="text-[#1B5E57]" />
-            <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-white border border-divider rounded-vara-lg p-vara-lg">
+        <div className="flex items-center justify-between mb-vara-base">
+          <div className="flex items-center gap-vara-md">
+            <CalendarIcon size={20} className="text-evergreen-teal" />
+            <h3 className="text-vara-lg font-semibold text-soft-charcoal">
               {anchor.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
             </h3>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date(year, month - 1, 1))}>Prev</button>
-            <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date())}>Today</button>
-            <button className="px-3 py-2 rounded-lg border border-[#D5E3D1]" onClick={() => setCalendarAnchor(new Date(year, month + 1, 1))}>Next</button>
+          <div className="flex items-center gap-vara-sm">
+            <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date(year, month - 1, 1))}>Prev</button>
+            <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date())}>Today</button>
+            <button className="px-3 py-2 rounded-vara-md border border-divider" onClick={() => setCalendarAnchor(new Date(year, month + 1, 1))}>Next</button>
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-2 text-xs text-gray-500 mb-2">
+        <div className="grid grid-cols-7 gap-vara-sm text-vara-xs text-muted-sage-gray mb-2">
           {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d) => (
             <div key={d} className="px-2">{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-vara-sm">
           {cells.map((d, idx) => {
-            if (!d) return <div key={idx} className="p-3 rounded-lg border border-transparent" />;
+            if (!d) return <div key={idx} className="p-3 rounded-vara-md border border-transparent" />;
             const iso = toISO(d);
             const items = isoMap.get(iso) || [];
             return (
-              <div key={idx} className="p-3 rounded-lg border border-[#D5E3D1]">
-                <div className="text-sm font-medium text-gray-800 mb-2">{d.getDate()}</div>
+              <div key={idx} className="p-3 rounded-vara-md border border-divider">
+                <div className="text-vara-sm font-medium text-soft-charcoal mb-2">{d.getDate()}</div>
                 <div className="flex flex-wrap gap-1">
                   {items.slice(0, 6).map((it, i) => (
                     <span
                       key={i}
-                      className={`w-2 h-2 rounded-full ${it.type === 'habit' ? 'bg-blue-500' : it.event === 'completed' ? 'bg-emerald-500' : 'bg-[#1B5E57]'}`}
+                      className={`w-2 h-2 rounded-full ${it.type === 'habit' ? 'bg-blue-500' : it.event === 'completed' ? 'bg-evergreen-teal' : 'bg-evergreen-teal'}`}
                       title={it.type === 'habit' ? `Habit: ${(it.ref.title ?? it.ref.name)}` : `Goal ${it.event}: ${it.ref.title}`}
                     />
                   ))}
@@ -1047,9 +1047,9 @@ export default function GoalsHabits() {
 
   /** ----------------- Tab Navigation ----------------- */
   const TabNavigation = () => (
-    <div className="mb-8" ref={tabBarRef}>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex bg-white rounded-2xl p-1 border border-[#D5E3D1] shadow-sm">
+    <div className="mb-vara-xl" ref={tabBarRef}>
+      <div className="flex items-center justify-between mb-vara-lg">
+        <div className="flex bg-white rounded-vara-lg p-1 border border-divider shadow-vara-sm">
           {[
             { key: 'overview', label: 'Overview', icon: BarChart3 },
             { key: 'goals', label: 'Goals', icon: Target },
@@ -1059,10 +1059,10 @@ export default function GoalsHabits() {
             <button
               key={key}
               onClick={() => setSelectedTab(key)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${
+              className={`flex items-center gap-vara-sm px-5 py-2.5 rounded-vara-lg font-medium transition-all ${
                 selectedTab === key
-                  ? 'text-white shadow-sm'
-                  : 'text-gray-700 hover:bg-gray-50'
+                  ? 'text-white shadow-vara-sm'
+                  : 'text-soft-charcoal hover:bg-mist-white'
               }`}
               style={selectedTab === key ? { background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` } : {}}
             >
@@ -1073,9 +1073,9 @@ export default function GoalsHabits() {
         </div>
 
         {(selectedTab === 'goals' || selectedTab === 'habits') && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Filter size={16} className="text-gray-400" />
+          <div className="flex items-center gap-vara-md">
+            <div className="flex items-center gap-vara-sm">
+              <Filter size={16} className="text-muted-sage-gray" />
               <select
                 value={selectedTab === 'goals' ? goalFilter : habitFilter}
                 onChange={(e) =>
@@ -1083,7 +1083,7 @@ export default function GoalsHabits() {
                     ? setGoalFilter(e.target.value)
                     : setHabitFilter(e.target.value)
                 }
-                className="bg-white border border-[#D5E3D1] rounded-xl px-4 py-2 text-sm focus:outline-none"
+                className="bg-white border border-divider rounded-vara-lg px-vara-base py-2 text-vara-sm focus:outline-none"
               >
                 <option value="all">All</option>
                 {selectedTab === 'goals' ? (
@@ -1103,10 +1103,10 @@ export default function GoalsHabits() {
               </select>
             </div>
 
-            <div className="flex bg-gray-100 rounded-xl p-1">
+            <div className="flex bg-dew-sage-light rounded-vara-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm' : 'text-gray-500'}`}
+                className={`p-2 rounded-vara-md transition-colors ${viewMode === 'grid' ? 'bg-white shadow-vara-sm' : 'text-muted-sage-gray'}`}
               >
                 <div className="grid grid-cols-2 gap-1">
                   <div className="w-1 h-1 bg-current rounded-full" />
@@ -1117,7 +1117,7 @@ export default function GoalsHabits() {
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm' : 'text-gray-500'}`}
+                className={`p-2 rounded-vara-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-vara-sm' : 'text-muted-sage-gray'}`}
               >
                 <div className="space-y-1">
                   <div className="w-4 h-0.5 bg-current rounded-full" />
@@ -1134,21 +1134,21 @@ export default function GoalsHabits() {
 
   /** ----------------- AI Coach + Stats ----------------- */
   const AIAssistantSection = () => (
-    <div className="mb-8">
-      <div className="bg-white border border-[#D5E3D1] rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}>
+    <div className="mb-vara-xl">
+      <div className="bg-white border border-divider rounded-vara-lg p-vara-lg shadow-vara-sm">
+        <div className="flex items-center justify-between mb-vara-base">
+          <div className="flex items-center gap-vara-md">
+            <div className="w-10 h-10 rounded-vara-lg flex items-center justify-center" style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}>
               <Brain size={20} className="text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">AI Coach</h2>
-              <p className="text-sm text-gray-600">Personalized insights and recommendations</p>
+              <h2 className="text-vara-lg font-semibold text-soft-charcoal">AI Coach</h2>
+              <p className="text-vara-sm text-muted-sage-gray">Personalized insights and recommendations</p>
             </div>
           </div>
           <button
             onClick={() => setShowAISuggestions(!showAISuggestions)}
-            className="px-4 py-2 rounded-xl text-sm font-medium text-white shadow-sm"
+            className="px-vara-base py-2 rounded-vara-lg text-vara-sm font-medium text-white shadow-vara-sm"
             style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}
           >
             {showAISuggestions ? 'Hide Coach' : 'Get Insights'}
@@ -1157,9 +1157,9 @@ export default function GoalsHabits() {
 
         {showAISuggestions && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-700">Focus:</span>
-              <div className="flex bg-gray-50 rounded-xl p-1 border border-[#D5E3D1]">
+            <div className="flex items-center gap-vara-sm">
+              <span className="text-vara-sm font-semibold text-soft-charcoal">Focus:</span>
+              <div className="flex bg-mist-white rounded-vara-lg p-1 border border-divider">
                 {[
                   { key: 'goals', label: 'Goals', icon: Target },
                   { key: 'habits', label: 'Habits', icon: Sparkles },
@@ -1168,8 +1168,8 @@ export default function GoalsHabits() {
                   <button
                     key={key}
                     onClick={() => setAiSuggestionType(key)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${
-                      aiSuggestionType === key ? 'bg-white shadow-sm' : 'text-gray-600'
+                    className={`flex items-center gap-vara-sm px-3 py-1.5 rounded-vara-md text-vara-sm ${
+                      aiSuggestionType === key ? 'bg-white shadow-vara-sm' : 'text-muted-sage-gray'
                     }`}
                   >
                     <Icon size={14} />
@@ -1179,7 +1179,7 @@ export default function GoalsHabits() {
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4 border border-[#D5E3D1]">
+            <div className="bg-mist-white rounded-vara-lg p-vara-base border border-divider">
               {user?.uid && (
                 <AIBasedSuggestions
                   type={aiSuggestionType}
@@ -1204,7 +1204,7 @@ export default function GoalsHabits() {
   };
 
   const StatsOverview = () => (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-vara-base mb-vara-xl">
       {/* Goals card */}
       <button
         type="button"
@@ -1212,23 +1212,23 @@ export default function GoalsHabits() {
           setGoalFilter('all');
           jumpToTab('goals');
         }}
-        className="text-left bg-white border border-[#D5E3D1] rounded-2xl p-5 hover:shadow-md transition-shadow cursor-pointer"
+        className="text-left bg-white border border-divider rounded-vara-lg p-5 hover:shadow-vara-md transition-shadow cursor-pointer"
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}>
+        <div className="flex items-center gap-vara-md mb-3">
+          <div className="w-9 h-9 rounded-vara-md flex items-center justify-center" style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}>
             <Target size={18} className="text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Goals</h3>
-            <p className="text-gray-600 text-sm">{goalStats.active} active</p>
+            <h3 className="font-semibold text-soft-charcoal">Goals</h3>
+            <p className="text-muted-sage-gray text-vara-sm">{goalStats.active} active</p>
           </div>
         </div>
         <div className="space-y-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Progress</span>
-            <span className="font-semibold text-[#1B5E57]">{goalStats.avgProgress}%</span>
+          <div className="flex justify-between items-center text-vara-sm">
+            <span className="text-muted-sage-gray">Progress</span>
+            <span className="font-semibold text-evergreen-teal">{goalStats.avgProgress}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-dew-sage-light rounded-full h-2">
             <div className="h-2 rounded-full" style={{ width: `${goalStats.avgProgress}%`, background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }} />
           </div>
         </div>
@@ -1241,18 +1241,18 @@ export default function GoalsHabits() {
           setHabitFilter('active');
           jumpToTab('habits');
         }}
-        className="text-left bg-white border border-[#D5E3D1] rounded-2xl p-5 hover:shadow-md transition-shadow cursor-pointer"
+        className="text-left bg-white border border-divider rounded-vara-lg p-5 hover:shadow-vara-md transition-shadow cursor-pointer"
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-600">
+        <div className="flex items-center gap-vara-md mb-3">
+          <div className="w-9 h-9 rounded-vara-md flex items-center justify-center bg-blue-600">
             <Sparkles size={18} className="text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Habits</h3>
-            <p className="text-gray-600 text-sm">{habitStats.active} active</p>
+            <h3 className="font-semibold text-soft-charcoal">Habits</h3>
+            <p className="text-muted-sage-gray text-vara-sm">{habitStats.active} active</p>
           </div>
         </div>
-        <div className="text-sm text-gray-700">
+        <div className="text-vara-sm text-soft-charcoal">
           <span className="font-medium">Avg streak:</span> {habitStats.avgStreak} days
         </div>
       </button>
@@ -1261,21 +1261,21 @@ export default function GoalsHabits() {
       <button
         type="button"
         onClick={() => jumpToTab('integrations')}
-        className="text-left bg-white border border-[#D5E3D1] rounded-2xl p-5 hover:shadow-md transition-shadow cursor-pointer"
+        className="text-left bg-white border border-divider rounded-vara-lg p-5 hover:shadow-vara-md transition-shadow cursor-pointer"
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-purple-600">
+        <div className="flex items-center gap-vara-md mb-3">
+          <div className="w-9 h-9 rounded-vara-md flex items-center justify-center bg-purple-600">
             <Link2 size={18} className="text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Integrations</h3>
-            <p className="text-gray-600 text-sm">
+            <h3 className="font-semibold text-soft-charcoal">Integrations</h3>
+            <p className="text-muted-sage-gray text-vara-sm">
               {connectedApps.filter((a) => a.connected).length} connected
             </p>
           </div>
         </div>
         <div className="w-full">
-          <span className="inline-block bg-white text-[#1B5E57] border border-[#B8CDBA] rounded-xl px-3 py-2 text-sm font-medium">
+          <span className="inline-block bg-white text-evergreen-teal border border-silver-sage rounded-vara-lg px-3 py-2 text-vara-sm font-medium">
             Manage Apps
           </span>
         </div>
@@ -1288,20 +1288,20 @@ export default function GoalsHabits() {
           setHabitFilter('active');
           jumpToTab('habits');
         }}
-        className="text-left bg-white border border-[#D5E3D1] rounded-2xl p-5 hover:shadow-md transition-shadow cursor-pointer"
+        className="text-left bg-white border border-divider rounded-vara-lg p-5 hover:shadow-vara-md transition-shadow cursor-pointer"
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-500">
+        <div className="flex items-center gap-vara-md mb-3">
+          <div className="w-9 h-9 rounded-vara-md flex items-center justify-center bg-amber-500">
             <Crown size={18} className="text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Best Streak</h3>
-            <p className="text-gray-600 text-sm">Personal record</p>
+            <h3 className="font-semibold text-soft-charcoal">Best Streak</h3>
+            <p className="text-muted-sage-gray text-vara-sm">Personal record</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-vara-sm">
           <Medal size={16} className="text-amber-600" />
-          <span className="font-bold text-amber-700 text-lg">{habitStats.bestStreak} days</span>
+          <span className="font-bold text-amber-700 text-vara-lg">{habitStats.bestStreak} days</span>
         </div>
       </button>
     </div>
@@ -1310,15 +1310,15 @@ export default function GoalsHabits() {
   /** ----------------- Render ----------------- */
   return (
     <SidebarLayout>
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm" style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}>
+      <div className="px-vara-base py-vara-lg max-w-5xl mx-auto">
+        <div className="mb-vara-lg">
+          <div className="flex items-center gap-vara-base">
+            <div className="w-12 h-12 rounded-vara-lg flex items-center justify-center shadow-vara-sm" style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}>
               <Target size={24} className="text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Productivity Hub</h1>
-              <p className="text-gray-600">
+              <h1 className="text-vara-2xl font-semibold tracking-tight text-soft-charcoal">Productivity Hub</h1>
+              <p className="text-muted-sage-gray">
                 Build meaningful goals, develop powerful habits, and track your progress with intelligent insights
               </p>
             </div>
@@ -1332,27 +1332,27 @@ export default function GoalsHabits() {
         {selectedTab === 'overview' && (
           <div className="space-y-8">
             {/* Recent Activity */}
-            <div className="bg-white rounded-2xl p-6 border border-[#D5E3D1] shadow-sm">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Activity size={20} className="text-[#1B5E57]" />
+            <div className="bg-white rounded-vara-lg p-vara-lg border border-divider shadow-vara-sm">
+              <h2 className="text-vara-lg font-semibold text-soft-charcoal mb-vara-base flex items-center gap-vara-sm">
+                <Activity size={20} className="text-evergreen-teal" />
                 Recent Activity
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-vara-base">
                 <div>
-                  <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                    <Target size={16} className="text-emerald-600" />
+                  <h3 className="font-semibold text-soft-charcoal mb-3 flex items-center gap-vara-sm">
+                    <Target size={16} className="text-evergreen-teal" />
                     Latest Goals
                   </h3>
                   <div className="space-y-2">
                     {goals.slice(0, 3).map((goal) => (
-                      <div key={goal.id} className="bg-gray-50 border border-[#D5E3D1] rounded-xl p-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${goal.status === 'completed' ? 'bg-emerald-500' : 'bg-[#1B5E57]'}`} />
-                          <h4 className="font-medium text-gray-900">{goal.title}</h4>
+                      <div key={goal.id} className="bg-mist-white border border-divider rounded-vara-lg p-vara-base">
+                        <div className="flex items-center gap-vara-sm">
+                          <div className={`w-2 h-2 rounded-full ${goal.status === 'completed' ? 'bg-evergreen-teal' : 'bg-evergreen-teal'}`} />
+                          <h4 className="font-medium text-soft-charcoal">{goal.title}</h4>
                         </div>
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-sm text-gray-600">{goal.category}</span>
-                          <span className="text-sm font-medium text-[#1B5E57]">{goal.progress || 0}%</span>
+                          <span className="text-vara-sm text-muted-sage-gray">{goal.category}</span>
+                          <span className="text-vara-sm font-medium text-evergreen-teal">{goal.progress || 0}%</span>
                         </div>
                       </div>
                     ))}
@@ -1360,7 +1360,7 @@ export default function GoalsHabits() {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <h3 className="font-semibold text-soft-charcoal mb-3 flex items-center gap-vara-sm">
                     <Sparkles size={16} className="text-blue-600" />
                     Active Habits
                   </h3>
@@ -1369,15 +1369,15 @@ export default function GoalsHabits() {
                       const s = habitStreaks.get(habit.id) || { current: 0 };
                       const displayTitle = habit.title ?? habit.name;
                       return (
-                        <div key={habit.id} className="bg-gray-50 border border-[#D5E3D1] rounded-xl p-4">
+                        <div key={habit.id} className="bg-mist-white border border-divider rounded-vara-lg p-vara-base">
                           <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-gray-900">{displayTitle}</h4>
-                            <div className="flex items-center gap-1 text-sm font-medium text-orange-600">
+                            <h4 className="font-medium text-soft-charcoal">{displayTitle}</h4>
+                            <div className="flex items-center gap-1 text-vara-sm font-medium text-orange-600">
                               <Flame size={14} />
                               {s.current}d
                             </div>
                           </div>
-                          <div className="text-sm text-gray-600 mt-1">{habit.type}</div>
+                          <div className="text-vara-sm text-muted-sage-gray mt-1">{habit.type}</div>
                         </div>
                       );
                     })}
@@ -1387,17 +1387,17 @@ export default function GoalsHabits() {
             </div>
 
             {/* Calendar with filters */}
-            <div className="bg-white rounded-2xl p-6 border border-[#D5E3D1] shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon size={18} className="text-[#1B5E57]" />
-                  <h2 className="text-xl font-semibold text-gray-900">Calendar</h2>
+            <div className="bg-white rounded-vara-lg p-vara-lg border border-divider shadow-vara-sm">
+              <div className="flex flex-wrap items-center justify-between gap-vara-md mb-vara-base">
+                <div className="flex items-center gap-vara-sm">
+                  <CalendarIcon size={18} className="text-evergreen-teal" />
+                  <h2 className="text-vara-lg font-semibold text-soft-charcoal">Calendar</h2>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-vara-sm">
                   <select
                     value={calendarView}
                     onChange={(e) => setCalendarView(e.target.value)}
-                    className="bg-white border border-[#D5E3D1] rounded-lg px-3 py-2 text-sm"
+                    className="bg-white border border-divider rounded-vara-md px-3 py-2 text-vara-sm"
                   >
                     <option value="day">Day</option>
                     <option value="week">Week</option>
@@ -1408,7 +1408,7 @@ export default function GoalsHabits() {
                   <select
                     value={calendarTypeFilter}
                     onChange={(e) => setCalendarTypeFilter(e.target.value)}
-                    className="bg-white border border-[#D5E3D1] rounded-lg px-3 py-2 text-sm"
+                    className="bg-white border border-divider rounded-vara-md px-3 py-2 text-vara-sm"
                   >
                     <option value="all">All</option>
                     <option value="goals">Goals</option>
@@ -1418,7 +1418,7 @@ export default function GoalsHabits() {
                   <select
                     value={calendarStatusFilter}
                     onChange={(e) => setCalendarStatusFilter(e.target.value)}
-                    className="bg-white border border-[#D5E3D1] rounded-lg px-3 py-2 text-sm"
+                    className="bg-white border border-divider rounded-vara-md px-3 py-2 text-vara-sm"
                   >
                     <option value="all">All</option>
                     <option value="active">Active</option>
@@ -1435,18 +1435,18 @@ export default function GoalsHabits() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                  <Target size={24} className="text-emerald-600" />
+                <h2 className="text-vara-xl font-bold text-soft-charcoal flex items-center gap-vara-md">
+                  <Target size={24} className="text-evergreen-teal" />
                   Goals
-                  <span className="bg-emerald-50 text-emerald-700 text-sm px-2.5 py-1 rounded-full border border-emerald-100">
+                  <span className="bg-teal-light text-evergreen-teal text-vara-sm px-2.5 py-1 rounded-full border border-evergreen-teal/20">
                     {filteredGoals.length}
                   </span>
                 </h2>
-                <p className="text-gray-600 mt-1">Define and track your long-term objectives</p>
+                <p className="text-muted-sage-gray mt-1">Define and track your long-term objectives</p>
               </div>
               <button
                 onClick={() => setCreatingGoal(true)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-medium shadow-sm"
+                className="flex items-center gap-vara-sm px-5 py-2.5 rounded-vara-lg text-white font-medium shadow-vara-sm"
                 style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}
               >
                 <Plus size={18} />
@@ -1455,11 +1455,11 @@ export default function GoalsHabits() {
             </div>
 
             {creatingGoal && (
-              <div className="bg-white border border-[#B8CDBA] rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-[#1B5E57]">Create New Goal</h3>
-                  <button onClick={() => setCreatingGoal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X size={18} className="text-gray-500" />
+              <div className="bg-white border border-silver-sage rounded-vara-lg p-vara-lg shadow-vara-sm">
+                <div className="flex items-center justify-between mb-vara-base">
+                  <h3 className="text-vara-lg font-semibold text-evergreen-teal">Create New Goal</h3>
+                  <button onClick={() => setCreatingGoal(false)} className="p-2 hover:bg-dew-sage-light rounded-vara-md">
+                    <X size={18} className="text-muted-sage-gray" />
                   </button>
                 </div>
                 <GoalCreationForm
@@ -1472,12 +1472,12 @@ export default function GoalsHabits() {
             )}
 
 
-            <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
+            <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-vara-base' : 'space-y-3'}>
               {filteredGoals.length === 0 ? (
                 <div className="col-span-full text-center py-10">
-                  <Target size={40} className="mx-auto text-gray-300 mb-3" />
-                  <h3 className="text-lg font-semibold text-gray-700">No goals yet</h3>
-                  <p className="text-gray-500">Create your first goal to get started</p>
+                  <Target size={40} className="mx-auto text-silver-sage mb-3" />
+                  <h3 className="text-vara-lg font-semibold text-soft-charcoal">No goals yet</h3>
+                  <p className="text-muted-sage-gray">Create your first goal to get started</p>
                 </div>
               ) : (
                 filteredGoals.map((goal) => <GoalCard key={goal.id} goal={goal} />)
@@ -1490,18 +1490,18 @@ export default function GoalsHabits() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <h2 className="text-vara-xl font-bold text-soft-charcoal flex items-center gap-vara-md">
                   <Sparkles size={24} className="text-blue-600" />
                   Habits
-                  <span className="bg-blue-50 text-blue-700 text-sm px-2.5 py-1 rounded-full border border-blue-100">
+                  <span className="bg-blue-50 text-blue-700 text-vara-sm px-2.5 py-1 rounded-full border border-blue-100">
                     {filteredHabits.length}
                   </span>
                 </h2>
-                <p className="text-gray-600 mt-1">Build consistent routines that support your goals</p>
+                <p className="text-muted-sage-gray mt-1">Build consistent routines that support your goals</p>
               </div>
               <button
                 onClick={() => setCreatingHabit(true)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-medium shadow-sm"
+                className="flex items-center gap-vara-sm px-5 py-2.5 rounded-vara-lg text-white font-medium shadow-vara-sm"
                 style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}
               >
                 <Plus size={18} />
@@ -1510,11 +1510,11 @@ export default function GoalsHabits() {
             </div>
 
             {creatingHabit && (
-              <div className="bg-white border border-[#B8CDBA] rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-[#1B5E57]">Create New Habit</h3>
-                  <button onClick={() => setCreatingHabit(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X size={18} className="text-gray-500" />
+              <div className="bg-white border border-silver-sage rounded-vara-lg p-vara-lg shadow-vara-sm">
+                <div className="flex items-center justify-between mb-vara-base">
+                  <h3 className="text-vara-lg font-semibold text-evergreen-teal">Create New Habit</h3>
+                  <button onClick={() => setCreatingHabit(false)} className="p-2 hover:bg-dew-sage-light rounded-vara-md">
+                    <X size={18} className="text-muted-sage-gray" />
                   </button>
                 </div>
                 <AddHabitForm
@@ -1528,12 +1528,12 @@ export default function GoalsHabits() {
             )}
 
 
-            <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : 'space-y-3'}>
+            <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-vara-base' : 'space-y-3'}>
               {filteredHabits.length === 0 ? (
                 <div className="col-span-full text-center py-10">
-                  <Sparkles size={40} className="mx-auto text-gray-300 mb-3" />
-                  <h3 className="text-lg font-semibold text-gray-700">No habits yet</h3>
-                  <p className="text-gray-500">Create your first habit to start building consistency</p>
+                  <Sparkles size={40} className="mx-auto text-silver-sage mb-3" />
+                  <h3 className="text-vara-lg font-semibold text-soft-charcoal">No habits yet</h3>
+                  <p className="text-muted-sage-gray">Create your first habit to start building consistency</p>
                 </div>
               ) : (
                 filteredHabits.map((habit) => <HabitCard key={habit.id} habit={habit} />)
@@ -1545,46 +1545,46 @@ export default function GoalsHabits() {
         {selectedTab === 'integrations' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3 mb-2">
+              <h2 className="text-vara-xl font-bold text-soft-charcoal flex items-center gap-vara-md mb-2">
                 <Link2 size={24} className="text-purple-600" />
                 App Integrations
               </h2>
-              <p className="text-gray-600">Connect your favorite apps to automatically track habits and sync data</p>
+              <p className="text-muted-sage-gray">Connect your favorite apps to automatically track habits and sync data</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 border border-[#D5E3D1]">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white rounded-vara-lg p-vara-lg border border-divider">
+              <div className="flex items-center justify-between mb-vara-lg">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Connected Apps</h3>
-                  <p className="text-gray-600">
+                  <h3 className="text-vara-lg font-semibold text-soft-charcoal">Connected Apps</h3>
+                  <p className="text-muted-sage-gray">
                     {connectedApps.filter((a) => a.connected).length} of {connectedApps.length} apps connected
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-vara-sm">
                   <div
                     className={`w-2.5 h-2.5 rounded-full ${
-                      connectedApps.some((a) => a.connected) ? 'bg-green-500' : 'bg-gray-400'
+                      connectedApps.some((a) => a.connected) ? 'bg-evergreen-teal' : 'bg-muted-sage-gray/60'
                     }`}
                   />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-vara-sm font-medium text-soft-charcoal">
                     {connectedApps.some((a) => a.connected) ? 'Active' : 'No connections'}
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-vara-base">
                 {connectedApps.map((app) => (
                   <div
                     key={app.id}
-                    className={`bg-white rounded-2xl p-5 border transition-all ${app.connected ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}
+                    className={`bg-white rounded-vara-lg p-5 border transition-all ${app.connected ? 'border-silver-sage bg-teal-light' : 'border-divider'}`}
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${app.connected ? 'bg-green-100' : 'bg-gray-100'}`}>
-                        <app.icon size={20} className={app.connected ? 'text-green-600' : 'text-gray-500'} />
+                    <div className="flex items-center gap-vara-md mb-3">
+                      <div className={`w-10 h-10 rounded-vara-lg flex items-center justify-center ${app.connected ? 'bg-dew-sage' : 'bg-dew-sage-light'}`}>
+                        <app.icon size={20} className={app.connected ? 'text-evergreen-teal' : 'text-muted-sage-gray'} />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900">{app.name}</h4>
-                        <span className={`text-sm flex items-center gap-1 ${app.connected ? 'text-green-600' : 'text-gray-500'}`}>
+                        <h4 className="font-semibold text-soft-charcoal">{app.name}</h4>
+                        <span className={`text-vara-sm flex items-center gap-1 ${app.connected ? 'text-evergreen-teal' : 'text-muted-sage-gray'}`}>
                           {app.connected ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
                           {app.connected ? 'Connected' : 'Not connected'}
                         </span>
@@ -1593,10 +1593,10 @@ export default function GoalsHabits() {
 
                     <div className="space-y-3">
                       <div>
-                        <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Capabilities</span>
+                        <span className="text-vara-xs font-medium text-muted-sage-gray uppercase tracking-wide">Capabilities</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {app.capabilities.map((capability) => (
-                            <span key={capability} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                            <span key={capability} className="text-vara-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                               {capability}
                             </span>
                           ))}
@@ -1605,8 +1605,8 @@ export default function GoalsHabits() {
 
                       <button
                         onClick={() => setConnectedApps((apps) => apps.map((a) => a.id === app.id ? { ...a, connected: !a.connected } : a))}
-                        className={`w-full py-2.5 rounded-xl font-medium transition-all ${
-                          app.connected ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        className={`w-full py-2.5 rounded-vara-lg font-medium transition-all ${
+                          app.connected ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-dew-sage text-evergreen-teal hover:bg-silver-sage'
                         }`}
                       >
                         {app.connected ? 'Disconnect' : 'Connect'}
@@ -1616,19 +1616,19 @@ export default function GoalsHabits() {
                 ))}
               </div>
 
-              <div className="mt-6 p-5 bg-gray-50 rounded-2xl border border-[#D5E3D1]">
-                <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <Lightbulb size={18} className="text-[#1B5E57]" />
+              <div className="mt-6 p-5 bg-mist-white rounded-vara-lg border border-divider">
+                <h4 className="font-semibold text-soft-charcoal mb-2 flex items-center gap-vara-sm">
+                  <Lightbulb size={18} className="text-evergreen-teal" />
                   How Auto-Tracking Works
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-1 text-gray-700">
-                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#1B5E57] rounded-full" /><span>Connect your favorite fitness and wellness apps</span></div>
-                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#1B5E57] rounded-full" /><span>Create habits that match activities in those apps</span></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-vara-base text-vara-sm">
+                  <div className="space-y-1 text-soft-charcoal">
+                    <div className="flex items-center gap-vara-sm"><div className="w-1.5 h-1.5 bg-evergreen-teal rounded-full" /><span>Connect your favorite fitness and wellness apps</span></div>
+                    <div className="flex items-center gap-vara-sm"><div className="w-1.5 h-1.5 bg-evergreen-teal rounded-full" /><span>Create habits that match activities in those apps</span></div>
                   </div>
-                  <div className="space-y-1 text-gray-700">
-                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#1B5E57] rounded-full" /><span>Habits automatically complete when activities are detected</span></div>
-                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#1B5E57] rounded-full" /><span>Your streaks and progress update in real-time</span></div>
+                  <div className="space-y-1 text-soft-charcoal">
+                    <div className="flex items-center gap-vara-sm"><div className="w-1.5 h-1.5 bg-evergreen-teal rounded-full" /><span>Habits automatically complete when activities are detected</span></div>
+                    <div className="flex items-center gap-vara-sm"><div className="w-1.5 h-1.5 bg-evergreen-teal rounded-full" /><span>Your streaks and progress update in real-time</span></div>
                   </div>
                 </div>
               </div>
@@ -1649,18 +1649,18 @@ export default function GoalsHabits() {
 
         {/* Edit Goal Modal */}
         {editingGoal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-[#D5E3D1] px-6 py-4 flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-[#1B5E57]">Edit Goal</h3>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-vara-base">
+            <div className="bg-white rounded-vara-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-divider px-vara-lg py-vara-base flex items-center justify-between">
+                <h3 className="text-vara-lg font-semibold text-evergreen-teal">Edit Goal</h3>
                 <button
                   onClick={() => setEditingGoal(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-dew-sage-light rounded-vara-md transition-colors"
                 >
-                  <X size={20} className="text-gray-500" />
+                  <X size={20} className="text-muted-sage-gray" />
                 </button>
               </div>
-              <div className="p-6">
+              <div className="p-vara-lg">
                 <GoalCreationForm
                   userId={user.uid}
                   userHabits={habits}
@@ -1697,18 +1697,18 @@ export default function GoalsHabits() {
 
         {/* Edit Habit Modal */}
         {editingHabit && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-[#D5E3D1] px-6 py-4 flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-[#1B5E57]">Edit Habit</h3>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-vara-base">
+            <div className="bg-white rounded-vara-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-divider px-vara-lg py-vara-base flex items-center justify-between">
+                <h3 className="text-vara-lg font-semibold text-evergreen-teal">Edit Habit</h3>
                 <button
                   onClick={() => setEditingHabit(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-dew-sage-light rounded-vara-md transition-colors"
                 >
-                  <X size={20} className="text-gray-500" />
+                  <X size={20} className="text-muted-sage-gray" />
                 </button>
               </div>
-              <div className="p-6">
+              <div className="p-vara-lg">
                 <AddHabitForm
                   userId={user.uid}
                   goals={goals}
@@ -1746,19 +1746,19 @@ export default function GoalsHabits() {
         {/* Minimal Habit Details Modal */}
         {selectedHabit && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-lg border border-[#D5E3D1]">
+            <div className="bg-white rounded-vara-lg p-vara-lg w-full max-w-lg border border-divider">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900">Habit Details</h3>
-                <button className="p-2 hover:bg-gray-100 rounded-xl" onClick={() => setSelectedHabit(null)}>
-                  <X size={18} className="text-gray-500" />
+                <h3 className="text-vara-lg font-semibold text-soft-charcoal">Habit Details</h3>
+                <button className="p-2 hover:bg-dew-sage-light rounded-vara-lg" onClick={() => setSelectedHabit(null)}>
+                  <X size={18} className="text-muted-sage-gray" />
                 </button>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="font-semibold text-gray-900">{selectedHabit.title ?? selectedHabit.name}</div>
-                <div className="text-gray-700">Type: {selectedHabit.type || 'Custom'}</div>
-                <div className="text-gray-700">Frequency: {selectedHabit.frequency || '—'}</div>
-                {selectedHabit.trigger && <div className="text-gray-700">Trigger: {selectedHabit.trigger}</div>}
-                {selectedHabit.reward && <div className="text-gray-700">Reward: {selectedHabit.reward}</div>}
+              <div className="space-y-2 text-vara-sm">
+                <div className="font-semibold text-soft-charcoal">{selectedHabit.title ?? selectedHabit.name}</div>
+                <div className="text-soft-charcoal">Type: {selectedHabit.type || 'Custom'}</div>
+                <div className="text-soft-charcoal">Frequency: {selectedHabit.frequency || '—'}</div>
+                {selectedHabit.trigger && <div className="text-soft-charcoal">Trigger: {selectedHabit.trigger}</div>}
+                {selectedHabit.reward && <div className="text-soft-charcoal">Reward: {selectedHabit.reward}</div>}
               </div>
             </div>
           </div>

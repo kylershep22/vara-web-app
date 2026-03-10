@@ -54,12 +54,12 @@ const NowPlayingBar = () => {
   if (!track) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#D5E3D1] shadow-xl px-4 py-3 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-divider shadow-xl px-4 py-3 z-50">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         {/* Track Info */}
         <div className="flex items-center gap-3 min-w-[150px]">
-          <Music2 size={20} className="text-[#1B5E57]" />
-          <span className="text-sm font-medium text-[#3E3E3E] truncate">{track.title}</span>
+          <Music2 size={20} className="text-evergreen-teal" />
+          <span className="text-sm font-medium text-soft-charcoal truncate">{track.title}</span>
         </div>
 
         {/* Progress Bar + Controls */}
@@ -71,9 +71,9 @@ const NowPlayingBar = () => {
             step="0.1"
             value={progress}
             onChange={handleSeek}
-            className="w-full h-2 appearance-none rounded-full bg-[#D5E3D1] accent-[#1B5E57]"
+            className="w-full h-2 appearance-none rounded-full bg-dew-sage accent-evergreen-teal"
           />
-          <div className="flex justify-between text-xs text-gray-500">
+          <div className="flex justify-between text-xs text-muted-sage-gray">
             <span>{formatTime(progress)}</span>
             <span>{formatTime(duration)}</span>
           </div>
@@ -83,13 +83,13 @@ const NowPlayingBar = () => {
         <div className="flex items-center gap-2 min-w-[80px] justify-end">
           <button
             onClick={togglePlay}
-            className="p-2 rounded-full bg-[#1B5E57] text-white hover:bg-[#164e48] transition"
+            className="p-2 rounded-full bg-evergreen-teal text-white hover:opacity-90 transition"
           >
             {isPlaying ? <Pause size={16} /> : <Play size={16} />}
           </button>
           <button
             onClick={handleClose}
-            className="p-2 text-gray-500 hover:text-red-500 transition"
+            className="p-2 text-muted-sage-gray hover:text-red-500 transition"
             title="Close"
           >
             <X size={16} />

@@ -1,4 +1,6 @@
 /* src/styles/custom.css */
+/* Vara Design System - CSS Variables & Utilities */
+/* Source of truth: mobile/src/constants/colors.ts */
 
 /* CSS Variables for Colors */
 :root {
@@ -6,59 +8,98 @@
   --silver-sage: #B8CDBA;
   --sunrise-amber: #F4C542;
   --golden-apricot: #F5B971;
-  --warm-clay: #E4BFA1;
   --mist-white: #FAFAF6;
   --soft-charcoal: #3E3E3E;
   --dew-sage: #D5E3D1;
-  --olive-sage: #9AAE8C;
+  --soft-coral: #D97A6E;
+  --muted-sage-gray: #6F7F77;
+
+  /* Derived / alpha */
+  --teal-light: rgba(27, 94, 87, 0.08);
+  --teal-medium: rgba(27, 94, 87, 0.15);
+  --dew-sage-light: rgba(213, 227, 209, 0.5);
+  --divider: rgba(184, 205, 186, 0.4);
+  --border: rgba(184, 205, 186, 0.6);
+  --border-light: rgba(184, 205, 186, 0.3);
+  --overlay: rgba(0, 0, 0, 0.5);
 }
 
-/* Buttons */
+/* Base body styles */
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--mist-white);
+  color: var(--soft-charcoal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Buttons - NOTE: Never use text-transform: uppercase per Vara UI standards */
 .button {
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-weight: 500;
+  letter-spacing: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  transition: all 0.3s ease;
+  gap: 8px;
+  transition: all 0.2s ease;
+  border-radius: 12px;
+  min-height: 48px;
 }
 
-/* Log In Button */
+/* Primary Button */
+.btn-primary {
+  background-color: var(--evergreen-teal);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  box-shadow: 0 2px 12px rgba(27, 94, 87, 0.19);
+}
+
+.btn-primary:active {
+  opacity: 0.95;
+}
+
+.btn-primary:disabled {
+  background-color: rgba(27, 94, 87, 0.4);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--evergreen-teal);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background-color: var(--teal-light);
+}
+
+/* Legacy button aliases (will be removed) */
 .btn-login {
-  background-color: var(--sunrise-amber); /* Login button color */
+  background-color: var(--evergreen-teal);
   color: white;
   border: 2px solid transparent;
 }
 
 .btn-login:hover {
-  background-color: var(--golden-apricot); /* Hover effect */
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  opacity: 0.9;
+  box-shadow: 0 2px 12px rgba(27, 94, 87, 0.19);
 }
 
-.btn-login:active {
-  transform: translateY(2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-/* Sign Up Button */
 .btn-signup {
-  background-color: var(--soft-charcoal); /* Sign up button color */
+  background-color: var(--soft-charcoal);
   color: white;
   border: 2px solid transparent;
 }
 
 .btn-signup:hover {
-  background-color: var(--olive-sage); /* Hover effect */
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-}
-
-.btn-signup:active {
-  transform: translateY(2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background-color: var(--muted-sage-gray);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* General Styling */
@@ -66,52 +107,47 @@
   max-width: 1200px;
   margin: 0 auto;
   background: var(--mist-white);
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(27, 94, 87, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
 
 .header {
-  background: linear-gradient(135deg, var(--evergreen-teal), var(--silver-sage));
+  background: var(--evergreen-teal);
   color: white;
-  padding: 30px;
+  padding: 24px;
   text-align: center;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 2.5em;
-  font-weight: 300;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.25px;
 }
 
 .content {
-  padding: 40px;
+  padding: 32px;
 }
 
 .section {
-  margin-bottom: 50px;
+  margin-bottom: 32px;
 }
 
 .section h2 {
   color: var(--evergreen-teal);
-  font-size: 1.8em;
-  margin-bottom: 25px;
-  border-bottom: 3px solid var(--silver-sage);
-  padding-bottom: 10px;
+  font-size: 1.375rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--divider);
+  padding-bottom: 8px;
 }
 
 /* Buttons Grid */
 .buttons-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-/* Hover effect for the buttons */
-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  gap: 16px;
 }
 
 /* Email Verification Success Animation */
@@ -138,7 +174,6 @@ button:hover {
   }
 }
 
-/* Success icon container with pulse animation */
 .success-icon-container {
   animation: success-scale 0.5s ease-out both;
 }
@@ -169,5 +204,13 @@ button:hover {
     animation: none;
     opacity: 1;
     transform: scale(1);
+  }
+
+  .button,
+  .btn-primary,
+  .btn-secondary,
+  .btn-login,
+  .btn-signup {
+    transition: none;
   }
 }

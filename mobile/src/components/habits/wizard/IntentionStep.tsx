@@ -1,12 +1,15 @@
 /**
  * IntentionStep - Step 5 (skippable)
  * Core Intention System feature
- * Category chip groups with custom input
+ * Category chip groups with custom input + values alignment
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../../config/firebase';
+import { useAuth } from '../../../context/AuthContext';
 import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { INTENTION_OPTIONS, INTENTION_CATEGORY_LABELS } from '../../../constants/intentions';
 import { IntentionCategory, HabitIntention } from '../../../types/models';
@@ -17,12 +20,33 @@ const CATEGORIES: IntentionCategory[] = [
   'regulation_recovery',
   'sustainable_consistency',
   'energy_resilience',
+  'brain_health',
 ];
 
 export const IntentionStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormData }) => {
+  const { user } = useAuth();
   const [customText, setCustomText] = useState(
     formData.intention?.isCustom ? formData.intention.label : ''
   );
+  const [userValues, setUserValues] = useState<string[]>([]);
+
+  // Fetch user values from profile
+  useEffect(() => {
+    if (!user) return;
+    const fetchValues = async () => {
+      try {
+        if (!db) return;
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const data = userDoc.data();
+        if (data?.values && Array.isArray(data.values) && data.values.length > 0) {
+          setUserValues(data.values);
+        }
+      } catch {
+        // Silently fail — values section simply won't appear
+      }
+    };
+    fetchValues();
+  }, [user]);
 
   const handleSelectChip = (category: IntentionCategory, label: string) => {
     // If already selected, deselect
@@ -61,6 +85,15 @@ export const IntentionStep: React.FC<WizardStepProps> = ({ formData, onUpdateFor
     }
   };
 
+  const handleSelectValue = (value: string) => {
+    // Toggle: if already selected, deselect
+    if (formData.valueAlignment === value) {
+      onUpdateFormData({ valueAlignment: null });
+    } else {
+      onUpdateFormData({ valueAlignment: value });
+    }
+  };
+
   const isChipSelected = (category: IntentionCategory, label: string) => {
     return (
       formData.intention !== undefined &&
@@ -86,6 +119,36 @@ export const IntentionStep: React.FC<WizardStepProps> = ({ formData, onUpdateFor
           </Text>
         </View>
       ) : null}
+
+      {/* Values section — only if user has stored values */}
+      {userValues.length > 0 && (
+        <>
+          <Text style={styles.valuesLabel}>YOUR VALUES</Text>
+          <View style={styles.valuesChipRow}>
+            {userValues.map((value) => {
+              const selected = formData.valueAlignment === value;
+              return (
+                <TouchableOpacity
+                  key={value}
+                  style={[styles.valueChip, selected && styles.valueChipSelected]}
+                  onPress={() => handleSelectValue(value)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.valueChipText, selected && styles.valueChipTextSelected]}>
+                    → {value}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <Text style={[styles.valuesHelper, formData.valueAlignment && styles.valuesHelperActive]}>
+            {formData.valueAlignment
+              ? `Completions will echo "${formData.valueAlignment}" as a quiet reminder.`
+              : 'Optionally link to one of your values.'}
+          </Text>
+          <View style={styles.valuesDivider} />
+        </>
+      )}
 
       {/* Category groups with chip rows */}
       {CATEGORIES.map((category) => (
@@ -160,6 +223,58 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
     color: Colors.textPrimary,
   },
+  // Values section
+  valuesLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1B5E57',
+    textTransform: 'uppercase',
+    letterSpacing: 0.08 * 11,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  valuesChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  valueChip: {
+    height: 34,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#B8CDBA',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  valueChipSelected: {
+    backgroundColor: '#1B5E57',
+    borderColor: '#1B5E57',
+  },
+  valueChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#3E3E3E',
+  },
+  valueChipTextSelected: {
+    color: '#FFFFFF',
+  },
+  valuesHelper: {
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#9AA89E',
+    marginTop: 8,
+  },
+  valuesHelperActive: {
+    color: '#6F7F77',
+  },
+  valuesDivider: {
+    height: 1,
+    backgroundColor: '#E0E8E0',
+    marginVertical: 12,
+  },
+  // Intention categories
   categoryGroup: {
     marginBottom: Spacing.base,
   },

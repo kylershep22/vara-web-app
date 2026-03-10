@@ -14,9 +14,9 @@ export default function Step1PrimaryFocus({ data, setData, nextStep }) {
   };
 
   return (
-    <div className="max-w-xl mx-auto text-center p-6 bg-[#FAFAF6] rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-[#1B5E57] mb-4">Step 1 of 6</h2>
-      <p className="mb-6 text-[#3E3E3E]">
+    <div className="max-w-xl mx-auto text-center p-6 bg-mist-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold text-evergreen-teal mb-4">Step 1 of 6</h2>
+      <p className="mb-6 text-soft-charcoal">
         What area of your life would you like to focus on today?
       </p>
 
@@ -25,7 +25,7 @@ export default function Step1PrimaryFocus({ data, setData, nextStep }) {
           <button
             key={cat.value}
             onClick={() => handleSelect(cat.value)}
-            className="w-full py-3 px-4 bg-[#F4C542] text-white font-medium rounded hover:bg-[#F5B971] transition"
+            className="w-full py-3 px-4 bg-sunrise-amber text-white font-medium rounded hover:bg-golden-apricot transition"
           >
             {cat.label}
           </button>

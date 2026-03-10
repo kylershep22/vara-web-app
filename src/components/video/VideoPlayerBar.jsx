@@ -43,12 +43,12 @@ export default function VideoPlayerBar() {
   if (!videoData) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#D5E3D1] shadow-lg px-4 py-3 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-divider shadow-lg px-4 py-3 z-50">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         {/* Track Info */}
         <div className="flex items-center gap-3 min-w-[150px]">
-          <Video size={20} className="text-[#1B5E57]" />
-          <span className="text-sm font-medium text-[#3E3E3E] truncate">{videoData.title}</span>
+          <Video size={20} className="text-evergreen-teal" />
+          <span className="text-sm font-medium text-soft-charcoal truncate">{videoData.title}</span>
         </div>
 
         {/* Progress Bar */}
@@ -60,9 +60,9 @@ export default function VideoPlayerBar() {
             step="0.1"
             value={progress}
             onChange={handleSeek}
-            className="w-full h-2 accent-[#1B5E57] rounded-full"
+            className="w-full h-2 accent-evergreen-teal rounded-full"
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-muted-sage-gray mt-1">
             <span>{formatTime(progress)}</span>
             <span>{formatTime(duration)}</span>
           </div>
@@ -72,21 +72,21 @@ export default function VideoPlayerBar() {
         <div className="flex items-center gap-2 min-w-[80px] justify-end">
           <button
             onClick={togglePlay}
-            className="p-2 rounded-full bg-[#1B5E57] text-white hover:bg-[#164e48] transition"
+            className="p-2 rounded-full bg-evergreen-teal text-white hover:opacity-90 transition"
             title="Play/Pause"
           >
             {isPlaying ? <Pause size={16} /> : <Play size={16} />}
           </button>
           <button
             onClick={handleFullscreen}
-            className="p-2 text-[#1B5E57] hover:text-black transition"
+            className="p-2 text-evergreen-teal hover:text-black transition"
             title="Fullscreen"
           >
             <Maximize2 size={16} />
           </button>
           <button
             onClick={closeVideo}
-            className="p-2 text-gray-500 hover:text-red-500 transition"
+            className="p-2 text-muted-sage-gray hover:text-red-500 transition"
             title="Close"
           >
             <X size={16} />

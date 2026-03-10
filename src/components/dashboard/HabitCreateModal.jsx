@@ -43,13 +43,13 @@ const HabitCreateModal = ({ userId, onClose, onSave }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Create New Habit</h2>
+        <div className="flex items-center justify-between p-6 border-b border-divider">
+          <h2 className="text-xl font-bold text-soft-charcoal">Create New Habit</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-dew-sage-light rounded-lg transition-colors"
           >
-            <X size={20} className="text-gray-500" />
+            <X size={20} className="text-muted-sage-gray" />
           </button>
         </div>
 
@@ -57,7 +57,7 @@ const HabitCreateModal = ({ userId, onClose, onSave }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Habit Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-soft-charcoal mb-2">
               Habit Name
             </label>
             <input
@@ -65,7 +65,7 @@ const HabitCreateModal = ({ userId, onClose, onSave }) => {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Morning meditation, Exercise, Read"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-[#1B5E57] outline-none"
+              className="w-full px-4 py-2 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-evergreen-teal outline-none"
               required
               autoFocus
             />
@@ -73,13 +73,13 @@ const HabitCreateModal = ({ userId, onClose, onSave }) => {
 
           {/* Frequency */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-soft-charcoal mb-2">
               Frequency
             </label>
             <select
               value={formData.frequency}
               onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-[#1B5E57] outline-none"
+              className="w-full px-4 py-2 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-evergreen-teal outline-none"
             >
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
@@ -94,9 +94,9 @@ const HabitCreateModal = ({ userId, onClose, onSave }) => {
               id="active"
               checked={formData.active}
               onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-              className="w-4 h-4 text-[#1B5E57] border-gray-300 rounded focus:ring-[#1B5E57]"
+              className="w-4 h-4 text-evergreen-teal border-divider rounded focus:ring-evergreen-teal"
             />
-            <label htmlFor="active" className="text-sm font-medium text-gray-700">
+            <label htmlFor="active" className="text-sm font-medium text-soft-charcoal">
               Active (show on dashboard)
             </label>
           </div>
@@ -106,14 +106,14 @@ const HabitCreateModal = ({ userId, onClose, onSave }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-divider rounded-lg text-soft-charcoal font-medium hover:bg-dew-sage-light transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || !formData.name.trim()}
-              className="flex-1 px-4 py-2 bg-[#1B5E57] text-white rounded-lg font-medium hover:bg-[#164e48] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-evergreen-teal text-white rounded-lg font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? 'Creating...' : 'Create Habit'}
             </button>

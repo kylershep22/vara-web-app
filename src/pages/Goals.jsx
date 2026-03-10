@@ -122,15 +122,15 @@ export default function Goals() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-semibold text-[#3E3E3E] flex items-center gap-2">
-              <Target size={28} className="text-[#1B5E57]" />
+            <h1 className="text-3xl font-semibold text-soft-charcoal flex items-center gap-2">
+              <Target size={28} className="text-evergreen-teal" />
               Your Goals
             </h1>
-            <p className="text-[#9AAE8C] text-sm">Track, add, update, or remove your goals anytime.</p>
+            <p className="text-muted-sage-gray text-sm">Track, add, update, or remove your goals anytime.</p>
           </div>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white font-medium shadow hover:scale-105 transition-transform"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-evergreen-teal to-silver-sage text-white font-medium shadow hover:scale-105 transition-transform"
           >
             <Plus size={18} />
             Add Goal
@@ -140,29 +140,29 @@ export default function Goals() {
         {/* Goals Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {goals.map(goal => (
-            <div key={goal.id} className="bg-white/80 border border-[#D5E3D1] rounded-2xl p-5 shadow-sm relative">
+            <div key={goal.id} className="bg-white/80 border border-divider rounded-2xl p-5 shadow-sm relative">
               <div className="absolute top-3 right-3 flex gap-2">
-                <button onClick={() => openEdit(goal)} className="text-[#9AAE8C] hover:text-[#1B5E57]">
+                <button onClick={() => openEdit(goal)} className="text-muted-sage-gray hover:text-evergreen-teal">
                   <Pencil size={16} />
                 </button>
-                <button onClick={() => handleDeleteGoal(goal.id)} className="text-[#E57373] hover:text-red-700">
+                <button onClick={() => handleDeleteGoal(goal.id)} className="text-soft-coral hover:text-red-700">
                   <Trash2 size={16} />
                 </button>
               </div>
-              <h3 className="text-lg font-semibold text-[#3E3E3E]">{goal.title}</h3>
-              <p className="text-sm text-[#9AAE8C]">Target: {goal.target} {goal.unit}</p>
-              <div className="mt-4 h-2 w-full bg-[#D5E3D1] rounded-full">
+              <h3 className="text-lg font-semibold text-soft-charcoal">{goal.title}</h3>
+              <p className="text-sm text-muted-sage-gray">Target: {goal.target} {goal.unit}</p>
+              <div className="mt-4 h-2 w-full bg-dew-sage rounded-full">
                 <div
-                  className="h-full bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] rounded-full"
+                  className="h-full bg-gradient-to-r from-evergreen-teal to-silver-sage rounded-full"
                   style={{ width: `${Math.min((goal.progress / goal.target) * 100, 100)}%` }}
                 />
               </div>
-              <p className="text-xs text-right text-[#9AAE8C] mt-1">
+              <p className="text-xs text-right text-muted-sage-gray mt-1">
                 {Math.round((goal.progress / goal.target) * 100)}% complete
               </p>
               <button
                 onClick={() => handleLogProgress(goal.id, goal.progress)}
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2 bg-[#D5E3D1] text-[#1B5E57] rounded-lg text-sm font-medium hover:bg-[#B8CDBA] transition"
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2 bg-dew-sage text-evergreen-teal rounded-lg text-sm font-medium hover:bg-silver-sage transition"
               >
                 <CheckCircle size={16} /> Log Progress
               </button>
@@ -172,7 +172,7 @@ export default function Goals() {
 
         {/* Goal Calendar */}
         <div className="mt-12">
-          <h2 className="text-xl font-semibold mb-4 text-[#1B5E57] flex items-center gap-2">
+          <h2 className="text-xl font-semibold mb-4 text-evergreen-teal flex items-center gap-2">
             <CalendarDays size={20} /> Goal Calendar
           </h2>
           <GoalCalendar />
@@ -184,12 +184,12 @@ export default function Goals() {
         <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md relative">
             <button
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+              className="absolute top-3 right-3 text-muted-sage-gray hover:text-soft-charcoal"
               onClick={() => setShowModal(false)}
             >
               <X size={20} />
             </button>
-            <h2 className="text-xl font-semibold text-[#3E3E3E] mb-4">
+            <h2 className="text-xl font-semibold text-soft-charcoal mb-4">
               {editGoalId ? 'Edit Goal' : 'Add New Goal'}
             </h2>
             <form onSubmit={handleAddOrEditGoal} className="space-y-4">
@@ -198,7 +198,7 @@ export default function Goals() {
                 placeholder="Goal Title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full border border-[#D5E3D1] rounded-lg px-4 py-2"
+                className="w-full border border-divider rounded-lg px-4 py-2"
                 required
               />
               <input
@@ -206,13 +206,13 @@ export default function Goals() {
                 placeholder="Target Value"
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
-                className="w-full border border-[#D5E3D1] rounded-lg px-4 py-2"
+                className="w-full border border-divider rounded-lg px-4 py-2"
                 required
               />
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full border border-[#D5E3D1] rounded-lg px-4 py-2"
+                className="w-full border border-divider rounded-lg px-4 py-2"
               >
                 <option value="minutes">minutes</option>
                 <option value="days">days</option>
@@ -221,7 +221,7 @@ export default function Goals() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full border border-[#D5E3D1] rounded-lg px-4 py-2"
+                className="w-full border border-divider rounded-lg px-4 py-2"
               >
                 <option>Mental & Emotional Wellness</option>
                 <option>Physical Health & Fitness</option>
@@ -231,7 +231,7 @@ export default function Goals() {
               <select
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value)}
-                className="w-full border border-[#D5E3D1] rounded-lg px-4 py-2"
+                className="w-full border border-divider rounded-lg px-4 py-2"
               >
                 <option>Daily</option>
                 <option>Weekly</option>
@@ -243,12 +243,12 @@ export default function Goals() {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full border border-[#D5E3D1] rounded-lg px-4 py-2"
+                className="w-full border border-divider rounded-lg px-4 py-2"
               />
 
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white py-2 rounded-lg font-semibold hover:scale-105 transition"
+                className="w-full bg-gradient-to-r from-evergreen-teal to-silver-sage text-white py-2 rounded-lg font-semibold hover:scale-105 transition"
               >
                 {editGoalId ? 'Update Goal' : 'Save Goal'}
               </button>

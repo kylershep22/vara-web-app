@@ -12,6 +12,7 @@ import { QuietFinish } from '../components/celebrations';
 import { WizardContainer } from '../components/habits/wizard';
 import { HabitListItem } from '../components/habits/HabitListItem';
 import { IntentionsSummaryCard } from '../components/habits/IntentionsSummaryCard';
+import { HabitCompletionSheet } from '../components/HabitCompletionSheet';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Habit } from '../types';
@@ -45,6 +46,9 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
     handleCreateHabit,
     handleWizardComplete,
     handleToggleCompletion,
+    completionSheetHabit,
+    handleCompletionSheetDone,
+    handleCompletionSheetDismiss,
   } = useHabitsScreen();
 
   const handleNavigateToDetail = useCallback((habit: Habit) => {
@@ -131,7 +135,17 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
           data={habits}
           renderItem={renderHabitItem}
           keyExtractor={(item) => item.id}
-          ListFooterComponent={<IntentionsSummaryCard habits={habits} />}
+          ListFooterComponent={
+            <>
+              <View style={styles.insightNudge}>
+                <Text style={styles.insightHeadline}>🌿 Some habits build more than consistency</Text>
+                <Text style={styles.insightBody}>
+                  Habits marked 🌿 CR support cognitive reserve — your brain's long-term resilience. These are worth prioritizing.
+                </Text>
+              </View>
+              <IntentionsSummaryCard habits={habits} />
+            </>
+          }
           contentContainerStyle={[
             styles.listContent,
             { paddingBottom: Math.max(100, 80 + insets.bottom) },
@@ -165,6 +179,16 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
         visible={allHabitsCompletedToday}
         onDismiss={() => setAllHabitsCompletedToday(false)}
       />
+
+      {completionSheetHabit && (
+        <HabitCompletionSheet
+          habit={completionSheetHabit}
+          source="track"
+          visible={!!completionSheetHabit}
+          onComplete={handleCompletionSheetDone}
+          onDismiss={handleCompletionSheetDismiss}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -231,6 +255,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 240,
     lineHeight: 21,
+  },
+  insightNudge: {
+    backgroundColor: '#EAF2E8',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  insightHeadline: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1B5E57',
+    marginBottom: 4,
+  },
+  insightBody: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#6F7F77',
+    lineHeight: 12 * 1.55,
   },
   errorCard: {
     padding: Spacing.base,

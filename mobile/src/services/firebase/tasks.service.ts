@@ -28,6 +28,7 @@ export const listTasks = async (
   userId: string,
   completedFilter?: boolean
 ): Promise<Task[]> => {
+  if (!db) return [];
   try {
     let q = query(
       collection(db, COLLECTION),
@@ -60,6 +61,7 @@ export const listTasks = async (
  * Get a single task by ID
  */
 export const getTask = async (id: string): Promise<Task | null> => {
+  if (!db) return null;
   try {
     const docRef = doc(db, COLLECTION, id);
     const docSnap = await getDoc(docRef);
@@ -85,6 +87,7 @@ export const createTask = async (
   userId: string,
   data: Omit<Task, 'id' | 'userId' | 'completed' | 'createdAt' | 'updatedAt'>
 ): Promise<string> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const taskData = {
       ...data,
@@ -110,6 +113,7 @@ export const updateTask = async (
   id: string,
   data: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, id);
     await updateDoc(docRef, {
@@ -126,6 +130,7 @@ export const updateTask = async (
  * Delete a task
  */
 export const deleteTask = async (id: string): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, id);
     await deleteDoc(docRef);
@@ -139,6 +144,7 @@ export const deleteTask = async (id: string): Promise<void> => {
  * Toggle task completion status
  */
 export const toggleTaskComplete = async (id: string): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const task = await getTask(id);
     if (!task) {
@@ -161,6 +167,7 @@ export const toggleTaskComplete = async (id: string): Promise<void> => {
  * Mark task as complete
  */
 export const completeTask = async (id: string): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, id);
     await updateDoc(docRef, {
@@ -178,6 +185,7 @@ export const completeTask = async (id: string): Promise<void> => {
  * Mark task as incomplete
  */
 export const uncompleteTask = async (id: string): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, id);
     await updateDoc(docRef, {

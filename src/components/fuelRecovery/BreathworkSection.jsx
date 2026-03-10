@@ -32,7 +32,7 @@ const BreathworkSection = ({ userId }) => {
       description: 'Simple and powerful breathing at 5 breaths per minute. Optimizes heart rate variability.',
       pattern: { inhale: 5, hold1: 0, exhale: 5, hold2: 0 },
       benefits: ['Improves HRV', 'Balances emotions', 'Increases resilience', 'Enhances clarity'],
-      color: 'from-green-500 to-emerald-500'
+      color: 'from-evergreen-teal to-evergreen-teal'
     },
     {
       id: 'wim-hof',
@@ -105,21 +105,21 @@ const BreathworkSection = ({ userId }) => {
     switch (phase) {
       case 'inhale': return 'from-blue-400 to-cyan-400';
       case 'hold1': return 'from-purple-400 to-pink-400';
-      case 'exhale': return 'from-green-400 to-emerald-400';
+      case 'exhale': return 'from-evergreen-teal to-evergreen-teal';
       case 'hold2': return 'from-orange-400 to-yellow-400';
-      default: return 'from-gray-400 to-gray-500';
+      default: return 'from-silver-sage to-muted-sage-gray';
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Info Banner */}
-      <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-4">
-        <h3 className="font-semibold text-cyan-900 mb-2">The Power of Breathwork</h3>
-        <p className="text-sm text-cyan-700 mb-2">
+      <div className="bg-gradient-to-r from-dew-sage-light to-dew-sage-light border border-silver-sage rounded-lg p-4">
+        <h3 className="font-semibold text-soft-charcoal mb-2">The Power of Breathwork</h3>
+        <p className="text-sm text-muted-sage-gray mb-2">
           Breathwork is one of the most powerful tools for managing stress, improving focus, and regulating your nervous system. Just a few minutes of intentional breathing can shift your state.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-cyan-600">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-muted-sage-gray">
           <div>
             <span className="font-semibold">Calm Down:</span> Box Breathing, 4-7-8
           </div>
@@ -156,7 +156,7 @@ const BreathworkSection = ({ userId }) => {
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={toggleExercise}
-              className="px-8 py-3 bg-white text-gray-900 rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
+              className="px-8 py-3 bg-white text-soft-charcoal rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
             >
               {isActive ? (
                 <>
@@ -182,7 +182,7 @@ const BreathworkSection = ({ userId }) => {
 
       {/* Exercise Library */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">
           {activeExercise ? 'Other Techniques' : 'Choose a Breathwork Technique'}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -190,7 +190,7 @@ const BreathworkSection = ({ userId }) => {
             <div
               key={exercise.id}
               className={`bg-white rounded-xl border-2 transition-all hover:shadow-lg ${
-                activeExercise?.id === exercise.id ? 'border-[#1B5E57] shadow-md' : 'border-gray-200'
+                activeExercise?.id === exercise.id ? 'border-evergreen-teal shadow-md' : 'border-divider'
               }`}
             >
               {/* Card Header */}
@@ -206,16 +206,16 @@ const BreathworkSection = ({ userId }) => {
 
               {/* Card Body */}
               <div className="p-4">
-                <p className="text-gray-600 text-sm mb-3">{exercise.description}</p>
+                <p className="text-muted-sage-gray text-sm mb-3">{exercise.description}</p>
 
                 {/* Benefits */}
                 <div className="mb-4">
-                  <p className="text-xs font-semibold text-gray-700 mb-1">Benefits:</p>
+                  <p className="text-xs font-semibold text-soft-charcoal mb-1">Benefits:</p>
                   <div className="flex flex-wrap gap-1">
                     {exercise.benefits.map((benefit, idx) => (
                       <span
                         key={idx}
-                        className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600"
+                        className="text-xs px-2 py-1 rounded-full bg-dew-sage-light text-muted-sage-gray"
                       >
                         {benefit}
                       </span>
@@ -228,8 +228,8 @@ const BreathworkSection = ({ userId }) => {
                   onClick={() => startExercise(exercise)}
                   className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
                     activeExercise?.id === exercise.id
-                      ? 'bg-gray-100 text-gray-600'
-                      : 'bg-[#1B5E57] hover:bg-[#174C46] text-white'
+                      ? 'bg-dew-sage-light text-muted-sage-gray'
+                      : 'bg-evergreen-teal hover:opacity-90 text-white'
                   }`}
                 >
                   <Play size={20} />

@@ -38,6 +38,7 @@ const ensureFirestore = () => {
  * Get all goals for a user
  */
 export const listGoals = async (userId: string): Promise<Goal[]> => {
+  if (!db) return [];
   try {
     const q = query(
       collection(db, COLLECTION),
@@ -60,6 +61,7 @@ export const listGoals = async (userId: string): Promise<Goal[]> => {
  * Get a single goal by ID
  */
 export const getGoal = async (id: string): Promise<Goal | null> => {
+  if (!db) return null;
   try {
     const docRef = doc(db, COLLECTION, id);
     const docSnap = await getDoc(docRef);
@@ -117,6 +119,7 @@ export const updateGoal = async (
   id: string,
   data: Partial<Omit<Goal, 'id' | 'userId' | 'createdAt'>>
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, id);
     await updateDoc(docRef, {
@@ -133,6 +136,7 @@ export const updateGoal = async (
  * Delete a goal
  */
 export const deleteGoal = async (id: string): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, id);
     await deleteDoc(docRef);
@@ -149,6 +153,7 @@ export const updateGoalProgress = async (
   id: string,
   progress: number
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     // Get current goal to check previous progress
     const goal = await getGoal(id);
@@ -192,6 +197,7 @@ export const updateGoalProgressWithMilestones = async (
   newProgress: number,
   note?: string
 ): Promise<{ completedMilestones: Goal['milestones'] }> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const goal = await getGoal(id);
     if (!goal) {
@@ -268,6 +274,7 @@ export const completeMilestone = async (
   goalId: string,
   milestoneId: string
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const goal = await getGoal(goalId);
     if (!goal) {
@@ -310,6 +317,7 @@ export const addMilestonesToGoal = async (
   goalId: string,
   milestones: Goal['milestones']
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, COLLECTION, goalId);
     await updateDoc(docRef, {

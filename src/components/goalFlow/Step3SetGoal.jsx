@@ -66,16 +66,16 @@ export default function Step3SetGoal({ data, setData, nextStep, prevStep }) {
   };
 
   return (
-    <div className="max-w-xl mx-auto text-center p-6 bg-[#FAFAF6] rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-[#1B5E57] mb-4">Step 3 of 6</h2>
-      <p className="mb-6 text-[#3E3E3E]">Here are some suggestions, or write your own goal below.</p>
+    <div className="max-w-xl mx-auto text-center p-6 bg-mist-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold text-evergreen-teal mb-4">Step 3 of 6</h2>
+      <p className="mb-6 text-soft-charcoal">Here are some suggestions, or write your own goal below.</p>
 
       <div className="grid gap-4 mb-6">
         {suggestions.map((goal, index) => (
           <button
             key={index}
             onClick={() => handleSelect(goal)}
-            className="w-full py-3 px-4 bg-[#F4C542] text-white rounded hover:bg-[#F5B971] transition"
+            className="w-full py-3 px-4 bg-sunrise-amber text-white rounded hover:bg-golden-apricot transition"
           >
             {goal}
           </button>
@@ -88,11 +88,11 @@ export default function Step3SetGoal({ data, setData, nextStep, prevStep }) {
           placeholder="Write your own goal..."
           value={customGoal}
           onChange={(e) => setCustomGoal(e.target.value)}
-          className="w-full px-4 py-2 border border-[#E4BFA1] rounded focus:outline-none focus:ring focus:border-[#1B5E57]"
+          className="w-full px-4 py-2 border border-golden-apricot rounded focus:outline-none focus:ring focus:border-evergreen-teal"
         />
         <button
           onClick={handleCustomSubmit}
-          className="mt-3 px-6 py-2 bg-[#1B5E57] text-white rounded hover:bg-[#3E3E3E] transition"
+          className="mt-3 px-6 py-2 bg-evergreen-teal text-white rounded hover:opacity-90 transition"
         >
           Continue
         </button>
@@ -100,7 +100,7 @@ export default function Step3SetGoal({ data, setData, nextStep, prevStep }) {
 
       <button
         onClick={prevStep}
-        className="mt-6 text-[#1B5E57] underline hover:text-[#3E3E3E] transition"
+        className="mt-6 text-evergreen-teal underline hover:text-soft-charcoal transition"
       >
         ← Back to Step 2
       </button>

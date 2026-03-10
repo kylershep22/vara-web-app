@@ -390,6 +390,7 @@ export function getSleepContentById(id: string): SleepContent | null {
  * Get all movement content from Firestore
  */
 export async function getMovementContent(category?: string): Promise<MovementContent[]> {
+  if (!db) return [];
   try {
     let q;
     if (category) {
@@ -423,6 +424,7 @@ export function subscribeToMovementContent(
   callback: (content: MovementContent[]) => void,
   category?: string
 ): () => void {
+  if (!db) return () => {};
   let q;
   if (category) {
     q = query(
@@ -458,6 +460,7 @@ export function subscribeToMovementContent(
  * Get a single movement content item by ID
  */
 export async function getMovementContentById(id: string): Promise<MovementContent | null> {
+  if (!db) return null;
   try {
     const docRef = doc(db, 'movementContent', id);
     const docSnap = await getDoc(docRef);
@@ -487,6 +490,7 @@ export async function listMasterclasses(filters?: {
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   topic?: string;
 }): Promise<Masterclass[]> {
+  if (!db) return [];
   try {
     let q = query(
       collection(db, 'masterclasses'),
@@ -518,6 +522,7 @@ export async function listMasterclasses(filters?: {
  * Get a single masterclass by ID
  */
 export async function getMasterclass(id: string): Promise<Masterclass | null> {
+  if (!db) return null;
   try {
     const docRef = doc(db, 'masterclasses', id);
     const docSnap = await getDoc(docRef);
@@ -543,6 +548,7 @@ export async function getUserMasterclassProgress(
   userId: string,
   masterclassId: string
 ): Promise<MasterclassProgress | null> {
+  if (!db) return null;
   try {
     const q = query(
       collection(db, 'masterclassProgress'),
@@ -575,6 +581,7 @@ export async function updateMasterclassProgress(
   masterclassId: string,
   progressData: Partial<MasterclassProgress>
 ): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     // Check if progress exists
     const existing = await getUserMasterclassProgress(userId, masterclassId);
@@ -609,6 +616,7 @@ export async function updateMasterclassProgress(
  * Get all masterclass progress for a user
  */
 export async function getUserMasterclassProgressList(userId: string): Promise<MasterclassProgress[]> {
+  if (!db) return [];
   try {
     const q = query(
       collection(db, 'masterclassProgress'),

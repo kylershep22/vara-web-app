@@ -140,7 +140,7 @@ const CognitiveReframing = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -168,10 +168,10 @@ const CognitiveReframing = ({ userId }) => {
       </div>
 
       {/* Common Cognitive Distortions */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         <div className="flex items-center gap-2 mb-4">
-          <BookOpen className="text-gray-600" size={20} />
-          <h3 className="text-lg font-semibold text-gray-900">Common Cognitive Distortions</h3>
+          <BookOpen className="text-muted-sage-gray" size={20} />
+          <h3 className="text-lg font-semibold text-soft-charcoal">Common Cognitive Distortions</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -181,18 +181,18 @@ const CognitiveReframing = ({ userId }) => {
               onClick={() => setSelectedDistortion(selectedDistortion?.id === distortion.id ? null : distortion)}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
                 selectedDistortion?.id === distortion.id
-                  ? 'border-[#1B5E57] bg-green-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-evergreen-teal bg-teal-light'
+                  : 'border-divider hover:border-divider'
               }`}
             >
-              <h4 className="font-semibold text-gray-900 mb-1">{distortion.name}</h4>
-              <p className="text-sm text-gray-600 mb-2">{distortion.description}</p>
-              <div className="text-xs text-gray-500 italic mb-2">Example: {distortion.example}</div>
+              <h4 className="font-semibold text-soft-charcoal mb-1">{distortion.name}</h4>
+              <p className="text-sm text-muted-sage-gray mb-2">{distortion.description}</p>
+              <div className="text-xs text-muted-sage-gray italic mb-2">Example: {distortion.example}</div>
               {selectedDistortion?.id === distortion.id && (
-                <div className="mt-2 p-2 bg-white rounded border border-green-200">
+                <div className="mt-2 p-2 bg-white rounded border border-silver-sage">
                   <div className="flex items-start gap-2">
-                    <Lightbulb className="text-green-600 mt-0.5 flex-shrink-0" size={14} />
-                    <p className="text-xs text-green-700"><strong>Reframe:</strong> {distortion.reframe}</p>
+                    <Lightbulb className="text-evergreen-teal mt-0.5 flex-shrink-0" size={14} />
+                    <p className="text-xs text-evergreen-teal"><strong>Reframe:</strong> {distortion.reframe}</p>
                   </div>
                 </div>
               )}
@@ -200,20 +200,20 @@ const CognitiveReframing = ({ userId }) => {
           ))}
         </div>
 
-        <p className="text-sm text-gray-600 mt-4">Click a distortion to see reframing strategies.</p>
+        <p className="text-sm text-muted-sage-gray mt-4">Click a distortion to see reframing strategies.</p>
       </div>
 
       {/* Thought Record */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Thought Record</h3>
-        <p className="text-sm text-gray-600 mb-4">
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Thought Record</h3>
+        <p className="text-sm text-muted-sage-gray mb-4">
           Walk through these steps to challenge an unhelpful thought and generate a more balanced alternative.
         </p>
 
         <div className="space-y-4">
           {/* Step 1: Situation */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-2">
               1. What was the situation?
             </label>
             <input
@@ -221,13 +221,13 @@ const CognitiveReframing = ({ userId }) => {
               value={situation}
               onChange={(e) => setSituation(e.target.value)}
               placeholder="Describe the event or trigger..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent"
+              className="w-full px-4 py-3 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent"
             />
           </div>
 
           {/* Step 2: Automatic Thought */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-2">
               2. What automatic thought came up?
             </label>
             <textarea
@@ -235,7 +235,7 @@ const CognitiveReframing = ({ userId }) => {
               onChange={(e) => setAutomaticThought(e.target.value)}
               rows="2"
               placeholder="What went through your mind? What did you tell yourself?"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent resize-none"
             />
           </div>
 
@@ -254,7 +254,7 @@ const CognitiveReframing = ({ userId }) => {
 
           {/* Step 3: Evidence */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-2">
               3. What evidence supports or contradicts this thought?
             </label>
             <textarea
@@ -262,13 +262,13 @@ const CognitiveReframing = ({ userId }) => {
               onChange={(e) => setEvidence(e.target.value)}
               rows="3"
               placeholder="What are the facts? What would you tell a friend in this situation?"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent resize-none"
             />
           </div>
 
           {/* Step 4: Alternative Thought */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-soft-charcoal mb-2">
               4. What's a more balanced or realistic thought?
             </label>
             <textarea
@@ -276,7 +276,7 @@ const CognitiveReframing = ({ userId }) => {
               onChange={(e) => setAlternative(e.target.value)}
               rows="3"
               placeholder="Based on the evidence, what's a more helpful way to think about this?"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent resize-none"
             />
           </div>
 
@@ -286,8 +286,8 @@ const CognitiveReframing = ({ userId }) => {
             disabled={!situation || !automaticThought || !alternative}
             className={`w-full px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
               !situation || !automaticThought || !alternative
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : 'bg-[#1B5E57] text-white hover:bg-[#174C46]'
+                ? 'bg-silver-sage/30 text-muted-sage-gray cursor-not-allowed'
+                : 'bg-evergreen-teal text-white hover:opacity-90'
             }`}
           >
             <ArrowRight size={20} />
@@ -297,37 +297,37 @@ const CognitiveReframing = ({ userId }) => {
       </div>
 
       {/* Past Reframes */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Past Reframes</h3>
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Past Reframes</h3>
 
         {reframes.length > 0 ? (
           <div className="space-y-4">
             {reframes.map(reframe => (
-              <div key={reframe.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="text-sm text-gray-500 mb-3">{formatDate(reframe.date)}</div>
+              <div key={reframe.id} className="p-4 bg-dew-sage-light rounded-lg border border-divider">
+                <div className="text-sm text-muted-sage-gray mb-3">{formatDate(reframe.date)}</div>
 
                 <div className="space-y-3">
                   <div>
-                    <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Situation</div>
-                    <p className="text-sm text-gray-900">{reframe.situation}</p>
+                    <div className="text-xs font-semibold text-muted-sage-gray uppercase mb-1">Situation</div>
+                    <p className="text-sm text-soft-charcoal">{reframe.situation}</p>
                   </div>
 
                   <div className="flex items-start gap-3">
                     <div className="flex-1">
                       <div className="text-xs font-semibold text-red-600 uppercase mb-1">Automatic Thought</div>
-                      <p className="text-sm text-gray-900 italic">{reframe.automaticThought}</p>
+                      <p className="text-sm text-soft-charcoal italic">{reframe.automaticThought}</p>
                     </div>
-                    <ArrowRight className="text-gray-400 mt-4" size={20} />
+                    <ArrowRight className="text-muted-sage-gray/60 mt-4" size={20} />
                     <div className="flex-1">
-                      <div className="text-xs font-semibold text-green-600 uppercase mb-1">Alternative Thought</div>
-                      <p className="text-sm text-gray-900 font-medium">{reframe.alternative}</p>
+                      <div className="text-xs font-semibold text-evergreen-teal uppercase mb-1">Alternative Thought</div>
+                      <p className="text-sm text-soft-charcoal font-medium">{reframe.alternative}</p>
                     </div>
                   </div>
 
                   {reframe.evidence && (
                     <div>
-                      <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Evidence</div>
-                      <p className="text-sm text-gray-700">{reframe.evidence}</p>
+                      <div className="text-xs font-semibold text-muted-sage-gray uppercase mb-1">Evidence</div>
+                      <p className="text-sm text-soft-charcoal">{reframe.evidence}</p>
                     </div>
                   )}
 
@@ -341,8 +341,8 @@ const CognitiveReframing = ({ userId }) => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Brain className="mx-auto mb-2 text-gray-300" size={48} />
+          <div className="text-center py-8 text-muted-sage-gray">
+            <Brain className="mx-auto mb-2 text-muted-sage-gray/60" size={48} />
             <p>No reframes yet. Start challenging unhelpful thoughts today!</p>
           </div>
         )}

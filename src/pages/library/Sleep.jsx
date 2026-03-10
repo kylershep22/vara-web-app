@@ -56,19 +56,19 @@ export default function Sleep() {
 
   const renderTrack = (title, items) => (
     <div className="mb-10">
-      <h2 className="text-xl font-semibold text-[#3E3E3E] mb-3">{title}</h2>
-      <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#D5E3D1]">
+      <h2 className="text-vara-lg font-semibold text-soft-charcoal mb-3">{title}</h2>
+      <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-silver-sage">
         {items.map((item, index) => (
           <div
             key={index}
-            className="min-w-[240px] flex-shrink-0 bg-white border border-[#D5E3D1] rounded-xl p-4 shadow-sm hover:shadow-md transition"
+            className="min-w-[240px] flex-shrink-0 bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm hover:shadow-vara-md transition"
           >
-            <h3 className="text-md font-semibold text-[#1B5E57] mb-1">{item.title}</h3>
-            <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-            <div className="text-xs text-gray-500">{item.duration} {item.type ? `• ${item.type}` : ''}</div>
+            <h3 className="text-md font-semibold text-evergreen-teal mb-1">{item.title}</h3>
+            <p className="text-vara-sm text-muted-sage-gray mb-2">{item.description}</p>
+            <div className="text-vara-xs text-muted-sage-gray">{item.duration} {item.type ? `• ${item.type}` : ''}</div>
             <button
               onClick={() => playTrack(item.title, item.audioSrc)}
-              className="mt-4 px-4 py-2 bg-[#1B5E57] text-white text-sm rounded-lg hover:bg-[#164e48] transition"
+              className="mt-4 px-4 py-2 bg-evergreen-teal text-white text-vara-sm rounded-vara-md hover:opacity-90 transition"
             >
               Play
             </button>
@@ -80,16 +80,16 @@ export default function Sleep() {
 
   return (
     <SidebarLayout>
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="px-vara-base py-vara-lg max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
-          <Moon size={28} className="text-[#1B5E57]" />
+          <Moon size={28} className="text-evergreen-teal" />
           <div>
-            <h1 className="text-2xl font-semibold text-[#3E3E3E]">Sleep Library</h1>
-            <p className="text-sm text-[#1B5E57] font-medium">Brain Cleanup & Memory Consolidation</p>
+            <h1 className="text-vara-2xl font-semibold text-evergreen-teal tracking-tight">Sleep Library</h1>
+            <p className="text-sm text-evergreen-teal font-medium">Brain Cleanup & Memory Consolidation</p>
           </div>
         </div>
-        <p className="text-[#9AAE8C] mb-4 max-w-2xl">
+        <p className="text-muted-sage-gray mb-vara-base max-w-2xl">
           Quality sleep is your brain's reset button. During deep sleep, your brain clears metabolic waste, consolidates memories, and strengthens neural connections formed during the day.
         </p>
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8 max-w-2xl">
@@ -108,9 +108,9 @@ export default function Sleep() {
         {renderTrack('Guided Meditations for Sleep', guidedMeditations)}
 
         {/* Sleep Tracker Placeholder */}
-        <div className="mt-16 bg-white border border-[#D5E3D1] rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-[#3E3E3E] mb-2">Sleep Tracking (Coming Soon)</h3>
-          <p className="text-sm text-gray-600">Track your bedtime, wake time, and sleep quality in future releases.</p>
+        <div className="mt-16 bg-white border border-divider rounded-vara-lg p-vara-lg shadow-vara-sm">
+          <h3 className="text-vara-lg font-semibold text-soft-charcoal mb-2">Sleep Tracking (Coming Soon)</h3>
+          <p className="text-vara-sm text-muted-sage-gray">Track your bedtime, wake time, and sleep quality in future releases.</p>
         </div>
       </div>
     </SidebarLayout>

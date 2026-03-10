@@ -62,6 +62,7 @@ export const createOrGetConversation = async (
   uidA: string,
   uidB: string
 ): Promise<string> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const participants = [uidA, uidB].sort();
 
@@ -105,6 +106,7 @@ export const createOrGetConversation = async (
 export const fetchUserConversations = async (
   userId: string
 ): Promise<Conversation[]> => {
+  if (!db) return [];
   try {
     const q = query(
       collection(db, CONVERSATIONS_COLLECTION),
@@ -130,6 +132,7 @@ export const subscribeToConversations = (
   userId: string,
   callback: (conversations: Conversation[]) => void
 ): (() => void) => {
+  if (!db) return () => {};
   const q = query(
     collection(db, CONVERSATIONS_COLLECTION),
     where('participants', 'array-contains', userId),
@@ -158,6 +161,7 @@ export const markConversationAsRead = async (
   conversationId: string,
   userId: string
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, CONVERSATIONS_COLLECTION, conversationId);
     await updateDoc(docRef, {
@@ -183,6 +187,7 @@ export const sendDirectMessage = async (
   receiverId: string,
   text: string
 ): Promise<string> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     // Add message
     const messageData = {
@@ -228,6 +233,7 @@ export const fetchConversationMessages = async (
   conversationId: string,
   limitCount: number = 50
 ): Promise<DirectMessage[]> => {
+  if (!db) return [];
   try {
     const q = query(
       collection(db, MESSAGES_COLLECTION),
@@ -256,6 +262,7 @@ export const subscribeToMessages = (
   conversationId: string,
   callback: (messages: DirectMessage[]) => void
 ): (() => void) => {
+  if (!db) return () => {};
   const q = query(
     collection(db, MESSAGES_COLLECTION),
     where('conversationId', '==', conversationId),
@@ -281,6 +288,7 @@ export const subscribeToMessages = (
  * Mark message as read
  */
 export const markMessageAsRead = async (messageId: string): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const docRef = doc(db, MESSAGES_COLLECTION, messageId);
     await updateDoc(docRef, {

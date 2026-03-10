@@ -215,7 +215,7 @@ const BrainHealthScore = ({ userId }) => {
   };
 
   const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-600';
+    if (score >= 80) return 'text-evergreen-teal';
     if (score >= 60) return 'text-yellow-600';
     if (score >= 40) return 'text-orange-600';
     return 'text-red-600';
@@ -246,7 +246,7 @@ const BrainHealthScore = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-64 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-64 rounded-lg"></div>
         ))}
       </div>
     );
@@ -254,8 +254,8 @@ const BrainHealthScore = ({ userId }) => {
 
   if (!scores) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        <Brain className="mx-auto mb-4 text-gray-300" size={64} />
+      <div className="text-center py-12 text-muted-sage-gray">
+        <Brain className="mx-auto mb-4 text-muted-sage-gray/60" size={64} />
         <p>Unable to calculate brain health score. Start tracking your activities!</p>
       </div>
     );
@@ -300,8 +300,8 @@ const BrainHealthScore = ({ userId }) => {
       </div>
 
       {/* Category Breakdown Radar Chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Category Breakdown</h3>
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Category Breakdown</h3>
 
         <ResponsiveContainer width="100%" height={400}>
           <RadarChart data={radarData}>
@@ -321,94 +321,94 @@ const BrainHealthScore = ({ userId }) => {
 
         {/* Category Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-dew-sage-light rounded-lg">
             <Zap className="text-purple-600" size={24} />
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900">Cognitive (Focus)</span>
+                <span className="font-medium text-soft-charcoal">Cognitive (Focus)</span>
                 <span className={`font-bold ${getScoreColor(scores.categories.cognitive)}`}>
                   {scores.categories.cognitive}
                 </span>
               </div>
-              <div className="text-xs text-gray-600">Deep work and focus sessions</div>
+              <div className="text-xs text-muted-sage-gray">Deep work and focus sessions</div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-dew-sage-light rounded-lg">
             <Activity className="text-blue-600" size={24} />
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900">Sleep Quality</span>
+                <span className="font-medium text-soft-charcoal">Sleep Quality</span>
                 <span className={`font-bold ${getScoreColor(scores.categories.sleep)}`}>
                   {scores.categories.sleep}
                 </span>
               </div>
-              <div className="text-xs text-gray-600">Duration and quality of sleep</div>
+              <div className="text-xs text-muted-sage-gray">Duration and quality of sleep</div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-dew-sage-light rounded-lg">
             <Users className="text-pink-600" size={24} />
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900">Social Connections</span>
+                <span className="font-medium text-soft-charcoal">Social Connections</span>
                 <span className={`font-bold ${getScoreColor(scores.categories.social)}`}>
                   {scores.categories.social}
                 </span>
               </div>
-              <div className="text-xs text-gray-600">Meaningful relationships</div>
+              <div className="text-xs text-muted-sage-gray">Meaningful relationships</div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-            <Leaf className="text-green-600" size={24} />
+          <div className="flex items-center gap-3 p-3 bg-dew-sage-light rounded-lg">
+            <Leaf className="text-evergreen-teal" size={24} />
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900">Nature Exposure</span>
+                <span className="font-medium text-soft-charcoal">Nature Exposure</span>
                 <span className={`font-bold ${getScoreColor(scores.categories.nature)}`}>
                   {scores.categories.nature}
                 </span>
               </div>
-              <div className="text-xs text-gray-600">Time spent outdoors</div>
+              <div className="text-xs text-muted-sage-gray">Time spent outdoors</div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-dew-sage-light rounded-lg">
             <Heart className="text-red-600" size={24} />
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900">Gratitude Practice</span>
+                <span className="font-medium text-soft-charcoal">Gratitude Practice</span>
                 <span className={`font-bold ${getScoreColor(scores.categories.gratitude)}`}>
                   {scores.categories.gratitude}
                 </span>
               </div>
-              <div className="text-xs text-gray-600">Daily gratitude journaling</div>
+              <div className="text-xs text-muted-sage-gray">Daily gratitude journaling</div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-dew-sage-light rounded-lg">
             <Zap className="text-yellow-600" size={24} />
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900">Energy Levels</span>
+                <span className="font-medium text-soft-charcoal">Energy Levels</span>
                 <span className={`font-bold ${getScoreColor(scores.categories.energy)}`}>
                   {scores.categories.energy}
                 </span>
               </div>
-              <div className="text-xs text-gray-600">Daily energy and focus</div>
+              <div className="text-xs text-muted-sage-gray">Daily energy and focus</div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-dew-sage-light rounded-lg">
             <Target className="text-indigo-600" size={24} />
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900">Healthy Habits</span>
+                <span className="font-medium text-soft-charcoal">Healthy Habits</span>
                 <span className={`font-bold ${getScoreColor(scores.categories.habits)}`}>
                   {scores.categories.habits}
                 </span>
               </div>
-              <div className="text-xs text-gray-600">Habit consistency and streaks</div>
+              <div className="text-xs text-muted-sage-gray">Habit consistency and streaks</div>
             </div>
           </div>
         </div>
@@ -416,8 +416,8 @@ const BrainHealthScore = ({ userId }) => {
 
       {/* Trend Chart */}
       {scoreHistory.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">30-Day Trend</h3>
+        <div className="bg-white rounded-xl border border-divider p-6">
+          <h3 className="text-lg font-semibold text-soft-charcoal mb-4">30-Day Trend</h3>
 
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={scoreHistory}>
@@ -439,10 +439,10 @@ const BrainHealthScore = ({ userId }) => {
       )}
 
       {/* Personalized Recommendations */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         <div className="flex items-center gap-2 mb-4">
           <Award className="text-purple-600" size={20} />
-          <h3 className="text-lg font-semibold text-gray-900">Personalized Recommendations</h3>
+          <h3 className="text-lg font-semibold text-soft-charcoal">Personalized Recommendations</h3>
         </div>
 
         <div className="space-y-3">
@@ -474,9 +474,9 @@ const BrainHealthScore = ({ userId }) => {
           )}
 
           {scores.categories.nature < 60 && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="font-semibold text-green-900 mb-1">Get More Nature Time</div>
-              <p className="text-sm text-green-700">
+            <div className="p-4 bg-teal-light border border-silver-sage rounded-lg">
+              <div className="font-semibold text-soft-charcoal mb-1">Get More Nature Time</div>
+              <p className="text-sm text-evergreen-teal">
                 Spend at least 20-30 minutes outdoors daily. Even a short walk in a park can boost your mood and cognition.
               </p>
             </div>
@@ -492,9 +492,9 @@ const BrainHealthScore = ({ userId }) => {
           )}
 
           {scores.overall >= 80 && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="font-semibold text-green-900 mb-1">Excellent Work!</div>
-              <p className="text-sm text-green-700">
+            <div className="p-4 bg-teal-light border border-silver-sage rounded-lg">
+              <div className="font-semibold text-soft-charcoal mb-1">Excellent Work!</div>
+              <p className="text-sm text-evergreen-teal">
                 Your brain health score is excellent. Keep up these healthy habits and continue to maintain this balance.
               </p>
             </div>

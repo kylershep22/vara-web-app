@@ -211,40 +211,40 @@ export default function WellnessLibrary() {
 
   return (
     <SidebarLayout>
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="px-vara-base py-vara-lg max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
-          <Library size={28} className="text-[#1B5E57]" />
-          <h1 className="text-2xl font-semibold text-[#2E2F2E]">Wellness Library</h1>
+          <Library size={28} className="text-evergreen-teal" />
+          <h1 className="text-vara-2xl font-semibold text-soft-charcoal">Wellness Library</h1>
         </div>
-        <p className="text-[#748B72] mb-6">
+        <p className="text-muted-sage-gray mb-6">
           Evidence-informed, bite-sized lessons you can apply today: breathwork, movement,
           mindset, nutrition, and more.
         </p>
 
         {/* Hero / Featured */}
-        <div className="relative overflow-hidden rounded-3xl border border-[#D5E3D1] bg-gradient-to-br from-[#F6FBF7] to-white p-6 mb-6">
+        <div className="relative overflow-hidden rounded-3xl border border-divider bg-gradient-to-br from-mist-white to-white p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
-              <div className="inline-flex items-center gap-2 text-[#1B5E57] text-sm font-medium bg-white border border-[#B8CDBA] px-3 py-1 rounded-full">
+              <div className="inline-flex items-center gap-2 text-evergreen-teal text-sm font-medium bg-white border border-silver-sage px-3 py-1 rounded-full">
                 <Sparkles size={16} /> Featured Pathway
               </div>
-              <h2 className="text-xl md:text-2xl font-semibold text-[#2E2F2E] mt-3">
+              <h2 className="text-xl md:text-2xl font-semibold text-soft-charcoal mt-3">
                 10 Days to a Calmer Baseline
               </h2>
-              <p className="text-[#5C6F5F] mt-2 max-w-2xl">
+              <p className="text-muted-sage-gray mt-2 max-w-2xl">
                 A short, science-backed sequence mixing breathwork, micro-mobility, and mindset
                 tools. Track progress and feel the difference in under two weeks.
               </p>
-              <div className="mt-4 flex items-center gap-3 text-sm text-[#5C6F5F]">
+              <div className="mt-4 flex items-center gap-3 text-sm text-muted-sage-gray">
                 <Clock size={16} /> ~10–15 min/day
-                <span className="w-1 h-1 rounded-full bg-[#B8CDBA]" />
+                <span className="w-1 h-1 rounded-full bg-silver-sage" />
                 <TrendingUp size={16} /> Beginner → Intermediate
               </div>
               <div className="mt-5">
                 <Link
                   to="/library/pathways/calm-10"
-                  className="inline-flex items-center gap-2 bg-[#1B5E57] text-white px-4 py-2 rounded-xl shadow hover:bg-[#154B46] transition"
+                  className="inline-flex items-center gap-2 bg-evergreen-teal text-white px-4 py-2 rounded-xl shadow hover:bg-evergreen-teal/90 transition"
                 >
                   Start Pathway <ChevronRight size={18} />
                 </Link>
@@ -259,11 +259,11 @@ export default function WellnessLibrary() {
                 ].map((b, idx) => (
                   <div
                     key={idx}
-                    className="bg-white border border-[#D5E3D1] rounded-2xl p-4 text-center"
+                    className="bg-white border border-divider rounded-2xl p-4 text-center"
                   >
-                    <b.icon className="mx-auto text-[#1B5E57]" size={22} />
-                    <div className="mt-2 text-sm font-medium text-[#2E2F2E]">{b.label}</div>
-                    <div className="text-xs text-[#5C6F5F]">{b.stat} sessions</div>
+                    <b.icon className="mx-auto text-evergreen-teal" size={22} />
+                    <div className="mt-2 text-sm font-medium text-soft-charcoal">{b.label}</div>
+                    <div className="text-xs text-muted-sage-gray">{b.stat} sessions</div>
                   </div>
                 ))}
               </div>
@@ -277,26 +277,26 @@ export default function WellnessLibrary() {
           <div className="flex-1">
             <label htmlFor="library-search" className="sr-only">Search library</label>
             <div className="relative">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7A8E7C]" />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-sage-gray" />
               <input
                 id="library-search"
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search topics, tools, or titles…"
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-[#D5E3D1] focus:outline-none focus:ring-2 focus:ring-[#B8CDBA] bg-white"
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-divider focus:outline-none focus:ring-2 focus:ring-evergreen-teal bg-white"
               />
             </div>
           </div>
 
           {/* Sort */}
           <div className="flex items-center gap-2">
-            <Filter size={18} className="text-[#7A8E7C]" />
+            <Filter size={18} className="text-muted-sage-gray" />
             <select
               aria-label="Sort library"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="border border-[#D5E3D1] rounded-xl px-3 py-2 text-sm bg-white"
+              className="border border-divider rounded-xl px-3 py-2 text-sm bg-white"
             >
               {SORTS.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -317,8 +317,8 @@ export default function WellnessLibrary() {
                 onClick={() => setActiveCategory(key)}
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm transition ${
                   active
-                    ? "bg-[#1B5E57] text-white border-[#1B5E57]"
-                    : "bg-white text-[#2E2F2E] border-[#D5E3D1] hover:border-[#B8CDBA]"
+                    ? "bg-evergreen-teal text-white border-evergreen-teal"
+                    : "bg-white text-soft-charcoal border-divider hover:border-silver-sage"
                 }`}
               >
                 <Icon size={16} /> {key}
@@ -337,8 +337,8 @@ export default function WellnessLibrary() {
                 onClick={() => setActiveType(t)}
                 className={`px-3 py-1.5 rounded-lg text-sm border transition ${
                   active
-                    ? "bg-[#E8F3EA] text-[#1B5E57] border-[#B8CDBA]"
-                    : "bg-white text-[#2E2F2E] border-[#D5E3D1] hover:border-[#B8CDBA]"
+                    ? "bg-teal-light text-evergreen-teal border-silver-sage"
+                    : "bg-white text-soft-charcoal border-divider hover:border-silver-sage"
                 }`}
               >
                 {t}
@@ -351,8 +351,8 @@ export default function WellnessLibrary() {
         {continueItems.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-[#2E2F2E]">Continue learning</h2>
-              <Link to="/library/saved" className="text-sm text-[#1B5E57] hover:underline">
+              <h2 className="text-lg font-semibold text-soft-charcoal">Continue learning</h2>
+              <Link to="/library/saved" className="text-sm text-evergreen-teal hover:underline">
                 View all saved
               </Link>
             </div>
@@ -366,13 +366,13 @@ export default function WellnessLibrary() {
 
         {/* Results grid */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-[#2E2F2E]">Browse {activeCategory === "All" ? "everything" : activeCategory.toLowerCase()}</h2>
-          <div className="text-sm text-[#5C6F5F]">{filtered.length} item{filtered.length !== 1 ? "s" : ""}</div>
+          <h2 className="text-lg font-semibold text-soft-charcoal">Browse {activeCategory === "All" ? "everything" : activeCategory.toLowerCase()}</h2>
+          <div className="text-sm text-muted-sage-gray">{filtered.length} item{filtered.length !== 1 ? "s" : ""}</div>
         </div>
 
         {filtered.length === 0 ? (
-          <div className="text-center border border-dashed border-[#D5E3D1] rounded-2xl py-16">
-            <p className="text-[#5C6F5F]">
+          <div className="text-center border border-dashed border-divider rounded-2xl py-16">
+            <p className="text-muted-sage-gray">
               No matches. Try a different search, category, or type.
             </p>
           </div>
@@ -390,8 +390,8 @@ export default function WellnessLibrary() {
         )}
 
         {/* Sleep routing note */}
-        <div className="mt-10 text-xs text-[#7A8E7C]">
-          Sleep stories and soundscapes now live in <Link to="/sleep-recovery" className="text-[#1B5E57] underline">Sleep & Recovery</Link>.
+        <div className="mt-10 text-xs text-muted-sage-gray">
+          Sleep stories and soundscapes now live in <Link to="/sleep-recovery" className="text-evergreen-teal underline">Sleep & Recovery</Link>.
         </div>
       </div>
     </SidebarLayout>
@@ -410,7 +410,7 @@ function TypePill({ type }) {
   };
   const M = map[type] || map["Article"];
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-[#F2F7F2] border border-[#D5E3D1] text-[#2E2F2E]">
+    <span className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-dew-sage-light border border-divider text-soft-charcoal">
       <M.Icon size={14} /> {M.label}
     </span>
   );
@@ -418,20 +418,20 @@ function TypePill({ type }) {
 
 function LibraryCard({ item, onSave, saved }) {
   return (
-    <div className="group bg-white border border-[#D5E3D1] rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-[#B8CDBA] transition h-full flex flex-col">
+    <div className="group bg-white border border-divider rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-silver-sage transition h-full flex flex-col">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <Link to={item.link} className="block">
-            <h3 className="text-base font-semibold text-[#2E2F2E] group-hover:text-[#1B5E57]">
+            <h3 className="text-base font-semibold text-soft-charcoal group-hover:text-evergreen-teal">
               {item.title}
             </h3>
           </Link>
-          <div className="mt-1 flex items-center gap-2 text-xs text-[#5C6F5F]">
+          <div className="mt-1 flex items-center gap-2 text-xs text-muted-sage-gray">
             <TypePill type={item.type} />
-            <span className="w-1 h-1 bg-[#B8CDBA] rounded-full" />
+            <span className="w-1 h-1 bg-silver-sage rounded-full" />
             <span>{item.category}</span>
-            <span className="w-1 h-1 bg-[#B8CDBA] rounded-full" />
+            <span className="w-1 h-1 bg-silver-sage rounded-full" />
             <span>{minLabel(item.minutes)}</span>
           </div>
         </div>
@@ -441,8 +441,8 @@ function LibraryCard({ item, onSave, saved }) {
             aria-label={saved ? "Unsave" : "Save"}
             className={`p-2 rounded-lg border transition ${
               saved
-                ? "bg-[#1B5E57] border-[#1B5E57] text-white"
-                : "bg-white border-[#D5E3D1] text-[#2E2F2E] hover:border-[#B8CDBA]"
+                ? "bg-evergreen-teal border-evergreen-teal text-white"
+                : "bg-white border-divider text-soft-charcoal hover:border-silver-sage"
             }`}
           >
             {saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
@@ -457,7 +457,7 @@ function LibraryCard({ item, onSave, saved }) {
               }
             }}
             aria-label="Share"
-            className="p-2 rounded-lg border bg-white border-[#D5E3D1] text-[#2E2F2E] hover:border-[#B8CDBA] transition"
+            className="p-2 rounded-lg border bg-white border-divider text-soft-charcoal hover:border-silver-sage transition"
           >
             <Share2 size={16} />
           </button>
@@ -465,14 +465,14 @@ function LibraryCard({ item, onSave, saved }) {
       </div>
 
       {/* Body */}
-      <p className="text-sm text-[#5C6F5F] mt-3 flex-1">{item.summary}</p>
+      <p className="text-sm text-muted-sage-gray mt-3 flex-1">{item.summary}</p>
 
       {/* Footer */}
       <div className="mt-4 flex items-center justify-between">
-        <div className="text-xs text-[#5C6F5F]">Popularity: {item.popularity}</div>
+        <div className="text-xs text-muted-sage-gray">Popularity: {item.popularity}</div>
         <Link
           to={item.link}
-          className="inline-flex items-center gap-1.5 text-sm text-[#1B5E57] hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm text-evergreen-teal hover:underline"
         >
           Open <ChevronRight size={16} />
         </Link>
@@ -483,16 +483,16 @@ function LibraryCard({ item, onSave, saved }) {
 
 function ContinueCard({ item, onSave, saved }) {
   return (
-    <div className="bg-white border border-[#D5E3D1] rounded-2xl p-4 flex items-center justify-between gap-4">
+    <div className="bg-white border border-divider rounded-2xl p-4 flex items-center justify-between gap-4">
       <div className="min-w-0">
         <Link to={item.link} className="block">
-          <div className="text-sm font-semibold text-[#2E2F2E] truncate">{item.title}</div>
+          <div className="text-sm font-semibold text-soft-charcoal truncate">{item.title}</div>
         </Link>
-        <div className="text-xs text-[#5C6F5F] mt-1 flex items-center gap-2">
+        <div className="text-xs text-muted-sage-gray mt-1 flex items-center gap-2">
           <TypePill type={item.type} />
-          <span className="w-1 h-1 bg-[#B8CDBA] rounded-full" />
+          <span className="w-1 h-1 bg-silver-sage rounded-full" />
           <span>{item.category}</span>
-          <span className="w-1 h-1 bg-[#B8CDBA] rounded-full" />
+          <span className="w-1 h-1 bg-silver-sage rounded-full" />
           <span>{minLabel(item.minutes)}</span>
         </div>
       </div>
@@ -502,15 +502,15 @@ function ContinueCard({ item, onSave, saved }) {
           aria-label={saved ? "Unsave" : "Save"}
           className={`p-2 rounded-lg border transition ${
             saved
-              ? "bg-[#1B5E57] border-[#1B5E57] text-white"
-              : "bg-white border-[#D5E3D1] text-[#2E2F2E] hover:border-[#B8CDBA]"
+              ? "bg-evergreen-teal border-evergreen-teal text-white"
+              : "bg-white border-divider text-soft-charcoal hover:border-silver-sage"
           }`}
         >
           {saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
         </button>
         <Link
           to={item.link}
-          className="inline-flex items-center gap-1.5 text-sm bg-[#1B5E57] text-white px-3 py-1.5 rounded-lg hover:bg-[#154B46]"
+          className="inline-flex items-center gap-1.5 text-sm bg-evergreen-teal text-white px-3 py-1.5 rounded-lg hover:bg-evergreen-teal/90"
         >
           Resume <ChevronRight size={16} />
         </Link>

@@ -43,25 +43,25 @@ export default function Habits() {
     <SidebarLayout>
       <div className="p-6 max-w-6xl mx-auto space-y-10">
         <div>
-          <h1 className="text-3xl font-semibold text-[#1B5E57] flex items-center gap-2">
+          <h1 className="text-3xl font-semibold text-evergreen-teal flex items-center gap-2">
             <Target size={28} />
             Goals & Habits
           </h1>
-          <p className="text-[#6B7280] mt-1">
+          <p className="text-muted-sage-gray mt-1">
             Link habits to each goal to better track your wellness journey and build consistency.
           </p>
         </div>
 
         {goals.map(goal => (
-          <div key={goal.id} className="bg-white/90 border border-[#D5E3D1] rounded-2xl p-6 shadow-md">
+          <div key={goal.id} className="bg-white/90 border border-divider rounded-2xl p-6 shadow-md">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="text-xl font-semibold text-[#3E3E3E]">{goal.title}</h2>
-                <p className="text-sm text-[#6B7280]">Category: {goal.category}</p>
+                <h2 className="text-xl font-semibold text-soft-charcoal">{goal.title}</h2>
+                <p className="text-sm text-muted-sage-gray">Category: {goal.category}</p>
               </div>
               <button
                 onClick={() => toggleHabitSection(goal.id)}
-                className="text-sm px-4 py-2 rounded-lg bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white hover:scale-105 transition"
+                className="text-sm px-4 py-2 rounded-lg bg-gradient-to-r from-evergreen-teal to-silver-sage text-white hover:scale-105 transition"
               >
                 {habitSectionOpen[goal.id] ? 'Hide Habits' : 'Add/View Habits'}
               </button>

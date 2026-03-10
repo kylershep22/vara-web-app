@@ -136,24 +136,24 @@ const ResilienceTracker = ({ userId }) => {
   };
 
   const getScoreColor = (score) => {
-    if (score >= 80) return 'from-green-500 to-emerald-500';
+    if (score >= 80) return 'from-evergreen-teal to-evergreen-teal';
     if (score >= 60) return 'from-blue-500 to-cyan-500';
     if (score >= 40) return 'from-yellow-500 to-orange-500';
     return 'from-orange-500 to-red-500';
   };
 
   const getActivityColor = (count) => {
-    if (count === 0) return 'bg-gray-100';
-    if (count === 1) return 'bg-green-200';
-    if (count === 2) return 'bg-green-400';
-    return 'bg-green-600';
+    if (count === 0) return 'bg-dew-sage-light';
+    if (count === 1) return 'bg-silver-sage';
+    if (count === 2) return 'bg-evergreen-teal/60';
+    return 'bg-evergreen-teal';
   };
 
   if (loading) {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -199,18 +199,18 @@ const ResilienceTracker = ({ userId }) => {
       </div>
 
       {/* Weekly Activity Heatmap */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="text-gray-600" size={20} />
-          <h3 className="text-lg font-semibold text-gray-900">Weekly Resilience Activity</h3>
+          <Calendar className="text-muted-sage-gray" size={20} />
+          <h3 className="text-lg font-semibold text-soft-charcoal">Weekly Resilience Activity</h3>
         </div>
 
         <div className="grid grid-cols-7 gap-2">
           {weeklyActivity.map((day, idx) => (
             <div key={idx} className="text-center">
-              <div className="text-xs text-gray-500 mb-2">{day.dayName}</div>
+              <div className="text-xs text-muted-sage-gray mb-2">{day.dayName}</div>
               <div
-                className={`w-full aspect-square rounded-lg ${getActivityColor(day.totalActivities)} border border-gray-200 flex items-center justify-center font-bold text-gray-700`}
+                className={`w-full aspect-square rounded-lg ${getActivityColor(day.totalActivities)} border border-divider flex items-center justify-center font-bold text-soft-charcoal`}
                 title={`${day.totalActivities} activities`}
               >
                 {day.totalActivities > 0 ? day.totalActivities : ''}
@@ -230,7 +230,7 @@ const ResilienceTracker = ({ userId }) => {
           ))}
         </div>
 
-        <div className="flex items-center gap-4 mt-4 text-xs text-gray-600">
+        <div className="flex items-center gap-4 mt-4 text-xs text-muted-sage-gray">
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-pink-400 rounded"></div>
             <span>Gratitude</span>
@@ -347,9 +347,9 @@ const ResilienceTracker = ({ userId }) => {
       </div>
 
       {/* What is Resilience */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">What is Mental Resilience?</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-700">
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">What is Mental Resilience?</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-soft-charcoal">
           <div>
             <h4 className="font-semibold mb-2">Resilience is NOT:</h4>
             <ul className="space-y-1">

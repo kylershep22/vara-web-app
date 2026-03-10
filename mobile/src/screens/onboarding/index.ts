@@ -9,6 +9,8 @@ export { default as OnboardingCheckInScreen } from './OnboardingCheckInScreen';
 export { default as OnboardingInsightScreen } from './OnboardingInsightScreen';
 export { default as OnboardingActivityScreen } from './OnboardingActivityScreen';
 export { default as OnboardingConfirmationScreen } from './OnboardingConfirmationScreen';
+export { default as OnboardingValuesScreen } from './OnboardingValuesScreen';
+export { default as OnboardingPersonalizedEntryScreen } from './OnboardingPersonalizedEntryScreen';
 
 // Legacy screens (deprecated - to be removed)
 export { default as OnboardingFocusScreen } from './OnboardingFocusScreen';

@@ -67,16 +67,16 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
   return (
     <div
       ref={dropdownRef}
-      className="absolute top-14 left-4 w-80 bg-white border border-gray-200 shadow-lg rounded-lg z-50"
+      className="absolute top-14 left-4 w-80 bg-white border border-divider shadow-lg rounded-lg z-50"
     >
-      <div className="p-3 border-b font-semibold text-gray-700">Notifications</div>
+      <div className="p-3 border-b font-semibold text-soft-charcoal">Notifications</div>
       <ul className="max-h-64 overflow-y-auto divide-y">
         {notifications.map((notif) => (
           <li
             key={notif.id}
             onClick={() => handleNotificationClick(notif)}
-            className={`p-3 text-sm cursor-pointer hover:bg-gray-50 ${
-              !notif.read ? "bg-emerald-50 font-medium" : "bg-white"
+            className={`p-3 text-sm cursor-pointer hover:bg-dew-sage-light ${
+              !notif.read ? "bg-teal-light font-medium" : "bg-white"
             }`}
           >
             {notif.body || notif.text ||
@@ -88,13 +88,13 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
           </li>
         ))}
         {notifications.length === 0 && (
-          <li className="p-3 text-sm text-gray-500">You're all caught up!</li>
+          <li className="p-3 text-sm text-muted-sage-gray">You're all caught up!</li>
         )}
       </ul>
       <div className="p-2 border-t text-right">
         <Link
           to="/notifications"
-          className="text-sm text-emerald-700 hover:underline"
+          className="text-sm text-evergreen-teal hover:underline"
           onClick={onClose}
         >
           View All

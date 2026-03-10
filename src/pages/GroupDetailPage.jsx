@@ -30,7 +30,7 @@ export default function GroupDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loader className="w-6 h-6 animate-spin text-emerald-600" />
+        <Loader className="w-6 h-6 animate-spin text-evergreen-teal" />
       </div>
     );
   }
@@ -38,7 +38,7 @@ export default function GroupDetailPage() {
   if (!group) {
     return (
       <div className="text-center py-20">
-        <h2 className="text-xl font-semibold text-gray-800">Group not found</h2>
+        <h2 className="text-xl font-semibold text-soft-charcoal">Group not found</h2>
       </div>
     );
   }
@@ -46,12 +46,12 @@ export default function GroupDetailPage() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-emerald-800 flex items-center gap-2">
+        <h1 className="text-3xl font-bold text-evergreen-teal flex items-center gap-2">
           <span>{group.emoji || '👥'}</span>
           {group.name}
         </h1>
-        <p className="text-gray-600 mt-2">{group.description}</p>
-        <p className="text-sm text-gray-400 mt-1">Category: {group.category} • Type: {group.groupType}</p>
+        <p className="text-muted-sage-gray mt-2">{group.description}</p>
+        <p className="text-sm text-muted-sage-gray/60 mt-1">Category: {group.category} • Type: {group.groupType}</p>
       </div>
 
       <ChatWindow groupId={group.id} />

@@ -156,7 +156,7 @@ export default function EditProfile() {
   if (loading) {
     return (
       <SidebarLayout>
-        <div className="min-h-[60vh] flex items-center justify-center text-[#3E3E3E]">
+        <div className="min-h-[60vh] flex items-center justify-center text-soft-charcoal">
           Loading…
         </div>
       </SidebarLayout>
@@ -165,12 +165,12 @@ export default function EditProfile() {
 
   return (
     <SidebarLayout>
-      <div className="min-h-screen bg-[#F3F4EF]">
-        <div className="max-w-3xl mx-auto p-6">
+      <div className="min-h-screen bg-mist-white">
+        <div className="max-w-3xl mx-auto px-vara-base py-vara-lg">
           {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
-            <Edit3 className="w-5 h-5 text-[#1B5E57]" />
-            <h1 className="text-xl font-semibold text-[#3E3E3E]">
+          <div className="flex items-center gap-3 mb-vara-lg">
+            <Edit3 className="w-5 h-5 text-evergreen-teal" />
+            <h1 className="text-vara-xl font-semibold text-soft-charcoal">
               Edit Profile
             </h1>
           </div>
@@ -178,7 +178,7 @@ export default function EditProfile() {
           {/* Card */}
           <form
             onSubmit={handleSave}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-[#D5E3D1] space-y-6"
+            className="bg-white rounded-vara-lg p-vara-lg shadow-vara-sm border border-divider space-y-6"
           >
             {/* Avatar uploader */}
             <div className="flex items-center gap-4">
@@ -186,12 +186,12 @@ export default function EditProfile() {
                 <img
                   src={profile.avatarUrl || avatarFor(profile.displayName)}
                   alt="Avatar"
-                  className="w-24 h-24 rounded-2xl object-cover border-2 border-[#D5E3D1] bg-white"
+                  className="w-24 h-24 rounded-vara-lg object-cover border-2 border-divider bg-white"
                 />
                 <button
                   type="button"
                   onClick={handleAvatarClick}
-                  className="absolute -bottom-2 -right-2 bg-[#1B5E57] p-2 rounded-xl text-white hover:brightness-110 shadow"
+                  className="absolute -bottom-2 -right-2 bg-evergreen-teal p-2 rounded-vara-md text-white hover:brightness-110 shadow"
                   title="Upload new avatar"
                 >
                   <Camera size={16} />
@@ -205,9 +205,9 @@ export default function EditProfile() {
                 />
               </div>
 
-              <div className="text-sm text-[#3E3E3E]">
+              <div className="text-vara-sm text-soft-charcoal">
                 <p className="font-medium">Your photo</p>
-                <p className="text-[#9AAE8C]">
+                <p className="text-muted-sage-gray">
                   PNG or JPG up to ~5MB. Square images look best.
                 </p>
               </div>
@@ -215,7 +215,7 @@ export default function EditProfile() {
 
             {/* Basic info */}
             <div>
-              <label className="block text-sm font-medium text-[#3E3E3E] mb-1">
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">
                 Display Name
               </label>
               <input
@@ -224,13 +224,13 @@ export default function EditProfile() {
                   setProfile((p) => ({ ...p, displayName: e.target.value }))
                 }
                 required
-                className="w-full px-3 py-2 border border-[#D5E3D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                 placeholder="How should we show your name?"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#3E3E3E] mb-1">
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">
                 Bio
               </label>
               <textarea
@@ -239,14 +239,14 @@ export default function EditProfile() {
                   setProfile((p) => ({ ...p, bio: e.target.value }))
                 }
                 rows={4}
-                className="w-full px-3 py-2 border border-[#D5E3D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                 placeholder="Share your wellness journey…"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-[#3E3E3E] mb-1">
+                <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">
                   Location (optional)
                 </label>
                 <input
@@ -254,13 +254,13 @@ export default function EditProfile() {
                   onChange={(e) =>
                     setProfile((p) => ({ ...p, location: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-[#D5E3D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                   placeholder="City, Country"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#3E3E3E] mb-1">
+                <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">
                   Privacy
                 </label>
                 <select
@@ -268,7 +268,7 @@ export default function EditProfile() {
                   onChange={(e) =>
                     setProfile((p) => ({ ...p, privacy: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-[#D5E3D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
                 >
                   <option value="public">Public 🌐</option>
                   <option value="connections">Connections 👥</option>
@@ -283,9 +283,9 @@ export default function EditProfile() {
                     onChange={(e) =>
                       setProfile((p) => ({ ...p, searchable: e.target.checked }))
                     }
-                    className="rounded text-emerald-600"
+                    className="rounded text-evergreen-teal"
                   />
-                  <label htmlFor="searchable" className="text-sm text-[#3E3E3E]">
+                  <label htmlFor="searchable" className="text-vara-sm text-soft-charcoal">
                     Allow people to find me in search
                   </label>
                 </div>
@@ -294,7 +294,7 @@ export default function EditProfile() {
 
             {/* Interests (normalized tag picker) */}
             <div>
-              <label className="block text-sm font-medium text-[#3E3E3E] mb-1">
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">
                 Interests
               </label>
               <InlineTagPicker
@@ -310,7 +310,7 @@ export default function EditProfile() {
 
             {/* Focus Areas (normalized tag picker) */}
             <div>
-              <label className="block text-sm font-medium text-[#3E3E3E] mb-1">
+              <label className="block text-vara-sm font-medium text-soft-charcoal mb-1">
                 Focus Areas
               </label>
               <InlineTagPicker
@@ -324,7 +324,7 @@ export default function EditProfile() {
               />
             </div>
 
-            <div className="flex items-start gap-2 text-xs text-gray-500">
+            <div className="flex items-start gap-2 text-vara-xs text-muted-sage-gray">
               <AlertCircle className="w-4 h-4 mt-0.5" />
               <p>
                 Tip: we index your name + selected tags so people can discover
@@ -333,18 +333,18 @@ export default function EditProfile() {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-divider">
               <button
                 type="button"
                 onClick={() => navigate("/profile")}
-                className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+                className="px-4 py-2 rounded-vara-md bg-dew-sage-light text-soft-charcoal hover:bg-dew-sage"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#1B5E57] to-[#B8CDBA] text-white hover:brightness-110 disabled:opacity-60"
+                className="px-4 py-2 rounded-vara-md bg-evergreen-teal text-white hover:opacity-90 disabled:opacity-60"
               >
                 {saving ? "Saving…" : "Save"}
               </button>
@@ -438,7 +438,7 @@ function InlineTagPicker({
         {selectedSlugs.map((slug) => (
           <span
             key={slug}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-teal-light text-evergreen-teal text-vara-xs"
           >
             <span>
               {emojiFor(slug)} {labelFor(slug)}
@@ -453,7 +453,7 @@ function InlineTagPicker({
           </span>
         ))}
         {selectedSlugs.length === 0 && (
-          <span className="text-xs text-gray-500">
+          <span className="text-vara-xs text-muted-sage-gray">
             No {category === "focus" ? "focus areas" : "interests"} selected yet.
           </span>
         )}
@@ -465,15 +465,15 @@ function InlineTagPicker({
           value={qStr}
           onChange={(e) => setQStr(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-3 py-2 border border-[#D5E3D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal"
         />
         {qStr && (
-          <div className="absolute z-10 mt-1 w-full bg-white border border-[#D5E3D1] rounded-xl shadow-sm max-h-64 overflow-auto">
+          <div className="absolute z-10 mt-1 w-full bg-white border border-divider rounded-vara-lg shadow-vara-sm max-h-64 overflow-auto">
             {loading && (
-              <div className="p-3 text-sm text-gray-500">Loading…</div>
+              <div className="p-3 text-vara-sm text-muted-sage-gray">Loading…</div>
             )}
             {!loading && filtered.length === 0 && (
-              <div className="p-3 text-sm text-gray-500">No matches.</div>
+              <div className="p-3 text-vara-sm text-muted-sage-gray">No matches.</div>
             )}
             {!loading &&
               filtered.map((t) => (
@@ -481,16 +481,16 @@ function InlineTagPicker({
                   key={t.slug}
                   type="button"
                   onClick={() => add(t.slug)}
-                  className="w-full text-left px-3 py-2 hover:bg-[#F3F4EF] flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 hover:bg-mist-white flex items-center gap-2"
                 >
                   <span className="text-lg">{t.emoji || "🏷️"}</span>
-                  <span className="text-sm text-[#3E3E3E]">{t.label}</span>
+                  <span className="text-vara-sm text-soft-charcoal">{t.label}</span>
                   {selectedSlugs.includes(t.slug) ? (
-                    <span className="ml-auto text-xs text-emerald-700">
+                    <span className="ml-auto text-vara-xs text-evergreen-teal">
                       Added
                     </span>
                   ) : (
-                    <Plus className="w-4 h-4 ml-auto text-[#1B5E57]" />
+                    <Plus className="w-4 h-4 ml-auto text-evergreen-teal" />
                   )}
                 </button>
               ))}
@@ -498,7 +498,7 @@ function InlineTagPicker({
         )}
       </div>
 
-      <div className="mt-1 text-[11px] text-gray-500">
+      <div className="mt-1 text-[11px] text-muted-sage-gray">
         {selectedSlugs.length}/{max} selected
       </div>
     </div>

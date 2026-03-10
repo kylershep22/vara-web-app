@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { X } from 'lucide-react';
 
 const CreateGroupModal = ({ isOpen, onClose, onCreate }) => {
   const [name, setName] = useState('');
@@ -38,7 +39,6 @@ const CreateGroupModal = ({ isOpen, onClose, onCreate }) => {
     onCreate(newGroup);
     onClose();
 
-    // Reset form
     setName('');
     setDescription('');
     setCategory('');
@@ -48,69 +48,75 @@ const CreateGroupModal = ({ isOpen, onClose, onCreate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-4">Create New Group</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="fixed inset-0 bg-overlay z-50 flex items-center justify-center p-vara-base">
+      <div className="bg-white rounded-vara-lg shadow-vara-lg p-vara-lg w-full max-w-md">
+        <div className="flex items-center justify-between mb-vara-lg">
+          <h2 className="text-vara-lg font-semibold text-soft-charcoal">Create New Group</h2>
+          <button onClick={onClose} className="p-2 rounded-vara-md hover:bg-dew-sage-light text-muted-sage-gray">
+            <X size={18} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-vara-base">
           <div>
-            <label className="block text-sm font-medium">Group Name *</label>
+            <label className="block text-vara-sm font-medium text-soft-charcoal mb-vara-xs">Group Name *</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-md p-2"
+              className="w-full border border-silver-sage rounded-vara-md p-vara-sm min-h-input text-vara-base text-soft-charcoal focus:border-evergreen-teal focus:outline-none transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Description</label>
+            <label className="block text-vara-sm font-medium text-soft-charcoal mb-vara-xs">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full border border-gray-300 rounded-md p-2"
+              rows={3}
+              className="w-full border border-silver-sage rounded-vara-md p-vara-sm text-vara-base text-soft-charcoal focus:border-evergreen-teal focus:outline-none transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Category *</label>
+            <label className="block text-vara-sm font-medium text-soft-charcoal mb-vara-xs">Category *</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-md p-2"
+              className="w-full border border-silver-sage rounded-vara-md p-vara-sm min-h-input text-vara-base text-soft-charcoal focus:border-evergreen-teal focus:outline-none transition-colors"
             >
               <option value="">Select a category</option>
               {categoryOptions.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
+                <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
           </div>
 
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={isPrivate}
-                onChange={() => setIsPrivate(!isPrivate)}
-              />
+          <div className="flex items-center gap-vara-sm">
+            <input
+              type="checkbox"
+              id="isPrivate"
+              checked={isPrivate}
+              onChange={() => setIsPrivate(!isPrivate)}
+              className="w-4 h-4 rounded border-silver-sage text-evergreen-teal focus:ring-evergreen-teal"
+            />
+            <label htmlFor="isPrivate" className="text-vara-sm text-soft-charcoal">
               Private Group
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-vara-md pt-vara-base border-t border-divider">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm border border-gray-300 hover:bg-gray-100"
+              className="px-vara-base py-2 rounded-vara-md text-vara-sm border border-divider text-muted-sage-gray hover:bg-dew-sage-light transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-md text-sm bg-emerald-600 text-white hover:bg-emerald-700"
+              className="px-vara-base py-2 rounded-vara-md text-vara-sm bg-evergreen-teal text-white font-medium hover:opacity-90 transition-opacity"
             >
               Create Group
             </button>

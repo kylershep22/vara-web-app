@@ -44,7 +44,7 @@ export default function EditHabitForm({ habit, onCancel, onSave }) {
   return (
     <form onSubmit={handleSave} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-600">Habit Title</label>
+        <label className="block text-sm font-medium text-muted-sage-gray">Habit Title</label>
         <input
           type="text"
           value={title}
@@ -55,7 +55,7 @@ export default function EditHabitForm({ habit, onCancel, onSave }) {
 
       <div className="flex gap-4">
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-600">Type</label>
+          <label className="block text-sm font-medium text-muted-sage-gray">Type</label>
           <select value={type} onChange={(e) => setType(e.target.value)} className="mt-1 w-full border rounded-lg p-2">
             <option value="build">Build</option>
             <option value="maintain">Maintain</option>
@@ -64,7 +64,7 @@ export default function EditHabitForm({ habit, onCancel, onSave }) {
         </div>
 
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-600">Frequency</label>
+          <label className="block text-sm font-medium text-muted-sage-gray">Frequency</label>
           <select value={frequency} onChange={(e) => setFrequency(e.target.value)} className="mt-1 w-full border rounded-lg p-2">
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -74,7 +74,7 @@ export default function EditHabitForm({ habit, onCancel, onSave }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-600">Trigger</label>
+        <label className="block text-sm font-medium text-muted-sage-gray">Trigger</label>
         <input
           type="text"
           value={trigger}
@@ -84,7 +84,7 @@ export default function EditHabitForm({ habit, onCancel, onSave }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-600">Reward</label>
+        <label className="block text-sm font-medium text-muted-sage-gray">Reward</label>
         <input
           type="text"
           value={reward}
@@ -105,14 +105,14 @@ export default function EditHabitForm({ habit, onCancel, onSave }) {
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
+            className="px-4 py-2 border border-silver-sage rounded-lg text-soft-charcoal hover:bg-dew-sage-light"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-[#1B5E57] text-white rounded-lg hover:bg-[#144d47]"
+            className="px-4 py-2 bg-evergreen-teal text-white rounded-lg hover:opacity-90"
           >
             {loading ? 'Saving...' : 'Save Changes'}
           </button>

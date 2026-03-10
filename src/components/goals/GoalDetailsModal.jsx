@@ -76,12 +76,12 @@ export default function GoalDetailsModal({ goal, habits, tasks, onClose, onDelet
           >
             <div className="relative bg-white rounded-xl max-w-2xl w-full mx-auto p-6 z-50 shadow-lg">
               <div className="flex justify-between items-center mb-4">
-                <Dialog.Title className="text-2xl font-bold text-[#1B5E57]">
+                <Dialog.Title className="text-2xl font-bold text-evergreen-teal">
                   {editing ? 'Edit Goal' : goal.title}
                 </Dialog.Title>
                 <button
                   onClick={onClose}
-                  className="text-gray-500 hover:text-gray-800"
+                  className="text-muted-sage-gray hover:text-soft-charcoal"
                 >
                   <X size={20} />
                 </button>
@@ -169,21 +169,21 @@ export default function GoalDetailsModal({ goal, habits, tasks, onClose, onDelet
                   <div className="flex justify-end gap-3 mt-6">
                     <button
                       onClick={() => setEditing(false)}
-                      className="px-4 py-2 border text-gray-600 rounded hover:bg-gray-100"
+                      className="px-4 py-2 border text-muted-sage-gray rounded hover:bg-dew-sage-light"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={saving}
-                      className="px-4 py-2 bg-[#1B5E57] text-white rounded hover:bg-[#164e48]"
+                      className="px-4 py-2 bg-evergreen-teal text-white rounded hover:opacity-90"
                     >
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4 text-sm text-gray-700">
+                <div className="space-y-4 text-sm text-soft-charcoal">
                   <p><strong>Category:</strong> {goal.category}</p>
                   <p><strong>Target:</strong> {goal.target} {goal.unit}</p>
                   <p><strong>Frequency:</strong> {goal.frequency}</p>

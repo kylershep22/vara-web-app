@@ -185,6 +185,37 @@ export const completeOnboarding = async (
 };
 
 /**
+ * Save the user's selected values from onboarding Step 5
+ */
+export const saveSelectedValues = async (
+  userId: string,
+  values: string[]
+): Promise<void> => {
+  try {
+    const firestore = ensureFirestore();
+
+    if (!userId || typeof userId !== 'string') {
+      throw new Error('Valid userId is required');
+    }
+
+    if (!values || values.length < 2 || values.length > 3) {
+      throw new Error('Must select 2 or 3 values');
+    }
+
+    const userRef = doc(firestore, USERS_COLLECTION, userId);
+    await updateDoc(userRef, {
+      selectedValues: values,
+      updatedAt: serverTimestamp(),
+    });
+
+    if (__DEV__) console.log('Selected values saved for user:', userId, '- Values:', values);
+  } catch (error) {
+    console.error('Error saving selected values:', error);
+    throw error;
+  }
+};
+
+/**
  * Save all onboarding data at once (alternative batch approach)
  * Useful if you want to persist everything at the end instead of incrementally
  */

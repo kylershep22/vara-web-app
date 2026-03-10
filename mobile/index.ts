@@ -1,32 +1,13 @@
+// CRITICAL: This import MUST be first. It sets the global error handler
+// before any other modules evaluate. Without this, a fatal JS error during
+// module evaluation (e.g., from a service importing null db) calls native
+// abort() and crashes the app with SIGABRT before ErrorBoundary can help.
+import './src/utils/setupGlobalErrorHandler';
+
 import { LogBox } from 'react-native';
 import { registerRootComponent } from 'expo';
 
 import App from './App';
-
-// Prevent unhandled JS exceptions from crashing the app with SIGABRT.
-// In production, React Native's default global handler calls abort() on
-// fatal errors, which kills the app instantly. By replacing it, we let
-// the ErrorBoundary show a recovery UI instead.
-//
-// ErrorUtils is a global injected by React Native before any JS runs.
-declare const ErrorUtils: {
-  getGlobalHandler: () => (error: Error, isFatal?: boolean) => void;
-  setGlobalHandler: (handler: (error: Error, isFatal?: boolean) => void) => void;
-};
-
-if (typeof ErrorUtils !== 'undefined') {
-  const originalHandler = ErrorUtils.getGlobalHandler();
-  ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
-    // Always log the error
-    console.error(`[Global Error Handler] ${isFatal ? 'FATAL' : 'non-fatal'}:`, error);
-
-    // For non-fatal errors, delegate to the original handler
-    // For fatal errors, log but don't call the original handler (which would abort)
-    if (!isFatal && originalHandler) {
-      originalHandler(error, isFatal);
-    }
-  });
-}
 
 // Suppress noisy yellow-box warnings in development
 if (__DEV__) {

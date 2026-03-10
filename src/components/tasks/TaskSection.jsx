@@ -48,14 +48,14 @@ const TaskSection = ({
         <div className="flex items-center gap-3">
           {/* Icon */}
           <div className={`flex items-center justify-center ${
-            effectivelyExpanded ? 'text-white' : 'text-gray-700'
+            effectivelyExpanded ? 'text-white' : 'text-soft-charcoal'
           }`}>
             <Icon size={20} />
           </div>
 
           {/* Title */}
           <h3 className={`font-semibold ${
-            effectivelyExpanded ? 'text-white' : 'text-gray-900'
+            effectivelyExpanded ? 'text-white' : 'text-soft-charcoal'
           }`}>
             {title}
           </h3>
@@ -64,14 +64,14 @@ const TaskSection = ({
           <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
             effectivelyExpanded
               ? 'bg-white/20 text-white'
-              : 'bg-gray-100 text-gray-700'
+              : 'bg-dew-sage-light text-soft-charcoal'
           }`}>
             {count}
           </span>
         </div>
 
         {/* Expand/Collapse Icon */}
-        <div className={effectivelyExpanded ? 'text-white' : 'text-gray-500'}>
+        <div className={effectivelyExpanded ? 'text-white' : 'text-muted-sage-gray'}>
           {effectivelyExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </div>
       </button>
@@ -80,7 +80,7 @@ const TaskSection = ({
       {effectivelyExpanded && (
         <div className="mt-3 space-y-2 animate-in slide-in-from-top-2 duration-200">
           {count === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-sage-gray">
               <p className="text-sm">No tasks in this category</p>
             </div>
           ) : (

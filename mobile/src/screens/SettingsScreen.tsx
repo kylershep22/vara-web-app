@@ -32,7 +32,16 @@ interface Settings {
   intensity: 'low' | 'standard' | 'high';
   privacy: 'public' | 'connections' | 'private';
   searchable: boolean;
+  reflectionEnabled: boolean;
 }
+
+const REFLECTION_INFO_BULLETS = [
+  { emoji: '\u{1F4C8}', text: 'Tracks your consistency quality over time \u2014 not just whether you did the habit' },
+  { emoji: '\u{1F50D}', text: 'Surfaces patterns: which habits tend to feel hard, which feel smooth' },
+  { emoji: '\u{1F33F}', text: 'For CR habits, tracks cognitive load over time' },
+  { emoji: '\u{1F331}', text: 'For Connection habits, surfaces nourishing vs draining ratios' },
+  { emoji: '\u{1F512}', text: 'All reflections are private and only shown to you' },
+];
 
 const SettingsScreen = () => {
   const { user, logout } = useAuth();
@@ -49,6 +58,7 @@ const SettingsScreen = () => {
     intensity: 'standard',
     privacy: 'public',
     searchable: true,
+    reflectionEnabled: true,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -74,6 +84,7 @@ const SettingsScreen = () => {
           intensity: data.intensity || 'standard',
           privacy: data.privacy || 'public',
           searchable: data.searchable !== false,
+          reflectionEnabled: data.reflectionEnabled !== false,
         });
       }
     } catch (error) {
@@ -410,6 +421,51 @@ const SettingsScreen = () => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Habits & Tracking Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Habits & Tracking</Text>
+        <View style={styles.card}>
+          <View style={styles.settingRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Completion reflections</Text>
+              <Text style={styles.settingDescription}>
+                When you check off a habit, Vara asks how it went. This helps surface patterns over time. Turn off if you'd prefer a simpler check-in.
+              </Text>
+            </View>
+            <Switch
+              value={settings.reflectionEnabled}
+              onValueChange={(value) => handleSaveSettings({ reflectionEnabled: value })}
+              trackColor={{ false: '#B8CDBA', true: '#1B5E57' }}
+              thumbColor="#fff"
+            />
+          </View>
+
+          {settings.reflectionEnabled && (
+            <>
+              <View style={styles.divider} />
+              <View style={settingsExtraStyles.reflectionInfoPanel}>
+                <Text style={settingsExtraStyles.reflectionInfoTitle}>
+                  What Vara does with your reflections
+                </Text>
+                {REFLECTION_INFO_BULLETS.map((bullet, i) => (
+                  <View key={i} style={settingsExtraStyles.bulletRow}>
+                    <Text style={settingsExtraStyles.bulletEmoji}>{bullet.emoji}</Text>
+                    <Text style={settingsExtraStyles.bulletText}>{bullet.text}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+        </View>
+
+        {/* Data preservation notice */}
+        <View style={settingsExtraStyles.amberCallout}>
+          <Text style={settingsExtraStyles.amberText}>
+            Turning off completion reflections doesn't delete past data. Your existing patterns and insights remain. You can re-enable at any time.
+          </Text>
         </View>
       </View>
 
@@ -875,6 +931,51 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     color: Colors.mutedSageGray,
     marginTop: 4,
+  },
+});
+
+const settingsExtraStyles = StyleSheet.create({
+  reflectionInfoPanel: {
+    backgroundColor: '#EAF2E8',
+    padding: 16,
+    paddingHorizontal: 16,
+  },
+  reflectionInfoTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1B5E57',
+    marginBottom: 8,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 4,
+  },
+  bulletEmoji: {
+    fontSize: 12,
+    lineHeight: 12 * 1.55,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#6F7F77',
+    lineHeight: 12 * 1.55,
+  },
+  amberCallout: {
+    backgroundColor: '#FEF9E7',
+    borderWidth: 1,
+    borderColor: '#F4C542',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: Spacing.sm,
+  },
+  amberText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#92400E',
+    lineHeight: 12 * 1.6,
   },
 });
 

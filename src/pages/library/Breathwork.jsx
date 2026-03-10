@@ -26,26 +26,26 @@ export default function Breathwork() {
 
   return (
     <SidebarLayout>
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="px-vara-base py-vara-lg max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <Wind size={28} className="text-[#1B5E57]" />
-          <h1 className="text-2xl font-semibold text-[#3E3E3E]">Breathwork</h1>
+        <div className="flex items-center gap-3 mb-vara-base">
+          <Wind size={28} className="text-evergreen-teal" />
+          <h1 className="text-vara-2xl font-semibold text-evergreen-teal tracking-tight">Breathwork</h1>
         </div>
-        <p className="text-[#9AAE8C] mb-6 max-w-xl">
+        <p className="text-muted-sage-gray mb-vara-lg max-w-xl">
           Explore guided breathwork techniques to help reduce stress, restore calm, and support your nervous system.
         </p>
 
         {/* Resource Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-vara-lg">
           {resources.map((item, i) => (
             <div
               key={i}
-              className="bg-white border border-[#D5E3D1] rounded-xl p-4 shadow-sm hover:shadow-md transition"
+              className="bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm hover:shadow-vara-md transition"
             >
-              <h3 className="text-lg font-semibold text-[#1B5E57] mb-1">{item.title}</h3>
-              <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-              <div className="text-xs text-gray-500">
+              <h3 className="text-vara-lg font-semibold text-evergreen-teal mb-1">{item.title}</h3>
+              <p className="text-vara-sm text-muted-sage-gray mb-2">{item.description}</p>
+              <div className="text-vara-xs text-muted-sage-gray">
                 {item.duration} • {item.type}
               </div>
             </div>

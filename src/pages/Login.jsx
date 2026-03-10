@@ -79,8 +79,8 @@ export default function Login() {
           />
         </div>
 
-        <h2 className="text-2xl font-semibold text-[#1B5E57] mb-2">Welcome Back</h2>
-        <p className="text-sm text-[#6B7B6A] italic mb-6">
+        <h2 className="text-2xl font-semibold text-evergreen-teal mb-2">Welcome Back</h2>
+        <p className="text-sm text-muted-sage-gray italic mb-6">
           “Each mindful breath is a step forward.”
         </p>
 
@@ -92,7 +92,7 @@ export default function Login() {
 
         <div className="space-y-4">
           <input
-            className="w-full px-4 py-3 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition"
+            className="w-full px-4 py-3 border border-divider rounded-lg bg-mist-white focus:outline-none focus:ring-2 focus:ring-sunrise-amber focus:border-transparent transition"
             type="email"
             placeholder="Email"
             value={email}
@@ -103,7 +103,7 @@ export default function Login() {
 
           <div className="relative">
             <input
-              className="w-full px-4 py-3 pr-12 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition"
+              className="w-full px-4 py-3 pr-12 border border-divider rounded-lg bg-mist-white focus:outline-none focus:ring-2 focus:ring-sunrise-amber focus:border-transparent transition"
               type={showPassword ? "text" : "password"}
               placeholder="Password"
               value={password}
@@ -114,7 +114,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-sage-gray hover:text-soft-charcoal transition"
               disabled={loading}
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -125,16 +125,16 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 mt-6 bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold rounded-lg hover:brightness-105 transition-all ease-in-out duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full py-3 mt-6 bg-gradient-to-r from-sunrise-amber to-golden-apricot text-white font-semibold rounded-lg hover:brightness-105 transition-all ease-in-out duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? 'Logging in...' : 'Log In'}
         </button>
 
         <div className="mt-4 flex items-center justify-between text-sm">
-          <Link to="/forgot-password" className="text-[#1B5E57] hover:underline transition">
+          <Link to="/forgot-password" className="text-evergreen-teal hover:underline transition">
             Forgot Password?
           </Link>
-          <Link to="/signup" className="text-[#1B5E57] hover:underline transition">
+          <Link to="/signup" className="text-evergreen-teal hover:underline transition">
             Create Account
           </Link>
         </div>

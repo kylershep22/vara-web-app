@@ -175,7 +175,7 @@ export default function AIChatWidget() {
         aria-label="Open AI Coach"
         aria-expanded={isOpen}
         onClick={toggleOpen}
-        className={`fixed bottom-4 right-4 rounded-full shadow-lg p-3 md:p-4 bg-gradient-to-br from-[#1B5E57] to-[#B8CDBA] text-white hover:shadow-xl transition
+        className={`fixed bottom-4 right-4 rounded-full shadow-lg p-3 md:p-4 bg-gradient-to-br from-evergreen-teal to-silver-sage text-white hover:shadow-xl transition
           ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}
         `}
         style={{ zIndex: 9999 }}
@@ -183,7 +183,7 @@ export default function AIChatWidget() {
         <div className="relative">
           <MessageCircle className="w-6 h-6 md:w-7 md:h-7" />
           {unread && (
-            <span className="absolute -top-1 -right-1 inline-block w-2.5 h-2.5 rounded-full bg-[#F4C542]" />
+            <span className="absolute -top-1 -right-1 inline-block w-2.5 h-2.5 rounded-full bg-sunrise-amber" />
           )}
         </div>
       </button>
@@ -201,16 +201,16 @@ export default function AIChatWidget() {
           <div className="absolute inset-0 bg-black/20" onClick={() => setIsOpen(false)} />
 
           {/* Panel */}
-          <div className="relative w-full md:max-w-md md:mr-4 bg-[#FAFAF6] rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden">
+          <div className="relative w-full md:max-w-md md:mr-4 bg-mist-white rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between p-3 md:p-4 border-b border-[#D5E3D1] bg-white">
+            <div className="flex items-center justify-between p-3 md:p-4 border-b border-divider bg-white">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-full bg-gradient-to-br from-[#F4C542] to-[#F5B971]">
-                  <Bot className="w-5 h-5 text-[#3E3E3E]" />
+                <div className="p-2 rounded-full bg-gradient-to-br from-sunrise-amber to-golden-apricot">
+                  <Bot className="w-5 h-5 text-soft-charcoal" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-[#1B5E57]">Vara Coach</div>
-                  <div className="text-xs text-[#3E3E3E]/70">
+                  <div className="text-sm font-semibold text-evergreen-teal">Vara Coach</div>
+                  <div className="text-xs text-soft-charcoal/70">
                     {isLoadingContext ? 'Preparing your context…' : `Page: ${pageLabel}`}
                   </div>
                 </div>
@@ -218,15 +218,15 @@ export default function AIChatWidget() {
               <button
                 onClick={() => setIsOpen(false)}
                 aria-label="Close chat"
-                className="p-2 rounded-md hover:bg-[#D5E3D1]/40"
+                className="p-2 rounded-md hover:bg-dew-sage-light"
               >
-                <X className="w-5 h-5 text-[#3E3E3E]" />
+                <X className="w-5 h-5 text-soft-charcoal" />
               </button>
             </div>
 
             {/* Messages */}
             <div
-              className="p-3 md:p-4 max-h-[70vh] md:max-h-[70vh] overflow-y-auto space-y-3 bg-[#FAFAF6]"
+              className="p-3 md:p-4 max-h-[70vh] md:max-h-[70vh] overflow-y-auto space-y-3 bg-mist-white"
               aria-live="polite"
             >
               {messages.map((m, i) => (
@@ -234,8 +234,8 @@ export default function AIChatWidget() {
                   <div
                     className={`px-3 py-2 rounded-2xl max-w-[85%] text-sm leading-relaxed ${
                       m.role === 'assistant'
-                        ? 'bg-white border border-[#D5E3D1] text-[#3E3E3E]'
-                        : 'bg-gradient-to-br from-[#1B5E57] to-[#B8CDBA] text-white'
+                        ? 'bg-white border border-divider text-soft-charcoal'
+                        : 'bg-gradient-to-br from-evergreen-teal to-silver-sage text-white'
                     }`}
                   >
                     {m.content}
@@ -243,7 +243,7 @@ export default function AIChatWidget() {
                 </div>
               ))}
               {sending && (
-                <div className="flex items-center gap-2 text-xs text-[#3E3E3E]/70">
+                <div className="flex items-center gap-2 text-xs text-soft-charcoal/70">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Coach is thinking…
                 </div>
@@ -252,12 +252,12 @@ export default function AIChatWidget() {
             </div>
 
             {/* Suggestions */}
-            <div className="px-3 md:px-4 pt-2 pb-1 flex flex-wrap gap-2 bg-[#FAFAF6] border-t border-[#D5E3D1]">
+            <div className="px-3 md:px-4 pt-2 pb-1 flex flex-wrap gap-2 bg-mist-white border-t border-divider">
               {suggestionChips.map((s, idx) => (
                 <button
                   key={idx}
                   onClick={() => sendMessage(s)}
-                  className="text-xs px-3 py-1.5 rounded-full bg-white border border-[#D5E3D1] hover:bg-[#D5E3D1]/40"
+                  className="text-xs px-3 py-1.5 rounded-full bg-white border border-divider hover:bg-dew-sage-light"
                 >
                   {s}
                 </button>
@@ -265,18 +265,18 @@ export default function AIChatWidget() {
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSubmit} className="flex items-center gap-2 p-3 md:p-4 bg-white border-t border-[#D5E3D1]">
+            <form onSubmit={handleSubmit} className="flex items-center gap-2 p-3 md:p-4 bg-white border-t border-divider">
               <input
                 aria-label="Type a message"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask for a nudge, idea, or plan…"
-                className="flex-1 text-sm px-3 py-2 rounded-xl border border-[#D5E3D1] outline-none focus:ring-2 focus:ring-[#B8CDBA] bg-[#FAFAF6]"
+                className="flex-1 text-sm px-3 py-2 rounded-xl border border-divider outline-none focus:ring-2 focus:ring-silver-sage bg-mist-white"
               />
               <button
                 type="submit"
                 disabled={sending || !input.trim()}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-white bg-gradient-to-br from-[#1B5E57] to-[#B8CDBA] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-white bg-gradient-to-br from-evergreen-teal to-silver-sage disabled:opacity-50"
               >
                 <Send className="w-4 h-4" /> Send
               </button>

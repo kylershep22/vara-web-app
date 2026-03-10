@@ -66,7 +66,7 @@ export default function AIBasedSuggestions({ type, userId, context }) {
         <button
           onClick={() => getAISuggestions()}
           disabled={loading}
-          className="bg-[#1B5E57] text-white px-4 py-2 rounded hover:bg-[#164e48] transition"
+          className="bg-evergreen-teal text-white px-4 py-2 rounded hover:opacity-90 transition"
         >
           {loading ? 'Generating...' : `Get AI ${type.slice(0, 1).toUpperCase() + type.slice(1)} Suggestions`}
         </button>
@@ -92,7 +92,7 @@ export default function AIBasedSuggestions({ type, userId, context }) {
               setShowPromptInput(false);
               setCustomPrompt('');
             }}
-            className="text-sm px-4 py-2 bg-[#B8CDBA] text-white rounded hover:bg-[#9AAE8C]"
+            className="text-sm px-4 py-2 bg-silver-sage text-white rounded hover:bg-muted-sage-gray"
           >
             Submit & Regenerate
           </button>
@@ -102,17 +102,17 @@ export default function AIBasedSuggestions({ type, userId, context }) {
       {suggestions.length > 0 && (
         <div className="space-y-3">
           {suggestions.map((sug, idx) => (
-            <div key={idx} className="bg-white border border-[#D5E3D1] p-4 rounded">
-              <p className="text-[#3E3E3E] font-semibold text-sm">{sug.title}</p>
-              {sug.type && <p className="text-xs text-gray-600">Type: {sug.type}</p>}
-              {sug.frequency && <p className="text-xs text-gray-600">Frequency: {sug.frequency}</p>}
-              {sug.trigger && <p className="text-xs text-gray-500">Trigger: {sug.trigger}</p>}
-              {sug.reward && <p className="text-xs text-gray-500">Reward: {sug.reward}</p>}
+            <div key={idx} className="bg-white border border-divider p-4 rounded">
+              <p className="text-soft-charcoal font-semibold text-sm">{sug.title}</p>
+              {sug.type && <p className="text-xs text-muted-sage-gray">Type: {sug.type}</p>}
+              {sug.frequency && <p className="text-xs text-muted-sage-gray">Frequency: {sug.frequency}</p>}
+              {sug.trigger && <p className="text-xs text-muted-sage-gray">Trigger: {sug.trigger}</p>}
+              {sug.reward && <p className="text-xs text-muted-sage-gray">Reward: {sug.reward}</p>}
 
               <div className="flex gap-4 mt-2">
                 <button
                   onClick={() => handleAccept(sug)}
-                  className="text-sm text-green-600 hover:underline"
+                  className="text-sm text-evergreen-teal hover:underline"
                 >
                   Accept
                 </button>

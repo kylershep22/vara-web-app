@@ -83,15 +83,15 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
 
   return (
     <>
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-divider rounded-xl overflow-hidden">
         {/* Create Button Row */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
-          <span className="text-sm text-gray-600">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-divider bg-dew-sage-light">
+          <span className="text-sm text-muted-sage-gray">
             Track your habits for the week
           </span>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1B5E57] text-white rounded-lg text-sm font-medium hover:bg-[#164e48] transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-evergreen-teal text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors"
           >
             <Plus size={16} />
             Create Habit
@@ -99,16 +99,16 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
         </div>
 
         {/* Header Row */}
-        <div className="grid gap-px bg-gray-200 border-b border-gray-200" style={{ gridTemplateColumns: '1fr repeat(7, 56px)' }}>
+        <div className="grid gap-px bg-silver-sage/30 border-b border-divider" style={{ gridTemplateColumns: '1fr repeat(7, 56px)' }}>
           <div className="bg-white px-4 py-3">
-            <span className="text-xs font-semibold text-gray-600 uppercase">Habit</span>
+            <span className="text-xs font-semibold text-muted-sage-gray uppercase">Habit</span>
           </div>
         {days.map((day, idx) => (
-          <div key={idx} className={`px-1 py-3 text-center ${day.isToday ? 'bg-emerald-100/80' : 'bg-white'}`}>
-            <div className={`text-xs font-semibold ${day.isToday ? 'text-emerald-700' : 'text-gray-700'}`}>
+          <div key={idx} className={`px-1 py-3 text-center ${day.isToday ? 'bg-teal-light/80' : 'bg-white'}`}>
+            <div className={`text-xs font-semibold ${day.isToday ? 'text-evergreen-teal' : 'text-soft-charcoal'}`}>
               {day.dayName}
             </div>
-            <div className={`text-xs ${day.isToday ? 'text-emerald-600' : 'text-gray-500'}`}>
+            <div className={`text-xs ${day.isToday ? 'text-evergreen-teal' : 'text-muted-sage-gray'}`}>
               {day.dayNumber}
             </div>
           </div>
@@ -117,19 +117,19 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
 
       {/* Habit Rows */}
       {activeHabits.length > 0 ? (
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-divider">
           {activeHabits.map((habit, habitIdx) => {
             const streak = habit.streak || 0;
             return (
               <div
                 key={habit.id}
-                className="grid gap-px bg-gray-200 hover:bg-gray-100 transition-colors group"
+                className="grid gap-px bg-silver-sage/30 hover:bg-dew-sage-light transition-colors group"
                 style={{ gridTemplateColumns: '1fr repeat(7, 56px)' }}
               >
                 {/* Habit Name Column */}
                 <div className="bg-white px-4 py-3 flex items-center justify-between min-w-0">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="text-sm font-medium text-gray-800 truncate">
+                    <span className="text-sm font-medium text-soft-charcoal truncate">
                       {habit.name}
                     </span>
                     {streak > 0 && (
@@ -141,10 +141,10 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
                   </div>
                   <button
                     onClick={() => onEdit ? onEdit(habit) : navigate('/goals-habits')}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-gray-100 rounded transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-dew-sage-light rounded transition-opacity"
                     title="Edit habit"
                   >
-                    <Edit2 size={14} className="text-gray-500" />
+                    <Edit2 size={14} className="text-muted-sage-gray" />
                   </button>
                 </div>
 
@@ -154,7 +154,7 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
                   return (
                     <div
                       key={dayIdx}
-                      className={`px-1 py-3 flex items-center justify-center ${day.isToday ? 'bg-emerald-100/80' : 'bg-white'}`}
+                      className={`px-1 py-3 flex items-center justify-center ${day.isToday ? 'bg-teal-light/80' : 'bg-white'}`}
                     >
                       <button
                         onClick={() => handleToggleCompletion(habit, day.dateKey)}
@@ -164,12 +164,12 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
                         {completed ? (
                           <CheckCircle2
                             size={24}
-                            className="text-emerald-600 fill-emerald-600 transition-colors"
+                            className="text-evergreen-teal fill-evergreen-teal transition-colors"
                           />
                         ) : (
                           <Circle
                             size={24}
-                            className={`${day.isToday ? 'text-emerald-500' : 'text-gray-300'} group-hover/dot:text-emerald-500 transition-colors`}
+                            className={`${day.isToday ? 'text-evergreen-teal' : 'text-muted-sage-gray/60'} group-hover/dot:text-evergreen-teal transition-colors`}
                           />
                         )}
                       </button>
@@ -181,11 +181,11 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
           })}
         </div>
       ) : (
-        <div className="text-center py-12 text-gray-500 bg-white">
+        <div className="text-center py-12 text-muted-sage-gray bg-white">
           <p className="text-sm">No active habits yet</p>
           <button
             onClick={() => navigate('/goals-habits')}
-            className="text-sm text-emerald-600 hover:text-emerald-700 font-medium mt-2"
+            className="text-sm text-evergreen-teal hover:text-evergreen-teal font-medium mt-2"
           >
             Create your first habit →
           </button>
@@ -193,18 +193,18 @@ const HabitTrackerWeekly = ({ habits, habitCompletions, onComplete, onEdit }) =>
       )}
 
         {/* Legend */}
-        <div className="flex items-center gap-6 px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs">
+        <div className="flex items-center gap-6 px-4 py-3 bg-dew-sage-light border-t border-divider text-xs">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-600 fill-emerald-600" />
-            <span className="text-gray-600">Completed</span>
+            <CheckCircle2 size={16} className="text-evergreen-teal fill-evergreen-teal" />
+            <span className="text-muted-sage-gray">Completed</span>
           </div>
           <div className="flex items-center gap-2">
-            <Circle size={16} className="text-gray-300" />
-            <span className="text-gray-600">Not completed</span>
+            <Circle size={16} className="text-muted-sage-gray/60" />
+            <span className="text-muted-sage-gray">Not completed</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-emerald-100/80 border border-emerald-300 rounded" />
-            <span className="text-gray-600">Today's column</span>
+            <div className="w-4 h-4 bg-teal-light/80 border border-evergreen-teal/30 rounded" />
+            <span className="text-muted-sage-gray">Today's column</span>
           </div>
         </div>
       </div>

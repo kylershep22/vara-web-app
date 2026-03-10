@@ -60,6 +60,7 @@ export interface CreateChallengeInput {
  * Create a new challenge
  */
 export async function createChallenge(input: CreateChallengeInput): Promise<string> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -113,6 +114,7 @@ export async function fetchChallenges(
   filter: 'all' | 'my' | 'public' | 'active' = 'all',
   userId?: string
 ): Promise<Challenge[]> {
+  if (!db) return [];
   const auth = getAuth();
   const currentUserId = userId || auth.currentUser?.uid;
 
@@ -205,6 +207,7 @@ export async function fetchChallenges(
  * Fetch a single challenge by ID
  */
 export async function fetchChallengeById(challengeId: string): Promise<Challenge | null> {
+  if (!db) return null;
   const docRef = doc(db, CHALLENGES_COLLECTION, challengeId);
   const docSnap = await getDoc(docRef);
 
@@ -223,6 +226,7 @@ export async function updateChallenge(
   challengeId: string,
   updates: Partial<Pick<Challenge, 'name' | 'description' | 'visibility' | 'category' | 'challengeGoal'>>
 ): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   const docRef = doc(db, CHALLENGES_COLLECTION, challengeId);
   await updateDoc(docRef, {
     ...updates,
@@ -234,6 +238,7 @@ export async function updateChallenge(
  * Update challenge status (used by scheduled job or manual trigger)
  */
 export async function updateChallengeStatus(challengeId: string, status: ChallengeStatus): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   const docRef = doc(db, CHALLENGES_COLLECTION, challengeId);
   await updateDoc(docRef, {
     status,
@@ -245,6 +250,7 @@ export async function updateChallengeStatus(challengeId: string, status: Challen
  * Delete a challenge (owner only)
  */
 export async function deleteChallenge(challengeId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   // Delete all participants
   const participantsQuery = query(
     collection(db, CHALLENGE_PARTICIPANTS_COLLECTION),
@@ -302,6 +308,7 @@ async function createParticipant(
  * Join a challenge
  */
 export async function joinChallenge(challengeId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -330,6 +337,7 @@ export async function joinChallenge(challengeId: string): Promise<void> {
  * Leave a challenge
  */
 export async function leaveChallenge(challengeId: string): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -359,6 +367,7 @@ export async function leaveChallenge(challengeId: string): Promise<void> {
  * Fetch challenge participants (leaderboard)
  */
 export async function fetchChallengeLeaderboard(challengeId: string): Promise<ChallengeParticipant[]> {
+  if (!db) return [];
   const q = query(
     collection(db, CHALLENGE_PARTICIPANTS_COLLECTION),
     where('challengeId', '==', challengeId)
@@ -378,6 +387,7 @@ export async function fetchChallengeLeaderboard(challengeId: string): Promise<Ch
  * Fetch current user's participant record for a challenge
  */
 export async function fetchMyParticipation(challengeId: string): Promise<ChallengeParticipant | null> {
+  if (!db) return null;
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) return null;
@@ -410,6 +420,7 @@ export async function checkIn(
   mood?: string,
   proofImageUrl?: string
 ): Promise<string> {
+  if (!db) throw new Error('Firestore is not initialized');
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -552,6 +563,7 @@ async function updateParticipantStats(
  * Fetch user's check-ins for a challenge
  */
 export async function fetchMyCheckIns(challengeId: string): Promise<ChallengeCheckIn[]> {
+  if (!db) return [];
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) return [];
@@ -577,6 +589,7 @@ export async function fetchChallengeCheckIns(
   challengeId: string,
   limit: number = 20
 ): Promise<ChallengeCheckIn[]> {
+  if (!db) return [];
   const q = query(
     collection(db, CHALLENGE_CHECKINS_COLLECTION),
     where('challengeId', '==', challengeId),
@@ -594,6 +607,7 @@ export async function fetchChallengeCheckIns(
  * Check if user has checked in today
  */
 export async function hasCheckedInToday(challengeId: string): Promise<boolean> {
+  if (!db) return false;
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) return false;
@@ -608,6 +622,7 @@ export async function hasCheckedInToday(challengeId: string): Promise<boolean> {
  * Returns a map of userId -> weekly check-in count
  */
 export async function fetchWeeklyCheckInCounts(challengeId: string): Promise<Map<string, number>> {
+  if (!db) return new Map();
   const now = new Date();
   const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
   const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -706,6 +721,7 @@ export function isUserMemberOfChallenge(challenge: Challenge, userId?: string): 
  * to avoid requiring new composite indexes
  */
 export async function fetchChallengesByGroup(groupId: string): Promise<Challenge[]> {
+  if (!db) return [];
   const auth = getAuth();
   const currentUserId = auth.currentUser?.uid;
 

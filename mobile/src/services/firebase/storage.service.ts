@@ -48,6 +48,7 @@ export async function uploadPostImage(
   imageUri: string,
   onProgress?: (progress: UploadProgress) => void
 ): Promise<MediaUploadResult> {
+  if (!storage) throw new Error('Firebase Storage is not initialized');
   try {
     // Convert URI to blob
     const blob = await uriToBlob(imageUri);
@@ -81,6 +82,7 @@ export async function uploadPostVideo(
   videoUri: string,
   onProgress?: (progress: UploadProgress) => void
 ): Promise<MediaUploadResult> {
+  if (!storage) throw new Error('Firebase Storage is not initialized');
   try {
     // Convert URI to blob
     const blob = await uriToBlob(videoUri);
@@ -115,6 +117,7 @@ export async function uploadPostMedia(
   mediaItems: Array<{ uri: string; type: 'image' | 'video' }>,
   onProgress?: (overall: UploadProgress) => void
 ): Promise<MediaUploadResult[]> {
+  if (!storage) throw new Error('Firebase Storage is not initialized');
   try {
     // Upload all media items in parallel
     const uploadPromises = mediaItems.map((media) =>
@@ -135,6 +138,7 @@ export async function uploadPostMedia(
  * Delete media file from Firebase Storage
  */
 export async function deletePostMedia(path: string): Promise<void> {
+  if (!storage) throw new Error('Firebase Storage is not initialized');
   try {
     const storageRef = ref(storage, path);
     await deleteObject(storageRef);

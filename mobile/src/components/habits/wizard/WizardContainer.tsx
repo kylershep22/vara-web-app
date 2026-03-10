@@ -75,6 +75,7 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
           cueValue: editingHabit.cue?.value || '',
           implementationIntention: editingHabit.implementationIntention || '',
           intention: editingHabit.intention,
+          valueAlignment: editingHabit.valueAlignment || null,
           problem: editingHabit.problem || '',
         });
       } else {

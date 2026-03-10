@@ -17,14 +17,14 @@ const EmotionalCheckin = ({ userId }) => {
     { id: 'joy', label: 'Joy', emoji: '😊', color: 'from-yellow-400 to-orange-400' },
     { id: 'calm', label: 'Calm', emoji: '😌', color: 'from-blue-400 to-cyan-400' },
     { id: 'excited', label: 'Excited', emoji: '🤩', color: 'from-purple-400 to-pink-400' },
-    { id: 'grateful', label: 'Grateful', emoji: '🙏', color: 'from-green-400 to-emerald-400' },
+    { id: 'grateful', label: 'Grateful', emoji: '🙏', color: 'from-evergreen-teal/70 to-evergreen-teal' },
     { id: 'sad', label: 'Sad', emoji: '😢', color: 'from-blue-500 to-indigo-500' },
     { id: 'anxious', label: 'Anxious', emoji: '😰', color: 'from-orange-500 to-red-500' },
     { id: 'frustrated', label: 'Frustrated', emoji: '😤', color: 'from-red-500 to-pink-500' },
-    { id: 'tired', label: 'Tired', emoji: '😴', color: 'from-gray-400 to-gray-500' },
+    { id: 'tired', label: 'Tired', emoji: '😴', color: 'from-muted-sage-gray/60 to-muted-sage-gray' },
     { id: 'angry', label: 'Angry', emoji: '😠', color: 'from-red-600 to-orange-600' },
-    { id: 'lonely', label: 'Lonely', emoji: '😔', color: 'from-purple-500 to-gray-500' },
-    { id: 'content', label: 'Content', emoji: '😊', color: 'from-green-300 to-teal-300' },
+    { id: 'lonely', label: 'Lonely', emoji: '😔', color: 'from-purple-500 to-muted-sage-gray' },
+    { id: 'content', label: 'Content', emoji: '😊', color: 'from-evergreen-teal/50 to-evergreen-teal/60' },
     { id: 'overwhelmed', label: 'Overwhelmed', emoji: '😵', color: 'from-orange-400 to-red-400' }
   ];
 
@@ -127,7 +127,7 @@ const EmotionalCheckin = ({ userId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -156,8 +156,8 @@ const EmotionalCheckin = ({ userId }) => {
 
       {/* Today's Check-in */}
       {!todayCheckin ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">How are you feeling right now?</h3>
+        <div className="bg-white rounded-xl border border-divider p-6">
+          <h3 className="text-lg font-semibold text-soft-charcoal mb-4">How are you feeling right now?</h3>
 
           {/* Emotion Grid */}
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
@@ -167,12 +167,12 @@ const EmotionalCheckin = ({ userId }) => {
                 onClick={() => setSelectedEmotion(emotion)}
                 className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
                   selectedEmotion?.id === emotion.id
-                    ? `border-[#1B5E57] bg-gradient-to-br ${emotion.color} bg-opacity-20`
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? `border-evergreen-teal bg-gradient-to-br ${emotion.color} bg-opacity-20`
+                    : 'border-divider hover:border-divider'
                 }`}
               >
                 <div className="text-4xl mb-1">{emotion.emoji}</div>
-                <div className="text-xs font-medium text-gray-700">{emotion.label}</div>
+                <div className="text-xs font-medium text-soft-charcoal">{emotion.label}</div>
               </button>
             ))}
           </div>
@@ -182,8 +182,8 @@ const EmotionalCheckin = ({ userId }) => {
               {/* Intensity Slider */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">Intensity</label>
-                  <span className="text-2xl font-bold text-[#1B5E57]">{intensity}/10</span>
+                  <label className="text-sm font-medium text-soft-charcoal">Intensity</label>
+                  <span className="text-2xl font-bold text-evergreen-teal">{intensity}/10</span>
                 </div>
                 <input
                   type="range"
@@ -191,9 +191,9 @@ const EmotionalCheckin = ({ userId }) => {
                   max="10"
                   value={intensity}
                   onChange={(e) => setIntensity(parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#1B5E57]"
+                  className="w-full h-2 bg-silver-sage/30 rounded-lg appearance-none cursor-pointer accent-evergreen-teal"
                 />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <div className="flex justify-between text-xs text-muted-sage-gray mt-1">
                   <span>Subtle</span>
                   <span>Intense</span>
                 </div>
@@ -201,14 +201,14 @@ const EmotionalCheckin = ({ userId }) => {
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-soft-charcoal mb-2">
                   What's contributing to this feeling? (optional)
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows="3"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent resize-none"
+                  className="w-full px-4 py-3 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent resize-none"
                   placeholder="Context, triggers, thoughts..."
                 />
               </div>
@@ -216,7 +216,7 @@ const EmotionalCheckin = ({ userId }) => {
               {/* Save Button */}
               <button
                 onClick={saveCheckin}
-                className="w-full px-6 py-3 bg-[#1B5E57] text-white rounded-lg font-semibold hover:bg-[#174C46] transition flex items-center justify-center gap-2"
+                className="w-full px-6 py-3 bg-evergreen-teal text-white rounded-lg font-semibold hover:opacity-90 transition flex items-center justify-center gap-2"
               >
                 <Heart size={20} />
                 Save Check-In
@@ -225,7 +225,7 @@ const EmotionalCheckin = ({ userId }) => {
           )}
         </div>
       ) : (
-        <div className={`bg-gradient-to-br ${emotions.find(e => e.id === todayCheckin.emotion)?.color || 'from-gray-400 to-gray-500'} rounded-lg p-6 text-white`}>
+        <div className={`bg-gradient-to-br ${emotions.find(e => e.id === todayCheckin.emotion)?.color || 'from-muted-sage-gray/60 to-muted-sage-gray'} rounded-lg p-6 text-white`}>
           <div className="flex items-center gap-4 mb-3">
             <div className="text-6xl">{todayCheckin.emoji}</div>
             <div>
@@ -244,10 +244,10 @@ const EmotionalCheckin = ({ userId }) => {
 
       {/* Emotion Patterns */}
       {topEmotions.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="text-gray-600" size={20} />
-            <h3 className="text-lg font-semibold text-gray-900">Your Emotional Patterns</h3>
+            <TrendingUp className="text-muted-sage-gray" size={20} />
+            <h3 className="text-lg font-semibold text-soft-charcoal">Your Emotional Patterns</h3>
           </div>
 
           <div className="space-y-3">
@@ -256,10 +256,10 @@ const EmotionalCheckin = ({ userId }) => {
                 <div className="text-3xl">{emotion.emoji}</div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-gray-900">{emotion.label}</span>
-                    <span className="text-sm text-gray-600">{emotion.count} times ({emotion.percentage}%)</span>
+                    <span className="font-medium text-soft-charcoal">{emotion.label}</span>
+                    <span className="text-sm text-muted-sage-gray">{emotion.count} times ({emotion.percentage}%)</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-silver-sage/30 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full bg-gradient-to-r ${emotion.color}`}
                       style={{ width: `${emotion.percentage}%` }}
@@ -273,33 +273,33 @@ const EmotionalCheckin = ({ userId }) => {
       )}
 
       {/* Recent Check-ins */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="text-gray-600" size={20} />
-          <h3 className="text-lg font-semibold text-gray-900">Recent Check-Ins</h3>
+          <Calendar className="text-muted-sage-gray" size={20} />
+          <h3 className="text-lg font-semibold text-soft-charcoal">Recent Check-Ins</h3>
         </div>
 
         {checkins.length > 0 ? (
           <div className="space-y-3">
             {checkins.slice(0, 7).map(checkin => (
-              <div key={checkin.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+              <div key={checkin.id} className="flex items-start gap-3 p-3 bg-dew-sage-light rounded-lg">
                 <div className="text-3xl">{checkin.emoji}</div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-gray-900">{checkin.label}</span>
-                    <span className="text-sm text-gray-500">{formatDate(checkin.date)}</span>
+                    <span className="font-medium text-soft-charcoal">{checkin.label}</span>
+                    <span className="text-sm text-muted-sage-gray">{formatDate(checkin.date)}</span>
                   </div>
-                  <div className="text-sm text-gray-600 mb-1">Intensity: {checkin.intensity}/10</div>
+                  <div className="text-sm text-muted-sage-gray mb-1">Intensity: {checkin.intensity}/10</div>
                   {checkin.notes && (
-                    <p className="text-sm text-gray-700 italic">{checkin.notes}</p>
+                    <p className="text-sm text-soft-charcoal italic">{checkin.notes}</p>
                   )}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Smile className="mx-auto mb-2 text-gray-300" size={48} />
+          <div className="text-center py-8 text-muted-sage-gray">
+            <Smile className="mx-auto mb-2 text-muted-sage-gray/60" size={48} />
             <p>No emotional check-ins yet. Start tracking your emotions today!</p>
           </div>
         )}

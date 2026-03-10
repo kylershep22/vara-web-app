@@ -17,7 +17,7 @@ const TaskCard = ({ task, goalBadge, habitBadge, onToggle, onEdit, onDelete, onD
 
   // Determine status color based on due date
   const getStatusColor = () => {
-    if (!task.dueDate) return 'text-gray-500';
+    if (!task.dueDate) return 'text-muted-sage-gray';
 
     const dueDate = task.dueDate?.seconds
       ? new Date(task.dueDate.seconds * 1000)
@@ -63,8 +63,8 @@ const TaskCard = ({ task, goalBadge, habitBadge, onToggle, onEdit, onDelete, onD
       onMouseLeave={() => setIsHovered(false)}
       className={`group relative rounded-xl border-2 p-4 transition-all ${
         task.status === 'completed'
-          ? 'border-green-200 bg-green-50'
-          : 'border-gray-200 bg-white hover:border-[#1B5E57] hover:shadow-md'
+          ? 'border-silver-sage bg-teal-light'
+          : 'border-divider bg-white hover:border-evergreen-teal hover:shadow-md'
       }`}
     >
       <div className="flex items-start gap-3">
@@ -73,8 +73,8 @@ const TaskCard = ({ task, goalBadge, habitBadge, onToggle, onEdit, onDelete, onD
           onClick={() => onToggle(task.id)}
           className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all mt-0.5 ${
             task.status === 'completed'
-              ? 'bg-green-500 border-green-500'
-              : 'border-gray-300 hover:border-[#1B5E57]'
+              ? 'bg-evergreen-teal border-evergreen-teal'
+              : 'border-silver-sage hover:border-evergreen-teal'
           }`}
         >
           {task.status === 'completed' && (
@@ -88,7 +88,7 @@ const TaskCard = ({ task, goalBadge, habitBadge, onToggle, onEdit, onDelete, onD
         <div className="flex-1 min-w-0">
           {/* Title */}
           <p className={`font-medium mb-1 ${
-            task.status === 'completed' ? 'text-gray-500 line-through' : 'text-gray-900'
+            task.status === 'completed' ? 'text-muted-sage-gray line-through' : 'text-soft-charcoal'
           }`}>
             {task.title}
           </p>
@@ -113,7 +113,7 @@ const TaskCard = ({ task, goalBadge, habitBadge, onToggle, onEdit, onDelete, onD
 
             {/* Habit Badge */}
             {habitBadge && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium flex items-center gap-1">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-dew-sage text-evergreen-teal font-medium flex items-center gap-1">
                 <Dumbbell size={10} />
                 {habitBadge}
               </span>
@@ -136,7 +136,7 @@ const TaskCard = ({ task, goalBadge, habitBadge, onToggle, onEdit, onDelete, onD
             {onEdit && (
               <button
                 onClick={() => onEdit(task)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-dew-sage-light text-muted-sage-gray transition-colors"
                 title="Edit task"
               >
                 <Edit size={16} />

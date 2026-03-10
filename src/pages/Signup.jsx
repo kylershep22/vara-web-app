@@ -127,8 +127,8 @@ export default function Signup() {
         </div>
 
         {/* Heading */}
-        <h2 className="text-2xl font-semibold text-[#1B5E57] mb-2">Create Your Vara Account</h2>
-        <p className="text-sm text-[#6B7B6A] italic mb-6">
+        <h2 className="text-2xl font-semibold text-evergreen-teal mb-2">Create Your Vara Account</h2>
+        <p className="text-sm text-muted-sage-gray italic mb-6">
           “Growth begins with the courage to start.”
         </p>
 
@@ -147,7 +147,7 @@ export default function Signup() {
               required
               placeholder="Your Name"
               disabled={loading}
-              className="w-full px-4 py-3 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition disabled:opacity-60"
+              className="w-full px-4 py-3 border border-divider rounded-lg bg-mist-white focus:outline-none focus:ring-2 focus:ring-sunrise-amber focus:border-transparent transition disabled:opacity-60"
             />
           </div>
 
@@ -158,7 +158,7 @@ export default function Signup() {
               required
               placeholder="Email"
               disabled={loading}
-              className="w-full px-4 py-3 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition disabled:opacity-60"
+              className="w-full px-4 py-3 border border-divider rounded-lg bg-mist-white focus:outline-none focus:ring-2 focus:ring-sunrise-amber focus:border-transparent transition disabled:opacity-60"
             />
           </div>
 
@@ -171,12 +171,12 @@ export default function Signup() {
                 required
                 placeholder="Password (min. 8 characters)"
                 disabled={loading}
-                className="w-full px-4 py-3 pr-12 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition disabled:opacity-60"
+                className="w-full px-4 py-3 pr-12 border border-divider rounded-lg bg-mist-white focus:outline-none focus:ring-2 focus:ring-sunrise-amber focus:border-transparent transition disabled:opacity-60"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-sage-gray hover:text-soft-charcoal transition"
                 disabled={loading}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -186,26 +186,26 @@ export default function Signup() {
               <p className="mt-1 text-xs text-red-600">{passwordErrors[0]}</p>
             )}
             {password && passwordErrors.length === 0 && password.length >= 6 && (
-              <p className="mt-1 text-xs text-green-600">✓ Password meets requirements</p>
+              <p className="mt-1 text-xs text-evergreen-teal">✓ Password meets requirements</p>
             )}
           </div>
 
           <button
             disabled={loading}
             type="submit"
-            className="w-full py-3 mt-2 bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold rounded-lg hover:brightness-105 transition-all ease-in-out duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full py-3 mt-2 bg-gradient-to-r from-sunrise-amber to-golden-apricot text-white font-semibold rounded-lg hover:brightness-105 transition-all ease-in-out duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
 
           {/* Legal disclaimer */}
-          <p className="text-xs text-gray-600 text-center mt-3">
+          <p className="text-xs text-muted-sage-gray text-center mt-3">
             By signing up, you agree to our{' '}
-            <Link to="/terms" className="text-[#1B5E57] hover:underline">
+            <Link to="/terms" className="text-evergreen-teal hover:underline">
               Terms of Service
             </Link>{' '}
             and{' '}
-            <Link to="/privacy" className="text-[#1B5E57] hover:underline">
+            <Link to="/privacy" className="text-evergreen-teal hover:underline">
               Privacy Policy
             </Link>
           </p>
@@ -214,7 +214,7 @@ export default function Signup() {
         {/* Link to login */}
         <div className="mt-6 text-sm text-center">
           Already have an account?{" "}
-          <a href="/login" className="text-[#1B5E57] underline">
+          <a href="/login" className="text-evergreen-teal underline">
             Log In
           </a>
         </div>

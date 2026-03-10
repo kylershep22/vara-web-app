@@ -119,7 +119,7 @@ const CommunityHighlights = ({ timeView = 'weekly' }) => {
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
           <div key={i} className="animate-pulse">
-            <div className="h-16 bg-gray-100 rounded-lg"></div>
+            <div className="h-16 bg-dew-sage-light rounded-lg"></div>
           </div>
         ))}
       </div>
@@ -129,14 +129,14 @@ const CommunityHighlights = ({ timeView = 'weekly' }) => {
   if (highlights.length === 0) {
     return (
       <div className="text-center py-8">
-        <TrendingUp className="mx-auto mb-2 text-gray-300" size={48} />
-        <p className="text-gray-500 font-medium">No community wins yet</p>
-        <p className="text-sm text-gray-400 mt-1">
+        <TrendingUp className="mx-auto mb-2 text-muted-sage-gray/60" size={48} />
+        <p className="text-muted-sage-gray font-medium">No community wins yet</p>
+        <p className="text-sm text-muted-sage-gray/60 mt-1">
           Be the first to share your achievements!
         </p>
         <button
           onClick={() => navigate('/community')}
-          className="mt-4 px-4 py-2 rounded-lg bg-[#1B5E57] text-white hover:bg-[#174C46] transition-colors text-sm font-medium"
+          className="mt-4 px-4 py-2 rounded-lg bg-evergreen-teal text-white hover:opacity-90 transition-colors text-sm font-medium"
         >
           Go to Community
         </button>
@@ -149,7 +149,7 @@ const CommunityHighlights = ({ timeView = 'weekly' }) => {
       {highlights.map(highlight => (
         <div
           key={highlight.id}
-          className="p-4 rounded-lg border border-gray-100 hover:border-[#1B5E57]/30 hover:shadow-sm transition-all cursor-pointer bg-gradient-to-br from-white to-gray-50/50"
+          className="p-4 rounded-lg border border-divider hover:border-evergreen-teal/30 hover:shadow-sm transition-all cursor-pointer bg-gradient-to-br from-white to-dew-sage-light/50"
           onClick={() => navigate('/community')}
         >
           <div className="flex items-start gap-3">
@@ -161,21 +161,21 @@ const CommunityHighlights = ({ timeView = 'weekly' }) => {
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-soft-charcoal">
                   {highlight.userName}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-sage-gray/60">
                   {formatTimeAgo(highlight.createdAt)}
                 </span>
               </div>
 
-              <p className="text-sm text-gray-700 line-clamp-2">
+              <p className="text-sm text-soft-charcoal line-clamp-2">
                 {highlight.content}
               </p>
 
               {/* Engagement stats */}
               {(highlight.likes?.length > 0 || highlight.comments?.length > 0) && (
-                <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                <div className="flex items-center gap-3 mt-2 text-xs text-muted-sage-gray">
                   {highlight.likes?.length > 0 && (
                     <span className="flex items-center gap-1">
                       <span className="text-red-500">❤️</span>
@@ -209,7 +209,7 @@ const CommunityHighlights = ({ timeView = 'weekly' }) => {
       {/* View More */}
       <button
         onClick={() => navigate('/community')}
-        className="w-full py-2 text-sm text-[#1B5E57] hover:text-[#174C46] font-medium transition-colors"
+        className="w-full py-2 text-sm text-evergreen-teal hover:opacity-90 font-medium transition-colors"
       >
         View All Community Highlights →
       </button>

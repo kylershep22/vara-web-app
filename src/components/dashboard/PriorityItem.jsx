@@ -30,8 +30,8 @@ const PriorityItem = ({
     <div
       className={`group flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
         completed
-          ? 'border-green-200 bg-green-50'
-          : 'border-gray-200 bg-white hover:border-[#1B5E57] hover:shadow-md'
+          ? 'border-silver-sage bg-teal-light'
+          : 'border-divider bg-white hover:border-evergreen-teal hover:shadow-md'
       }`}
     >
       {/* Checkbox */}
@@ -39,8 +39,8 @@ const PriorityItem = ({
         onClick={onComplete}
         className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
           completed
-            ? 'bg-green-500 border-green-500 scale-110'
-            : 'border-gray-300 hover:border-[#1B5E57] hover:scale-110'
+            ? 'bg-evergreen-teal border-evergreen-teal scale-110'
+            : 'border-divider hover:border-evergreen-teal hover:scale-110'
         }`}
         aria-label={completed ? 'Mark as incomplete' : 'Mark as complete'}
       >
@@ -52,7 +52,7 @@ const PriorityItem = ({
         {/* Title */}
         <p
           className={`font-medium transition-all duration-200 ${
-            completed ? 'text-gray-500 line-through' : 'text-gray-900'
+            completed ? 'text-muted-sage-gray line-through' : 'text-soft-charcoal'
           }`}
         >
           {title}
@@ -64,7 +64,7 @@ const PriorityItem = ({
           <span
             className={`text-xs px-2 py-0.5 rounded-full font-medium ${
               type === 'habit'
-                ? 'bg-emerald-100 text-emerald-700'
+                ? 'bg-teal-light text-evergreen-teal'
                 : 'bg-blue-100 text-blue-700'
             }`}
           >
@@ -81,7 +81,7 @@ const PriorityItem = ({
 
           {/* Frequency (for habits) */}
           {frequency && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-muted-sage-gray">
               {frequency}
             </span>
           )}
@@ -95,7 +95,7 @@ const PriorityItem = ({
 
           {/* Due Date (for tasks) */}
           {dueDate && (
-            <span className="text-xs text-gray-500 flex items-center gap-1">
+            <span className="text-xs text-muted-sage-gray flex items-center gap-1">
               Due: {dueDate}
             </span>
           )}
@@ -106,10 +106,10 @@ const PriorityItem = ({
       {onEdit && (
         <button
           onClick={onEdit}
-          className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-2 hover:bg-gray-100 rounded-lg transition-all"
+          className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-2 hover:bg-dew-sage-light rounded-lg transition-all"
           title="Edit"
         >
-          <Edit2 size={16} className="text-gray-500" />
+          <Edit2 size={16} className="text-muted-sage-gray" />
         </button>
       )}
     </div>

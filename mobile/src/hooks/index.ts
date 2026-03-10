@@ -50,3 +50,6 @@ export { useBrainHealthVocabulary } from './useBrainHealthVocabulary';
 
 // Network & Offline
 export { useNetworkStatus, type NetworkStatus } from './useNetworkStatus';
+
+// User Values
+export { useUserValues } from './useUserValues';

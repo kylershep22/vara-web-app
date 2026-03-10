@@ -21,7 +21,7 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
   const connectionTypes = [
     { id: 'conversation', label: 'In-Person Chat', icon: Users, color: 'from-blue-500 to-cyan-500' },
     { id: 'activity', label: 'Shared Activity', icon: Coffee, color: 'from-purple-500 to-pink-500' },
-    { id: 'call', label: 'Phone/Video Call', icon: Phone, color: 'from-green-500 to-emerald-500' },
+    { id: 'call', label: 'Phone/Video Call', icon: Phone, color: 'from-evergreen-teal to-evergreen-teal' },
     { id: 'message', label: 'Meaningful Message', icon: MessageCircle, color: 'from-orange-500 to-red-500' }
   ];
 
@@ -125,7 +125,7 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse bg-gray-100 h-32 rounded-lg"></div>
+          <div key={i} className="animate-pulse bg-dew-sage-light h-32 rounded-lg"></div>
         ))}
       </div>
     );
@@ -133,17 +133,17 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
 
   if (compactMode) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-white rounded-xl border border-divider p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Users className="text-[#1B5E57]" size={20} />
-            <h3 className="font-semibold text-gray-900">Social Connections</h3>
+            <Users className="text-evergreen-teal" size={20} />
+            <h3 className="font-semibold text-soft-charcoal">Social Connections</h3>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-dew-sage-light rounded-lg transition"
           >
-            <Plus size={18} className="text-[#1B5E57]" />
+            <Plus size={18} className="text-evergreen-teal" />
           </button>
         </div>
 
@@ -157,9 +157,9 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
             <div className="text-xl font-bold text-purple-900">{weeklyStats.totalDuration}m</div>
             <div className="text-xs text-purple-600">Total Time</div>
           </div>
-          <div className="text-center p-2 bg-green-50 rounded-lg">
-            <div className="text-xl font-bold text-green-900">{weeklyStats.avgQuality}/5</div>
-            <div className="text-xs text-green-600">Avg Quality</div>
+          <div className="text-center p-2 bg-teal-light rounded-lg">
+            <div className="text-xl font-bold text-soft-charcoal">{weeklyStats.avgQuality}/5</div>
+            <div className="text-xs text-evergreen-teal">Avg Quality</div>
           </div>
         </div>
 
@@ -171,15 +171,15 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
               placeholder="Who did you connect with?"
               value={formData.withWhom}
               onChange={(e) => setFormData({ ...formData, withWhom: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent"
+              className="w-full px-3 py-2 border border-divider rounded-lg text-sm focus:ring-2 focus:ring-evergreen-teal focus:border-transparent"
             />
             <button
               onClick={saveConnection}
               disabled={!formData.withWhom.trim()}
               className={`w-full px-4 py-2 rounded-lg font-medium text-sm transition ${
                 formData.withWhom.trim()
-                  ? 'bg-[#1B5E57] text-white hover:bg-[#174C46]'
-                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  ? 'bg-evergreen-teal text-white hover:opacity-90'
+                  : 'bg-silver-sage/30 text-muted-sage-gray cursor-not-allowed'
               }`}
             >
               Log Connection
@@ -191,10 +191,10 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
         {connections.length > 0 && (
           <div className="space-y-2">
             {connections.slice(0, 3).map(conn => (
-              <div key={conn.id} className="text-sm p-2 bg-gray-50 rounded-lg">
+              <div key={conn.id} className="text-sm p-2 bg-dew-sage-light rounded-lg">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-900">{conn.withWhom}</span>
-                  <span className="text-xs text-gray-500">{formatDate(conn.date)}</span>
+                  <span className="font-medium text-soft-charcoal">{conn.withWhom}</span>
+                  <span className="text-xs text-muted-sage-gray">{formatDate(conn.date)}</span>
                 </div>
               </div>
             ))}
@@ -227,40 +227,40 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
 
       {/* Weekly Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-3 mb-2">
             <Calendar className="text-blue-600" size={24} />
-            <span className="text-sm text-gray-600">This Week</span>
+            <span className="text-sm text-muted-sage-gray">This Week</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{weeklyStats.count}</div>
-          <div className="text-sm text-gray-600">Connections</div>
+          <div className="text-3xl font-bold text-soft-charcoal">{weeklyStats.count}</div>
+          <div className="text-sm text-muted-sage-gray">Connections</div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-3 mb-2">
             <TrendingUp className="text-purple-600" size={24} />
-            <span className="text-sm text-gray-600">Total Time</span>
+            <span className="text-sm text-muted-sage-gray">Total Time</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{weeklyStats.totalDuration}</div>
-          <div className="text-sm text-gray-600">Minutes</div>
+          <div className="text-3xl font-bold text-soft-charcoal">{weeklyStats.totalDuration}</div>
+          <div className="text-sm text-muted-sage-gray">Minutes</div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-divider p-6">
           <div className="flex items-center gap-3 mb-2">
             <Heart className="text-pink-600" size={24} />
-            <span className="text-sm text-gray-600">Average Quality</span>
+            <span className="text-sm text-muted-sage-gray">Average Quality</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{weeklyStats.avgQuality}</div>
-          <div className="text-sm text-gray-600">out of 5</div>
+          <div className="text-3xl font-bold text-soft-charcoal">{weeklyStats.avgQuality}</div>
+          <div className="text-sm text-muted-sage-gray">out of 5</div>
         </div>
       </div>
 
       {/* Log New Connection */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-divider p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Log a Connection</h3>
+          <h3 className="text-lg font-semibold text-soft-charcoal">Log a Connection</h3>
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
-              className="px-4 py-2 bg-[#1B5E57] text-white rounded-lg hover:bg-[#174C46] transition flex items-center gap-2"
+              className="px-4 py-2 bg-evergreen-teal text-white rounded-lg hover:opacity-90 transition flex items-center gap-2"
             >
               <Plus size={18} />
               Add Connection
@@ -272,7 +272,7 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
           <div className="space-y-4">
             {/* Connection Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Type of Connection</label>
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">Type of Connection</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {connectionTypes.map(type => {
                   const Icon = type.icon;
@@ -282,12 +282,12 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
                       onClick={() => setFormData({ ...formData, connectionType: type.id })}
                       className={`p-4 rounded-lg border-2 transition-all ${
                         formData.connectionType === type.id
-                          ? 'border-[#1B5E57] bg-gradient-to-br ' + type.color + ' bg-opacity-10'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-evergreen-teal bg-gradient-to-br ' + type.color + ' bg-opacity-10'
+                          : 'border-divider hover:border-divider'
                       }`}
                     >
                       <Icon className="mx-auto mb-2" size={24} />
-                      <div className="text-xs font-medium text-gray-700 text-center">{type.label}</div>
+                      <div className="text-xs font-medium text-soft-charcoal text-center">{type.label}</div>
                     </button>
                   );
                 })}
@@ -296,21 +296,21 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
 
             {/* Who */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Who did you connect with?</label>
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">Who did you connect with?</label>
               <input
                 type="text"
                 value={formData.withWhom}
                 onChange={(e) => setFormData({ ...formData, withWhom: e.target.value })}
                 placeholder="Name or relationship (e.g., Sarah, Mom, College friend)"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent"
+                className="w-full px-4 py-3 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent"
               />
             </div>
 
             {/* Duration */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700">Duration</label>
-                <span className="text-lg font-bold text-[#1B5E57]">{formData.duration} minutes</span>
+                <label className="text-sm font-medium text-soft-charcoal">Duration</label>
+                <span className="text-lg font-bold text-evergreen-teal">{formData.duration} minutes</span>
               </div>
               <input
                 type="range"
@@ -319,9 +319,9 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
                 step="5"
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#1B5E57]"
+                className="w-full h-2 bg-silver-sage/30 rounded-lg appearance-none cursor-pointer accent-evergreen-teal"
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-muted-sage-gray mt-1">
                 <span>5 min</span>
                 <span>3 hours</span>
               </div>
@@ -329,7 +329,7 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
 
             {/* Quality */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">
                 Quality (How meaningful was this connection?)
               </label>
               <div className="flex items-center gap-2">
@@ -339,15 +339,15 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
                     onClick={() => setFormData({ ...formData, quality: rating })}
                     className={`flex-1 py-3 rounded-lg border-2 font-semibold transition ${
                       formData.quality === rating
-                        ? 'border-[#1B5E57] bg-[#1B5E57] text-white'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-evergreen-teal bg-evergreen-teal text-white'
+                        : 'border-divider hover:border-divider'
                     }`}
                   >
                     {rating}
                   </button>
                 ))}
               </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-muted-sage-gray mt-1">
                 <span>Brief</span>
                 <span>Deep & Meaningful</span>
               </div>
@@ -355,13 +355,13 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">Notes (Optional)</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows="2"
                 placeholder="What did you talk about? How did it make you feel?"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5E57] focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-divider rounded-lg focus:ring-2 focus:ring-evergreen-teal focus:border-transparent resize-none"
               />
             </div>
 
@@ -369,7 +369,7 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowForm(false)}
-                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition"
+                className="flex-1 px-6 py-3 border border-divider rounded-lg font-semibold hover:bg-dew-sage-light transition"
               >
                 Cancel
               </button>
@@ -378,8 +378,8 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
                 disabled={!formData.withWhom.trim()}
                 className={`flex-1 px-6 py-3 rounded-lg font-semibold transition ${
                   formData.withWhom.trim()
-                    ? 'bg-[#1B5E57] text-white hover:bg-[#174C46]'
-                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    ? 'bg-evergreen-teal text-white hover:opacity-90'
+                    : 'bg-silver-sage/30 text-muted-sage-gray cursor-not-allowed'
                 }`}
               >
                 Save Connection
@@ -390,8 +390,8 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
       </div>
 
       {/* Connection History */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Connections</h3>
+      <div className="bg-white rounded-xl border border-divider p-6">
+        <h3 className="text-lg font-semibold text-soft-charcoal mb-4">Recent Connections</h3>
 
         {connections.length > 0 ? (
           <div className="space-y-3">
@@ -400,17 +400,17 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
               const Icon = typeInfo?.icon || Users;
 
               return (
-                <div key={conn.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div key={conn.id} className="p-4 bg-dew-sage-light rounded-lg border border-divider">
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg bg-gradient-to-br ${typeInfo?.color || 'from-gray-400 to-gray-500'}`}>
+                    <div className={`p-2 rounded-lg bg-gradient-to-br ${typeInfo?.color || 'from-muted-sage-gray/60 to-muted-sage-gray'}`}>
                       <Icon className="text-white" size={20} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-gray-900">{conn.withWhom}</span>
-                        <span className="text-sm text-gray-500">{formatDate(conn.date)}</span>
+                        <span className="font-semibold text-soft-charcoal">{conn.withWhom}</span>
+                        <span className="text-sm text-muted-sage-gray">{formatDate(conn.date)}</span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                      <div className="flex items-center gap-4 text-sm text-muted-sage-gray mb-2">
                         <span>{typeInfo?.label || conn.connectionType}</span>
                         <span>•</span>
                         <span>{conn.duration} min</span>
@@ -418,7 +418,7 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
                         <span>Quality: {conn.quality}/5</span>
                       </div>
                       {conn.notes && (
-                        <p className="text-sm text-gray-700 italic">{conn.notes}</p>
+                        <p className="text-sm text-soft-charcoal italic">{conn.notes}</p>
                       )}
                     </div>
                   </div>
@@ -427,8 +427,8 @@ const SocialConnectionTracker = ({ userId, compactMode = false }) => {
             })}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Users className="mx-auto mb-2 text-gray-300" size={48} />
+          <div className="text-center py-8 text-muted-sage-gray">
+            <Users className="mx-auto mb-2 text-muted-sage-gray/60" size={48} />
             <p>No connections logged yet. Start tracking your social interactions!</p>
           </div>
         )}

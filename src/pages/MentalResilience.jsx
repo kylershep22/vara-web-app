@@ -22,20 +22,20 @@ export default function MentalResilience() {
 
   return (
     <SidebarLayout>
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-vara-base py-vara-lg">
         {/* Page Header */}
-        <div className="mb-8">
+        <div className="mb-vara-lg">
           <div className="flex items-center gap-3 mb-2">
-            <Heart className="text-[#1B5E57]" size={32} />
-            <h1 className="text-3xl font-bold text-[#3E3E3E]">Mental Resilience</h1>
+            <Heart className="text-evergreen-teal" size={32} />
+            <h1 className="text-vara-2xl font-semibold text-evergreen-teal tracking-tight">Mental Resilience</h1>
           </div>
-          <p className="text-[#6B7280]">
+          <p className="text-muted-sage-gray">
             Build emotional strength, practice gratitude, and develop tools for navigating life's challenges
           </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto border-b border-gray-200 pb-0">
+        <div className="flex items-center gap-2 mb-vara-lg overflow-x-auto border-b border-divider pb-0">
           {tabs.map(tab => {
             const Icon = tab.icon;
             return (
@@ -44,8 +44,8 @@ export default function MentalResilience() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'border-[#1B5E57] text-[#1B5E57]'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                    ? 'border-evergreen-teal text-evergreen-teal'
+                    : 'border-transparent text-muted-sage-gray hover:text-soft-charcoal hover:border-silver-sage'
                 }`}
               >
                 <Icon size={20} />

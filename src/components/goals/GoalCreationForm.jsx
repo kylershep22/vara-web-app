@@ -34,7 +34,7 @@ const goalTemplates = {
 
 // Research-backed timeframe options
 const timeframeOptions = [
-  { value: 21, label: '21 days', subtitle: 'Build a new habit', color: 'bg-green-500', icon: Flame },
+  { value: 21, label: '21 days', subtitle: 'Build a new habit', color: 'bg-evergreen-teal', icon: Flame },
   { value: 30, label: '30 days', subtitle: 'Monthly challenge', color: 'bg-blue-500', icon: Calendar },
   { value: 66, label: '66 days', subtitle: 'Make it stick', color: 'bg-purple-500', icon: Target },
   { value: 90, label: '90 days', subtitle: 'Transform your life', color: 'bg-orange-500', icon: Trophy },
@@ -180,21 +180,21 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
           {[1, 2, 3].map((num) => (
             <React.Fragment key={num}>
               <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs transition-all ${
-                num < step ? 'bg-emerald-600 text-white' :
-                num === step ? 'bg-emerald-500 text-white ring-4 ring-emerald-200' :
-                'bg-gray-200 text-gray-500'
+                num < step ? 'bg-evergreen-teal text-white' :
+                num === step ? 'bg-evergreen-teal text-white ring-4 ring-evergreen-teal/30' :
+                'bg-silver-sage/30 text-muted-sage-gray'
               }`}>
                 {num}
               </div>
               {num < 3 && (
                 <div className={`h-1 w-12 rounded-full transition-all ${
-                  num < step ? 'bg-emerald-600' : 'bg-gray-200'
+                  num < step ? 'bg-evergreen-teal' : 'bg-silver-sage/30'
                 }`} />
               )}
             </React.Fragment>
           ))}
         </div>
-        <div className="text-center text-xs text-gray-600">
+        <div className="text-center text-xs text-muted-sage-gray">
           Step {step} of 3: {
             step === 1 ? "What's Your Goal?" :
             step === 2 ? "Make it Specific" :
@@ -207,8 +207,8 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
       {step === 1 && (
         <div className="space-y-4">
           <div className="text-center">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">What's Your Goal?</h3>
-            <p className="text-sm text-gray-600">Choose a category to see popular goals, or create your own</p>
+            <h3 className="text-xl font-bold text-soft-charcoal mb-1">What's Your Goal?</h3>
+            <p className="text-sm text-muted-sage-gray">Choose a category to see popular goals, or create your own</p>
           </div>
 
           {/* Category Cards */}
@@ -240,29 +240,29 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
             <div className="space-y-3">
               <button
                 onClick={() => setSelectedCategory(null)}
-                className="text-emerald-600 hover:text-emerald-700 font-medium text-xs flex items-center gap-1"
+                className="text-evergreen-teal hover:text-evergreen-teal font-medium text-xs flex items-center gap-1"
               >
                 ← Back to categories
               </button>
-              <h4 className="text-sm font-bold text-gray-900">Popular {getCategoryLabel(selectedCategory)} Goals</h4>
+              <h4 className="text-sm font-bold text-soft-charcoal">Popular {getCategoryLabel(selectedCategory)} Goals</h4>
               <div className="space-y-2">
                 {goalTemplates[selectedCategory].map((template, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleTemplateSelect(template)}
-                    className="w-full p-3 border-2 border-gray-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left group"
+                    className="w-full p-3 border-2 border-divider rounded-lg hover:border-evergreen-teal/30 hover:bg-teal-light transition-all text-left group"
                   >
-                    <div className="font-semibold text-sm text-gray-900 group-hover:text-emerald-700">{template.title}</div>
-                    <div className="text-xs text-gray-600 mt-0.5">
+                    <div className="font-semibold text-sm text-soft-charcoal group-hover:text-evergreen-teal">{template.title}</div>
+                    <div className="text-xs text-muted-sage-gray mt-0.5">
                       {template.target} {template.unit} • {template.timeframe} days
                     </div>
                   </button>
                 ))}
                 <button
                   onClick={handleCustomGoal}
-                  className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                  className="w-full p-3 border-2 border-dashed border-divider rounded-lg hover:border-evergreen-teal/30 hover:bg-teal-light transition-all text-center"
                 >
-                  <div className="font-semibold text-sm text-emerald-600">+ Create Custom Goal</div>
+                  <div className="font-semibold text-sm text-evergreen-teal">+ Create Custom Goal</div>
                 </button>
               </div>
             </div>
@@ -274,67 +274,67 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
       {step === 2 && (
         <div className="space-y-4">
           <div className="text-center">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Make it Specific & Measurable</h3>
-            <p className="text-sm text-gray-600">SMART goals are more likely to succeed</p>
+            <h3 className="text-xl font-bold text-soft-charcoal mb-1">Make it Specific & Measurable</h3>
+            <p className="text-sm text-muted-sage-gray">SMART goals are more likely to succeed</p>
           </div>
 
           {/* Goal Title */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Goal Title</label>
+            <label className="block text-xs font-semibold text-soft-charcoal mb-1">Goal Title</label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
               placeholder="E.g., Exercise 3x per week"
-              className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+              className="w-full px-3 py-2 text-sm border-2 border-divider rounded-lg focus:border-evergreen-teal/30 focus:ring-2 focus:ring-evergreen-teal outline-none transition-all"
             />
           </div>
 
           {/* Action */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">What will you do?</label>
+            <label className="block text-xs font-semibold text-soft-charcoal mb-1">What will you do?</label>
             <input
               type="text"
               name="action"
               value={formData.action}
               onChange={handleChange}
               placeholder="E.g., Exercise, Meditate, Read"
-              className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+              className="w-full px-3 py-2 text-sm border-2 border-divider rounded-lg focus:border-evergreen-teal/30 focus:ring-2 focus:ring-evergreen-teal outline-none transition-all"
             />
           </div>
 
           {/* Target & Unit */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">How much/often?</label>
+              <label className="block text-xs font-semibold text-soft-charcoal mb-1">How much/often?</label>
               <input
                 type="number"
                 name="target"
                 value={formData.target}
                 onChange={handleChange}
                 placeholder="E.g., 3"
-                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                className="w-full px-3 py-2 text-sm border-2 border-divider rounded-lg focus:border-evergreen-teal/30 focus:ring-2 focus:ring-evergreen-teal outline-none transition-all"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Unit</label>
+              <label className="block text-xs font-semibold text-soft-charcoal mb-1">Unit</label>
               <input
                 type="text"
                 name="unit"
                 value={formData.unit}
                 onChange={handleChange}
                 placeholder="E.g., times/week"
-                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                className="w-full px-3 py-2 text-sm border-2 border-divider rounded-lg focus:border-evergreen-teal/30 focus:ring-2 focus:ring-evergreen-teal outline-none transition-all"
               />
             </div>
           </div>
 
           {/* Live Preview */}
           {formData.action && formData.target && formData.unit && (
-            <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-3">
-              <div className="text-xs text-emerald-700 font-medium mb-0.5">Your Goal Preview:</div>
-              <div className="text-base font-bold text-emerald-900">
+            <div className="bg-teal-light border-2 border-evergreen-teal/30 rounded-lg p-3">
+              <div className="text-xs text-evergreen-teal font-medium mb-0.5">Your Goal Preview:</div>
+              <div className="text-base font-bold text-evergreen-teal">
                 {formData.action} {formData.target} {formData.unit}
               </div>
             </div>
@@ -346,8 +346,8 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
       {step === 3 && (
         <div className="space-y-4">
           <div className="text-center">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Set Your Timeline</h3>
-            <p className="text-sm text-gray-600">Research-backed timeframes for lasting change</p>
+            <h3 className="text-xl font-bold text-soft-charcoal mb-1">Set Your Timeline</h3>
+            <p className="text-sm text-muted-sage-gray">Research-backed timeframes for lasting change</p>
           </div>
 
           {/* Timeframe Options */}
@@ -360,19 +360,19 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
                   onClick={() => setFormData({ ...formData, timeframe: option.value })}
                   className={`p-3 rounded-lg border-2 transition-all text-left ${
                     formData.timeframe === option.value
-                      ? 'border-emerald-500 bg-emerald-50 shadow-md scale-105'
-                      : 'border-gray-200 hover:border-emerald-300 hover:shadow-sm'
+                      ? 'border-evergreen-teal/30 bg-teal-light shadow-md scale-105'
+                      : 'border-divider hover:border-evergreen-teal/30 hover:shadow-sm'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`${option.color} p-1.5 rounded-lg`}>
                       <IconComponent className="w-4 h-4 text-white" />
                     </div>
-                    <div className="font-bold text-sm text-gray-900">{option.label}</div>
+                    <div className="font-bold text-sm text-soft-charcoal">{option.label}</div>
                   </div>
-                  <div className="text-xs text-gray-600">{option.subtitle}</div>
+                  <div className="text-xs text-muted-sage-gray">{option.subtitle}</div>
                   {formData.timeframe === option.value && (
-                    <div className="text-xs text-emerald-700 font-medium mt-1">
+                    <div className="text-xs text-evergreen-teal font-medium mt-1">
                       By {calculateEndDate(option.value)}
                     </div>
                   )}
@@ -383,8 +383,8 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
 
           {/* Why (Optional) */}
           {formData.timeframe && (
-            <div className="pt-3 border-t border-gray-200">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
+            <div className="pt-3 border-t border-divider">
+              <label className="block text-xs font-semibold text-soft-charcoal mb-1">
                 Why is this goal important to you? (Optional)
               </label>
               <textarea
@@ -393,14 +393,14 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
                 onChange={handleChange}
                 placeholder="This will help keep you motivated..."
                 rows="2"
-                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
+                className="w-full px-3 py-2 text-sm border-2 border-divider rounded-lg focus:border-evergreen-teal/30 focus:ring-2 focus:ring-evergreen-teal outline-none transition-all resize-none"
               />
             </div>
           )}
 
           {/* Review Card */}
           {formData.timeframe && (
-            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-lg p-4 shadow-lg">
+            <div className="bg-gradient-to-br from-evergreen-teal to-silver-sage text-white rounded-lg p-4 shadow-lg">
               <div className="text-xs opacity-90 mb-1">Your SMART Goal</div>
               <div className="text-lg font-bold mb-3">{formData.title}</div>
               <div className="grid grid-cols-2 gap-3 text-xs">
@@ -423,10 +423,10 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
       )}
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+      <div className="flex justify-between items-center pt-4 border-t border-divider">
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+          className="px-4 py-2 text-sm text-muted-sage-gray hover:text-soft-charcoal font-medium transition-colors"
         >
           Cancel
         </button>
@@ -434,7 +434,7 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
           {step > 1 && (
             <button
               onClick={handleBack}
-              className="px-4 py-2 text-sm text-gray-700 font-semibold hover:text-gray-900 transition-colors"
+              className="px-4 py-2 text-sm text-soft-charcoal font-semibold hover:text-soft-charcoal transition-colors"
             >
               ← Back
             </button>
@@ -445,8 +445,8 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
               disabled={!canProceed()}
               className={`px-6 py-2 text-sm rounded-lg font-semibold transition-all ${
                 canProceed()
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md hover:shadow-lg'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  ? 'bg-evergreen-teal text-white hover:bg-evergreen-teal/90 shadow-md hover:shadow-lg'
+                  : 'bg-silver-sage text-muted-sage-gray cursor-not-allowed'
               }`}
             >
               Continue →
@@ -457,8 +457,8 @@ export default function GoalCreationForm({ userId, onSave, onCancel }) {
               disabled={loading || !canProceed()}
               className={`px-6 py-2 text-sm rounded-lg font-semibold transition-all ${
                 canProceed() && !loading
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md hover:shadow-lg'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  ? 'bg-evergreen-teal text-white hover:bg-evergreen-teal/90 shadow-md hover:shadow-lg'
+                  : 'bg-silver-sage text-muted-sage-gray cursor-not-allowed'
               }`}
             >
               {loading ? 'Creating...' : 'Create Goal 🎯'}

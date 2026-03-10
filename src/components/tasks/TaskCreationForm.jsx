@@ -58,12 +58,12 @@ export default function TaskCreationForm({ userId, goals, habits, onTaskCreated,
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <h2 className="text-xl font-semibold text-[#E4BFA1] flex items-center gap-2">
+      <h2 className="text-xl font-semibold text-golden-apricot flex items-center gap-2">
         <ClipboardList size={20} /> Create a New Task
       </h2>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Task Title</label>
+        <label className="block text-sm font-medium text-soft-charcoal">Task Title</label>
         <input
           type="text"
           value={title}
@@ -75,7 +75,7 @@ export default function TaskCreationForm({ userId, goals, habits, onTaskCreated,
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Description (Optional)</label>
+        <label className="block text-sm font-medium text-soft-charcoal">Description (Optional)</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -86,7 +86,7 @@ export default function TaskCreationForm({ userId, goals, habits, onTaskCreated,
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Due Date</label>
+          <label className="block text-sm font-medium text-soft-charcoal">Due Date</label>
           <input
             type="date"
             value={dueDate}
@@ -96,7 +96,7 @@ export default function TaskCreationForm({ userId, goals, habits, onTaskCreated,
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Eisenhower Quadrant</label>
+          <label className="block text-sm font-medium text-soft-charcoal">Eisenhower Quadrant</label>
           <select
             value={quadrant}
             onChange={(e) => setQuadrant(e.target.value)}
@@ -110,7 +110,7 @@ export default function TaskCreationForm({ userId, goals, habits, onTaskCreated,
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Link to Goal</label>
+        <label className="block text-sm font-medium text-soft-charcoal">Link to Goal</label>
         <select
           value={goalId}
           onChange={(e) => setGoalId(e.target.value)}
@@ -125,7 +125,7 @@ export default function TaskCreationForm({ userId, goals, habits, onTaskCreated,
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Link to Habit (Optional)</label>
+        <label className="block text-sm font-medium text-soft-charcoal">Link to Habit (Optional)</label>
         <select
           value={habitId}
           onChange={(e) => setHabitId(e.target.value)}
@@ -142,14 +142,14 @@ export default function TaskCreationForm({ userId, goals, habits, onTaskCreated,
         <button
           type="button"
           onClick={onCancel}
-          className="border border-gray-300 text-gray-600 px-4 py-2 rounded hover:bg-gray-100"
+          className="border border-silver-sage text-muted-sage-gray px-4 py-2 rounded hover:bg-dew-sage-light"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="bg-[#E4BFA1] text-white px-4 py-2 rounded-lg hover:bg-[#d4a884] transition flex items-center gap-2"
+          className="bg-golden-apricot text-white px-4 py-2 rounded-lg hover:opacity-90 transition flex items-center gap-2"
         >
           {loading ? 'Saving...' : <><CheckCircle size={16} /> Save Task</>}
         </button>

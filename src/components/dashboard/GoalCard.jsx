@@ -19,16 +19,16 @@ export default function GoalCard({ goal, onDelete, onEdit }) {
   };
 
   return (
-    <div className="bg-white shadow rounded p-4 border-l-4 border-[#1B5E57] mb-4">
+    <div className="bg-white shadow rounded p-4 border-l-4 border-evergreen-teal mb-4">
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="text-xl font-semibold text-[#1B5E57]">{goal.goal}</h3>
-          <p className="text-sm text-[#3E3E3E]">
+          <h3 className="text-xl font-semibold text-evergreen-teal">{goal.goal}</h3>
+          <p className="text-sm text-soft-charcoal">
             Focus: {goal.primaryFocus} → {goal.refinedFocus}
           </p>
-          <p className="text-sm text-[#3E3E3E]">Timeframe: {goal.timeframe}</p>
+          <p className="text-sm text-soft-charcoal">Timeframe: {goal.timeframe}</p>
           {goal.targetDate && (
-            <p className="text-sm text-[#3E3E3E]">Target: {goal.targetDate}</p>
+            <p className="text-sm text-soft-charcoal">Target: {goal.targetDate}</p>
           )}
         </div>
         <div className="text-right space-x-2">

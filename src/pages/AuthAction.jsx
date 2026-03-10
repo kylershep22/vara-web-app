@@ -147,9 +147,9 @@ export default function AuthAction() {
             <img src={VaraLogo} alt="Vara Logo" className="h-14 w-14 object-contain rounded-xl shadow" />
           </div>
           <div className="flex justify-center mb-4">
-            <Loader2 className="h-12 w-12 text-[#1B5E57] animate-spin" />
+            <Loader2 className="h-12 w-12 text-evergreen-teal animate-spin" />
           </div>
-          <p className="text-[#6B7B6A]">Verifying your request...</p>
+          <p className="text-muted-sage-gray">Verifying your request...</p>
         </div>
       </div>
     );
@@ -169,29 +169,29 @@ export default function AuthAction() {
 
           <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="w-16 h-16 bg-[#D97A6E]/15 rounded-full flex items-center justify-center">
-                <AlertCircle className="text-[#D97A6E]" size={32} />
+              <div className="w-16 h-16 bg-soft-coral/15 rounded-full flex items-center justify-center">
+                <AlertCircle className="text-soft-coral" size={32} />
               </div>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-[#D97A6E] mb-2">
+              <h2 className="text-xl font-semibold text-soft-coral mb-2">
                 Something didn't go through
               </h2>
-              <p className="text-sm text-[#6B7B6A] mb-6">{error}</p>
+              <p className="text-sm text-muted-sage-gray mb-6">{error}</p>
             </div>
 
             <div className="space-y-3">
               {mode === 'resetPassword' && (
                 <Link
                   to="/forgot-password"
-                  className="block w-full py-3 bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold rounded-lg hover:brightness-105 transition-all text-center"
+                  className="block w-full py-3 bg-gradient-to-r from-sunrise-amber to-golden-apricot text-white font-semibold rounded-lg hover:brightness-105 transition-all text-center"
                 >
                   Request New Reset Link
                 </Link>
               )}
               <Link
                 to="/login"
-                className="block w-full py-3 border border-[#1B5E57] text-[#1B5E57] font-semibold rounded-lg hover:bg-[#1B5E57]/5 transition-all text-center"
+                className="block w-full py-3 border border-evergreen-teal text-evergreen-teal font-semibold rounded-lg hover:bg-evergreen-teal/5 transition-all text-center"
               >
                 Back to Login
               </Link>
@@ -214,13 +214,13 @@ export default function AuthAction() {
             <img src={VaraLogo} alt="Vara Logo" className="h-14 w-14 object-contain rounded-xl shadow" />
           </div>
 
-          <h2 className="text-2xl font-semibold text-[#1B5E57] text-center mb-2">
+          <h2 className="text-2xl font-semibold text-evergreen-teal text-center mb-2">
             Create New Password
           </h2>
-          <p className="text-sm text-[#6B7B6A] text-center mb-2">
+          <p className="text-sm text-muted-sage-gray text-center mb-2">
             For <strong>{email}</strong>
           </p>
-          <p className="text-sm text-[#6B7B6A] text-center italic mb-6">
+          <p className="text-sm text-muted-sage-gray text-center italic mb-6">
             "Every journey back to wellness starts with a single step."
           </p>
 
@@ -232,11 +232,11 @@ export default function AuthAction() {
 
           <form onSubmit={handlePasswordReset} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#3E3E3E] mb-2">
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">
                 New Password
               </label>
               <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-sage-gray/60" size={20} />
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter new password"
@@ -244,12 +244,12 @@ export default function AuthAction() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   disabled={resetting}
                   required
-                  className="w-full pl-10 pr-12 py-3 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition disabled:opacity-60"
+                  className="w-full pl-10 pr-12 py-3 border border-divider rounded-lg bg-mist-white focus:outline-none focus:ring-2 focus:ring-sunrise-amber focus:border-transparent transition disabled:opacity-60"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-sage-gray hover:text-soft-charcoal transition"
                   disabled={resetting}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -258,11 +258,11 @@ export default function AuthAction() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#3E3E3E] mb-2">
+              <label className="block text-sm font-medium text-soft-charcoal mb-2">
                 Confirm Password
               </label>
               <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-sage-gray/60" size={20} />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm new password"
@@ -270,12 +270,12 @@ export default function AuthAction() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={resetting}
                   required
-                  className="w-full pl-10 pr-12 py-3 border border-[#D5E3D1] rounded-lg bg-[#FAFAF6] focus:outline-none focus:ring-2 focus:ring-[#F4C542] focus:border-transparent transition disabled:opacity-60"
+                  className="w-full pl-10 pr-12 py-3 border border-divider rounded-lg bg-mist-white focus:outline-none focus:ring-2 focus:ring-sunrise-amber focus:border-transparent transition disabled:opacity-60"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-sage-gray hover:text-soft-charcoal transition"
                   disabled={resetting}
                 >
                   {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -284,23 +284,23 @@ export default function AuthAction() {
             </div>
 
             {/* Password requirements */}
-            <div className="bg-[#FAFAF6] border border-[#D5E3D1] rounded-lg p-3">
-              <p className="text-xs font-medium text-[#3E3E3E] mb-2">Password must contain:</p>
-              <ul className="text-xs text-gray-600 space-y-1">
-                <li className={`flex items-center gap-2 ${newPassword.length >= 8 ? 'text-green-600' : ''}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${newPassword.length >= 8 ? 'bg-green-600' : 'bg-gray-400'}`} />
+            <div className="bg-mist-white border border-divider rounded-lg p-3">
+              <p className="text-xs font-medium text-soft-charcoal mb-2">Password must contain:</p>
+              <ul className="text-xs text-muted-sage-gray space-y-1">
+                <li className={`flex items-center gap-2 ${newPassword.length >= 8 ? 'text-evergreen-teal' : ''}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${newPassword.length >= 8 ? 'bg-evergreen-teal' : 'bg-muted-sage-gray/60'}`} />
                   At least 8 characters
                 </li>
-                <li className={`flex items-center gap-2 ${/[A-Z]/.test(newPassword) ? 'text-green-600' : ''}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${/[A-Z]/.test(newPassword) ? 'bg-green-600' : 'bg-gray-400'}`} />
+                <li className={`flex items-center gap-2 ${/[A-Z]/.test(newPassword) ? 'text-evergreen-teal' : ''}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${/[A-Z]/.test(newPassword) ? 'bg-evergreen-teal' : 'bg-muted-sage-gray/60'}`} />
                   One uppercase letter
                 </li>
-                <li className={`flex items-center gap-2 ${/[a-z]/.test(newPassword) ? 'text-green-600' : ''}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${/[a-z]/.test(newPassword) ? 'bg-green-600' : 'bg-gray-400'}`} />
+                <li className={`flex items-center gap-2 ${/[a-z]/.test(newPassword) ? 'text-evergreen-teal' : ''}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${/[a-z]/.test(newPassword) ? 'bg-evergreen-teal' : 'bg-muted-sage-gray/60'}`} />
                   One lowercase letter
                 </li>
-                <li className={`flex items-center gap-2 ${/[0-9]/.test(newPassword) ? 'text-green-600' : ''}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${/[0-9]/.test(newPassword) ? 'bg-green-600' : 'bg-gray-400'}`} />
+                <li className={`flex items-center gap-2 ${/[0-9]/.test(newPassword) ? 'text-evergreen-teal' : ''}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${/[0-9]/.test(newPassword) ? 'bg-evergreen-teal' : 'bg-muted-sage-gray/60'}`} />
                   One number
                 </li>
               </ul>
@@ -309,7 +309,7 @@ export default function AuthAction() {
             <button
               type="submit"
               disabled={resetting}
-              className="w-full py-3 bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold rounded-lg hover:brightness-105 transition-all ease-in-out duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 bg-gradient-to-r from-sunrise-amber to-golden-apricot text-white font-semibold rounded-lg hover:brightness-105 transition-all ease-in-out duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {resetting ? (
                 <>
@@ -370,23 +370,23 @@ export default function AuthAction() {
             {/* Success Icon */}
             <div className="flex justify-center">
               {isEmailVerification ? (
-                <div className="success-icon-container w-20 h-20 bg-[#D5E3D1]/35 rounded-full flex items-center justify-center">
+                <div className="success-icon-container w-20 h-20 bg-dew-sage-light/35 rounded-full flex items-center justify-center">
                   <AnimatedCheckmark />
                 </div>
               ) : (
-                <div className="w-20 h-20 bg-[#D5E3D1]/35 rounded-full flex items-center justify-center">
-                  <ShieldCheck className="text-[#1B5E57]" size={40} />
+                <div className="w-20 h-20 bg-dew-sage-light/35 rounded-full flex items-center justify-center">
+                  <ShieldCheck className="text-evergreen-teal" size={40} />
                 </div>
               )}
             </div>
 
             <div>
-              <h2 className="text-2xl font-semibold text-[#1B5E57] mb-2">
+              <h2 className="text-2xl font-semibold text-evergreen-teal mb-2">
                 {isPasswordReset && 'Password Reset Complete!'}
                 {isEmailVerification && 'Email verified'}
                 {isEmailRecovery && 'Email Recovered!'}
               </h2>
-              <p className="text-sm text-[#6B7B6A] mb-2">
+              <p className="text-sm text-muted-sage-gray mb-2">
                 {isPasswordReset && 'Your password has been successfully updated.'}
                 {isEmailVerification && "You're all set. Open the Vara app to sign in and begin at your own pace."}
                 {isEmailRecovery && `Your email has been restored to ${email}.`}
@@ -400,7 +400,7 @@ export default function AuthAction() {
                   {/* Open Vara Deep Link Button */}
                   <a
                     href="vara://login"
-                    className="flex items-center justify-center gap-2 w-full py-3 bg-[#1B5E57] text-white font-semibold rounded-lg hover:bg-[#164a44] transition-all text-center"
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-evergreen-teal text-white font-semibold rounded-lg hover:bg-evergreen-teal/85 transition-all text-center"
                   >
                     <Smartphone size={20} />
                     Open Vara
@@ -409,29 +409,29 @@ export default function AuthAction() {
                   {/* Continue on Web Fallback */}
                   <Link
                     to="/login"
-                    className="block w-full py-3 border border-[#1B5E57] text-[#1B5E57] font-semibold rounded-lg hover:bg-[#1B5E57]/5 transition-all text-center"
+                    className="block w-full py-3 border border-evergreen-teal text-evergreen-teal font-semibold rounded-lg hover:bg-evergreen-teal/5 transition-all text-center"
                   >
                     Continue on Web
                   </Link>
 
                   {/* App Store Links */}
-                  <div className="pt-4 border-t border-[#D5E3D1]">
-                    <p className="text-sm text-[#6B7B6A] mb-3">
+                  <div className="pt-4 border-t border-divider">
+                    <p className="text-sm text-muted-sage-gray mb-3">
                       Don't have the app yet?
                     </p>
                     <div className="flex justify-center gap-3 text-sm">
                       <a
                         href="https://apps.apple.com/app/vara-wellness"
-                        className="text-[#1B5E57] hover:underline font-medium"
+                        className="text-evergreen-teal hover:underline font-medium"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
                         App Store
                       </a>
-                      <span className="text-[#B8CDBA]">|</span>
+                      <span className="text-silver-sage">|</span>
                       <a
                         href="https://play.google.com/store/apps/details?id=com.vara.wellness"
-                        className="text-[#1B5E57] hover:underline font-medium"
+                        className="text-evergreen-teal hover:underline font-medium"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -444,7 +444,7 @@ export default function AuthAction() {
                 /* Password Reset / Email Recovery: Show Login Button */
                 <Link
                   to="/login"
-                  className="block w-full py-3 bg-gradient-to-r from-[#F4C542] to-[#F5B971] text-white font-semibold rounded-lg hover:brightness-105 transition-all text-center"
+                  className="block w-full py-3 bg-gradient-to-r from-sunrise-amber to-golden-apricot text-white font-semibold rounded-lg hover:brightness-105 transition-all text-center"
                 >
                   Log In with New Password
                 </Link>

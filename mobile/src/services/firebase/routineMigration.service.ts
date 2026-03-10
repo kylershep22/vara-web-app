@@ -26,6 +26,7 @@ export async function migrateSundayToCustom(userId: string): Promise<{
   migrated: number;
   errors: string[];
 }> {
+  if (!db) throw new Error('Firestore is not initialized');
   const errors: string[] = [];
   let migrated = 0;
 
@@ -73,6 +74,7 @@ export async function migrateSundayToCustom(userId: string): Promise<{
  * Returns true if there are any Sunday routines that haven't been migrated
  */
 export async function needsMigration(userId: string): Promise<boolean> {
+  if (!db) return false;
   try {
     const sundayQuery = query(
       collection(db, 'routines'),
@@ -93,6 +95,7 @@ export async function needsMigration(userId: string): Promise<boolean> {
  * Safe to call multiple times - will only migrate if needed
  */
 export async function runMigrationIfNeeded(userId: string): Promise<void> {
+  if (!db) return;
   const needs = await needsMigration(userId);
 
   if (needs) {

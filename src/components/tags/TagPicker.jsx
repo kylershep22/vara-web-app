@@ -169,7 +169,7 @@ export default function TagPicker({
         {selectedSlugs.map((slug) => (
           <span
             key={slug}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-teal-light text-evergreen-teal text-xs"
           >
             <span>
               {emojiFor(slug)} {labelFor(slug)}
@@ -187,7 +187,7 @@ export default function TagPicker({
           </span>
         ))}
         {selectedSlugs.length === 0 && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted-sage-gray">
             No {category === "focus" ? "focus areas" : "interests"} selected yet.
           </span>
         )}
@@ -209,8 +209,8 @@ export default function TagPicker({
           aria-autocomplete="list"
           aria-expanded={open}
           aria-controls="tagpicker-listbox"
-          className={`w-full px-3 py-2 border border-[#D5E3D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-            disabled ? "bg-gray-100 cursor-not-allowed" : ""
+          className={`w-full px-3 py-2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-evergreen-teal ${
+            disabled ? "bg-dew-sage-light cursor-not-allowed" : ""
           }`}
         />
 
@@ -220,16 +220,16 @@ export default function TagPicker({
             ref={listRef}
             id="tagpicker-listbox"
             role="listbox"
-            className="absolute z-10 mt-1 w-full bg-white border border-[#D5E3D1] rounded-xl shadow-sm max-h-64 overflow-auto"
+            className="absolute z-10 mt-1 w-full bg-white border border-divider rounded-xl shadow-sm max-h-64 overflow-auto"
           >
             {loading && (
-              <div className="p-3 text-sm text-gray-500 flex items-center gap-2">
+              <div className="p-3 text-sm text-muted-sage-gray flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" /> Loading…
               </div>
             )}
 
             {!loading && filtered.length === 0 && (
-              <div className="p-3 text-sm text-gray-500">No matches.</div>
+              <div className="p-3 text-sm text-muted-sage-gray">No matches.</div>
             )}
 
             {!loading &&
@@ -246,15 +246,15 @@ export default function TagPicker({
                     onMouseLeave={() => setActiveIdx(-1)}
                     onClick={() => add(t.slug)}
                     className={`w-full text-left px-3 py-2 flex items-center gap-2 ${
-                      isActive ? "bg-[#F3F4EF]" : "hover:bg-[#F3F4EF]"
+                      isActive ? "bg-dew-sage-light" : "hover:bg-dew-sage-light"
                     }`}
                   >
                     <span className="text-lg">{t.emoji || "🏷️"}</span>
-                    <span className="text-sm text-[#3E3E3E]">{t.label}</span>
+                    <span className="text-sm text-soft-charcoal">{t.label}</span>
                     {isSelected ? (
-                      <span className="ml-auto text-xs text-emerald-700">Added</span>
+                      <span className="ml-auto text-xs text-evergreen-teal">Added</span>
                     ) : (
-                      <Plus className="w-4 h-4 ml-auto text-[#1B5E57]" />
+                      <Plus className="w-4 h-4 ml-auto text-evergreen-teal" />
                     )}
                   </button>
                 );
@@ -263,7 +263,7 @@ export default function TagPicker({
         )}
       </div>
 
-      <div className="mt-1 text-[11px] text-gray-500">
+      <div className="mt-1 text-[11px] text-muted-sage-gray">
         {selectedSlugs.length}/{max} selected
       </div>
     </div>

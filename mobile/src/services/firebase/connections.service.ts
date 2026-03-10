@@ -13,12 +13,8 @@ import {
   orderBy,
   limit,
   Timestamp,
-  Firestore,
 } from 'firebase/firestore';
-import { db as firebaseDb } from '../../config/firebase';
-
-// Type assertion for db - Firebase config handles null case at runtime
-const db = firebaseDb as Firestore;
+import { db } from '../../config/firebase';
 
 // Type for user profile with additional connection metadata
 // Defined independently to avoid type conflicts with UserProfile
@@ -50,6 +46,7 @@ export interface EnhancedUserProfile {
  * Get all accepted connection IDs for a user
  */
 export async function getConnectionIds(userId: string): Promise<string[]> {
+  if (!db) return [];
   const connectionsRef = collection(db, 'connections');
 
   // Query where user is 'a'
@@ -114,6 +111,7 @@ export async function getMutualConnectionProfiles(
   otherUserId: string,
   maxProfiles: number = 3
 ): Promise<EnhancedUserProfile[]> {
+  if (!db) return [];
   const mutualIds = await getMutualConnections(currentUserId, otherUserId);
 
   if (mutualIds.length === 0) return [];
@@ -140,6 +138,7 @@ export async function getMutualConnectionProfiles(
  * Get groups that a user belongs to
  */
 export async function getUserGroups(userId: string): Promise<string[]> {
+  if (!db) return [];
   const groupsRef = collection(db, 'groups');
   const q = query(groupsRef, where('members', 'array-contains', userId));
   const snapshot = await getDocs(q);
@@ -151,6 +150,7 @@ export async function getUserGroups(userId: string): Promise<string[]> {
  * Get user interests from their profile
  */
 export async function getUserInterests(userId: string): Promise<string[]> {
+  if (!db) return [];
   const userDoc = await getDoc(doc(db, 'users', userId));
   if (!userDoc.exists()) return [];
 
@@ -168,6 +168,7 @@ export async function getSuggestedConnections(
   currentUserId: string,
   maxSuggestions: number = 10
 ): Promise<EnhancedUserProfile[]> {
+  if (!db) return [];
   const suggestions: Map<string, EnhancedUserProfile> = new Map();
   const existingConnections = await getConnectionIds(currentUserId);
 

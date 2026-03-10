@@ -43,6 +43,7 @@ const getTodayDate = (): string => {
  * Get or create today's 4-3-2-1 entry for a user
  */
 export const getTodayEntry = async (userId: string): Promise<FourThreeTwoOneEntry | null> => {
+  if (!db) return null;
   try {
     const todayDate = getTodayDate();
     const entryId = `${userId}_${todayDate}`;
@@ -95,6 +96,7 @@ export const updateTodayEntry = async (
   userId: string,
   updates: Partial<Omit<FourThreeTwoOneEntry, 'id' | 'userId' | 'date' | 'createdAt'>>
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   try {
     const todayDate = getTodayDate();
     const entryId = `${userId}_${todayDate}`;
@@ -126,6 +128,7 @@ export const updateTodayEntry = async (
  * Toggle 4 minutes completion
  */
 export const toggleFourMinutes = async (userId: string): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   const entry = await getTodayEntry(userId);
   if (entry) {
     await updateTodayEntry(userId, { fourMinutes: !entry.fourMinutes });
@@ -140,6 +143,7 @@ export const updateThreeWins = async (
   completed: boolean,
   wins?: string[]
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   // Filter out empty wins, or use empty array if undefined
   const filteredWins = wins ? wins.filter(w => w.trim().length > 0) : [];
 
@@ -159,6 +163,7 @@ export const updateTwoFuel = async (
   completed: boolean,
   options?: BodyFuelOption[]
 ): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   await updateTodayEntry(userId, {
     twoFuel: {
       completed,
@@ -171,6 +176,7 @@ export const updateTwoFuel = async (
  * Toggle 1 connection completion
  */
 export const toggleOneConnection = async (userId: string): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
   const entry = await getTodayEntry(userId);
   if (entry) {
     await updateTodayEntry(userId, { oneConnection: !entry.oneConnection });
@@ -181,6 +187,7 @@ export const toggleOneConnection = async (userId: string): Promise<void> => {
  * Get current streak (consecutive days of completion)
  */
 export const getCurrentStreak = async (userId: string): Promise<number> => {
+  if (!db) return 0;
   try {
     const q = query(
       collection(db, COLLECTION),
@@ -223,6 +230,7 @@ export const getCurrentStreak = async (userId: string): Promise<number> => {
  * Get longest streak
  */
 export const getLongestStreak = async (userId: string): Promise<number> => {
+  if (!db) return 0;
   try {
     const q = query(
       collection(db, COLLECTION),
@@ -271,6 +279,7 @@ export const getRecentEntries = async (
   userId: string,
   days: number = 7
 ): Promise<FourThreeTwoOneEntry[]> => {
+  if (!db) return [];
   try {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
