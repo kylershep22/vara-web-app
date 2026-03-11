@@ -252,7 +252,7 @@ export const QuickActionCarousel: React.FC = () => {
   };
 
   const handleQuickSave = async (value: string) => {
-    if (!user || !modalType) return;
+    if (!user || !modalType || !db) return;
 
     switch (modalType) {
       case 'habit':

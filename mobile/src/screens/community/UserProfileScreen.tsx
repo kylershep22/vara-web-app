@@ -66,7 +66,7 @@ const UserProfileScreen = () => {
   }, [userId]);
 
   const loadUserProfile = async () => {
-    if (!userId) return;
+    if (!userId || !db) return;
 
     try {
       setLoading(true);

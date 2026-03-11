@@ -29,7 +29,7 @@ const MessagesScreen: React.FC = () => {
   // Load connection profiles when modal opens
   useEffect(() => {
     const loadConnectionProfiles = async () => {
-      if (!showNewMessage) return;
+      if (!showNewMessage || !db) return;
 
       setLoadingProfiles(true);
       try {

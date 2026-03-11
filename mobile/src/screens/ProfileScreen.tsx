@@ -100,7 +100,7 @@ const ProfileScreen = () => {
   }, [user]);
 
   const loadProfile = async () => {
-    if (!user) return;
+    if (!user || !db) return;
 
     try {
       setLoading(true);
@@ -255,7 +255,7 @@ const ProfileScreen = () => {
   };
 
   const handleSaveProfile = async () => {
-    if (!user) return;
+    if (!user || !db) return;
 
     try {
       const userRef = doc(db, 'users', user.uid);
@@ -279,7 +279,7 @@ const ProfileScreen = () => {
   };
 
   const handleUploadImage = async (type: 'avatar' | 'banner') => {
-    if (!user) return;
+    if (!user || !db) return;
 
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {

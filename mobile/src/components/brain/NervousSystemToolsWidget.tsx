@@ -34,7 +34,7 @@ export const NervousSystemToolsWidget: React.FC = () => {
   // Load weekly count
   useEffect(() => {
     const loadWeeklyCount = async () => {
-      if (!user) return;
+      if (!user || !db) return;
 
       try {
         const sevenDaysAgo = new Date();
@@ -125,7 +125,7 @@ export const NervousSystemToolsWidget: React.FC = () => {
   };
 
   const handleComplete = async () => {
-    if (!user || !activeTool) return;
+    if (!user || !activeTool || !db) return;
 
     try {
       await addDoc(collection(db, 'nervousSystemSessions'), {

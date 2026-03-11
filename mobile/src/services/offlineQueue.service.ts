@@ -103,6 +103,10 @@ export const queueOperation = async (
  * Process a single operation
  */
 const processOperation = async (operation: QueuedOperation): Promise<boolean> => {
+  if (!db) {
+    console.warn('Firestore not initialized - cannot process offline queue operation');
+    return false;
+  }
   try {
     const { type, collection: collectionName, docId, data } = operation;
 

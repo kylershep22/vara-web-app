@@ -101,7 +101,7 @@ const ChatScreen = () => {
   }, [conversationId, messages.length]);
 
   const loadOtherUser = async () => {
-    if (!otherUserId) return;
+    if (!otherUserId || !db) return;
     try {
       const userDoc = await getDoc(doc(db, 'users', otherUserId));
       if (userDoc.exists()) {
@@ -113,7 +113,7 @@ const ChatScreen = () => {
   };
 
   const markAsRead = async () => {
-    if (!user || !conversationId) return;
+    if (!user || !conversationId || !db) return;
     try {
       const convRef = doc(db, 'conversations', conversationId);
       await updateDoc(convRef, {

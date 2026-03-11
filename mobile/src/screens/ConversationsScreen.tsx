@@ -129,7 +129,7 @@ const ConversationsScreen = () => {
   // Load connection profiles when sheet opens
   useEffect(() => {
     const loadConnectionProfiles = async () => {
-      if (!showNewMessage) return;
+      if (!showNewMessage || !db) return;
 
       setLoadingProfiles(true);
       try {

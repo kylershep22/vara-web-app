@@ -71,7 +71,7 @@ export const AMCCChallengeCard: React.FC = () => {
   // Load today's challenge
   useEffect(() => {
     const loadTodayChallenge = async () => {
-      if (!user) return;
+      if (!user || !db) return;
 
       try {
         // Check if completed today
@@ -137,7 +137,7 @@ export const AMCCChallengeCard: React.FC = () => {
 
   // Handle completion
   const handleComplete = async () => {
-    if (!user) return;
+    if (!user || !db) return;
 
     try {
       // Check if challenge exists for today

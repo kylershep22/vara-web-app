@@ -123,7 +123,7 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
 
   const handleFinish = async () => {
     // Mark onboarding as completed in Firestore
-    if (user) {
+    if (user && db) {
       try {
         const userRef = doc(db, 'users', user.uid);
         await updateDoc(userRef, {

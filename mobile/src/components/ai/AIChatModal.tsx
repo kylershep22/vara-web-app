@@ -235,7 +235,7 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
 
   // Fetch brain metrics for AI context
   const fetchBrainMetrics = async () => {
-    if (!user) return undefined;
+    if (!user || !db) return undefined;
 
     try {
       const today = new Date().toISOString().split('T')[0];

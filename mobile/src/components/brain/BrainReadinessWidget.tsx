@@ -45,7 +45,7 @@ export const BrainReadinessWidget: React.FC<BrainReadinessWidgetProps> = ({ onSc
   // Load today's check-in if it exists
   useEffect(() => {
     const loadTodayCheckIn = async () => {
-      if (!user) return;
+      if (!user || !db) return;
 
       try {
         const metricsQuery = query(
@@ -93,7 +93,7 @@ export const BrainReadinessWidget: React.FC<BrainReadinessWidgetProps> = ({ onSc
 
   // Save check-in to Firestore
   const saveCheckIn = async (updatedCheckIn: DailyCheckIn) => {
-    if (!user) return;
+    if (!user || !db) return;
 
     try {
       const score = calculateReadinessScore(updatedCheckIn);

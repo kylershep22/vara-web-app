@@ -189,7 +189,7 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
   // Load all analytics data
   useEffect(() => {
     const loadAnalytics = async () => {
-      if (!user) return;
+      if (!user || !db) return;
 
       setLoading(true);
       try {

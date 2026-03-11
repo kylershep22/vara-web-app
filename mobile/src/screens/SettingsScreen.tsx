@@ -69,7 +69,7 @@ const SettingsScreen = () => {
   }, [user]);
 
   const loadSettings = async () => {
-    if (!user) return;
+    if (!user || !db) return;
 
     try {
       setLoading(true);
@@ -96,7 +96,7 @@ const SettingsScreen = () => {
   };
 
   const handleSaveSettings = async (updates: Partial<Settings>) => {
-    if (!user) return;
+    if (!user || !db) return;
 
     try {
       setSaving(true);

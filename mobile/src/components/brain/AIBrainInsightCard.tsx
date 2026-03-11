@@ -24,7 +24,7 @@ export const AIBrainInsightCard: React.FC = () => {
 
   // Load brain metrics and generate insight
   const loadInsight = async () => {
-    if (!user) return;
+    if (!user || !db) return;
 
     setLoading(true);
     setError(null);

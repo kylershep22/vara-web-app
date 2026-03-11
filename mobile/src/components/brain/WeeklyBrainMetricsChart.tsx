@@ -50,7 +50,7 @@ export const WeeklyBrainMetricsChart: React.FC = () => {
   // Load weekly metrics
   useEffect(() => {
     const loadWeeklyMetrics = async () => {
-      if (!user) return;
+      if (!user || !db) return;
 
       try {
         const sevenDaysAgo = new Date();
