@@ -10,10 +10,6 @@ import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, View, Text, Platform, TouchableOpacity } from 'react-native';
 import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
-
-// Prevent the splash screen from auto-hiding before fonts are loaded
-SplashScreen.preventAutoHideAsync();
 
 // Import theme
 import { Colors, theme } from './src/constants';
@@ -102,21 +98,6 @@ export default function App() {
   });
 
   const [servicesInitialized, setServicesInitialized] = useState(false);
-
-  // Hide splash screen once fonts are loaded OR if font loading fails
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded, fontError]);
-
-  // Safety timeout: hide splash after 5s no matter what
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      SplashScreen.hideAsync().catch(() => {});
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Initialize services AFTER React Native bridge is ready
   useEffect(() => {

@@ -60,7 +60,6 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-splash-screen",
       "expo-secure-store",
       "expo-font",
       [
