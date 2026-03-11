@@ -79,6 +79,7 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
   };
 
   const handleSubmit = async () => {
+    if (!user?.uid) return;
     if (!formData.title.trim()) {
       Alert.alert('Error', 'Please enter a task title');
       return;
@@ -90,7 +91,7 @@ const TasksScreen: React.FC<TasksScreenProps> = ({
       if (editingTask) {
         await updateTask(editingTask.id, submitData);
       } else {
-        await createTask(user!.uid, submitData);
+        await createTask(user.uid, submitData);
       }
       setModalVisible(false);
       descriptionRef.current = '';

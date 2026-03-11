@@ -70,6 +70,7 @@ const PeopleScreen: React.FC = () => {
 
   useEffect(() => {
     const loadRequestProfiles = async () => {
+      if (!user?.uid) return;
       if (filter !== 'requests' || requests.length === 0) {
         setRequestProfiles([]);
         return;
@@ -79,8 +80,8 @@ const PeopleScreen: React.FC = () => {
       try {
         const profiles = await Promise.all(
           requests.map((req) => {
-            const otherUserId = req.requester === user!.uid
-              ? (req.a === user!.uid ? req.b : req.a)
+            const otherUserId = req.requester === user.uid
+              ? (req.a === user.uid ? req.b : req.a)
               : req.requester;
             return otherUserId ? getUserById(otherUserId) : Promise.resolve(null);
           })

@@ -171,7 +171,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
         const milestoneTemplates = getSuggestedMilestones(formData.primaryFocus, formData.timeframe);
         const milestones = templatesToMilestones(milestoneTemplates);
 
-        await createGoal(user!.uid, {
+        await createGoal(user.uid, {
           ...formData,
           status: 'active',
           milestones,

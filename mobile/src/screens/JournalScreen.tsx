@@ -431,6 +431,8 @@ const JournalScreen: React.FC = () => {
     entryId?: string
   ) => {
     // Cast mood to the expected type
+    if (!user?.uid) return;
+
     const entryData = {
       text: data.text,
       mood: data.mood as 'great' | 'good' | 'okay' | 'bad' | 'terrible',
@@ -440,7 +442,7 @@ const JournalScreen: React.FC = () => {
     if (isEditing && entryId) {
       await updateJournalEntry(entryId, entryData);
     } else {
-      await createJournalEntry(user!.uid, entryData);
+      await createJournalEntry(user.uid, entryData);
 
       // Notification opt-in: trigger on first journal entry save
       if (!notifOptInChecked.current && shouldShowNotifPrompt) {

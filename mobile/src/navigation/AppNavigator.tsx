@@ -844,6 +844,9 @@ const AppNavigator: React.FC = () => {
                     updatedAt: serverTimestamp(),
                   }, { merge: true });
                   console.log('📱 User document created');
+                  // New user → needs onboarding
+                  setHasCompletedOnboarding(false);
+                  setCheckingOnboarding(false);
                 }
               } catch (createError) {
                 console.error('Error creating user document:', createError);

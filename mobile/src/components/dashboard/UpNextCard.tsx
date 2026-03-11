@@ -136,8 +136,8 @@ export const UpNextCard: React.FC<UpNextCardProps> = ({
     if (fourThreeTwoOneEntry && !fourThreeTwoOneEntry.completed) {
       const completionCount = [
         fourThreeTwoOneEntry.fourMinutes,
-        fourThreeTwoOneEntry.threeWins.completed,
-        fourThreeTwoOneEntry.twoFuel.completed,
+        fourThreeTwoOneEntry.threeWins?.completed,
+        fourThreeTwoOneEntry.twoFuel?.completed,
         fourThreeTwoOneEntry.oneConnection,
       ].filter(Boolean).length;
 

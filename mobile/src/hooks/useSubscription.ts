@@ -101,16 +101,31 @@ export function useSubscription(): UseSubscriptionResult {
         console.error('Error listening to subscription status:', err);
         setError(err instanceof Error ? err : new Error('Failed to load subscription'));
         setLoading(false);
-        // On error, default to no access so the paywall is shown
+        // On error, allow access during beta to avoid blocking users
         setStatus({
           type: 'trial',
-          isActive: false,
-          canAccessApp: false,
+          isActive: true,
+          canAccessApp: true,
         });
       }
     );
 
-    return () => unsubscribe();
+    // Timeout: if listener doesn't fire within 8s, assume trial access
+    const timeoutId = setTimeout(() => {
+      setLoading((current) => {
+        if (current) {
+          console.warn('Subscription listener timeout - defaulting to trial access');
+          setStatus({ type: 'trial', isActive: true, canAccessApp: true });
+          return false;
+        }
+        return current;
+      });
+    }, 8000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, [user?.uid, refreshKey]);
 
   // Computed values for convenience

@@ -166,6 +166,7 @@ const GroupsScreen: React.FC = () => {
   };
 
   const handleCreateGroup = async () => {
+    if (!user?.uid) return;
     if (!groupName.trim()) {
       Alert.alert('Error', 'Please enter a group name');
       return;
@@ -177,7 +178,7 @@ const GroupsScreen: React.FC = () => {
         name: groupName,
         description: descriptionRef.current,
         visibility: isPublic ? 'public' : 'private',
-        ownerId: user!.uid,
+        ownerId: user.uid,
         category: selectedCategory,
         invitePermission: invitePermission,
       });

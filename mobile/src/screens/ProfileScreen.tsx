@@ -294,7 +294,7 @@ const ProfileScreen = () => {
       quality: 0.8,
     });
 
-    if (!result.canceled && result.assets[0]) {
+    if (!result.canceled && result.assets?.length > 0) {
       setUploading(true);
       try {
         const uri = result.assets[0].uri;
