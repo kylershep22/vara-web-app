@@ -146,9 +146,11 @@ export default function App() {
     }
   }, []);
 
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
+  // Don't block rendering on font loading — render immediately so the
+  // native splash screen can dismiss. System fonts will be used briefly
+  // until custom fonts finish loading (typically < 100ms).
+  // Returning null here would keep the native splash visible forever
+  // if font loading stalls.
 
   return (
     <ErrorBoundary>

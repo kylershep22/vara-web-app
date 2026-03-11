@@ -56,7 +56,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    // Safety timeout: if onAuthStateChanged never fires (e.g. Firebase SDK
+    // stalls), unblock the app after 10 seconds so users can at least see
+    // the login screen instead of being stuck on the loading spinner.
+    const authTimeout = setTimeout(() => {
+      setIsAuthReady((prev) => {
+        if (!prev) {
+          logger.warn('⚠️ Auth state timeout - unblocking app after 10s');
+        }
+        return true;
+      });
+    }, 10000);
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      clearTimeout(authTimeout);
       setUser(user);
       setIsAuthReady(true);
 
@@ -100,7 +113,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(authTimeout);
+      unsubscribe();
+    };
   }, []);
 
   // Periodic token refresh (every 30 minutes while app is active)

@@ -872,8 +872,20 @@ const AppNavigator: React.FC = () => {
 
     setupOnboardingListener();
 
-    // Cleanup listener on unmount or when dependencies change
+    // Safety timeout: if Firestore listener never fires, unblock after 10s
+    const onboardingTimeout = setTimeout(() => {
+      setCheckingOnboarding((prev) => {
+        if (prev) {
+          console.warn('⚠️ Onboarding check timeout - assuming completed to unblock app');
+          setHasCompletedOnboarding(true);
+        }
+        return false;
+      });
+    }, 10000);
+
+    // Cleanup listener and timeout on unmount or when dependencies change
     return () => {
+      clearTimeout(onboardingTimeout);
       if (unsubscribe) {
         unsubscribe();
       }
