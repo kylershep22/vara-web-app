@@ -94,7 +94,7 @@ function FirebaseInitializationError({ error }: { error: Error }) {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     'Inter_18pt-Regular': require('./assets/fonts/Inter_18pt-Regular.ttf'),
     'Inter_18pt-Medium': require('./assets/fonts/Inter_18pt-Medium.ttf'),
     'Inter_18pt-SemiBold': require('./assets/fonts/Inter_18pt-SemiBold.ttf'),
@@ -103,12 +103,20 @@ export default function App() {
 
   const [servicesInitialized, setServicesInitialized] = useState(false);
 
-  // Hide splash screen once fonts are loaded
+  // Hide splash screen once fonts are loaded OR if font loading fails
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
+
+  // Safety timeout: hide splash after 5s no matter what
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Initialize services AFTER React Native bridge is ready
   useEffect(() => {
@@ -157,7 +165,7 @@ export default function App() {
     }
   }, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 
