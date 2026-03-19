@@ -1,6 +1,10 @@
 /**
  * Vara Wellness Mobile App
  * Main entry point
+ *
+ * Uses dynamic import for AppRoot with pre-loaded dependencies.
+ * metro.config.js enables inlineRequires which lazily initializes modules,
+ * preventing the cascade crash that occurred with static imports.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -8,85 +12,29 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet, View, Text, Platform, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, ScrollView } from 'react-native';
 import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 
-// Import theme
+// Safe static imports — constants and theme have no native module deps
 import { Colors, theme } from './src/constants';
 
-// Import Firebase initialization status
-import { firebaseInitialized, firebaseError } from './src/config/firebase';
-
-// Import Auth Provider
+// Static imports of contexts & navigation — with inlineRequires enabled,
+// these won't trigger eager module initialization cascade
 import { AuthProvider } from './src/context/AuthContext';
-
-// Import Notification Provider
-import { NotificationProvider } from './src/context/NotificationContext';
-
-// Import Audio Player Provider
-import { AudioPlayerProvider } from './src/context/AudioPlayerContext';
-
-// Import Toast Provider (feature discovery)
 import { ToastProvider } from './src/context/ToastContext';
-
-// Import navigation
+import { NotificationProvider } from './src/context/NotificationContext';
+import { AudioPlayerProvider } from './src/context/AudioPlayerContext';
 import AppNavigator from './src/navigation/AppNavigator';
-
-// Import Audio Player components
-import { AudioMiniPlayer, AudioExpandedPlayer } from './src/components';
+import { AudioMiniPlayer } from './src/components/library/AudioMiniPlayer';
+import { AudioExpandedPlayer } from './src/components/library/AudioExpandedPlayer';
 import { useAudioPlayer } from './src/context/AudioPlayerContext';
-
-// Import Error Boundary
 import ErrorBoundary from './src/components/shared/ErrorBoundary';
 
-// Note: @tanstack/react-query was removed (unused). Consider reintroducing
-// in a future sprint to replace manual Firestore subscription patterns.
-
-// DO NOT initialize services at module load time - causes native crashes
-// Services will be initialized in useEffect after React Native bridge is ready
-
-/**
- * Audio Player Overlay
- * Conditionally renders mini or expanded player based on context state.
- * Must be rendered inside AudioPlayerProvider.
- */
 function AudioPlayerOverlay() {
   const { currentTrack, isExpanded } = useAudioPlayer();
   if (!currentTrack) return null;
   return isExpanded ? <AudioExpandedPlayer /> : <AudioMiniPlayer />;
-}
-
-// Firebase Initialization Error Screen Component
-function FirebaseInitializationError({ error }: { error: Error }) {
-  const handleRestart = () => {
-    // In React Native, we can't truly restart the app from JavaScript
-    // But we can provide helpful instructions
-    console.log('User requested app restart');
-  };
-
-  return (
-    <View style={styles.errorContainer}>
-      <View style={styles.errorContent}>
-        <Text style={styles.errorEmoji}>🔥</Text>
-        <Text style={styles.errorTitle}>Connection Error</Text>
-        <Text style={styles.errorMessage}>
-          Unable to connect to Vara Wellness services.
-          {'\n\n'}
-          Please check your internet connection and restart the app.
-        </Text>
-        {__DEV__ && (
-          <View style={styles.errorDetails}>
-            <Text style={styles.errorDetailsText}>
-              {error.message}
-            </Text>
-          </View>
-        )}
-        <TouchableOpacity style={styles.errorButton} onPress={handleRestart}>
-          <Text style={styles.errorButtonText}>Restart App</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 }
 
 export default function App() {
@@ -97,60 +45,25 @@ export default function App() {
     'Inter_18pt-Bold': require('./assets/fonts/Inter_18pt-Bold.ttf'),
   });
 
-  const [servicesInitialized, setServicesInitialized] = useState(false);
-
-  // Initialize services AFTER React Native bridge is ready
+  // Hide native splash immediately
   useEffect(() => {
-    const initializeServices = async () => {
-      try {
-        console.log('🚀 Initializing app services after mount...');
+    SplashScreen.hideAsync().catch((e) =>
+      console.warn('SplashScreen.hideAsync failed (non-fatal):', e)
+    );
+  }, []);
 
-        // Import services dynamically to avoid early native module access
+  // Initialize optional services after mount
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
         const { initializeCrashReporting } = await import('./src/services/crashReporting.service');
         const { initializeAnalytics } = await import('./src/services/analytics.service');
-
-        // Initialize with extra safety
-        try {
-          initializeCrashReporting();
-        } catch (crashReportingError) {
-          console.warn('Crash reporting initialization failed (non-critical):', crashReportingError);
-        }
-
-        try {
-          initializeAnalytics();
-        } catch (analyticsError) {
-          console.warn('Analytics initialization failed (non-critical):', analyticsError);
-        }
-
-        setServicesInitialized(true);
-        console.log('✅ App services initialized successfully');
-      } catch (error) {
-        console.error('Failed to initialize services:', error);
-        // Continue anyway - these services are optional
-        setServicesInitialized(true);
-      }
-    };
-
-    // Wait a tick to ensure React Native bridge is fully ready
-    const timer = setTimeout(initializeServices, 100);
+        try { initializeCrashReporting(); } catch (e) { /* non-critical */ }
+        try { initializeAnalytics(); } catch (e) { /* non-critical */ }
+      } catch (e) { /* non-critical */ }
+    }, 100);
     return () => clearTimeout(timer);
   }, []);
-
-  // Log Firebase initialization status but don't block the app
-  useEffect(() => {
-    if (firebaseError) {
-      console.error('🚨 Firebase initialization error (non-blocking):', firebaseError.message);
-      console.log('ℹ️ App will continue to load. Auth features will show error messages when accessed.');
-    } else if (firebaseInitialized) {
-      console.log('✅ Firebase initialized successfully');
-    }
-  }, []);
-
-  // Don't block rendering on font loading — render immediately so the
-  // native splash screen can dismiss. System fonts will be used briefly
-  // until custom fonts finish loading (typically < 100ms).
-  // Returning null here would keep the native splash visible forever
-  // if font loading stalls.
 
   return (
     <ErrorBoundary>
@@ -178,59 +91,5 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  errorContainer: {
-    flex: 1,
-    backgroundColor: Colors.mistWhite,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorContent: {
-    alignItems: 'center',
-    maxWidth: 400,
-  },
-  errorEmoji: {
-    fontSize: 64,
-    marginBottom: 20,
-  },
-  errorTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.softCharcoal,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  errorMessage: {
-    fontSize: 16,
-    color: Colors.mutedSageGray,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  errorDetails: {
-    backgroundColor: Colors.surface,
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 24,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  errorDetailsText: {
-    fontSize: 12,
-    color: Colors.error,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-  },
-  errorButton: {
-    backgroundColor: Colors.evergreenTeal,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  errorButtonText: {
-    color: Colors.textOnPrimary,
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

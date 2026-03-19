@@ -179,8 +179,10 @@ export const ModalFooterActions: React.FC<ModalFooterActionsProps> = ({
   submitLoading = false,
   submitDisabled = false,
 }) => {
-  // Import Button dynamically to avoid circular dependencies
-  const Button = require('../Button').default;
+  // Import Button lazily to avoid circular dependencies
+  // Using require with fallback to prevent "Cannot read property 'default' of undefined"
+  const ButtonModule = require('../Button');
+  const Button = ButtonModule?.default || ButtonModule;
 
   return (
     <View style={styles.footerActions}>

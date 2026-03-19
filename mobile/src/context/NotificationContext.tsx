@@ -11,7 +11,7 @@
 import React, { createContext, useContext, useEffect, useCallback, useRef, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useAuth } from './AuthContext';
-import { useNotificationPreferences } from '../hooks';
+import { useNotificationPreferences } from '../hooks/useNotificationPreferences';
 import { useToast } from './ToastContext';
 import {
   setForegroundNotificationHandler,

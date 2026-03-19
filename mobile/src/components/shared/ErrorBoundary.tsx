@@ -16,6 +16,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  componentStack: string | null;
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -24,6 +25,7 @@ class ErrorBoundary extends Component<Props, State> {
     this.state = {
       hasError: false,
       error: null,
+      componentStack: null,
     };
   }
 
@@ -38,6 +40,9 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     // Log the error to Crashlytics
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+
+    // Store component stack for display
+    this.setState({ componentStack: errorInfo.componentStack || null });
 
     // Safely log to crash reporting without causing additional crashes
     try {
@@ -70,9 +75,15 @@ class ErrorBoundary extends Component<Props, State> {
             <Text style={styles.message}>
               We'll look into this soon.
             </Text>
-            {__DEV__ && this.state.error && (
+            {this.state.error && (
               <View style={styles.errorDetails}>
                 <Text style={styles.errorText}>{this.state.error.toString()}</Text>
+                {this.state.componentStack && (
+                  <Text style={[styles.errorText, { marginTop: 8, color: '#666' }]}>
+                    Component stack:{'\n'}
+                    {this.state.componentStack.split('\n').slice(0, 8).join('\n')}
+                  </Text>
+                )}
               </View>
             )}
             <TouchableOpacity style={styles.button} onPress={this.handleReset}>

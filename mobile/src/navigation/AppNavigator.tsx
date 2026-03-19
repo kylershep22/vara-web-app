@@ -8,11 +8,14 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
-import { LoadingSpinner } from '../components';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { Colors } from '../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { AIAssistantFAB } from '../components/ai/AIAssistantFAB';
-import { useGoals, useHabits, useTasks, useSubscription } from '../hooks';
+import { useGoals } from '../hooks/useGoals';
+import { useHabits } from '../hooks/useHabits';
+import { useTasks } from '../hooks/useTasks';
+import { useSubscription } from '../hooks/useSubscription';
 import { linking } from './linking';
 
 // Auth screens
@@ -872,7 +875,7 @@ const AppNavigator: React.FC = () => {
 
     setupOnboardingListener();
 
-    // Safety timeout: if Firestore listener never fires, unblock after 10s
+    // Safety timeout: if Firestore listener never fires, unblock after 5s
     const onboardingTimeout = setTimeout(() => {
       setCheckingOnboarding((prev) => {
         if (prev) {
@@ -881,7 +884,7 @@ const AppNavigator: React.FC = () => {
         }
         return false;
       });
-    }, 10000);
+    }, 5000);
 
     // Cleanup listener and timeout on unmount or when dependencies change
     return () => {

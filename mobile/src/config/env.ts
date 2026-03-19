@@ -123,8 +123,9 @@ export const config: EnvConfig = {
   useEmulators: (process.env.EXPO_PUBLIC_USE_EMULATORS || 'false') === 'true',
 };
 
-// Validation: Log missing critical environment variables in development
-if (__DEV__) {
+// Validation: Log missing critical environment variables
+// Run in ALL environments so production config issues are visible in device logs
+{
   const missingVars: string[] = [];
 
   if (!config.firebaseApiKey) missingVars.push('EXPO_PUBLIC_FIREBASE_API_KEY');
@@ -132,23 +133,23 @@ if (__DEV__) {
   if (!config.firebaseAppId) missingVars.push('EXPO_PUBLIC_FIREBASE_APP_ID');
 
   if (missingVars.length > 0) {
-    console.warn(
-      '⚠️ Missing environment variables:\n',
+    // eslint-disable-next-line no-console
+    console.error(
+      '🚨 Missing critical environment variables:\n',
       missingVars.map(v => `  - ${v}`).join('\n'),
-      '\n\nPlease create a .env file based on .env.example'
+      '\n\nEnsure EXPO_PUBLIC_* vars are set in eas.json for production builds'
     );
   }
 
-  // Log active configuration (dev only, no secret values)
-  // Using console.log directly since logger may not be initialized yet
-  // and this block is already gated behind __DEV__
+  // Log active configuration (no secret values - safe for all environments)
   // eslint-disable-next-line no-console
   console.log(
     'App Configuration:\n' +
     `  Environment: ${config.environment}\n` +
     `  API URL: ${config.apiUrl}${config.apiBasePath}\n` +
     `  Firebase Project: ${config.firebaseProjectId}\n` +
-    `  API Key present: ${!!config.firebaseApiKey}`
+    `  API Key present: ${!!config.firebaseApiKey}\n` +
+    `  App ID present: ${!!config.firebaseAppId}`
   );
 }
 

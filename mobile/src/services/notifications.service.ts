@@ -13,11 +13,16 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 let _isForeground = AppState.currentState === 'active';
 let _onForegroundNotification: ((title: string, body: string) => void) | null = null;
+let _notificationHandlerReady = false;
 
-// Track foreground state
-AppState.addEventListener('change', (state: AppStateStatus) => {
-  _isForeground = state === 'active';
-});
+// Track foreground state — wrapped in try-catch to prevent module-load crashes
+try {
+  AppState.addEventListener('change', (state: AppStateStatus) => {
+    _isForeground = state === 'active';
+  });
+} catch (error) {
+  console.warn('Failed to attach AppState listener:', error);
+}
 
 /**
  * Register a callback for notifications received while foregrounded.
@@ -30,32 +35,39 @@ export function setForegroundNotificationHandler(
 }
 
 // Configure how notifications are handled when the app is foregrounded
-Notifications.setNotificationHandler({
-  handleNotification: async (notification) => {
-    if (_isForeground) {
-      // Route to in-app toast instead of system alert
-      const title = notification.request.content.title || '';
-      const body = notification.request.content.body || '';
-      if (_onForegroundNotification && (title || body)) {
-        _onForegroundNotification(title, body);
+// Wrapped in try-catch to prevent module-load crash in production builds
+// where the native notification module may not be ready yet
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async (notification) => {
+      if (_isForeground) {
+        // Route to in-app toast instead of system alert
+        const title = notification.request.content.title || '';
+        const body = notification.request.content.body || '';
+        if (_onForegroundNotification && (title || body)) {
+          _onForegroundNotification(title, body);
+        }
+        return {
+          shouldShowAlert: false,
+          shouldPlaySound: false,
+          shouldSetBadge: false,
+          shouldShowBanner: false,
+          shouldShowList: false,
+        };
       }
       return {
-        shouldShowAlert: false,
-        shouldPlaySound: false,
-        shouldSetBadge: false,
-        shouldShowBanner: false,
-        shouldShowList: false,
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
       };
-    }
-    return {
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    };
-  },
-});
+    },
+  });
+  _notificationHandlerReady = true;
+} catch (error) {
+  console.error('Failed to set notification handler (non-fatal):', error);
+}
 
 /**
  * Request notification permissions from the user

@@ -1,6 +1,7 @@
 /**
  * Loading Spinner Component
- * Displays a centered loading indicator
+ * Displays a centered loading indicator with brand text
+ * so users know the app is loading (not stuck on splash).
  */
 
 import React from 'react';
@@ -20,6 +21,9 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => {
   return (
     <View style={[styles.container, fullScreen && styles.fullScreen]}>
+      {fullScreen && (
+        <Text style={styles.brandText}>vara</Text>
+      )}
       <ActivityIndicator
         size={size}
         color={Colors.evergreenTeal}
@@ -43,6 +47,13 @@ const styles = StyleSheet.create({
   fullScreen: {
     flex: 1,
     backgroundColor: Colors.background.default,
+  },
+  brandText: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
+    letterSpacing: 2,
+    marginBottom: 24,
   },
   spinner: {
     marginBottom: Spacing.base,

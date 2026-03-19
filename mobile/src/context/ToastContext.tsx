@@ -19,8 +19,11 @@ import React, {
   ReactNode,
 } from 'react';
 import { DiscoverableFeatureId } from '../types/featureDiscovery';
-import UnlockToast from '../components/discovery/UnlockToast';
-import NotificationToast from '../components/shared/NotificationToast';
+
+// Lazy imports to break circular dependency:
+// ToastContext → components → hooks barrel → contexts → ToastContext
+const UnlockToast = React.lazy(() => import('../components/discovery/UnlockToast'));
+const NotificationToast = React.lazy(() => import('../components/shared/NotificationToast'));
 
 interface NotificationToastData {
   title: string;
@@ -155,26 +158,28 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {currentFeature && (
-        <UnlockToast
-          featureId={currentFeature}
-          visible={isToastVisible}
-          onDismiss={handleToastDismiss}
-          autoDismissDelay={TOAST_DISPLAY_DURATION}
-        />
-      )}
-      {notificationToast && (
-        <NotificationToast
-          title={notificationToast.title}
-          body={notificationToast.body}
-          visible={isNotificationToastVisible}
-          onDismiss={handleNotificationToastDismiss}
-          onTap={notificationToast.onTap}
-          autoDismissDelay={notificationToast.actionLabel ? 4000 : TOAST_DISPLAY_DURATION}
-          actionLabel={notificationToast.actionLabel}
-          onAction={notificationToast.onAction}
-        />
-      )}
+      <React.Suspense fallback={null}>
+        {currentFeature && (
+          <UnlockToast
+            featureId={currentFeature}
+            visible={isToastVisible}
+            onDismiss={handleToastDismiss}
+            autoDismissDelay={TOAST_DISPLAY_DURATION}
+          />
+        )}
+        {notificationToast && (
+          <NotificationToast
+            title={notificationToast.title}
+            body={notificationToast.body}
+            visible={isNotificationToastVisible}
+            onDismiss={handleNotificationToastDismiss}
+            onTap={notificationToast.onTap}
+            autoDismissDelay={notificationToast.actionLabel ? 4000 : TOAST_DISPLAY_DURATION}
+            actionLabel={notificationToast.actionLabel}
+            onAction={notificationToast.onAction}
+          />
+        )}
+      </React.Suspense>
     </ToastContext.Provider>
   );
 };

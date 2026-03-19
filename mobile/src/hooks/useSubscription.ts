@@ -110,7 +110,7 @@ export function useSubscription(): UseSubscriptionResult {
       }
     );
 
-    // Timeout: if listener doesn't fire within 8s, assume trial access
+    // Timeout: if listener doesn't fire within 4s, assume trial access
     const timeoutId = setTimeout(() => {
       setLoading((current) => {
         if (current) {
@@ -120,7 +120,7 @@ export function useSubscription(): UseSubscriptionResult {
         }
         return current;
       });
-    }, 8000);
+    }, 4000);
 
     return () => {
       clearTimeout(timeoutId);
