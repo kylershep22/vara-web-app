@@ -25,6 +25,7 @@ import {
   CompletionMessages,
 } from '../../../tokens/design-tokens';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { useCompletionSound } from '../../../hooks/useCompletionSound';
 
 interface RoutineCompleteStateProps {
   /** Callback when "Back to Focus" is pressed */
@@ -41,6 +42,7 @@ export const RoutineCompleteState: React.FC<RoutineCompleteStateProps> = ({
   routineName,
 }) => {
   const reduceMotion = useReducedMotion();
+  const { playCompletionSound } = useCompletionSound();
   const fadeAnim = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
 
   // Get random completion message
@@ -60,6 +62,7 @@ export const RoutineCompleteState: React.FC<RoutineCompleteStateProps> = ({
 
     // Haptic feedback on mount
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    playCompletionSound();
   }, [reduceMotion]);
 
   const handleBackToFocus = () => {
