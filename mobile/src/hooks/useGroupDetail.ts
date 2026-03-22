@@ -314,21 +314,31 @@ export function useGroupDetail(groupId: string, initialGroupName?: string) {
       Alert.alert('Join Required', 'Join this group to support posts');
       return false;
     }
+    // Optimistic update
+    setPosts(prev => prev.map(post => {
+      if (post.id !== postId) return post;
+      const nowLiked = !post.isLiked;
+      return {
+        ...post,
+        isLiked: nowLiked,
+        likesCount: nowLiked ? post.likesCount + 1 : Math.max(0, post.likesCount - 1),
+      };
+    }));
+
     try {
       await togglePostLike(postId, user.uid);
-      setPosts(prev => prev.map(post => {
-        if (post.id === postId) {
-          const isLiked = post.isLiked;
-          return {
-            ...post,
-            isLiked: !isLiked,
-            likesCount: isLiked ? post.likesCount - 1 : post.likesCount + 1,
-          };
-        }
-        return post;
-      }));
       return true;
     } catch (error) {
+      // Revert using functional updater to avoid stale closure
+      setPosts(prev => prev.map(post => {
+        if (post.id !== postId) return post;
+        const reverted = !post.isLiked;
+        return {
+          ...post,
+          isLiked: reverted,
+          likesCount: reverted ? post.likesCount + 1 : Math.max(0, post.likesCount - 1),
+        };
+      }));
       return false;
     }
   }, [user, group]);
