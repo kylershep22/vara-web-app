@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -265,8 +265,8 @@ export const PendingInvitesSection: React.FC<PendingInvitesSectionProps> = ({
     );
   };
 
-  // Don't render if no invites
-  if (!loading && totalInvites === 0) {
+  // Don't render if loading or no invites
+  if (loading || totalInvites === 0) {
     return null;
   }
 
@@ -309,29 +309,21 @@ export const PendingInvitesSection: React.FC<PendingInvitesSectionProps> = ({
       {/* Content */}
       {(expanded || !collapsible) && (
         <View style={styles.content}>
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color={Colors.evergreenTeal} size="small" />
-            </View>
-          ) : (
-            <>
-              {visibleInvites.map(({ type, data }) =>
-                type === 'group'
-                  ? renderGroupInvite(data as GroupInvite)
-                  : renderChallengeInvite(data as ChallengeInvite)
-              )}
-              {hasMore && !expanded && (
-                <TouchableOpacity
-                  style={styles.seeAllButton}
-                  onPress={toggleExpanded}
-                >
-                  <Text style={styles.seeAllText}>
-                    See all {totalInvites} invites
-                  </Text>
-                  <Icon name="chevron-right" size={16} color={Colors.evergreenTeal} />
-                </TouchableOpacity>
-              )}
-            </>
+          {visibleInvites.map(({ type, data }) =>
+            type === 'group'
+              ? renderGroupInvite(data as GroupInvite)
+              : renderChallengeInvite(data as ChallengeInvite)
+          )}
+          {hasMore && !expanded && (
+            <TouchableOpacity
+              style={styles.seeAllButton}
+              onPress={toggleExpanded}
+            >
+              <Text style={styles.seeAllText}>
+                See all {totalInvites} invites
+              </Text>
+              <Icon name="chevron-right" size={16} color={Colors.evergreenTeal} />
+            </TouchableOpacity>
           )}
         </View>
       )}
@@ -386,10 +378,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Spacing.base,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.base,
   },
   inviteCard: {
     marginBottom: Spacing.sm,

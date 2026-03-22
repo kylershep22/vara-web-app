@@ -152,7 +152,7 @@ const CommunityScreen: React.FC = () => {
           data={filteredPosts}
           renderItem={renderPost}
           keyExtractor={(item) => item.id}
-          ListHeaderComponent={renderHeader}
+          ListHeaderComponent={renderHeader()}
           contentContainerStyle={styles.feedContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
