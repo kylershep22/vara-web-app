@@ -170,9 +170,13 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
       maxHeightPercent={0.9}
       footer={
         <View style={styles.footer}>
-          {/* Left side: Back button */}
+          {/* Left side: Cancel on first step, Back on others */}
           <View style={styles.footerLeft}>
-            {!isFirstStep && (
+            {isFirstStep ? (
+              <TouchableOpacity onPress={onDismiss} style={styles.backButton}>
+                <Text style={styles.backButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            ) : (
               <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                 <Text style={styles.backButtonText}>Back</Text>
               </TouchableOpacity>

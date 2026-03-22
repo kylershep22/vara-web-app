@@ -20,6 +20,7 @@ import {
   Dimensions,
   Modal,
   Text,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -46,6 +47,8 @@ interface EnhancedModalProps {
   headerIcon?: string;
   /** Whether the modal has input fields */
   hasInputs?: boolean;
+  /** Whether to show the close (X) button in the header */
+  showCloseButton?: boolean;
   /** Test ID for testing */
   testID?: string;
 }
@@ -62,6 +65,7 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
   showKeyboardToolbar = true,
   headerIcon,
   hasInputs = true,
+  showCloseButton = true,
   testID,
 }) => {
   const insets = useSafeAreaInsets();
@@ -119,6 +123,17 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
                     </Text>
                   )}
                 </View>
+                {showCloseButton && (
+                  <TouchableOpacity
+                    onPress={handleDismiss}
+                    style={styles.closeButton}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel="Close"
+                    accessibilityRole="button"
+                  >
+                    <Icon name="close" size={22} color={Colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
@@ -260,6 +275,15 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.dewSage,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: Spacing.sm,
   },
   title: {
     color: Colors.evergreenTeal,
