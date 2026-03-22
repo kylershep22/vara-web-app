@@ -18,7 +18,11 @@ import {
   cancelAllNotifications,
   registerAndSaveFCMToken,
   isServerPushEnabled,
+  addNotificationResponseListener,
 } from '../services/notifications.service';
+import { syncAllReminders } from '../services/reminderScheduler.service';
+import { isHabitCompletedToday } from '../services/firebase/habits.service';
+import { navigationRef } from '../navigation/AppNavigator';
 import {
   initializeUserNotifications,
   updateNotificationsFromPreferences,
@@ -53,10 +57,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Register foreground notification handler → route to toast
   useEffect(() => {
-    setForegroundNotificationHandler((title: string, body: string) => {
+    setForegroundNotificationHandler(async (title: string, body: string, data?: Record<string, unknown>) => {
+      // Suppress habit reminders for already-completed habits
+      if (data?.type === 'habit-reminder' && data?.habitId) {
+        try {
+          const completed = await isHabitCompletedToday(data.habitId as string);
+          if (completed) return; // Suppress
+        } catch {
+          // If check fails, show the notification anyway
+        }
+      }
       showNotificationToast(title, body);
     });
-  }, [showNotificationToast]);
+  }, [showNotificationToast, user?.uid]);
 
   // Register FCM token and check feature flag on login
   useEffect(() => {
@@ -96,6 +109,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Local scheduling as fallback when server push is off
         initializeUserNotifications(user.uid);
       }
+      // Always sync reminders (independent of server push toggle)
+      syncAllReminders(user.uid);
     }
   }, [user?.uid, user?.emailVerified, preferences?.allNotificationsEnabled, serverPush]);
 
@@ -105,6 +120,22 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       updateNotificationsFromPreferences(user.uid, preferences);
     }
   }, [user?.uid, preferences, serverPush]);
+
+  // Deep link routing for notification taps
+  useEffect(() => {
+    const subscription = addNotificationResponseListener((response) => {
+      const data = response.notification.request.content.data;
+      if (!data?.type || !navigationRef.isReady()) return;
+
+      if (data.type === 'habit-reminder') {
+        navigationRef.navigate('Track' as never);
+      } else if (data.type === 'routine-reminder') {
+        navigationRef.navigate('Focus' as never);
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   // Cancel all notifications when user logs out
   useEffect(() => {
