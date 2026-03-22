@@ -29,13 +29,20 @@ interface AIAssistantFABProps {
   };
 }
 
-// Abstract Ribbon V Icon Component
-const VaraIcon = ({ size = 40, color = MIST_WHITE }: { size?: number; color?: string }) => (
+// Chat bubble with Vara "V" — clearly signals AI chat while keeping brand identity
+const VaraChatIcon = ({ size = 40, color = MIST_WHITE }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+    {/* Chat bubble shape */}
     <Path
-      d="M20 20 Q35 50 50 80 Q65 50 80 20"
+      d="M12 18 C12 12 18 6 28 6 L72 6 C82 6 88 12 88 18 L88 58 C88 64 82 70 72 70 L32 70 L20 82 L20 70 L28 70 C18 70 12 64 12 58 Z"
+      fill={color}
+      opacity={0.2}
+    />
+    {/* V inside the bubble */}
+    <Path
+      d="M32 24 Q42 46 50 60 Q58 46 68 24"
       stroke={color}
-      strokeWidth={10}
+      strokeWidth={7}
       strokeLinecap="round"
       strokeLinejoin="round"
       fill="none"
@@ -90,7 +97,7 @@ export function AIAssistantFAB({ context }: AIAssistantFABProps) {
             end={{ x: 1, y: 1 }}
             style={styles.fab}
           >
-            <VaraIcon size={40} color={MIST_WHITE} />
+            <VaraChatIcon size={40} color={MIST_WHITE} />
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
