@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +17,8 @@ import { useHabits } from '../hooks/useHabits';
 import { useTasks } from '../hooks/useTasks';
 import { useSubscription } from '../hooks/useSubscription';
 import { linking } from './linking';
+
+export const navigationRef = createNavigationContainerRef();
 
 // Auth screens
 import {
@@ -924,7 +926,7 @@ const AppNavigator: React.FC = () => {
   const navigationKey = `nav-${user?.uid || 'anon'}-${user?.emailVerified ? 'verified' : 'unverified'}-${hasCompletedOnboarding}-${refreshCounter}`;
 
   return (
-    <NavigationContainer key={navigationKey} linking={linking}>
+    <NavigationContainer key={navigationKey} linking={linking} ref={navigationRef}>
       {!user ? (
         // User is not logged in -> Show auth screens
         <AuthNavigator />
