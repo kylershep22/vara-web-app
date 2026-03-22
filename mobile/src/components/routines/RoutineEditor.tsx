@@ -34,6 +34,7 @@ import {
   createActivityFromTemplate,
   ActivityTemplate,
 } from '../../constants/activityLibrary';
+import { scheduleRoutineReminder, cancelRoutineReminder } from '../../services/reminderScheduler.service';
 
 interface RoutineEditorProps {
   userId: string;
@@ -145,16 +146,37 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
           activities,
           reminderTime: reminderTime.trim() || null,
         });
+        // Re-schedule reminder
+        await cancelRoutineReminder(existingRoutine.id);
+        if (reminderTime.trim()) {
+          await scheduleRoutineReminder({
+            ...existingRoutine,
+            name: routineName.trim(),
+            activities,
+            reminderTime: reminderTime.trim(),
+          });
+        }
         Alert.alert('Success', 'Routine updated successfully!');
       } else {
         // Create new routine
-        await createRoutine(userId, {
+        const routineId = await createRoutine(userId, {
           name: routineName.trim(),
           type: routineType,
           activities,
           active: true,
           reminderTime: reminderTime.trim() || null,
         });
+        if (reminderTime.trim()) {
+          await scheduleRoutineReminder({
+            id: routineId,
+            userId,
+            name: routineName.trim(),
+            type: routineType,
+            activities,
+            active: true,
+            reminderTime: reminderTime.trim(),
+          } as any);
+        }
         Alert.alert('Success', 'Routine created successfully! 🎉');
       }
       onSave();
