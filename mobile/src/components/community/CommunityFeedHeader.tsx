@@ -77,7 +77,7 @@ export const CommunityFeedHeader: React.FC<CommunityFeedHeaderProps> = ({
       {/* Feed Filter Pills */}
       <View style={styles.filterPillsContainer}>
         {(['all', 'groups', 'connections'] as const).map((filter) => {
-          const labels = { all: 'All', groups: 'My Groups', connections: 'Connections' };
+          const labels = { all: 'All Posts', groups: 'Group Posts', connections: 'User Posts' };
           const isActive = feedFilter === filter;
           return (
             <TouchableOpacity
@@ -153,18 +153,21 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   filterPill: {
-    backgroundColor: Colors.dewSageLight,
-    borderRadius: Layout.borderRadius.pill,
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
     paddingVertical: 8,
     paddingHorizontal: Spacing.base,
   },
   filterPillActive: {
     backgroundColor: Colors.evergreenTeal,
+    borderColor: Colors.evergreenTeal,
   },
   filterPillText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: Typography.fontWeight.medium,
-    color: Colors.mutedSageGray,
+    color: Colors.softCharcoal,
   },
   filterPillTextActive: {
     color: Colors.white,
