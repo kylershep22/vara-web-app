@@ -3,11 +3,19 @@
  * Restyled to match Vara Community UI mockup
  */
 
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Platform, Image, Alert } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, Platform, Image, Alert, AccessibilityInfo } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+  Easing,
+} from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { CommunityAvatar } from '../shared/CommunityAvatar';
+import { HeartIcon } from './HeartIcon';
 
 interface Comment {
   userId: string;
@@ -18,7 +26,7 @@ interface Comment {
 
 interface PostCardProps {
   post: any;
-  onLike: (postId: string) => void;
+  onLike: (postId: string) => Promise<boolean>;
   onComment: (post: any) => void;
   formatTimestamp: (post: any) => string;
   disabled?: boolean;
@@ -47,6 +55,63 @@ const PostCardComponent: React.FC<PostCardProps> = ({
   const likesCount = post.likesCount || 0;
   const commentsCount = post.commentsCount || 0;
   const avatarUrl = post.author?.avatarUrl || post.author?.avatar;
+
+  const [supportError, setSupportError] = useState<string | null>(null);
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isProcessingRef = useRef(false);
+  const heartScale = useSharedValue(1);
+
+  const heartAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: heartScale.value }],
+  }));
+
+  // Clean up error timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+    };
+  }, []);
+
+  const handleSupportPress = async () => {
+    if (disabled) {
+      Alert.alert('Join Required', disabledMessage);
+      return;
+    }
+
+    // Guard against rapid double-taps
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
+    // Clear any existing error
+    if (errorTimeoutRef.current) {
+      clearTimeout(errorTimeoutRef.current);
+      setSupportError(null);
+    }
+
+    const wasLiked = post.isLiked;
+
+    // Animate heart scale on support (not on unsupport)
+    if (!wasLiked) {
+      heartScale.value = withSequence(
+        withTiming(1.15, { duration: 200, easing: Easing.ease }),
+        withTiming(1, { duration: 200, easing: Easing.ease }),
+      );
+    }
+
+    // Announce state change to screen reader
+    const announcement = wasLiked ? 'Support removed' : 'Supported';
+    AccessibilityInfo.announceForAccessibility(announcement);
+
+    const success = await onLike(post.id);
+    if (!success) {
+      setSupportError("Couldn't save that \u2014 try again when you're ready.");
+      errorTimeoutRef.current = setTimeout(() => {
+        setSupportError(null);
+      }, 3000);
+    }
+
+    isProcessingRef.current = false;
+  };
 
   const isChallengePost = !!(post.challengeId && post.challengeName);
 
@@ -169,22 +234,22 @@ const PostCardComponent: React.FC<PostCardProps> = ({
         <TouchableOpacity
           style={[
             styles.actionButton,
-            post.isLiked && styles.actionButtonActive,
+            post.isLiked ? styles.supportButtonActive : styles.supportButtonDefault,
             disabled && styles.actionButtonDisabled,
           ]}
-          onPress={() => {
-            if (disabled) {
-              Alert.alert('Join Required', disabledMessage);
-              return;
-            }
-            onLike(post.id);
-          }}
+          onPress={handleSupportPress}
+          accessibilityLabel={post.isLiked ? 'Remove support from this post' : 'Support this post'}
+          accessibilityRole="button"
+          activeOpacity={0.7}
         >
+          <Animated.View style={heartAnimatedStyle}>
+            <HeartIcon filled={post.isLiked} />
+          </Animated.View>
           <Text style={[
-            styles.actionText,
-            post.isLiked && styles.actionTextActive,
+            styles.supportButtonText,
+            post.isLiked && styles.supportButtonTextActive,
           ]}>
-            {'\u2661'} Support
+            {post.isLiked ? 'Supported' : 'Support'}
           </Text>
         </TouchableOpacity>
 
@@ -203,6 +268,13 @@ const PostCardComponent: React.FC<PostCardProps> = ({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Inline error for failed support toggle */}
+      {supportError && (
+        <View style={styles.errorRow}>
+          <Text style={styles.errorText}>{supportError}</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -386,12 +458,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 36,
+    minHeight: 48,
     borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.dewSageLight,
-  },
-  actionButtonActive: {
-    backgroundColor: Colors.tealLight,
   },
   actionButtonDisabled: {
     opacity: 0.5,
@@ -401,7 +470,32 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
     color: Colors.evergreenTeal,
   },
-  actionTextActive: {
+  supportButtonDefault: {
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
+  },
+  supportButtonActive: {
+    backgroundColor: Colors.dewSage,
+    borderWidth: 1.5,
+    borderColor: Colors.evergreenTeal,
+  },
+  supportButtonText: {
+    fontSize: 12.5,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+    marginLeft: Spacing.sm,
+  },
+  supportButtonTextActive: {
+    fontWeight: Typography.fontWeight.semibold,
     color: Colors.evergreenTeal,
+  },
+  errorRow: {
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.sm,
+  },
+  errorText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.softCoral,
   },
 });
