@@ -119,11 +119,12 @@ export function useCommunityFeed() {
     setSelectedPostType(null);
   }, [user, createPost, selectedPostType]);
 
-  const handleLike = useCallback(async (postId: string) => {
+  const handleLike = useCallback(async (postId: string): Promise<boolean> => {
     try {
-      await likePost(postId);
+      const success = await likePost(postId);
+      return success;
     } catch (error) {
-      Alert.alert('Error', 'Failed to like post');
+      return false;
     }
   }, [likePost]);
 

@@ -308,11 +308,11 @@ export function useGroupDetail(groupId: string, initialGroupName?: string) {
     await loadGroupData();
   }, [user, groupId, loadGroupData]);
 
-  const handleLikePost = useCallback(async (postId: string) => {
-    if (!user) return;
+  const handleLikePost = useCallback(async (postId: string): Promise<boolean> => {
+    if (!user) return false;
     if (!group?.members.includes(user.uid)) {
       Alert.alert('Join Required', 'Join this group to support posts');
-      return;
+      return false;
     }
     try {
       await togglePostLike(postId, user.uid);
@@ -327,8 +327,9 @@ export function useGroupDetail(groupId: string, initialGroupName?: string) {
         }
         return post;
       }));
+      return true;
     } catch (error) {
-      Alert.alert('Error', 'Failed to like post');
+      return false;
     }
   }, [user, group]);
 
