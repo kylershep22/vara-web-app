@@ -28,6 +28,7 @@ import {
   TypographyTokens,
 } from '../../tokens/design-tokens';
 import { useTimer, useNotificationSilence, useAmbientSound } from '../../hooks';
+import { useCompletionSound } from '../../hooks/useCompletionSound';
 import {
   TimerRing,
   DurationChips,
@@ -49,6 +50,7 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   showAdvancedDuration = true,
 }) => {
   const { user } = useAuth();
+  const { playCompletionSound } = useCompletionSound();
 
   // Task label state
   const [taskLabel, setTaskLabel] = useState('');
@@ -115,6 +117,7 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
 
   // Session complete handler - log to Firestore
   async function handleSessionComplete() {
+    playCompletionSound();
     if (user && db) {
       try {
         await addDoc(collection(db, 'focusSessions'), {
