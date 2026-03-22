@@ -297,14 +297,40 @@ export const useFeed = () => {
     }
   };
 
-  const handleLikePost = async (postId: string) => {
-    if (!user) return;
+  const handleLikePost = async (postId: string): Promise<boolean> => {
+    if (!user) return false;
+
+    // Optimistic update
+    setPosts((current) =>
+      current.map((p) => {
+        if (p.id !== postId) return p;
+        const nowLiked = !p.isLiked;
+        return {
+          ...p,
+          isLiked: nowLiked,
+          likesCount: nowLiked ? p.likesCount + 1 : Math.max(0, p.likesCount - 1),
+        };
+      })
+    );
 
     try {
       await togglePostLike(postId, user.uid);
+      return true;
     } catch (err) {
       logger.error('Error liking post:', err);
-      throw err;
+      // Revert using functional updater to avoid stale closure
+      setPosts((current) =>
+        current.map((p) => {
+          if (p.id !== postId) return p;
+          const reverted = !p.isLiked;
+          return {
+            ...p,
+            isLiked: reverted,
+            likesCount: reverted ? p.likesCount + 1 : Math.max(0, p.likesCount - 1),
+          };
+        })
+      );
+      return false;
     }
   };
 
