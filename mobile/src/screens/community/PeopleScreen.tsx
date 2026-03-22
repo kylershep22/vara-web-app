@@ -335,35 +335,41 @@ const PeopleScreen: React.FC = () => {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.suggestionsScroll}
                 >
-                  {suggestions.map((suggestion) => (
-                    <TouchableOpacity
-                      key={suggestion.uid}
-                      style={styles.suggestionCard}
-                      onPress={() => handleViewProfile(suggestion.uid)}
-                    >
-                      <CommunityAvatar
-                        name={suggestion.displayName || 'U'}
-                        photoURL={suggestion.avatar || suggestion.avatarUrl || null}
-                        size={48}
-                      />
-                      <Text style={styles.suggestionName} numberOfLines={1}>
-                        {suggestion.displayName || 'Unknown'}
-                      </Text>
-                      <Text style={styles.suggestionReason} numberOfLines={2}>
-                        {suggestion.suggestionReason === 'group'
-                          ? suggestion.sharedGroupNames?.[0] || 'Shared group'
-                          : suggestion.suggestionReason === 'interests'
-                          ? 'Similar interests'
-                          : 'Mutual connection'}
-                      </Text>
+                  {suggestions.map((suggestion) => {
+                    const pending = hasPendingRequest(suggestion.uid);
+                    return (
                       <TouchableOpacity
-                        style={styles.sayHelloBtn}
-                        onPress={() => handleSendRequest(suggestion.uid, suggestion.displayName)}
+                        key={suggestion.uid}
+                        style={styles.suggestionCard}
+                        onPress={() => handleViewProfile(suggestion.uid)}
                       >
-                        <Text style={styles.sayHelloBtnText}>Say hello</Text>
+                        <CommunityAvatar
+                          name={suggestion.displayName || 'U'}
+                          photoURL={suggestion.avatar || suggestion.avatarUrl || null}
+                          size={48}
+                        />
+                        <Text style={styles.suggestionName} numberOfLines={1}>
+                          {suggestion.displayName || 'Unknown'}
+                        </Text>
+                        <Text style={styles.suggestionReason} numberOfLines={2}>
+                          {suggestion.suggestionReason === 'group'
+                            ? suggestion.sharedGroupNames?.[0] || 'Shared group'
+                            : suggestion.suggestionReason === 'interests'
+                            ? 'Similar interests'
+                            : 'Mutual connection'}
+                        </Text>
+                        <TouchableOpacity
+                          style={[styles.sayHelloBtn, pending && styles.sayHelloBtnPending]}
+                          onPress={() => handleSendRequest(suggestion.uid, suggestion.displayName)}
+                          disabled={pending}
+                        >
+                          <Text style={[styles.sayHelloBtnText, pending && styles.sayHelloBtnTextPending]}>
+                            {pending ? 'Pending' : 'Say hello'}
+                          </Text>
+                        </TouchableOpacity>
                       </TouchableOpacity>
-                    </TouchableOpacity>
-                  ))}
+                    );
+                  })}
                 </ScrollView>
               </View>
             )}
@@ -674,10 +680,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.evergreenTeal,
   },
+  sayHelloBtnPending: {
+    borderColor: Colors.mutedSageGray,
+    opacity: 0.6,
+  },
   sayHelloBtnText: {
     fontSize: 14,
     fontWeight: '500',
     color: Colors.evergreenTeal,
+  },
+  sayHelloBtnTextPending: {
+    color: Colors.mutedSageGray,
   },
 
   // ── Connection List Section ─────────────────────────

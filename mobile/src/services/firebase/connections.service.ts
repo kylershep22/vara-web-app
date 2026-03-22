@@ -49,27 +49,43 @@ export async function getConnectionIds(userId: string): Promise<string[]> {
   if (!db) return [];
   const connectionsRef = collection(db, 'connections');
 
-  // Query where user is 'a'
+  // Query web app format (participants array)
+  const queryWeb = query(
+    connectionsRef,
+    where('participants', 'array-contains', userId),
+    where('status', '==', 'accepted')
+  );
+
+  // Query mobile app format (a/b fields)
   const queryA = query(
     connectionsRef,
     where('a', '==', userId),
     where('status', '==', 'accepted')
   );
 
-  // Query where user is 'b'
   const queryB = query(
     connectionsRef,
     where('b', '==', userId),
     where('status', '==', 'accepted')
   );
 
-  const [snapshotA, snapshotB] = await Promise.all([
+  const [snapshotWeb, snapshotA, snapshotB] = await Promise.all([
+    getDocs(queryWeb),
     getDocs(queryA),
     getDocs(queryB),
   ]);
 
   const connectionIds: string[] = [];
 
+  // Web format: extract the other participant
+  snapshotWeb.forEach((doc) => {
+    const data = doc.data();
+    const participants: string[] = data.participants || [];
+    const otherId = participants.find((id: string) => id !== userId);
+    if (otherId) connectionIds.push(otherId);
+  });
+
+  // Mobile format
   snapshotA.forEach((doc) => {
     const data = doc.data();
     connectionIds.push(data.b);
@@ -81,6 +97,47 @@ export async function getConnectionIds(userId: string): Promise<string[]> {
   });
 
   return [...new Set(connectionIds)]; // Remove duplicates
+}
+
+/**
+ * Get all user IDs with a pending connection (sent or received) for a user
+ */
+export async function getPendingConnectionIds(userId: string): Promise<string[]> {
+  if (!db) return [];
+  const connectionsRef = collection(db, 'connections');
+
+  // Web format: pending requests sent by user
+  const querySent = query(
+    connectionsRef,
+    where('requesterId', '==', userId),
+    where('status', '==', 'pending')
+  );
+
+  // Web format: pending requests received by user
+  const queryReceived = query(
+    connectionsRef,
+    where('addresseeId', '==', userId),
+    where('status', '==', 'pending')
+  );
+
+  const [sentSnapshot, receivedSnapshot] = await Promise.all([
+    getDocs(querySent),
+    getDocs(queryReceived),
+  ]);
+
+  const pendingIds: string[] = [];
+
+  sentSnapshot.forEach((doc) => {
+    const data = doc.data();
+    if (data.addresseeId) pendingIds.push(data.addresseeId);
+  });
+
+  receivedSnapshot.forEach((doc) => {
+    const data = doc.data();
+    if (data.requesterId) pendingIds.push(data.requesterId);
+  });
+
+  return [...new Set(pendingIds)];
 }
 
 /**
@@ -172,7 +229,11 @@ export async function getSuggestedConnections(
   const suggestions: Map<string, EnhancedUserProfile> = new Map();
   const existingConnections = await getConnectionIds(currentUserId);
 
-  // Helper to add a suggestion if not already connected or self
+  // Also exclude users with pending requests (sent or received)
+  const pendingIds = await getPendingConnectionIds(currentUserId);
+  const excludedIds = new Set([...existingConnections, ...pendingIds]);
+
+  // Helper to add a suggestion if not already connected, pending, or self
   const addSuggestion = (
     profile: EnhancedUserProfile,
     reason: 'group' | 'interests' | 'friends_of_friends',
@@ -180,7 +241,7 @@ export async function getSuggestedConnections(
   ) => {
     if (
       profile.uid === currentUserId ||
-      existingConnections.includes(profile.uid) ||
+      excludedIds.has(profile.uid) ||
       suggestions.has(profile.uid)
     ) {
       return;
@@ -224,7 +285,7 @@ export async function getSuggestedConnections(
     groupNameMap.set(groupDoc.id, groupData.name || 'Unnamed Group');
     const members: string[] = groupData.members || [];
     members.forEach((id) => {
-      if (id !== currentUserId && !existingConnections.includes(id)) {
+      if (id !== currentUserId && !excludedIds.has(id)) {
         allMemberIds.add(id);
       }
     });
@@ -323,7 +384,7 @@ export async function getSuggestedConnections(
 
       for (const fofId of friendsOfFriend) {
         if (suggestions.size >= maxSuggestions) break;
-        if (fofId === currentUserId || existingConnections.includes(fofId)) continue;
+        if (fofId === currentUserId || excludedIds.has(fofId)) continue;
 
         const fofDoc = await getDoc(doc(db, 'users', fofId));
         if (fofDoc.exists()) {

@@ -466,6 +466,37 @@ export const sendConnectionRequest = async (
       throw new Error('Cannot connect to yourself');
     }
 
+    const firestore = ensureFirestore();
+    const connectionsRef = collection(firestore, CONNECTIONS_COLLECTION);
+
+    // Check for existing pending or accepted connection between these users
+    // Check both directions: requester->addressee and addressee->requester
+    const [existingAsRequester, existingAsAddressee] = await Promise.all([
+      getDocs(query(
+        connectionsRef,
+        where('requesterId', '==', requesterId),
+        where('addresseeId', '==', addresseeId),
+        where('status', 'in', ['pending', 'accepted'])
+      )),
+      getDocs(query(
+        connectionsRef,
+        where('requesterId', '==', addresseeId),
+        where('addresseeId', '==', requesterId),
+        where('status', 'in', ['pending', 'accepted'])
+      )),
+    ]);
+
+    if (!existingAsRequester.empty || !existingAsAddressee.empty) {
+      const existingStatus = !existingAsRequester.empty
+        ? existingAsRequester.docs[0].data().status
+        : existingAsAddressee.docs[0].data().status;
+      throw new Error(
+        existingStatus === 'accepted'
+          ? 'You are already connected with this user'
+          : 'A connection request is already pending'
+      );
+    }
+
     // Use web app format - addDoc with auto-generated ID
     const connectionData = {
       requesterId: requesterId,
@@ -482,8 +513,7 @@ export const sendConnectionRequest = async (
       status: connectionData.status,
     });
 
-    // Use addDoc like web app (auto-generated ID)
-    const docRef = await addDoc(collection(ensureFirestore(), CONNECTIONS_COLLECTION), connectionData);
+    const docRef = await addDoc(connectionsRef, connectionData);
     console.log('[sendConnectionRequest] Connection created successfully with ID:', docRef.id);
 
     return docRef.id;
@@ -628,16 +658,17 @@ export const fetchIncomingConnectionRequests = async (
 
     console.log('[fetchIncomingRequests] Query results - web:', webSnapshot.docs.length, 'mobile(a):', mobile1Snapshot.docs.length, 'mobile(b):', mobile2Snapshot.docs.length);
 
-    // Combine all results, avoiding duplicates
-    const requestMap = new Map();
+    // Combine all results, deduplicate by requester so only one card per person
+    const requestByRequester = new Map();
 
     [...webSnapshot.docs, ...mobile1Snapshot.docs, ...mobile2Snapshot.docs].forEach((doc) => {
       const data = doc.data();
       const requester = data.requester || data.requesterId || '';
 
       // Only include if user is NOT the requester (incoming requests only)
-      if (requester !== userId) {
-        requestMap.set(doc.id, {
+      if (requester && requester !== userId) {
+        const existing = requestByRequester.get(requester);
+        const entry = {
           id: doc.id,
           a: data.a || (data.participants ? data.participants[0] : ''),
           b: data.b || (data.participants ? data.participants[1] : ''),
@@ -645,11 +676,16 @@ export const fetchIncomingConnectionRequests = async (
           requester,
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
-        });
+        };
+
+        // Keep the most recent request per requester
+        if (!existing || (data.createdAt && existing.createdAt && data.createdAt > existing.createdAt)) {
+          requestByRequester.set(requester, entry);
+        }
       }
     });
 
-    const requests = Array.from(requestMap.values());
+    const requests = Array.from(requestByRequester.values());
     console.log('[fetchIncomingRequests] Total incoming requests found:', requests.length);
 
     return requests as Connection[];
