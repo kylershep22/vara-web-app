@@ -3,7 +3,8 @@
  * 4-category layout with max 8 toggles. Clean, fast, brand-aligned.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Audio } from 'expo-av';
 import {
   View,
   ScrollView,
@@ -32,6 +33,21 @@ const NotificationSettingsScreen: React.FC = () => {
     toggleAll,
     setQuietHours,
   } = useNotificationPreferences();
+
+  const [previewSound, setPreviewSound] = useState<Audio.Sound | null>(null);
+
+  const completionSoundOptions = [
+    { key: 'singing-bowl' as const, label: 'Singing Bowl' },
+    { key: 'soft-chime' as const, label: 'Soft Chime' },
+    { key: 'nature-bell' as const, label: 'Nature Bell' },
+    { key: 'stream' as const, label: 'Stream' },
+  ];
+
+  useEffect(() => {
+    return () => {
+      previewSound?.unloadAsync().catch(() => {});
+    };
+  }, [previewSound]);
 
   const [timePicker, setTimePicker] = useState<{
     visible: boolean;
@@ -73,6 +89,19 @@ const NotificationSettingsScreen: React.FC = () => {
   );
 
   const closeTimePicker = () => setTimePicker((prev) => ({ ...prev, visible: false }));
+
+  const handleSoundSelect = async (soundKey: typeof completionSoundOptions[number]['key']) => {
+    await updateCategory('completionSound', {
+      ...preferences.completionSound,
+      sound: soundKey,
+    });
+
+    // Stop previous preview
+    if (previewSound) {
+      try { await previewSound.unloadAsync(); } catch {}
+    }
+    // Preview playback will be enabled when audio files are added
+  };
 
   if (loading || !preferences) {
     return <LoadingSpinner message="Loading notification settings..." />;
@@ -193,6 +222,48 @@ const NotificationSettingsScreen: React.FC = () => {
             value={preferences.milestonesReflection.enabled}
             onToggle={(v) => updateCategory('milestonesReflection', { enabled: v })}
           />
+        </View>
+
+        {/* Completion Sound */}
+        <Text style={styles.sectionHeader}>Completion Sound</Text>
+        <View style={styles.card}>
+          <SettingRow
+            icon="volume-high"
+            iconBg={Colors.evergreenTeal + '20'}
+            iconColor={Colors.evergreenTeal}
+            label="Timer completion sound"
+            description="Plays when timers and sessions finish"
+            value={preferences.completionSound?.enabled ?? true}
+            onToggle={(v) => updateCategory('completionSound', {
+              ...preferences.completionSound,
+              enabled: v,
+              sound: preferences.completionSound?.sound ?? 'singing-bowl',
+            })}
+          />
+          {(preferences.completionSound?.enabled ?? true) && (
+            <>
+              <View style={styles.divider} />
+              {completionSoundOptions.map((option) => {
+                const isSelected = (preferences.completionSound?.sound ?? 'singing-bowl') === option.key;
+                return (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={styles.timeRow}
+                    onPress={() => handleSoundSelect(option.key)}
+                  >
+                    <Text style={[styles.subLabel, isSelected && { color: Colors.evergreenTeal, fontWeight: '600' }]}>
+                      {option.label}
+                    </Text>
+                    <Ionicons
+                      name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                      size={20}
+                      color={isSelected ? Colors.evergreenTeal : Colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
         </View>
 
         {/* Quiet Hours */}
