@@ -12,7 +12,7 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 // ==========================================
 
 let _isForeground = AppState.currentState === 'active';
-let _onForegroundNotification: ((title: string, body: string) => void) | null = null;
+let _onForegroundNotification: ((title: string, body: string, data?: Record<string, unknown>) => void) | null = null;
 let _notificationHandlerReady = false;
 
 // Track foreground state — wrapped in try-catch to prevent module-load crashes
@@ -29,7 +29,7 @@ try {
  * The NotificationContext calls this to route to ToastContext.
  */
 export function setForegroundNotificationHandler(
-  handler: (title: string, body: string) => void,
+  handler: (title: string, body: string, data?: Record<string, unknown>) => void,
 ): void {
   _onForegroundNotification = handler;
 }
@@ -45,7 +45,8 @@ try {
         const title = notification.request.content.title || '';
         const body = notification.request.content.body || '';
         if (_onForegroundNotification && (title || body)) {
-          _onForegroundNotification(title, body);
+          const data = notification.request.content.data as Record<string, unknown> | undefined;
+          _onForegroundNotification(title, body, data);
         }
         return {
           shouldShowAlert: false,
