@@ -24,6 +24,7 @@ import { Habit, CompletionData } from '../types';
 import { isCognitiveReserveCategory } from '../constants/habitCategories';
 import { HabitFormData } from '../components/habits/wizard/types';
 import { logger } from '../utils/logger';
+import { scheduleHabitReminder, cancelHabitReminder } from '../services/reminderScheduler.service';
 
 export function useHabitsScreen() {
   const { user } = useAuth();
@@ -153,8 +154,16 @@ export function useHabitsScreen() {
 
       if (editingHabit) {
         await updateHabit(editingHabit.id, habitData);
+        // Re-schedule reminder (cancel old, schedule new if time-based cue)
+        await cancelHabitReminder(editingHabit.id);
+        if (habitData.cue?.type === 'time') {
+          await scheduleHabitReminder({ id: editingHabit.id, ...habitData } as Habit);
+        }
       } else {
-        await createHabit(user.uid, habitData);
+        const habitId = await createHabit(user.uid, habitData);
+        if (habitData.cue?.type === 'time') {
+          await scheduleHabitReminder({ id: habitId, ...habitData } as Habit);
+        }
       }
 
       setModalVisible(false);
@@ -179,6 +188,7 @@ export function useHabitsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              await cancelHabitReminder(habitId);
               await deleteHabit(habitId);
             } catch (error) {
               logger.error('Error deleting habit:', error);
