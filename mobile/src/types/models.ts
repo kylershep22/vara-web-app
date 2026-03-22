@@ -606,6 +606,11 @@ export interface NotificationPreferences {
     enabled: boolean;
   };
 
+  completionSound: {
+    enabled: boolean;
+    sound: 'singing-bowl' | 'soft-chime' | 'nature-bell' | 'stream';
+  };
+
   // Legacy fields (kept for backward compat during migration)
   dailyReminders?: LegacyNotificationPreferences;
   milestones?: LegacyNotificationPreferences;

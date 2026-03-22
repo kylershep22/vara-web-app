@@ -57,6 +57,11 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: Omit<
   milestonesReflection: {
     enabled: false,
   },
+
+  completionSound: {
+    enabled: true,
+    sound: 'singing-bowl',
+  },
 };
 
 // ==========================================
@@ -118,6 +123,11 @@ async function migratePreferencesToV2(
 
     milestonesReflection: {
       enabled: data.milestones?.enabled ?? false,
+    },
+
+    completionSound: {
+      enabled: true,
+      sound: 'singing-bowl' as const,
     },
 
     updatedAt: serverTimestamp(),
