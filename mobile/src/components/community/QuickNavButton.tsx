@@ -13,6 +13,7 @@ interface QuickNavButtonProps {
   label: string;
   onPress: () => void;
   active?: boolean;
+  subtitle?: string;
 }
 
 export const QuickNavButton: React.FC<QuickNavButtonProps> = ({
@@ -20,6 +21,7 @@ export const QuickNavButton: React.FC<QuickNavButtonProps> = ({
   label,
   onPress,
   active = false,
+  subtitle,
 }) => {
   return (
     <TouchableOpacity
@@ -37,6 +39,9 @@ export const QuickNavButton: React.FC<QuickNavButtonProps> = ({
       <Text style={[styles.text, active && styles.textActive]}>
         {label}
       </Text>
+      {subtitle && (
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      )}
       {active && <View style={styles.activeIndicator} />}
     </TouchableOpacity>
   );
@@ -72,6 +77,14 @@ const styles = StyleSheet.create({
   textActive: {
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.semibold,
+  },
+  subtitle: {
+    color: Colors.mutedSageGray,
+    marginTop: 2,
+    fontSize: 9.5,
+    fontWeight: Typography.fontWeight.regular,
+    textAlign: 'center' as const,
+    lineHeight: 12,
   },
   activeIndicator: {
     position: 'absolute',

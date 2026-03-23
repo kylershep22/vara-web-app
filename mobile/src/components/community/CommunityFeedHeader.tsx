@@ -61,10 +61,10 @@ export const CommunityFeedHeader: React.FC<CommunityFeedHeaderProps> = ({
     <>
       {/* Quick Navigation */}
       <View style={styles.quickNav}>
-        <QuickNavButton icon="account-group" label="Groups" onPress={() => onNavigate('Groups')} />
-        <QuickNavButton icon="account-multiple" label="People" onPress={() => onNavigate('People')} />
-        <QuickNavButton icon="leaf" label="Challenges" onPress={() => onNavigate('Challenges')} />
-        <QuickNavButton icon="message-text" label="Messages" onPress={() => onNavigate('Conversations')} />
+        <QuickNavButton icon="account-group" label="Groups" subtitle="Your spaces" onPress={() => onNavigate('Groups')} />
+        <QuickNavButton icon="account-multiple" label="People" subtitle="Connect" onPress={() => onNavigate('People')} />
+        <QuickNavButton icon="leaf" label="Challenges" subtitle="Together" onPress={() => onNavigate('Challenges')} />
+        <QuickNavButton icon="message-text" label="Messages" subtitle="Inbox" onPress={() => onNavigate('Conversations')} />
       </View>
 
       {/* Pending Invites Section */}
