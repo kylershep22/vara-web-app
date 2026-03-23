@@ -313,9 +313,9 @@ const ChallengesScreen: React.FC = () => {
 
   // Section header text
   const sectionHeaderText = filter === 'active'
-    ? 'All active challenges'
+    ? 'YOUR ACTIVE CHALLENGES'
     : filter === 'all'
-    ? 'Browse challenges'
+    ? 'OPEN TO JOIN'
     : null;
 
   // Empty state type
@@ -383,7 +383,7 @@ const ChallengesScreen: React.FC = () => {
       {/* Quick-Status Section */}
       {showQuickStatus && (
         <View style={styles.quickStatusSection}>
-          <Text style={styles.quickStatusTitle}>Your active challenges</Text>
+          <Text style={styles.quickStatusTitle}>YOUR ACTIVE CHALLENGES</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -424,7 +424,7 @@ const ChallengesScreen: React.FC = () => {
       {/* Section B: Title Area */}
       <View style={styles.titleArea}>
         <Text style={styles.screenTitle}>Challenges</Text>
-        <Text style={styles.subtitle}>Grow together through shared commitment</Text>
+        <Text style={styles.subtitle}>A time-bound intention you explore alongside others. No pressure — just shared commitment.</Text>
       </View>
 
       {/* Section C: Search Bar */}
@@ -751,10 +751,11 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
   },
   subtitle: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: 13,
     color: Colors.mutedSageGray,
     marginTop: Spacing.xs,
-    marginBottom: Spacing.sm + 6, // ~14px
+    marginBottom: Spacing.sm + 6,
+    lineHeight: 13 * 1.5,
   },
 
   // Section C: Search Bar
@@ -793,23 +794,27 @@ const styles = StyleSheet.create({
   filterPill: {
     paddingVertical: 8,
     paddingHorizontal: Spacing.base,
-    borderRadius: Layout.borderRadius.pill,
+    borderRadius: 20,
   },
   filterPillActive: {
     backgroundColor: Colors.evergreenTeal,
+    borderWidth: 1.5,
+    borderColor: Colors.evergreenTeal,
   },
   filterPillInactive: {
-    backgroundColor: Colors.dewSageLight,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
   },
   filterPillText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: Typography.fontWeight.medium,
   },
   filterPillTextActive: {
     color: Colors.white,
   },
   filterPillTextInactive: {
-    color: Colors.mutedSageGray,
+    color: Colors.softCharcoal,
   },
 
   // Section E: Category Chips
@@ -849,10 +854,12 @@ const styles = StyleSheet.create({
   },
   quickStatusTitle: {
     paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.sm + 2, // ~10px
-    fontSize: Typography.fontSize.sm,
+    marginBottom: Spacing.sm + 2,
+    fontSize: 11,
     fontWeight: Typography.fontWeight.semibold,
-    color: Colors.softCharcoal,
+    color: Colors.mutedSageGray,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
   },
   quickStatusScroll: {
     paddingHorizontal: Spacing.base,
@@ -862,10 +869,12 @@ const styles = StyleSheet.create({
   // Section G: Section Header
   sectionHeader: {
     paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.sm + 2, // ~10px
-    fontSize: Typography.fontSize.sm,
+    marginBottom: Spacing.sm + 2,
+    fontSize: 11,
     fontWeight: Typography.fontWeight.semibold,
-    color: Colors.softCharcoal,
+    color: Colors.mutedSageGray,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
   },
 
   // Challenge List

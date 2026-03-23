@@ -132,7 +132,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
             {joining ? (
               <ActivityIndicator size="small" color={Colors.white} />
             ) : (
-              <Text style={styles.joinButtonText}>Join Challenge</Text>
+              <Text style={styles.joinButtonText}>Explore this challenge</Text>
             )}
           </TouchableOpacity>
         )}

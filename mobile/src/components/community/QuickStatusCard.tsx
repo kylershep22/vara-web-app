@@ -89,7 +89,7 @@ export const QuickStatusCard: React.FC<QuickStatusCardProps> = ({
           {checkingIn ? (
             <ActivityIndicator size="small" color={Colors.white} />
           ) : (
-            <Text style={styles.checkInButtonText}>Check In</Text>
+            <Text style={styles.checkInButtonText}>Log today</Text>
           )}
         </TouchableOpacity>
       )}
