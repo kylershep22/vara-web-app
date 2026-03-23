@@ -225,10 +225,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   highlightText: {
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: '400',
     color: Colors.softCharcoal,
-    lineHeight: 11 * 1.65,
+    lineHeight: 14 * 1.55,
   },
 
   // Section Headers
@@ -240,15 +240,15 @@ const styles = StyleSheet.create({
     marginBottom: 9,
   },
   sectionIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(213,227,209,0.65)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '600',
     color: Colors.softCharcoal,
     marginLeft: 8,
@@ -257,11 +257,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dewSage,
     borderRadius: 10,
     paddingVertical: 2,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     marginLeft: 8,
   },
   sectionCountText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '600',
     color: Colors.evergreenTeal,
   },
@@ -281,9 +281,9 @@ const styles = StyleSheet.create({
   contentRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 12,
   },
   contentRowDivider: {
     borderBottomWidth: 0.5,
@@ -292,9 +292,9 @@ const styles = StyleSheet.create({
 
   // Play Button
   playButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.silverSage,
@@ -309,22 +309,22 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   contentTitle: {
-    fontSize: 11,
+    fontSize: 15,
     fontWeight: '600',
     color: Colors.softCharcoal,
     marginBottom: 2,
   },
   contentMeta: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '400',
     color: Colors.mutedSageGray,
     marginBottom: 3,
   },
   contentDescription: {
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '400',
     color: Colors.mutedSageGray,
-    lineHeight: 10 * 1.5,
+    lineHeight: 13 * 1.5,
   },
 
   // Heart Button
@@ -349,10 +349,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   nudgeText: {
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '400',
     color: Colors.softCharcoal,
-    lineHeight: 10 * 1.6,
+    lineHeight: 13 * 1.5,
   },
 
   // Tips
@@ -360,10 +360,10 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   tipsText: {
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '400',
     color: Colors.softCharcoal,
-    lineHeight: 10 * 1.6,
+    lineHeight: 13 * 1.5,
   },
 
   // Bottom spacing
