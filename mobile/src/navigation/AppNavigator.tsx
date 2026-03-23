@@ -297,12 +297,24 @@ const DiscoverNavigator = () => {
       <DiscoverStack.Screen
         name="Sleep"
         component={SleepScreen}
-        options={{ title: 'Sleep Library' }}
+        options={{
+          title: 'Sleep Library',
+          headerStyle: { backgroundColor: Colors.mistWhite },
+          headerTintColor: Colors.evergreenTeal,
+          headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+          headerShadowVisible: false,
+        }}
       />
       <DiscoverStack.Screen
         name="SleepDetail"
         component={SleepDetailScreen}
-        options={{ title: 'Sleep Content' }}
+        options={{
+          title: 'Sleep Content',
+          headerStyle: { backgroundColor: Colors.mistWhite },
+          headerTintColor: Colors.evergreenTeal,
+          headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+          headerShadowVisible: false,
+        }}
       />
       <DiscoverStack.Screen
         name="Movement"
@@ -587,9 +599,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Sleep Library',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         <AppStack.Screen
@@ -599,9 +612,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Sleep Content',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         {/* Movement - Accessible from Wellness menu */}
