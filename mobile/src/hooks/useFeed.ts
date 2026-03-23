@@ -167,6 +167,9 @@ export const useFeed = () => {
             // Filter out soft-deleted posts
             if ((post as any).deleted) return false;
 
+            // Filter out challenge check-in posts (these belong in the challenge feed only)
+            if ((post as any).challengeId) return false;
+
             // Filter out hidden posts
             if (hiddenPostIds.includes(post.id)) return false;
 
