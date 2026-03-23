@@ -11,11 +11,11 @@ import {
   TouchableOpacity,
   Image,
   ImageStyle,
-  Platform,
 } from 'react-native';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { QuickNavButton } from './QuickNavButton';
 import { PendingInvitesSection } from './PendingInvitesSection';
-import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { Colors, Spacing, Typography } from '../../constants';
 interface PostTypeOption {
   type: 'update' | 'win' | 'reflection' | 'ask';
   emoji: string;
@@ -93,25 +93,29 @@ export const CommunityFeedHeader: React.FC<CommunityFeedHeaderProps> = ({
         })}
       </View>
 
-      {/* Create Post Button with Contextual Prompt */}
-      <View style={styles.createPostCard}>
+      {/* Create Post Composer Row */}
+      <View style={styles.composerRow}>
         <TouchableOpacity
-          style={styles.createPostButton}
+          style={styles.composerTouchable}
           onPress={onTogglePostTypeSelector}
+          activeOpacity={0.7}
         >
           {userProfile?.avatarUrl ? (
             <Image
               source={{ uri: userProfile.avatarUrl }}
-              style={styles.createPostAvatar as ImageStyle}
+              style={styles.composerAvatar as ImageStyle}
             />
           ) : (
-            <View style={styles.createPostAvatarFallback}>
-              <Text style={styles.avatarText}>{initials}</Text>
+            <View style={styles.composerAvatarFallback}>
+              <Text style={styles.composerAvatarText}>{initials}</Text>
             </View>
           )}
-          <Text style={styles.createPostPlaceholder}>
-            {currentPrompt}
+          <Text style={styles.composerPlaceholder}>
+            Share something with your community...
           </Text>
+          <View style={styles.composerSendButton}>
+            <Icon name="arrow-right" size={14} color={Colors.white} />
+          </View>
         </TouchableOpacity>
 
         {/* Post Type Selector Grid */}
@@ -172,60 +176,51 @@ const styles = StyleSheet.create({
   filterPillTextActive: {
     color: Colors.white,
   },
-  createPostCard: {
+  composerRow: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.md,
-    backgroundColor: Colors.white,
-    borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.base,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
   },
-  createPostButton: {
+  composerTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
-  createPostPlaceholder: {
-    flex: 1,
+    backgroundColor: Colors.white,
+    borderWidth: 0.5,
+    borderColor: '#E5EDE4',
+    borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: Layout.borderRadius.pill,
-    backgroundColor: Colors.mistWhite,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    fontSize: 14,
-    color: Colors.mutedSageGray,
-    overflow: 'hidden',
+    paddingHorizontal: 14,
+    gap: 10,
   },
-  createPostAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: Layout.borderWidth.thin,
-    borderColor: Colors.evergreenTeal,
+  composerAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
   },
-  createPostAvatarFallback: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  composerAvatarFallback: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: Colors.evergreenTeal,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    color: Colors.textOnPrimary,
-    fontSize: 14,
-    fontWeight: '600',
+  composerAvatarText: {
+    color: Colors.white,
+    fontSize: 11,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  composerPlaceholder: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.mutedSageGray,
+  },
+  composerSendButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.evergreenTeal,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   postTypeGrid: {
     flexDirection: 'row',
