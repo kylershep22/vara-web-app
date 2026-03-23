@@ -539,9 +539,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Insights',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         {/* Brain Health - Accessible from Wellness menu */}
