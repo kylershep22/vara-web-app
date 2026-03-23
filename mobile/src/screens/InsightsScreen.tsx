@@ -585,24 +585,31 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
         />
 
         {/* Enhancement 2: Sparkline Trend Cards */}
-        <SparklineTrendCardRow
-          cards={[
-            {
-              label: 'Days Engaged',
-              value: `${metrics.habits.completions}`,
-              data: dailyCheckIns,
-              color: VARA_COLORS.apricot,
-              trend: getCheckInsTrend(),
-            },
-            {
-              label: 'Check-ins',
-              value: metrics.habits.completions.toString(),
-              data: dailyCheckIns,
-              color: VARA_COLORS.teal,
-              trend: getCheckInsTrend(),
-            },
-          ]}
-        />
+        {(() => {
+          const activeDaysCount = dailyCheckIns.filter(v => v > 0).length;
+          return (
+            <SparklineTrendCardRow
+              cards={[
+                {
+                  label: 'Days engaged',
+                  value: `${metrics.habits.completions}`,
+                  data: dailyCheckIns,
+                  color: VARA_COLORS.apricot,
+                  trend: getCheckInsTrend(),
+                  dataPointCount: activeDaysCount,
+                },
+                {
+                  label: 'Check-ins',
+                  value: metrics.habits.completions.toString(),
+                  data: dailyCheckIns,
+                  color: VARA_COLORS.teal,
+                  trend: getCheckInsTrend(),
+                  dataPointCount: activeDaysCount,
+                },
+              ]}
+            />
+          );
+        })()}
 
         {/* Enhancement 3: Ring Progress for Goal Metrics */}
         <RingProgressCard

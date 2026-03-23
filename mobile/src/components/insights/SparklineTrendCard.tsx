@@ -29,6 +29,7 @@ interface SparklineTrendCardProps {
   data: number[];
   color: string;
   trend: 'up' | 'steady' | 'down';
+  dataPointCount?: number;
 }
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -55,6 +56,42 @@ const Sparkline: React.FC<{ data: number[]; color: string; width: number; height
   const padding = 4;
   const chartWidth = width - padding * 2;
   const chartHeight = height - padding * 2;
+
+  const realPoints = data.filter(v => v > 0).length;
+
+  if (realPoints <= 1) {
+    const firstRealIndex = data.findIndex(v => v > 0);
+    const idx = firstRealIndex >= 0 ? firstRealIndex : data.length - 1;
+    const val = data[idx] || 0;
+    const baseY = height - padding - 3;
+    const pointX = padding + (idx / Math.max(data.length - 1, 1)) * chartWidth;
+    const pointY = val > 0 ? padding + chartHeight * 0.3 : baseY;
+
+    return (
+      <Svg width={width} height={height}>
+        <Path
+          d={`M ${padding} ${baseY} L ${width - padding} ${baseY}`}
+          fill="none"
+          stroke={color}
+          strokeWidth={1.5}
+          strokeOpacity={0.3}
+          strokeLinecap="round"
+        />
+        {val > 0 && (
+          <>
+            <Path
+              d={`M ${pointX} ${baseY} L ${pointX} ${pointY}`}
+              fill="none"
+              stroke={color}
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
+            <Circle cx={pointX} cy={pointY} r={2.5} fill={color} />
+          </>
+        )}
+      </Svg>
+    );
+  }
 
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -110,37 +147,20 @@ export const SparklineTrendCard: React.FC<SparklineTrendCardProps> = ({
   data,
   color,
   trend,
+  dataPointCount,
 }) => {
-  const getTrendIcon = () => {
-    switch (trend) {
-      case 'up':
-        return '\u2191'; // ↑
-      case 'down':
-        return '\u2193'; // ↓
-      default:
-        return '\u2192'; // →
+  const getTrendDisplay = () => {
+    const realCount = dataPointCount ?? data.filter(v => v > 0).length;
+    if (realCount < 3) {
+      return { text: `Day ${Math.max(realCount, 1)} of 7`, color: VARA_COLORS.sageGray };
     }
-  };
-
-  const getTrendText = () => {
     switch (trend) {
       case 'up':
-        return 'Improving';
+        return { text: '\u2191 Improving', color: VARA_COLORS.tealMid };
       case 'down':
-        return 'Declining';
+        return { text: '\u2193 Needs attention', color: '#D97A6E' };
       default:
-        return 'Steady';
-    }
-  };
-
-  const getTrendColor = () => {
-    switch (trend) {
-      case 'up':
-        return VARA_COLORS.tealMid;
-      case 'down':
-        return VARA_COLORS.sageGray;
-      default:
-        return color;
+        return { text: 'Trending steady', color: VARA_COLORS.sageGray };
     }
   };
 
@@ -151,8 +171,8 @@ export const SparklineTrendCard: React.FC<SparklineTrendCardProps> = ({
       <View style={styles.sparklineContainer}>
         <Sparkline data={data} color={color} width={90} height={26} />
       </View>
-      <Text style={[styles.trend, { color: getTrendColor() }]}>
-        {getTrendIcon()} {getTrendText()}
+      <Text style={[styles.trend, { color: getTrendDisplay().color }]}>
+        {getTrendDisplay().text}
       </Text>
     </View>
   );
