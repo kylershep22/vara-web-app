@@ -183,7 +183,7 @@ const ConversationsScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
