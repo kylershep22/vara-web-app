@@ -75,16 +75,12 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.iconContainer}>
-            <Icon name="repeat" size={18} color={VARA_COLORS.teal} />
-          </View>
-          <Text style={styles.title}>Habit Activity</Text>
+        <View style={styles.iconCircle}>
+          <Icon name="calendar-blank-outline" size={14} color={VARA_COLORS.teal} />
         </View>
+        <Text style={styles.title}>Habit activity</Text>
+        <Text style={styles.secondaryLabel}>Past {daysToShow} days</Text>
       </View>
-
-      {/* Subheading */}
-      <Text style={styles.subheading}>Past {daysToShow} days</Text>
 
       {/* Heatmap grid */}
       <View style={styles.grid}>
@@ -136,31 +132,27 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    marginBottom: 7,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: VARA_COLORS.dewSage,
+  iconCircle: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    backgroundColor: 'rgba(213,227,209,0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 8,
   },
   title: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '600',
     color: VARA_COLORS.charcoal,
   },
-  subheading: {
-    fontSize: 12,
+  secondaryLabel: {
+    fontSize: 9,
+    fontWeight: '400',
     color: VARA_COLORS.sageGray,
-    marginTop: 4,
-    marginBottom: 10,
+    marginLeft: 8,
   },
   grid: {
     flexDirection: 'row',
