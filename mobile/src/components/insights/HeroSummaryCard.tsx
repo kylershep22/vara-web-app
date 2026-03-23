@@ -31,11 +31,12 @@ interface HeroSummaryCardProps {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const RingProgress: React.FC<{ percentage: number; size: number }> = ({
+const RingProgress: React.FC<{ percentage: number; size: number; checkInsCount: number }> = ({
   percentage,
   size,
+  checkInsCount,
 }) => {
-  const strokeWidth = 6;
+  const strokeWidth = 4.5;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -61,7 +62,7 @@ const RingProgress: React.FC<{ percentage: number; size: number }> = ({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.2)"
+          stroke="rgba(255,255,255,0.18)"
           strokeWidth={strokeWidth}
         />
         {/* Progress ring */}
@@ -78,7 +79,14 @@ const RingProgress: React.FC<{ percentage: number; size: number }> = ({
         />
       </Svg>
       <View style={[styles.ringValueContainer, { width: size, height: size }]}>
-        <Text style={styles.ringValue}>{percentage}%</Text>
+        {checkInsCount === 0 ? (
+          <View style={{ alignItems: 'center' }}>
+            <Text style={styles.ringValueZero}>{'\u2014'}</Text>
+            <Text style={styles.ringCheckInLabel}>check in</Text>
+          </View>
+        ) : (
+          <Text style={styles.ringValue}>{percentage}%</Text>
+        )}
       </View>
     </View>
   );
@@ -115,14 +123,17 @@ export const HeroSummaryCard: React.FC<HeroSummaryCardProps> = ({
       {/* Content */}
       <View style={styles.content}>
         <View style={styles.textContent}>
-          <Text style={styles.eyebrow}>{timeframeLabel.toUpperCase()} AT A GLANCE</Text>
+          <Text style={styles.eyebrow}>{timeframeLabel} at a glance</Text>
           <Text style={styles.title}>Brain Readiness</Text>
-          <Text style={styles.subtitle}>
-            {getTrendText()} · {checkInsCount} check-in{checkInsCount !== 1 ? 's' : ''}
+          <Text style={[styles.subtitle, checkInsCount === 0 && styles.subtitleZero]}>
+            {checkInsCount === 0
+              ? 'Your score appears after your first check-in'
+              : `${getTrendText()} \u00B7 ${checkInsCount} check-in${checkInsCount !== 1 ? 's' : ''}`
+            }
           </Text>
         </View>
 
-        <RingProgress percentage={readinessScore || 0} size={54} />
+        <RingProgress percentage={readinessScore || 0} size={54} checkInsCount={checkInsCount} />
       </View>
     </LinearGradient>
   );
@@ -169,9 +180,8 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
-    letterSpacing: 1,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.55)',
   },
   title: {
     fontSize: 18,
@@ -199,6 +209,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: VARA_COLORS.white,
+  },
+  ringValueZero: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.4)',
+  },
+  ringCheckInLabel: {
+    fontSize: 7.5,
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 0.3,
+    marginTop: -2,
+  },
+  subtitleZero: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 15,
   },
 });
 
