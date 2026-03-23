@@ -211,26 +211,26 @@ export const BREATHWORK_SESSIONS: BreathworkSession[] = [
 const SLEEP_SOUNDS_BASE: Omit<SleepContent, 'audioUrl'>[] = [
   {
     id: '1',
-    title: 'Delta Waves',
+    title: 'Delta waves',
     duration: '3:43 min',
     type: 'Brainwave',
-    description: 'Deep sleep waves to help you stay in stage 3 & 4 sleep. Scientifically designed to promote restorative rest.',
+    description: 'Deep sleep waves to support stage 3 & 4 sleep.',
     category: 'sounds',
   },
   {
     id: '2',
-    title: 'Calming Melody',
+    title: 'Calming melody',
     duration: '3:27 min',
     type: 'Nature',
-    description: 'A calming rain track for winding down. Gentle rainfall sounds to soothe your mind.',
+    description: 'Gentle rainfall sounds to help your mind wind down.',
     category: 'sounds',
   },
   {
     id: '3',
-    title: 'Surreal Forest',
+    title: 'Surreal forest',
     duration: '2:01 min',
     type: 'Nature',
-    description: 'Gentle waves rolling to help lull you to sleep. Ocean sounds for deep relaxation.',
+    description: 'Soft forest ambience to ease you toward sleep.',
     category: 'sounds',
   },
 ];
@@ -243,6 +243,8 @@ const SLEEP_AUDIO_PATHS: Record<string, string> = {
   '3': 'sleep-audio/SurrealForest.mp3',
   // Stories
   'story-1': 'sleep-audio/The Warmth.wav',
+  'story-2': 'sleep-audio/A Sky Full of Drift.wav',
+  'story-3': 'sleep-audio/The Stone Path Home.wav',
 };
 
 // Cached URLs to avoid repeated fetches
@@ -304,7 +306,23 @@ const SLEEP_STORIES_BASE: Omit<SleepContent, 'audioUrl'>[] = [
     title: 'The Warmth',
     duration: '10 min',
     type: 'Story',
-    description: 'A soothing bedtime story to help you drift into peaceful sleep. Let the gentle narrative carry you away.',
+    description: 'A soothing story to ease you into peaceful sleep.',
+    category: 'stories',
+  },
+  {
+    id: 'story-2',
+    title: 'A Sky Full of Drift',
+    duration: '9:17 min',
+    type: 'Story',
+    description: 'A gentle journey through an open sky to quiet the mind.',
+    category: 'stories',
+  },
+  {
+    id: 'story-3',
+    title: 'The Stone Path Home',
+    duration: '10:36 min',
+    type: 'Story',
+    description: 'A calming walk along a familiar path toward rest.',
     category: 'stories',
   },
 ];
