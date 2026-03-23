@@ -820,20 +820,24 @@ const styles = StyleSheet.create({
   // Section E: Category Chips
   categoryScroll: {
     flexGrow: 0,
+    minHeight: 44,
   },
   categoryContainer: {
     paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.sm + 6, // ~14px
+    paddingVertical: Spacing.sm,
     gap: Spacing.sm,
+    alignItems: 'center',
   },
   categoryChip: {
     backgroundColor: Colors.white,
-    paddingVertical: 4,
+    paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: Layout.borderRadius.pill,
-    borderWidth: Layout.borderWidth.thin,
-    borderColor: Colors.divider,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
     flexShrink: 0,
+    height: 32,
+    justifyContent: 'center',
   },
   categoryChipSelected: {
     backgroundColor: Colors.evergreenTeal,
