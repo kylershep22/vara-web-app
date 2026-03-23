@@ -616,6 +616,7 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
           goals={{ percentage: metrics.goals.avgProgress }}
           habits={{ percentage: metrics.habits.completionRate }}
           tasks={{ percentage: metrics.tasks.completionRate }}
+          totalCheckIns={metrics.habits.completions}
         />
 
         {/* Enhancement 4: Habit Activity Heatmap */}

@@ -37,6 +37,7 @@ interface RingProgressCardProps {
   goals: { percentage: number };
   habits: { percentage: number };
   tasks: { percentage: number };
+  totalCheckIns?: number;
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -109,6 +110,7 @@ export const RingProgressCard: React.FC<RingProgressCardProps> = ({
   goals,
   habits,
   tasks,
+  totalCheckIns,
 }) => {
   return (
     <View style={styles.container}>
@@ -117,7 +119,7 @@ export const RingProgressCard: React.FC<RingProgressCardProps> = ({
         <View style={styles.iconContainer}>
           <Icon name="target" size={18} color={VARA_COLORS.teal} />
         </View>
-        <Text style={styles.title}>Goal & Habit Progress</Text>
+        <Text style={styles.title}>Goal & habit progress</Text>
       </View>
 
       {/* Ring indicators */}
@@ -144,6 +146,15 @@ export const RingProgressCard: React.FC<RingProgressCardProps> = ({
           delay={240}
         />
       </View>
+
+      {totalCheckIns !== undefined && totalCheckIns < 3 &&
+        [goals.percentage, habits.percentage, tasks.percentage].filter(p => p === 0).length >= 2 && (
+        <View style={styles.nudge}>
+          <Text style={styles.nudgeText}>
+            Check-ins and completed habits will build this out over time.
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -214,6 +225,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: VARA_COLORS.sageGray,
     marginTop: -2,
+  },
+  nudge: {
+    backgroundColor: 'rgba(213,227,209,0.38)',
+    borderLeftWidth: 2.5,
+    borderLeftColor: VARA_COLORS.teal,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginTop: 8,
+  },
+  nudgeText: {
+    fontSize: 10,
+    fontWeight: '400',
+    color: VARA_COLORS.charcoal,
+    lineHeight: 16,
   },
 });
 
