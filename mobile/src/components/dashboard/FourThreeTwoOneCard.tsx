@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
   },
   winsModal: {
-    backgroundColor: Colors.background.card,
+    backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
     borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
   },
   fuelModal: {
-    backgroundColor: Colors.background.card,
+    backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
     borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: Spacing.base,
-    backgroundColor: Colors.background.card,
+    backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
