@@ -41,6 +41,7 @@ interface CommunityFeedHeaderProps {
   onPostTypeSelected: (type: 'update' | 'win' | 'reflection' | 'ask') => void;
   onTogglePostTypeSelector: () => void;
   onInviteAction: (type: 'group' | 'challenge', id: string) => void;
+  showOrientation?: boolean;
 }
 
 export const CommunityFeedHeader: React.FC<CommunityFeedHeaderProps> = ({
@@ -54,86 +55,91 @@ export const CommunityFeedHeader: React.FC<CommunityFeedHeaderProps> = ({
   onPostTypeSelected,
   onTogglePostTypeSelector,
   onInviteAction,
+  showOrientation,
 }) => {
   const initials = (userProfile?.displayName || displayName || 'U').substring(0, 2).toUpperCase();
 
   return (
     <>
-      {/* Quick Navigation */}
-      <View style={styles.quickNav}>
-        <QuickNavButton icon="account-group" label="Groups" subtitle="Your spaces" onPress={() => onNavigate('Groups')} />
-        <QuickNavButton icon="account-multiple" label="People" subtitle="Connect" onPress={() => onNavigate('People')} />
-        <QuickNavButton icon="leaf" label="Challenges" subtitle="Together" onPress={() => onNavigate('Challenges')} />
-        <QuickNavButton icon="message-text" label="Messages" subtitle="Inbox" onPress={() => onNavigate('Conversations')} />
-      </View>
+      {!showOrientation && (
+        <>
+          {/* Quick Navigation */}
+          <View style={styles.quickNav}>
+            <QuickNavButton icon="account-group" label="Groups" subtitle="Your spaces" onPress={() => onNavigate('Groups')} />
+            <QuickNavButton icon="account-multiple" label="People" subtitle="Connect" onPress={() => onNavigate('People')} />
+            <QuickNavButton icon="leaf" label="Challenges" subtitle="Together" onPress={() => onNavigate('Challenges')} />
+            <QuickNavButton icon="message-text" label="Messages" subtitle="Inbox" onPress={() => onNavigate('Conversations')} />
+          </View>
 
-      {/* Pending Invites Section */}
-      <View style={styles.pendingInvitesContainer}>
-        <PendingInvitesSection
-          onInviteAccepted={onInviteAction}
-        />
-      </View>
-
-      {/* Feed Filter Pills */}
-      <View style={styles.filterPillsContainer}>
-        {(['all', 'groups', 'connections'] as const).map((filter) => {
-          const labels = { all: 'All Posts', groups: 'Group Posts', connections: 'User Posts' };
-          const isActive = feedFilter === filter;
-          return (
-            <TouchableOpacity
-              key={filter}
-              style={[styles.filterPill, isActive && styles.filterPillActive]}
-              onPress={() => onSetFeedFilter(filter)}
-            >
-              <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
-                {labels[filter]}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Create Post Composer Row */}
-      <View style={styles.composerRow}>
-        <TouchableOpacity
-          style={styles.composerTouchable}
-          onPress={onTogglePostTypeSelector}
-          activeOpacity={0.7}
-        >
-          {userProfile?.avatarUrl ? (
-            <Image
-              source={{ uri: userProfile.avatarUrl }}
-              style={styles.composerAvatar as ImageStyle}
+          {/* Pending Invites Section */}
+          <View style={styles.pendingInvitesContainer}>
+            <PendingInvitesSection
+              onInviteAccepted={onInviteAction}
             />
-          ) : (
-            <View style={styles.composerAvatarFallback}>
-              <Text style={styles.composerAvatarText}>{initials}</Text>
-            </View>
-          )}
-          <Text style={styles.composerPlaceholder}>
-            Share something with your community...
-          </Text>
-          <View style={styles.composerSendButton}>
-            <Icon name="arrow-right" size={14} color={Colors.white} />
           </View>
-        </TouchableOpacity>
 
-        {/* Post Type Selector Grid */}
-        {showPostTypeSelector && (
-          <View style={styles.postTypeGrid}>
-            {POST_TYPE_OPTIONS.map((item) => (
-              <TouchableOpacity
-                key={item.type}
-                style={styles.postTypeCard}
-                onPress={() => onPostTypeSelected(item.type)}
-              >
-                <Text style={styles.postTypeLabel}>{item.emoji} {item.label}</Text>
-                <Text style={styles.postTypeSubtitle}>{item.subtitle}</Text>
-              </TouchableOpacity>
-            ))}
+          {/* Feed Filter Pills */}
+          <View style={styles.filterPillsContainer}>
+            {(['all', 'groups', 'connections'] as const).map((filter) => {
+              const labels = { all: 'All Posts', groups: 'Group Posts', connections: 'User Posts' };
+              const isActive = feedFilter === filter;
+              return (
+                <TouchableOpacity
+                  key={filter}
+                  style={[styles.filterPill, isActive && styles.filterPillActive]}
+                  onPress={() => onSetFeedFilter(filter)}
+                >
+                  <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
+                    {labels[filter]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-        )}
-      </View>
+
+          {/* Create Post Composer Row */}
+          <View style={styles.composerRow}>
+            <TouchableOpacity
+              style={styles.composerTouchable}
+              onPress={onTogglePostTypeSelector}
+              activeOpacity={0.7}
+            >
+              {userProfile?.avatarUrl ? (
+                <Image
+                  source={{ uri: userProfile.avatarUrl }}
+                  style={styles.composerAvatar as ImageStyle}
+                />
+              ) : (
+                <View style={styles.composerAvatarFallback}>
+                  <Text style={styles.composerAvatarText}>{initials}</Text>
+                </View>
+              )}
+              <Text style={styles.composerPlaceholder}>
+                Share something with your community...
+              </Text>
+              <View style={styles.composerSendButton}>
+                <Icon name="arrow-right" size={14} color={Colors.white} />
+              </View>
+            </TouchableOpacity>
+
+            {/* Post Type Selector Grid */}
+            {showPostTypeSelector && (
+              <View style={styles.postTypeGrid}>
+                {POST_TYPE_OPTIONS.map((item) => (
+                  <TouchableOpacity
+                    key={item.type}
+                    style={styles.postTypeCard}
+                    onPress={() => onPostTypeSelected(item.type)}
+                  >
+                    <Text style={styles.postTypeLabel}>{item.emoji} {item.label}</Text>
+                    <Text style={styles.postTypeSubtitle}>{item.subtitle}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        </>
+      )}
     </>
   );
 };

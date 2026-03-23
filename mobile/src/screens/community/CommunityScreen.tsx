@@ -3,7 +3,7 @@
  * Thin UI shell that delegates data loading and event handling to useCommunityFeed.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,10 @@ import { LoadingSpinner, PostCard } from '../../components';
 import { PostOverflowSheet } from '../../components/community/PostOverflowSheet';
 import { EditPostModal } from '../../components/community/EditPostModal';
 import { CommunityFeedHeader } from '../../components/community/CommunityFeedHeader';
+import { CommunityOrientationCard } from '../../components/community/CommunityOrientationCard';
 import CreatePostModal from '../../components/community/CreatePostModal';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import CommentModal from '../../components/community/CommentModal';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -72,6 +75,44 @@ const CommunityScreen: React.FC = () => {
     refreshFilters,
   } = useCommunityFeed();
 
+  const [showOrientation, setShowOrientation] = useState(false);
+  const [orientationChecked, setOrientationChecked] = useState(false);
+
+  // Check if user has seen orientation card
+  useEffect(() => {
+    const checkOrientation = async () => {
+      if (!user || !db) {
+        setOrientationChecked(true);
+        return;
+      }
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const seen = userDoc.data()?.community_orientation_seen === true;
+        setShowOrientation(!seen);
+      } catch {
+        // On error, don't show orientation (fail silently)
+      }
+      setOrientationChecked(true);
+    };
+    checkOrientation();
+  }, [user]);
+
+  const dismissOrientation = useCallback(async (navigateToGroups = false) => {
+    setShowOrientation(false);
+    if (user && db) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          community_orientation_seen: true,
+        });
+      } catch {
+        // Best-effort persist
+      }
+    }
+    if (navigateToGroups) {
+      navigation.navigate('Groups');
+    }
+  }, [user, navigation]);
+
   const handleNavigate = useCallback((screen: string) => {
     navigation.navigate(screen);
   }, [navigation]);
@@ -93,20 +134,32 @@ const CommunityScreen: React.FC = () => {
   }, [setSelectedPostType, setShowPostTypeSelector, setShowCreatePost]);
 
   const renderHeader = useCallback(() => (
-    <CommunityFeedHeader
-      userProfile={userProfile}
-      displayName={user?.displayName || 'U'}
-      currentPrompt={currentPrompt}
-      feedFilter={feedFilter}
-      showPostTypeSelector={showPostTypeSelector}
-      onNavigate={handleNavigate}
-      onSetFeedFilter={setFeedFilter}
-      onPostTypeSelected={handlePostTypeSelected}
-      onTogglePostTypeSelector={handleTogglePostTypeSelector}
-      onInviteAction={handleInviteAction}
-    />
+    <>
+      {showOrientation && (
+        <>
+          <CommunityOrientationCard
+            onFindGroup={() => dismissOrientation(true)}
+            onSkip={() => dismissOrientation(false)}
+          />
+          <Text style={styles.recentActivityLabel}>RECENT ACTIVITY</Text>
+        </>
+      )}
+      <CommunityFeedHeader
+        userProfile={userProfile}
+        displayName={user?.displayName || 'U'}
+        currentPrompt={currentPrompt}
+        feedFilter={feedFilter}
+        showPostTypeSelector={showPostTypeSelector}
+        showOrientation={showOrientation}
+        onNavigate={handleNavigate}
+        onSetFeedFilter={setFeedFilter}
+        onPostTypeSelected={handlePostTypeSelected}
+        onTogglePostTypeSelector={handleTogglePostTypeSelector}
+        onInviteAction={handleInviteAction}
+      />
+    </>
   ), [userProfile, user?.displayName, currentPrompt, feedFilter, showPostTypeSelector,
-      handleNavigate, setFeedFilter, handlePostTypeSelected,
+      showOrientation, dismissOrientation, handleNavigate, setFeedFilter, handlePostTypeSelected,
       handleTogglePostTypeSelector, handleInviteAction]);
 
   const renderPost = useCallback(({ item }: { item: any }) => (
@@ -145,7 +198,7 @@ const CommunityScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {!isReady || (loading && posts.length === 0) ? (
+      {!isReady || !orientationChecked || (loading && posts.length === 0) ? (
         <LoadingSpinner message="Loading feed..." />
       ) : (
         <FlatList
@@ -272,6 +325,16 @@ const styles = StyleSheet.create({
   },
   feedContent: {
     paddingBottom: Spacing.xl,
+  },
+  recentActivityLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.mutedSageGray,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    paddingHorizontal: Spacing.base,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   emptyState: {
     alignItems: 'center',
