@@ -16,6 +16,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { CommunityAvatar } from '../shared/CommunityAvatar';
 import { HeartIcon } from './HeartIcon';
+import { GroupContextBar } from './GroupContextBar';
 
 interface Comment {
   userId: string;
@@ -147,18 +148,12 @@ const PostCardComponent: React.FC<PostCardProps> = ({
         </View>
       )}
 
-      {/* Group Context Badge */}
+      {/* Group Context Bar */}
       {post.groupName && !isChallengePost && !hideGroupBadge && (
-        <TouchableOpacity
-          style={styles.groupBadgeContainer}
+        <GroupContextBar
+          groupName={post.groupName}
           onPress={onGroupPress}
-          disabled={!onGroupPress}
-          activeOpacity={onGroupPress ? 0.7 : 1}
-        >
-          <View style={styles.groupBadge}>
-            <Text style={styles.groupBadgeText}>{post.groupName}</Text>
-          </View>
-        </TouchableOpacity>
+        />
       )}
 
       {/* Author Row */}
@@ -329,24 +324,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     color: Colors.mutedSageGray,
     marginLeft: 'auto',
-  },
-
-  // Group Context Badge
-  groupBadgeContainer: {
-    paddingTop: Spacing.xs,
-    paddingHorizontal: Spacing.base,
-  },
-  groupBadge: {
-    backgroundColor: Colors.dewSageLight,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: Layout.borderRadius.sm,
-    alignSelf: 'flex-start',
-  },
-  groupBadgeText: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.evergreenTeal,
   },
 
   // Author Row
