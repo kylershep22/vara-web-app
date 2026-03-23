@@ -203,6 +203,7 @@ export function AudioExpandedPlayer() {
     sleepTimerEndTime,
     pause,
     resume,
+    stop,
     seek,
     setLooping,
     setSleepTimer,
@@ -381,8 +382,24 @@ export function AudioExpandedPlayer() {
           onPress={dismiss}
           style={styles.collapseButton}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Minimize player"
+          accessibilityRole="button"
         >
           <Icon name="chevron-down" size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
+
+        {/* Close / stop button */}
+        <TouchableOpacity
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            stop();
+          }}
+          style={styles.stopButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Stop and close player"
+          accessibilityRole="button"
+        >
+          <Icon name="close" size={18} color={Colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Sleep Visual */}
@@ -546,6 +563,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.sm,
     right: 20,
+    padding: Spacing.sm,
+    zIndex: 10,
+  },
+  stopButton: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: 20,
     padding: Spacing.sm,
     zIndex: 10,
   },

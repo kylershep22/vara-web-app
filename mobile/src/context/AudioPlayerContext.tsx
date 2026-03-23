@@ -162,23 +162,16 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       setProgress(status.positionMillis / status.durationMillis);
     }
 
-    // Interruption detection
-    if (!status.isPlaying && isPlayingRef.current && !userPausedRef.current) {
-      wasInterruptedRef.current = true;
+    // Only update isPlaying state when the user explicitly paused.
+    // When staysActiveInBackground is true, the OS manages background
+    // playback — we should not fight it by forcing state changes here.
+    // We track userPausedRef to distinguish intentional pauses from
+    // transient OS interruptions (screen off, phone call, etc.).
+    if (userPausedRef.current) {
+      setIsPlaying(status.isPlaying);
+    } else if (status.isPlaying !== isPlayingRef.current) {
+      setIsPlaying(status.isPlaying);
     }
-
-    if (status.isPlaying && wasInterruptedRef.current) {
-      wasInterruptedRef.current = false;
-    }
-
-    // Resume after interruption
-    if (!status.isPlaying && wasInterruptedRef.current && status.isLoaded && !status.isBuffering) {
-      soundRef.current?.playAsync().catch(() => {
-        wasInterruptedRef.current = false;
-      });
-    }
-
-    setIsPlaying(status.isPlaying);
 
     if (status.didJustFinish && !status.isLooping) {
       setIsPlaying(false);
