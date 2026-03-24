@@ -397,34 +397,32 @@ service cloud.firestore {
 
     // ========== CHALLENGES ==========
 
-    // Challenges (time-limited group challenges)
     match /challenges/{challengeId} {
-      // Read: public challenges by anyone, private challenges only by members
+      // Read: public/global visible to all authenticated, private to members, admin sees all
       allow read: if isAuthenticated() && (
         resource.data.visibility == 'public' ||
-        request.auth.uid in resource.data.members
-      );
-
-      // Create: any authenticated user can create a challenge
-      allow create: if isAuthenticated() &&
-        request.auth.uid == request.resource.data.ownerId;
-
-      // Update: owner, members, or users joining/leaving public challenges
-      allow update: if isAuthenticated() && (
-        // Owner can update anything
-        request.auth.uid == resource.data.ownerId ||
-        // Members can update (for check-ins, leaving, etc.)
+        resource.data.isGlobal == true ||
         request.auth.uid in resource.data.members ||
-        // Allow joining public challenges (non-members adding themselves)
-        (
-          resource.data.visibility == 'public' &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberCount', 'updatedAt', 'lastActivityAt'])
-        )
+        isAdmin()
       );
 
-      // Delete: only challenge owner
+      // Create: any active user for non-global, only admins for global
+      allow create: if isAuthenticated() && isActiveUser() &&
+        ((!request.resource.data.isGlobal && request.auth.uid == request.resource.data.ownerId)
+         || (request.resource.data.isGlobal == true && isAdmin()));
+
+      // Update: owner/members for non-global, admins for global, public join
+      allow update: if isAuthenticated() && isActiveUser() && (
+        request.auth.uid == resource.data.ownerId ||
+        request.auth.uid in resource.data.members ||
+        isAdmin() ||
+        (resource.data.visibility == 'public' &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberCount', 'updatedAt', 'lastActivityAt']))
+      );
+
+      // Delete: owner for non-global, admin for any
       allow delete: if isAuthenticated() &&
-        request.auth.uid == resource.data.ownerId;
+        (isAdmin() || (request.auth.uid == resource.data.ownerId && resource.data.isGlobal != true));
     }
 
     // Challenge Participants (leaderboard and progress tracking)
@@ -864,6 +862,31 @@ service cloud.firestore {
       match /requests/{endpoint} {
         allow read, write: if false;
       }
+    }
+
+    // ========== ADMIN COLLECTIONS ==========
+
+    // Admin analytics — read-only for admins, written by Cloud Functions
+    match /adminAnalytics/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Moderation queue — admins read + update status fields only
+    match /moderationQueue/{itemId} {
+      allow read: if isAdmin();
+      allow create: if false;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status', 'reviewedBy', 'reviewedAt', 'action']);
+      allow delete: if false;
+    }
+
+    // Moderation actions audit trail — admins create, no modifications
+    match /moderationActions/{actionId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
     }
   }
 }
