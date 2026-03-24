@@ -23,37 +23,33 @@ export async function revokeAdminRole(userId) {
   await updateDoc(ref, { role: "user", updatedAt: serverTimestamp() });
 }
 
-/** Search users by display name prefix (Firestore range query) */
-export async function searchUsers(searchTerm, pageSize = 25, lastDoc = null) {
+/** Search users by display name or email (case-insensitive client-side filter) */
+export async function searchUsers(searchTerm, pageSize = 25) {
   const usersRef = collection(db, "users");
-  const prefix = searchTerm.trim();
-  const endPrefix = prefix + "\uf8ff";
+  const term = searchTerm.trim().toLowerCase();
 
-  const constraints = [
-    orderBy("displayName"),
-    where("displayName", ">=", prefix),
-    where("displayName", "<=", endPrefix),
-    limit(pageSize),
-  ];
-
-  if (lastDoc) {
-    constraints.push(startAfter(lastDoc));
-  }
-
-  const q = query(usersRef, ...constraints);
+  // Fetch users ordered by displayName, filter client-side for case-insensitive match
+  const q = query(usersRef, orderBy("displayName"), limit(200));
   const snap = await getDocs(q);
 
-  const users = snap.docs.map(d => ({
-    id: d.id,
-    displayName: d.data().displayName,
-    email: d.data().email,
-    role: d.data().role || "user",
-    moderationStatus: d.data().moderationStatus || "active",
-    subscriptionType: d.data().subscription?.type || "unknown",
-    createdAt: d.data().createdAt,
-  }));
+  const users = snap.docs
+    .filter(d => {
+      const name = (d.data().displayName || "").toLowerCase();
+      const email = (d.data().email || "").toLowerCase();
+      return name.includes(term) || email.includes(term);
+    })
+    .slice(0, pageSize)
+    .map(d => ({
+      id: d.id,
+      displayName: d.data().displayName,
+      email: d.data().email,
+      role: d.data().role || "user",
+      moderationStatus: d.data().moderationStatus || "active",
+      subscriptionType: d.data().subscription?.type || "unknown",
+      createdAt: d.data().createdAt,
+    }));
 
-  return { users, lastDoc: snap.docs[snap.docs.length - 1] || null };
+  return { users, lastDoc: null };
 }
 
 /** Get user detail for admin view (aggregated stats, no private content) */
