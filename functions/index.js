@@ -24,6 +24,16 @@ exports.onNewDirectMessage = notifications.onNewDirectMessage;
 exports.onNewConnection = notifications.onNewConnection;
 exports.sendMilestones = notifications.sendMilestones;
 
+// Admin & Moderation Cloud Functions
+const adminFunctions = require("./src/admin");
+exports.onPostCreate_moderateContent = adminFunctions.onPostCreate_moderateContent;
+exports.onPostReport_createQueueItem = adminFunctions.onPostReport_createQueueItem;
+exports.onModerationAction = adminFunctions.onModerationAction;
+exports.aggregateAnalytics = adminFunctions.aggregateAnalytics;
+exports.aggregateAnalyticsFull = adminFunctions.aggregateAnalyticsFull;
+exports.cleanupExpiredSuspensions = adminFunctions.cleanupExpiredSuspensions;
+exports.updateModerationBlocklist = adminFunctions.updateModerationBlocklist;
+
 // Secret defined via: firebase functions:secrets:set OPENAI_API_KEY
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
