@@ -31,3 +31,4 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 serviceAccountKey.json
+service-account-key.json
