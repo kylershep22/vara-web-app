@@ -66,6 +66,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
   const [tagInput, setTagInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingPrompt, setLoadingPrompt] = useState(false);
+  const [showAllPrompts, setShowAllPrompts] = useState(false);
 
   // Reset form when modal opens with editing entry
   useEffect(() => {
@@ -222,7 +223,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
             Tap a prompt to add it to your entry
           </Text>
           <View style={styles.promptsContainer}>
-            {BRAIN_HEALTH_PROMPTS.map((prompt, index) => (
+            {(showAllPrompts ? BRAIN_HEALTH_PROMPTS : BRAIN_HEALTH_PROMPTS.slice(0, 2)).map((prompt, index) => (
               <TouchableOpacity
                 key={index}
                 style={styles.promptChip}
@@ -231,6 +232,14 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
                 <Text style={styles.promptChipText}>{prompt.text}</Text>
               </TouchableOpacity>
             ))}
+            <TouchableOpacity
+              onPress={() => setShowAllPrompts(!showAllPrompts)}
+              style={styles.promptToggle}
+            >
+              <Text style={styles.promptToggleText}>
+                {showAllPrompts ? 'Show Less' : 'See More'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* AI Prompt Button */}
@@ -886,6 +895,16 @@ const styles = StyleSheet.create({
     borderColor: Colors.evergreenTeal + '40', // 40% opacity
   },
   promptChipText: {
+    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  promptToggle: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  promptToggleText: {
     color: Colors.evergreenTeal,
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
