@@ -433,7 +433,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SpacingTokens.base,
-    paddingVertical: SpacingTokens.md,
+    paddingTop: SpacingTokens.sm,
+    paddingBottom: SpacingTokens.md,
   },
   closeButton: {
     width: SizeTokens.controlButtonSize,
@@ -510,9 +511,9 @@ const styles = StyleSheet.create({
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: SpacingTokens.xl,
+    justifyContent: 'space-evenly',
     paddingVertical: SpacingTokens.base,
+    paddingHorizontal: SpacingTokens.xl,
   },
   controlButton: {
     alignItems: 'center',
