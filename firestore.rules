@@ -406,10 +406,10 @@ service cloud.firestore {
         isAdmin()
       );
 
-      // Create: any active user for non-global, only admins for global
+      // Create: admins can create any challenge, regular users only non-global
       allow create: if isAuthenticated() && isActiveUser() &&
-        ((!request.resource.data.isGlobal && request.auth.uid == request.resource.data.ownerId)
-         || (request.resource.data.isGlobal == true && isAdmin()));
+        (isAdmin()
+         || (request.resource.data.isGlobal != true && request.auth.uid == request.resource.data.ownerId));
 
       // Update: owner/members for non-global, admins for global, public join
       allow update: if isAuthenticated() && isActiveUser() && (
