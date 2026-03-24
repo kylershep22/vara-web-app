@@ -19,10 +19,13 @@ import {
   Alert,
   Dimensions,
   Text,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
 import {
   ColorTokens,
   SpacingTokens,
@@ -81,6 +84,11 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
 
+  // Timestamp-based tracking for background support
+  const activityStartTimeRef = useRef<number>(Date.now());
+  const pausedElapsedRef = useRef<number>(0);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+
   // Fade animation for activity transitions
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -104,6 +112,109 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
   const activityProgress = currentActivity
     ? (currentActivity.duration * 60 - timeRemaining) / (currentActivity.duration * 60)
     : 0;
+
+  const scheduleActivityNotifications = useCallback(async () => {
+    await cancelActivityNotifications();
+    if (isPaused || isCompleted) return;
+
+    let cumulativeSeconds = timeRemaining;
+
+    for (let i = currentIndex; i < totalActivities; i++) {
+      const isLast = i === totalActivities - 1;
+      const nextName = !isLast ? routine.activities[i + 1]?.name : '';
+
+      if (cumulativeSeconds > 0) {
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: isLast ? 'Routine Complete!' : `Up next: ${nextName}`,
+              body: isLast
+                ? `You finished ${routine.name}!`
+                : `${routine.activities[i].name} is done.`,
+              sound: 'default',
+              data: { type: 'routine-activity-complete', routineId: routine.id },
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+              seconds: cumulativeSeconds,
+            },
+            identifier: `routine-activity-${i}`,
+          });
+        } catch (err) {
+          // Notification scheduling may fail if permissions not granted — continue silently
+        }
+      }
+
+      if (i + 1 < totalActivities) {
+        cumulativeSeconds += routine.activities[i + 1].duration * 60;
+      }
+    }
+  }, [currentIndex, timeRemaining, isPaused, isCompleted, totalActivities, routine]);
+
+  const cancelActivityNotifications = useCallback(async () => {
+    for (let i = 0; i < totalActivities; i++) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(`routine-activity-${i}`);
+      } catch {}
+    }
+  }, [totalActivities]);
+
+  const reconcileTimerState = useCallback(() => {
+    if (isPaused || isCompleted) return;
+
+    const now = Date.now();
+    const elapsedSeconds = Math.floor((now - activityStartTimeRef.current) / 1000);
+
+    let totalElapsed = elapsedSeconds;
+    let idx = currentIndex;
+    let remainingInCurrent = (routine.activities[idx]?.duration * 60 || 0) - pausedElapsedRef.current;
+
+    // Walk through activities that may have completed while backgrounded
+    while (totalElapsed >= remainingInCurrent && idx < totalActivities - 1) {
+      totalElapsed -= remainingInCurrent;
+      idx++;
+      remainingInCurrent = routine.activities[idx]?.duration * 60 || 0;
+    }
+
+    if (totalElapsed >= remainingInCurrent && idx === totalActivities - 1) {
+      setIsCompleted(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      return;
+    }
+
+    if (idx !== currentIndex) {
+      setCurrentIndex(idx);
+      Haptics.selectionAsync();
+    }
+
+    const newRemaining = Math.max(0, remainingInCurrent - totalElapsed);
+    setTimeRemaining(newRemaining);
+
+    activityStartTimeRef.current = now;
+    pausedElapsedRef.current = (routine.activities[idx]?.duration * 60 || 0) - newRemaining;
+  }, [currentIndex, isPaused, isCompleted, totalActivities, routine.activities]);
+
+  // AppState listener for background/foreground transitions
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      const prevState = appStateRef.current;
+      appStateRef.current = nextAppState;
+
+      if (isPaused || isCompleted) return;
+
+      if (prevState === 'active' && (nextAppState === 'background' || nextAppState === 'inactive')) {
+        await scheduleActivityNotifications();
+      }
+
+      if ((prevState === 'background' || prevState === 'inactive') && nextAppState === 'active') {
+        await cancelActivityNotifications();
+        reconcileTimerState();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [isPaused, isCompleted, scheduleActivityNotifications, cancelActivityNotifications, reconcileTimerState]);
 
   // Slide animation on mount/unmount
   useEffect(() => {
@@ -130,17 +241,21 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
     }
   }, [visible, reduceMotion]);
 
-  // Timer logic
+  // Timer logic — timestamp-based for background resilience
   useEffect(() => {
     if (!isPaused && !isCompleted && timeRemaining > 0) {
       intervalRef.current = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            handleActivityComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - activityStartTimeRef.current) / 1000);
+        const activityDuration = currentActivity?.duration * 60 || 0;
+        const remaining = Math.max(0, activityDuration - pausedElapsedRef.current - elapsedSeconds);
+
+        if (remaining <= 0) {
+          handleActivityComplete();
+          return;
+        }
+
+        setTimeRemaining(remaining);
       }, 1000);
     }
 
@@ -149,7 +264,7 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isPaused, isCompleted, timeRemaining, currentIndex]);
+  }, [isPaused, isCompleted, currentIndex, currentActivity]);
 
   const handleActivityComplete = useCallback(() => {
     Haptics.selectionAsync();
@@ -178,6 +293,8 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
       setTimeout(() => {
         setCurrentIndex(nextIndex);
         setTimeRemaining(routine.activities[nextIndex].duration * 60);
+        activityStartTimeRef.current = Date.now();
+        pausedElapsedRef.current = 0;
       }, reduceMotion ? 0 : 200);
     } else {
       // Routine complete
@@ -187,7 +304,17 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
 
   const handlePause = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsPaused((prev) => !prev);
+    setIsPaused((prev) => {
+      if (!prev) {
+        // Pausing — accumulate elapsed time
+        const elapsed = Math.floor((Date.now() - activityStartTimeRef.current) / 1000);
+        pausedElapsedRef.current = pausedElapsedRef.current + elapsed;
+      } else {
+        // Resuming — reset start time
+        activityStartTimeRef.current = Date.now();
+      }
+      return !prev;
+    });
   }, []);
 
   const handlePrevious = useCallback(() => {
@@ -196,6 +323,8 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
       const prevIndex = currentIndex - 1;
       setCurrentIndex(prevIndex);
       setTimeRemaining(routine.activities[prevIndex].duration * 60);
+      activityStartTimeRef.current = Date.now();
+      pausedElapsedRef.current = 0;
       setIsPaused(false);
     }
   }, [currentIndex, routine.activities]);
@@ -203,6 +332,8 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
   const handleRestart = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTimeRemaining(currentActivity.duration * 60);
+    activityStartTimeRef.current = Date.now();
+    pausedElapsedRef.current = 0;
     setIsPaused(false);
   }, [currentActivity]);
 
@@ -213,6 +344,8 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
       setTimeRemaining(routine.activities[nextIndex].duration * 60);
+      activityStartTimeRef.current = Date.now();
+      pausedElapsedRef.current = 0;
     } else {
       setIsCompleted(true);
     }
@@ -231,19 +364,21 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
             if (intervalRef.current) {
               clearInterval(intervalRef.current);
             }
+            cancelActivityNotifications();
             onClose();
           },
         },
       ]
     );
-  }, [onClose]);
+  }, [onClose, cancelActivityNotifications]);
 
   const handleBackToFocus = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
+    cancelActivityNotifications();
     onClose();
-  }, [onClose]);
+  }, [onClose, cancelActivityNotifications]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
