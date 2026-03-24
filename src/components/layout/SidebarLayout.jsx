@@ -24,11 +24,13 @@ import {
   Moon,
   Activity,
   UserSearch,
+  Shield,
 } from "lucide-react";
 import NotificationBell from "../notifications/NotificationBell";
 import VaraLogo from "../../assets/logo/vara-logo.png";
 import AIChatWidget from "../ai/AIChatWidget";
 import Footer from "./Footer";
+import { useAdmin } from "../../hooks/useAdmin";
 
 // Navigation structure mirroring mobile's 5 bottom tabs
 const navSections = [
@@ -79,16 +81,18 @@ const navSections = [
   },
 ];
 
-const bottomItems = [
-  { path: "/ai", label: "AI Companion", icon: Bot },
-  { path: "/profile", label: "My Profile", icon: User },
-  { path: "/settings", label: "Settings", icon: SettingsIcon },
-];
-
 export default function SidebarLayout({ children }) {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isAdmin } = useAdmin();
+
+  const bottomItems = [
+    { path: "/ai", label: "AI Companion", icon: Bot },
+    { path: "/profile", label: "My Profile", icon: User },
+    { path: "/settings", label: "Settings", icon: SettingsIcon },
+    ...(isAdmin ? [{ path: "/admin", label: "Admin", icon: Shield }] : []),
+  ];
 
   const isActive = (pathname, itemPath) => {
     if (itemPath === "/community") {
