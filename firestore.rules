@@ -49,6 +49,22 @@ service cloud.firestore {
       return group.data.visibility == 'public' || group.data.type == 'public';
     }
 
+    // Check if user has admin role
+    function isAdmin() {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Check if user is not suspended or banned (auto-unsuspend if past expiry)
+    function isActiveUser() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return userData.moderationStatus == null
+        || userData.moderationStatus == 'active'
+        || (userData.moderationStatus == 'suspended'
+            && userData.suspendedUntil != null
+            && userData.suspendedUntil < request.time);
+    }
+
     // ========== USER PROFILES ==========
 
     match /users/{userId} {
@@ -56,9 +72,12 @@ service cloud.firestore {
       // Privacy filtering is handled at the application layer
       allow read: if isAuthenticated();
 
-      // Users can only create/update their own profile
+      // Users can only create their own profile
       allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId;
+      // Owner can update own doc; admins can update role + moderation fields only
+      allow update: if request.auth.uid == userId
+        || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['role', 'moderationStatus', 'suspendedUntil', 'updatedAt']));
 
       // Users cannot delete their profile (use Cloud Function if needed)
       allow delete: if false;
@@ -71,6 +90,12 @@ service cloud.firestore {
       // Sub-collection: goals (legacy pattern)
       match /goals/{goalId} {
         allow read, write: if request.auth.uid == userId;
+      }
+
+      // Sub-collection: moderationHistory (admin-only)
+      match /moderationHistory/{entryId} {
+        allow read: if isAdmin();
+        allow write: if false; // Cloud Functions use Admin SDK
       }
     }
 
@@ -276,7 +301,7 @@ service cloud.firestore {
       );
 
       // Create: if user is the author (support both userId and authorId fields)
-      allow create: if isAuthenticated() &&
+      allow create: if isAuthenticated() && isActiveUser() &&
         (request.auth.uid == request.resource.data.userId ||
          request.auth.uid == request.resource.data.authorId) &&
         (
@@ -536,7 +561,7 @@ service cloud.firestore {
       );
 
       // Create: if user is one of the participants
-      allow create: if isAuthenticated() && (
+      allow create: if isAuthenticated() && isActiveUser() && (
         request.auth.uid == request.resource.data.a ||
         request.auth.uid == request.resource.data.b ||
         request.auth.uid == request.resource.data.requesterId ||
@@ -571,7 +596,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (resource == null || request.auth.uid in resource.data.participants);
 
       // Create: if user is one of the participants
-      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participants;
+      allow create: if isAuthenticated() && isActiveUser() && request.auth.uid in request.resource.data.participants;
 
       // Update: if user is a participant (for lastMessage update)
       allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
@@ -589,7 +614,7 @@ service cloud.firestore {
       );
 
       // Create: if user is the sender AND a participant in the conversation
-      allow create: if isAuthenticated() &&
+      allow create: if isAuthenticated() && isActiveUser() &&
         request.auth.uid == request.resource.data.senderId &&
         request.auth.uid in get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data.participants;
 
