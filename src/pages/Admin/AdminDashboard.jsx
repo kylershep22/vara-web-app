@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import SidebarLayout from "../../components/layout/SidebarLayout";
+import OverviewTab from "./OverviewTab";
+import AnalyticsTab from "./AnalyticsTab";
 import ModerationTab from "./ModerationTab";
 import UsersTab from "./UsersTab";
 
@@ -40,8 +42,8 @@ export default function AdminDashboard() {
 
         {/* Tab Content — placeholders replaced in later tasks */}
         <div>
-          {activeTab === "overview" && <Placeholder label="Overview" />}
-          {activeTab === "analytics" && <Placeholder label="Analytics" />}
+          {activeTab === "overview" && <OverviewTab />}
+          {activeTab === "analytics" && <AnalyticsTab />}
           {activeTab === "moderation" && <ModerationTab />}
           {activeTab === "challenges" && <Placeholder label="Challenges" />}
           {activeTab === "users" && <UsersTab />}
