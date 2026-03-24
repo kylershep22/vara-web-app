@@ -4,6 +4,7 @@ import OverviewTab from "./OverviewTab";
 import AnalyticsTab from "./AnalyticsTab";
 import ModerationTab from "./ModerationTab";
 import UsersTab from "./UsersTab";
+import ChallengesTab from "./ChallengesTab";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -45,14 +46,10 @@ export default function AdminDashboard() {
           {activeTab === "overview" && <OverviewTab />}
           {activeTab === "analytics" && <AnalyticsTab />}
           {activeTab === "moderation" && <ModerationTab />}
-          {activeTab === "challenges" && <Placeholder label="Challenges" />}
+          {activeTab === "challenges" && <ChallengesTab />}
           {activeTab === "users" && <UsersTab />}
         </div>
       </div>
     </SidebarLayout>
   );
-}
-
-function Placeholder({ label }) {
-  return <div className="text-muted-sage-gray">{label} tab coming soon...</div>;
 }
