@@ -269,12 +269,14 @@ const DiscoverNavigator = () => {
       screenOptions={{
         animation: 'slide_from_right',
         headerStyle: {
-          backgroundColor: Colors.evergreenTeal,
+          backgroundColor: Colors.mistWhite,
         },
-        headerTintColor: '#fff',
+        headerTintColor: Colors.evergreenTeal,
         headerTitleStyle: {
-          fontWeight: '700',
+          fontWeight: '600',
+          color: Colors.softCharcoal,
         },
+        headerShadowVisible: false,
       }}
     >
       <DiscoverStack.Screen
@@ -553,9 +555,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Brain Health',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         {/* Journal - Accessible from Wellness menu */}
@@ -575,9 +578,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Breathwork',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         <AppStack.Screen
@@ -587,9 +591,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Session Details',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         {/* Sleep - Accessible from Wellness menu */}
@@ -627,9 +632,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Movement Library',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         <AppStack.Screen
@@ -639,9 +645,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Workout Details',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         {/* Masterclass - Accessible from Wellness menu */}
@@ -652,9 +659,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Masterclasses',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         <AppStack.Screen
@@ -664,9 +672,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Class Details',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         {/* Help & Support - Accessible from Wellness menu */}
@@ -686,9 +695,10 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Wearables',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: Colors.mistWhite },
+            headerTintColor: Colors.evergreenTeal,
+            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
           }}
         />
         {/* Habit Detail - Accessible from Plan/Track screen */}
