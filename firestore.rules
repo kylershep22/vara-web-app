@@ -75,7 +75,9 @@ service cloud.firestore {
       // Users can only create their own profile
       allow create: if request.auth.uid == userId;
       // Owner can update own doc; admins can update role + moderation fields only
-      allow update: if request.auth.uid == userId
+      allow update: if (request.auth.uid == userId
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                .hasAny(['role', 'moderationStatus', 'suspendedUntil']))
         || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['role', 'moderationStatus', 'suspendedUntil', 'updatedAt']));
 
