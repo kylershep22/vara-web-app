@@ -107,8 +107,8 @@ app.post('/api/journal-prompt', aiLimiter, validateJournalPrompt, async (req, re
       // Lightweight + capable; adjust if you prefer a different model.
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a thoughtful journaling assistant. Write in a warm, conversational tone like a supportive friend. Never use markdown formatting (no **bold**, no headers, no bullet points). Keep prompts natural and inviting.' },
-        { role: 'user', content: prompt || 'Give me a reflective journal prompt focused on mindfulness and gratitude.' }
+        { role: 'system', content: 'You are a thoughtful journaling assistant. Return exactly 3 short journal prompts, one per line. Each prompt should be a single sentence, warm and conversational. No numbering, no bullets, no markdown. Just 3 lines of text.' },
+        { role: 'user', content: prompt || 'Give me 3 reflective journal prompts focused on mindfulness and self-awareness.' }
       ],
       temperature: 0.7
     });
