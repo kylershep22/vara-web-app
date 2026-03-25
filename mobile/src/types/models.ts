@@ -646,6 +646,10 @@ export interface AIPromptResponse {
   prompt: string;
 }
 
+export interface JournalPromptRawResponse {
+  text: string;
+}
+
 export interface JournalSummaryRequest {
   userId: string;
   entries: JournalEntry[];

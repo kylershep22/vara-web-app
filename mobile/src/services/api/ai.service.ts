@@ -9,6 +9,7 @@ import {
   DailyPlanResponse,
   AIPromptRequest,
   AIPromptResponse,
+  JournalPromptRawResponse,
   JournalWeeklySummary,
 } from '../../types';
 
@@ -61,6 +62,30 @@ export const getJournalPrompt = async (
     return response.prompt;
   } catch (error) {
     console.error('Error getting journal prompt:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get 3 AI journal prompt suggestions (returned as string array)
+ */
+export const getJournalPromptSuggestions = async (): Promise<string[]> => {
+  try {
+    // Send empty prompt to use backend default (keeps prompt text in one place)
+    const response = await apiPost<JournalPromptRawResponse>('/journal-prompt', {
+      prompt: '',
+    }, {
+      debug: __DEV__,
+    });
+    // Backend returns newline-separated prompts in the `text` field
+    const prompts = (response.text || '')
+      .split('\n')
+      .map((p: string) => p.trim())
+      .filter((p: string) => p.length > 0)
+      .slice(0, 3);
+    return prompts;
+  } catch (error) {
+    console.error('Error getting journal prompt suggestions:', error);
     throw error;
   }
 };
