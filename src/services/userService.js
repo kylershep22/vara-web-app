@@ -1,7 +1,10 @@
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { sanitizeText, sanitizeBio } from "../utils/sanitization";
 
 export const updateProfile = async (userId, patch) => {
+  if (patch.displayName) patch.displayName = sanitizeText(patch.displayName);
+  if (patch.bio) patch.bio = sanitizeBio(patch.bio);
   await updateDoc(doc(db, "users", userId), { ...patch, updatedAt: new Date() });
 };
 

@@ -25,6 +25,7 @@ import { useSubscription } from "../../hooks/useSubscription";
 import logger from "../../utils/logger";
 import { db } from "../../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { sanitizeText, sanitizeBio } from "../../utils/sanitization";
 import {
   getStorage,
   ref as storageRef,
@@ -160,8 +161,13 @@ export default function Settings() {
     setSaving(true);
     try {
       const ref = doc(db, "users", user.uid);
-      await updateDoc(ref, {
+      const sanitizedData = {
         ...formData,
+        ...(formData.displayName ? { displayName: sanitizeText(formData.displayName) } : {}),
+        ...(formData.bio ? { bio: sanitizeBio(formData.bio) } : {}),
+      };
+      await updateDoc(ref, {
+        ...sanitizedData,
         // keep only fields that belong here if you later need stricter control
       });
       toast.success("Settings saved successfully!");
