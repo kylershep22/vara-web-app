@@ -1,4 +1,5 @@
 import { db } from "../../firebase";
+import { sanitizeText, sanitizeTitle } from '../../utils/sanitization';
 import {
   collection, doc, getDoc, getDocs, query, where, orderBy, limit,
   addDoc, updateDoc, deleteDoc, serverTimestamp
@@ -19,11 +20,12 @@ export async function createGroup(userId, payload = { name: '', visibility: 'pri
   const col = collection(db, "groups");
   const data = {
     ownerId: userId,
-    name: payload.name ?? "",
     visibility: payload.visibility ?? "private",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-    ...payload
+    ...payload,
+    name: sanitizeTitle(payload.name) || "",
+    description: sanitizeText(payload.description) || "",
   };
   const res = await addDoc(col, data);
   return { id: res.id, ...data };
@@ -61,10 +63,10 @@ export async function createPost(userId, groupId, payload = { content: '' }) {
   const data = {
     userId,
     groupId,
-    content: payload.content ?? "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-    ...payload
+    ...payload,
+    content: sanitizeText(payload.content) || "",
   };
   const res = await addDoc(col, data);
   return { id: res.id, ...data };

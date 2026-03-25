@@ -16,6 +16,7 @@ import {
   serverTimestamp
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { sanitizeText, sanitizeTitle } from '../utils/sanitization';
 
 /**
  * Helper: normalize a group record so the UI can rely on consistent fields.
@@ -103,7 +104,7 @@ export const createPost = async ({
 }) => {
   const postData = {
     authorId,
-    content,
+    content: sanitizeText(content),
     images,
     groupId, // null = public
     likes: [],
@@ -179,7 +180,10 @@ export const addCommentToPost = async (postId, comment) => {
   if (!postSnap.exists()) return;
 
   const postData = postSnap.data();
-  const updatedComments = [...(postData.comments || []), comment];
+  const sanitizedComment = comment?.text !== undefined
+    ? { ...comment, text: sanitizeText(comment.text) }
+    : comment;
+  const updatedComments = [...(postData.comments || []), sanitizedComment];
 
   await updateDoc(postRef, {
     comments: updatedComments
@@ -225,8 +229,8 @@ export const createGroup = async ({
   creatorId
 }) => {
   const groupData = {
-    name,
-    description,
+    name: sanitizeTitle(name),
+    description: sanitizeText(description),
     type, // "public" or "private"
     isPublic: type === "public", // Add boolean for UI compatibility
     creatorId,
