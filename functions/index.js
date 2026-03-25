@@ -161,6 +161,9 @@ function slugify(s) {
 exports.generateHabitSuggestions = onCall(
     {secrets: [OPENAI_API_KEY]},
     async (request) => {
+      if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Must be logged in.");
+      }
       const {goal} = request.data || {};
 
       if (typeof goal !== "string" || !goal.trim()) {
@@ -212,6 +215,9 @@ exports.generateHabitSuggestions = onCall(
 exports.generateDailyPlan = onCall(
     {secrets: [OPENAI_API_KEY]},
     async (request) => {
+      if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Must be logged in.");
+      }
       const {name, preferences, mood, goals, modifier} = request.data || {};
 
       if (!Array.isArray(goals)) {
