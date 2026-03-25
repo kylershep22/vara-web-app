@@ -258,7 +258,7 @@ service cloud.firestore {
 
       // Create: any authenticated user can create a group
       // Support createdBy, ownerId, and creatorId fields for backwards compatibility
-      allow create: if isAuthenticated() && (
+      allow create: if isAuthenticated() && isActiveUser() && (
         request.auth.uid == request.resource.data.ownerId ||
         request.auth.uid == request.resource.data.createdBy ||
         request.auth.uid == request.resource.data.creatorId
@@ -266,13 +266,15 @@ service cloud.firestore {
 
       // Update: owner, members, or users joining public groups
       // Support createdBy, ownerId, and creatorId fields
-      allow update: if isAuthenticated() && (
+      allow update: if isAuthenticated() && isActiveUser() && (
         // Owner/creator can update anything
         request.auth.uid == resource.data.ownerId ||
         request.auth.uid == resource.data.createdBy ||
         request.auth.uid == resource.data.creatorId ||
-        // Existing members can update (for leaving, etc.)
-        request.auth.uid in resource.data.members ||
+        // Existing members can only update member-related fields (join/leave)
+        (request.auth.uid in resource.data.members &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['members', 'memberCount', 'updatedAt'])) ||
         // Non-members can join PUBLIC groups (add themselves to members)
         (
           (resource.data.visibility == 'public' || resource.data.isPublic == true) &&
@@ -283,7 +285,7 @@ service cloud.firestore {
 
       // Delete: only group owner
       // Support createdBy, ownerId, and creatorId fields
-      allow delete: if isAuthenticated() && (
+      allow delete: if isAuthenticated() && isActiveUser() && (
         request.auth.uid == resource.data.ownerId ||
         request.auth.uid == resource.data.createdBy ||
         request.auth.uid == resource.data.creatorId
@@ -315,7 +317,7 @@ service cloud.firestore {
         );
 
       // Update: post author can update anything, any authenticated user can like/comment
-      allow update: if isAuthenticated() && (
+      allow update: if isAuthenticated() && isActiveUser() && (
         // Author can update anything
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.authorId ||
@@ -326,7 +328,7 @@ service cloud.firestore {
       );
 
       // Delete: post author or group owner (if group post)
-      allow delete: if isAuthenticated() && (
+      allow delete: if isAuthenticated() && isActiveUser() && (
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.authorId ||
         (resource.data.groupId &&
