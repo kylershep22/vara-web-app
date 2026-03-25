@@ -21,14 +21,18 @@ const HabitCreateModal = ({ userId, onClose, onSave }) => {
     setSaving(true);
 
     try {
-      const [hour, minute] = reminderTime.split(':').map(Number);
+      let parsedReminderTime = null;
+      if (reminderEnabled) {
+        const [hour, minute] = reminderTime.split(':').map(Number);
+        parsedReminderTime = { hour, minute };
+      }
 
       await createHabit(userId, {
         name: name.trim(),
         category: category || null,
         frequency,
         reminderEnabled,
-        reminderTime: reminderEnabled ? { hour, minute } : null,
+        reminderTime: parsedReminderTime,
       });
 
       if (onSave) onSave();
