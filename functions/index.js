@@ -444,7 +444,7 @@ exports.pruneSleepAudioDoc = onObjectDeleted(async (event) => {
  */
 exports.api = onRequest(
     {
-      cors: true,
+      cors: ["https://vara-4a99f.web.app", "https://vara-4a99f.firebaseapp.com"],
       secrets: [OPENAI_API_KEY],
       timeoutSeconds: 120,
     },
