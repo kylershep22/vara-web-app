@@ -18,12 +18,16 @@ export async function createHabit(userId, payload) {
   const col = collection(db, "habits");
   const docData = {
     userId,
-    goalId: payload.goalId ?? null,
     name: payload.name ?? "",
+    title: payload.name ?? "",
+    category: payload.category ?? null,
     frequency: payload.frequency ?? "daily",
+    active: true,
+    streak: 0,
+    reminderEnabled: payload.reminderEnabled ?? false,
+    reminderTime: payload.reminderTime ?? null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-    ...payload
   };
   const res = await addDoc(col, docData);
   return { id: res.id, ...docData };
