@@ -23,6 +23,7 @@ exports.sendInsights = notifications.sendInsights;
 exports.onNewDirectMessage = notifications.onNewDirectMessage;
 exports.onNewConnection = notifications.onNewConnection;
 exports.sendMilestones = notifications.sendMilestones;
+exports.sendHabitReminders = notifications.sendHabitReminders;
 
 // Admin & Moderation Cloud Functions
 const adminFunctions = require("./src/admin");
