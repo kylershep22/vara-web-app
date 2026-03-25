@@ -46,6 +46,15 @@ async function makeOpenAI() {
   return new OpenAI({apiKey});
 }
 
+/**
+ * Sanitize user input for safe interpolation into prompts.
+ * Strips HTML, trims, and limits length.
+ */
+function sanitizeInput(str, maxLength = 2000) {
+  if (typeof str !== "string") return "";
+  return str.replace(/<[^>]*>/g, "").trim().slice(0, maxLength);
+}
+
 /* ======================================================================
  * Rate Limiting Middleware
  * ====================================================================*/
@@ -545,9 +554,16 @@ async function handleJournalSummary(req, res) {
     return res.status(405).json({error: "Method not allowed"});
   }
 
-  const {entries, type, guardrails, instruction} = req.body || {};
+  const rawEntries = req.body?.entries;
+  const instruction = sanitizeInput(req.body?.instruction || "", 500);
 
-  if (!entries || (typeof entries === "string" && entries.trim().length === 0)) {
+  const entries = typeof rawEntries === "string"
+    ? sanitizeInput(rawEntries, 10000)
+    : Array.isArray(rawEntries)
+      ? rawEntries.map((e) => sanitizeInput(String(e), 2000)).join("\n")
+      : "";
+
+  if (!entries || entries.trim().length === 0) {
     return res.status(400).json({error: "No journal entries provided."});
   }
 
@@ -556,7 +572,7 @@ async function handleJournalSummary(req, res) {
 
     const basePrompt = `Here are my journal entries from the past week:
 
-${typeof entries === "string" ? entries : JSON.stringify(entries, null, 2)}
+${entries}
 
 Please summarize the main themes, emotions, and any meaningful insights or patterns you notice.`;
 
@@ -596,6 +612,11 @@ async function handleAIChat(req, res) {
   try {
     const {messages = [], context = {}} = req.body || {};
     const {page, userSummary, brainMetrics} = context || {};
+
+    const sanitizedMessages = messages.slice(-20).map((m) => ({
+      role: ["user", "assistant"].includes(m.role) ? m.role : "user",
+      content: sanitizeInput(m.content, 4000),
+    }));
 
     // Build brain health context section
     let brainHealthContext = "";
@@ -671,7 +692,7 @@ Guidelines:
 
     const history = [
       {role: "system", content: systemPrompt},
-      ...messages.map((m) => ({role: m.role, content: m.content})),
+      ...sanitizedMessages,
     ];
 
     const openai = await makeOpenAI();
@@ -702,7 +723,9 @@ async function handleOpenAISuggestions(req, res) {
     return res.status(405).json({error: "Method not allowed"});
   }
 
-  const {type, context, modifier = ""} = req.body || {};
+  const type = sanitizeInput(req.body?.type || "", 50);
+  const context = sanitizeInput(req.body?.context || "", 1000);
+  const modifier = sanitizeInput(req.body?.modifier || "", 500);
 
   if (!type || !context) {
     return res.status(400).json({error: "Missing required fields: type and context"});
@@ -752,7 +775,8 @@ async function handleJournalPrompt(req, res) {
     return res.status(405).json({error: "Method not allowed"});
   }
 
-  const {prompt, brainFocused} = req.body || {};
+  const prompt = sanitizeInput(req.body?.prompt || "", 1000);
+  const brainFocused = !!req.body?.brainFocused;
 
   try {
     const openai = await makeOpenAI();
@@ -802,7 +826,16 @@ async function handleGenerateDailyPlan(req, res) {
     return res.status(405).json({error: "Method not allowed"});
   }
 
-  const {goals, habits, tasks, preferences} = req.body || {};
+  const goals = Array.isArray(req.body?.goals)
+    ? req.body.goals.map((g) => sanitizeInput(String(g), 500))
+    : [];
+  const habits = Array.isArray(req.body?.habits)
+    ? req.body.habits.map((h) => sanitizeInput(String(h), 500))
+    : [];
+  const tasks = Array.isArray(req.body?.tasks)
+    ? req.body.tasks.map((t) => sanitizeInput(String(t), 500))
+    : [];
+  const preferences = req.body?.preferences || {};
 
   try {
     const openai = await makeOpenAI();
@@ -854,7 +887,19 @@ async function handleWeekRecapSuggestions(req, res) {
 
   try {
     const openai = await makeOpenAI();
-    const {goals = [], habits = [], recentJournals = []} = weekData;
+    const rawWeekData = weekData || {};
+    const goals = Array.isArray(rawWeekData.goals)
+      ? rawWeekData.goals.map((g) => sanitizeInput(String(g), 500))
+      : [];
+    const habits = Array.isArray(rawWeekData.habits)
+      ? rawWeekData.habits.map((h) => ({
+        name: sanitizeInput(String(h.name || "Habit"), 200),
+        streak: typeof h.streak === "number" ? h.streak : 0,
+      }))
+      : [];
+    const recentJournals = Array.isArray(rawWeekData.recentJournals)
+      ? rawWeekData.recentJournals.map((j) => sanitizeInput(String(j), 1000))
+      : [];
 
     const systemPrompt = `You are Vara, an empathetic wellness coach helping users reflect on their week.
 Based on the user's goals, habits, and recent journal entries, suggest thoughtful responses for their 4-3-2-1 week recap:
@@ -866,7 +911,7 @@ Return only a JSON object with "momentsOfJoy" (array of 4 strings) and "mindBody
 
     const userPrompt = `User's Week Context:
 - Goals: ${goals.join(", ") || "None"}
-- Habits: ${habits.map((h) => `${h.name || "Habit"} (${h.streak || 0} day streak)`).join(", ") || "None"}
+- Habits: ${habits.map((h) => `${h.name} (${h.streak} day streak)`).join(", ") || "None"}
 - Recent Journal Entries: ${recentJournals.join(" | ") || "None"}
 
 Current Recap (if any):
