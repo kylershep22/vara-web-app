@@ -40,7 +40,7 @@ function validateAIChat(req, res, next) {
     return res.status(400).json({ error: `Maximum ${MAX_MESSAGES_COUNT} messages allowed` });
   }
 
-  const validRoles = ['user', 'assistant', 'system'];
+  const validRoles = ['user', 'assistant'];
   req.body.messages = messages.slice(-MAX_MESSAGES_COUNT).map(m => ({
     role: validRoles.includes(m.role) ? m.role : 'user',
     content: sanitizeString(m.content, MAX_MESSAGE_LENGTH),
