@@ -2,18 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import SidebarLayout from '../components/layout/SidebarLayout';
-import { Target, Plus, CircleCheck } from 'lucide-react';
+import { Target, Plus } from 'lucide-react';
 import { db } from '../firebase';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  serverTimestamp
-} from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import AddHabitForm from '../components/habits/AddHabitForm';
+import HabitCreateModal from '../components/dashboard/HabitCreateModal';
 import HabitList from '../components/habits/HabitList';
 import AIBasedSuggestions from '../components/habits/AIBasedSuggestions';
 
@@ -22,6 +15,7 @@ export default function Habits() {
   const [goals, setGoals] = useState([]);
   const [selectedGoalId, setSelectedGoalId] = useState(null);
   const [habitSectionOpen, setHabitSectionOpen] = useState({});
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     if (user) fetchGoals();
@@ -42,14 +36,23 @@ export default function Habits() {
   return (
     <SidebarLayout>
       <div className="p-6 max-w-6xl mx-auto space-y-10">
-        <div>
-          <h1 className="text-3xl font-semibold text-evergreen-teal flex items-center gap-2">
-            <Target size={28} />
-            Goals & Habits
-          </h1>
-          <p className="text-muted-sage-gray mt-1">
-            Link habits to each goal to better track your wellness journey and build consistency.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold text-evergreen-teal flex items-center gap-2">
+              <Target size={28} />
+              Goals & Habits
+            </h1>
+            <p className="text-muted-sage-gray mt-1">
+              Link habits to each goal to better track your wellness journey and build consistency.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-evergreen-teal text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors"
+          >
+            <Plus size={16} />
+            Create Habit
+          </button>
         </div>
 
         {goals.map(goal => (
@@ -63,19 +66,26 @@ export default function Habits() {
                 onClick={() => toggleHabitSection(goal.id)}
                 className="text-sm px-4 py-2 rounded-lg bg-gradient-to-r from-evergreen-teal to-silver-sage text-white hover:scale-105 transition"
               >
-                {habitSectionOpen[goal.id] ? 'Hide Habits' : 'Add/View Habits'}
+                {habitSectionOpen[goal.id] ? 'Hide Habits' : 'View Habits'}
               </button>
             </div>
 
             {habitSectionOpen[goal.id] && (
               <div className="space-y-6">
-                <AddHabitForm userId={user?.uid} goalId={goal.id} />
                 <HabitList userId={user?.uid} goalId={goal.id} showCalendar />
                 <AIBasedSuggestions userId={user?.uid} goal={goal} />
               </div>
             )}
           </div>
         ))}
+
+        {showCreateModal && (
+          <HabitCreateModal
+            userId={user?.uid}
+            onClose={() => setShowCreateModal(false)}
+            onSave={() => fetchGoals()}
+          />
+        )}
       </div>
     </SidebarLayout>
   );
