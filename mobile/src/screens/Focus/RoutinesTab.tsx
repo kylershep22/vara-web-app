@@ -46,6 +46,8 @@ import {
   TimeOfDay,
   ActivityListItem,
   AddActivityButton,
+  ChecklistPlayer,
+  RoutineCompleteState,
 } from './components';
 import { getActivityColor, getActivityColorWithOpacity } from './components/activityColors';
 
@@ -113,6 +115,16 @@ export const RoutinesTab: React.FC<RoutinesTabProps> = ({ onStartRoutine }) => {
     setIsEditing(true);
   }, []);
 
+  const handleModeChange = useCallback(async (mode: 'checklist' | 'timed') => {
+    if (!activeRoutine) return;
+    try {
+      await updateRoutine(activeRoutine.id, { mode });
+      setActiveRoutine({ ...activeRoutine, mode });
+    } catch (error) {
+      console.error('Error updating mode:', error);
+    }
+  }, [activeRoutine]);
+
   const handleActivityReorder = useCallback(async (data: Activity[]) => {
     if (!activeRoutine) return;
 
@@ -179,6 +191,7 @@ export const RoutinesTab: React.FC<RoutinesTabProps> = ({ onStartRoutine }) => {
           onEdit={handleEdit}
           onStart={handleStartRoutine}
           onReorder={handleActivityReorder}
+          onModeChange={handleModeChange}
         />
       ) : (
         <EmptyState
@@ -200,6 +213,7 @@ interface RoutineViewProps {
   onEdit: () => void;
   onStart: () => void;
   onReorder: (data: Activity[]) => void;
+  onModeChange: (mode: 'checklist' | 'timed') => void;
 }
 
 const RoutineView: React.FC<RoutineViewProps> = ({
@@ -207,9 +221,21 @@ const RoutineView: React.FC<RoutineViewProps> = ({
   onEdit,
   onStart,
   onReorder,
+  onModeChange,
 }) => {
+  const [isChecklistActive, setIsChecklistActive] = useState(false);
+  const [isRoutineComplete, setIsRoutineComplete] = useState(false);
+
   const totalDuration = calculateTotalDuration(routine.activities);
   const summary = formatSummary(totalDuration, routine.activities.length);
+
+  const handleBegin = () => {
+    if (routine.mode === 'timed') {
+      onStart();
+    } else {
+      setIsChecklistActive(true);
+    }
+  };
 
   const renderActivity = ({ item, drag, isActive, getIndex }: RenderItemParams<Activity>) => {
     const index = getIndex() ?? 0;
@@ -227,6 +253,33 @@ const RoutineView: React.FC<RoutineViewProps> = ({
       </ScaleDecorator>
     );
   };
+
+  if (isRoutineComplete) {
+    return (
+      <RoutineCompleteState
+        onBackToFocus={() => {
+          setIsRoutineComplete(false);
+          setIsChecklistActive(false);
+        }}
+        onAdjustRoutine={() => {
+          setIsRoutineComplete(false);
+          setIsChecklistActive(false);
+          onEdit();
+        }}
+        routineName={routine.name}
+      />
+    );
+  }
+
+  if (isChecklistActive) {
+    return (
+      <ChecklistPlayer
+        activities={routine.activities}
+        routineName={routine.name}
+        onComplete={() => setIsRoutineComplete(true)}
+      />
+    );
+  }
 
   return (
     <ScrollView
@@ -261,6 +314,24 @@ const RoutineView: React.FC<RoutineViewProps> = ({
           </TouchableOpacity>
         </View>
 
+        {/* Mode Toggle */}
+        <View style={styles.modeToggle}>
+          <TouchableOpacity
+            style={[styles.modeChip, routine.mode !== 'timed' && styles.modeChipActive]}
+            onPress={() => onModeChange('checklist')}
+          >
+            <Icon name="checkbox-marked-outline" size={16} color={routine.mode !== 'timed' ? '#FFFFFF' : ColorTokens.primary} />
+            <Text style={[styles.modeChipText, routine.mode !== 'timed' && styles.modeChipTextActive]}>Checklist</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modeChip, routine.mode === 'timed' && styles.modeChipActive]}
+            onPress={() => onModeChange('timed')}
+          >
+            <Icon name="timer-outline" size={16} color={routine.mode === 'timed' ? '#FFFFFF' : ColorTokens.primary} />
+            <Text style={[styles.modeChipText, routine.mode === 'timed' && styles.modeChipTextActive]}>Timed</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Activity List */}
         <View style={styles.activityList}>
           <DraggableFlatList
@@ -291,7 +362,7 @@ const RoutineView: React.FC<RoutineViewProps> = ({
       {/* Primary CTA */}
       <TouchableOpacity
         style={styles.startButton}
-        onPress={onStart}
+        onPress={handleBegin}
         activeOpacity={0.8}
         accessibilityRole="button"
         accessibilityLabel={FocusCopy.startCta}
@@ -469,6 +540,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: ColorTokens.primary,
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    marginBottom: SpacingTokens.md,
+    borderRadius: RadiusTokens.md,
+    borderWidth: 1,
+    borderColor: ColorTokens.border,
+    overflow: 'hidden',
+  },
+  modeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    backgroundColor: ColorTokens.backgroundSurface,
+  },
+  modeChipActive: {
+    backgroundColor: ColorTokens.primary,
+  },
+  modeChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: ColorTokens.primary,
+  },
+  modeChipTextActive: {
+    color: '#FFFFFF',
   },
   activityList: {
     marginBottom: SpacingTokens.base,
