@@ -149,8 +149,16 @@ const HabitDetailScreen: React.FC = () => {
               <View style={styles.statIconContainer}>
                 <Icon name="leaf" size={24} color={Colors.evergreenTeal} />
               </View>
-              <Text style={styles.statValue}>{habit.streak || 0}</Text>
-              <Text style={styles.statLabel}>Days completed this month</Text>
+              <Text style={styles.statValue}>{habit.totalStepsTaken || 0}</Text>
+              <Text style={styles.statLabel}>Completions total</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Icon name="calendar-week" size={24} color={Colors.evergreenTeal} />
+              </View>
+              <Text style={styles.statValue}>{habit.thisWeekSteps || 0}</Text>
+              <Text style={styles.statLabel}>Active days this week</Text>
             </View>
           </View>
         </BaseCard>
