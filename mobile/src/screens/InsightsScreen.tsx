@@ -97,7 +97,7 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
   // Daily activity data for charts
   const [dailyHabitCompletions, setDailyHabitCompletions] = useState<{ date: string; count: number }[]>([]);
   const [dailyCheckIns, setDailyCheckIns] = useState<number[]>([]);
-  const [dailyStreaks, setDailyStreaks] = useState<number[]>([]);
+  // const [dailyStreaks, setDailyStreaks] = useState<number[]>([]);
   const [weeklyActivity, setWeeklyActivity] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
 
   // Calculate date range based on timeframe
@@ -131,60 +131,8 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  const calculateStreak = (completions: string[]): number => {
-    if (completions.length === 0) return 0;
-
-    const sorted = completions.sort().reverse();
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-
-    if (sorted[0] !== today && sorted[0] !== yesterday) return 0;
-
-    let streak = 0;
-    let expectedDate = new Date(sorted[0]);
-
-    for (const date of sorted) {
-      if (date === expectedDate.toISOString().split('T')[0]) {
-        streak++;
-        expectedDate.setDate(expectedDate.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-
-    return streak;
-  };
-
-  // Calculate daily streak values for sparkline
-  const calculateDailyStreaks = (completionDates: string[]): number[] => {
-    const streaks: number[] = [];
-    const today = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-
-      // Calculate streak up to this date
-      const completionsUpToDate = completionDates.filter((d) => d <= dateStr);
-      let streak = 0;
-      let expectedDate = new Date(dateStr);
-
-      const sorted = completionsUpToDate.sort().reverse();
-      for (const d of sorted) {
-        if (d === expectedDate.toISOString().split('T')[0]) {
-          streak++;
-          expectedDate.setDate(expectedDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
-
-      streaks.push(streak);
-    }
-
-    return streaks;
-  };
+  // const calculateStreak = (completions: string[]): number => { ... }; // removed: streak language replaced with active days
+  // const calculateDailyStreaks = (completionDates: string[]): number[] => { ... }; // removed: streak language replaced with active days
 
   // Load all analytics data
   useEffect(() => {
@@ -226,10 +174,6 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
           count,
         }));
         setDailyHabitCompletions(heatmapData);
-
-        // Calculate daily streaks for sparkline
-        const streakData = calculateDailyStreaks(allCompletionDates);
-        setDailyStreaks(streakData);
 
         // Calculate daily check-ins for sparkline (last 7 days)
         const checkInsPerDay: number[] = [];
@@ -425,8 +369,9 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
       habits.length > 0 && habitCompletionData
         ? (totalHabitCompletions / (habits.length * getDaysInRange())) * 100
         : 0;
-    const currentStreaks = habits.map((h) => calculateStreak(habitCompletionData[h.id] || []));
-    const longestStreak = currentStreaks.length > 0 ? Math.max(...currentStreaks) : 0;
+    const activeDays = new Set(
+      Object.values(habitCompletionData).flat()
+    ).size;
 
     // Tasks metrics
     const completedTasks = allTasks.filter((t) => {
@@ -452,7 +397,7 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
       habits: {
         completions: totalHabitCompletions,
         completionRate: habitCompletionRate,
-        longestStreak,
+        activeDays,
         total: habits.length,
       },
       tasks: {
@@ -502,19 +447,7 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     return 'steady';
   };
 
-  const getStreakTrend = (): 'up' | 'steady' | 'down' => {
-    if (dailyStreaks.length < 2) return 'steady';
-    const recent = dailyStreaks.slice(-3);
-    const older = dailyStreaks.slice(0, -3);
-    if (older.length === 0) return 'steady';
-
-    const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
-    const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
-
-    if (recentAvg > olderAvg) return 'up';
-    if (recentAvg < olderAvg) return 'down';
-    return 'steady';
-  };
+  // getStreakTrend removed: streak language replaced with active days
 
   const getCheckInsTrend = (): 'up' | 'steady' | 'down' => {
     if (dailyCheckIns.length < 2) return 'steady';
@@ -679,7 +612,7 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
         {/* Enhancement 7: Narrative Recap */}
         <NarrativeRecap
           habits={metrics.habits.completions}
-          streak={metrics.habits.longestStreak}
+          streak={metrics.habits.activeDays}
           goals={metrics.goals.completed}
           tasks={metrics.tasks.completed}
           journal={metrics.journal.entries}

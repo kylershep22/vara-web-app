@@ -35,7 +35,7 @@ const generateSummary = (data: NarrativeRecapProps): string => {
 
   // Lead with what happened (never with zeros)
   if (habits > 0 && streak > 0) {
-    summary = `You checked in ${habits} time${habits > 1 ? 's' : ''} and showed up ${streak} days in a row \u2014 a solid foundation to build on.`;
+    summary = `You completed ${habits} check-in${habits > 1 ? 's' : ''} across ${streak} active day${streak > 1 ? 's' : ''} \u2014 consistency builds momentum.`;
   } else if (habits > 0) {
     summary = `You completed ${habits} habit check-in${habits > 1 ? 's' : ''} ${timeframeLabel.toLowerCase()} \u2014 consistency takes time, and you're showing up.`;
   } else if (journal > 0) {
@@ -83,7 +83,7 @@ export const NarrativeRecap: React.FC<NarrativeRecapProps> = (props) => {
         <View style={styles.badge}>
           <Text style={styles.badgeIcon}>{'\uD83C\uDFC6'}</Text>
           <Text style={styles.badgeText}>
-            Best consistency run: <Text style={styles.badgeNumber}>{streak}</Text> days
+            Active days: <Text style={styles.badgeNumber}>{streak}</Text>
           </Text>
         </View>
       )}
