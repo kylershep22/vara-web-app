@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   activityRowCompleted: { opacity: 0.6 },
   checkbox: {
-    width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: ColorTokens.border,
+    width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: ColorTokens.secondary,
     alignItems: 'center', justifyContent: 'center',
   },
   activityIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },

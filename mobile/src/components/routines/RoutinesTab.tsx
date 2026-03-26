@@ -29,7 +29,7 @@ import { RoutineEditor } from './RoutineEditor';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
-const ROUTINE_TYPES: RoutineType[] = ['morning', 'bedtime', 'evening', 'custom'];
+const ROUTINE_TYPES: RoutineType[] = ['morning', 'evening', 'custom'];
 
 export const RoutinesTab: React.FC = () => {
   const { user } = useAuth();

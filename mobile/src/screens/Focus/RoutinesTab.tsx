@@ -443,7 +443,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onCreate, selectedTime, userId,
                 borderRadius: RadiusTokens.lg,
                 padding: 16,
                 borderWidth: 1,
-                borderColor: ColorTokens.border,
+                borderColor: ColorTokens.secondary,
                 opacity: applying === template.id ? 0.5 : 1,
               }}
               accessibilityRole="button"
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
     marginBottom: SpacingTokens.md,
     borderRadius: RadiusTokens.md,
     borderWidth: 1,
-    borderColor: ColorTokens.border,
+    borderColor: ColorTokens.secondary,
     overflow: 'hidden',
   },
   modeChip: {
