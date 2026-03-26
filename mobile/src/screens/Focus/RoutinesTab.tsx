@@ -22,6 +22,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   Routine,
   Activity,
+  RoutineType,
   fetchActiveRoutineByType,
   calculateTotalDuration,
   updateRoutine,
@@ -46,9 +47,10 @@ import {
 } from './components';
 import { getActivityColor, getActivityColorWithOpacity } from './components/activityColors';
 
-// TimeOfDay maps directly to RoutineType after sunday→custom migration
+// Map TimeOfDay to RoutineType — sunday maps to custom
 const mapTimeOfDayToRoutineType = (time: TimeOfDay): RoutineType => {
-  return time;
+  if (time === 'sunday') return 'custom';
+  return time as RoutineType;
 };
 
 interface RoutinesTabProps {
