@@ -1,5 +1,5 @@
 // src/utils/sanitization.js
-import DOMPurify from 'isomorphic-dompurify';
+import DOMPurify from 'dompurify';
 
 /**
  * Sanitizes HTML content from rich text editors (TinyMCE, etc.)
