@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Users, TrendingUp, CreditCard, Shield } from "lucide-react";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../firebase";
 import { getAnalyticsDoc } from "../../services/db/admin.service";
 import { getModerationStats } from "../../services/db/adminModeration.service";
 
@@ -8,6 +10,7 @@ export default function OverviewTab() {
   const [subscriptionMetrics, setSubscriptionMetrics] = useState(null);
   const [moderationStats, setModerationStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +42,27 @@ export default function OverviewTab() {
     };
   }, []);
 
+  const handleRefreshAnalytics = async () => {
+    setRefreshing(true);
+    try {
+      const triggerFn = httpsCallable(functions, "triggerAggregation");
+      await triggerFn();
+      // Re-fetch data after aggregation
+      const [rollingDoc, subDoc, modStats] = await Promise.all([
+        getAnalyticsDoc("rolling"),
+        getAnalyticsDoc("subscriptionMetrics"),
+        getModerationStats(),
+      ]);
+      setRolling(rollingDoc);
+      setSubscriptionMetrics(subDoc);
+      setModerationStats(modStats);
+    } catch (err) {
+      console.error("Failed to refresh analytics:", err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-muted-sage-gray text-vara-sm py-vara-lg">
@@ -49,11 +73,26 @@ export default function OverviewTab() {
 
   const hasData = rolling || subscriptionMetrics || moderationStats;
 
+  const refreshButton = (
+    <div className="flex justify-end">
+      <button
+        onClick={handleRefreshAnalytics}
+        disabled={refreshing}
+        className="inline-flex items-center gap-vara-sm px-vara-base py-2 text-vara-sm font-medium text-evergreen-teal border border-evergreen-teal rounded-vara-lg hover:bg-dew-sage-light transition-colors disabled:opacity-50"
+      >
+        {refreshing ? "Refreshing..." : "Refresh Analytics"}
+      </button>
+    </div>
+  );
+
   if (!hasData) {
     return (
-      <div className="border-2 border-dashed border-divider rounded-vara-lg p-vara-lg text-center text-muted-sage-gray text-vara-sm">
-        No analytics data yet. Data will appear after the nightly aggregation
-        runs.
+      <div className="space-y-vara-base">
+        {refreshButton}
+        <div className="border-2 border-dashed border-divider rounded-vara-lg p-vara-lg text-center text-muted-sage-gray text-vara-sm">
+          No analytics data yet. Data will appear after the nightly aggregation
+          runs.
+        </div>
       </div>
     );
   }
@@ -102,40 +141,43 @@ export default function OverviewTab() {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-vara-base">
-      {cards.map((card) => {
-        const Icon = card.icon;
-        return (
-          <div
-            key={card.title}
-            className="border border-divider rounded-vara-lg p-vara-base bg-white"
-          >
-            <div className="flex items-center gap-vara-sm mb-vara-sm">
-              <Icon
-                size={20}
-                className={
-                  card.urgent ? "text-red-500" : "text-evergreen-teal"
-                }
-              />
-              <span className="text-vara-xs text-muted-sage-gray font-medium">
-                {card.title}
-              </span>
-            </div>
+    <div className="space-y-vara-base">
+      {refreshButton}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-vara-base">
+        {cards.map((card) => {
+          const Icon = card.icon;
+          return (
             <div
-              className={`text-vara-2xl font-bold ${
-                card.urgent ? "text-red-500" : "text-soft-charcoal"
-              }`}
+              key={card.title}
+              className="border border-divider rounded-vara-lg p-vara-base bg-white"
             >
-              {card.value}
-            </div>
-            {card.subtitle && (
-              <div className="text-vara-xs text-muted-sage-gray mt-vara-xs">
-                {card.subtitle}
+              <div className="flex items-center gap-vara-sm mb-vara-sm">
+                <Icon
+                  size={20}
+                  className={
+                    card.urgent ? "text-red-500" : "text-evergreen-teal"
+                  }
+                />
+                <span className="text-vara-xs text-muted-sage-gray font-medium">
+                  {card.title}
+                </span>
               </div>
-            )}
-          </div>
-        );
-      })}
+              <div
+                className={`text-vara-2xl font-bold ${
+                  card.urgent ? "text-red-500" : "text-soft-charcoal"
+                }`}
+              >
+                {card.value}
+              </div>
+              {card.subtitle && (
+                <div className="text-vara-xs text-muted-sage-gray mt-vara-xs">
+                  {card.subtitle}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -32,6 +32,7 @@ exports.onPostReport_createQueueItem = adminFunctions.onPostReport_createQueueIt
 exports.onModerationAction = adminFunctions.onModerationAction;
 exports.aggregateAnalytics = adminFunctions.aggregateAnalytics;
 exports.aggregateAnalyticsFull = adminFunctions.aggregateAnalyticsFull;
+exports.triggerAggregation = adminFunctions.triggerAggregation;
 exports.cleanupExpiredSuspensions = adminFunctions.cleanupExpiredSuspensions;
 exports.updateModerationBlocklist = adminFunctions.updateModerationBlocklist;
 

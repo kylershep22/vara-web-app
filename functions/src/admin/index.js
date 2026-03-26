@@ -1,6 +1,6 @@
 const {onPostCreate_moderateContent, onPostReport_createQueueItem} = require("./moderation");
 const {onModerationAction} = require("./moderationActions");
-const {aggregateAnalytics, aggregateAnalyticsFull} = require("./analytics");
+const {aggregateAnalytics, aggregateAnalyticsFull, triggerAggregation} = require("./analytics");
 const {cleanupExpiredSuspensions, updateModerationBlocklist} = require("./cleanup");
 
 module.exports = {
@@ -9,6 +9,7 @@ module.exports = {
   onModerationAction,
   aggregateAnalytics,
   aggregateAnalyticsFull,
+  triggerAggregation,
   cleanupExpiredSuspensions,
   updateModerationBlocklist,
 };

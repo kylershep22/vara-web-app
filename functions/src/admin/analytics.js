@@ -264,7 +264,31 @@ const aggregateAnalyticsFull = onSchedule(
   },
 );
 
+/**
+ * Callable: manually trigger analytics aggregation (admin-only).
+ */
+const {onCall, HttpsError} = require("firebase-functions/v2/https");
+
+const triggerAggregation = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in.");
+  }
+
+  // Verify admin role
+  const adminDoc = await admin.firestore()
+    .doc(`users/${request.auth.uid}`)
+    .get();
+  if (!adminDoc.exists || adminDoc.data().role !== "admin") {
+    throw new HttpsError("permission-denied", "Admin access required.");
+  }
+
+  logger.info("Manual analytics aggregation triggered by", request.auth.uid);
+  await runAggregation();
+  return {success: true, message: "Analytics aggregation complete"};
+});
+
 module.exports = {
   aggregateAnalytics,
   aggregateAnalyticsFull,
+  triggerAggregation,
 };
