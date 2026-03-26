@@ -26,7 +26,9 @@ import {
   fetchActiveRoutineByType,
   calculateTotalDuration,
   updateRoutine,
+  createRoutine,
 } from '../../services/firebase/routines.service';
+import { getTemplatesForType, RoutineTemplate } from '../../constants/routineTemplates';
 import { runMigrationIfNeeded } from '../../services/firebase/routineMigration.service';
 import {
   ColorTokens,
@@ -179,7 +181,12 @@ export const RoutinesTab: React.FC<RoutinesTabProps> = ({ onStartRoutine }) => {
           onReorder={handleActivityReorder}
         />
       ) : (
-        <EmptyState onCreate={handleCreate} />
+        <EmptyState
+          onCreate={handleCreate}
+          selectedTime={selectedTime}
+          userId={user.uid}
+          onTemplateApplied={loadActiveRoutine}
+        />
       )}
     </View>
   );
@@ -310,25 +317,93 @@ const RoutineView: React.FC<RoutineViewProps> = ({
  */
 interface EmptyStateProps {
   onCreate: () => void;
+  selectedTime: TimeOfDay;
+  userId: string;
+  onTemplateApplied: () => void;
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({ onCreate }) => {
+const EmptyState: React.FC<EmptyStateProps> = ({ onCreate, selectedTime, userId, onTemplateApplied }) => {
+  const templates = getTemplatesForType(selectedTime);
+  const [applying, setApplying] = useState<string | null>(null);
+
+  const handleApplyTemplate = async (template: RoutineTemplate) => {
+    setApplying(template.id);
+    try {
+      const activities = template.activities.map((a, index) => ({
+        ...a,
+        id: index + 1,
+        order: index,
+      }));
+
+      const routineType = template.type as RoutineType;
+      await createRoutine(userId, {
+        name: template.name,
+        type: routineType,
+        activities,
+        active: true,
+        reminderTime: null,
+        mode: 'checklist',
+      });
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onTemplateApplied();
+    } catch (error) {
+      console.error('Error applying template:', error);
+    } finally {
+      setApplying(null);
+    }
+  };
+
   return (
-    <View style={styles.emptyContainer}>
+    <ScrollView contentContainerStyle={styles.emptyContainer}>
       <Text style={styles.emptyEmoji}>🌱</Text>
       <Text style={styles.emptyHeadline}>{FocusCopy.emptyHeadline}</Text>
       <Text style={styles.emptyBody}>{FocusCopy.emptyBody}</Text>
+
+      {templates.length > 0 && (
+        <View style={{ width: '100%', gap: 12, marginTop: 16, marginBottom: 16 }}>
+          {templates.map((template) => (
+            <TouchableOpacity
+              key={template.id}
+              onPress={() => handleApplyTemplate(template)}
+              disabled={applying !== null}
+              style={{
+                backgroundColor: ColorTokens.backgroundSurface,
+                borderRadius: RadiusTokens.lg,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: ColorTokens.border,
+                opacity: applying === template.id ? 0.5 : 1,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Use ${template.name} template`}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '600', color: ColorTokens.textPrimary }}>
+                {template.name}
+              </Text>
+              <Text style={{ fontSize: 13, color: ColorTokens.textSecondary, marginTop: 4 }}>
+                {template.description}
+              </Text>
+              <Text style={{ fontSize: 12, color: ColorTokens.primary, marginTop: 8 }}>
+                {template.activities.length} activities · ~{template.totalMinutes} min
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <TouchableOpacity
         style={styles.createButton}
         onPress={onCreate}
         activeOpacity={0.8}
         accessibilityRole="button"
-        accessibilityLabel={FocusCopy.emptyCta}
+        accessibilityLabel={templates.length > 0 ? 'Build from scratch' : FocusCopy.emptyCta}
       >
-        <Text style={styles.createButtonText}>{FocusCopy.emptyCta}</Text>
+        <Text style={styles.createButtonText}>
+          {templates.length > 0 ? 'Build from scratch' : FocusCopy.emptyCta}
+        </Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -438,11 +513,10 @@ const styles = StyleSheet.create({
     color: ColorTokens.primary,
   },
   emptyContainer: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: SpacingTokens.xl,
     paddingTop: SpacingTokens['2xl'],
+    paddingBottom: SpacingTokens.xl,
   },
   emptyEmoji: {
     fontSize: 48,
