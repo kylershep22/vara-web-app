@@ -140,9 +140,9 @@ const HabitDetailScreen: React.FC = () => {
           )}
         </BaseCard>
 
-        {/* Monthly Engagement Card */}
+        {/* Progress Card */}
         <BaseCard style={styles.statsCard}>
-          <Text style={styles.sectionTitle}>This Month</Text>
+          <Text style={styles.sectionTitle}>Your Progress</Text>
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
