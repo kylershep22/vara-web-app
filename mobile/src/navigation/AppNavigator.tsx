@@ -20,6 +20,14 @@ import { linking } from './linking';
 
 export const navigationRef = createNavigationContainerRef();
 
+/** Standard header styling used across all navigators */
+const standardHeaderOptions = {
+  headerStyle: { backgroundColor: Colors.mistWhite, elevation: 0, shadowOpacity: 0 } as any,
+  headerTintColor: Colors.evergreenTeal,
+  headerTitleStyle: { fontWeight: '600' as const, color: Colors.softCharcoal },
+  headerBackTitleVisible: false,
+};
+
 // Auth screens
 import {
   LoginScreen,
@@ -165,15 +173,11 @@ const CommunityNavigator = () => {
   return (
     <CommunityStack.Navigator
       screenOptions={{
+        ...standardHeaderOptions,
         animation: 'slide_from_right',
-        headerStyle: {
-          backgroundColor: Colors.evergreenTeal,
-        },
+        headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
         headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: '700',
-        },
-        headerBackTitleVisible: false,
+        headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
       }}
     >
       <CommunityStack.Screen
@@ -230,7 +234,6 @@ const CommunityNavigator = () => {
         component={ChatScreen}
         options={{
           headerShown: true,
-          headerBackTitleVisible: false,
         }}
       />
       <CommunityStack.Screen
@@ -267,15 +270,8 @@ const DiscoverNavigator = () => {
   return (
     <DiscoverStack.Navigator
       screenOptions={{
+        ...standardHeaderOptions,
         animation: 'slide_from_right',
-        headerStyle: {
-          backgroundColor: Colors.mistWhite,
-        },
-        headerTintColor: Colors.evergreenTeal,
-        headerTitleStyle: {
-          fontWeight: '600',
-          color: Colors.softCharcoal,
-        },
         headerShadowVisible: false,
       }}
     >
@@ -299,24 +295,12 @@ const DiscoverNavigator = () => {
       <DiscoverStack.Screen
         name="Sleep"
         component={SleepScreen}
-        options={{
-          title: 'Sleep Library',
-          headerStyle: { backgroundColor: Colors.mistWhite },
-          headerTintColor: Colors.evergreenTeal,
-          headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
-          headerShadowVisible: false,
-        }}
+        options={{ title: 'Sleep Library' }}
       />
       <DiscoverStack.Screen
         name="SleepDetail"
         component={SleepDetailScreen}
-        options={{
-          title: 'Sleep Content',
-          headerStyle: { backgroundColor: Colors.mistWhite },
-          headerTintColor: Colors.evergreenTeal,
-          headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
-          headerShadowVisible: false,
-        }}
+        options={{ title: 'Sleep Content' }}
       />
       <DiscoverStack.Screen
         name="Movement"
@@ -350,6 +334,7 @@ const ProfileNavigator = () => {
   return (
     <ProfileStack.Navigator
       screenOptions={{
+        ...standardHeaderOptions,
         animation: 'slide_from_right',
       }}
     >
@@ -358,13 +343,10 @@ const ProfileNavigator = () => {
         component={ProfileScreen}
         options={{
           title: 'Profile',
-          headerStyle: {
-            backgroundColor: Colors.evergreenTeal,
-          },
+          ...standardHeaderOptions,
+          headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
           headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: '700',
-          },
+          headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
         }}
       />
       <ProfileStack.Screen
@@ -372,13 +354,10 @@ const ProfileNavigator = () => {
         component={SettingsScreen}
         options={{
           title: 'Settings',
-          headerStyle: {
-            backgroundColor: Colors.evergreenTeal,
-          },
+          ...standardHeaderOptions,
+          headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
           headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: '700',
-          },
+          headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
         }}
       />
       <ProfileStack.Screen
@@ -538,12 +517,10 @@ const MainNavigator = () => {
           name="Insights"
           component={InsightsScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Insights',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -552,12 +529,10 @@ const MainNavigator = () => {
           name="BrainHealth"
           component={BrainHealthDashboard}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Brain Health',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -575,12 +550,10 @@ const MainNavigator = () => {
           name="Breathwork"
           component={BreathworkScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Breathwork',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -588,12 +561,10 @@ const MainNavigator = () => {
           name="BreathworkDetail"
           component={BreathworkDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Session Details',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -602,12 +573,10 @@ const MainNavigator = () => {
           name="Sleep"
           component={SleepScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Sleep Library',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -615,12 +584,10 @@ const MainNavigator = () => {
           name="SleepDetail"
           component={SleepDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Sleep Content',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -629,12 +596,10 @@ const MainNavigator = () => {
           name="Movement"
           component={MovementScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Movement Library',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -642,12 +607,10 @@ const MainNavigator = () => {
           name="MovementDetail"
           component={MovementDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Workout Details',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -656,12 +619,10 @@ const MainNavigator = () => {
           name="Masterclass"
           component={MasterclassScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Masterclasses',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -669,12 +630,10 @@ const MainNavigator = () => {
           name="MasterclassDetail"
           component={MasterclassDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Class Details',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -692,12 +651,10 @@ const MainNavigator = () => {
           name="WearableIntegration"
           component={WearableIntegrationScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Wearables',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -706,12 +663,13 @@ const MainNavigator = () => {
           name="HabitDetail"
           component={HabitDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Habit Details',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
+            headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
             headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
           }}
         />
         {/* Task Detail - Accessible from Plan/Track screen */}
@@ -719,12 +677,13 @@ const MainNavigator = () => {
           name="TaskDetail"
           component={TaskDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Task Details',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
+            headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
             headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
           }}
         />
         {/* Profile screens accessible from anywhere */}
