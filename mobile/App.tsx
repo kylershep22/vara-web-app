@@ -45,12 +45,14 @@ export default function App() {
     'Inter_18pt-Bold': require('./assets/fonts/Inter_18pt-Bold.ttf'),
   });
 
-  // Hide native splash immediately
+  // Hide native splash once fonts are loaded
   useEffect(() => {
-    SplashScreen.hideAsync().catch((e) =>
-      console.warn('SplashScreen.hideAsync failed (non-fatal):', e)
-    );
-  }, []);
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch((e) =>
+        console.warn('SplashScreen.hideAsync failed (non-fatal):', e)
+      );
+    }
+  }, [fontsLoaded]);
 
   // Initialize optional services after mount
   useEffect(() => {
