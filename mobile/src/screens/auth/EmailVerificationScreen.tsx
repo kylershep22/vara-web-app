@@ -104,9 +104,11 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navig
     } catch (error: any) {
       setResendState('idle');
       if (error.code === 'auth/too-many-requests') {
-        setFeedbackMessage('Too many attempts. Please wait a few minutes.');
+        setFeedbackMessage('Too many attempts. Please wait a few minutes before trying again.');
+      } else if (error.code === 'auth/network-request-failed') {
+        setFeedbackMessage('No internet connection. Check your network and try again.');
       } else {
-        setFeedbackMessage('Something went wrong. Try again when ready.');
+        setFeedbackMessage('We couldn\'t send the email right now. Please try again in a moment.');
       }
     }
   }, [resendState, sendVerificationEmail]);
@@ -144,7 +146,7 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ navig
       case 'sent':
         return 'Email sent';
       case 'cooldown':
-        return `Resend available in ${cooldownSeconds}s`;
+        return `Resend available in ${cooldownSeconds} seconds`;
       default:
         return 'Resend email';
     }
