@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.evergreenTeal,
   },
   cardDisabled: {
-    opacity: 0.35,
+    opacity: 0.55,
   },
   todayTag: {
     position: 'absolute',
