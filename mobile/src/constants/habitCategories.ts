@@ -53,15 +53,15 @@ export function isCognitiveReserveCategory(category: string | undefined): boolea
 export const CR_CALLOUT_CONTENT: Record<string, { headline: string; body: string }> = {
   Connection: {
     headline: 'This habit supports brain health through connection',
-    body: 'Meaningful connection triggers oxytocin — a natural stress buffer that protects long-term brain health.',
+    body: 'Meaningful connection triggers oxytocin, a natural stress buffer that protects long-term brain health.',
   },
   'Brain Health': {
     headline: 'This habit directly builds cognitive reserve',
-    body: 'Brain health habits build cognitive reserve — your brain\'s buffer against stress and aging.',
+    body: 'Brain health habits build cognitive reserve, your brain\'s buffer against stress and aging.',
   },
   Fitness: {
     headline: 'This habit builds cognitive reserve through movement',
-    body: 'Physical activity releases BDNF — a protein that supports new neural connections and long-term brain resilience.',
+    body: 'Physical activity releases BDNF, a protein that supports new neural connections and long-term brain resilience.',
   },
   Learning: {
     headline: 'This habit builds cognitive reserve through novelty',

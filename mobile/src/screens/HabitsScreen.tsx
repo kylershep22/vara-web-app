@@ -140,7 +140,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
               <View style={styles.insightNudge}>
                 <Text style={styles.insightHeadline}>🌿 Some habits build more than consistency</Text>
                 <Text style={styles.insightBody}>
-                  Habits marked 🌿 CR support cognitive reserve — your brain's long-term resilience. These are worth prioritizing.
+                  Habits marked 🌿 CR support cognitive reserve, your brain's long-term resilience. These are worth prioritizing.
                 </Text>
               </View>
               <IntentionsSummaryCard habits={habits} />

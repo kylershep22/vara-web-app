@@ -118,7 +118,7 @@ export function getRoutineTypeDescription(type: RoutineType): string {
     case 'evening':
       return 'Wind down and prepare for restful sleep';
     case 'custom':
-      return 'Create a routine for this time of day—whenever you\'re ready.';
+      return 'Create a routine for this time of day, whenever you\'re ready.';
     default:
       return '';
   }

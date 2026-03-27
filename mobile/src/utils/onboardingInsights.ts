@@ -37,7 +37,7 @@ export function generateInsight(
   // Low energy, low mood
   if (energy <= 4 && mood <= 4) {
     return {
-      text: "When energy and mood dip together, your brain may be signaling a need for recovery. This isn't a failure — it's useful information. Vara's approach starts with supporting your nervous system.",
+      text: "When energy and mood dip together, your brain may be signaling a need for recovery. This isn't a failure. It's useful information. Vara's approach starts with supporting your nervous system.",
       recommendedFocus: 'resilience',
       focusExplanation: "Starting with Resilience gives your brain the recovery support it's asking for right now.",
     };
@@ -55,7 +55,7 @@ export function generateInsight(
   // All high (7+ across the board)
   if (energy >= 7 && focus >= 7 && mood >= 7) {
     return {
-      text: "You're in a strong mental state right now — energy, focus, and mood are all elevated. This is a great foundation to build on. Small, consistent practices can help you maintain this more often.",
+      text: "You're in a strong mental state right now. Energy, focus, and mood are all elevated. This is a great foundation to build on. Small, consistent practices can help you maintain this more often.",
       recommendedFocus: 'growth',
       focusExplanation: "Starting with Growth helps you build on this strong foundation with new challenges and learning.",
     };
@@ -64,7 +64,7 @@ export function generateInsight(
   // All low (4 or below across the board)
   if (energy <= 4 && focus <= 4 && mood <= 4) {
     return {
-      text: "Everything feels low right now, and that's okay. Your brain may be dealing with a lot. Vara is designed to meet you exactly where you are — no pressure to perform.",
+      text: "Everything feels low right now, and that's okay. Your brain may be dealing with a lot. Vara is designed to meet you exactly where you are, no pressure to perform.",
       recommendedFocus: 'resilience',
       focusExplanation: "Starting with Resilience focuses on what your brain needs most: gentle support and recovery.",
     };
@@ -82,7 +82,7 @@ export function generateInsight(
   // Low mood, everything else moderate/high
   if (mood <= 4 && energy >= 5 && focus >= 5) {
     return {
-      text: "Your brain is functional but your emotional state is lower. Connection and reflection often help here — not by forcing positivity, but by creating small moments of meaning.",
+      text: "Your brain is functional but your emotional state is lower. Connection and reflection often help here, not by forcing positivity, but by creating small moments of meaning.",
       recommendedFocus: 'connection',
       focusExplanation: "Starting with Connection supports your emotional wellbeing through reflection and community.",
     };
@@ -126,7 +126,7 @@ export function generateInsight(
 
   // Default: moderate across the board (5-6 range)
   return {
-    text: "You're in a balanced state — not maxed out, not depleted. This is a solid foundation. Small, consistent actions tend to work best from here.",
+    text: "You're in a balanced state, not maxed out, not depleted. This is a solid foundation. Small, consistent actions tend to work best from here.",
     recommendedFocus: 'focus',
     focusExplanation: "Starting with Focus gives you a practical entry point to build clarity and consistency.",
   };

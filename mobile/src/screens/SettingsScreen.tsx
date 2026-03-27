@@ -36,7 +36,7 @@ interface Settings {
 }
 
 const REFLECTION_INFO_BULLETS = [
-  { emoji: '\u{1F4C8}', text: 'Tracks your consistency quality over time \u2014 not just whether you did the habit' },
+  { emoji: '\u{1F4C8}', text: 'Tracks your consistency quality over time, not just whether you did the habit' },
   { emoji: '\u{1F50D}', text: 'Surfaces patterns: which habits tend to feel hard, which feel smooth' },
   { emoji: '\u{1F33F}', text: 'For CR habits, tracks cognitive load over time' },
   { emoji: '\u{1F331}', text: 'For Connection habits, surfaces nourishing vs draining ratios' },

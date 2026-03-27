@@ -106,7 +106,7 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
   {
     id: 'wearables',
     title: 'Wearables',
-    subtitle: 'Coming soon — sync your devices',
+    subtitle: 'Coming soon. Sync your devices',
     icon: 'watch',
     iconColor: Colors.mutedSageGray,
     gradientColors: [Colors.silverSage + '20', Colors.silverSage + '30'] as [string, string],
@@ -191,13 +191,13 @@ const InsightStrip: React.FC<InsightStripProps> = ({ consecutiveDays, hasActivit
 
   if (consecutiveDays >= 1) {
     boldText = 'Active this month';
-    regularText = ` — ${consecutiveDays} day${consecutiveDays > 1 ? 's' : ''} of activity. Every check-in supports your wellbeing.`;
+    regularText = `. ${consecutiveDays} day${consecutiveDays > 1 ? 's' : ''} of activity. Every check-in supports your wellbeing.`;
   } else if (hasActivity) {
     boldText = 'Welcome back';
-    regularText = ' — picking up where you left off is a sign of resilience, not failure.';
+    regularText = '. Picking up where you left off is a sign of resilience, not failure.';
   } else {
     boldText = 'Did you know?';
-    regularText = ' — Small, consistent actions support your brain more than occasional intense effort.';
+    regularText = '. Small, consistent actions support your brain more than occasional intense effort.';
   }
 
   return (

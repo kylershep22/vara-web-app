@@ -3,6 +3,8 @@
 const OpenAI = require('openai');
 require('dotenv').config();
 
+const stripMarkdown = require('../utils/stripMarkdown');
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
@@ -28,24 +30,24 @@ ${readableGoals}
 ${modifierText}
 
 WRITING STYLE - THIS IS CRITICAL:
-- Write like you're texting a supportive friend, not writing an article
-- NEVER use markdown formatting (no **bold**, no # headers, no - bullet points)
-- Keep it conversational and warm
+- Your output is displayed as plain text in a mobile app. Never use any formatting.
+- No markdown, no bold, no italics, no asterisks, no hashtags, no headers, no bullet points, no numbered lists, no dashes at the start of lines.
+- Write like you're texting a supportive friend, not writing an article.
 - Suggest 3-5 things naturally, like "First, you could... Then maybe... And when you have a moment..."
-- Total response should be under 150 words
-- Be encouraging and personal
+- Total response should be under 150 words.
+- Be encouraging and personal.
 
 Keep tone ${tone}.`;
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o',
     messages: [
-      { role: 'system', content: 'You are a supportive, empathetic wellness coach.' },
+      { role: 'system', content: 'You are a supportive, empathetic wellness coach. Your output is displayed as plain text in a mobile app. Never use any formatting - no markdown, no bold, no italics, no asterisks, no hashtags, no headers, no bullet points, no numbered lists. Write naturally in flowing sentences like you are texting a friend.' },
       { role: 'user', content: prompt }
     ],
     temperature: 0.7
   });
 
-  return response.choices[0].message.content;
+  return stripMarkdown(response.choices[0].message.content);
 };
 

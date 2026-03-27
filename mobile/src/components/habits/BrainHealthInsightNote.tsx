@@ -14,7 +14,7 @@ const GENERAL_INSIGHTS = [
   'Every habit you build creates new neural pathways that make future habits easier.',
   'Consistency matters more than intensity for lasting brain health benefits.',
   'Small daily habits compound into significant cognitive improvements over time.',
-  'Your brain adapts to the patterns you practice most — choose wisely.',
+  'Your brain adapts to the patterns you practice most, so choose wisely.',
 ];
 
 interface BrainHealthInsightNoteProps {

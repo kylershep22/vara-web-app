@@ -167,7 +167,7 @@ export default function SleepScreen() {
             {/* Volume 2 Nudge */}
             <View style={styles.nudgeCard}>
               <Text style={styles.nudgeText}>
-                More stories are on the way — Volume 2 coming soon.
+                New sleep content is added regularly. Check back for more.
               </Text>
             </View>
           </View>
@@ -189,9 +189,9 @@ export default function SleepScreen() {
           <View style={styles.tipsContent}>
             <Text style={styles.tipsText}>
               Use headphones or speakers at a comfortable volume{'\n\n'}
-              Aim for 7-9 hours — your brain needs this time to clean up and consolidate memories{'\n\n'}
-              Keep your room cool (65-68°F) — brain cleanup works best when you're cool{'\n\n'}
-              Avoid screens 30 minutes before bed — blue light disrupts your brain's sleep signals
+              Aim for 7-9 hours. Your brain needs this time to clean up and consolidate memories{'\n\n'}
+              Keep your room cool (65-68°F). Brain cleanup works best when you're cool{'\n\n'}
+              Avoid screens 30 minutes before bed. Blue light disrupts your brain's sleep signals
             </Text>
           </View>
         </View>

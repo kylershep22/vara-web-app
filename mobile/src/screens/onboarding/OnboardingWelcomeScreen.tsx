@@ -53,7 +53,7 @@ const OnboardingWelcomeScreen: React.FC<OnboardingWelcomeScreenProps> = ({
 
         {/* Body */}
         <Text style={styles.body}>
-          This app is designed around how your brain actually works — helping
+          This app is designed around how your brain actually works, helping
           you build clarity, focus, and consistency without pressure.
         </Text>
 

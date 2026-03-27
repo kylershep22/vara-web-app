@@ -104,13 +104,13 @@ const getContextualGreeting = (): string => {
   const timeOfDay = getTimeOfDay();
   switch (timeOfDay) {
     case 'morning':
-      return 'Good morning — try an energizing session to start your day';
+      return 'Good morning. Try an energizing session to start your day';
     case 'afternoon':
-      return 'Afternoon — a quick reset can support your focus';
+      return 'Afternoon. A quick reset can support your focus';
     case 'evening':
-      return 'Evening — a calming session can help you wind down';
+      return 'Evening. A calming session can help you wind down';
     case 'night':
-      return 'Late night — gentle breathing can prepare your mind for rest';
+      return 'Late night. Gentle breathing can prepare your mind for rest';
   }
 };
 

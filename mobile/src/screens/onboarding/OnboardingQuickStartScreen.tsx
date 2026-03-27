@@ -215,28 +215,21 @@ const OnboardingQuickStartScreen: React.FC<OnboardingQuickStartScreenProps> = ({
 
     setLoading(true);
     try {
-      console.log('🎯 Creating template:', template.type, template.title);
-      console.log('📝 Template data:', template.defaultData);
-
       if (template.type === 'goal') {
         const goalId = await createGoal(user.uid, {
           ...template.defaultData,
           status: 'active',
           progress: 0,
         });
-        console.log('✅ Goal created successfully! ID:', goalId);
       } else {
         const habitData = {
           ...template.defaultData,
           active: true,
           streak: 0,
         };
-        console.log('📝 Creating habit with data:', habitData);
         const habitId = await createHabit(user.uid, habitData);
-        console.log('✅ Habit created successfully! ID:', habitId);
       }
 
-      console.log('🚀 Navigating to tour...');
       // Navigate to tour with selectedFocus for First Action step
       navigation.navigate('OnboardingFirstWin', {
         createdType: template.type,

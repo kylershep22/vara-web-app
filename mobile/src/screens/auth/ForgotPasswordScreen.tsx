@@ -3,7 +3,7 @@
  * Send password reset email
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
   Platform,
   TouchableOpacity,
   Text,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -26,6 +27,7 @@ interface ForgotPasswordScreenProps {
 
 const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
   const { resetPassword, isLoading } = useAuth();
+  const scrollRef = useRef<ScrollView>(null);
 
   // Form state
   const [email, setEmail] = useState('');
@@ -33,9 +35,43 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
 
   // Error state
   const [emailError, setEmailError] = useState('');
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarType, setSnackbarType] = useState<'error' | 'success'>('error');
+  const [errorMessage, setErrorMessage] = useState('');
+  const errorOpacity = useRef(new Animated.Value(0)).current;
+
+  // Success banner state (for resend confirmation)
+  const [successMessage, setSuccessMessage] = useState('');
+  const successOpacity = useRef(new Animated.Value(0)).current;
+
+  const showError = (message: string) => {
+    // Dismiss any success message first
+    setSuccessMessage('');
+    setErrorMessage(message);
+    errorOpacity.setValue(0);
+    Animated.timing(errorOpacity, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  const dismissError = () => {
+    Animated.timing(errorOpacity, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setErrorMessage(''));
+  };
+
+  const showSuccess = (message: string) => {
+    setSuccessMessage(message);
+    successOpacity.setValue(0);
+    Animated.timing(successOpacity, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  };
 
   /**
    * Handle password reset submission
@@ -43,6 +79,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
   const handleResetPassword = async () => {
     // Clear previous errors
     setEmailError('');
+    dismissError();
 
     // Validate email
     const emailValidation = validateEmail(email);
@@ -55,16 +92,16 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
     try {
       await resetPassword(email.trim());
 
-      // Show success state
-      setEmailSent(true);
-      setSnackbarMessage('Password reset email sent! Check your inbox.');
-      setSnackbarType('success');
-      setSnackbarVisible(true);
+      if (emailSent) {
+        // Resend case - show brief confirmation at top
+        showSuccess('Reset email sent again. Check your inbox.');
+      } else {
+        // First send - switch to success state
+        setEmailSent(true);
+      }
     } catch (error: any) {
-      const errorMessage = getAuthErrorMessage(error.code);
-      setSnackbarMessage(errorMessage);
-      setSnackbarType('error');
-      setSnackbarVisible(true);
+      const message = getAuthErrorMessage(error.code);
+      showError(message);
     }
   };
 
@@ -82,6 +119,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
         style={styles.keyboardView}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
@@ -95,6 +133,25 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
             }
             icon={emailSent ? 'email-check' : 'lock-reset'}
           />
+
+          {/* Error Banner */}
+          {!!errorMessage && (
+            <Animated.View style={[styles.errorBanner, { opacity: errorOpacity }]}>
+              <Icon name="alert-circle-outline" size={20} color={Colors.error} style={styles.bannerIcon} />
+              <Text style={styles.errorBannerText}>{errorMessage}</Text>
+              <TouchableOpacity onPress={dismissError} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Icon name="close" size={18} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
+          {/* Success Banner (for resend confirmations) */}
+          {!!successMessage && (
+            <Animated.View style={[styles.successBanner, { opacity: successOpacity }]}>
+              <Icon name="check-circle-outline" size={20} color={Colors.evergreenTeal} style={styles.bannerIcon} />
+              <Text style={styles.successBannerText}>{successMessage}</Text>
+            </Animated.View>
+          )}
 
           {/* Form */}
           {!emailSent ? (
@@ -131,21 +188,26 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
               {/* Back to Login */}
               <TouchableOpacity onPress={handleBackToLogin} style={styles.backButton}>
                 <Text style={styles.backText}>
-                  ← Back to Login
+                  Back to Login
                 </Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.successContainer}>
-              {/* Success Message */}
+              {/* Success Message Card */}
               <View style={styles.successBox}>
-                <Text style={styles.successText}>
+                <Icon
+                  name="email-fast-outline"
+                  size={32}
+                  color={Colors.evergreenTeal}
+                  style={styles.successBoxIcon}
+                />
+                <Text style={styles.successBoxText}>
                   If an account exists with{' '}
-                  <Text style={styles.emailHighlight}>{email}</Text>, you'll receive an email with
-                  instructions to reset your password.
+                  <Text style={styles.emailHighlight}>{email}</Text>
+                  , you'll receive an email with instructions to reset your password.
                 </Text>
-                <Text style={styles.successText}>
-                  {'\n'}
+                <Text style={styles.successBoxHint}>
                   Check your spam folder if you don't see it in a few minutes.
                 </Text>
               </View>
@@ -175,16 +237,6 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Snackbar */}
-      {snackbarVisible && (
-        <View style={[styles.snackbar, snackbarType === 'success' && styles.snackbarSuccess, {position: 'absolute', bottom: 24, left: 16, right: 16, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center'}]}>
-          <Text style={{flex: 1, color: '#fff', fontSize: 14}}>{snackbarMessage}</Text>
-          <TouchableOpacity onPress={() => setSnackbarVisible(false)}>
-            <Text style={{color: '#fff', fontWeight: '600'}}>Dismiss</Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </SafeAreaView>
   );
 };
@@ -220,34 +272,86 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.semibold,
   },
+
+  // Error banner - top of form, inline
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FDF2F0',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 122, 110, 0.3)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: Spacing.lg,
+  },
+  bannerIcon: {
+    marginRight: 10,
+  },
+  errorBannerText: {
+    flex: 1,
+    color: Colors.textPrimary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+
+  // Success banner - top of form, for resend confirmations
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F7F0',
+    borderWidth: 1,
+    borderColor: 'rgba(27, 94, 87, 0.2)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: Spacing.lg,
+  },
+  successBannerText: {
+    flex: 1,
+    color: Colors.textPrimary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+
+  // Success state - the confirmation card
   successContainer: {
     width: '100%',
   },
   successBox: {
-    backgroundColor: Colors.dewSage,
+    backgroundColor: Colors.background.default,
+    borderWidth: 1,
+    borderColor: Colors.border,
     borderRadius: Layout.borderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.xl,
     marginBottom: Spacing.xl,
+    alignItems: 'center',
   },
-  successText: {
+  successBoxIcon: {
+    marginBottom: Spacing.base,
+  },
+  successBoxText: {
     color: Colors.textPrimary,
-    lineHeight: Typography.lineHeight.normal,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
   },
   emailHighlight: {
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.evergreenTeal,
+  },
+  successBoxHint: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
   },
   resendButton: {
     marginBottom: Spacing.base,
   },
   loginButton: {
     marginTop: Spacing.base,
-  },
-  snackbar: {
-    backgroundColor: Colors.error,
-  },
-  snackbarSuccess: {
-    backgroundColor: Colors.success,
   },
 });
 

@@ -424,7 +424,7 @@ const ChallengesScreen: React.FC = () => {
       {/* Section B: Title Area */}
       <View style={styles.titleArea}>
         <Text style={styles.screenTitle}>Challenges</Text>
-        <Text style={styles.subtitle}>A time-bound intention you explore alongside others. No pressure — just shared commitment.</Text>
+        <Text style={styles.subtitle}>A time-bound intention you explore alongside others. No pressure, just shared commitment.</Text>
       </View>
 
       {/* Section C: Search Bar */}

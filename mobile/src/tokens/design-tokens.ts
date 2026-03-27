@@ -278,7 +278,7 @@ export const FocusCopy = {
   addActivityLabel: 'Add an activity',
   editButton: 'Edit',
   emptyHeadline: 'A fresh start',
-  emptyBody: "Create a routine for this time of day—whenever you're ready.",
+  emptyBody: "Create a routine for this time of day, whenever you're ready.",
   emptyCta: 'Create a routine',
 
   // Active routine player

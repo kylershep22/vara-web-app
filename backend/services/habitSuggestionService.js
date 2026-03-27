@@ -2,6 +2,8 @@
 const OpenAI = require('openai');
 require('dotenv').config();
 
+const stripMarkdown = require('../utils/stripMarkdown');
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
@@ -42,7 +44,7 @@ module.exports = async function generateHabitSuggestions(type = 'habits', contex
     messages: [
       {
         role: 'system',
-        content: 'You are a wellness and productivity coach helping users improve their lives through small, actionable suggestions.'
+        content: 'You are a wellness and productivity coach helping users improve their lives through small, actionable suggestions. All text values you return will be displayed as plain text in a mobile app. Do not use any formatting - no markdown, no bold, no italics, no asterisks, no hashtags, no headers. Write naturally like a human.'
       },
       {
         role: 'user',
@@ -52,7 +54,7 @@ module.exports = async function generateHabitSuggestions(type = 'habits', contex
     temperature: 0.7
   });
 
-  return response.choices?.[0]?.message?.content;
+  return stripMarkdown(response.choices?.[0]?.message?.content);
 };
 
 

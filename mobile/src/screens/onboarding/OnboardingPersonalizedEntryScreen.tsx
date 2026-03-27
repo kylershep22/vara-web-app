@@ -146,7 +146,7 @@ const OnboardingPersonalizedEntryScreen: React.FC<
         {alignmentMatch && (
           <View style={styles.alignmentCallout}>
             <Text style={styles.alignmentText}>
-              {focusLabel} came up for your brain today too — a meaningful place
+              {focusLabel} came up for your brain today too, a meaningful place
               to build from.
             </Text>
           </View>

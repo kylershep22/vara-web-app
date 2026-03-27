@@ -391,7 +391,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
             A fresh space for your goals
           </Text>
           <Text style={styles.emptyText}>
-            Add a goal whenever you're ready — no rush.
+            Add a goal whenever you're ready - no rush.
           </Text>
           {!showInlineCreate && (
             <Button

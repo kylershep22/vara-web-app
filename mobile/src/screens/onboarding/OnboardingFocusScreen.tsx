@@ -120,7 +120,7 @@ const OnboardingFocusScreen: React.FC<OnboardingFocusScreenProps> = ({ navigatio
         </Text>
 
         <Text style={styles.subtitle}>
-          We'll customize your experience based on your choice. Don't worry — you can unlock more features anytime!
+          We'll customize your experience based on your choice. Don't worry, you can unlock more features anytime!
         </Text>
 
         {/* Pillar Options */}

@@ -52,7 +52,7 @@ const INSIGHT_CONTENT_POOL = [
   'Focus often improves when there\'s less competing demand on your attention.',
   'Supporting brain health creates the conditions where habits can stick.',
   'Small changes work better when they respect how the brain functions.',
-  'Recovery isn\'t a break from progress — it\'s part of how the brain sustains it.',
+  'Recovery isn\'t a break from progress. It\'s part of how the brain sustains it.',
   'Consistency doesn\'t require perfection.',
   'Habits are easier to maintain when they work with your brain\'s energy and attention.',
   // Focus & clarity insights
@@ -62,19 +62,19 @@ const INSIGHT_CONTENT_POOL = [
   'Your brain\'s clarity peaks when you pair focused work with intentional rest.',
   // Regulation & recovery insights
   'Emotional regulation is a skill that strengthens with each mindful repetition.',
-  'Recovery isn\'t passive — it\'s an active process your brain gets better at.',
+  'Recovery isn\'t passive. It\'s an active process your brain gets better at.',
   'Small regulation habits compound into greater emotional flexibility over time.',
   'Your nervous system adapts to the patterns you practice most consistently.',
   // Sustainable consistency insights
   'Consistency rewires your brain\'s default patterns, making habits feel automatic.',
   'The most sustainable habits are the ones you can do even on your hardest days.',
-  'Your brain rewards consistency itself — each completion strengthens the neural loop.',
+  'Your brain rewards consistency itself. Each completion strengthens the neural loop.',
   'Building momentum matters more than intensity. Show up, and the rest follows.',
   // Energy & resilience insights
   'Resilience is built through small, repeated energy management practices.',
   'Your body\'s energy systems adapt to consistent habits within weeks.',
   'Strategic recovery habits are as important as active energy-building ones.',
-  'Energy resilience means bouncing back faster — and your habits train that response.',
+  'Energy resilience means bouncing back faster, and your habits train that response.',
 ];
 
 const GOAL_MILESTONE_MESSAGES: Record<number, { title: string; body: string }> = {

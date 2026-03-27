@@ -62,21 +62,21 @@ export const INTENTION_INSIGHTS: Record<IntentionCategory, string[]> = {
   ],
   regulation_recovery: [
     'Emotional regulation is a skill that strengthens with each mindful repetition.',
-    'Recovery isn\'t passive — it\'s an active process your brain gets better at.',
+    'Recovery isn\'t passive. It\'s an active process your brain gets better at.',
     'Small regulation habits compound into greater emotional flexibility over time.',
     'Your nervous system adapts to the patterns you practice most consistently.',
   ],
   sustainable_consistency: [
     'Consistency rewires your brain\'s default patterns, making habits feel automatic.',
     'The most sustainable habits are the ones you can do even on your hardest days.',
-    'Your brain rewards consistency itself — each completion strengthens the neural loop.',
+    'Your brain rewards consistency itself. Each completion strengthens the neural loop.',
     'Building momentum matters more than intensity. Show up, and the rest follows.',
   ],
   energy_resilience: [
     'Resilience is built through small, repeated energy management practices.',
     'Your body\'s energy systems adapt to consistent habits within weeks.',
     'Strategic recovery habits are as important as active energy-building ones.',
-    'Energy resilience means bouncing back faster — and your habits train that response.',
+    'Energy resilience means bouncing back faster, and your habits train that response.',
   ],
   brain_health: [
     'Cognitive reserve is built through consistent, varied mental stimulation.',
