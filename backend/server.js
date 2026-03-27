@@ -19,6 +19,7 @@ const {
   validateWeekRecap,
   validateDailyPlan,
 } = require('./middleware/validate');
+const stripMarkdown = require('./utils/stripMarkdown');
 
 // Load environment variables
 dotenv.config();
@@ -107,14 +108,14 @@ app.post('/api/journal-prompt', aiLimiter, validateJournalPrompt, async (req, re
       // Lightweight + capable; adjust if you prefer a different model.
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a thoughtful journaling assistant. Return exactly 3 short journal prompts, one per line. Each prompt should be a single sentence, warm and conversational. No numbering, no bullets, no markdown. Just 3 lines of text.' },
+        { role: 'system', content: 'You are a thoughtful journaling assistant. Return exactly 3 short journal prompts, one per line. Each prompt should be a single sentence, warm and conversational. Do not use any formatting whatsoever - no markdown, no bold, no italics, no headers, no asterisks, no hashtags, no bullet points, no numbered lists. Just 3 plain lines of text.' },
         { role: 'user', content: prompt || 'Give me 3 reflective journal prompts focused on mindfulness and self-awareness.' }
       ],
       temperature: 0.7
     });
 
-    const text = response.choices?.[0]?.message?.content || '';
-    res.status(200).json({ text });
+    const raw = response.choices?.[0]?.message?.content || '';
+    res.status(200).json({ text: stripMarkdown(raw) });
   } catch (err) {
     console.error('Journal AI prompt error:', err);
     res.status(500).json({ error: 'Failed to generate journal prompt' });
@@ -133,7 +134,7 @@ app.post('/api/journal-summary', aiLimiter, validateJournalEntries, async (req, 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a wellness journal assistant that summarizes weekly reflections. Write in a warm, conversational tone like a supportive friend. Never use markdown formatting (no **bold**, no headers, no bullet points). Keep your response natural and encouraging.' },
+        { role: 'system', content: 'You are a wellness journal assistant that summarizes weekly reflections. Write in a warm, conversational tone like a supportive friend. Your output will be displayed as plain text in a mobile app, so do not use any formatting - no markdown, no bold, no italics, no asterisks, no hashtags, no headers, no bullet points, no numbered lists. Just write naturally in flowing sentences and paragraphs.' },
         {
           role: 'user',
           content:
@@ -148,8 +149,8 @@ Keep it encouraging and brief (4–6 sentences max), with 1–3 actionable nudge
       temperature: 0.7
     });
 
-    const text = response.choices?.[0]?.message?.content || '';
-    res.status(200).json({ text });
+    const raw = response.choices?.[0]?.message?.content || '';
+    res.status(200).json({ text: stripMarkdown(raw) });
   } catch (err) {
     console.error('Journal summary error:', err);
     res.status(500).json({ error: 'Failed to generate journal summary' });
@@ -167,12 +168,12 @@ app.post('/api/ai-chat', aiLimiter, validateAIChat, async (req, res) => {
 You are Vara, an empathetic, strengths-based wellness coach having a friendly conversation.
 
 WRITING STYLE - THIS IS CRITICAL:
-- Write like you're texting a friend, not writing an article
-- NEVER use markdown formatting (no **bold**, no # headers, no bullet points with -)
-- Use natural paragraph breaks instead of lists when possible
-- Keep responses conversational and warm, like a supportive friend
-- If you need to list items, use plain text with commas or "First... Then... Finally..." style
-- Avoid formal structure - no "Here's what I recommend:" style headers
+- Your output is displayed as plain text in a mobile app. Never use any formatting.
+- No markdown, no bold, no italics, no asterisks, no hashtags, no headers, no bullet points, no numbered lists, no dashes at the start of lines.
+- Write like you're texting a friend, not writing an article.
+- Use natural paragraph breaks instead of lists when possible.
+- If you need to list items, use plain text with commas or "First... Then... Finally..." style.
+- Keep responses conversational and warm, like a supportive friend.
 
 Context:
 - Current page: ${page?.label || 'Unknown'} (path: ${page?.path || '/'})
@@ -210,7 +211,8 @@ Guidelines:
       messages: history
     });
 
-    const reply = completion?.choices?.[0]?.message?.content?.trim() || "I couldn't find the right words — try again?";
+    const raw = completion?.choices?.[0]?.message?.content?.trim() || "I couldn't find the right words - try again?";
+    const reply = stripMarkdown(raw);
     return res.status(200).json({ reply });
   } catch (err) {
     console.error('ai-chat error:', err);
@@ -237,6 +239,7 @@ Based on the user's goals, habits, and recent journal entries, suggest thoughtfu
 - 3 ways they fueled their mind or body
 
 Be specific and personalized based on their actual activities. Keep suggestions concise and positive.
+Each string value must be plain text with no formatting - no markdown, no bold, no italics, no asterisks, no hashtags. Write naturally like a friend would text.
 Return only a JSON object with "momentsOfJoy" (array of 4 strings) and "mindBodyFuel" (array of 3 strings).
     `.trim();
 
@@ -267,10 +270,83 @@ Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}
     });
 
     const suggestions = JSON.parse(response.choices?.[0]?.message?.content || '{}');
+    // Strip markdown from each suggestion string
+    if (suggestions.momentsOfJoy) {
+      suggestions.momentsOfJoy = suggestions.momentsOfJoy.map(s => stripMarkdown(s));
+    }
+    if (suggestions.mindBodyFuel) {
+      suggestions.mindBodyFuel = suggestions.mindBodyFuel.map(s => stripMarkdown(s));
+    }
     res.status(200).json(suggestions);
   } catch (err) {
     console.error('Week recap AI suggestions error:', err);
     res.status(500).json({ error: 'Failed to generate suggestions' });
+  }
+});
+
+// Weekly Narrative - AI-generated summary from correlation data
+// Receives ONLY anonymized aggregate numbers. No PII.
+app.post('/api/weekly-narrative', aiLimiter, requireAuth, async (req, res) => {
+  const { correlationData } = req.body;
+
+  if (!correlationData) {
+    return res.status(400).json({ error: 'Missing required field: correlationData' });
+  }
+
+  try {
+    const systemPrompt = `
+You are Vara, a supportive wellness coach writing a brief weekly summary for a user.
+
+Rules:
+- Write 3-5 sentences in a warm, conversational tone like a supportive friend.
+- Your output is displayed as plain text in a mobile app. Never use any formatting - no markdown, no bold, no italics, no asterisks, no hashtags, no headers, no bullet points, no numbered lists.
+- Never use em dashes. Use commas, periods, or rewrite the sentence instead.
+- Use plain language only. No scientific or medical jargon.
+- Acknowledge hard days without dwelling on them.
+- Highlight the bright spot.
+- End with one gentle, specific suggestion for next week.
+- Never make medical claims or diagnoses.
+- Reference the data patterns provided but keep it natural, not robotic.
+    `.trim();
+
+    const userPrompt = `
+Here is a summary of this person's week (all anonymized, no identifying info):
+
+Sleep average: ${correlationData.sleepAvg ?? 'not tracked'}/5
+Mood average: ${correlationData.moodAvg ?? 'not tracked'}/5
+Energy average: ${correlationData.energyAvg ?? 'not tracked'}/5
+Stress average: ${correlationData.stressAvg ?? 'not tracked'}/5
+Habit completion rate: ${correlationData.habitCompletionRate != null ? Math.round(correlationData.habitCompletionRate) + '%' : 'not tracked'}
+Focus minutes average: ${correlationData.focusMinutesAvg ?? 'not tracked'} min/day
+Days journaled: ${correlationData.journalDays ?? 0} of ${correlationData.totalDays ?? 7}
+
+Key patterns:
+${correlationData.sleepHabitCorrelation?.significant ? `- On well-rested days, habit completion was ${correlationData.sleepHabitCorrelation.high}% vs ${correlationData.sleepHabitCorrelation.low}% on poor sleep days` : ''}
+${correlationData.journalMoodCorrelation?.significant ? `- Mood averaged ${correlationData.journalMoodCorrelation.journalDayMood} on journal days vs ${correlationData.journalMoodCorrelation.nonJournalDayMood} on non-journal days` : ''}
+${correlationData.stressTrend ? `- Stress trend: ${correlationData.stressTrend}` : ''}
+${correlationData.brightSpot?.insight ? `- Bright spot: ${correlationData.brightSpot.insight}` : ''}
+${correlationData.weekOverWeek?.scoreChange ? `- Wellness score change from last week: ${correlationData.weekOverWeek.scoreChange > 0 ? '+' : ''}${correlationData.weekOverWeek.scoreChange} points` : ''}
+
+Best day factors: ${correlationData.bestDay?.factors?.join(', ') || 'not enough data'}
+Hardest day factors: ${correlationData.hardestDay?.factors?.join(', ') || 'not enough data'}
+
+Write a 3-5 sentence weekly summary based on these patterns.
+    `.trim();
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.7,
+    });
+
+    const raw = response.choices?.[0]?.message?.content?.trim() || '';
+    res.status(200).json({ narrative: stripMarkdown(raw) });
+  } catch (err) {
+    console.error('Weekly narrative error:', err);
+    res.status(500).json({ error: 'Failed to generate weekly narrative' });
   }
 });
 
