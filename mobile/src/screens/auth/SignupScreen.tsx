@@ -19,9 +19,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Alert,
   Image,
   Animated,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -110,22 +110,14 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
    * Open Terms of Service
    */
   const handleOpenTerms = () => {
-    Alert.alert(
-      'Terms of Service',
-      'The Terms of Service document will be displayed here. For now, this feature is coming soon.',
-      [{ text: 'OK' }]
-    );
+    Linking.openURL('https://www.varawellness.co/terms-of-service');
   };
 
   /**
    * Open Privacy Policy
    */
   const handleOpenPrivacy = () => {
-    Alert.alert(
-      'Privacy Policy',
-      'The Privacy Policy document will be displayed here. For now, this feature is coming soon.',
-      [{ text: 'OK' }]
-    );
+    Linking.openURL('https://www.varawellness.co/privacy-policy');
   };
 
   /**
