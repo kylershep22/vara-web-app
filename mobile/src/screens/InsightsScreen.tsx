@@ -7,6 +7,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   LoadingSpinner,
   HeroSummaryCard,
@@ -21,6 +22,8 @@ import {
 import { Colors, Spacing, Typography } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { useGoals, useHabits, useTasks } from '../hooks';
+import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
+import { apiPost } from '../services/api/client';
 import { getHabitCompletions } from '../services/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -74,6 +77,10 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
   const { goals, loading: goalsLoading } = useGoals();
   const { habits, loading: habitsLoading } = useHabits();
   const { tasks: allTasks, loading: tasksLoading } = useTasks();
+
+  const { correlations } = useWeeklyCorrelations();
+  const [aiNarrative, setAiNarrative] = useState<string | null>(null);
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
 
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('week');
   const [habitCompletionData, setHabitCompletionData] = useState<{ [habitId: string]: string[] }>({});
@@ -342,6 +349,82 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     }
   }, [user, timeFrame, habits, goalsLoading, habitsLoading, tasksLoading]);
 
+  // Fetch AI weekly narrative when correlations are available
+  useEffect(() => {
+    if (!correlations || !user) return;
+
+    const NARRATIVE_CACHE_KEY = 'vara_weekly_narrative';
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+    const fetchNarrative = async () => {
+      // Check cache first
+      try {
+        const cached = await AsyncStorage.getItem(NARRATIVE_CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.timestamp && Date.now() - parsed.timestamp < SEVEN_DAYS_MS && parsed.narrative) {
+            setAiNarrative(parsed.narrative);
+            return;
+          }
+        }
+      } catch {
+        // Cache miss — proceed to fetch
+      }
+
+      setNarrativeLoading(true);
+      try {
+        // Anonymize correlation data before sending
+        const correlationData = {
+          sleepHabitCorrelation: correlations.sleepHabitCorrelation,
+          energyHabitCorrelation: correlations.energyHabitCorrelation,
+          journalMoodCorrelation: correlations.journalMoodCorrelation,
+          topDriver: correlations.topDriver,
+          brightSpot: correlations.brightSpot,
+          stressTrend: correlations.stressTrend,
+          weekOverWeek: correlations.weekOverWeek,
+          dataCompleteness: correlations.dataCompleteness,
+        };
+
+        const response = await apiPost<{ narrative: string }>('/weekly-narrative', {
+          correlationData,
+        }, { debug: __DEV__ });
+
+        const narrative = response.narrative;
+
+        // Cache the result
+        try {
+          await AsyncStorage.setItem(
+            NARRATIVE_CACHE_KEY,
+            JSON.stringify({ narrative, timestamp: Date.now() })
+          );
+        } catch {
+          // Non-critical cache write failure
+        }
+
+        setAiNarrative(narrative);
+      } catch (err) {
+        // Fallback template string
+        const habitPct = correlations.weekOverWeek?.habitChange != null
+          ? Math.round(50 + correlations.weekOverWeek.habitChange)
+          : null;
+        const habitSentence = habitPct != null
+          ? `This week you completed about ${habitPct}% of your habits.`
+          : 'This week you stayed consistent with your habits.';
+        const brightSpotSentence = correlations.brightSpot?.insight ?? '';
+        const stressSentence = correlations.stressTrend === 'declining'
+          ? ' Your stress levels have been trending down — keep it up.'
+          : '';
+        setAiNarrative(
+          `${habitSentence}${brightSpotSentence ? ' ' + brightSpotSentence : ''}${stressSentence}`
+        );
+      } finally {
+        setNarrativeLoading(false);
+      }
+    };
+
+    fetchNarrative();
+  }, [correlations, user]);
+
   // Calculate metrics based on timeframe
   const metrics = useMemo(() => {
     const { start, end } = getDateRange();
@@ -609,15 +692,10 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
           <EmptyStateCard message="No focus sessions yet" actionText="Try starting one" />
         )}
 
-        {/* Enhancement 7: Narrative Recap */}
+        {/* Enhancement 7: AI-Driven Narrative Recap */}
         <NarrativeRecap
-          habits={metrics.habits.completions}
-          streak={metrics.habits.activeDays}
-          goals={metrics.goals.completed}
-          tasks={metrics.tasks.completed}
-          journal={metrics.journal.entries}
-          focusSessions={metrics.focus.sessions}
-          focusMinutes={metrics.focus.totalMinutes}
+          narrative={aiNarrative}
+          loading={narrativeLoading}
           timeframeLabel={getTimeFrameLabel()}
         />
       </ScrollView>
