@@ -68,9 +68,11 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [termsError, setTermsError] = useState('');
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarType, setSnackbarType] = useState<'error' | 'success'>('error');
+  const scrollRef = useRef<ScrollView>(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const errorOpacity = useRef(new Animated.Value(0)).current;
+  const [successMessage, setSuccessMessage] = useState('');
+  const successOpacity = useRef(new Animated.Value(0)).current;
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -121,6 +123,41 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
   };
 
   /**
+   * Inline banner helpers
+   */
+  const showError = (message: string) => {
+    setSuccessMessage('');
+    setErrorMessage(message);
+    errorOpacity.setValue(0);
+    Animated.timing(errorOpacity, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  const dismissError = () => {
+    Animated.timing(errorOpacity, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setErrorMessage(''));
+  };
+
+  const showSuccess = (message: string) => {
+    setErrorMessage('');
+    setSuccessMessage(message);
+    successOpacity.setValue(0);
+    Animated.timing(successOpacity, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  /**
    * Button press animations
    */
   const handleButtonPressIn = () => {
@@ -164,26 +201,20 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
 
     // Validate password requirements
     if (!allRequirementsMet(password)) {
-      setSnackbarMessage('Please ensure your password meets all requirements');
-      setSnackbarType('error');
-      setSnackbarVisible(true);
+      showError('Please ensure your password meets all requirements');
       return;
     }
 
     // Validate password match
     if (password !== confirmPassword) {
-      setSnackbarMessage('Passwords don\'t quite match yet');
-      setSnackbarType('error');
-      setSnackbarVisible(true);
+      showError("Passwords don't quite match yet");
       return;
     }
 
     // Check terms agreement
     if (!agreedToTerms) {
       setTermsError('You must agree to the Terms of Service and Privacy Policy');
-      setSnackbarMessage('Please agree to the Terms of Service and Privacy Policy');
-      setSnackbarType('error');
-      setSnackbarVisible(true);
+      showError('Please agree to the Terms of Service and Privacy Policy');
       return;
     }
 
@@ -191,14 +222,10 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
     setIsSubmitting(true);
     try {
       await signup(email.trim(), password, displayName.trim());
-      setSnackbarMessage('Account created! Please check your email to verify your account.');
-      setSnackbarType('success');
-      setSnackbarVisible(true);
+      showSuccess('Account created! Please check your email to verify your account.');
     } catch (error: any) {
-      const errorMessage = getAuthErrorMessage(error.code);
-      setSnackbarMessage(errorMessage);
-      setSnackbarType('error');
-      setSnackbarVisible(true);
+      const authErrorMessage = getAuthErrorMessage(error.code);
+      showError(authErrorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -215,6 +242,7 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
         style={styles.keyboardView}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -240,6 +268,25 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                 A calm place to begin supporting your brain health
               </Text>
             </View>
+
+            {/* Error Banner */}
+            {!!errorMessage && (
+              <Animated.View style={[styles.errorBanner, { opacity: errorOpacity }]}>
+                <Icon name="alert-circle-outline" size={20} color={Colors.error} style={styles.bannerIcon} />
+                <Text style={styles.bannerText}>{errorMessage}</Text>
+                <TouchableOpacity onPress={dismissError} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Icon name="close" size={18} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+
+            {/* Success Banner */}
+            {!!successMessage && (
+              <Animated.View style={[styles.successBanner, { opacity: successOpacity }]}>
+                <Icon name="check-circle-outline" size={20} color={Colors.evergreenTeal} style={styles.bannerIcon} />
+                <Text style={styles.bannerText}>{successMessage}</Text>
+              </Animated.View>
+            )}
 
             {/* Form */}
             <View style={styles.form}>
@@ -398,15 +445,6 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Snackbar */}
-      {snackbarVisible && (
-        <View style={[styles.snackbar, snackbarType === 'success' && styles.snackbarSuccess, {position: 'absolute', bottom: 24, left: 16, right: 16, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center'}]}>
-          <Text style={{flex: 1, color: '#fff', fontSize: 14}}>{snackbarMessage}</Text>
-          <TouchableOpacity onPress={() => setSnackbarVisible(false)}>
-            <Text style={{color: '#fff', fontWeight: '600'}}>Dismiss</Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </SafeAreaView>
   );
 };
@@ -558,12 +596,37 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(27, 94, 87, 0.25)',
   },
-  // Snackbar styles
-  snackbar: {
-    backgroundColor: Colors.error,
+  // Banner styles
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FDF2F0',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 122, 110, 0.3)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: Spacing.lg,
   },
-  snackbarSuccess: {
-    backgroundColor: Colors.success,
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F7F0',
+    borderWidth: 1,
+    borderColor: 'rgba(27, 94, 87, 0.2)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: Spacing.lg,
+  },
+  bannerIcon: {
+    marginRight: 10,
+  },
+  bannerText: {
+    flex: 1,
+    color: Colors.textPrimary,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
 
