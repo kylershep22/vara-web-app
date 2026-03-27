@@ -4,7 +4,7 @@
  * Thin UI shell that delegates state/handlers to useDashboard.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,8 +23,12 @@ import { WeeklyHabitsCard } from '../components/dashboard/WeeklyHabitsCard';
 import { AIDailyPlanCard } from '../components/dashboard/AIDailyPlanCard';
 import WelcomeBackCard from '../components/dashboard/WelcomeBackCard';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
+import WeekInsightCard from '../components/dashboard/WeekInsightCard';
+import BrainHealthEducationCard from '../components/dashboard/BrainHealthEducationCard';
 import { Colors, Spacing, Typography } from '../constants';
 import { useDashboard } from '../hooks/useDashboard';
+import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
+import { selectWeekInsight } from '../constants/weekInsightTemplates';
 
 const DashboardScreen: React.FC = () => {
   const {
@@ -71,6 +75,10 @@ const DashboardScreen: React.FC = () => {
     handleNotifDismiss,
     handleRefresh,
   } = useDashboard();
+
+  const { correlations } = useWeeklyCorrelations();
+  const weekInsight = correlations ? selectWeekInsight(correlations) : null;
+  const [weekInsightDismissed, setWeekInsightDismissed] = useState(false);
 
   if (dataLoading) {
     return <LoadingSpinner message="Loading your wellness dashboard..." />;
@@ -156,6 +164,19 @@ const DashboardScreen: React.FC = () => {
 
         {/* 4-3-2-1 Daily Practice */}
         <FourThreeTwoOneCard onChange={handleFourThreeTwoOneChange} defaultCollapsed={true} />
+
+        {/* Week Insight Card */}
+        {weekInsight && !weekInsightDismissed && (
+          <WeekInsightCard
+            headline={weekInsight.headline}
+            supporting={weekInsight.supporting}
+            onPressFullStory={() => navigation.navigate('Insights' as never)}
+            onDismiss={() => setWeekInsightDismissed(true)}
+          />
+        )}
+
+        {/* Brain Health Education Card */}
+        <BrainHealthEducationCard />
 
         {/* AI Daily Plan Card */}
         <AIDailyPlanCard
