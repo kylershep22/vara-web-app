@@ -11,108 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import Card from '../Card';
 import { BrainPillar } from '../../types/models';
-
-interface EducationContent {
-  pillar: BrainPillar;
-  icon: string;
-  title: string;
-  fact: string;
-  actionTip: string;
-  learnMoreRoute: string;
-}
-
-// Educational content for each brain pillar - all use teal styling now
-const EDUCATION_CONTENT: EducationContent[] = [
-  // Energy pillar
-  {
-    pillar: 'energy',
-    icon: 'lightning-bolt',
-    title: 'Power Your Brain',
-    fact: 'Your brain uses 20% of your body\'s energy despite being only 2% of your weight.',
-    actionTip: 'Try a quick movement break to boost blood flow and mental clarity.',
-    learnMoreRoute: 'Movement',
-  },
-  {
-    pillar: 'energy',
-    icon: 'sleep',
-    title: 'Rest for Success',
-    fact: 'During deep sleep, your brain clears toxins 10x faster than when awake.',
-    actionTip: 'Prioritize 7-9 hours of quality sleep for optimal brain function.',
-    learnMoreRoute: 'Sleep',
-  },
-
-  // Focus pillar
-  {
-    pillar: 'focus',
-    icon: 'target',
-    title: 'Master Your Focus',
-    fact: 'The prefrontal cortex, responsible for focus, is the last brain region to fully develop.',
-    actionTip: 'Work in 90-minute cycles with breaks to maintain peak concentration.',
-    learnMoreRoute: 'Focus',
-  },
-  {
-    pillar: 'focus',
-    icon: 'meditation',
-    title: 'Train Attention',
-    fact: 'Just 8 weeks of mindfulness practice can measurably change brain structure.',
-    actionTip: 'Try 5 minutes of focused breathing to strengthen your attention muscles.',
-    learnMoreRoute: 'Breathwork',
-  },
-
-  // Growth pillar
-  {
-    pillar: 'growth',
-    icon: 'brain',
-    title: 'Grow Your Brain',
-    fact: 'Neuroplasticity allows your brain to form new connections throughout your entire life.',
-    actionTip: 'Learn something new today - even 15 minutes of learning stimulates brain growth.',
-    learnMoreRoute: 'Masterclass',
-  },
-  {
-    pillar: 'growth',
-    icon: 'book-open-variant',
-    title: 'Learn to Thrive',
-    fact: 'Challenging mental activities build cognitive reserve that protects against decline.',
-    actionTip: 'Journal your thoughts - writing strengthens neural pathways.',
-    learnMoreRoute: 'Journal',
-  },
-
-  // Resilience pillar
-  {
-    pillar: 'resilience',
-    icon: 'shield-check',
-    title: 'Build Resilience',
-    fact: 'Your vagus nerve connects brain and body, helping regulate stress response.',
-    actionTip: 'Deep breathing activates your parasympathetic nervous system in seconds.',
-    learnMoreRoute: 'Breathwork',
-  },
-  {
-    pillar: 'resilience',
-    icon: 'heart-pulse',
-    title: 'Stress Mastery',
-    fact: 'Moderate stress can actually improve memory and focus through hormesis.',
-    actionTip: 'Reframe challenges as growth opportunities for your brain.',
-    learnMoreRoute: 'BrainHealth',
-  },
-
-  // Connection pillar
-  {
-    pillar: 'connection',
-    icon: 'account-group',
-    title: 'Social Brain Health',
-    fact: 'Strong social connections can reduce risk of cognitive decline by up to 50%.',
-    actionTip: 'Reach out to someone today - social interaction is brain food.',
-    learnMoreRoute: 'Community',
-  },
-  {
-    pillar: 'connection',
-    icon: 'account-heart',
-    title: 'The Power of Connection',
-    fact: 'Oxytocin released during social bonding improves memory and learning.',
-    actionTip: 'Quality conversations matter more than quantity for brain health.',
-    learnMoreRoute: 'Community',
-  },
-];
+import { EDUCATION_CARD_ITEMS } from '../../constants/brainInsightsCopy';
 
 interface BrainHealthEducationCardProps {
   preferredPillar?: BrainPillar;
@@ -132,9 +31,9 @@ export const BrainHealthEducationCard: React.FC<BrainHealthEducationCardProps> =
     const dayOfYear = Math.floor(diff / oneDay);
 
     // Filter by preferred pillar if provided
-    let availableContent = EDUCATION_CONTENT;
+    let availableContent = EDUCATION_CARD_ITEMS;
     if (preferredPillar) {
-      const pillarContent = EDUCATION_CONTENT.filter((c) => c.pillar === preferredPillar);
+      const pillarContent = EDUCATION_CARD_ITEMS.filter((c) => c.pillar === preferredPillar);
       if (pillarContent.length > 0) {
         availableContent = pillarContent;
       }
@@ -145,7 +44,7 @@ export const BrainHealthEducationCard: React.FC<BrainHealthEducationCardProps> =
   }, [preferredPillar]);
 
   const handleLearnMore = () => {
-    navigation.navigate(content.learnMoreRoute);
+    navigation.navigate(content.route);
   };
 
   return (
@@ -172,7 +71,7 @@ export const BrainHealthEducationCard: React.FC<BrainHealthEducationCardProps> =
       {/* Action Tip */}
       <View style={styles.tipContainer}>
         <Text style={styles.tipLabel}>Try this:</Text>
-        <Text style={styles.tipText}>{content.actionTip}</Text>
+        <Text style={styles.tipText}>{content.tip}</Text>
       </View>
 
       {/* Learn More Button - Text only */}
