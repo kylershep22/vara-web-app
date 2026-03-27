@@ -135,13 +135,6 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
     }
   };
 
-  const handleVoiceInput = async () => {
-    Alert.alert(
-      'Voice Input Not Available',
-      'Voice-to-text requires a custom development build and is not available in Expo Go.\n\nYou can use your device keyboard to type your journal entry, or if you need voice input, you can use your device\'s keyboard dictation feature (microphone button on the keyboard).',
-      [{ text: 'Got it' }]
-    );
-  };
 
   const handleDismiss = useCallback(() => {
     Keyboard.dismiss();
@@ -281,16 +274,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
                 returnKeyType="default"
                 inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
               />
-              <TouchableOpacity
-                style={styles.voiceButton}
-                onPress={handleVoiceInput}
-              >
-                <Ionicons
-                  name="mic-outline"
-                  size={24}
-                  color={Colors.evergreenTeal}
-                />
-              </TouchableOpacity>
+
             </View>
           </View>
 
@@ -909,25 +893,7 @@ const styles = StyleSheet.create({
     minHeight: 200,
     maxHeight: 300,
   },
-  voiceButton: {
-    position: 'absolute',
-    bottom: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: Colors.surface,
-    padding: Spacing.sm,
-    borderRadius: Layout.borderRadius['2xl'],
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
+
   tagInputContainer: {
     flexDirection: 'row',
     gap: Spacing.sm,
