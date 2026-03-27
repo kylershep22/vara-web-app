@@ -7,7 +7,7 @@
 import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LoadingSpinner, BrainPillarInfoModal, InlineCreateButton } from '../components';
+import { LoadingSpinner, BrainPillarInfoModal, InlineCreateButton, Button } from '../components';
 import { QuietFinish } from '../components/celebrations';
 import { WizardContainer } from '../components/habits/wizard';
 import { HabitListItem } from '../components/habits/HabitListItem';
@@ -35,6 +35,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
     habits,
     loading,
     habitsError,
+    retryHabits,
     modalVisible,
     setModalVisible,
     editingHabit,
@@ -92,6 +93,13 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
           <Text style={[styles.emptyText, { marginTop: Spacing.sm }]}>
             Error: {habitsError.message}
           </Text>
+          <Button
+            variant="outline"
+            onPress={retryHabits}
+            style={{ marginTop: 12 }}
+          >
+            Try again
+          </Button>
         </View>
       </SafeAreaView>
     );

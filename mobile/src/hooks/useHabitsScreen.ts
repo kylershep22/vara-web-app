@@ -29,7 +29,7 @@ import { scheduleHabitReminder, cancelHabitReminder } from '../services/reminder
 export function useHabitsScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const { habits, loading, error: habitsError } = useHabits(true);
+  const { habits, loading, error: habitsError, retry: retryHabits } = useHabits(true);
   const { shouldShowPrompt: shouldShowNotifPrompt, markPromptShown: markNotifPromptShown } = useNotificationOptIn();
   const notifOptInChecked = useRef(false);
   const {
@@ -281,6 +281,7 @@ export function useHabitsScreen() {
     habits,
     loading,
     habitsError,
+    retryHabits,
     modalVisible,
     setModalVisible,
     editingHabit,
