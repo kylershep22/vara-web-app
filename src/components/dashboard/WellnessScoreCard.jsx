@@ -50,7 +50,7 @@ export default function WellnessScoreCard({
           Track your wellness score?
         </p>
         <p className="text-vara-sm text-muted-sage-gray leading-relaxed mb-vara-lg">
-          Your daily score reflects sleep, habits, mood, and more — giving you a
+          Your daily score reflects sleep, habits, mood, and more. It gives you a
           single number that shows how your foundations are holding up.
         </p>
         <button

@@ -206,7 +206,7 @@ export default function WellnessScoreBreakdown({ score, onClose }) {
                     <span className="font-medium text-soft-charcoal capitalize">
                       {action.label}
                     </span>
-                    {' — '}
+                    {': '}
                     {action.description}
                   </span>
                 </li>
