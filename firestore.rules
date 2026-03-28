@@ -192,6 +192,13 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // Brain State Check-Ins (Dashboard V2 single-tap check-in)
+    match /brainStateCheckIns/{checkInId} {
+      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
     // ========== BRAIN HEALTH COLLECTIONS ==========
 
     // Brain Metrics (daily readiness scores and check-ins)
