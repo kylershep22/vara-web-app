@@ -21,7 +21,7 @@ import {
 } from '../components';
 import { Colors, Spacing, Typography } from '../constants';
 import { useAuth } from '../context/AuthContext';
-import { useGoals, useHabits } from '../hooks';
+import { useHabits } from '../hooks';
 import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
 import { apiPost } from '../services/api/client';
 import { getHabitCompletions } from '../services/firebase';
@@ -74,7 +74,6 @@ type TimeFrame = 'week' | 'month' | 'quarter' | 'year' | 'all';
 
 const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false }) => {
   const { user } = useAuth();
-  const { goals, loading: goalsLoading } = useGoals();
   const { habits, loading: habitsLoading } = useHabits();
   const { correlations } = useWeeklyCorrelations();
   const [aiNarrative, setAiNarrative] = useState<string | null>(null);
@@ -342,10 +341,10 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
       }
     };
 
-    if (!goalsLoading && !habitsLoading) {
+    if (!habitsLoading) {
       loadAnalytics();
     }
-  }, [user, timeFrame, habits, goalsLoading, habitsLoading]);
+  }, [user, timeFrame, habits, habitsLoading]);
 
   // Fetch AI weekly narrative when correlations are available
   useEffect(() => {
@@ -429,18 +428,6 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     const startTimestamp = start.getTime() / 1000;
     const endTimestamp = end.getTime() / 1000;
 
-    // Goals metrics
-    const completedGoals = goals.filter((g) => {
-      if (g.status !== 'completed') return false;
-      if (g.completedAt?.seconds) {
-        return g.completedAt.seconds >= startTimestamp && g.completedAt.seconds <= endTimestamp;
-      }
-      return false;
-    });
-    const activeGoals = goals.filter((g) => g.status === 'active');
-    const avgGoalProgress =
-      goals.length > 0 ? goals.reduce((sum, g) => sum + (g.progress || 0), 0) / goals.length : 0;
-
     // Habits metrics
     const totalHabitCompletions = Object.values(habitCompletionData).reduce(
       (sum, dates) => sum + dates.length,
@@ -459,12 +446,6 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     const avgFocusSessionLength = focusSessions.length > 0 ? totalFocusMinutes / focusSessions.length : 0;
 
     return {
-      goals: {
-        completed: completedGoals.length,
-        active: activeGoals.length,
-        total: goals.length,
-        avgProgress: avgGoalProgress,
-      },
       habits: {
         completions: totalHabitCompletions,
         completionRate: habitCompletionRate,
@@ -481,7 +462,7 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
       },
       community: communityActivity,
     };
-  }, [goals, habits, habitCompletionData, focusSessions, journalEntries, communityActivity, timeFrame]);
+  }, [habits, habitCompletionData, focusSessions, journalEntries, communityActivity, timeFrame]);
 
   const getTimeFrameLabel = (): string => {
     switch (timeFrame) {
@@ -529,7 +510,7 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     return 'steady';
   };
 
-  if (loading || goalsLoading || habitsLoading) {
+  if (loading || habitsLoading) {
     return <LoadingSpinner message="Loading insights..." />;
   }
 
@@ -612,7 +593,6 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
 
         {/* Enhancement 3: Ring Progress for Goal Metrics */}
         <RingProgressCard
-          goals={{ percentage: metrics.goals.avgProgress }}
           habits={{ percentage: metrics.habits.completionRate }}
           totalCheckIns={metrics.habits.completions}
         />
