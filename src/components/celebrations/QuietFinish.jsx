@@ -1,35 +1,35 @@
 // src/components/celebrations/QuietFinish.jsx
 // Shown when all habits for the day are completed - a calm, satisfying state
-import React from 'react';
-import { CheckCircle, Sparkles } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Check } from 'lucide-react';
+
+const MESSAGES = [
+  "Done for today. Well done.",
+  "You showed up. That matters.",
+  "A good day. Rest easy.",
+  "Taken care of. Nicely.",
+  "That's all for today.",
+];
 
 export default function QuietFinish({ onDismiss }) {
+  const message = useRef(MESSAGES[Math.floor(Math.random() * MESSAGES.length)]).current;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onDismiss?.();
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
   return (
     <div className="bg-gradient-to-br from-dew-sage-light to-teal-light rounded-vara-lg p-vara-lg text-center border border-divider">
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-evergreen-teal/10 mb-4">
-        <CheckCircle className="text-evergreen-teal" size={28} />
+        <Check className="text-evergreen-teal" size={28} strokeWidth={2.5} />
       </div>
 
-      <div className="flex items-center justify-center gap-2 mb-2">
-        <Sparkles className="text-sunrise-amber" size={16} />
-        <h3 className="text-vara-lg font-semibold text-soft-charcoal">
-          All done for today
-        </h3>
-        <Sparkles className="text-sunrise-amber" size={16} />
-      </div>
-
-      <p className="text-vara-sm text-muted-sage-gray mb-4">
-        Every habit checked off. Take a moment to appreciate your consistency.
-      </p>
-
-      {onDismiss && (
-        <button
-          onClick={onDismiss}
-          className="text-vara-sm text-evergreen-teal hover:text-evergreen-teal/80 font-medium"
-        >
-          Dismiss
-        </button>
-      )}
+      <h3 className="text-vara-lg font-semibold text-soft-charcoal">
+        {message}
+      </h3>
     </div>
   );
 }
