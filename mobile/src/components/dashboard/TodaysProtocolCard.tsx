@@ -15,14 +15,16 @@ interface TodaysProtocolCardProps {
   protocol: BrainStateProtocol;
   completed: boolean;
   onMarkCompleted: () => void;
+  startExpanded?: boolean;
 }
 
 export const TodaysProtocolCard: React.FC<TodaysProtocolCardProps> = ({
   protocol,
   completed,
   onMarkCompleted,
+  startExpanded = false,
 }) => {
-  const [showInstructions, setShowInstructions] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(startExpanded);
 
   const handleBegin = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
