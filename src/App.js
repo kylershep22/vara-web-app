@@ -25,6 +25,7 @@ import Sleep from './pages/library/Sleep';
 import Movement from './pages/library/Movement';
 import GoalsHabits from './pages/GoalsHabits';
 import Goals from './pages/Goals';
+import Tasks from './pages/Tasks';
 import Habits from './pages/Habits';
 import GroupForumPage from './pages/Community/GroupForumPage';
 import ChallengesPage from './pages/Community/ChallengesPage';
@@ -362,7 +363,7 @@ function App() {
           {/* New mobile-aligned routes */}
           <Route path="/habits" element={<ProtectedRoute><ErrorBoundary level="feature"><Habits /></ErrorBoundary></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><ErrorBoundary level="feature"><Goals /></ErrorBoundary></ProtectedRoute>} />
-          <Route path="/tasks" element={<ProtectedRoute><SidebarLayout><div className="p-8"><h1 className="text-2xl font-semibold text-soft-charcoal">Tasks</h1><p className="text-muted-sage-gray mt-2">Coming soon - Tasks will be split from the Goals &amp; Habits page.</p></div></SidebarLayout></ProtectedRoute>} />
+          <Route path="/tasks" element={<ProtectedRoute><ErrorBoundary level="feature"><Tasks /></ErrorBoundary></ProtectedRoute>} />
 
           {/* Discover routes (formerly /library/*) */}
           <Route path="/discover/breathwork" element={<ProtectedRoute><ErrorBoundary level="feature"><Breathwork /></ErrorBoundary></ProtectedRoute>} />
