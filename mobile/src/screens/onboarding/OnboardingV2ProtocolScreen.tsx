@@ -21,12 +21,7 @@ import { logger } from '../../utils/logger';
 
 interface OnboardingV2ProtocolScreenProps {
   navigation: any;
-  route: {
-    params: {
-      brainState: BrainState;
-      protocolId: string;
-    };
-  };
+  route: any;
 }
 
 const OnboardingV2ProtocolScreen: React.FC<OnboardingV2ProtocolScreenProps> = ({

@@ -36,7 +36,7 @@ interface RingMetric {
 interface RingProgressCardProps {
   goals: { percentage: number };
   habits: { percentage: number };
-  tasks: { percentage: number };
+  tasks?: { percentage: number };
   totalCheckIns?: number;
 }
 
@@ -138,17 +138,19 @@ export const RingProgressCard: React.FC<RingProgressCardProps> = ({
           subLabel="Success rate"
           delay={120}
         />
-        <ProgressRing
-          percentage={tasks.percentage}
-          color={VARA_COLORS.silverSage}
-          label="Tasks"
-          subLabel="Completed"
-          delay={240}
-        />
+        {tasks && (
+          <ProgressRing
+            percentage={tasks.percentage}
+            color={VARA_COLORS.silverSage}
+            label="Tasks"
+            subLabel="Completed"
+            delay={240}
+          />
+        )}
       </View>
 
       {totalCheckIns !== undefined && totalCheckIns < 3 &&
-        [goals.percentage, habits.percentage, tasks.percentage].filter(p => p === 0).length >= 2 && (
+        [goals.percentage, habits.percentage, tasks?.percentage ?? 0].filter(p => p === 0).length >= 2 && (
         <View style={styles.nudge}>
           <Text style={styles.nudgeText}>
             Check-ins and completed habits will build this out over time.
