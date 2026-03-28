@@ -51,7 +51,9 @@ export function useDashboard() {
   const { user } = useAuth();
   const navigation = useNavigation();
   const { width: screenWidth } = useWindowDimensions();
-  const { goals, loading: goalsLoading } = useGoals();
+  const goalsResult = useGoals();
+  const goals = DASHBOARD_V2 ? [] : goalsResult.goals;
+  const goalsLoading = DASHBOARD_V2 ? false : goalsResult.loading;
   const { habits, loading: habitsLoading } = useHabits(true);
   const tasksResult = useTasks();
   const allTasks = DASHBOARD_V2 ? [] : tasksResult.tasks;
