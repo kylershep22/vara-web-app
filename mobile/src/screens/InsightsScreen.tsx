@@ -21,7 +21,7 @@ import {
 } from '../components';
 import { Colors, Spacing, Typography } from '../constants';
 import { useAuth } from '../context/AuthContext';
-import { useGoals, useHabits, useTasks } from '../hooks';
+import { useGoals, useHabits } from '../hooks';
 import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
 import { apiPost } from '../services/api/client';
 import { getHabitCompletions } from '../services/firebase';
@@ -76,8 +76,6 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
   const { user } = useAuth();
   const { goals, loading: goalsLoading } = useGoals();
   const { habits, loading: habitsLoading } = useHabits();
-  const { tasks: allTasks, loading: tasksLoading } = useTasks();
-
   const { correlations } = useWeeklyCorrelations();
   const [aiNarrative, setAiNarrative] = useState<string | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
@@ -344,10 +342,10 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
       }
     };
 
-    if (!goalsLoading && !habitsLoading && !tasksLoading) {
+    if (!goalsLoading && !habitsLoading) {
       loadAnalytics();
     }
-  }, [user, timeFrame, habits, goalsLoading, habitsLoading, tasksLoading]);
+  }, [user, timeFrame, habits, goalsLoading, habitsLoading]);
 
   // Fetch AI weekly narrative when correlations are available
   useEffect(() => {
@@ -456,16 +454,6 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
       Object.values(habitCompletionData).flat()
     ).size;
 
-    // Tasks metrics
-    const completedTasks = allTasks.filter((t) => {
-      if (!t.completed) return false;
-      if (t.completedAt?.seconds) {
-        return t.completedAt.seconds >= startTimestamp && t.completedAt.seconds <= endTimestamp;
-      }
-      return false;
-    });
-    const taskCompletionRate = allTasks.length > 0 ? (completedTasks.length / allTasks.length) * 100 : 0;
-
     // Focus metrics
     const totalFocusMinutes = focusSessions.filter((s) => s.completed).reduce((sum, s) => sum + s.duration, 0);
     const avgFocusSessionLength = focusSessions.length > 0 ? totalFocusMinutes / focusSessions.length : 0;
@@ -483,11 +471,6 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
         activeDays,
         total: habits.length,
       },
-      tasks: {
-        completed: completedTasks.length,
-        total: allTasks.length,
-        completionRate: taskCompletionRate,
-      },
       focus: {
         sessions: focusSessions.length,
         totalMinutes: totalFocusMinutes,
@@ -498,7 +481,7 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
       },
       community: communityActivity,
     };
-  }, [goals, habits, allTasks, habitCompletionData, focusSessions, journalEntries, communityActivity, timeFrame]);
+  }, [goals, habits, habitCompletionData, focusSessions, journalEntries, communityActivity, timeFrame]);
 
   const getTimeFrameLabel = (): string => {
     switch (timeFrame) {
@@ -546,7 +529,7 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     return 'steady';
   };
 
-  if (loading || goalsLoading || habitsLoading || tasksLoading) {
+  if (loading || goalsLoading || habitsLoading) {
     return <LoadingSpinner message="Loading insights..." />;
   }
 
@@ -631,7 +614,6 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
         <RingProgressCard
           goals={{ percentage: metrics.goals.avgProgress }}
           habits={{ percentage: metrics.habits.completionRate }}
-          tasks={{ percentage: metrics.tasks.completionRate }}
           totalCheckIns={metrics.habits.completions}
         />
 
