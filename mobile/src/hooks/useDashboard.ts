@@ -53,7 +53,9 @@ export function useDashboard() {
   const { width: screenWidth } = useWindowDimensions();
   const { goals, loading: goalsLoading } = useGoals();
   const { habits, loading: habitsLoading } = useHabits(true);
-  const { tasks: allTasks, loading: tasksLoading } = useTasks();
+  const tasksResult = useTasks();
+  const allTasks = DASHBOARD_V2 ? [] : tasksResult.tasks;
+  const tasksLoading = DASHBOARD_V2 ? false : tasksResult.loading;
   const { entries: journalEntries } = useJournal(1);
 
   const { trackEngagement, evaluateTriggers, pendingToasts, markToastShown } = useFeatureDiscovery();
