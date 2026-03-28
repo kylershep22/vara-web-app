@@ -74,9 +74,9 @@ function TimeframeSelector({ value, onChange }) {
 
 function HeroSummaryCard({ stats }) {
   const items = [
-    { label: 'Days Active',    value: stats.daysActive    ?? '—' },
-    { label: 'Total Check-ins', value: stats.totalCheckIns ?? '—' },
-    { label: 'Habits Completed', value: stats.habitsCompleted ?? '—' },
+    { label: 'Days Active',    value: stats.daysActive    ?? '-' },
+    { label: 'Total Check-ins', value: stats.totalCheckIns ?? '-' },
+    { label: 'Habits Completed', value: stats.habitsCompleted ?? '-' },
   ];
 
   return (
@@ -102,7 +102,7 @@ function SparklineCard({ label, value, data, color = '#1B5E57' }) {
     <div className="bg-white rounded-vara-lg border border-divider p-vara-base shadow-vara-sm flex items-center justify-between gap-vara-base">
       <div>
         <div className="text-vara-xs text-muted-sage-gray mb-1">{label}</div>
-        <div className="text-vara-xl font-bold text-soft-charcoal">{value ?? '—'}</div>
+        <div className="text-vara-xl font-bold text-soft-charcoal">{value ?? '-'}</div>
       </div>
       {chartData.length > 1 && (
         <LineChart width={80} height={30} data={chartData}>

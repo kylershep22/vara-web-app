@@ -69,7 +69,7 @@ export default function AIBrainInsightCard() {
       const res = await authedPost('/api/ai-chat', payload);
       if (!res.ok) throw new Error(`AI error (${res.status})`);
       const data = await res.json();
-      const text = data?.reply || "Focus on one small win today — consistency compounds over time.";
+      const text = data?.reply || "Focus on one small win today. Consistency compounds over time.";
       setInsight(text);
       localStorage.setItem(cacheKey, text);
     } catch (e) {
