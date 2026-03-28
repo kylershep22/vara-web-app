@@ -484,7 +484,7 @@ const MainNavigator = () => {
   const [activeTab, setActiveTab] = React.useState<string>('Home');
 
   // Safely extract data with fallbacks
-  const goals = goalsData?.goals || [];
+  const goals = DASHBOARD_V2 ? [] : (goalsData?.goals || []);
   const habits = habitsData?.habits || [];
   const tasks = DASHBOARD_V2 ? [] : (tasksData?.tasks || []);
 
