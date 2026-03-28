@@ -282,7 +282,7 @@ const getConsistencyRecommendation = (
         subtitle: `Complete "${habitName}" to finish strong today.`,
         reason: 'This will complete all your habits for today',
         actionLabel: 'Do it now',
-        navigationTarget: 'Track',
+        navigationTarget: 'Rhythms',
         navigationParams: { tab: 'habits' },
         metadata: { habitId: nextHabit.id, habitName },
       };
@@ -300,7 +300,7 @@ const getConsistencyRecommendation = (
       subtitle: `${incompleteHabits.length} habits waiting. Small steps add up.`,
       reason: 'Building consistency is key to lasting change',
       actionLabel: 'Begin',
-      navigationTarget: 'Track',
+      navigationTarget: 'Rhythms',
       navigationParams: { tab: 'habits' },
       metadata: { habitId: nextHabit.id, habitName, remaining: incompleteHabits.length },
     };
@@ -606,7 +606,7 @@ export const getNextActionRecommendation = (
         subtitle: `${incompleteHabits.length} habits waiting for you today.`,
         reason: 'Building consistency is key to lasting change',
         actionLabel: 'Begin',
-        navigationTarget: 'Track',
+        navigationTarget: 'Rhythms',
         navigationParams: { tab: 'habits' },
       });
     }
@@ -634,7 +634,7 @@ export const getNextActionRecommendation = (
         subtitle: tasksDueToday[0].title || 'Complete your task',
         reason: 'Staying on top of tasks reduces stress',
         actionLabel: 'View',
-        navigationTarget: 'Track',
+        navigationTarget: 'Rhythms',
         navigationParams: { tab: 'tasks' },
       });
     }

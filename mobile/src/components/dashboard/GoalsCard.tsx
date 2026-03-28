@@ -84,7 +84,7 @@ export const GoalsCard: React.FC<GoalsCardProps> = ({ goals }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Track', { tab: 'goals' })}
+          onPress={() => navigation.navigate('Rhythms', { tab: 'goals' })}
           style={styles.headerTitleButton}
           activeOpacity={0.7}
           accessible={true}
@@ -99,7 +99,7 @@ export const GoalsCard: React.FC<GoalsCardProps> = ({ goals }) => {
         </TouchableOpacity>
         {activeGoals.length > 0 && (
           <TouchableOpacity
-            onPress={() => navigation.navigate('Track', { tab: 'goals' })}
+            onPress={() => navigation.navigate('Rhythms', { tab: 'goals' })}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text style={styles.viewAllText}>View all</Text>
@@ -117,7 +117,7 @@ export const GoalsCard: React.FC<GoalsCardProps> = ({ goals }) => {
           </Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => navigation.navigate('Track', { tab: 'goals' })}
+            onPress={() => navigation.navigate('Rhythms', { tab: 'goals' })}
           >
             <Text style={styles.addButtonText}>Set a focus</Text>
           </TouchableOpacity>
@@ -136,7 +136,7 @@ export const GoalsCard: React.FC<GoalsCardProps> = ({ goals }) => {
                   styles.goalItem,
                   index < activeGoals.slice(0, 3).length - 1 && styles.goalItemBorder,
                 ]}
-                onPress={() => navigation.navigate('Track', { tab: 'goals' })}
+                onPress={() => navigation.navigate('Rhythms', { tab: 'goals' })}
                 activeOpacity={0.7}
                 accessible={true}
                 accessibilityRole="button"
@@ -177,7 +177,7 @@ export const GoalsCard: React.FC<GoalsCardProps> = ({ goals }) => {
           {activeGoals.length > 3 && (
             <TouchableOpacity
               style={styles.viewMoreButton}
-              onPress={() => navigation.navigate('Track', { tab: 'goals' })}
+              onPress={() => navigation.navigate('Rhythms', { tab: 'goals' })}
             >
               <Text style={styles.viewMoreText}>
                 {`View ${activeGoals.length - 3} more goal${activeGoals.length - 3 > 1 ? 's' : ''}`}

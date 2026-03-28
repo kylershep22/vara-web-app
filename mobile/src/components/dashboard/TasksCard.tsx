@@ -70,7 +70,7 @@ export const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Track', { tab: 'tasks' })}
+          onPress={() => navigation.navigate('Rhythms', { tab: 'tasks' })}
           style={styles.headerTitleButton}
           activeOpacity={0.7}
           accessible={true}
@@ -85,7 +85,7 @@ export const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
         </TouchableOpacity>
         {incompleteTasks.length > 0 && (
           <TouchableOpacity
-            onPress={() => navigation.navigate('Track', { tab: 'tasks' })}
+            onPress={() => navigation.navigate('Rhythms', { tab: 'tasks' })}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text style={styles.viewAllText}>View all</Text>
@@ -103,7 +103,7 @@ export const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
           </Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => navigation.navigate('Track', { tab: 'tasks' })}
+            onPress={() => navigation.navigate('Rhythms', { tab: 'tasks' })}
           >
             <Text style={styles.addButtonText}>Add a task</Text>
           </TouchableOpacity>
@@ -122,7 +122,7 @@ export const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
                   styles.taskItem,
                   index < tasksDueToday.slice(0, 2).length - 1 && styles.taskItemBorder,
                 ]}
-                onPress={() => navigation.navigate('Track', { tab: 'tasks' })}
+                onPress={() => navigation.navigate('Rhythms', { tab: 'tasks' })}
                 activeOpacity={0.7}
                 accessible={true}
                 accessibilityRole="button"
@@ -171,7 +171,7 @@ export const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
                   styles.taskItem,
                   index < upcomingTasks.slice(0, 2).length - 1 && styles.taskItemBorder,
                 ]}
-                onPress={() => navigation.navigate('Track', { tab: 'tasks' })}
+                onPress={() => navigation.navigate('Rhythms', { tab: 'tasks' })}
                 activeOpacity={0.7}
                 accessible={true}
                 accessibilityRole="button"
@@ -194,7 +194,7 @@ export const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
           {incompleteTasks.length > showTasks.length && (
             <TouchableOpacity
               style={styles.viewMoreButton}
-              onPress={() => navigation.navigate('Track', { tab: 'tasks' })}
+              onPress={() => navigation.navigate('Rhythms', { tab: 'tasks' })}
             >
               <Text style={styles.viewMoreText}>
                 {`+${incompleteTasks.length - showTasks.length} more`}

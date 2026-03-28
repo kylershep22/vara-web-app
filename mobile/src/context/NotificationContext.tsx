@@ -128,7 +128,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (!data?.type || !navigationRef.isReady()) return;
 
       if (data.type === 'habit-reminder') {
-        navigationRef.navigate('Track' as never);
+        navigationRef.navigate('Rhythms' as never);
       } else if (data.type === 'routine-reminder') {
         navigationRef.navigate('Focus' as never);
       }

@@ -153,8 +153,8 @@ const DashboardScreen: React.FC = () => {
               weeklyCompletions={weeklyCompletions}
               processingHabits={processingHabits}
               onHabitToggle={handleHabitToggle}
-              onNavigateToHabits={() => navigation.navigate('Track' as never, { tab: 'habits' } as never)}
-              onAddHabit={() => navigation.navigate('Track' as never, { tab: 'habits', openCreateModal: true } as never)}
+              onNavigateToHabits={() => navigation.navigate('Rhythms' as never, { tab: 'habits' } as never)}
+              onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
             />
 
             {/* Position 4: Week Insight (below fold, conditional) */}
@@ -203,8 +203,8 @@ const DashboardScreen: React.FC = () => {
               weeklyCompletions={weeklyCompletions}
               processingHabits={processingHabits}
               onHabitToggle={handleHabitToggle}
-              onNavigateToHabits={() => navigation.navigate('Track' as never, { tab: 'habits' } as never)}
-              onAddHabit={() => navigation.navigate('Track' as never, { tab: 'habits', openCreateModal: true } as never)}
+              onNavigateToHabits={() => navigation.navigate('Rhythms' as never, { tab: 'habits' } as never)}
+              onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
             />
 
             {/* Next Best Action Card */}
