@@ -24,3 +24,4 @@ export { WellnessScoreOptInCard } from './WellnessScoreOptInCard';
 export { default as NotificationOptInCard } from './NotificationOptInCard';
 export { QuickActionsRow } from './QuickActionsRow';
 export { BrainStateCheckin } from './BrainStateCheckin';
+export { TodaysProtocolCard } from './TodaysProtocolCard';
