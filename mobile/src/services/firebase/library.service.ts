@@ -201,6 +201,30 @@ export const BREATHWORK_SESSIONS: BreathworkSession[] = [
     breathingPattern: 'Inhale 5s → Exhale 5s',
     instructions: 'Equal duration inhale and exhale. Breathe in for 5 seconds, out for 5 seconds. Keep attention on the breath.',
   },
+  {
+    id: 'double-breath-reset',
+    title: 'Double Breath Reset',
+    description: 'A calming technique using a double inhale followed by an extended exhale. Activates your body\'s natural relaxation response in under a minute.',
+    duration: '1 min',
+    type: 'Guided',
+    purpose: 'Relax',
+    difficulty: 'beginner',
+    breathingPattern: 'Inhale 2s → Quick inhale 1s → Long exhale 6s → Rest 1s',
+    featured: false,
+    instructions: 'Breathe in through your nose for 2 seconds. Take a quick second inhale through your nose (1 second). Exhale slowly through your mouth for 6 seconds. Rest for 1 second, then repeat. Continue for 60 seconds.',
+  },
+  {
+    id: 'wide-gaze-calm',
+    title: 'Wide Gaze Calm',
+    description: 'A simple visual technique that shifts your nervous system from alert to calm by softening and expanding your gaze. No breathing required.',
+    duration: '1 min',
+    type: 'Guided',
+    purpose: 'Relax',
+    difficulty: 'beginner',
+    breathingPattern: 'No breathing pattern — visual focus exercise',
+    featured: false,
+    instructions: 'Find a spot ahead of you and let your eyes rest on it. Without moving your eyes, begin to notice what is in your peripheral vision. Slowly expand your awareness to the edges of your visual field. Hold this wide, soft gaze for 60 seconds. Notice any shift in how calm or alert you feel.',
+  },
 ];
 
 // =====================
