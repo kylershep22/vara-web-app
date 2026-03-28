@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 
 import Welcome from './pages/Welcome';
@@ -58,6 +58,8 @@ import LegacyProfileRedirect from './pages/Profile/LegacyProfileRedirect';
 import Reflections from "./pages/Reflections";
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+
+import SidebarLayout from './components/layout/SidebarLayout';
 
 import './styles/tailwind.css';
 
@@ -251,30 +253,6 @@ function App() {
             }
           />
           <Route
-            path="/library/breathwork"
-            element={
-              <ProtectedRoute>
-                <Breathwork />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/library/sleep"
-            element={
-              <ProtectedRoute>
-                <Sleep />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/library/movement"
-            element={
-              <ProtectedRoute>
-                <Movement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/onboarding/profile"
             element={
               <ProtectedRoute>
@@ -378,6 +356,22 @@ function App() {
               </AdminRoute>
             }
           />
+
+          {/* New mobile-aligned routes */}
+          <Route path="/habits" element={<ProtectedRoute><ErrorBoundary level="feature"><GoalsHabits /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/goals" element={<ProtectedRoute><ErrorBoundary level="feature"><GoalsHabits /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/tasks" element={<ProtectedRoute><SidebarLayout><div className="p-8"><h1 className="text-2xl font-semibold text-soft-charcoal">Tasks</h1><p className="text-muted-sage-gray mt-2">Coming soon - Tasks will be split from the Goals &amp; Habits page.</p></div></SidebarLayout></ProtectedRoute>} />
+
+          {/* Discover routes (formerly /library/*) */}
+          <Route path="/discover/breathwork" element={<ProtectedRoute><ErrorBoundary level="feature"><Breathwork /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/discover/sleep" element={<ProtectedRoute><ErrorBoundary level="feature"><Sleep /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/discover/movement" element={<ProtectedRoute><ErrorBoundary level="feature"><Movement /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/discover/masterclass" element={<ProtectedRoute><ErrorBoundary level="feature"><Masterclass /></ErrorBoundary></ProtectedRoute>} />
+
+          {/* Legacy /library/* redirects to /discover/* */}
+          <Route path="/library/breathwork" element={<Navigate to="/discover/breathwork" replace />} />
+          <Route path="/library/sleep" element={<Navigate to="/discover/sleep" replace />} />
+          <Route path="/library/movement" element={<Navigate to="/discover/movement" replace />} />
         </Routes>
 
         {/* Persistent Media Bars */}
