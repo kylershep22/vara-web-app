@@ -128,6 +128,9 @@ export function useDashboard() {
       timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     }
     const firstName = user?.displayName?.split(' ')[0];
+    if (DASHBOARD_V2) {
+      return firstName ? `${timeGreeting}, ${firstName}.` : `${timeGreeting}.`;
+    }
     return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
   }, [user?.displayName]);
 
