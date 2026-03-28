@@ -17,3 +17,8 @@ export { default as OnboardingFocusScreen } from './OnboardingFocusScreen';
 export { default as OnboardingQuickStartScreen } from './OnboardingQuickStartScreen';
 export { default as OnboardingFirstWinScreen } from './OnboardingFirstWinScreen';
 export { default as OnboardingTourScreen } from './OnboardingTourScreen';
+
+// V2 Onboarding Screens (simplified 3-screen flow)
+export { default as OnboardingV2WelcomeScreen } from './OnboardingV2WelcomeScreen';
+export { default as OnboardingV2CheckInScreen } from './OnboardingV2CheckInScreen';
+export { default as OnboardingV2ProtocolScreen } from './OnboardingV2ProtocolScreen';
