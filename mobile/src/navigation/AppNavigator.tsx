@@ -39,7 +39,6 @@ import {
 
 // App screens
 import DashboardScreen from '../screens/DashboardScreen';
-import BrainHealthDashboard from '../screens/BrainHealthDashboard';
 import MoreMenuScreen from '../screens/MoreMenuScreen';
 import PlanScreen from '../screens/PlanScreen';
 import { FocusScreen } from '../screens/Focus';
@@ -534,18 +533,6 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Insights',
-            headerShadowVisible: false,
-          }}
-        />
-        {/* Brain Health - Accessible from Wellness menu */}
-        <AppStack.Screen
-          name="BrainHealth"
-          component={BrainHealthDashboard}
-          options={{
-            ...standardHeaderOptions,
-            animation: 'slide_from_right',
-            headerShown: true,
-            title: 'Brain Health',
             headerShadowVisible: false,
           }}
         />

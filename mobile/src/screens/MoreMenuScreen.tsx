@@ -50,15 +50,6 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     route: 'Insights',
   },
   {
-    id: 'brain-health',
-    title: 'Brain Health',
-    subtitle: 'Track your cognitive wellness',
-    icon: 'brain',
-    iconColor: Colors.evergreenTeal,
-    gradientColors: [Colors.dewSage + '60', Colors.dewSage] as [string, string],
-    route: 'BrainHealth',
-  },
-  {
     id: 'journal',
     title: 'Journal',
     subtitle: 'Reflect with AI-guided prompts',
