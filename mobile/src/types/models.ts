@@ -761,6 +761,28 @@ export interface MorningCheckIn {
   updatedAt: Timestamp;
 }
 
+// ==========================================
+// BRAIN STATE CHECK-IN (Dashboard V2)
+// ==========================================
+
+export type BrainState = 'wired' | 'foggy' | 'okay' | 'clear' | 'energized';
+
+/**
+ * Brain State Check-In
+ * Single-tap daily check-in that maps to a recommended protocol.
+ * Stored in the `brainStateCheckIns` collection.
+ */
+export interface BrainStateCheckIn {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  brainState: BrainState;
+  protocolId: string;
+  protocolCompleted: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 /**
  * Daily Wellness Score
  * Calculated daily score with full breakdown
