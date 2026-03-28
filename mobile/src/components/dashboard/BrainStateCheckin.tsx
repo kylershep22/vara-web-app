@@ -4,7 +4,7 @@
  * Shows expanded state picker when not completed, collapses after selection.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -36,10 +36,17 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(!currentCheckIn);
   const [showCaptured, setShowCaptured] = useState(false);
+  const capturedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setIsExpanded(!currentCheckIn);
   }, [currentCheckIn]);
+
+  useEffect(() => {
+    return () => {
+      if (capturedTimerRef.current) clearTimeout(capturedTimerRef.current);
+    };
+  }, []);
 
   const handleSelect = (state: BrainState) => {
     if (loading) return;
@@ -48,7 +55,7 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
     onSelect(state);
     setShowCaptured(true);
 
-    setTimeout(() => {
+    capturedTimerRef.current = setTimeout(() => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowCaptured(false);
       setIsExpanded(false);

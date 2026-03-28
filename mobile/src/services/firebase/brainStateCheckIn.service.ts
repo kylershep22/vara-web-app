@@ -68,14 +68,24 @@ export const saveBrainStateCheckIn = async (
     const protocol = getProtocolForState(brainState);
 
     const existingDoc = await getDoc(docRef);
+    const existingData = existingDoc.exists() ? existingDoc.data() : null;
 
-    if (existingDoc.exists()) {
+    if (existingData) {
+      const stateChanged = existingData.brainState !== brainState;
       await updateDoc(docRef, {
         brainState,
         protocolId: protocol.id,
-        protocolCompleted: false,
+        // Only reset protocol completion if brain state actually changed
+        ...(stateChanged && { protocolCompleted: false }),
         updatedAt: serverTimestamp(),
       });
+      return {
+        id: checkInId,
+        ...existingData,
+        brainState,
+        protocolId: protocol.id,
+        ...(stateChanged && { protocolCompleted: false }),
+      } as BrainStateCheckIn;
     } else {
       await setDoc(docRef, {
         userId,
@@ -86,10 +96,15 @@ export const saveBrainStateCheckIn = async (
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      return {
+        id: checkInId,
+        userId,
+        date: todayDate,
+        brainState,
+        protocolId: protocol.id,
+        protocolCompleted: false,
+      } as BrainStateCheckIn;
     }
-
-    const savedDoc = await getDoc(docRef);
-    return { id: savedDoc.id, ...savedDoc.data() } as BrainStateCheckIn;
   } catch (error) {
     logger.error('Error saving brain state check-in:', error);
     throw error;
