@@ -24,13 +24,12 @@ import { Colors, Spacing, Typography, Layout } from '../constants';
 import { FocusCopy } from '../tokens/design-tokens';
 import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import HabitsScreen from './HabitsScreen';
-import TasksScreen from './TasksScreen';
 import { RoutinesTab } from './Focus/RoutinesTab';
 import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
 import { Routine } from '../services/firebase/routines.service';
 
 
-type TabType = 'habits' | 'routines' | 'tasks';
+type TabType = 'habits' | 'routines';
 type FilterType = 'all' | 'active' | 'complete';
 
 interface PrimaryTabProps {
@@ -214,8 +213,6 @@ const PlanScreen: React.FC = () => {
         return 'Add a habit';
       case 'routines':
         return 'Create a routine';
-      case 'tasks':
-        return 'Add a task';
       default:
         return 'Add new';
     }
@@ -234,9 +231,9 @@ const PlanScreen: React.FC = () => {
       case 'all':
         return 'all';
       case 'active':
-        return activeTab === 'tasks' ? 'todo' : 'active';
+        return 'active';
       case 'complete':
-        return activeTab === 'tasks' ? 'done' : 'completed';
+        return 'completed';
       default:
         return 'all';
     }
@@ -249,8 +246,6 @@ const PlanScreen: React.FC = () => {
         return 'Build consistency, one day at a time';
       case 'routines':
         return FocusCopy.routinesSubtitle;
-      case 'tasks':
-        return 'Stay organized and productive';
       default:
         return '';
     }
@@ -259,14 +254,13 @@ const PlanScreen: React.FC = () => {
   const tabs = [
     { value: 'habits' as TabType, label: 'Habits' },
     { value: 'routines' as TabType, label: 'Routines' },
-    { value: 'tasks' as TabType, label: 'Tasks' },
   ];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Track</Text>
+        <Text style={styles.pageTitle}>Rhythms</Text>
         <Text style={styles.pageSubtitle}>{getSubtitle()}</Text>
       </View>
 
@@ -288,7 +282,7 @@ const PlanScreen: React.FC = () => {
       )}
 
       {/* Date Banner - Habits and Tasks tabs */}
-      {(activeTab === 'habits' || activeTab === 'tasks') && <DateBanner />}
+      {activeTab === 'habits' && <DateBanner />}
 
       {/* Tab Content */}
       <View style={styles.content}>
@@ -301,13 +295,6 @@ const PlanScreen: React.FC = () => {
         )}
         {activeTab === 'routines' && (
           <RoutinesTab onStartRoutine={handleStartRoutine} />
-        )}
-        {activeTab === 'tasks' && (
-          <TasksScreen
-            hideHeader
-            externalFilter={getScreenFilter()}
-            showInlineCreate
-          />
         )}
       </View>
 
