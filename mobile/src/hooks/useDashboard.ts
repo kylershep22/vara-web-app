@@ -35,6 +35,14 @@ import {
 import { generateDailyPlan } from '../services/api/ai.service';
 import { DailyWellnessScore, MorningCheckIn as MorningCheckInType, FourThreeTwoOneEntry } from '../types';
 import { logger } from '../utils/logger';
+import { DASHBOARD_V2 } from '../constants/dashboardConfig';
+import { getProtocolForState } from '../constants/brainStateProtocols';
+import {
+  getTodayBrainStateCheckIn,
+  saveBrainStateCheckIn,
+  markProtocolCompleted,
+} from '../services/firebase';
+import { BrainState, BrainStateCheckIn as BrainStateCheckInType } from '../types';
 
 const SMALL_SCREEN_WIDTH = 375;
 const MEDIUM_SCREEN_WIDTH = 414;
@@ -85,6 +93,10 @@ export function useDashboard() {
   // Welcome-back card state
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
 
+  // Dashboard V2: Brain State Check-In
+  const [brainStateCheckIn, setBrainStateCheckIn] = useState<BrainStateCheckInType | null>(null);
+  const [brainStateCheckInLoading, setBrainStateCheckInLoading] = useState(false);
+
   // Responsive day count
   const daysToShow = useMemo(() => {
     if (screenWidth < SMALL_SCREEN_WIDTH) return 5;
@@ -106,7 +118,15 @@ export function useDashboard() {
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    let timeGreeting: string;
+    if (DASHBOARD_V2) {
+      if (hour >= 5 && hour < 12) timeGreeting = 'Good morning';
+      else if (hour >= 12 && hour < 17) timeGreeting = 'Good afternoon';
+      else if (hour >= 17 && hour < 22) timeGreeting = 'Good evening';
+      else timeGreeting = 'Hey';
+    } else {
+      timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    }
     const firstName = user?.displayName?.split(' ')[0];
     return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
   }, [user?.displayName]);
@@ -143,7 +163,7 @@ export function useDashboard() {
         if (data?.lastActiveAt) {
           const lastActive = data.lastActiveAt.toDate ? data.lastActiveAt.toDate() : new Date(data.lastActiveAt);
           const daysSince = (Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysSince >= 3) {
+          if (daysSince >= 3 && !DASHBOARD_V2) {
             setShowWelcomeBack(true);
           }
         }
@@ -157,6 +177,7 @@ export function useDashboard() {
 
   // Load daily plan from storage
   useEffect(() => {
+    if (DASHBOARD_V2) return;
     const loadDailyPlan = async () => {
       try {
         const storedPlan = await SecureStore.getItemAsync(`dailyPlan_${today}`);
@@ -170,6 +191,7 @@ export function useDashboard() {
 
   // Load wellness score opt-in preference
   useEffect(() => {
+    if (DASHBOARD_V2) return;
     const loadWellnessPreference = async () => {
       if (!user?.uid) return;
       try {
@@ -199,8 +221,26 @@ export function useDashboard() {
     }
   }, [pendingToasts, queueUnlockToasts, markToastShown]);
 
-  // Load wellness score, morning check-in, and 4-3-2-1 entry
+  // V2: Load brain state check-in
   useEffect(() => {
+    if (!DASHBOARD_V2 || !user?.uid) return;
+    const loadBrainStateCheckIn = async () => {
+      setBrainStateCheckInLoading(true);
+      try {
+        const existing = await getTodayBrainStateCheckIn(user.uid);
+        setBrainStateCheckIn(existing);
+      } catch (error) {
+        logger.error('Error loading brain state check-in:', error);
+      } finally {
+        setBrainStateCheckInLoading(false);
+      }
+    };
+    loadBrainStateCheckIn();
+  }, [user?.uid, today]);
+
+  // V1: Load wellness score, morning check-in, and 4-3-2-1 entry
+  useEffect(() => {
+    if (DASHBOARD_V2) return;
     const loadWellnessData = async () => {
       if (!user?.uid) return;
       setWellnessScoreLoading(true);
@@ -363,6 +403,37 @@ export function useDashboard() {
     }
   }, [user, trackEngagement, evaluateTriggers]);
 
+  const handleBrainStateCheckIn = useCallback(async (state: BrainState) => {
+    if (!user?.uid) return;
+    setBrainStateCheckInLoading(true);
+    try {
+      const checkIn = await saveBrainStateCheckIn(user.uid, state);
+      setBrainStateCheckIn(checkIn);
+      trackEngagement('morningCheckInsCompleted').then(() => evaluateTriggers()).catch(logger.error);
+    } catch (error) {
+      logger.error('Error saving brain state check-in:', error);
+    } finally {
+      setBrainStateCheckInLoading(false);
+    }
+  }, [user, trackEngagement, evaluateTriggers]);
+
+  const handleMarkProtocolCompleted = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      await markProtocolCompleted(user.uid);
+      setBrainStateCheckIn((prev) =>
+        prev ? { ...prev, protocolCompleted: true } : null
+      );
+    } catch (error) {
+      logger.error('Error marking protocol completed:', error);
+    }
+  }, [user]);
+
+  const todaysProtocol = useMemo(() => {
+    if (!brainStateCheckIn) return null;
+    return getProtocolForState(brainStateCheckIn.brainState);
+  }, [brainStateCheckIn]);
+
   const handleRefreshWellnessScore = useCallback(async () => {
     if (!user?.uid) return;
     setWellnessScoreLoading(true);
@@ -460,5 +531,12 @@ export function useDashboard() {
 
     // Refresh
     handleRefresh,
+
+    // Dashboard V2
+    brainStateCheckIn,
+    brainStateCheckInLoading,
+    handleBrainStateCheckIn,
+    handleMarkProtocolCompleted,
+    todaysProtocol,
   };
 }
