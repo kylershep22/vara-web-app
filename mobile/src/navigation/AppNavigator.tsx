@@ -16,6 +16,7 @@ import { useGoals } from '../hooks/useGoals';
 import { useHabits } from '../hooks/useHabits';
 import { useTasks } from '../hooks/useTasks';
 import { useSubscription } from '../hooks/useSubscription';
+import { DASHBOARD_V2, ONBOARDING_V2 } from '../constants/dashboardConfig';
 import { linking } from './linking';
 
 export const navigationRef = createNavigationContainerRef();
@@ -55,7 +56,6 @@ import PaywallScreen from '../screens/PaywallScreen';
 import RedeemCodeScreen from '../screens/RedeemCodeScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
 import HabitDetailScreen from '../screens/HabitDetailScreen';
-import TaskDetailScreen from '../screens/TaskDetailScreen';
 import WearableIntegrationScreen from '../screens/WearableIntegrationScreen';
 import {
   CommunityScreen,
@@ -80,6 +80,9 @@ import {
   OnboardingConfirmationScreen,
   OnboardingValuesScreen,
   OnboardingPersonalizedEntryScreen,
+  OnboardingV2WelcomeScreen,
+  OnboardingV2CheckInScreen,
+  OnboardingV2ProtocolScreen,
 } from '../screens/onboarding';
 
 // Discover screens
@@ -118,12 +121,22 @@ const OnboardingNavigator = () => {
         animation: 'slide_from_right',
       }}
     >
-      <OnboardingStack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen} />
-      <OnboardingStack.Screen name="OnboardingCheckIn" component={OnboardingCheckInScreen} />
-      <OnboardingStack.Screen name="OnboardingInsight" component={OnboardingInsightScreen} />
-      <OnboardingStack.Screen name="OnboardingActivity" component={OnboardingActivityScreen} />
-      <OnboardingStack.Screen name="OnboardingValues" component={OnboardingValuesScreen} />
-      <OnboardingStack.Screen name="OnboardingPersonalizedEntry" component={OnboardingPersonalizedEntryScreen} />
+      {ONBOARDING_V2 ? (
+        <>
+          <OnboardingStack.Screen name="OnboardingV2Welcome" component={OnboardingV2WelcomeScreen} />
+          <OnboardingStack.Screen name="OnboardingV2CheckIn" component={OnboardingV2CheckInScreen} />
+          <OnboardingStack.Screen name="OnboardingV2Protocol" component={OnboardingV2ProtocolScreen} />
+        </>
+      ) : (
+        <>
+          <OnboardingStack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen} />
+          <OnboardingStack.Screen name="OnboardingCheckIn" component={OnboardingCheckInScreen} />
+          <OnboardingStack.Screen name="OnboardingInsight" component={OnboardingInsightScreen} />
+          <OnboardingStack.Screen name="OnboardingActivity" component={OnboardingActivityScreen} />
+          <OnboardingStack.Screen name="OnboardingValues" component={OnboardingValuesScreen} />
+          <OnboardingStack.Screen name="OnboardingPersonalizedEntry" component={OnboardingPersonalizedEntryScreen} />
+        </>
+      )}
     </OnboardingStack.Navigator>
   );
 };
@@ -414,10 +427,10 @@ const BottomTabsNavigator = () => {
         }}
       />
       <BottomTabs.Screen
-        name="Track"
+        name="Rhythms"
         component={PlanScreen}
         options={{
-          tabBarLabel: 'Track',
+          tabBarLabel: 'Rhythms',
           tabBarIcon: ({ color, size }) => (
             <Icon name="clipboard-check" size={size} color={color} />
           ),
@@ -474,7 +487,7 @@ const MainNavigator = () => {
   // Safely extract data with fallbacks
   const goals = goalsData?.goals || [];
   const habits = habitsData?.habits || [];
-  const tasks = tasksData?.tasks || [];
+  const tasks = DASHBOARD_V2 ? [] : (tasksData?.tasks || []);
 
   // Hide AI FAB on Community tab (community screens have their own action buttons)
   const showAIFab = activeTab !== 'Community';
@@ -667,20 +680,6 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Habit Details',
-            headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
-          }}
-        />
-        {/* Task Detail - Accessible from Plan/Track screen */}
-        <AppStack.Screen
-          name="TaskDetail"
-          component={TaskDetailScreen}
-          options={{
-            ...standardHeaderOptions,
-            animation: 'slide_from_right',
-            headerShown: true,
-            title: 'Task Details',
             headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
             headerTintColor: '#fff',
             headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
