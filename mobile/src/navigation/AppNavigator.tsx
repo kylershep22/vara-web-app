@@ -522,7 +522,7 @@ const MainNavigator = () => {
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
-            title: 'Insights',
+            title: 'Your week',
             headerShadowVisible: false,
           }}
         />
