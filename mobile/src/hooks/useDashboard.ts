@@ -41,8 +41,10 @@ import {
   getTodayBrainStateCheckIn,
   saveBrainStateCheckIn,
   markProtocolCompleted,
+  getTodayDailyReflection,
+  saveDailyReflection,
 } from '../services/firebase';
-import { BrainState, BrainStateCheckIn as BrainStateCheckInType } from '../types';
+import { BrainState, BrainStateCheckIn as BrainStateCheckInType, DailyReflection as DailyReflectionType, DailyReflectionValue } from '../types';
 
 const SMALL_SCREEN_WIDTH = 375;
 const MEDIUM_SCREEN_WIDTH = 414;
@@ -100,6 +102,10 @@ export function useDashboard() {
   // Dashboard V2: Brain State Check-In
   const [brainStateCheckIn, setBrainStateCheckIn] = useState<BrainStateCheckInType | null>(null);
   const [brainStateCheckInLoading, setBrainStateCheckInLoading] = useState(false);
+
+  // Dashboard V2: Daily Reflection
+  const [dailyReflection, setDailyReflection] = useState<DailyReflectionType | null>(null);
+  const [dailyReflectionDismissed, setDailyReflectionDismissed] = useState(false);
 
   // Responsive day count
   const daysToShow = useMemo(() => {
@@ -236,6 +242,8 @@ export function useDashboard() {
       try {
         const existing = await getTodayBrainStateCheckIn(user.uid);
         setBrainStateCheckIn(existing);
+        const existingReflection = await getTodayDailyReflection(user.uid);
+        setDailyReflection(existingReflection);
       } catch (error) {
         logger.error('Error loading brain state check-in:', error);
       } finally {
@@ -441,6 +449,29 @@ export function useDashboard() {
     return getProtocolForState(brainStateCheckIn.brainState);
   }, [brainStateCheckIn]);
 
+  const showDailyReflection = useMemo(() => {
+    if (!DASHBOARD_V2) return false;
+    if (dailyReflection || dailyReflectionDismissed) return false;
+    if (habits.length === 0) return false;
+    const activeHabits = habits.filter((h) => h.active);
+    if (activeHabits.length === 0) return false;
+    return activeHabits.every((h) => completedToday.has(h.id));
+  }, [habits, completedToday, dailyReflection, dailyReflectionDismissed]);
+
+  const handleDailyReflection = useCallback(async (value: DailyReflectionValue) => {
+    if (!user?.uid) return;
+    try {
+      const reflection = await saveDailyReflection(user.uid, value);
+      setDailyReflection(reflection);
+    } catch (error) {
+      logger.error('Error saving daily reflection:', error);
+    }
+  }, [user]);
+
+  const handleDailyReflectionSkip = useCallback(() => {
+    setDailyReflectionDismissed(true);
+  }, []);
+
   const handleRefreshWellnessScore = useCallback(async () => {
     if (!user?.uid) return;
     setWellnessScoreLoading(true);
@@ -545,5 +576,10 @@ export function useDashboard() {
     handleBrainStateCheckIn,
     handleMarkProtocolCompleted,
     todaysProtocol,
+
+    // Daily Reflection
+    showDailyReflection,
+    handleDailyReflection,
+    handleDailyReflectionSkip,
   };
 }
