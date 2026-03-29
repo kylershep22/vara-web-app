@@ -220,6 +220,14 @@ const GroupsScreen: React.FC = () => {
               Find your community
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={() => setShowCreateGroup(true)}
+            style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.evergreenTeal, alignItems: 'center', justifyContent: 'center' }}
+            accessibilityRole="button"
+            accessibilityLabel="Create group"
+          >
+            <Icon name="plus" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </View>
 
