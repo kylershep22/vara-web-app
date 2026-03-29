@@ -8,7 +8,6 @@
  * - Timer ring with SVG circular progress
  * - Break prompt flow after session complete
  * - Notification toggle and ambient sound selector
- * - Brain health tip card
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -33,7 +32,6 @@ import {
   TimerRing,
   DurationChips,
   TaskLabelInput,
-  BrainHealthTip,
   BreakPrompt,
   NotificationToggle,
   AmbientSoundSelector,
@@ -158,6 +156,11 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     }
   }, [timer]);
 
+  const handleStartAnother = useCallback(() => {
+    timer.reset();
+    setTimeout(() => timer.start(), 50);
+  }, [timer]);
+
   const toggleSoundPanel = useCallback(() => {
     setIsSoundPanelOpen((prev) => !prev);
   }, []);
@@ -169,8 +172,10 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
         <BreakPrompt
           state={timer.state === 'session_complete' ? 'session_complete' : 'break_complete'}
           onStartBreak={timer.startBreak}
-          onBeginAnother={timer.beginAnother}
+          onBeginAnother={timer.state === 'break_complete' ? timer.beginAnother : handleStartAnother}
           onDoneForNow={timer.reset}
+          breakDurationMinutes={timer.breakDurationMinutes}
+          onAdjustBreak={timer.setBreakDuration}
         />
       );
     }
@@ -299,8 +304,6 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
         isCurrentlyActive={notificationSilence.isCurrentlyActive}
       />
 
-      {/* Brain Health Tip */}
-      <BrainHealthTip />
     </ScrollView>
   );
 };
