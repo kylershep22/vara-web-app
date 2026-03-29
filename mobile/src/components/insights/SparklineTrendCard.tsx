@@ -234,4 +234,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SparklineTrendCard;
+export { SparklineTrendCard };

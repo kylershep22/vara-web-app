@@ -228,4 +228,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HeroSummaryCard;
+export { HeroSummaryCard };

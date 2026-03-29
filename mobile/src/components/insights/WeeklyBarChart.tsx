@@ -191,4 +191,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default WeeklyBarChart;
+export { WeeklyBarChart };
