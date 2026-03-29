@@ -280,19 +280,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   dayDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   dayDotCompleted: {
     backgroundColor: Colors.evergreenTeal,
   },
   dayDotMissed: {
-    backgroundColor: Colors.borderLight,
+    backgroundColor: 'rgba(184, 205, 186, 0.3)',
   },
   dayDotToday: {
-    borderWidth: 1.5,
-    borderColor: Colors.evergreenTeal,
+    borderWidth: 1,
+    borderColor: Colors.silverSage,
+    backgroundColor: 'transparent',
   },
   summary: {
     marginTop: Spacing.xs,
@@ -327,11 +328,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.evergreenTeal,
   },
   compactDotMissed: {
-    backgroundColor: Colors.borderLight,
+    backgroundColor: 'rgba(184, 205, 186, 0.3)',
   },
   compactDotToday: {
     borderWidth: 1,
-    borderColor: Colors.evergreenTeal,
+    borderColor: Colors.silverSage,
+    backgroundColor: 'transparent',
   },
   compactLabel: {
     fontSize: Typography.fontSize.xs,
