@@ -12,11 +12,9 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { Colors } from '../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { AIAssistantFAB } from '../components/ai/AIAssistantFAB';
-import { useGoals } from '../hooks/useGoals';
 import { useHabits } from '../hooks/useHabits';
-import { useTasks } from '../hooks/useTasks';
 import { useSubscription } from '../hooks/useSubscription';
-import { DASHBOARD_V2, ONBOARDING_V2 } from '../constants/dashboardConfig';
+import { ONBOARDING_V2 } from '../constants/dashboardConfig';
 import { linking } from './linking';
 
 export const navigationRef = createNavigationContainerRef();
@@ -466,17 +464,13 @@ const BottomTabsNavigator = () => {
 const MainNavigator = () => {
   // Call hooks at top level (required by Rules of Hooks)
   // Provide safe defaults if data isn't available yet
-  const goalsData = useGoals();
   const habitsData = useHabits();
-  const tasksData = useTasks();
 
   // Track current active tab to conditionally show/hide AI FAB
   const [activeTab, setActiveTab] = React.useState<string>('Home');
 
   // Safely extract data with fallbacks
-  const goals = DASHBOARD_V2 ? [] : (goalsData?.goals || []);
   const habits = habitsData?.habits || [];
-  const tasks = DASHBOARD_V2 ? [] : (tasksData?.tasks || []);
 
   // Hide AI FAB on Community tab (community screens have their own action buttons)
   const showAIFab = activeTab !== 'Community';
@@ -700,9 +694,7 @@ const MainNavigator = () => {
         <AIAssistantFAB
           context={{
             screen: 'global',
-            userGoals: goals.slice(0, 5),
-            userHabits: habits.slice(0, 10),
-            userTasks: tasks.slice(0, 10),
+            userHabits: habits,
           }}
         />
       )}
