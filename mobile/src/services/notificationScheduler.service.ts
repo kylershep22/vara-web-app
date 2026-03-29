@@ -18,7 +18,6 @@ import {
   isWithinQuietHours,
 } from './firebase/notificationPreferences.service';
 import { canSendSystemNotification, markNotificationSent } from './notificationThrottle';
-import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 
 // ==========================================
 // NOTIFICATION IDENTIFIERS
@@ -77,13 +76,6 @@ const INSIGHT_CONTENT_POOL = [
   'Strategic recovery habits are as important as active energy-building ones.',
   'Energy resilience means bouncing back faster, and your habits train that response.',
 ];
-
-const GOAL_MILESTONE_MESSAGES: Record<number, { title: string; body: string }> = {
-  25: { title: 'A quarter of the way', body: 'Your goal is taking shape. Nice work so far.' },
-  50: { title: 'Halfway to your goal', body: 'You\'ve made real progress. Take a moment to appreciate that.' },
-  75: { title: 'Three-quarters complete', body: 'Your goal is well within reach.' },
-  100: { title: 'Goal complete', body: 'You did it. That\'s worth celebrating.' },
-};
 
 const TIME_REFLECTION_MESSAGES: Record<string, { title: string; body: string }> = {
   '1_week': { title: 'One week with Vara', body: 'You\'ve been building your routine for a week. How\'s it feeling?' },
@@ -356,8 +348,7 @@ export async function sendMentionNotification(
 
 export async function sendMilestoneNotification(
   userId: string,
-  milestoneType: 'goal' | 'dailyCompletion',
-  value?: number,
+  milestoneType: 'dailyCompletion',
 ): Promise<string | null> {
   try {
     const preferences = await getNotificationPreferences(userId);
@@ -377,37 +368,10 @@ export async function sendMilestoneNotification(
       );
     }
 
-    if (milestoneType === 'goal' && value) {
-      const message = GOAL_MILESTONE_MESSAGES[value];
-      if (!message) return null;
-
-      return await sendThrottledNotification(
-        {
-          title: message.title,
-          body: message.body,
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.DEFAULT,
-          data: { type: 'goal_milestone' as NotificationType, category: 'milestones_reflection', milestoneValue: value },
-        },
-        preferences.quietHours,
-      );
-    }
-
     return null;
   } catch (error) {
     console.error('Error sending milestone notification:', error);
     return null;
-  }
-}
-
-export async function checkAndSendGoalMilestone(
-  userId: string,
-  progressPercent: number,
-): Promise<void> {
-  if (DASHBOARD_V2) return;
-  const milestones = Object.keys(GOAL_MILESTONE_MESSAGES).map(Number);
-  if (milestones.includes(progressPercent)) {
-    await sendMilestoneNotification(userId, 'goal', progressPercent);
   }
 }
 

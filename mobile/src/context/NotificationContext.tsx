@@ -27,7 +27,6 @@ import {
   initializeUserNotifications,
   updateNotificationsFromPreferences,
   cancelAllUserNotifications,
-  checkAndSendGoalMilestone,
   sendMilestoneNotification,
   scheduleDailyReminder,
   sendConnectionRequestNotification,
@@ -38,7 +37,6 @@ import {
 
 interface NotificationContextType {
   initializeNotifications: () => Promise<void>;
-  onGoalProgressUpdated: (progressPercent: number) => Promise<void>;
   onDailyCompletionAchieved: () => Promise<void>;
   notifyConnectionRequest: (senderName: string, senderId: string) => Promise<void>;
   notifyNewMessage: (senderName: string, messagePreview: string, conversationId: string, senderId: string) => Promise<void>;
@@ -154,11 +152,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [user?.uid, serverPush]);
 
-  const onGoalProgressUpdated = useCallback(async (progressPercent: number) => {
-    if (!user?.uid) return;
-    await checkAndSendGoalMilestone(user.uid, progressPercent);
-  }, [user?.uid]);
-
   const onDailyCompletionAchieved = useCallback(async () => {
     if (!user?.uid) return;
     await sendMilestoneNotification(user.uid, 'dailyCompletion');
@@ -186,7 +179,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const value: NotificationContextType = {
     initializeNotifications,
-    onGoalProgressUpdated,
     onDailyCompletionAchieved,
     notifyConnectionRequest,
     notifyNewMessage,

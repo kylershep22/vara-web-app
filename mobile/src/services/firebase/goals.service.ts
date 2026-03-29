@@ -19,7 +19,6 @@ import {
 } from 'firebase/firestore';
 import { db, firebaseError } from '../../config/firebase';
 import { Goal } from '../../types';
-import { checkAndSendGoalMilestone } from '../notificationScheduler.service';
 
 const COLLECTION = 'goals';
 
@@ -168,20 +167,6 @@ export const updateGoalProgress = async (
       updatedAt: serverTimestamp(),
     });
 
-    // Check for milestone notifications (25%, 50%, 75%, 100%)
-    if (goal?.userId) {
-      const milestones = [25, 50, 75, 100];
-      for (const milestone of milestones) {
-        if (previousProgress < milestone && progress >= milestone) {
-          try {
-            await checkAndSendGoalMilestone(goal.userId, milestone);
-          } catch (notifError) {
-            console.log('Could not send goal milestone notification:', notifError);
-          }
-          break; // Only send one notification
-        }
-      }
-    }
   } catch (error) {
     console.error('Error updating goal progress:', error);
     throw error;
@@ -244,21 +229,6 @@ export const updateGoalProgressWithMilestones = async (
       milestones: updatedMilestones || [],
       updatedAt: serverTimestamp(),
     });
-
-    // Check for progress milestone notifications (25%, 50%, 75%, 100%)
-    if (goal.userId) {
-      const progressMilestones = [25, 50, 75, 100];
-      for (const milestone of progressMilestones) {
-        if (previousProgress < milestone && clampedProgress >= milestone) {
-          try {
-            await checkAndSendGoalMilestone(goal.userId, milestone);
-          } catch (notifError) {
-            console.log('Could not send goal milestone notification:', notifError);
-          }
-          break; // Only send one notification
-        }
-      }
-    }
 
     return { completedMilestones: newlyCompletedMilestones };
   } catch (error) {
