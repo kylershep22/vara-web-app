@@ -404,7 +404,12 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
         content: msg.content,
       }));
 
-      const coachContext = await buildCoachContext();
+      let coachContext = {};
+      try {
+        coachContext = await buildCoachContext();
+      } catch (contextErr) {
+        console.warn('Coach context fetch failed, sending without context:', contextErr);
+      }
       const response = await chatWithAI(messageHistory, coachContext);
 
       const assistantMessage: Message = {
