@@ -436,16 +436,6 @@ const BottomTabsNavigator = () => {
         }}
       />
       <BottomTabs.Screen
-        name="Focus"
-        component={FocusScreen}
-        options={{
-          tabBarLabel: 'Focus',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="timer-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <BottomTabs.Screen
         name="Community"
         component={CommunityNavigator}
         options={{
@@ -533,6 +523,18 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Insights',
+            headerShadowVisible: false,
+          }}
+        />
+        {/* Focus Timer - Accessible from Wellness menu */}
+        <AppStack.Screen
+          name="FocusTimer"
+          component={FocusScreen}
+          options={{
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: 'Focus',
             headerShadowVisible: false,
           }}
         />

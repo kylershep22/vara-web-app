@@ -77,6 +77,15 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     route: 'Sleep',
   },
   {
+    id: 'focus',
+    title: 'Focus',
+    subtitle: 'Set a focused window for deep work',
+    icon: 'timer-outline',
+    iconColor: Colors.evergreenTeal,
+    gradientColors: [Colors.dewSage + '40', Colors.dewSage + '60'] as [string, string],
+    route: 'FocusTimer',
+  },
+  {
     id: 'movement',
     title: 'Movement',
     subtitle: 'Exercise & mobility routines',
