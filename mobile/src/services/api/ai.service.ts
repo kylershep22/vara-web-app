@@ -77,11 +77,19 @@ export const getJournalPromptSuggestions = async (): Promise<string[]> => {
     }, {
       debug: __DEV__,
     });
-    // Backend returns newline-separated prompts in the `text` field
-    const prompts = (response.text || '')
+    // Backend returns prompts in `text` field (local) or `prompt` field (deployed)
+    const raw = response.text || (response as any).prompt || '';
+    const prompts = raw
       .split('\n')
-      .map((p: string) => p.trim())
-      .filter((p: string) => p.length > 0)
+      .map((p: string) => p
+        .trim()
+        .replace(/^\d+[\.\)]\s*/, '')   // strip "1. " or "1) " numbering
+        .replace(/\*\*/g, '')            // strip bold markdown
+        .replace(/[*_#"]/g, '')          // strip other markdown chars and quotes
+        .replace(/—/g, ', ')            // replace em dashes
+        .trim()
+      )
+      .filter((p: string) => p.length > 0 && p.length < 80) // skip long paragraphs
       .slice(0, 3);
     return prompts;
   } catch (error) {
@@ -137,21 +145,7 @@ export const generateStructuredJournalSummary = async (
  */
 export const chatWithAI = async (
   messages: Array<{ role: string; content: string }>,
-  context?: {
-    page?: { label: string; path: string };
-    userSummary?: {
-      goals?: any[];
-      habits?: any[];
-      tasks?: any[];
-    };
-    brainMetrics?: {
-      readinessScore?: number;
-      neuroplasticityCount?: number;
-      amccStreak?: number;
-      nervousSystemToolUses?: number;
-      lastCheckIn?: string;
-    };
-  }
+  context?: Record<string, any>,
 ): Promise<string> => {
   try {
     const response = await apiPost<{ reply: string }>('/ai-chat', {
@@ -161,7 +155,14 @@ export const chatWithAI = async (
       debug: __DEV__,
       timeout: 60000, // 60 seconds for AI chat
     });
-    return response.reply;
+    // Strip markdown artifacts from deployed backend responses
+    return (response.reply || '')
+      .replace(/\*\*/g, '')
+      .replace(/#{1,3}\s/g, '')
+      .replace(/—/g, ', ')
+      .replace(/^\s*[-*]\s/gm, '')
+      .replace(/^\s*\d+\.\s/gm, '')
+      .trim();
   } catch (error) {
     console.error('Error chatting with AI:', error);
     throw error;
