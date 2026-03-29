@@ -469,32 +469,35 @@ export const sendConnectionRequest = async (
     const firestore = ensureFirestore();
     const connectionsRef = collection(firestore, CONNECTIONS_COLLECTION);
 
-    // Check for existing pending or accepted connection between these users
-    // Check both directions: requester->addressee and addressee->requester
-    const [existingAsRequester, existingAsAddressee] = await Promise.all([
-      getDocs(query(
-        connectionsRef,
-        where('requesterId', '==', requesterId),
-        where('addresseeId', '==', addresseeId),
-        where('status', 'in', ['pending', 'accepted'])
-      )),
-      getDocs(query(
-        connectionsRef,
-        where('requesterId', '==', addresseeId),
-        where('addresseeId', '==', requesterId),
-        where('status', 'in', ['pending', 'accepted'])
-      )),
-    ]);
+    // Check for existing connection between these users using participants array
+    // This uses the existing participants + status composite index
+    const existingQuery = query(
+      connectionsRef,
+      where('participants', 'array-contains', requesterId),
+      where('status', 'in', ['pending', 'accepted'])
+    );
 
-    if (!existingAsRequester.empty || !existingAsAddressee.empty) {
-      const existingStatus = !existingAsRequester.empty
-        ? existingAsRequester.docs[0].data().status
-        : existingAsAddressee.docs[0].data().status;
-      throw new Error(
-        existingStatus === 'accepted'
-          ? 'You are already connected with this user'
-          : 'A connection request is already pending'
-      );
+    try {
+      const existingSnapshot = await getDocs(existingQuery);
+      const existingConnection = existingSnapshot.docs.find((doc) => {
+        const data = doc.data();
+        const participants = data.participants || [];
+        return participants.includes(addresseeId);
+      });
+
+      if (existingConnection) {
+        const existingStatus = existingConnection.data().status;
+        throw new Error(
+          existingStatus === 'accepted'
+            ? 'You are already connected with this user'
+            : 'A connection request is already pending'
+        );
+      }
+    } catch (error: any) {
+      // Re-throw our own errors (duplicate detection)
+      if (error.message?.includes('already')) throw error;
+      // Log but don't block on query failures (e.g., missing index)
+      console.warn('[sendConnectionRequest] Duplicate check failed:', error.message);
     }
 
     // Use web app format - addDoc with auto-generated ID
