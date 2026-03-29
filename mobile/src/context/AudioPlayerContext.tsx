@@ -53,6 +53,10 @@ interface AudioControlsContextValue {
   stop: () => Promise<void>;
   seek: (position: number) => Promise<void>;
   setLooping: (loop: boolean) => Promise<void>;
+  skipForward: (seconds?: number) => Promise<void>;
+  skipBack: (seconds?: number) => Promise<void>;
+  playbackRate: number;
+  setPlaybackRate: (rate: number) => Promise<void>;
 
   // Sleep timer controls
   setSleepTimer: (minutes: number | null) => void;
@@ -96,6 +100,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
   const [sleepTimerEndTime, setSleepTimerEndTimeState] = useState<number | null>(null);
   const [isExpanded, setIsExpandedState] = useState(false);
+  const [playbackRate, setPlaybackRateState] = useState(1.0);
 
   // Refs
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -277,6 +282,47 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
+  const skipForward = useCallback(async (seconds: number = 15) => {
+    if (soundRef.current && durationRef.current > 0) {
+      try {
+        const status = await soundRef.current.getStatusAsync();
+        if (status.isLoaded) {
+          const newPosition = Math.min(status.positionMillis + seconds * 1000, durationRef.current);
+          await soundRef.current.setPositionAsync(newPosition);
+          setProgress(newPosition / durationRef.current);
+        }
+      } catch (err) {
+        logger.error('Error skipping forward:', err);
+      }
+    }
+  }, []);
+
+  const skipBack = useCallback(async (seconds: number = 15) => {
+    if (soundRef.current && durationRef.current > 0) {
+      try {
+        const status = await soundRef.current.getStatusAsync();
+        if (status.isLoaded) {
+          const newPosition = Math.max(status.positionMillis - seconds * 1000, 0);
+          await soundRef.current.setPositionAsync(newPosition);
+          setProgress(newPosition / durationRef.current);
+        }
+      } catch (err) {
+        logger.error('Error skipping back:', err);
+      }
+    }
+  }, []);
+
+  const setPlaybackRate = useCallback(async (rate: number) => {
+    if (soundRef.current) {
+      try {
+        await soundRef.current.setRateAsync(rate, true);
+        setPlaybackRateState(rate);
+      } catch (err) {
+        logger.error('Error setting playback rate:', err);
+      }
+    }
+  }, []);
+
   const setLooping = useCallback(async (loop: boolean) => {
     if (soundRef.current) {
       try {
@@ -326,6 +372,10 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     stop: stopPlayback,
     seek,
     setLooping,
+    skipForward,
+    skipBack,
+    playbackRate,
+    setPlaybackRate,
     setSleepTimer,
     setIsExpanded,
   };

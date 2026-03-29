@@ -206,6 +206,10 @@ export function AudioExpandedPlayer() {
     stop,
     seek,
     setLooping,
+    skipForward,
+    skipBack,
+    playbackRate,
+    setPlaybackRate,
     setSleepTimer,
     setIsExpanded,
   } = useAudioPlayer();
@@ -448,6 +452,16 @@ export function AudioExpandedPlayer() {
             {isLooping && <View style={styles.activeIndicatorDot} />}
           </TouchableOpacity>
 
+          {/* Skip Back */}
+          <TouchableOpacity
+            onPress={() => skipBack(15)}
+            style={styles.skipButton}
+            accessibilityLabel="Skip back 15 seconds"
+            accessibilityRole="button"
+          >
+            <Icon name="rewind-15" size={28} color={Colors.textPrimary} />
+          </TouchableOpacity>
+
           {/* Play/Pause */}
           <Animated.View style={{ transform: [{ scale: playScaleAnim }] }}>
             <TouchableOpacity
@@ -465,6 +479,16 @@ export function AudioExpandedPlayer() {
               />
             </TouchableOpacity>
           </Animated.View>
+
+          {/* Skip Forward */}
+          <TouchableOpacity
+            onPress={() => skipForward(15)}
+            style={styles.skipButton}
+            accessibilityLabel="Skip forward 15 seconds"
+            accessibilityRole="button"
+          >
+            <Icon name="fast-forward-15" size={28} color={Colors.textPrimary} />
+          </TouchableOpacity>
 
           {/* Sleep timer shortcut */}
           <TouchableOpacity
@@ -486,6 +510,21 @@ export function AudioExpandedPlayer() {
               <Text style={styles.timerRemainingText}>{timerRemaining}m</Text>
             )}
           </TouchableOpacity>
+        </View>
+
+        {/* Playback Speed */}
+        <View style={styles.speedRow}>
+          {[1, 1.25, 1.5, 2].map((rate) => (
+            <TouchableOpacity
+              key={rate}
+              onPress={() => setPlaybackRate(rate)}
+              style={[styles.speedChip, playbackRate === rate && styles.speedChipActive]}
+            >
+              <Text style={[styles.speedText, playbackRate === rate && styles.speedTextActive]}>
+                {rate}x
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Sleep Timer Chips */}
@@ -641,6 +680,13 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: Colors.evergreenTeal,
   },
+  skipButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
   playButton: {
     width: 72,
     height: 72,
@@ -656,6 +702,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.evergreenTeal,
+  },
+
+  // Playback speed
+  speedRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+    marginTop: 16,
+  },
+  speedChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(213,227,209,0.4)',
+  },
+  speedChipActive: {
+    backgroundColor: '#1B5E57',
+  },
+  speedText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#3E3E3E',
+  },
+  speedTextActive: {
+    color: '#FFFFFF',
   },
 
   // Sleep timer chips
