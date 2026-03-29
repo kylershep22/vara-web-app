@@ -23,7 +23,6 @@ import { AIDailyPlanCard } from '../components/dashboard/AIDailyPlanCard';
 import WelcomeBackCard from '../components/dashboard/WelcomeBackCard';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
 import WeekInsightCard from '../components/dashboard/WeekInsightCard';
-import BrainHealthEducationCard from '../components/dashboard/BrainHealthEducationCard';
 import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
@@ -173,8 +172,6 @@ const DashboardScreen: React.FC = () => {
               />
             )}
 
-            {/* Position 5: Brain Health Education (below fold) */}
-            <BrainHealthEducationCard />
           </>
         ) : (
           <>
@@ -248,8 +245,6 @@ const DashboardScreen: React.FC = () => {
               />
             )}
 
-            {/* Brain Health Education Card */}
-            <BrainHealthEducationCard />
 
             {/* AI Daily Plan Card */}
             <AIDailyPlanCard
