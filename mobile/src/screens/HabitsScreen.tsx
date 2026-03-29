@@ -14,6 +14,8 @@ import { HabitListItem } from '../components/habits/HabitListItem';
 import { IntentionsSummaryCard } from '../components/habits/IntentionsSummaryCard';
 import { HabitCompletionSheet } from '../components/HabitCompletionSheet';
 import { Colors, Spacing, Typography, Layout } from '../constants';
+import { DASHBOARD_V2 } from '../constants/dashboardConfig';
+import { SimpleHabitCreateScreen } from '../components/habits/SimpleHabitCreateScreen';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Habit } from '../types';
 import { useHabitsScreen } from '../hooks/useHabitsScreen';
@@ -46,6 +48,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
     setAllHabitsCompletedToday,
     handleCreateHabit,
     handleWizardComplete,
+    handleSimpleHabitSave,
     handleToggleCompletion,
     completionSheetHabit,
     handleCompletionSheetDone,
@@ -171,12 +174,20 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
         </TouchableOpacity>
       )}
 
-      <WizardContainer
-        visible={modalVisible}
-        onDismiss={() => setModalVisible(false)}
-        editingHabit={editingHabit}
-        onComplete={handleWizardComplete}
-      />
+      {DASHBOARD_V2 ? (
+        <SimpleHabitCreateScreen
+          visible={modalVisible}
+          onDismiss={() => setModalVisible(false)}
+          onSave={handleSimpleHabitSave}
+        />
+      ) : (
+        <WizardContainer
+          visible={modalVisible}
+          onDismiss={() => setModalVisible(false)}
+          editingHabit={editingHabit}
+          onComplete={handleWizardComplete}
+        />
+      )}
 
       <BrainPillarInfoModal
         visible={pillarInfoVisible}
