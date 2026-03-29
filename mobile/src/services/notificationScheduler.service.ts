@@ -18,6 +18,7 @@ import {
   isWithinQuietHours,
 } from './firebase/notificationPreferences.service';
 import { canSendSystemNotification, markNotificationSent } from './notificationThrottle';
+import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 
 // ==========================================
 // NOTIFICATION IDENTIFIERS
@@ -403,6 +404,7 @@ export async function checkAndSendGoalMilestone(
   userId: string,
   progressPercent: number,
 ): Promise<void> {
+  if (DASHBOARD_V2) return;
   const milestones = Object.keys(GOAL_MILESTONE_MESSAGES).map(Number);
   if (milestones.includes(progressPercent)) {
     await sendMilestoneNotification(userId, 'goal', progressPercent);
