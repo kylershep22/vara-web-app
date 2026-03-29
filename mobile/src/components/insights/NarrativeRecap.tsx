@@ -1,6 +1,8 @@
 /**
  * Narrative Recap
- * AI-driven weekly narrative powered by correlation data
+ * AI-driven weekly narrative — Vara's killer insight feature
+ * Header: "What shaped your week"
+ * Insufficient data fallback with warm message
  */
 
 import React from 'react';
@@ -11,25 +13,29 @@ interface NarrativeRecapProps {
   narrative: string | null;
   loading: boolean;
   timeframeLabel: string;
+  hasInsufficientData?: boolean;
 }
 
 const NarrativeRecap: React.FC<NarrativeRecapProps> = ({
   narrative,
   loading,
   timeframeLabel,
+  hasInsufficientData = false,
 }) => {
-  if (!narrative && !loading) return null;
-
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.headerLabel}>Your {timeframeLabel} Story</Text>
+        <Text style={styles.headerLabel}>What shaped your week</Text>
       </View>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={Colors.evergreenTeal} />
           <Text style={styles.loadingText}>Putting your week together...</Text>
         </View>
+      ) : hasInsufficientData || !narrative ? (
+        <Text style={styles.insufficientData}>
+          More patterns will emerge as you use Vara this week.
+        </Text>
       ) : (
         <Text style={styles.narrative}>{narrative}</Text>
       )}
@@ -52,7 +58,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headerLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.textPrimary,
   },
@@ -70,6 +76,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     marginLeft: 8,
+  },
+  insufficientData: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 21,
+    fontStyle: 'italic',
   },
 });
 
