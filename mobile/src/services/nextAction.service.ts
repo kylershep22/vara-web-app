@@ -38,7 +38,6 @@ export type ActionType =
   | 'nervous_system'
   | 'do_hard_thing'
   | 'connect'
-  | 'morning_checkin'
   | 'brain_health'
   | 'celebrate'
   | 'rest';
@@ -68,7 +67,6 @@ export interface RecommendationContext {
   tasks: Task[];
   fourThreeTwoOne: FourThreeTwoOneEntry | null;
   lastJournalDate: Date | null;
-  hasMorningCheckIn: boolean;
   hasDailyPlan: boolean;
 }
 
@@ -347,25 +345,8 @@ const getMindRecommendation = (
   context: RecommendationContext,
   timePeriod: TimePeriod
 ): NextActionRecommendation | null => {
-  const { lastJournalDate, hasMorningCheckIn } = context;
+  const { lastJournalDate } = context;
   const weakComponent = getWeakestComponent(score, 'mind');
-
-  // Morning check-in if not done
-  if (!hasMorningCheckIn && (timePeriod === 'morning' || timePeriod === 'early_morning' || timePeriod === 'midday')) {
-    return {
-      type: 'morning_checkin',
-      priority: 8,
-      pillarTarget: 'mind',
-      icon: 'weather-sunny',
-      iconColor: Colors.sunriseAmber,
-      accentColor: Colors.sunriseAmber,
-      title: 'Quick check-in',
-      subtitle: 'How are your energy and mood right now?',
-      reason: 'This helps personalize your wellness score',
-      actionLabel: 'Check in',
-      navigationTarget: 'Home',
-    };
-  }
 
   // Journal based on recency
   if (lastJournalDate) {

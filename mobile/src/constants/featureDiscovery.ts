@@ -116,10 +116,10 @@ export const UNLOCK_TRIGGERS: UnlockTrigger[] = [
   // Journal - unlocks after first habit completion or morning check-in
   {
     featureId: 'journal',
-    description: 'Complete your first habit or morning check-in',
+    description: 'Complete your first habit or app session',
     priority: 1,
     evaluate: (metrics) =>
-      metrics.habitsCompleted >= 1 || metrics.morningCheckInsCompleted >= 1,
+      metrics.habitsCompleted >= 1 || metrics.sessionCount >= 1,
   },
 
   // Discover - unlocks after 2+ sessions or 3+ habits
@@ -143,10 +143,10 @@ export const UNLOCK_TRIGGERS: UnlockTrigger[] = [
   // Brain Dashboard - unlocks after 3+ morning check-ins
   {
     featureId: 'brain_dashboard',
-    description: 'Complete a few morning check-ins',
+    description: 'Use the app a few times',
     priority: 4,
     evaluate: (metrics) =>
-      metrics.morningCheckInsCompleted >= 3,
+      metrics.sessionCount >= 3 || metrics.habitsCompleted >= 3,
   },
 
   // AI Chat - unlocks after 5+ habits OR 2+ journal entries
@@ -175,7 +175,7 @@ export const UNLOCK_TRIGGERS: UnlockTrigger[] = [
     evaluate: (metrics) =>
       metrics.breathworkSessionsCount >= 3 ||
       metrics.habitsCompleted >= 5 ||
-      metrics.morningCheckInsCompleted >= 3,
+      metrics.sessionCount >= 3,
   },
 
   // Sleep - unlocks after using any wellness content 3+ times
@@ -186,7 +186,7 @@ export const UNLOCK_TRIGGERS: UnlockTrigger[] = [
     evaluate: (metrics) =>
       metrics.breathworkSessionsCount >= 3 ||
       metrics.habitsCompleted >= 5 ||
-      metrics.morningCheckInsCompleted >= 3,
+      metrics.sessionCount >= 3,
   },
 
   // Goals Advanced - unlocks after creating 2+ goals
