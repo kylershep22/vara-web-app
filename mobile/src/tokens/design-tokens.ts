@@ -250,17 +250,20 @@ export const AmbientSounds = [
 export const FocusCopy = {
   // Page level
   pageTitle: 'Focus',
-  pomodoroSubtitle: 'Support deep work with focused sessions',
+  pomodoroSubtitle: 'Give your brain a focused window',
   routinesSubtitle: 'Build routines that support your brain',
-  tabPomodoro: 'Pomodoro',
+  tabPomodoro: 'Focus',
   tabRoutines: 'Routines',
 
   // Pomodoro tab
   taskInputLabel: 'What are you focusing on?',
   taskInputPlaceholder: 'e.g., Writing, deep reading, design work...',
   durationChipsLabel: 'Session length',
-  sessionCompleteLine1: 'Session complete',
-  sessionCompleteLine2: 'Take a 5-minute break?',
+  sessionCompleteLine1: 'Session complete.',
+  sessionCompleteLine2: 'Your brain worked hard. Rest if it feels right.',
+  breakCtaTakeBreak: 'Take a break',
+  breakCtaStartAnother: 'Start another',
+  breakCtaDoneForNow: 'Done for now',
   breakCompleteLine1: "Break's over",
   breakCompleteLine2: 'Ready for another session?',
   breakCtaPrimary: 'Begin another',
@@ -269,7 +272,6 @@ export const FocusCopy = {
   notificationHelperOff: 'Reduce distractions while focusing',
   notificationHelperOn: 'Notifications paused during sessions',
   ambientPanelLabel: 'Ambient sound',
-  tipCardTitle: 'Supporting your focus',
   loading: 'Taking a moment...',
 
   // Routines tab
