@@ -248,7 +248,6 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
     // All queries in parallel
     const [
       brainStateResult,
-      morningCheckInResult,
       dailyReflectionResult,
       brainMetricsResult,
       recentJournalResult,
@@ -256,7 +255,6 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       lastCoachSession,
     ] = await Promise.all([
       getDoc(doc(db, 'brainStateCheckIns', `${uid}_${today}`)).catch(() => null),
-      getDoc(doc(db, 'morningCheckIns', `${uid}_${today}`)).catch(() => null),
       getDoc(doc(db, 'dailyReflections', `${uid}_${today}`)).catch(() => null),
       getDoc(doc(db, 'brainMetrics', `${uid}_${today}`)).catch(() => null),
       getDocs(query(
@@ -276,7 +274,6 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
 
     // Parse results
     const brainState = brainStateResult?.exists?.() ? brainStateResult.data()?.brainState : null;
-    const checkIn = morningCheckInResult?.exists?.() ? morningCheckInResult.data() : null;
     const reflection = dailyReflectionResult?.exists?.() ? dailyReflectionResult.data()?.reflection : null;
     const brainMetrics = brainMetricsResult?.exists?.() ? brainMetricsResult.data() : null;
 
@@ -358,9 +355,7 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       currentTime: `${currentTime} ${timezone}`,
       page: initialContext?.screen || 'unknown',
       brainState: brainState || 'not checked in today',
-      todayCheckIn: checkIn
-        ? `mood ${checkIn.mood}/5, energy ${checkIn.energyLevel}/5`
-        : 'not checked in today',
+      todayCheckIn: brainState || 'not checked in today',
       dailyReflection: reflection || 'not reflected yet',
       sleepQuality: brainMetrics?.sleepQuality ? `${brainMetrics.sleepQuality}/5` : 'not tracked',
       stressLevel: brainMetrics?.stressLevel ? `${brainMetrics.stressLevel}/5` : 'not tracked',
