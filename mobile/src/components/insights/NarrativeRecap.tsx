@@ -73,4 +73,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default NarrativeRecap;
+export { NarrativeRecap };
