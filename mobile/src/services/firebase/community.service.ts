@@ -19,6 +19,7 @@ import {
   arrayUnion,
   arrayRemove,
   serverTimestamp,
+  increment,
   Timestamp,
   writeBatch,
 } from 'firebase/firestore';
@@ -238,7 +239,7 @@ export const joinGroup = async (groupId: string, userId: string): Promise<void> 
     const docRef = doc(ensureFirestore(), GROUPS_COLLECTION, groupId);
     await updateDoc(docRef, {
       members: arrayUnion(userId),
-      memberCount: await getGroupMemberCount(groupId) + 1,
+      memberCount: increment(1),
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
@@ -255,7 +256,7 @@ export const leaveGroup = async (groupId: string, userId: string): Promise<void>
     const docRef = doc(ensureFirestore(), GROUPS_COLLECTION, groupId);
     await updateDoc(docRef, {
       members: arrayRemove(userId),
-      memberCount: Math.max(0, (await getGroupMemberCount(groupId)) - 1),
+      memberCount: increment(-1),
       updatedAt: serverTimestamp(),
     });
   } catch (error) {

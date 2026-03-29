@@ -56,13 +56,15 @@ service cloud.firestore {
     }
 
     // Check if user is not suspended or banned (auto-unsuspend if past expiry)
+    // Returns true if user doc doesn't exist or has no moderation action
     function isActiveUser() {
-      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return userData.moderationStatus == null
-        || userData.moderationStatus == 'active'
-        || (userData.moderationStatus == 'suspended'
-            && userData.suspendedUntil != null
-            && userData.suspendedUntil < request.time);
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return !exists(userPath)
+        || get(userPath).data.moderationStatus == null
+        || get(userPath).data.moderationStatus == 'active'
+        || (get(userPath).data.moderationStatus == 'suspended'
+            && get(userPath).data.suspendedUntil != null
+            && get(userPath).data.suspendedUntil < request.time);
     }
 
     // ========== USER PROFILES ==========
