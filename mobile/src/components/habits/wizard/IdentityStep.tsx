@@ -1,6 +1,6 @@
 /**
  * IdentityStep - Step 2 (skippable)
- * Identity, identity statement preview, outcome goal
+ * Identity and identity statement preview
  */
 
 import React from 'react';
@@ -33,13 +33,6 @@ export const IdentityStep: React.FC<WizardStepProps> = ({ formData, onUpdateForm
         </View>
       ) : null}
 
-      <Input
-        label="Outcome Goal (Optional)"
-        value={formData.outcomeGoal}
-        onChangeText={(text) => onUpdateFormData({ outcomeGoal: text })}
-        placeholder="e.g., Run a 5K"
-        style={styles.input}
-      />
     </View>
   );
 };
