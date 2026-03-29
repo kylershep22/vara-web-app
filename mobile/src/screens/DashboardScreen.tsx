@@ -15,7 +15,6 @@ import {
   NextBestActionCard,
   WellnessScoreCard,
   WellnessScoreBreakdown,
-  MorningCheckIn,
   WellnessScoreOptInCard,
   QuickActionsRow,
 } from '../components/dashboard';
@@ -65,11 +64,6 @@ const DashboardScreen: React.FC = () => {
     setShowOptInPrompt,
     handleRefreshWellnessScore,
     handleWellnessScoreEnable,
-    morningCheckIn,
-    morningCheckInLoading,
-    showMorningCheckIn,
-    setShowMorningCheckIn,
-    handleMorningCheckInComplete,
     fourThreeTwoOneEntry,
     handleFourThreeTwoOneChange,
     showWelcomeBack,
@@ -227,10 +221,10 @@ const DashboardScreen: React.FC = () => {
               completedTodayHabits={completedToday}
               fourThreeTwoOne={fourThreeTwoOneEntry}
               lastJournalDate={lastJournalDate}
-              hasMorningCheckIn={!!morningCheckIn}
+              hasMorningCheckIn={true}
               hasDailyPlan={!!dailyPlan}
               onGeneratePlan={handleGenerateDailyPlan}
-              onMorningCheckIn={() => setShowMorningCheckIn(true)}
+              onMorningCheckIn={() => {}}
             />
 
             {/* Quick Actions Row */}
@@ -287,14 +281,7 @@ const DashboardScreen: React.FC = () => {
               />
             )}
 
-            {/* Morning Check-In */}
-            {showMorningCheckIn && !morningCheckIn && (
-              <MorningCheckIn
-                onComplete={handleMorningCheckInComplete}
-                onDismiss={() => setShowMorningCheckIn(false)}
-                loading={morningCheckInLoading}
-              />
-            )}
+
           </>
         )}
       </ScrollView>
