@@ -22,3 +22,4 @@ export * from './onboarding.service';
 export * from './featureDiscovery.service';
 export * from './moderation.service';
 export * from './brainStateCheckIn.service';
+export * from './dailyReflection.service';
