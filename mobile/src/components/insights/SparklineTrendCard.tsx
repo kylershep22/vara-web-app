@@ -234,4 +234,98 @@ const styles = StyleSheet.create({
   },
 });
 
-export { SparklineTrendCard };
+interface AtAGlanceMetric {
+  label: string;
+  value: number;
+  data: number[];
+  color: string;
+}
+
+interface AtAGlanceCardProps {
+  metrics: AtAGlanceMetric[];
+}
+
+export const AtAGlanceCard: React.FC<AtAGlanceCardProps> = ({ metrics }) => {
+  const maxValue = Math.max(...metrics.map((m) => m.value), 1);
+
+  return (
+    <View style={atAGlanceStyles.container}>
+      <Text style={atAGlanceStyles.title}>At a glance</Text>
+      {metrics.map((metric, index) => {
+        const barWidth = maxValue > 0 ? (metric.value / maxValue) * 100 : 0;
+        return (
+          <View key={index} style={atAGlanceStyles.metricRow}>
+            <View style={atAGlanceStyles.metricHeader}>
+              <Text style={atAGlanceStyles.metricValue}>{metric.value}</Text>
+              <Text style={atAGlanceStyles.metricLabel}>{metric.label}</Text>
+            </View>
+            <View style={atAGlanceStyles.barContainer}>
+              <View
+                style={[
+                  atAGlanceStyles.bar,
+                  {
+                    width: `${Math.max(barWidth, 4)}%`,
+                    backgroundColor: metric.color,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+};
+
+const atAGlanceStyles = StyleSheet.create({
+  container: {
+    backgroundColor: VARA_COLORS.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: VARA_COLORS.teal,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(27,94,87,0.06)',
+  },
+  title: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: VARA_COLORS.charcoal,
+    marginBottom: 14,
+  },
+  metricRow: {
+    marginBottom: 12,
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 4,
+  },
+  metricValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: VARA_COLORS.charcoal,
+    marginRight: 6,
+  },
+  metricLabel: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: VARA_COLORS.sageGray,
+  },
+  barContainer: {
+    height: 4,
+    backgroundColor: '#F0F2F0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  bar: {
+    height: 4,
+    borderRadius: 2,
+  },
+});
+
+export { SparklineTrendCard, AtAGlanceCard };
