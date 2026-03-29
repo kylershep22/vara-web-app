@@ -107,7 +107,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
 
   if (showCaptured) {
     return (
-      <EnhancedModal visible={visible} onDismiss={handleDismiss}>
+      <EnhancedModal visible={visible} onDismiss={handleDismiss} title="New rhythm">
         <View style={styles.capturedContainer}>
           <Text style={styles.capturedText}>Saved.</Text>
         </View>
@@ -116,7 +116,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
   }
 
   return (
-    <EnhancedModal visible={visible} onDismiss={handleDismiss}>
+    <EnhancedModal visible={visible} onDismiss={handleDismiss} title="New rhythm">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoid}
@@ -126,9 +126,6 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <Text style={styles.title}>New rhythm</Text>
-
           {/* Habit Name */}
           <Input
             label="What's the habit?"
