@@ -27,6 +27,7 @@ import WeekInsightCard from '../components/dashboard/WeekInsightCard';
 import BrainHealthEducationCard from '../components/dashboard/BrainHealthEducationCard';
 import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
+import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
 import { Colors, Spacing, Typography } from '../constants';
 import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 import { useDashboard } from '../hooks/useDashboard';
@@ -82,6 +83,9 @@ const DashboardScreen: React.FC = () => {
     handleBrainStateCheckIn,
     handleMarkProtocolCompleted,
     todaysProtocol,
+    showDailyReflection,
+    handleDailyReflection,
+    handleDailyReflectionSkip,
   } = useDashboard();
 
   const { correlations } = useWeeklyCorrelations();
@@ -141,6 +145,14 @@ const DashboardScreen: React.FC = () => {
                 protocol={todaysProtocol}
                 completed={brainStateCheckIn.protocolCompleted}
                 onMarkCompleted={handleMarkProtocolCompleted}
+              />
+            )}
+
+            {/* Daily Reflection (after all habits completed) */}
+            {showDailyReflection && (
+              <DailyReflectionCard
+                onReflect={handleDailyReflection}
+                onSkip={handleDailyReflectionSkip}
               />
             )}
 
