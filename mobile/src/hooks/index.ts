@@ -30,6 +30,7 @@ export { useNotificationPreferences } from './useNotificationPreferences';
 export { useNotificationOptIn } from './useNotificationOptIn';
 export { useNotificationOptInCards } from './useNotificationOptInCards';
 export { useBreathworkTracking } from './useBreathworkTracking';
+export { usePodcastFeed } from './usePodcastFeed';
 export { useReducedMotion } from './useReducedMotion';
 export { useJournalStats } from './useJournalStats';
 export { useWeeklySummary } from './useWeeklySummary';
