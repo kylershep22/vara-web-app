@@ -433,12 +433,12 @@ service cloud.firestore {
         (isAdmin()
          || (request.resource.data.isGlobal != true && request.auth.uid == request.resource.data.ownerId));
 
-      // Update: owner/members for non-global, admins for global, public join
+      // Update: owner/members for non-global, admins for global, public/global join
       allow update: if isAuthenticated() && isActiveUser() && (
         request.auth.uid == resource.data.ownerId ||
         request.auth.uid in resource.data.members ||
         isAdmin() ||
-        (resource.data.visibility == 'public' &&
+        ((resource.data.visibility == 'public' || resource.data.isGlobal == true) &&
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberCount', 'updatedAt', 'lastActivityAt']))
       );
 
