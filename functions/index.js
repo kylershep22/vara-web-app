@@ -114,8 +114,10 @@ async function checkRateLimit(userId, endpoint) {
   const windowStart = now - limit.windowMs;
 
   // Firestore path: rateLimits/{userId}/requests/{endpoint}
+  // Sanitize endpoint for use as Firestore doc ID (no forward slashes)
   const db = admin.firestore();
-  const docRef = db.collection("rateLimits").doc(userId).collection("requests").doc(endpoint);
+  const safeEndpoint = endpoint.replace(/\//g, "_");
+  const docRef = db.collection("rateLimits").doc(userId).collection("requests").doc(safeEndpoint);
 
   try {
     const doc = await docRef.get();
