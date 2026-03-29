@@ -107,7 +107,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
 
   if (showCaptured) {
     return (
-      <EnhancedModal visible={visible} onDismiss={handleDismiss} title="New rhythm">
+      <EnhancedModal visible={visible} onDismiss={handleDismiss} title="New Rhythm">
         <View style={styles.capturedContainer}>
           <Text style={styles.capturedText}>Saved.</Text>
         </View>
@@ -116,7 +116,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
   }
 
   return (
-    <EnhancedModal visible={visible} onDismiss={handleDismiss} title="New rhythm">
+    <EnhancedModal visible={visible} onDismiss={handleDismiss} title="New Rhythm">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoid}
@@ -220,9 +220,9 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
               onPress={handleSave}
               fullWidth
               disabled={!name.trim()}
-              accessibilityLabel="Save rhythm"
+              accessibilityLabel="Save Rhythm"
             >
-              Save rhythm
+              Save Rhythm
             </Button>
             <Text style={styles.saveSubtext}>You can always adjust this later</Text>
           </View>
