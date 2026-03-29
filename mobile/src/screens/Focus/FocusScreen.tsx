@@ -11,17 +11,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ColorTokens,
   SpacingTokens,
-  TypographyTokens,
   FocusCopy,
 } from '../../tokens/design-tokens';
 import { PomodoroTab } from './PomodoroTab';
 
 export const FocusScreen: React.FC = () => {
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>{FocusCopy.pageTitle}</Text>
         <Text style={styles.subtitle}>{FocusCopy.pomodoroSubtitle}</Text>
       </View>
 
@@ -41,11 +39,6 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: SpacingTokens.lg,
     paddingVertical: SpacingTokens.base,
-  },
-  title: {
-    fontSize: TypographyTokens.fontH1,
-    fontWeight: '600',
-    color: ColorTokens.primary,
   },
   subtitle: {
     fontSize: 14,
