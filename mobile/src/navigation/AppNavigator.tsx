@@ -94,6 +94,7 @@ import {
   MasterclassScreen,
   MasterclassDetailScreen,
 } from '../screens/discover';
+import PodcastEpisodeScreen from '../screens/discover/PodcastEpisodeScreen';
 
 // Create navigators
 const AuthStack = createNativeStackNavigator();
@@ -331,6 +332,15 @@ const DiscoverNavigator = () => {
         name="MasterclassDetail"
         component={MasterclassDetailScreen}
         options={{ title: 'Class Details' }}
+      />
+      <DiscoverStack.Screen
+        name="PodcastEpisode"
+        component={PodcastEpisodeScreen}
+        options={{
+          ...standardHeaderOptions,
+          title: 'Episode',
+          headerShadowVisible: false,
+        }}
       />
     </DiscoverStack.Navigator>
   );
