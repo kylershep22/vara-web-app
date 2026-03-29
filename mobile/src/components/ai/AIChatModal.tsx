@@ -27,7 +27,8 @@ import * as Haptics from 'expo-haptics';
 import { chatWithAI } from '../../services/api/ai.service';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../config/firebase';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Brand Colors
 const EVERGREEN_TEAL = '#1B5E57';
@@ -39,6 +40,7 @@ const MUTED_SAGE_GRAY = '#6F7F77';
 const BORDER_COLOR = '#e4ebe4';
 const TIMESTAMP_COLOR = '#a0b0a0';
 const ONLINE_GREEN = '#5CB85C';
+const LAST_COACH_SESSION_KEY = '@vara_last_coach_session';
 
 // Quick prompt suggestions
 const QUICK_PROMPTS = [
@@ -233,81 +235,141 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
     };
   }, [visible, slideAnim]);
 
-  // Fetch brain metrics for AI context
-  const fetchBrainMetrics = async () => {
-    if (!user || !db) return undefined;
+  // Build enhanced context for AI coach
+  const buildCoachContext = async (): Promise<Record<string, any>> => {
+    if (!user || !db) return {};
 
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    const uid = user.uid;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      const metricsQuery = query(
-        collection(db, 'brainMetrics'),
-        where('userId', '==', user.uid),
-        where('date', '==', today),
-        limit(1)
-      );
-      const metricsSnapshot = await getDocs(metricsQuery);
-      const todayMetrics = metricsSnapshot.docs[0]?.data();
+    // All queries in parallel
+    const [
+      brainStateResult,
+      morningCheckInResult,
+      dailyReflectionResult,
+      brainMetricsResult,
+      recentJournalResult,
+      focusSessionsResult,
+      lastCoachSession,
+    ] = await Promise.all([
+      getDoc(doc(db, 'brainStateCheckIns', `${uid}_${today}`)).catch(() => null),
+      getDoc(doc(db, 'morningCheckIns', `${uid}_${today}`)).catch(() => null),
+      getDoc(doc(db, 'dailyReflections', `${uid}_${today}`)).catch(() => null),
+      getDoc(doc(db, 'brainMetrics', `${uid}_${today}`)).catch(() => null),
+      getDocs(query(
+        collection(db, 'journalEntries'),
+        where('userId', '==', uid),
+        orderBy('createdAt', 'desc'),
+        limit(5),
+      )).catch(() => null),
+      getDocs(query(
+        collection(db, 'focusSessions'),
+        where('userId', '==', uid),
+        orderBy('startedAt', 'desc'),
+        limit(20),
+      )).catch(() => null),
+      AsyncStorage.getItem(LAST_COACH_SESSION_KEY).catch(() => null),
+    ]);
 
-      const neuroplasticityQuery = query(
-        collection(db, 'neuroplasticitySignals'),
-        where('userId', '==', user.uid),
-        where('date', '>=', sevenDaysAgo)
-      );
-      const neuroplasticitySnapshot = await getDocs(neuroplasticityQuery);
+    // Parse results
+    const brainState = brainStateResult?.exists?.() ? brainStateResult.data()?.brainState : null;
+    const checkIn = morningCheckInResult?.exists?.() ? morningCheckInResult.data() : null;
+    const reflection = dailyReflectionResult?.exists?.() ? dailyReflectionResult.data()?.reflection : null;
+    const brainMetrics = brainMetricsResult?.exists?.() ? brainMetricsResult.data() : null;
 
-      const amccQuery = query(
-        collection(db, 'amccChallenges'),
-        where('userId', '==', user.uid),
-        where('completed', '==', true),
-        orderBy('date', 'desc')
-      );
-      const amccSnapshot = await getDocs(amccQuery);
-      const amccDates = amccSnapshot.docs.map(doc => doc.data().date).filter(Boolean);
-
-      const calculateStreak = (dates: string[]): number => {
-        if (dates.length === 0) return 0;
-        const sorted = dates.sort().reverse();
-        const todayStr = new Date().toISOString().split('T')[0];
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        if (sorted[0] !== todayStr && sorted[0] !== yesterday) return 0;
-        let streak = 0;
-        let expectedDate = new Date(sorted[0]);
-        for (const date of sorted) {
-          if (date === expectedDate.toISOString().split('T')[0]) {
-            streak++;
-            expectedDate.setDate(expectedDate.getDate() - 1);
-          } else {
-            break;
-          }
-        }
-        return streak;
-      };
-
-      const nervousSystemQuery = query(
-        collection(db, 'nervousSystemSessions'),
-        where('userId', '==', user.uid),
-        orderBy('completedAt', 'desc')
-      );
-      const nervousSystemSnapshot = await getDocs(nervousSystemQuery);
-      const nervousSystemToolUses = nervousSystemSnapshot.docs.filter(doc => {
-        const completedAt = doc.data().completedAt?.seconds || 0;
-        const sevenDaysAgoTimestamp = Date.now() / 1000 - 7 * 86400;
-        return completedAt >= sevenDaysAgoTimestamp;
-      }).length;
-
-      return {
-        readinessScore: todayMetrics?.readinessScore || 0,
-        neuroplasticityCount: neuroplasticitySnapshot.size,
-        amccStreak: calculateStreak(amccDates),
-        nervousSystemToolUses,
-        lastCheckIn: todayMetrics?.date || 'Never',
-      };
-    } catch (error) {
-      console.error('Error fetching brain metrics:', error);
-      return undefined;
+    // Journal tags from recent entries (no content — just tags and moods)
+    const journalTags: string[] = [];
+    const journalMoods: string[] = [];
+    if (recentJournalResult) {
+      recentJournalResult.docs.forEach((d: any) => {
+        const data = d.data();
+        if (data.tags) journalTags.push(...data.tags);
+        if (data.mood) journalMoods.push(data.mood);
+      });
     }
+    const uniqueTags = [...new Set(journalTags)].slice(0, 8);
+
+    // Mood trend from recent journal moods
+    const moodToNum: Record<string, number> = { great: 5, good: 4, okay: 3, low: 2, difficult: 1, bad: 1, terrible: 0 };
+    let moodTrend = 'not enough data';
+    if (journalMoods.length >= 3) {
+      const recent = journalMoods.slice(0, 2).map(m => moodToNum[m] ?? 3);
+      const older = journalMoods.slice(2, 5).map(m => moodToNum[m] ?? 3);
+      const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+      const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
+      if (recentAvg > olderAvg + 0.5) moodTrend = 'improving';
+      else if (recentAvg < olderAvg - 0.5) moodTrend = 'declining';
+      else moodTrend = 'stable';
+    }
+
+    // Focus sessions this week
+    const sevenDaysAgo = Date.now() / 1000 - 7 * 86400;
+    let focusCount = 0;
+    let focusMinutes = 0;
+    if (focusSessionsResult) {
+      focusSessionsResult.docs.forEach((d: any) => {
+        const data = d.data();
+        if ((data.startedAt?.seconds || 0) >= sevenDaysAgo && data.completed) {
+          focusCount++;
+          focusMinutes += data.duration || 0;
+        }
+      });
+    }
+
+    // Days active this week (count unique dates with any habit completion)
+    const habits = initialContext?.userHabits || [];
+    const activeDaysSet = new Set<string>();
+    habits.forEach((h: any) => {
+      if (h.thisWeekSteps && Array.isArray(h.thisWeekSteps)) {
+        h.thisWeekSteps.forEach((step: any) => {
+          if (step.date) activeDaysSet.add(step.date);
+        });
+      }
+    });
+    const daysActive = activeDaysSet.size;
+
+    // Days since last coach session
+    let daysSinceLastSession = 'first time';
+    if (lastCoachSession) {
+      const lastDate = new Date(lastCoachSession);
+      const diffDays = Math.floor((Date.now() - lastDate.getTime()) / 86400000);
+      daysSinceLastSession = diffDays === 0 ? 'today' : diffDays === 1 ? 'yesterday' : `${diffDays} days ago`;
+    }
+
+    // Save this session timestamp
+    AsyncStorage.setItem(LAST_COACH_SESSION_KEY, new Date().toISOString()).catch(() => {});
+
+    // Top 5 habits by totalStepsTaken, with identity/intention
+    const topHabits = [...habits]
+      .sort((a: any, b: any) => (b.totalStepsTaken || 0) - (a.totalStepsTaken || 0))
+      .slice(0, 5)
+      .map((h: any) => {
+        const parts = [h.name || h.title || 'Untitled'];
+        if (h.scalingPhase) parts.push(`phase: ${h.scalingPhase.replace(/_/g, ' ')}`);
+        if (h.identity || h.identityStatement) parts.push(`identity: "${h.identity || h.identityStatement}"`);
+        else if (h.intention) parts.push(`why: "${h.intention}"`);
+        return parts.join(' | ');
+      });
+
+    return {
+      currentTime: `${currentTime} ${timezone}`,
+      page: initialContext?.screen || 'unknown',
+      brainState: brainState || 'not checked in today',
+      todayCheckIn: checkIn
+        ? `mood ${checkIn.mood}/5, energy ${checkIn.energyLevel}/5`
+        : 'not checked in today',
+      dailyReflection: reflection || 'not reflected yet',
+      sleepQuality: brainMetrics?.sleepQuality ? `${brainMetrics.sleepQuality}/5` : 'not tracked',
+      stressLevel: brainMetrics?.stressLevel ? `${brainMetrics.stressLevel}/5` : 'not tracked',
+      weekSummary: `${daysActive} of 7 days active, ${focusCount} focus sessions (${focusMinutes} min total)`,
+      moodTrend,
+      recentJournalTags: uniqueTags.length > 0 ? uniqueTags.join(', ') : 'none',
+      daysSinceLastCoachSession: daysSinceLastSession,
+      habits: topHabits,
+    };
   };
 
   // Scroll to bottom when new messages arrive
@@ -342,13 +404,8 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
         content: msg.content,
       }));
 
-      const brainMetrics = await fetchBrainMetrics();
-      const enhancedContext = {
-        ...initialContext,
-        brainMetrics,
-      };
-
-      const response = await chatWithAI(messageHistory, enhancedContext);
+      const coachContext = await buildCoachContext();
+      const response = await chatWithAI(messageHistory, coachContext);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
