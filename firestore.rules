@@ -56,15 +56,13 @@ service cloud.firestore {
     }
 
     // Check if user is not suspended or banned (auto-unsuspend if past expiry)
-    // Returns true if user doc doesn't exist or has no moderation action
     function isActiveUser() {
-      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
-      return !exists(userPath)
-        || get(userPath).data.moderationStatus == null
-        || get(userPath).data.moderationStatus == 'active'
-        || (get(userPath).data.moderationStatus == 'suspended'
-            && get(userPath).data.suspendedUntil != null
-            && get(userPath).data.suspendedUntil < request.time);
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return userData.moderationStatus == null
+        || userData.moderationStatus == 'active'
+        || (userData.moderationStatus == 'suspended'
+            && userData.suspendedUntil != null
+            && userData.suspendedUntil < request.time);
     }
 
     // ========== USER PROFILES ==========
@@ -581,7 +579,9 @@ service cloud.firestore {
       );
 
       // Create: if user is one of the participants
-      allow create: if isAuthenticated() && isActiveUser() && (
+      // Note: isActiveUser() removed — connection requests should work even for
+      // users without a fully populated profile document
+      allow create: if isAuthenticated() && (
         request.auth.uid == request.resource.data.a ||
         request.auth.uid == request.resource.data.b ||
         request.auth.uid == request.resource.data.requesterId ||
