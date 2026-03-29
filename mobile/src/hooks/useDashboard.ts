@@ -395,7 +395,7 @@ export function useDashboard() {
     try {
       const checkIn = await saveBrainStateCheckIn(user.uid, state);
       setBrainStateCheckIn(checkIn);
-      trackEngagement('morningCheckInsCompleted').then(() => evaluateTriggers()).catch(logger.error);
+      trackEngagement('brainStateCheckInsCompleted').then(() => evaluateTriggers()).catch(logger.error);
     } catch (error) {
       logger.error('Error saving brain state check-in:', error);
     } finally {
