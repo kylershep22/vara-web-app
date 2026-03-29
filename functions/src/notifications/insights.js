@@ -8,6 +8,7 @@ const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 const {sendNotification} = require("./utils/fcmSender");
 const {isWithinQuietHours} = require("./utils/quietHours");
+const {shouldSendNotification, getQuietTierMessage} = require("./notificationTier");
 
 // Static content pool (22 items, ~8–11 weeks before repeat)
 const INSIGHT_CONTENT_POOL = [
@@ -111,6 +112,13 @@ const sendInsights = onSchedule(
         continue;
       }
 
+      // Check notification tier (de-escalation)
+      const tierResult = await shouldSendNotification(userId, "insights");
+      if (!tierResult.allowed) {
+        skipped++;
+        continue;
+      }
+
       // Get FCM token
       const userSnap = await db.doc(`users/${userId}`).get();
       if (!userSnap.exists) continue;
@@ -120,9 +128,14 @@ const sendInsights = onSchedule(
         continue;
       }
 
+      // Use quiet-tier message if applicable
+      const message = tierResult.tier === "quiet"
+        ? getQuietTierMessage()
+        : {title: "A brain-health insight for you", body: insight};
+
       const messageId = await sendNotification(
         fcmToken,
-        {title: "A brain-health insight for you", body: insight},
+        message,
         {type: "system", category: "insights_learning"},
       );
 

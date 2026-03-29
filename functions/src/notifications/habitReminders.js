@@ -9,6 +9,7 @@ const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 const {sendNotification} = require("./utils/fcmSender");
 const {isWithinQuietHours} = require("./utils/quietHours");
+const {shouldSendNotification, getQuietTierMessage} = require("./notificationTier");
 
 const sendHabitReminders = onSchedule(
     {
@@ -112,14 +113,29 @@ const sendHabitReminders = onSchedule(
           }
         }
 
+        // Check notification tier (de-escalation)
+        const tierResult = await shouldSendNotification(
+            habit.userId, "habitReminder",
+        );
+        if (!tierResult.allowed) {
+          skipped++;
+          continue;
+        }
+
         // Send notification
         const habitName = habit.name || habit.title || "your habit";
-        const messageId = await sendNotification(
-            fcmToken,
-            {
+
+        // Use quiet-tier message if applicable
+        const message = tierResult.tier === "quiet"
+            ? getQuietTierMessage()
+            : {
               title: `Time for ${habitName}`,
               body: `Your ${habitName} reminder is ready whenever you are.`,
-            },
+            };
+
+        const messageId = await sendNotification(
+            fcmToken,
+            message,
             {
               type: "habit_reminder",
               habitId: habitId,

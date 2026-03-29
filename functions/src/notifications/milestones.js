@@ -8,6 +8,7 @@ const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 const {sendNotification} = require("./utils/fcmSender");
 const {isWithinQuietHours} = require("./utils/quietHours");
+const {shouldSendNotification, getQuietTierMessage} = require("./notificationTier");
 
 const TIME_MILESTONES = [
   {key: "1_week", days: 7, title: "One week with Vara", body: "You've been building your routine for a week. How's it feeling?"},
@@ -59,6 +60,10 @@ const sendMilestones = onSchedule(
 
       if (isWithinQuietHours(prefs.quietHours)) continue;
 
+      // Check notification tier (de-escalation)
+      const tierResult = await shouldSendNotification(userId, "milestones");
+      if (!tierResult.allowed) continue;
+
       // Get user doc for createdAt and FCM token
       const userSnap = await db.doc(`users/${userId}`).get();
       if (!userSnap.exists) continue;
@@ -80,9 +85,14 @@ const sendMilestones = onSchedule(
         const logSnap = await logRef.get();
         if (logSnap.exists) continue;
 
+        // Use quiet-tier message if applicable
+        const message = tierResult.tier === "quiet"
+          ? getQuietTierMessage()
+          : {title: milestone.title, body: milestone.body};
+
         const messageId = await sendNotification(
           fcmToken,
-          {title: milestone.title, body: milestone.body},
+          message,
           {type: "system", category: "milestones_reflection", milestone: milestone.key},
         );
 

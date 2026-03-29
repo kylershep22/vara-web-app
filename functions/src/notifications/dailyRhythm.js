@@ -9,6 +9,7 @@ const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 const {sendNotification} = require("./utils/fcmSender");
 const {isWithinQuietHours} = require("./utils/quietHours");
+const {shouldSendNotification, getQuietTierMessage} = require("./notificationTier");
 
 const DAILY_RHYTHM_MESSAGES = {
   morning: [
@@ -109,6 +110,13 @@ const sendDailyRhythm = onSchedule(
         continue;
       }
 
+      // Check notification tier (de-escalation)
+      const tierResult = await shouldSendNotification(userId, "dailyRhythm");
+      if (!tierResult.allowed) {
+        skipped++;
+        continue;
+      }
+
       // Get user's FCM token
       const userSnap = await db.doc(`users/${userId}`).get();
       if (!userSnap.exists) continue;
@@ -121,7 +129,13 @@ const sendDailyRhythm = onSchedule(
 
       // Pick message and send
       const timeOfDay = getTimeOfDay(currentHour);
-      const message = pickRandom(DAILY_RHYTHM_MESSAGES[timeOfDay]);
+      const selectedMessage = pickRandom(DAILY_RHYTHM_MESSAGES[timeOfDay]);
+
+      // Use quiet-tier message if applicable
+      const message = tierResult.tier === "quiet"
+          ? getQuietTierMessage()
+          : {title: selectedMessage.title, body: selectedMessage.body};
+
       const messageId = await sendNotification(fcmToken, message, {
         type: "daily_reminder",
         category: "daily_rhythm",
