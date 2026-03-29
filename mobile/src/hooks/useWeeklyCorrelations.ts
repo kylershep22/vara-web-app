@@ -72,8 +72,8 @@ export function useWeeklyCorrelations(): {
         const uid = user!.uid;
 
         // Fetch all data sources in parallel
-        const [morningCheckIns, brainMetrics, journalEntries, focusSessions, habits] = await Promise.all([
-          fetchMorningCheckIns(uid, dates),
+        const [brainStateCheckIns, brainMetrics, journalEntries, focusSessions, habits] = await Promise.all([
+          fetchBrainStateCheckIns(uid, dates),
           fetchBrainMetrics(uid, dates),
           fetchJournalEntries(uid, start, end),
           fetchFocusSessions(uid, start, end),
@@ -82,17 +82,25 @@ export function useWeeklyCorrelations(): {
 
         // Build daily data points
         const dailyData: DailyDataPoint[] = dates.map(date => {
-          const checkIn = morningCheckIns.get(date);
+          const brainCheck = brainStateCheckIns.get(date);
           const brain = brainMetrics.get(date);
           const journaled = journalEntries.has(date);
           const focus = focusSessions.get(date) || 0;
           const habitRate = habits.get(date);
 
+          const brainStateToMood: Record<string, number> = {
+            wired: 3, foggy: 2, okay: 3, clear: 4, energized: 5,
+          };
+          const brainStateToEnergy: Record<string, number> = {
+            wired: 4, foggy: 2, okay: 3, clear: 4, energized: 5,
+          };
+          const bState = brainCheck?.brainState;
+
           return {
             date,
             sleepQuality: brain?.sleepQuality ?? null,
-            mood: checkIn?.mood ?? null,
-            energy: checkIn?.energyLevel ?? null,
+            mood: bState ? brainStateToMood[bState] ?? null : null,
+            energy: bState ? brainStateToEnergy[bState] ?? null : null,
             stress: brain?.stressLevel ?? null,
             habitCompletionRate: habitRate ?? null,
             focusMinutes: focus > 0 ? focus : null,
@@ -128,19 +136,19 @@ export function useWeeklyCorrelations(): {
 
 // --- Data fetchers ---
 
-async function fetchMorningCheckIns(
+async function fetchBrainStateCheckIns(
   uid: string,
   dates: string[],
-): Promise<Map<string, { mood: number; energyLevel: number }>> {
+): Promise<Map<string, { brainState: string }>> {
   const map = new Map();
   const fetches = dates.map(async (date) => {
     try {
       if (!db) return;
-      const docRef = doc(db, 'morningCheckIns', `${uid}_${date}`);
+      const docRef = doc(db, 'brainStateCheckIns', `${uid}_${date}`);
       const snap = await getDoc(docRef);
       if (snap.exists()) {
         const data = snap.data();
-        map.set(date, { mood: data.mood, energyLevel: data.energyLevel });
+        map.set(date, { brainState: data.brainState });
       }
     } catch {
       // Skip this date
