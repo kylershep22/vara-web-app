@@ -23,8 +23,6 @@ import {
   getHabitCompletions,
   isHabitCompletedToday,
   unmarkHabitComplete,
-  getMorningCheckIn,
-  saveMorningCheckIn,
   calculateWellnessScore,
   refreshWellnessScore,
   getTodayWellnessScore,
@@ -33,7 +31,7 @@ import {
   setWellnessScoreEnabled,
 } from '../services/firebase';
 import { generateDailyPlan } from '../services/api/ai.service';
-import { DailyWellnessScore, MorningCheckIn as MorningCheckInType, FourThreeTwoOneEntry } from '../types';
+import { DailyWellnessScore, FourThreeTwoOneEntry } from '../types';
 import { logger } from '../utils/logger';
 import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 import { getProtocolForState } from '../constants/brainStateProtocols';
@@ -87,9 +85,6 @@ export function useDashboard() {
   const [wellnessScore, setWellnessScore] = useState<DailyWellnessScore | null>(null);
   const [wellnessScoreLoading, setWellnessScoreLoading] = useState(true);
   const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
-  const [morningCheckIn, setMorningCheckIn] = useState<MorningCheckInType | null>(null);
-  const [morningCheckInLoading, setMorningCheckInLoading] = useState(false);
-  const [showMorningCheckIn, setShowMorningCheckIn] = useState(false);
   const [fourThreeTwoOneEntry, setFourThreeTwoOneEntry] = useState<FourThreeTwoOneEntry | null>(null);
 
   // Wellness Score opt-in state
@@ -260,15 +255,8 @@ export function useDashboard() {
       if (!user?.uid) return;
       setWellnessScoreLoading(true);
       try {
-        const [existingCheckIn, todayFourThreeTwoOne] = await Promise.all([
-          getMorningCheckIn(user.uid),
-          getTodayEntry(user.uid),
-        ]);
-        setMorningCheckIn(existingCheckIn);
+        const todayFourThreeTwoOne = await getTodayEntry(user.uid);
         setFourThreeTwoOneEntry(todayFourThreeTwoOne);
-
-        const hour = new Date().getHours();
-        if (!existingCheckIn && hour < 12) setShowMorningCheckIn(true);
 
         const existingScore = await getTodayWellnessScore(user.uid);
         if (existingScore) {
@@ -401,23 +389,6 @@ export function useDashboard() {
     }
   }, [user, goals, habits, tasks, today]);
 
-  const handleMorningCheckInComplete = useCallback(async (energyLevel: number, mood: number) => {
-    if (!user?.uid) return;
-    setMorningCheckInLoading(true);
-    try {
-      const checkIn = await saveMorningCheckIn(user.uid, energyLevel, mood);
-      setMorningCheckIn(checkIn);
-      setShowMorningCheckIn(false);
-      trackEngagement('morningCheckInsCompleted').then(() => evaluateTriggers()).catch(logger.error);
-      const newScore = await refreshWellnessScore(user.uid);
-      setWellnessScore(newScore);
-    } catch (error) {
-      logger.error('Error saving morning check-in:', error);
-    } finally {
-      setMorningCheckInLoading(false);
-    }
-  }, [user, trackEngagement, evaluateTriggers]);
-
   const handleBrainStateCheckIn = useCallback(async (state: BrainState) => {
     if (!user?.uid) return;
     setBrainStateCheckInLoading(true);
@@ -546,13 +517,6 @@ export function useDashboard() {
     setShowOptInPrompt,
     handleRefreshWellnessScore,
     handleWellnessScoreEnable,
-
-    // Morning Check-In
-    morningCheckIn,
-    morningCheckInLoading,
-    showMorningCheckIn,
-    setShowMorningCheckIn,
-    handleMorningCheckInComplete,
 
     // 4-3-2-1
     fourThreeTwoOneEntry,
