@@ -123,6 +123,9 @@ export interface Habit {
   name: string;
   type: 'daily' | 'weekly' | 'custom';
   frequency: number; // times per week
+  frequencyType?: 'daily' | 'specific_days' | 'flexible';
+  specificDays?: number[];  // 0=Sun, 1=Mon, ..., 6=Sat
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'anytime';
   streak: number;
   longestStreak: number;
   active: boolean;
@@ -779,6 +782,26 @@ export interface BrainStateCheckIn {
   brainState: BrainState;
   protocolId: string;
   protocolCompleted: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ==========================================
+// DAILY REFLECTION (End-of-Day Check-In)
+// ==========================================
+
+export type DailyReflectionValue = 'smooth' | 'okay' | 'hard';
+
+/**
+ * Daily Reflection
+ * End-of-day difficulty signal captured after all habits completed.
+ * Stored in the `dailyReflections` collection.
+ */
+export interface DailyReflection {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  reflection: DailyReflectionValue;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
