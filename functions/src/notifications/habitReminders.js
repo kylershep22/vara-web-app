@@ -117,8 +117,8 @@ const sendHabitReminders = onSchedule(
         const messageId = await sendNotification(
             fcmToken,
             {
-              title: "Habit Reminder",
-              body: `Don't forget to complete "${habitName}" today!`,
+              title: `Time for ${habitName}`,
+              body: `Your ${habitName} reminder is ready whenever you are.`,
             },
             {
               type: "habit_reminder",
