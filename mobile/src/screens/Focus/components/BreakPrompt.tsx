@@ -1,12 +1,10 @@
 /**
  * BreakPrompt Component
- * Break timer prompt shown after Pomodoro session completes
+ * Break flow shown after focus session completes
  *
- * Per Focus Page Spec Section 5.4:
- * - Trigger: Timer reaches 0:00 during focus session
- * - Display: "Session complete" + "Take a 5-minute break?"
- * - Break ring color: color-accent-apricot with 400ms ease-out transition
- * - Break complete: "Break's over" + "Ready for another session?"
+ * Session complete: 3-option layout with adjustable break duration
+ * Break running: Countdown display
+ * Break complete: "Begin another" / "Done for now"
  */
 
 import React from 'react';
@@ -22,16 +20,13 @@ import {
 type BreakState = 'session_complete' | 'break_running' | 'break_complete';
 
 interface BreakPromptProps {
-  /** Current state of the break flow */
   state: BreakState;
-  /** Callback to start the break timer */
   onStartBreak: () => void;
-  /** Callback to begin another focus session */
   onBeginAnother: () => void;
-  /** Callback when user is done for now */
   onDoneForNow: () => void;
-  /** Time remaining in break (for break_running state) */
   breakTimeRemaining?: string;
+  breakDurationMinutes?: number;
+  onAdjustBreak?: (minutes: number) => void;
 }
 
 export const BreakPrompt: React.FC<BreakPromptProps> = ({
@@ -40,6 +35,8 @@ export const BreakPrompt: React.FC<BreakPromptProps> = ({
   onBeginAnother,
   onDoneForNow,
   breakTimeRemaining,
+  breakDurationMinutes = 5,
+  onAdjustBreak,
 }) => {
   const renderContent = () => {
     switch (state) {
@@ -76,14 +73,67 @@ export const BreakPrompt: React.FC<BreakPromptProps> = ({
     switch (state) {
       case 'session_complete':
         return (
-          <View style={styles.controls}>
+          <View style={styles.sessionCompleteControls}>
+            {/* Take a break with duration adjuster */}
+            <View style={styles.breakRow}>
+              <TouchableOpacity
+                style={styles.adjustButton}
+                onPress={() => onAdjustBreak?.(breakDurationMinutes - 1)}
+                accessibilityRole="button"
+                accessibilityLabel="Decrease break duration"
+                disabled={breakDurationMinutes <= 1}
+              >
+                <Icon
+                  name="minus"
+                  size={16}
+                  color={breakDurationMinutes <= 1 ? ColorTokens.textSecondary : ColorTokens.primary}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={onStartBreak}
+                accessibilityRole="button"
+                accessibilityLabel={`Take a ${breakDurationMinutes} minute break`}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {FocusCopy.breakCtaTakeBreak} ({breakDurationMinutes}m)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.adjustButton}
+                onPress={() => onAdjustBreak?.(breakDurationMinutes + 1)}
+                accessibilityRole="button"
+                accessibilityLabel="Increase break duration"
+                disabled={breakDurationMinutes >= 15}
+              >
+                <Icon
+                  name="plus"
+                  size={16}
+                  color={breakDurationMinutes >= 15 ? ColorTokens.textSecondary : ColorTokens.primary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Start another */}
             <TouchableOpacity
-              style={styles.playButton}
-              onPress={onStartBreak}
+              style={styles.secondaryButton}
+              onPress={onBeginAnother}
               accessibilityRole="button"
-              accessibilityLabel="Start 5-minute break"
+              accessibilityLabel={FocusCopy.breakCtaStartAnother}
             >
-              <Icon name="play" size={28} color={ColorTokens.textOnPrimary} />
+              <Text style={styles.secondaryButtonText}>{FocusCopy.breakCtaStartAnother}</Text>
+            </TouchableOpacity>
+
+            {/* Done for now */}
+            <TouchableOpacity
+              style={styles.tertiaryButton}
+              onPress={onDoneForNow}
+              accessibilityRole="button"
+              accessibilityLabel={FocusCopy.breakCtaDoneForNow}
+            >
+              <Text style={styles.tertiaryButtonText}>{FocusCopy.breakCtaDoneForNow}</Text>
             </TouchableOpacity>
           </View>
         );
@@ -143,6 +193,7 @@ const styles = StyleSheet.create({
     color: ColorTokens.textSecondary,
     textAlign: 'center',
     marginTop: SpacingTokens.xs,
+    maxWidth: 220,
   },
   breakTime: {
     fontSize: 48,
@@ -151,20 +202,24 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.02 * 48,
   },
-  controls: {
+  sessionCompleteControls: {
     alignItems: 'center',
+    gap: SpacingTokens.sm,
   },
-  playButton: {
-    width: SizeTokens.playButtonSize,
-    height: SizeTokens.playButtonSize,
-    borderRadius: SizeTokens.playButtonSize / 2,
-    backgroundColor: ColorTokens.primary,
+  breakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SpacingTokens.sm,
+  },
+  adjustButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: ColorTokens.secondary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  breakCompleteControls: {
-    alignItems: 'center',
-    gap: SpacingTokens.md,
+    backgroundColor: ColorTokens.backgroundPrimary,
   },
   primaryButton: {
     height: SizeTokens.buttonHeightPrimary,
@@ -178,6 +233,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: ColorTokens.textOnPrimary,
+  },
+  secondaryButton: {
+    height: SizeTokens.buttonHeightPrimary,
+    paddingHorizontal: SizeTokens.buttonPaddingHorizontal,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: ColorTokens.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: ColorTokens.primary,
+  },
+  breakCompleteControls: {
+    alignItems: 'center',
+    gap: SpacingTokens.md,
   },
   tertiaryButton: {
     paddingVertical: SpacingTokens.sm,
