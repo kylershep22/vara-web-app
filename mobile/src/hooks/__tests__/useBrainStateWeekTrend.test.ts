@@ -95,25 +95,40 @@ describe('computeSummary', () => {
 });
 
 describe('buildWeekSlots', () => {
-  it('returns 7 slots with correct day labels', () => {
+  it('returns 7 slots', () => {
     const slots = buildWeekSlots([]);
     expect(slots).toHaveLength(7);
-    expect(slots.map((s) => s.dayLabel)).toEqual(['M', 'T', 'W', 'T', 'F', 'S', 'S']);
   });
 
-  it('maps history entries to correct slots', () => {
-    // Get this Monday's date dynamically
+  it('uses rolling last-7-days window with today as last slot', () => {
+    // Today's date should be the last slot (index 6)
     const now = new Date();
-    const dayOfWeek = now.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + mondayOffset);
-    const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    const slots = buildWeekSlots([{ date: mondayStr, brainState: 'clear' }]);
-    expect(slots[0].brainState).toBe('clear');
-    expect(slots[0].color).not.toBeNull();
-    expect(slots[1].brainState).toBeNull();
+    const slots = buildWeekSlots([{ date: todayStr, brainState: 'clear' }]);
+    expect(slots[6].brainState).toBe('clear');
+    expect(slots[6].date).toBe(todayStr);
+    expect(slots[6].color).not.toBeNull();
+  });
+
+  it('maps yesterday to second-to-last slot', () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+    const slots = buildWeekSlots([{ date: yesterdayStr, brainState: 'foggy' }]);
+    expect(slots[5].brainState).toBe('foggy');
+    expect(slots[5].date).toBe(yesterdayStr);
+  });
+
+  it('assigns correct day labels based on actual day of week', () => {
+    const slots = buildWeekSlots([]);
+    // Each slot's dayLabel should match the actual day of week for that date
+    for (const slot of slots) {
+      const d = new Date(slot.date + 'T00:00:00');
+      const dayIndex = (d.getDay() + 6) % 7; // Mon=0 based
+      expect(slot.dayLabel).toBe(['M', 'T', 'W', 'T', 'F', 'S', 'S'][dayIndex]);
+    }
   });
 
   it('leaves slots null for days without history', () => {

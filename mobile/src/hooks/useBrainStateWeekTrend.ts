@@ -34,29 +34,28 @@ const STATE_RANK: Record<BrainState, number> = {
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 /**
- * Build the 7-day slot array for the current calendar week (Mon-Sun).
+ * Build the 7-day slot array for a rolling last-7-days window (today and 6 days prior).
  * `history` is an array of { date: 'YYYY-MM-DD', brainState: BrainState }.
  */
 export function buildWeekSlots(
   history: Array<{ date: string; brainState: BrainState }>
 ): DaySlot[] {
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + mondayOffset);
-  monday.setHours(0, 0, 0, 0);
+  const start = new Date(now);
+  start.setDate(now.getDate() - 6);
+  start.setHours(0, 0, 0, 0);
 
   const historyMap = new Map(history.map((h) => [h.date, h.brainState]));
 
   return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
     const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const dayIndex = (d.getDay() + 6) % 7; // Convert Sun=0 to Mon=0 based index
     const state = historyMap.get(dateStr) ?? null;
     return {
       date: dateStr,
-      dayLabel: DAY_LABELS[i],
+      dayLabel: DAY_LABELS[dayIndex],
       brainState: state,
       color: state ? STATE_COLORS[state] : null,
     };
