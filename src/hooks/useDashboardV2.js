@@ -122,11 +122,13 @@ export function useDashboardV2() {
     }
   }, [uid]);
 
-  // Handle habit toggle
+  // Handle habit toggle — logHabitToday expects a habit object, not an id
   const handleHabitToggle = useCallback(async (habitId, date, completed) => {
-    if (!uid) return;
-    await logHabitToday(habitId, date, completed);
-  }, [uid, logHabitToday]);
+    if (!uid || !completed) return; // logHabitToday only supports marking complete, not unchecking
+    const habit = habits.find((h) => h.id === habitId);
+    if (!habit) return;
+    await logHabitToday(habit);
+  }, [uid, habits, logHabitToday]);
 
   // Check if all active habits are completed today
   const today = todayYMD();
