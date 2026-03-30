@@ -578,7 +578,7 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
 
               {/* Footer */}
               <Text style={styles.footerText}>
-                Powered by Vara · Brain-health centered wellness
+                Vara Coach helps with brain-health habits and routines. It's not a therapist or medical provider.
               </Text>
             </View>
           </KeyboardAvoidingView>
