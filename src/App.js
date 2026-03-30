@@ -12,7 +12,6 @@ import SetGoalFlow from './components/goalFlow/SetGoalFlow';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import WellnessLibrary from './pages/WellnessLibrary';
-import SleepRecovery from './pages/SleepRecovery';
 import Journal from './pages/Journal';
 import AICompanion from './pages/AICompanion';
 import Settings from "./pages/Settings/Settings";
@@ -28,11 +27,7 @@ import GroupForumPage from './pages/Community/GroupForumPage';
 import ChallengesPage from './pages/Community/ChallengesPage';
 import ChallengeDetailPage from './pages/Community/ChallengeDetailPage';
 
-// New Brain Health pages
-import BrainHealth from './pages/BrainHealth';
-import MentalResilience from './pages/MentalResilience';
 import Focus from './pages/Focus';
-import FuelRecovery from './pages/FuelRecovery';
 import Insights from './pages/Insights';
 import Masterclass from './pages/Masterclass';
 
@@ -53,7 +48,6 @@ import MigrationAdmin from "./pages/MigrationAdmin";
 import UserProfilePage from "./pages/Profile/UserProfilePage";
 import MyProfileRedirect from './pages/Profile/MyProfileRedirect';
 import LegacyProfileRedirect from './pages/Profile/LegacyProfileRedirect';
-import Reflections from "./pages/Reflections";
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 
@@ -93,43 +87,12 @@ function App() {
             }
           />
 
-          {/* New Brain Health Routes */}
-          <Route
-            path="/brain-health"
-            element={
-              <ProtectedRoute>
-                <ErrorBoundary level="feature" featureName="Brain Health">
-                  <BrainHealth />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/mental-resilience"
-            element={
-              <ProtectedRoute>
-                <ErrorBoundary level="feature" featureName="Mental Resilience">
-                  <MentalResilience />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            }
-          />
           <Route
             path="/focus"
             element={
               <ProtectedRoute>
                 <ErrorBoundary level="feature" featureName="Focus">
                   <Focus />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/fuel-recovery"
-            element={
-              <ProtectedRoute>
-                <ErrorBoundary level="feature" featureName="Fuel & Recovery">
-                  <FuelRecovery />
                 </ErrorBoundary>
               </ProtectedRoute>
             }
@@ -173,14 +136,6 @@ function App() {
                 <ErrorBoundary level="feature" featureName="Wellness Library">
                   <WellnessLibrary />
                 </ErrorBoundary>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/sleep"
-            element={
-              <ProtectedRoute>
-                <SleepRecovery />
               </ProtectedRoute>
             }
           />
@@ -360,14 +315,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route 
-            path="/reflections" 
-            element={
-              <ProtectedRoute>
-                <Reflections />
-              </ProtectedRoute>
-            }
-          /> 
         </Routes>
 
         {/* Persistent Media Bars */}

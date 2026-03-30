@@ -7,9 +7,6 @@ import {
   Timer,
   Users,
   Leaf,
-  Brain,
-  Target,
-  Heart,
   Lightbulb,
   GraduationCap,
   BookOpen,
@@ -52,10 +49,7 @@ const navSections = [
     id: "focus",
     label: "Focus",
     items: [
-      { path: "/focus", label: "Focus Timer", icon: Timer },
-      { path: "/brain-health", label: "Brain Health", icon: Brain },
-      { path: "/mental-resilience", label: "Mental Resilience", icon: Target },
-      { path: "/fuel-recovery", label: "Fuel & Recovery", icon: Heart },
+      { path: "/focus", label: "Pomodoro & Routines", icon: Timer },
     ],
   },
   {
