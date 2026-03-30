@@ -34,6 +34,13 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Colors as colors, Spacing as spacing, Typography, Layout } from '../constants';
+import { InterestPicker } from '../components/profile/InterestPicker';
+import {
+  WELLNESS_GOALS,
+  GOAL_CATEGORIES,
+  getGoalById,
+  getInterestById,
+} from '../constants/interests';
 
 const INPUT_ACCESSORY_VIEW_ID = 'profileInputAccessory';
 
@@ -511,86 +518,73 @@ const ProfileScreen = () => {
         </View>
 
         {/* Interests */}
-        <View style={styles.cardContainer}>
-          <View style={styles.card}>
-            <Text style={styles.cardHeader}>Interests</Text>
-            {editMode && (
-              <View style={styles.addItemContainer}>
-                <TextInput
-                  style={styles.addItemInput}
-                  value={newInterest}
-                  onChangeText={setNewInterest}
-                  placeholder="Add an interest"
-                  inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
-                  returnKeyType="done"
-                  onSubmitEditing={addInterest}
-                />
-                <TouchableOpacity style={styles.addItemButton} onPress={addInterest}>
-                  <Ionicons name="add" size={20} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            )}
-            <View style={styles.tagsContainer}>
-              {profile.interests.length > 0 ? (
-                profile.interests.map((interest, index) => (
-                  <View key={index} style={styles.tag}>
-                    <Text style={styles.tagText}>{interest}</Text>
-                    {editMode && (
-                      <TouchableOpacity onPress={() => removeInterest(interest)}>
-                        <Ionicons name="close-circle" size={16} color={colors.secondary.sage} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.emptyText}>
-                  {editMode ? 'Add interests to connect with others' : 'No interests added yet'}
-                </Text>
-              )}
+        {editMode ? (
+          <View style={styles.cardContainer}>
+            <View style={styles.card}>
+              <InterestPicker
+                selectedInterests={profile.interests}
+                onInterestsChange={(interests) => setProfile(prev => ({ ...prev, interests }))}
+                maxSelections={10}
+                showPrivacyToggle={false}
+              />
             </View>
           </View>
-        </View>
+        ) : (
+          <View style={styles.cardContainer}>
+            <View style={styles.card}>
+              <Text style={styles.cardHeader}>Interests</Text>
+              <View style={styles.tagsContainer}>
+                {profile.interests.length > 0 ? (
+                  profile.interests.map((interest, index) => (
+                    <View key={index} style={styles.tag}>
+                      <Text style={styles.tagText}>{getInterestById(interest)?.label || interest}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>No interests added yet</Text>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
 
-        {/* Goals */}
-        <View style={styles.cardContainer}>
-          <View style={styles.card}>
-            <Text style={styles.cardHeader}>Wellness Goals</Text>
-            {editMode && (
-              <View style={styles.addItemContainer}>
-                <TextInput
-                  style={styles.addItemInput}
-                  value={newGoal}
-                  onChangeText={setNewGoal}
-                  placeholder="Add a goal"
-                  inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
-                  returnKeyType="done"
-                  onSubmitEditing={addGoal}
-                />
-                <TouchableOpacity style={styles.addItemButton} onPress={addGoal}>
-                  <Ionicons name="add" size={20} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            )}
-            <View style={styles.tagsContainer}>
-              {profile.goals.length > 0 ? (
-                profile.goals.map((goal, index) => (
-                  <View key={index} style={[styles.tag, styles.goalTag]}>
-                    <Text style={[styles.tagText, styles.goalTagText]}>{goal}</Text>
-                    {editMode && (
-                      <TouchableOpacity onPress={() => removeGoal(goal)}>
-                        <Ionicons name="close-circle" size={16} color={colors.primary} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.emptyText}>
-                  {editMode ? 'Add your wellness goals' : 'No goals added yet'}
-                </Text>
-              )}
+        {/* Wellness Goals */}
+        {editMode ? (
+          <View style={styles.cardContainer}>
+            <View style={styles.card}>
+              <InterestPicker
+                selectedInterests={profile.goals}
+                onInterestsChange={(goals) => setProfile(prev => ({ ...prev, goals }))}
+                maxSelections={8}
+                showPrivacyToggle={false}
+                items={WELLNESS_GOALS}
+                categories={GOAL_CATEGORIES}
+                label="Wellness Goals"
+                modalTitle="Select Wellness Goals"
+                addButtonLabel="Add Goals"
+                emptyText="No goals selected"
+                lookupFn={getGoalById as any}
+              />
             </View>
           </View>
-        </View>
+        ) : (
+          <View style={styles.cardContainer}>
+            <View style={styles.card}>
+              <Text style={styles.cardHeader}>Wellness Goals</Text>
+              <View style={styles.tagsContainer}>
+                {profile.goals.length > 0 ? (
+                  profile.goals.map((goal, index) => (
+                    <View key={index} style={[styles.tag, styles.goalTag]}>
+                      <Text style={[styles.tagText, styles.goalTagText]}>{getGoalById(goal)?.label || goal}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>No goals added yet</Text>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
 
       {/* Recent Activity */}
       {!editMode && recentActivity.length > 0 && (
