@@ -104,3 +104,46 @@ export function computeSummary(days: DaySlot[]): string | null {
     .map(([state, count]) => `${count} ${state}`);
   return `Mixed week — ${parts.join(', ')}`;
 }
+
+/**
+ * Hook that fetches 7-day brain state history and computes trend data.
+ * Returns { days, summary, loading }.
+ */
+export function useBrainStateWeekTrend(userId: string | undefined) {
+  const [trend, setTrend] = useState<WeekTrend>({ days: [], summary: null });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const history = await getBrainStateHistory(userId!, 7);
+        if (cancelled) return;
+
+        const mapped = history.map((h) => ({
+          date: h.date,
+          brainState: h.brainState,
+        }));
+
+        const days = buildWeekSlots(mapped);
+        const summary = computeSummary(days);
+        setTrend({ days, summary });
+      } catch {
+        // Fail silently — trend is non-critical
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  return { ...trend, loading };
+}
