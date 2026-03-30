@@ -56,13 +56,16 @@ service cloud.firestore {
     }
 
     // Check if user is not suspended or banned (auto-unsuspend if past expiry)
+    // Returns true for users without a profile doc (new users)
     function isActiveUser() {
-      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return userData.moderationStatus == null
-        || userData.moderationStatus == 'active'
-        || (userData.moderationStatus == 'suspended'
-            && userData.suspendedUntil != null
-            && userData.suspendedUntil < request.time);
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return !exists(userPath)
+        || !('moderationStatus' in get(userPath).data)
+        || get(userPath).data.moderationStatus == null
+        || get(userPath).data.moderationStatus == 'active'
+        || (get(userPath).data.moderationStatus == 'suspended'
+            && get(userPath).data.suspendedUntil != null
+            && get(userPath).data.suspendedUntil < request.time);
     }
 
     // ========== USER PROFILES ==========
@@ -281,21 +284,25 @@ service cloud.firestore {
       );
 
       // Update: owner, members, or users joining public groups
-      // Support createdBy, ownerId, and creatorId fields
-      allow update: if isAuthenticated() && isActiveUser() && (
-        // Owner/creator can update anything
-        request.auth.uid == resource.data.ownerId ||
-        request.auth.uid == resource.data.createdBy ||
-        request.auth.uid == resource.data.creatorId ||
-        // Existing members can only update member-related fields (join/leave)
+      allow update: if isAuthenticated() && (
+        // Owner/creator can update anything (requires active status)
+        (isActiveUser() && (
+          request.auth.uid == resource.data.ownerId ||
+          request.auth.uid == resource.data.createdBy ||
+          request.auth.uid == resource.data.creatorId
+        )) ||
+        // Existing members can update member-related fields (join/leave)
         (request.auth.uid in resource.data.members &&
          request.resource.data.diff(resource.data).affectedKeys()
            .hasOnly(['members', 'memberCount', 'updatedAt'])) ||
         // Non-members can join PUBLIC groups (add themselves to members)
+        // No isActiveUser check — joining should work for all authenticated users
         (
           (resource.data.visibility == 'public' || resource.data.isPublic == true) &&
           request.auth.uid in request.resource.data.members &&
-          !(request.auth.uid in resource.data.members)
+          !(request.auth.uid in resource.data.members) &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['members', 'memberCount', 'updatedAt'])
         )
       );
 
@@ -310,14 +317,17 @@ service cloud.firestore {
 
     // Posts (group forum posts)
     match /posts/{postId} {
-      // Read: Public posts (no group) visible to all; group posts require membership
+      // Read: Public posts visible to all authenticated users; private group posts require membership
       allow read: if isAuthenticated() && (
         // Posts without a groupId are visible to all authenticated users
         resource.data.groupId == null ||
         !resource.data.keys().hasAny(['groupId']) ||
-        // Group posts: user must be a member of the group
-        (resource.data.groupId != null &&
-         request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.members)
+        // Group posts: visible if group is public OR user is a member
+        (resource.data.groupId != null && (
+          get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.visibility == 'public' ||
+          get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.isPublic == true ||
+          request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.members
+        ))
       );
 
       // Create: if user is the author (support both userId and authorId fields)
