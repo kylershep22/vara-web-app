@@ -109,7 +109,7 @@ export function computeSummary(days: DaySlot[]): string | null {
  * Hook that fetches 7-day brain state history and computes trend data.
  * Returns { days, summary, loading }.
  */
-export function useBrainStateWeekTrend(userId: string | undefined) {
+export function useBrainStateWeekTrend(userId: string | undefined, refreshKey?: string | null) {
   const [trend, setTrend] = useState<WeekTrend>({ days: [], summary: null });
   const [loading, setLoading] = useState(true);
 
@@ -143,7 +143,7 @@ export function useBrainStateWeekTrend(userId: string | undefined) {
 
     load();
     return () => { cancelled = true; };
-  }, [userId]);
+  }, [userId, refreshKey]);
 
   return { ...trend, loading };
 }

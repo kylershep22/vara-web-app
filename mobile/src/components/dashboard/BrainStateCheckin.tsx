@@ -7,8 +7,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { BrainState } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { useBrainStateWeekTrend } from '../../hooks/useBrainStateWeekTrend';
 
 interface BrainStateCheckinProps {
   currentCheckIn: { brainState: BrainState } | null;
@@ -47,6 +50,13 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
       if (capturedTimerRef.current) clearTimeout(capturedTimerRef.current);
     };
   }, []);
+
+  const navigation = useNavigation();
+  const { user } = useAuth();
+  const { days, summary, loading: trendLoading } = useBrainStateWeekTrend(
+    user?.uid,
+    currentCheckIn?.brainState
+  );
 
   const handleSelect = (state: BrainState) => {
     if (loading) return;
@@ -94,6 +104,33 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
             <Text style={styles.changeButton}>Change</Text>
           </TouchableOpacity>
         </View>
+
+        {summary && (
+          <View style={styles.trendSection}>
+            <View style={styles.dotsRow}>
+              {days.map((day, i) => (
+                <View key={day.date} style={styles.dayColumn}>
+                  <View
+                    style={[
+                      styles.trendDot,
+                      day.color
+                        ? { backgroundColor: day.color }
+                        : styles.trendDotEmpty,
+                    ]}
+                  />
+                  <Text style={styles.dayLabel}>{day.dayLabel}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.summaryText}>{summary}</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Insights' as never)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.seeWeekLink}>See your week →</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   }
@@ -204,6 +241,47 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.medium,
+  },
+  // Trend section
+  trendSection: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.sm,
+  },
+  dayColumn: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  trendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  trendDotEmpty: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  dayLabel: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textSecondary,
+  },
+  summaryText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: Spacing.sm,
+  },
+  seeWeekLink: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.evergreenTeal,
+    textAlign: 'right',
+    marginTop: Spacing.xs,
   },
   // Captured confirmation
   capturedContainer: {
