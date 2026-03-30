@@ -26,6 +26,8 @@ import WeekInsightCard from '../components/dashboard/WeekInsightCard';
 import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
+import { EventCodeCard } from '../components/events/EventCodeCard';
+import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
 import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 import { useDashboard } from '../hooks/useDashboard';
@@ -79,6 +81,11 @@ const DashboardScreen: React.FC = () => {
     showDailyReflection,
     handleDailyReflection,
     handleDailyReflectionSkip,
+    showEventCodeCard,
+    eventCodeSheetVisible,
+    setEventCodeSheetVisible,
+    handleEventCodeDismiss,
+    handleEventCodeSuccess,
   } = useDashboard();
 
   const { correlations } = useWeeklyCorrelations();
@@ -121,6 +128,16 @@ const DashboardScreen: React.FC = () => {
                   category={notifOptInCard}
                   onOptIn={() => handleNotifOptIn(notifOptInCard)}
                   onDismiss={() => handleNotifDismiss(notifOptInCard)}
+                />
+              </View>
+            )}
+
+            {/* Event Code Card (new users < 48 hours, contextual) */}
+            {showEventCodeCard && (
+              <View style={{ paddingHorizontal: Spacing.base }}>
+                <EventCodeCard
+                  onEnterCode={() => setEventCodeSheetVisible(true)}
+                  onDismiss={handleEventCodeDismiss}
                 />
               </View>
             )}
@@ -290,6 +307,13 @@ const DashboardScreen: React.FC = () => {
           onNavigate={(route) => navigation.navigate(route as never)}
         />
       )}
+
+      {/* Event Code Sheet */}
+      <EventCodeSheet
+        visible={eventCodeSheetVisible}
+        onDismiss={() => setEventCodeSheetVisible(false)}
+        onSuccess={handleEventCodeSuccess}
+      />
     </SafeAreaView>
   );
 };

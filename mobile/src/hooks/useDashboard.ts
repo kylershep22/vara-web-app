@@ -102,6 +102,10 @@ export function useDashboard() {
   const [dailyReflection, setDailyReflection] = useState<DailyReflectionType | null>(null);
   const [dailyReflectionDismissed, setDailyReflectionDismissed] = useState(false);
 
+  // Event code card state
+  const [showEventCodeCard, setShowEventCodeCard] = useState(false);
+  const [eventCodeSheetVisible, setEventCodeSheetVisible] = useState(false);
+
   // Responsive day count
   const daysToShow = useMemo(() => {
     if (screenWidth < SMALL_SCREEN_WIDTH) return 5;
@@ -175,6 +179,17 @@ export function useDashboard() {
             setShowWelcomeBack(true);
           }
         }
+        // Event code prompt: show for users < 48 hours old with no eventData and not dismissed
+        if (data) {
+          const createdAtMs = data.createdAt?.toMillis?.() || (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : 0);
+          const hoursSinceCreation = (Date.now() - createdAtMs) / (1000 * 60 * 60);
+          const hasEventData = !!data.eventData;
+          const hasDismissed = !!data.eventPromptDismissed;
+          if (hoursSinceCreation < 48 && !hasEventData && !hasDismissed) {
+            setShowEventCodeCard(true);
+          }
+        }
+
         await updateDoc(userRef, { lastActiveAt: serverTimestamp() });
       } catch (error) {
         logger.log('Error updating lastActiveAt:', error);
@@ -443,6 +458,22 @@ export function useDashboard() {
     setDailyReflectionDismissed(true);
   }, []);
 
+  const handleEventCodeDismiss = useCallback(async () => {
+    setShowEventCodeCard(false);
+    if (user?.uid && db) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { eventPromptDismissed: true });
+      } catch (err) {
+        logger.error('Error dismissing event prompt:', err);
+      }
+    }
+  }, [user]);
+
+  const handleEventCodeSuccess = useCallback(() => {
+    setShowEventCodeCard(false);
+    setEventCodeSheetVisible(false);
+  }, []);
+
   const handleRefreshWellnessScore = useCallback(async () => {
     if (!user?.uid) return;
     setWellnessScoreLoading(true);
@@ -545,5 +576,12 @@ export function useDashboard() {
     showDailyReflection,
     handleDailyReflection,
     handleDailyReflectionSkip,
+
+    // Event Code
+    showEventCodeCard,
+    eventCodeSheetVisible,
+    setEventCodeSheetVisible,
+    handleEventCodeDismiss,
+    handleEventCodeSuccess,
   };
 }
