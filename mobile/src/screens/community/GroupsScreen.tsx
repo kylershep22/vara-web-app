@@ -662,18 +662,21 @@ const styles = StyleSheet.create({
 
   // Category Filter Chips
   categoryScroll: {
-    maxHeight: 44,
+    flexGrow: 0,
   },
   categoryContainer: {
     paddingHorizontal: 16,
+    paddingVertical: 8,
     paddingBottom: 12,
     gap: 8,
+    alignItems: 'center',
   },
   categoryChip: {
     backgroundColor: Colors.white,
-    paddingVertical: 8,
+    height: 34,
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 17,
     borderWidth: 1,
     borderColor: Colors.divider,
   },
