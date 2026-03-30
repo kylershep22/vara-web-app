@@ -23,6 +23,7 @@ import { FEATURE_METADATA, FeatureId } from '../constants/featureUnlock';
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Colors, Spacing, Typography, Layout } from '../constants';
+import { EventCodeSheet } from '../components/events/EventCodeSheet';
 
 interface Settings {
   notificationsEnabled: boolean;
@@ -53,9 +54,25 @@ const SettingsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [requestingPermissions, setRequestingPermissions] = useState(false);
+  const [eventCodeSheetVisible, setEventCodeSheetVisible] = useState(false);
+  const [eventName, setEventName] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const loadEventData = async () => {
+      try {
+        if (!db) return;
+        const userSnap = await getDoc(doc(db, 'users', user.uid));
+        if (userSnap.exists() && userSnap.data().eventData) {
+          setEventName(userSnap.data().eventData.eventName);
+        }
+      } catch {}
+    };
+    loadEventData();
   }, [user]);
 
   const loadSettings = async () => {
@@ -528,6 +545,33 @@ const SettingsScreen = () => {
         </View>
       </View>
 
+      {/* Event Code Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Event Code</Text>
+        <View style={styles.card}>
+          {eventName ? (
+            <View style={styles.settingRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>Event Code</Text>
+                <Text style={styles.settingDescription}>{eventName}</Text>
+              </View>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.evergreenTeal} />
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => setEventCodeSheetVisible(true)}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>Event Code</Text>
+                <Text style={styles.settingDescription}>Enter a code from a workshop or event</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: Colors.textSecondary }}>Enter</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       {/* Subscription Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Subscription</Text>
@@ -638,6 +682,14 @@ const SettingsScreen = () => {
 
       <View style={{ height: Spacing.xl }} />
     </ScrollView>
+      <EventCodeSheet
+        visible={eventCodeSheetVisible}
+        onDismiss={() => setEventCodeSheetVisible(false)}
+        onSuccess={(name) => {
+          setEventName(name);
+          setEventCodeSheetVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 };
