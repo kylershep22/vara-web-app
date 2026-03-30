@@ -50,7 +50,7 @@ export default function PodcastEpisodeScreen() {
   const isCurrentlyPlaying = isPlaying && currentTrack === episode.title;
 
   const handlePlay = () => {
-    playTrack(episode.title, episode.audioUrl, false);
+    playTrack(episode.title, episode.audioUrl, false, podcastCover);
   };
 
   return (

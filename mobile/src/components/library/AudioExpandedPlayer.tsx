@@ -17,6 +17,7 @@ import {
   Easing,
   Dimensions,
   PanResponder,
+  Image,
 } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -59,7 +60,7 @@ const formatTime = (millis: number): string => {
 // Sleep Visual Sub-Component
 // =====================
 
-function SleepVisual({ isPlaying }: { isPlaying: boolean }) {
+function SleepVisual({ isPlaying, artwork }: { isPlaying: boolean; artwork?: any }) {
   const reduceMotion = useReducedMotion();
 
   // Three ring animations with different durations
@@ -151,13 +152,17 @@ function SleepVisual({ isPlaying }: { isPlaying: boolean }) {
         );
       })}
 
-      {/* Center circle */}
-      <LinearGradient
-        colors={['#E8F0E4', Colors.dewSage]}
-        style={sleepVisualStyles.centerCircle}
-      >
-        <Icon name="weather-night" size={48} color={Colors.evergreenTeal} />
-      </LinearGradient>
+      {/* Center circle — show artwork if available, otherwise moon icon */}
+      {artwork ? (
+        <Image source={artwork} style={sleepVisualStyles.artworkImage} />
+      ) : (
+        <LinearGradient
+          colors={['#E8F0E4', Colors.dewSage]}
+          style={sleepVisualStyles.centerCircle}
+        >
+          <Icon name="weather-night" size={48} color={Colors.evergreenTeal} />
+        </LinearGradient>
+      )}
     </View>
   );
 }
@@ -178,6 +183,12 @@ const sleepVisualStyles = StyleSheet.create({
     borderRadius: 70,
     borderWidth: 1.5,
     borderColor: Colors.silverSage,
+  },
+  artworkImage: {
+    width: 160,
+    height: 160,
+    borderRadius: 16,
+    zIndex: 10,
   },
   centerCircle: {
     width: 120,
@@ -406,13 +417,13 @@ export function AudioExpandedPlayer() {
           <Icon name="close" size={18} color={Colors.textSecondary} />
         </TouchableOpacity>
 
-        {/* Sleep Visual */}
-        <SleepVisual isPlaying={isPlaying} />
+        {/* Visual */}
+        <SleepVisual isPlaying={isPlaying} artwork={currentTrack.artwork} />
 
         {/* Track Info */}
         <View style={styles.trackInfo}>
           <Text style={styles.trackTitle}>{currentTrack.title}</Text>
-          <Text style={styles.trackCategory}>Sleep Sound</Text>
+          <Text style={styles.trackCategory}>{currentTrack.artwork ? 'Podcast' : 'Sleep Sound'}</Text>
         </View>
 
         {/* Seekbar */}

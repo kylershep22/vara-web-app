@@ -102,7 +102,7 @@ export default function MasterclassScreen() {
   };
 
   const handlePlayEpisode = (episode: PodcastEpisode) => {
-    playTrack(episode.title, episode.audioUrl, false);
+    playTrack(episode.title, episode.audioUrl, false, podcastCover);
   };
 
   const handleEpisodeInfo = (episode: PodcastEpisode) => {

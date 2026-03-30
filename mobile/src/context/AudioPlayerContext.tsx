@@ -22,6 +22,7 @@ import { logger } from '../utils/logger';
 export interface AudioTrack {
   title: string;
   uri: string;
+  artwork?: any; // require() image or { uri: string }
 }
 
 /** Frequently-changing playback values */
@@ -47,7 +48,7 @@ interface AudioControlsContextValue {
   audioBottomInset: number;
 
   // Playback controls
-  playTrack: (title: string, uri: string, loop?: boolean) => Promise<void>;
+  playTrack: (title: string, uri: string, loop?: boolean, artwork?: any) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   stop: () => Promise<void>;
@@ -200,7 +201,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     setSleepTimerEndTimeState(null);
   };
 
-  const playTrack = useCallback(async (title: string, uri: string, loop: boolean = false) => {
+  const playTrack = useCallback(async (title: string, uri: string, loop: boolean = false, artwork?: any) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -216,7 +217,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       );
 
       soundRef.current = sound;
-      setCurrentTrack({ title, uri });
+      setCurrentTrack({ title, uri, artwork });
       setIsLoopingState(loop);
       setIsPlaying(true);
     } catch (err) {
