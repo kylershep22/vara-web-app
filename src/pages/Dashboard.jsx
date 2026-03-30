@@ -2,14 +2,11 @@ import React from "react";
 import SidebarLayout from "../components/layout/SidebarLayout";
 
 import { useDashboardV2 } from "../hooks/useDashboardV2";
-import { useWeeklyCorrelations } from "../hooks/useWeeklyCorrelations";
-import { selectWeekInsight } from "../constants/weekInsightTemplates";
 
 import BrainStateCheckin from "../components/dashboard/BrainStateCheckin";
 import TodaysProtocolCard from "../components/dashboard/TodaysProtocolCard";
 import DailyReflectionCard from "../components/dashboard/DailyReflectionCard";
 import WeeklyHabitsTracker from "../components/dashboard/WeeklyHabitsTracker";
-import WeekInsightCard from "../components/dashboard/WeekInsightCard";
 
 export default function Dashboard() {
   const {
@@ -34,9 +31,6 @@ export default function Dashboard() {
     showReflection,
     handleReflectionSave,
   } = useDashboardV2();
-
-  const { correlations } = useWeeklyCorrelations();
-  const weekInsight = correlations ? selectWeekInsight(correlations) : null;
 
   if (dataLoading) {
     return (
@@ -95,14 +89,6 @@ export default function Dashboard() {
             completions={habitCompletions}
             onToggle={handleHabitToggle}
           />
-
-          {/* 5. Week Insight Card */}
-          {weekInsight && (
-            <WeekInsightCard
-              headline={weekInsight.headline}
-              supporting={weekInsight.supporting}
-            />
-          )}
 
         </div>
       </div>
