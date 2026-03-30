@@ -643,6 +643,17 @@ const MainNavigator = () => {
             headerShadowVisible: false,
           }}
         />
+        <AppStack.Screen
+          name="PodcastEpisode"
+          component={PodcastEpisodeScreen}
+          options={{
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: 'Episode',
+            headerShadowVisible: false,
+          }}
+        />
         {/* Help & Support - Accessible from Wellness menu */}
         <AppStack.Screen
           name="HelpSupport"
