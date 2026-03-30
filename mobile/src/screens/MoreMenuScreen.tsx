@@ -104,12 +104,12 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     route: 'Masterclass',
   },
   {
-    id: 'wearables',
-    title: 'Wearables',
-    subtitle: 'Coming soon. Sync your devices',
-    icon: 'watch',
-    iconColor: Colors.mutedSageGray,
-    gradientColors: [Colors.silverSage + '20', Colors.silverSage + '30'] as [string, string],
+    id: 'connected-apps',
+    title: 'Connected Apps',
+    subtitle: 'Tell us what tools you use',
+    icon: 'link-variant',
+    iconColor: Colors.evergreenTeal,
+    gradientColors: [Colors.dewSage + '40', Colors.dewSage + '60'] as [string, string],
     route: 'WearableIntegration',
   },
 ];

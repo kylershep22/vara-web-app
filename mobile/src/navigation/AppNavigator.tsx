@@ -663,7 +663,7 @@ const MainNavigator = () => {
             headerShown: false,
           }}
         />
-        {/* Wearable Integration - Coming Soon */}
+        {/* Connected Apps */}
         <AppStack.Screen
           name="WearableIntegration"
           component={WearableIntegrationScreen}
@@ -671,7 +671,7 @@ const MainNavigator = () => {
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
-            title: 'Wearables',
+            title: 'Connected Apps',
             headerShadowVisible: false,
           }}
         />
