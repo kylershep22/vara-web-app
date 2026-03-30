@@ -506,7 +506,7 @@ const SettingsScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Data & Privacy</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.settingRow} onPress={() => Linking.openURL('https://varawellness.co/privacy')}>
+          <TouchableOpacity style={styles.settingRow} onPress={() => Linking.openURL('https://www.varawellness.co/privacy-policy')}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Privacy Policy</Text>
             </View>
@@ -515,7 +515,7 @@ const SettingsScreen = () => {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.settingRow} onPress={() => Linking.openURL('https://varawellness.co/terms')}>
+          <TouchableOpacity style={styles.settingRow} onPress={() => Linking.openURL('https://www.varawellness.co/terms-of-service')}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Terms of Service</Text>
             </View>
