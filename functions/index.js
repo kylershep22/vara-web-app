@@ -36,6 +36,10 @@ exports.triggerAggregation = adminFunctions.triggerAggregation;
 exports.cleanupExpiredSuspensions = adminFunctions.cleanupExpiredSuspensions;
 exports.updateModerationBlocklist = adminFunctions.updateModerationBlocklist;
 
+// Event Code Functions
+const eventFunctions = require("./src/events");
+exports.validateEventCode = eventFunctions.validateEventCode;
+
 // Secret defined via: firebase functions:secrets:set OPENAI_API_KEY
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
