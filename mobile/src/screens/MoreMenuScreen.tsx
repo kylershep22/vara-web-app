@@ -18,7 +18,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
-import { useHabits } from '../hooks';
+import { useHabits, useMovement } from '../hooks';
 
 // ==========================================
 // TYPES
@@ -297,6 +297,7 @@ export default function MoreMenuScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { habits } = useHabits();
+  const { content: movementContent } = useMovement();
 
   // Calculate consecutive days from habit completions
   const { consecutiveDays, hasActivity } = useMemo(() => {
@@ -317,6 +318,16 @@ export default function MoreMenuScreen() {
       hasActivity: hasAnyActivity || habits.length > 0,
     };
   }, [habits]);
+
+  // Filter tools based on content availability
+  const visibleTools = useMemo(() =>
+    YOUR_TOOLS_ITEMS.filter((item) => {
+      // Hide Movement until it has 3+ content items
+      if (item.id === 'movement') return (movementContent?.length || 0) >= 3;
+      return true;
+    }),
+    [movementContent]
+  );
 
   // Animation setup
   const totalItems = YOUR_TOOLS_ITEMS.length + ACCOUNT_ITEMS.length + 2; // +2 for hero and insight
@@ -420,7 +431,7 @@ export default function MoreMenuScreen() {
         {/* Your Tools Section */}
         <Section
           label="YOUR TOOLS"
-          items={YOUR_TOOLS_ITEMS}
+          items={visibleTools}
           onItemPress={handleItemPress}
           startIndex={2}
           animations={animations}
