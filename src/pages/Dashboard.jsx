@@ -7,6 +7,7 @@ import BrainStateCheckin from "../components/dashboard/BrainStateCheckin";
 import TodaysProtocolCard from "../components/dashboard/TodaysProtocolCard";
 import DailyReflectionCard from "../components/dashboard/DailyReflectionCard";
 import WeeklyHabitsTracker from "../components/dashboard/WeeklyHabitsTracker";
+import WeekInsightCard from "../components/dashboard/WeekInsightCard";
 import HabitCompletionSheet from "../components/habits/HabitCompletionSheet";
 
 export default function Dashboard() {
@@ -87,6 +88,9 @@ export default function Dashboard() {
               loading={reflectionLoading}
             />
           )}
+
+          {/* 3.5 Week Insight */}
+          <WeekInsightCard />
 
           {/* 4. Weekly Habits Tracker */}
           <WeeklyHabitsTracker

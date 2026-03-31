@@ -20,6 +20,7 @@ import {
   Moon,
   Activity,
   UserSearch,
+  Compass,
 } from "lucide-react";
 import NotificationBell from "../notifications/NotificationBell";
 import VaraLogo from "../../assets/logo/vara-logo.png";
@@ -63,11 +64,7 @@ const navSections = [
     id: "wellness",
     label: "Wellness",
     items: [
-      { path: "/library", label: "Library", icon: Leaf },
-      { path: "/library/breathwork", label: "Breathwork", icon: Wind },
-      { path: "/library/sleep", label: "Sleep", icon: Moon },
-      { path: "/library/movement", label: "Movement", icon: Activity },
-      { path: "/masterclass", label: "Masterclass", icon: GraduationCap },
+      { path: "/discover", label: "Discover", icon: Compass },
     ],
   },
 ];

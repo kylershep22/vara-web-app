@@ -28,6 +28,7 @@ import ChallengeDetailPage from './pages/Community/ChallengeDetailPage';
 import Focus from './pages/Focus';
 import Insights from './pages/Insights';
 import Masterclass from './pages/Masterclass';
+import Discover from './pages/Discover';
 
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import { VideoPlayerProvider } from './context/VideoPlayerContext';
@@ -129,6 +130,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/discover" element={<ProtectedRoute><ErrorBoundary level="feature" featureName="Discover"><Discover /></ErrorBoundary></ProtectedRoute>} />
           <Route
             path="/library"
             element={
