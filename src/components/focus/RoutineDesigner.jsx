@@ -21,6 +21,7 @@ import {
   Clock,
   Save,
   Edit3,
+  Play,
   X,
   Sun,
   Moon,
@@ -35,6 +36,7 @@ import {
   Users,
   Check
 } from 'lucide-react';
+import RoutinePlayer from '../routines/RoutinePlayer';
 
 const RoutineDesigner = ({ userId, initialRoutineType }) => {
   const [routines, setRoutines] = useState([]);
@@ -45,6 +47,7 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
   const [reminderTime, setReminderTime] = useState('');
   const [showActivityLibrary, setShowActivityLibrary] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [playingRoutine, setPlayingRoutine] = useState(null);
 
   // Update selected routine type when initialRoutineType changes
   useEffect(() => {
@@ -490,13 +493,22 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
             <div className="bg-white rounded-xl border border-divider p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-soft-charcoal">{currentRoutine.name}</h3>
-                <button
-                  onClick={() => editExistingRoutine(currentRoutine)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-divider text-soft-charcoal hover:bg-dew-sage-light transition-all"
-                >
-                  <Edit3 size={16} />
-                  Edit
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPlayingRoutine(currentRoutine)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-evergreen-teal text-white hover:opacity-90 transition-all font-medium"
+                  >
+                    <Play size={16} />
+                    Begin
+                  </button>
+                  <button
+                    onClick={() => editExistingRoutine(currentRoutine)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-divider text-soft-charcoal hover:bg-dew-sage-light transition-all"
+                  >
+                    <Edit3 size={16} />
+                    Edit
+                  </button>
+                </div>
               </div>
 
               {/* Activities Timeline */}
@@ -586,6 +598,13 @@ const RoutineDesigner = ({ userId, initialRoutineType }) => {
             </div>
           </div>
         </div>
+      )}
+      {playingRoutine && (
+        <RoutinePlayer
+          routine={playingRoutine}
+          userId={userId}
+          onClose={() => setPlayingRoutine(null)}
+        />
       )}
     </div>
   );
