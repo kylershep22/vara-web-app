@@ -12,7 +12,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 import WellnessLibrary from './pages/WellnessLibrary';
 import Journal from './pages/Journal';
-import AICompanion from './pages/AICompanion';
 import Settings from "./pages/Settings/Settings";
 import CommunityPage from './pages/Community/CommunityPage';
 import GroupPage from './pages/Community/GroupPage';
@@ -146,16 +145,6 @@ function App() {
               <ProtectedRoute>
                 <ErrorBoundary level="feature" featureName="Journal">
                   <Journal />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/ai"
-            element={
-              <ProtectedRoute>
-                <ErrorBoundary level="feature" featureName="AI Companion">
-                  <AICompanion />
                 </ErrorBoundary>
               </ProtectedRoute>
             }

@@ -10,7 +10,6 @@ import {
   Lightbulb,
   GraduationCap,
   BookOpen,
-  Bot,
   User,
   Settings as SettingsIcon,
   ChevronLeft,
@@ -74,7 +73,6 @@ const navSections = [
 ];
 
 const bottomItems = [
-  { path: "/ai", label: "AI Companion", icon: Bot },
   { path: "/profile", label: "My Profile", icon: User },
   { path: "/settings", label: "Settings", icon: SettingsIcon },
 ];
