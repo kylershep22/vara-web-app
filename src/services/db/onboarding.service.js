@@ -85,6 +85,18 @@ export async function completeOnboarding(userId, habitCreated = false) {
 }
 
 /**
+ * Save user's selected values from onboarding
+ */
+export async function saveSelectedValues(userId, values) {
+  if (!userId) throw new Error('userId is required');
+  const ref = doc(db, USERS, userId);
+  await updateDoc(ref, {
+    selectedValues: values,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
  * Check if user has completed onboarding
  */
 export async function hasCompletedOnboarding(userId) {
