@@ -49,6 +49,8 @@ import MyProfileRedirect from './pages/Profile/MyProfileRedirect';
 import LegacyProfileRedirect from './pages/Profile/LegacyProfileRedirect';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import NotificationSettings from './pages/NotificationSettings';
+import MutedAccounts from './pages/MutedAccounts';
 
 import './styles/tailwind.css';
 
@@ -168,6 +170,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/settings/notifications" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />
+          <Route path="/settings/muted" element={<ProtectedRoute><MutedAccounts /></ProtectedRoute>} />
           <Route
             path="/community"
             element={
