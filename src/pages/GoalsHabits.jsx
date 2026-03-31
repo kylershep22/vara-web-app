@@ -51,6 +51,9 @@ import GoalDetailsModal from '../components/goals/GoalDetailsModal';
 import { useHabits } from '../hooks/useHabits';
 import { BrainPillarBadgeList, NeurochemicalTagList } from '../components/shared/BrainPillarBadge';
 import { getNeurochemicalTags, getBrainPillars } from '../constants/brainHealthMapping';
+import HabitWizard from '../components/habits/HabitWizard';
+import HabitCompletionSheet from '../components/habits/HabitCompletionSheet';
+import { createHabit } from '../services/db/habits.service';
 
 /** ---------- color tokens to match DS ---------- */
 const TEAL = '#1B5E57';
@@ -116,7 +119,10 @@ export default function GoalsHabits() {
     habits,
     habitCompletions,
     habitStreaks,
-    logHabitToday,
+    pendingReflection,
+    beginToggle,
+    confirmCompletion,
+    dismissReflection,
     recomputeStreaksForHabit
   } = useHabits(user?.uid);
 
@@ -131,6 +137,9 @@ export default function GoalsHabits() {
   const [creatingHabit, setCreatingHabit] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [editingHabit, setEditingHabit] = useState(null);
+
+  const [showWizard, setShowWizard] = useState(false);
+  const [wizardGoalId, setWizardGoalId] = useState(null);
 
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [selectedHabit, setSelectedHabit] = useState(null);
@@ -309,6 +318,34 @@ export default function GoalsHabits() {
     } catch (error) {
       console.error('Error saving habit:', error);
     }
+  };
+
+  const handleWizardSubmit = async (formData) => {
+    if (!user?.uid) return;
+    const payload = {
+      name: formData.name,
+      category: formData.category || null,
+      type: formData.type,
+      frequency: formData.type === 'daily' ? 1 : formData.frequency,
+      active: true,
+      streak: 0,
+      longestStreak: 0,
+      identity: formData.identity || null,
+      identityStatement: formData.identityStatement || null,
+      outcomeGoal: formData.outcomeGoal || null,
+      fullVersion: formData.fullVersion || null,
+      quickStartVersion: formData.quickStartVersion || null,
+      justShowUpVersion: formData.justShowUpVersion || null,
+      cue: formData.cueValue ? { type: formData.cueType, value: formData.cueValue } : null,
+      implementationIntention: formData.implementationIntention || null,
+      intention: formData.intention || null,
+      valueAlignment: formData.valueAlignment || null,
+      problem: formData.problem || null,
+      goalId: formData.goalId || null,
+    };
+    await createHabit(user.uid, payload);
+    setShowWizard(false);
+    setWizardGoalId(null);
   };
 
   const handleUpdateHabit = async (habitId, updates) => {
@@ -641,10 +678,7 @@ export default function GoalsHabits() {
         onLogHabitToday(habit);
         return;
       }
-      // Safety: only call a local function if it exists in this file
-      if (typeof logHabitToday !== 'undefined') {
-        logHabitToday(habit);
-      }
+      beginToggle(habit);
     };
 
     return (
@@ -1500,7 +1534,7 @@ export default function GoalsHabits() {
                 <p className="text-muted-sage-gray mt-1">Build consistent routines that support your goals</p>
               </div>
               <button
-                onClick={() => setCreatingHabit(true)}
+                onClick={() => setShowWizard(true)}
                 className="flex items-center gap-vara-sm px-5 py-2.5 rounded-vara-lg text-white font-medium shadow-vara-sm"
                 style={{ background: `linear-gradient(90deg, ${TEAL}, ${SAGE})` }}
               >
@@ -1767,6 +1801,22 @@ export default function GoalsHabits() {
         {/* Integration Modal */}
         <IntegrationModal />
       </div>
+
+      {showWizard && (
+        <HabitWizard
+          onSubmit={handleWizardSubmit}
+          onClose={() => { setShowWizard(false); setWizardGoalId(null); }}
+          goalId={wizardGoalId}
+        />
+      )}
+
+      {pendingReflection && (
+        <HabitCompletionSheet
+          habit={pendingReflection.habit}
+          onSubmit={confirmCompletion}
+          onClose={dismissReflection}
+        />
+      )}
     </SidebarLayout>
   );
 }
