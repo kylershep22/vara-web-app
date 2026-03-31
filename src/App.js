@@ -8,7 +8,6 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import AuthAction from './pages/AuthAction';
 import Dashboard from './pages/Dashboard';
-import SetGoalFlow from './components/goalFlow/SetGoalFlow';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import WellnessLibrary from './pages/WellnessLibrary';
@@ -35,12 +34,12 @@ import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import { VideoPlayerProvider } from './context/VideoPlayerContext';
 import NowPlayingBar from './components/audio/NowPlayingBar';
 import VideoPlayerBar from './components/video/VideoPlayerBar';
-import UserProfileForm from './components/onboarding/UserProfileForm';
 import OnboardingWelcome from './pages/onboarding/OnboardingWelcome';
 import OnboardingCheckIn from './pages/onboarding/OnboardingCheckIn';
 import OnboardingInsight from './pages/onboarding/OnboardingInsight';
 import OnboardingActivity from './pages/onboarding/OnboardingActivity';
 import OnboardingConfirmation from './pages/onboarding/OnboardingConfirmation';
+import OnboardingValues from './pages/onboarding/OnboardingValues';
 import EditProfile from './pages/Profile/EditProfile';
 import PeopleSearchPage from './pages/Community/PeopleSearchPage';
 import SeedTagsTool from "./dev/SeedTagsTool";
@@ -73,7 +72,7 @@ function App() {
           <Route path="/onboarding/insight" element={<ProtectedRoute><OnboardingInsight /></ProtectedRoute>} />
           <Route path="/onboarding/activity" element={<ProtectedRoute><OnboardingActivity /></ProtectedRoute>} />
           <Route path="/onboarding/confirmation" element={<ProtectedRoute><OnboardingConfirmation /></ProtectedRoute>} />
-          <Route path="/onboarding/set-goal" element={<SetGoalFlow />} />
+          <Route path="/onboarding/values" element={<ProtectedRoute><OnboardingValues /></ProtectedRoute>} />
 
           {/* Protected Routes */}
           <Route
@@ -224,14 +223,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <Movement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/onboarding/profile"
-            element={
-              <ProtectedRoute>
-                <UserProfileForm />
               </ProtectedRoute>
             }
           />

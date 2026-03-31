@@ -133,9 +133,11 @@ export default function OnboardingActivity() {
           response: inputValue || null,
         });
       }
+      sessionStorage.setItem('onboardingActivity', JSON.stringify({ name: selectedActivity?.name, type: selectedActivity?.type }));
       navigate('/onboarding/confirmation');
     } catch (err) {
       console.error('Failed to save activity:', err);
+      sessionStorage.setItem('onboardingActivity', JSON.stringify({ name: selectedActivity?.name, type: selectedActivity?.type }));
       navigate('/onboarding/confirmation');
     } finally {
       setSaving(false);
@@ -147,7 +149,7 @@ export default function OnboardingActivity() {
       <div className="max-w-md w-full">
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          {[0, 1, 2, 3, 4].map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
               className={`w-2 h-2 rounded-full transition-all ${

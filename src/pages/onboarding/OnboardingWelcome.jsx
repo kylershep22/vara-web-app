@@ -24,7 +24,7 @@ export default function OnboardingWelcome() {
 
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          {[0, 1, 2, 3, 4].map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
               className={`w-2 h-2 rounded-full transition-all ${
