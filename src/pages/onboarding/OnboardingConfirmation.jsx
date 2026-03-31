@@ -1,41 +1,56 @@
-// src/pages/onboarding/OnboardingConfirmation.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { completeOnboarding } from '../../services/db/onboarding.service';
+import { createHabit } from '../../services/db/habits.service';
+
+const TOTAL_STEPS = 6;
 
 export default function OnboardingConfirmation() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
 
-  const handleFinish = async () => {
-    setSaving(true);
+  const activityRaw = sessionStorage.getItem('onboardingActivity');
+  const activity = activityRaw ? JSON.parse(activityRaw) : null;
+
+  async function handleAddHabit() {
+    if (!user?.uid || !activity) return;
+    setCreating(true);
     try {
-      if (user?.uid) {
-        await completeOnboarding(user.uid, false);
-      }
-      navigate('/dashboard', { replace: true });
+      await createHabit(user.uid, {
+        name: activity.name,
+        type: 'daily',
+        frequency: 1,
+        category: 'Mindfulness',
+        active: true,
+        streak: 0,
+      });
+      sessionStorage.setItem('onboardingHabitCreated', 'true');
     } catch (err) {
-      console.error('Failed to complete onboarding:', err);
-      navigate('/dashboard', { replace: true });
+      console.error('Failed to create onboarding habit:', err);
     } finally {
-      setSaving(false);
+      setCreating(false);
+      navigate('/onboarding/values');
     }
-  };
+  }
+
+  function handleSkip() {
+    sessionStorage.setItem('onboardingHabitCreated', 'false');
+    navigate('/onboarding/values');
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-mist-white to-dew-sage-light flex items-center justify-center p-vara-base">
       <div className="max-w-md w-full text-center">
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          {[0, 1, 2, 3, 4].map((i) => (
+          {Array.from({ length: TOTAL_STEPS }, (_, i) => (
             <div
               key={i}
-              className={`w-2 h-2 rounded-full transition-all ${
-                i === 4 ? 'w-6 bg-evergreen-teal' : 'bg-evergreen-teal'
-              }`}
+              className={`h-2 rounded-full transition-all ${
+                i <= 4 ? 'bg-evergreen-teal' : 'bg-divider'
+              } ${i === 4 ? 'w-6' : 'w-2'}`}
             />
           ))}
         </div>
@@ -46,43 +61,51 @@ export default function OnboardingConfirmation() {
         </div>
 
         <h1 className="text-vara-2xl font-semibold text-soft-charcoal mb-3">
-          You're All Set!
+          Nice work!
         </h1>
         <p className="text-vara-base text-muted-sage-gray mb-8 leading-relaxed">
-          Your personalized wellness path is ready. We'll guide you gently,
-          unlocking new features as you build your practice.
+          {activity
+            ? `You just completed "${activity.name}". Small steps like this build lasting change.`
+            : "You've taken your first step toward lasting wellness."}
         </p>
 
-        {/* What's next preview */}
-        <div className="bg-white rounded-vara-lg p-vara-base border border-divider mb-8 text-left">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="text-sunrise-amber" size={16} />
-            <h3 className="text-vara-sm font-medium text-soft-charcoal">What's next</h3>
+        {/* Habit offer */}
+        {activity && (
+          <div className="bg-white rounded-vara-lg p-vara-lg border border-divider mb-8 text-left">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="text-sunrise-amber" size={16} />
+              <h3 className="text-vara-sm font-medium text-soft-charcoal">Add to your routine?</h3>
+            </div>
+            <p className="text-vara-sm text-muted-sage-gray mb-4">
+              Make "{activity.name}" a daily habit to keep building momentum.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleAddHabit}
+                disabled={creating}
+                className="flex-1 py-3 rounded-lg bg-evergreen-teal text-white font-medium text-vara-sm hover:opacity-90 transition disabled:opacity-60"
+              >
+                {creating ? 'Adding...' : 'Yes, add it'}
+              </button>
+              <button
+                onClick={handleSkip}
+                className="flex-1 py-3 rounded-lg border border-divider text-soft-charcoal font-medium text-vara-sm hover:bg-dew-sage-light transition"
+              >
+                Maybe later
+              </button>
+            </div>
           </div>
-          <ul className="space-y-2 text-vara-sm text-muted-sage-gray">
-            <li className="flex items-start gap-2">
-              <span className="text-evergreen-teal mt-0.5">1.</span>
-              <span>Explore your personalized dashboard</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-evergreen-teal mt-0.5">2.</span>
-              <span>Set your first habit or goal</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-evergreen-teal mt-0.5">3.</span>
-              <span>New features unlock as you engage</span>
-            </li>
-          </ul>
-        </div>
+        )}
 
-        <button
-          onClick={handleFinish}
-          disabled={saving}
-          className="w-full py-4 rounded-vara-lg bg-evergreen-teal text-white font-medium text-vara-base hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
-        >
-          {saving ? 'Setting up...' : 'Go to Dashboard'}
-          <ArrowRight size={20} />
-        </button>
+        {!activity && (
+          <button
+            onClick={handleSkip}
+            className="w-full py-4 rounded-vara-lg bg-evergreen-teal text-white font-medium text-vara-base hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          >
+            Continue
+            <ArrowRight size={20} />
+          </button>
+        )}
       </div>
     </div>
   );
