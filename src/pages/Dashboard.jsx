@@ -7,6 +7,7 @@ import BrainStateCheckin from "../components/dashboard/BrainStateCheckin";
 import TodaysProtocolCard from "../components/dashboard/TodaysProtocolCard";
 import DailyReflectionCard from "../components/dashboard/DailyReflectionCard";
 import WeeklyHabitsTracker from "../components/dashboard/WeeklyHabitsTracker";
+import HabitCompletionSheet from "../components/habits/HabitCompletionSheet";
 
 export default function Dashboard() {
   const {
@@ -25,6 +26,10 @@ export default function Dashboard() {
     habits,
     habitCompletions,
     handleHabitToggle,
+
+    pendingReflection,
+    confirmCompletion,
+    dismissReflection,
 
     reflection,
     reflectionLoading,
@@ -92,6 +97,13 @@ export default function Dashboard() {
 
         </div>
       </div>
+        {pendingReflection && (
+          <HabitCompletionSheet
+            habit={pendingReflection.habit}
+            onSubmit={confirmCompletion}
+            onClose={dismissReflection}
+          />
+        )}
     </SidebarLayout>
   );
 }

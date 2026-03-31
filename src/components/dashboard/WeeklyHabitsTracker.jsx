@@ -90,7 +90,7 @@ export default function WeeklyHabitsTracker({ habits, completions, onToggle }) {
                         <span className="w-5 h-5 inline-block" />
                       ) : (
                         <button
-                          onClick={() => onToggle(habit.id, day.date, !completed)}
+                          onClick={() => onToggle(habit, day.date, !completed)}
                           className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
                             isToday && !completed
                               ? "hover:bg-teal-light"

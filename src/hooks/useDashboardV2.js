@@ -49,7 +49,7 @@ export function useDashboardV2() {
   const [reflectionLoading, setReflectionLoading] = useState(false);
 
   // Habits
-  const { habits, habitCompletions, logHabitToday } = useHabits(uid);
+  const { habits, habitCompletions, pendingReflection, beginToggle, confirmCompletion, dismissReflection } = useHabits(uid);
 
   // Load initial data
   useEffect(() => {
@@ -122,13 +122,11 @@ export function useDashboardV2() {
     }
   }, [uid]);
 
-  // Handle habit toggle — logHabitToday expects a habit object, not an id
-  const handleHabitToggle = useCallback(async (habitId, date, completed) => {
-    if (!uid || !completed) return; // logHabitToday only supports marking complete, not unchecking
-    const habit = habits.find((h) => h.id === habitId);
-    if (!habit) return;
-    await logHabitToday(habit);
-  }, [uid, habits, logHabitToday]);
+  // Handle habit toggle — beginToggle expects the full habit object
+  const handleHabitToggle = useCallback((habit, date, isCompleting) => {
+    if (!uid) return;
+    beginToggle(habit, date);
+  }, [uid, beginToggle]);
 
   // Check if all active habits are completed today
   const today = todayYMD();
@@ -156,6 +154,10 @@ export function useDashboardV2() {
     habits,
     habitCompletions,
     handleHabitToggle,
+
+    pendingReflection,
+    confirmCompletion,
+    dismissReflection,
 
     reflection,
     reflectionLoading,
