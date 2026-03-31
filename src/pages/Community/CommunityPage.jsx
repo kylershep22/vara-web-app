@@ -85,6 +85,11 @@ import SidebarLayout from '../../components/layout/SidebarLayout';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import ConnectionsModal from "../../components/community/ConnectionsModal";
+import CommunityOrientationCard from '../../components/community/CommunityOrientationCard';
+import PostTypeSelector from '../../components/community/PostTypeSelector';
+import PostTypeBadge from '../../components/community/PostTypeBadge';
+import ReportPostModal from '../../components/community/ReportPostModal';
+import { fetchMutedUserIds, muteUser as muteUserService } from '../../services/db/moderation.service';
 
 const CommunityPage = () => {
   const { user, isAuthReady } = useAuth();
@@ -122,6 +127,12 @@ const CommunityPage = () => {
   const [dmMessages, setDmMessages] = useState([]);
   const [dmText, setDmText] = useState('');
 
+  const [postType, setPostType] = useState('update');
+  const [feedFilter, setFeedFilter] = useState('all');
+  const [showOrientation, setShowOrientation] = useState(false);
+  const [mutedUserIds, setMutedUserIds] = useState(new Set());
+  const [reportingPost, setReportingPost] = useState(null);
+
   const fileInputRef = useRef(null);
 
   // Cleanup previews
@@ -134,6 +145,21 @@ const CommunityPage = () => {
       });
     };
   }, [imagePreview]);
+
+  // Check orientation + load muted users
+  useEffect(() => {
+    if (!user?.uid) return;
+    const checkOrientation = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists() && !snap.data().community_orientation_seen) {
+          setShowOrientation(true);
+        }
+      } catch { /* non-critical */ }
+    };
+    checkOrientation();
+    fetchMutedUserIds(user.uid).then(ids => setMutedUserIds(new Set(ids))).catch(() => {});
+  }, [user?.uid]);
 
   // Load community data
   useEffect(() => {
@@ -355,7 +381,8 @@ const CommunityPage = () => {
         authorId: user.uid,
         content: newPost.trim(),
         images: uploadedImageUrls,
-        groupId: selectedGroupId
+        groupId: selectedGroupId,
+        postType: postType,
       });
 
       const groupInfo = selectedGroupId
@@ -368,6 +395,7 @@ const CommunityPage = () => {
         content: newPost.trim(),
         images: uploadedImageUrls,
         groupId: selectedGroupId,
+        postType: postType,
         groupInfo,
         likes: [],
         comments: [],
@@ -379,6 +407,7 @@ const CommunityPage = () => {
       setSelectedImages([]);
       setImagePreview([]);
       setSelectedGroupId(null);
+      setPostType('update');
       toast.success('Post created successfully!');
     } catch (err) {
       console.error('Failed to create post:', err);
@@ -678,24 +707,25 @@ const CommunityPage = () => {
                   )}
                 </div>
                 <p className="text-vara-sm text-muted-sage-gray">{formatTimeAgo(post.timestamp)}</p>
+                <PostTypeBadge postType={post.postType} />
               </div>
             </div>
-            {isOwnPost && (
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenPostMenu(openPostMenu === post.id ? null : post.id);
-                  }}
-                  className="text-muted-sage-gray hover:text-muted-sage-gray p-2 rounded-full hover:bg-dew-sage-light"
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenPostMenu(openPostMenu === post.id ? null : post.id);
+                }}
+                className="text-muted-sage-gray hover:text-muted-sage-gray p-2 rounded-full hover:bg-dew-sage-light"
+              >
+                <MoreHorizontal className="w-5 h-5" />
+              </button>
+              {openPostMenu === post.id && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-vara-lg shadow-vara-lg border border-divider py-1 z-10"
                 >
-                  <MoreHorizontal className="w-5 h-5" />
-                </button>
-                {openPostMenu === post.id && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute right-0 mt-2 w-48 bg-white rounded-vara-lg shadow-vara-lg border border-divider py-1 z-10"
-                  >
+                  {isOwnPost ? (
                     <button
                       onClick={() => handleDeletePost(post.id)}
                       className="w-full px-vara-base py-2 text-left text-vara-sm text-red-600 hover:bg-red-50 flex items-center gap-vara-sm"
@@ -703,10 +733,31 @@ const CommunityPage = () => {
                       <X className="w-4 h-4" />
                       Delete Post
                     </button>
-                  </div>
-                )}
-              </div>
-            )}
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => { setReportingPost(post); setOpenPostMenu(null); }}
+                        className="w-full px-vara-base py-2 text-left text-vara-sm text-soft-charcoal hover:bg-dew-sage-light"
+                      >
+                        Report
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await muteUserService(user.uid, post.authorId || post.userId);
+                            setMutedUserIds(prev => new Set([...prev, post.authorId || post.userId]));
+                          } catch (err) { console.error('Mute failed:', err); }
+                          setOpenPostMenu(null);
+                        }}
+                        className="w-full px-vara-base py-2 text-left text-vara-sm text-soft-charcoal hover:bg-dew-sage-light"
+                      >
+                        Mute user
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {post.content && (
@@ -1418,6 +1469,9 @@ const CommunityPage = () => {
               {/* Feed */}
               {activeTab === 'feed' && (
                 <div className="space-y-6">
+                  {showOrientation && (
+                    <CommunityOrientationCard userId={user?.uid} onDismiss={() => setShowOrientation(false)} />
+                  )}
                   {/* Composer */}
                   <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-base">
                     <form onSubmit={handlePostSubmit}>
@@ -1449,6 +1503,8 @@ const CommunityPage = () => {
                                     </option>
                                   ))}
                               </select>
+
+                              <PostTypeSelector value={postType} onChange={setPostType} />
 
                               <textarea
                                 value={newPost}
@@ -1549,7 +1605,26 @@ const CommunityPage = () => {
                     </div>
                   ) : posts.length > 0 ? (
                     <div className="space-y-6">
-                      {posts.map((post) => (
+                      <div className="flex gap-2 mb-4 flex-wrap">
+                        {['all', 'update', 'win', 'reflection', 'ask'].map(f => (
+                          <button
+                            key={f}
+                            onClick={() => setFeedFilter(f)}
+                            className={`px-3 py-1.5 rounded-full text-sm border transition ${
+                              feedFilter === f
+                                ? 'border-evergreen-teal bg-teal-light/30 text-evergreen-teal font-medium'
+                                : 'border-divider text-soft-charcoal'
+                            }`}
+                          >
+                            {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1) + 's'}
+                          </button>
+                        ))}
+                      </div>
+                      {posts.filter(p => {
+                        if (mutedUserIds.has(p.authorId || p.userId)) return false;
+                        if (feedFilter !== 'all' && (p.postType || 'update') !== feedFilter) return false;
+                        return true;
+                      }).map((post) => (
                         <PostCard key={post.id} post={post} />
                       ))}
                     </div>
@@ -2129,6 +2204,14 @@ const CommunityPage = () => {
           )}
         </div>
       </div>
+      {reportingPost && (
+        <ReportPostModal
+          postId={reportingPost.id}
+          reportedUserId={reportingPost.authorId || reportingPost.userId}
+          reporterId={user?.uid}
+          onClose={() => setReportingPost(null)}
+        />
+      )}
     </SidebarLayout>
   );
 };
