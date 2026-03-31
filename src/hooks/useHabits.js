@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { db } from '../firebase';
 import {
   collection, query, where, orderBy, onSnapshot,
-  addDoc, updateDoc, doc, serverTimestamp
+  updateDoc, doc, serverTimestamp
 } from 'firebase/firestore';
+import { logCompletion, removeCompletion } from '../services/db/habits.service';
 
 function isoToday() {
   const d = new Date();
@@ -45,6 +46,7 @@ function getConsecutiveStreak(isoDatesSet) {
 export function useHabits(userId) {
   const [habits, setHabits] = useState([]);
   const [habitCompletions, setHabitCompletions] = useState([]);
+  const [pendingReflection, setPendingReflection] = useState(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -82,35 +84,56 @@ export function useHabits(userId) {
     return map;
   }, [habits, habitCompletions]);
 
-  const logHabitToday = async (habit) => {
+  const beginToggle = useCallback((habit, dateISO) => {
     if (!userId || !habit?.id) return;
-    const today = isoToday();
-    const already = habitCompletions.find(c => c.habitId === habit.id && c.dateISO === today);
-    if (already) return;
+    const date = dateISO || isoToday();
+    const already = habitCompletions.find(c => c.habitId === habit.id && c.dateISO === date);
+
+    if (already) {
+      // Un-toggle: remove completion immediately
+      removeCompletion(habit.id, date).then(() => {
+        const dates = habitCompletions
+          .filter(c => c.habitId === habit.id && c.dateISO !== date)
+          .map(c => c.dateISO);
+        const [current, best] = getConsecutiveStreak(new Set(dates));
+        updateDoc(doc(db, 'habits', habit.id), {
+          streak: current, bestStreak: best, updatedAt: serverTimestamp()
+        });
+      }).catch(err => console.error('Error removing completion:', err));
+      return;
+    }
+
+    // New completion: open reflection sheet
+    setPendingReflection({ habit, dateISO: date });
+  }, [userId, habitCompletions]);
+
+  const confirmCompletion = useCallback(async (reflectionData = {}) => {
+    if (!pendingReflection || !userId) return;
+    const { habit, dateISO } = pendingReflection;
+    setPendingReflection(null);
 
     try {
-      await addDoc(collection(db, 'habitCompletions'), {
-        userId, habitId: habit.id, dateISO: today, createdAt: serverTimestamp()
+      await logCompletion(userId, habit.id, dateISO, {
+        ...reflectionData,
+        source: reflectionData.source || 'track',
       });
 
-      // Recompute streaks with the new date included
       const dates = habitCompletions
         .filter(c => c.habitId === habit.id)
         .map(c => c.dateISO)
-        .concat(today); // Include today's new completion
-
+        .concat(dateISO);
       const [current, best] = getConsecutiveStreak(new Set(dates));
-
       await updateDoc(doc(db, 'habits', habit.id), {
-        streak: current,
-        bestStreak: best,
-        updatedAt: serverTimestamp()
+        streak: current, bestStreak: best, updatedAt: serverTimestamp()
       });
     } catch (error) {
       console.error('Error logging habit completion:', error);
-      // Don't throw - allow the UI to continue working even if there's an error
     }
-  };
+  }, [userId, pendingReflection, habitCompletions]);
+
+  const dismissReflection = useCallback(() => {
+    setPendingReflection(null);
+  }, []);
 
   const recomputeStreaksForHabit = async (habitId) => {
     const dates = habitCompletions.filter(c => c.habitId === habitId).map(c => c.dateISO);
@@ -124,7 +147,10 @@ export function useHabits(userId) {
     habits,
     habitCompletions,
     habitStreaks,
-    logHabitToday,
-    recomputeStreaksForHabit
+    pendingReflection,
+    beginToggle,
+    confirmCompletion,
+    dismissReflection,
+    recomputeStreaksForHabit,
   };
 }
