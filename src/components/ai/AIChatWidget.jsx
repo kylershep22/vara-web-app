@@ -18,7 +18,7 @@ export default function AIChatWidget() {
   const [isLoadingContext, setIsLoadingContext] = useState(false);
   const [context, setContext] = useState(null);
   const [messages, setMessages] = useState(() => [
-    { role: 'assistant', content: "Hi! I’m your Vara coach. How can I help today?" }
+    { role: 'assistant', content: "Hi! I'm your Vara coach. How can I help today?" }
   ]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -136,22 +136,22 @@ export default function AIChatWidget() {
     // Show universal quick prompts when chat is fresh
     if (messages.length <= 1) {
       return [
-        ‘Help me focus’,
-        ‘I need a reset’,
-        ‘Build a routine’,
-        ‘Feeling overwhelmed’,
+        'Help me focus',
+        'I need a reset',
+        'Build a routine',
+        'Feeling overwhelmed',
       ];
     }
     // Page-specific suggestions after conversation starts
     switch (pageLabel) {
-      case ‘Goals’:
-        return [‘Recommend habits for my top goal’, ‘Break my goal into milestones’];
-      case ‘Habits’:
-        return [‘Suggest a plan to build consistency’, ‘Give me habit stacking ideas’];
-      case ‘Journal’:
-        return [‘Give me a reflection prompt’, ‘Help me reframe a stressful thought’];
+      case 'Goals':
+        return ['Recommend habits for my top goal', 'Break my goal into milestones'];
+      case 'Habits':
+        return ['Suggest a plan to build consistency', 'Give me habit stacking ideas'];
+      case 'Journal':
+        return ['Give me a reflection prompt', 'Help me reframe a stressful thought'];
       default:
-        return ["What’s a small win I can get today?", ‘Recommend a 10-minute routine’];
+        return ["What's a small win I can get today?", 'Recommend a 10-minute routine'];
     }
   }, [pageLabel, messages.length]);
 
