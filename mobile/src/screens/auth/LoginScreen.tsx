@@ -3,7 +3,7 @@
  * Email and password authentication
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
   Platform,
   TouchableOpacity,
   Text,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -27,6 +28,7 @@ interface LoginScreenProps {
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { login } = useAuth();
+  const scrollRef = useRef<ScrollView>(null);
 
   // Form state
   const [email, setEmail] = useState('');
@@ -40,8 +42,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   // Error state
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const errorOpacity = useRef(new Animated.Value(0)).current;
 
   // Check Firebase initialization on mount
   const isFirebaseReady = !!firebaseAuth;
@@ -50,10 +52,28 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   useEffect(() => {
     if (!isFirebaseReady && firebaseError) {
       console.error('Firebase initialization error:', firebaseError);
-      setSnackbarMessage('Unable to connect to services. Please check your internet connection and restart the app.');
-      setSnackbarVisible(true);
+      showError('Unable to connect to services. Please check your internet connection and restart the app.');
     }
   }, [isFirebaseReady]);
+
+  const showError = (message: string) => {
+    setErrorMessage(message);
+    Animated.timing(errorOpacity, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+    // Scroll to top so the error is visible
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  const dismissError = () => {
+    Animated.timing(errorOpacity, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setErrorMessage(''));
+  };
 
   /**
    * Handle login submission
@@ -62,6 +82,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     // Clear previous errors
     setEmailError('');
     setPasswordError('');
+    dismissError();
 
     // Validate email
     const emailValidation = validateEmail(email);
@@ -88,9 +109,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         message: error?.message,
         fullError: error,
       });
-      const errorMessage = getAuthErrorMessage(error?.code, error?.message);
-      setSnackbarMessage(errorMessage);
-      setSnackbarVisible(true);
+      const message = getAuthErrorMessage(error?.code, error?.message);
+      showError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -103,6 +123,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         style={styles.keyboardView}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
@@ -111,6 +132,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             title="Welcome Back"
             subtitle="Log in to continue your wellness journey"
           />
+
+          {/* Error Banner - inline at top of form, always visible */}
+          {!!errorMessage && (
+            <Animated.View style={[styles.errorBanner, { opacity: errorOpacity }]}>
+              <Icon name="alert-circle-outline" size={20} color={Colors.error} style={styles.errorIcon} />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+              <TouchableOpacity onPress={dismissError} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Icon name="close" size={18} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
 
           {/* Form */}
           <View style={styles.form}>
@@ -195,16 +227,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Error Snackbar */}
-      {snackbarVisible && (
-        <View style={[styles.snackbar, {position: 'absolute', bottom: 24, left: 16, right: 16, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center'}]}>
-          <Text style={{flex: 1, color: '#fff', fontSize: 14}}>{snackbarMessage}</Text>
-          <TouchableOpacity onPress={() => setSnackbarVisible(false)}>
-            <Text style={{color: '#fff', fontWeight: '600'}}>Dismiss</Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </SafeAreaView>
   );
 };
@@ -228,6 +250,26 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: Spacing.base,
   },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FDF2F0',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 122, 110, 0.3)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: Spacing.lg,
+  },
+  errorIcon: {
+    marginRight: 10,
+  },
+  errorText: {
+    flex: 1,
+    color: Colors.textPrimary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
   forgotPasswordButton: {
     alignSelf: 'flex-end',
     marginBottom: Spacing.lg,
@@ -250,9 +292,6 @@ const styles = StyleSheet.create({
   signupLink: {
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.semibold,
-  },
-  snackbar: {
-    backgroundColor: Colors.error,
   },
 });
 

@@ -35,6 +35,20 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "brainStateCheckIns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "challengeCheckIns",
       "queryScope": "COLLECTION",
       "fields": [

@@ -23,8 +23,6 @@ import {
   getHabitCompletions,
   isHabitCompletedToday,
   unmarkHabitComplete,
-  getMorningCheckIn,
-  saveMorningCheckIn,
   calculateWellnessScore,
   refreshWellnessScore,
   getTodayWellnessScore,
@@ -33,8 +31,18 @@ import {
   setWellnessScoreEnabled,
 } from '../services/firebase';
 import { generateDailyPlan } from '../services/api/ai.service';
-import { DailyWellnessScore, MorningCheckIn as MorningCheckInType, FourThreeTwoOneEntry } from '../types';
+import { DailyWellnessScore, FourThreeTwoOneEntry } from '../types';
 import { logger } from '../utils/logger';
+import { DASHBOARD_V2 } from '../constants/dashboardConfig';
+import { getProtocolForState } from '../constants/brainStateProtocols';
+import {
+  getTodayBrainStateCheckIn,
+  saveBrainStateCheckIn,
+  markProtocolCompleted,
+  getTodayDailyReflection,
+  saveDailyReflection,
+} from '../services/firebase';
+import { BrainState, BrainStateCheckIn as BrainStateCheckInType, DailyReflection as DailyReflectionType, DailyReflectionValue } from '../types';
 
 const SMALL_SCREEN_WIDTH = 375;
 const MEDIUM_SCREEN_WIDTH = 414;
@@ -43,9 +51,13 @@ export function useDashboard() {
   const { user } = useAuth();
   const navigation = useNavigation();
   const { width: screenWidth } = useWindowDimensions();
-  const { goals, loading: goalsLoading } = useGoals();
+  const goalsResult = useGoals();
+  const goals = DASHBOARD_V2 ? [] : goalsResult.goals;
+  const goalsLoading = DASHBOARD_V2 ? false : goalsResult.loading;
   const { habits, loading: habitsLoading } = useHabits(true);
-  const { tasks: allTasks, loading: tasksLoading } = useTasks();
+  const tasksResult = useTasks();
+  const allTasks = DASHBOARD_V2 ? [] : tasksResult.tasks;
+  const tasksLoading = DASHBOARD_V2 ? false : tasksResult.loading;
   const { entries: journalEntries } = useJournal(1);
 
   const { trackEngagement, evaluateTriggers, pendingToasts, markToastShown } = useFeatureDiscovery();
@@ -73,9 +85,6 @@ export function useDashboard() {
   const [wellnessScore, setWellnessScore] = useState<DailyWellnessScore | null>(null);
   const [wellnessScoreLoading, setWellnessScoreLoading] = useState(true);
   const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
-  const [morningCheckIn, setMorningCheckIn] = useState<MorningCheckInType | null>(null);
-  const [morningCheckInLoading, setMorningCheckInLoading] = useState(false);
-  const [showMorningCheckIn, setShowMorningCheckIn] = useState(false);
   const [fourThreeTwoOneEntry, setFourThreeTwoOneEntry] = useState<FourThreeTwoOneEntry | null>(null);
 
   // Wellness Score opt-in state
@@ -84,6 +93,18 @@ export function useDashboard() {
 
   // Welcome-back card state
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+
+  // Dashboard V2: Brain State Check-In
+  const [brainStateCheckIn, setBrainStateCheckIn] = useState<BrainStateCheckInType | null>(null);
+  const [brainStateCheckInLoading, setBrainStateCheckInLoading] = useState(false);
+
+  // Dashboard V2: Daily Reflection
+  const [dailyReflection, setDailyReflection] = useState<DailyReflectionType | null>(null);
+  const [dailyReflectionDismissed, setDailyReflectionDismissed] = useState(false);
+
+  // Event code card state
+  const [showEventCodeCard, setShowEventCodeCard] = useState(false);
+  const [eventCodeSheetVisible, setEventCodeSheetVisible] = useState(false);
 
   // Responsive day count
   const daysToShow = useMemo(() => {
@@ -106,8 +127,19 @@ export function useDashboard() {
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    let timeGreeting: string;
+    if (DASHBOARD_V2) {
+      if (hour >= 5 && hour < 12) timeGreeting = 'Good morning';
+      else if (hour >= 12 && hour < 17) timeGreeting = 'Good afternoon';
+      else if (hour >= 17 && hour < 22) timeGreeting = 'Good evening';
+      else timeGreeting = 'Hey';
+    } else {
+      timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    }
     const firstName = user?.displayName?.split(' ')[0];
+    if (DASHBOARD_V2) {
+      return firstName ? `${timeGreeting}, ${firstName}.` : `${timeGreeting}.`;
+    }
     return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
   }, [user?.displayName]);
 
@@ -143,10 +175,21 @@ export function useDashboard() {
         if (data?.lastActiveAt) {
           const lastActive = data.lastActiveAt.toDate ? data.lastActiveAt.toDate() : new Date(data.lastActiveAt);
           const daysSince = (Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysSince >= 3) {
+          if (daysSince >= 3 && !DASHBOARD_V2) {
             setShowWelcomeBack(true);
           }
         }
+        // Event code prompt: show for users < 48 hours old with no eventData and not dismissed
+        if (data) {
+          const createdAtMs = data.createdAt?.toMillis?.() || (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : 0);
+          const hoursSinceCreation = (Date.now() - createdAtMs) / (1000 * 60 * 60);
+          const hasEventData = !!data.eventData;
+          const hasDismissed = !!data.eventPromptDismissed;
+          if (hoursSinceCreation < 48 && !hasEventData && !hasDismissed) {
+            setShowEventCodeCard(true);
+          }
+        }
+
         await updateDoc(userRef, { lastActiveAt: serverTimestamp() });
       } catch (error) {
         logger.log('Error updating lastActiveAt:', error);
@@ -157,6 +200,7 @@ export function useDashboard() {
 
   // Load daily plan from storage
   useEffect(() => {
+    if (DASHBOARD_V2) return;
     const loadDailyPlan = async () => {
       try {
         const storedPlan = await SecureStore.getItemAsync(`dailyPlan_${today}`);
@@ -170,6 +214,7 @@ export function useDashboard() {
 
   // Load wellness score opt-in preference
   useEffect(() => {
+    if (DASHBOARD_V2) return;
     const loadWellnessPreference = async () => {
       if (!user?.uid) return;
       try {
@@ -199,21 +244,34 @@ export function useDashboard() {
     }
   }, [pendingToasts, queueUnlockToasts, markToastShown]);
 
-  // Load wellness score, morning check-in, and 4-3-2-1 entry
+  // V2: Load brain state check-in
   useEffect(() => {
+    if (!DASHBOARD_V2 || !user?.uid) return;
+    const loadBrainStateCheckIn = async () => {
+      setBrainStateCheckInLoading(true);
+      try {
+        const existing = await getTodayBrainStateCheckIn(user.uid);
+        setBrainStateCheckIn(existing);
+        const existingReflection = await getTodayDailyReflection(user.uid);
+        setDailyReflection(existingReflection);
+      } catch (error) {
+        logger.error('Error loading brain state check-in:', error);
+      } finally {
+        setBrainStateCheckInLoading(false);
+      }
+    };
+    loadBrainStateCheckIn();
+  }, [user?.uid, today]);
+
+  // V1: Load wellness score, morning check-in, and 4-3-2-1 entry
+  useEffect(() => {
+    if (DASHBOARD_V2) return;
     const loadWellnessData = async () => {
       if (!user?.uid) return;
       setWellnessScoreLoading(true);
       try {
-        const [existingCheckIn, todayFourThreeTwoOne] = await Promise.all([
-          getMorningCheckIn(user.uid),
-          getTodayEntry(user.uid),
-        ]);
-        setMorningCheckIn(existingCheckIn);
+        const todayFourThreeTwoOne = await getTodayEntry(user.uid);
         setFourThreeTwoOneEntry(todayFourThreeTwoOne);
-
-        const hour = new Date().getHours();
-        if (!existingCheckIn && hour < 12) setShowMorningCheckIn(true);
 
         const existingScore = await getTodayWellnessScore(user.uid);
         if (existingScore) {
@@ -346,22 +404,75 @@ export function useDashboard() {
     }
   }, [user, goals, habits, tasks, today]);
 
-  const handleMorningCheckInComplete = useCallback(async (energyLevel: number, mood: number) => {
+  const handleBrainStateCheckIn = useCallback(async (state: BrainState) => {
     if (!user?.uid) return;
-    setMorningCheckInLoading(true);
+    setBrainStateCheckInLoading(true);
     try {
-      const checkIn = await saveMorningCheckIn(user.uid, energyLevel, mood);
-      setMorningCheckIn(checkIn);
-      setShowMorningCheckIn(false);
-      trackEngagement('morningCheckInsCompleted').then(() => evaluateTriggers()).catch(logger.error);
-      const newScore = await refreshWellnessScore(user.uid);
-      setWellnessScore(newScore);
+      const checkIn = await saveBrainStateCheckIn(user.uid, state);
+      setBrainStateCheckIn(checkIn);
+      trackEngagement('brainStateCheckInsCompleted').then(() => evaluateTriggers()).catch(logger.error);
     } catch (error) {
-      logger.error('Error saving morning check-in:', error);
+      logger.error('Error saving brain state check-in:', error);
     } finally {
-      setMorningCheckInLoading(false);
+      setBrainStateCheckInLoading(false);
     }
   }, [user, trackEngagement, evaluateTriggers]);
+
+  const handleMarkProtocolCompleted = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      await markProtocolCompleted(user.uid);
+      setBrainStateCheckIn((prev) =>
+        prev ? { ...prev, protocolCompleted: true } : null
+      );
+    } catch (error) {
+      logger.error('Error marking protocol completed:', error);
+    }
+  }, [user]);
+
+  const todaysProtocol = useMemo(() => {
+    if (!brainStateCheckIn) return null;
+    return getProtocolForState(brainStateCheckIn.brainState);
+  }, [brainStateCheckIn]);
+
+  const showDailyReflection = useMemo(() => {
+    if (!DASHBOARD_V2) return false;
+    if (dailyReflection || dailyReflectionDismissed) return false;
+    if (habits.length === 0) return false;
+    const activeHabits = habits.filter((h) => h.active);
+    if (activeHabits.length === 0) return false;
+    return activeHabits.every((h) => completedToday.has(h.id));
+  }, [habits, completedToday, dailyReflection, dailyReflectionDismissed]);
+
+  const handleDailyReflection = useCallback(async (value: DailyReflectionValue) => {
+    if (!user?.uid) return;
+    try {
+      const reflection = await saveDailyReflection(user.uid, value);
+      setDailyReflection(reflection);
+    } catch (error) {
+      logger.error('Error saving daily reflection:', error);
+    }
+  }, [user]);
+
+  const handleDailyReflectionSkip = useCallback(() => {
+    setDailyReflectionDismissed(true);
+  }, []);
+
+  const handleEventCodeDismiss = useCallback(async () => {
+    setShowEventCodeCard(false);
+    if (user?.uid && db) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { eventPromptDismissed: true });
+      } catch (err) {
+        logger.error('Error dismissing event prompt:', err);
+      }
+    }
+  }, [user]);
+
+  const handleEventCodeSuccess = useCallback(() => {
+    setShowEventCodeCard(false);
+    setEventCodeSheetVisible(false);
+  }, []);
 
   const handleRefreshWellnessScore = useCallback(async () => {
     if (!user?.uid) return;
@@ -438,13 +549,6 @@ export function useDashboard() {
     handleRefreshWellnessScore,
     handleWellnessScoreEnable,
 
-    // Morning Check-In
-    morningCheckIn,
-    morningCheckInLoading,
-    showMorningCheckIn,
-    setShowMorningCheckIn,
-    handleMorningCheckInComplete,
-
     // 4-3-2-1
     fourThreeTwoOneEntry,
     handleFourThreeTwoOneChange,
@@ -460,5 +564,24 @@ export function useDashboard() {
 
     // Refresh
     handleRefresh,
+
+    // Dashboard V2
+    brainStateCheckIn,
+    brainStateCheckInLoading,
+    handleBrainStateCheckIn,
+    handleMarkProtocolCompleted,
+    todaysProtocol,
+
+    // Daily Reflection
+    showDailyReflection,
+    handleDailyReflection,
+    handleDailyReflectionSkip,
+
+    // Event Code
+    showEventCodeCard,
+    eventCodeSheetVisible,
+    setEventCodeSheetVisible,
+    handleEventCodeDismiss,
+    handleEventCodeSuccess,
   };
 }

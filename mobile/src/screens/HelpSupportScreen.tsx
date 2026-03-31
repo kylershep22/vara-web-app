@@ -133,7 +133,7 @@ const HelpSupportScreen: React.FC = () => {
           <View style={styles.cardGroup}>
             <TouchableOpacity
               style={styles.resourceItem}
-              onPress={() => Linking.openURL('https://varawellness.co/privacy')}
+              onPress={() => Linking.openURL('https://www.varawellness.co/privacy-policy')}
               activeOpacity={0.7}
             >
               <Icon name="shield-check-outline" size={20} color={Colors.mutedSageGray} />
@@ -143,7 +143,7 @@ const HelpSupportScreen: React.FC = () => {
             <View style={styles.divider} />
             <TouchableOpacity
               style={styles.resourceItem}
-              onPress={() => Linking.openURL('https://varawellness.co/terms')}
+              onPress={() => Linking.openURL('https://www.varawellness.co/terms-of-service')}
               activeOpacity={0.7}
             >
               <Icon name="file-document-outline" size={20} color={Colors.mutedSageGray} />

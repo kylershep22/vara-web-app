@@ -6,6 +6,7 @@ import { Camera, Edit3, X, AlertCircle, Plus } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../firebase";
+import { sanitizeText, sanitizeBio } from "../../utils/sanitization";
 import {
   doc,
   getDoc,
@@ -124,11 +125,15 @@ export default function EditProfile() {
     setSaving(true);
     try {
       const ref = doc(db, "users", user.uid);
+      const sanitizedDisplayName = sanitizeText(profile.displayName);
+      const sanitizedBio = sanitizeBio(profile.bio);
       const payload = {
         ...profile,
-        displayNameLower: (profile.displayName || "").toLowerCase(),
+        displayName: sanitizedDisplayName,
+        bio: sanitizedBio,
+        displayNameLower: sanitizedDisplayName.toLowerCase(),
         keywords: computeKeywords(
-          profile.displayName,
+          sanitizedDisplayName,
           profile.interestsSlugs || [],
           profile.focusSlugs || []
         ),

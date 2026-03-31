@@ -25,7 +25,7 @@ import { useAuth } from '../context/AuthContext';
 import { useJournal, useJournalStats, useWeeklySummary } from '../hooks';
 import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import { createJournalEntry, updateJournalEntry, deleteJournalEntry, refreshWellnessScore } from '../services/firebase';
-import { getJournalPrompt } from '../services/api';
+import { getJournalPromptSuggestions } from '../services/api';
 import { JournalEntry } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -41,15 +41,6 @@ const MOOD_OPTIONS = [
   { value: 'terrible', label: 'Difficult' },
 ];
 
-// Brain health reflection prompts
-const BRAIN_HEALTH_PROMPTS = [
-  { text: 'What felt uncomfortable today?', pillar: 'growth', icon: 'sprout' },
-  { text: 'What required sustained attention?', pillar: 'focus', icon: 'eye' },
-  { text: 'What did you learn that surprised you?', pillar: 'growth', icon: 'lightbulb' },
-  { text: 'What challenged you today?', pillar: 'resilience', icon: 'shield-check' },
-  { text: 'Who did you connect with?', pillar: 'connection', icon: 'account-heart' },
-  { text: 'What gave you energy?', pillar: 'energy', icon: 'lightning-bolt' },
-];
 
 // Extracted Journal Entry Modal component to prevent re-renders from parent Firestore subscriptions
 interface JournalEntryModalProps {
@@ -66,7 +57,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
   const [tagInput, setTagInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingPrompt, setLoadingPrompt] = useState(false);
-  const [showAllPrompts, setShowAllPrompts] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
 
   // Reset form when modal opens with editing entry
   useEffect(() => {
@@ -81,27 +72,29 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
         setTags([]);
       }
       setTagInput('');
+      setLoadingPrompt(false);
+      setAiSuggestions([]);
     }
   }, [visible, editingEntry]);
 
-  const handleSelectPrompt = (promptText: string) => {
-    const newContent = content.trim()
-      ? `${content}\n\n${promptText}\n`
-      : `${promptText}\n`;
-    setContent(newContent);
-  };
-
-  const handleGetAIPrompt = async (brainFocused: boolean = true) => {
+  const handleGetSuggestions = async () => {
     setLoadingPrompt(true);
     try {
-      const prompt = await getJournalPrompt(brainFocused ? 'brain-focused' : undefined);
-      setContent(prompt);
+      const suggestions = await getJournalPromptSuggestions();
+      setAiSuggestions(suggestions);
     } catch (error) {
-      console.error('Error getting AI prompt:', error);
-      Alert.alert('Error', 'Failed to generate prompt. Please try again.');
+      console.error('Error getting suggestions:', error);
+      Alert.alert('Error', 'Failed to generate suggestions. Please try again.');
     } finally {
       setLoadingPrompt(false);
     }
+  };
+
+  const handleSelectSuggestion = (suggestion: string) => {
+    const newContent = content.trim()
+      ? `${content}\n\n${suggestion}`
+      : suggestion;
+    setContent(newContent);
   };
 
   const handleAddTag = () => {
@@ -142,13 +135,6 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
     }
   };
 
-  const handleVoiceInput = async () => {
-    Alert.alert(
-      'Voice Input Not Available',
-      'Voice-to-text requires a custom development build and is not available in Expo Go.\n\nYou can use your device keyboard to type your journal entry, or if you need voice input, you can use your device\'s keyboard dictation feature (microphone button on the keyboard).',
-      [{ text: 'Got it' }]
-    );
-  };
 
   const handleDismiss = useCallback(() => {
     Keyboard.dismiss();
@@ -215,44 +201,60 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
             ))}
           </View>
 
-          {/* Brain Health Reflection Prompts */}
-          <Text style={styles.fieldLabel}>
-            Reflection Prompts
-          </Text>
-          <Text style={styles.helpText}>
-            Tap a prompt to add it to your entry
-          </Text>
-          <View style={styles.promptsContainer}>
-            {(showAllPrompts ? BRAIN_HEALTH_PROMPTS : BRAIN_HEALTH_PROMPTS.slice(0, 2)).map((prompt, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.promptChip}
-                onPress={() => handleSelectPrompt(prompt.text)}
-              >
-                <Text style={styles.promptChipText}>{prompt.text}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              onPress={() => setShowAllPrompts(!showAllPrompts)}
-              style={styles.promptToggle}
-            >
-              <Text style={styles.promptToggleText}>
-                {showAllPrompts ? 'Show Less' : 'See More'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* AI Prompt Button */}
+          {/* AI Suggestions */}
           <TouchableOpacity
-            onPress={() => handleGetAIPrompt()}
+            onPress={handleGetSuggestions}
             disabled={loadingPrompt}
-            style={[styles.aiPromptButton, {flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.evergreenTeal, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, opacity: loadingPrompt ? 0.5 : 1}]}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: Colors.evergreenTeal,
+              borderRadius: 8,
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              marginBottom: Spacing.sm,
+              opacity: loadingPrompt ? 0.5 : 1,
+            }}
           >
-            <Ionicons name="bulb-outline" size={18} color={Colors.evergreenTeal} style={{marginRight: 8}} />
+            <Ionicons name="sparkles-outline" size={18} color={Colors.evergreenTeal} style={{marginRight: 8}} />
             <Text style={{color: Colors.evergreenTeal, fontSize: 14, fontWeight: '500'}}>
-              {loadingPrompt ? 'Loading...' : 'Get AI Writing Prompt'}
+              {loadingPrompt ? 'Loading...' : 'Inspire Me'}
             </Text>
           </TouchableOpacity>
+
+          {aiSuggestions.length > 0 && (
+            <View style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: Spacing.sm,
+              marginBottom: Spacing.base,
+            }}>
+              {aiSuggestions.map((suggestion, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => handleSelectSuggestion(suggestion)}
+                  style={{
+                    backgroundColor: Colors.dewSage,
+                    paddingHorizontal: Spacing.base,
+                    paddingVertical: Spacing.sm,
+                    borderRadius: Layout.borderRadius.full,
+                    borderWidth: Layout.borderWidth.thin,
+                    borderColor: Colors.evergreenTeal + '40',
+                  }}
+                >
+                  <Text style={{
+                    color: Colors.evergreenTeal,
+                    fontSize: Typography.fontSize.sm,
+                    fontWeight: Typography.fontWeight.medium,
+                  }}>
+                    {suggestion}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           {/* Content Input with Voice Button */}
           <View style={styles.contentInputContainer}>
@@ -272,16 +274,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
                 returnKeyType="default"
                 inputAccessoryViewID={INPUT_ACCESSORY_VIEW_ID}
               />
-              <TouchableOpacity
-                style={styles.voiceButton}
-                onPress={handleVoiceInput}
-              >
-                <Ionicons
-                  name="mic-outline"
-                  size={24}
-                  color={Colors.evergreenTeal}
-                />
-              </TouchableOpacity>
+
             </View>
           </View>
 
@@ -880,38 +873,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     marginBottom: Spacing.sm,
   },
-  promptsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.base,
-  },
-  promptChip: {
-    backgroundColor: Colors.dewSage,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
-    borderRadius: Layout.borderRadius.lg,
-    borderWidth: Layout.borderWidth.thin,
-    borderColor: Colors.evergreenTeal + '40', // 40% opacity
-  },
-  promptChipText: {
-    color: Colors.evergreenTeal,
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  promptToggle: {
-    width: '100%',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-  },
-  promptToggleText: {
-    color: Colors.evergreenTeal,
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  aiPromptButton: {
-    marginBottom: Spacing.base,
-  },
   contentInput: {
     marginBottom: Spacing.base,
   },
@@ -932,25 +893,7 @@ const styles = StyleSheet.create({
     minHeight: 200,
     maxHeight: 300,
   },
-  voiceButton: {
-    position: 'absolute',
-    bottom: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: Colors.surface,
-    padding: Spacing.sm,
-    borderRadius: Layout.borderRadius['2xl'],
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
+
   tagInputContainer: {
     flexDirection: 'row',
     gap: Spacing.sm,

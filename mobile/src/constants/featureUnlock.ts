@@ -199,7 +199,7 @@ export const FEATURE_METADATA: Record<FeatureId, {
   },
   focus_timer: {
     name: 'Focus Timer',
-    description: 'Pomodoro and deep work sessions',
+    description: 'Focused sessions for deep work',
     icon: 'timer-outline',
   },
   breathwork_quick: {

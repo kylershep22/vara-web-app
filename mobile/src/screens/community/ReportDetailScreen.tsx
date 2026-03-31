@@ -105,7 +105,7 @@ const ReportDetailScreen = ({ navigation, route }: any) => {
           {/* Text input */}
           <TextInput
             style={styles.textInput}
-            placeholder="Anything you'd like to share — no pressure..."
+            placeholder="Anything you'd like to share, no pressure..."
             placeholderTextColor={Colors.silverSage}
             multiline
             maxLength={MAX_CHARS}

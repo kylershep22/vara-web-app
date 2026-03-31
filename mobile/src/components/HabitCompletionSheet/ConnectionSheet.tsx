@@ -4,7 +4,7 @@
  * Shows brain science callout, 3 stacked connection quality options, and confirmation state.
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { HabitCompletionSheetProps, CONNECTION_AFFIRMING_COPY, CONNECTION_OPTIONS } from './types';
+import { getCompletionInsight } from '../../constants/brainInsightsCopy';
 import type { ConnectionQuality } from '../../types';
 
 const CONFIRMATION_HOLD_MS = 900;
@@ -28,6 +29,7 @@ export const ConnectionSheet: React.FC<HabitCompletionSheetProps> = ({
   const iconBgAnim = useRef(new Animated.Value(0)).current;
 
   const selectedOption = CONNECTION_OPTIONS.find((o) => o.key === selectedKey);
+  const insight = useMemo(() => getCompletionInsight(habit.category), [habit.category]);
 
   const handleSelect = useCallback((key: ConnectionQuality | 'skip') => {
     if (confirmed) return;
@@ -89,7 +91,7 @@ export const ConnectionSheet: React.FC<HabitCompletionSheetProps> = ({
       {!confirmed && (
         <View style={styles.scienceCallout}>
           <Text style={styles.scienceText}>
-            Meaningful connection reduces cortisol over time — directly protecting long-term brain health. How this one felt is worth knowing.
+            Meaningful connection reduces cortisol over time, directly protecting long-term brain health. How this one felt is worth knowing.
           </Text>
         </View>
       )}
@@ -115,7 +117,7 @@ export const ConnectionSheet: React.FC<HabitCompletionSheetProps> = ({
           </View>
 
           <Text style={styles.privacyNote}>
-            Private — only used to surface patterns for you.
+            Private. Only used to surface patterns for you.
           </Text>
 
           <TouchableOpacity
@@ -129,6 +131,8 @@ export const ConnectionSheet: React.FC<HabitCompletionSheetProps> = ({
           </TouchableOpacity>
         </>
       )}
+
+      <Text style={styles.didYouKnow}>{insight}</Text>
     </View>
   );
 };
@@ -225,5 +229,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '400',
     color: '#9AA89E',
+  },
+  didYouKnow: {
+    fontSize: 12,
+    color: '#6F7F77',
+    lineHeight: 17,
+    textAlign: 'center',
+    marginTop: 12,
+    paddingHorizontal: 16,
   },
 });

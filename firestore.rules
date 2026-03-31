@@ -49,6 +49,25 @@ service cloud.firestore {
       return group.data.visibility == 'public' || group.data.type == 'public';
     }
 
+    // Check if user has admin role
+    function isAdmin() {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Check if user is not suspended or banned (auto-unsuspend if past expiry)
+    // Returns true for users without a profile doc (new users)
+    function isActiveUser() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return !exists(userPath)
+        || !('moderationStatus' in get(userPath).data)
+        || get(userPath).data.moderationStatus == null
+        || get(userPath).data.moderationStatus == 'active'
+        || (get(userPath).data.moderationStatus == 'suspended'
+            && get(userPath).data.suspendedUntil != null
+            && get(userPath).data.suspendedUntil < request.time);
+    }
+
     // ========== USER PROFILES ==========
 
     match /users/{userId} {
@@ -56,9 +75,14 @@ service cloud.firestore {
       // Privacy filtering is handled at the application layer
       allow read: if isAuthenticated();
 
-      // Users can only create/update their own profile
+      // Users can only create their own profile
       allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId;
+      // Owner can update own doc; admins can update role + moderation fields only
+      allow update: if (request.auth.uid == userId
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                .hasAny(['role', 'moderationStatus', 'suspendedUntil']))
+        || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['role', 'moderationStatus', 'suspendedUntil', 'updatedAt']));
 
       // Users cannot delete their profile (use Cloud Function if needed)
       allow delete: if false;
@@ -71,6 +95,12 @@ service cloud.firestore {
       // Sub-collection: goals (legacy pattern)
       match /goals/{goalId} {
         allow read, write: if request.auth.uid == userId;
+      }
+
+      // Sub-collection: moderationHistory (admin-only)
+      match /moderationHistory/{entryId} {
+        allow read: if isAdmin();
+        allow write: if false; // Cloud Functions use Admin SDK
       }
     }
 
@@ -165,6 +195,22 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // Brain State Check-Ins (Dashboard V2 single-tap check-in)
+    match /brainStateCheckIns/{checkInId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Daily Reflections (end-of-day difficulty signal)
+    match /dailyReflections/{docId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
     // ========== BRAIN HEALTH COLLECTIONS ==========
 
     // Brain Metrics (daily readiness scores and check-ins)
@@ -231,32 +277,38 @@ service cloud.firestore {
 
       // Create: any authenticated user can create a group
       // Support createdBy, ownerId, and creatorId fields for backwards compatibility
-      allow create: if isAuthenticated() && (
+      allow create: if isAuthenticated() && isActiveUser() && (
         request.auth.uid == request.resource.data.ownerId ||
         request.auth.uid == request.resource.data.createdBy ||
         request.auth.uid == request.resource.data.creatorId
       );
 
       // Update: owner, members, or users joining public groups
-      // Support createdBy, ownerId, and creatorId fields
       allow update: if isAuthenticated() && (
-        // Owner/creator can update anything
-        request.auth.uid == resource.data.ownerId ||
-        request.auth.uid == resource.data.createdBy ||
-        request.auth.uid == resource.data.creatorId ||
-        // Existing members can update (for leaving, etc.)
-        request.auth.uid in resource.data.members ||
+        // Owner/creator can update anything (requires active status)
+        (isActiveUser() && (
+          request.auth.uid == resource.data.ownerId ||
+          request.auth.uid == resource.data.createdBy ||
+          request.auth.uid == resource.data.creatorId
+        )) ||
+        // Existing members can update member-related fields (join/leave)
+        (request.auth.uid in resource.data.members &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['members', 'memberCount', 'updatedAt'])) ||
         // Non-members can join PUBLIC groups (add themselves to members)
+        // No isActiveUser check — joining should work for all authenticated users
         (
           (resource.data.visibility == 'public' || resource.data.isPublic == true) &&
           request.auth.uid in request.resource.data.members &&
-          !(request.auth.uid in resource.data.members)
+          !(request.auth.uid in resource.data.members) &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['members', 'memberCount', 'updatedAt'])
         )
       );
 
       // Delete: only group owner
       // Support createdBy, ownerId, and creatorId fields
-      allow delete: if isAuthenticated() && (
+      allow delete: if isAuthenticated() && isActiveUser() && (
         request.auth.uid == resource.data.ownerId ||
         request.auth.uid == resource.data.createdBy ||
         request.auth.uid == resource.data.creatorId
@@ -265,18 +317,21 @@ service cloud.firestore {
 
     // Posts (group forum posts)
     match /posts/{postId} {
-      // Read: Public posts (no group) visible to all; group posts require membership
+      // Read: Public posts visible to all authenticated users; private group posts require membership
       allow read: if isAuthenticated() && (
         // Posts without a groupId are visible to all authenticated users
         resource.data.groupId == null ||
         !resource.data.keys().hasAny(['groupId']) ||
-        // Group posts: user must be a member of the group
-        (resource.data.groupId != null &&
-         request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.members)
+        // Group posts: visible if group is public OR user is a member
+        (resource.data.groupId != null && (
+          get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.visibility == 'public' ||
+          get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.isPublic == true ||
+          request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.members
+        ))
       );
 
       // Create: if user is the author (support both userId and authorId fields)
-      allow create: if isAuthenticated() &&
+      allow create: if isAuthenticated() && isActiveUser() &&
         (request.auth.uid == request.resource.data.userId ||
          request.auth.uid == request.resource.data.authorId) &&
         (
@@ -288,7 +343,7 @@ service cloud.firestore {
         );
 
       // Update: post author can update anything, any authenticated user can like/comment
-      allow update: if isAuthenticated() && (
+      allow update: if isAuthenticated() && isActiveUser() && (
         // Author can update anything
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.authorId ||
@@ -299,7 +354,7 @@ service cloud.firestore {
       );
 
       // Delete: post author or group owner (if group post)
-      allow delete: if isAuthenticated() && (
+      allow delete: if isAuthenticated() && isActiveUser() && (
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.authorId ||
         (resource.data.groupId &&
@@ -372,34 +427,32 @@ service cloud.firestore {
 
     // ========== CHALLENGES ==========
 
-    // Challenges (time-limited group challenges)
     match /challenges/{challengeId} {
-      // Read: public challenges by anyone, private challenges only by members
+      // Read: public/global visible to all authenticated, private to members, admin sees all
       allow read: if isAuthenticated() && (
         resource.data.visibility == 'public' ||
-        request.auth.uid in resource.data.members
-      );
-
-      // Create: any authenticated user can create a challenge
-      allow create: if isAuthenticated() &&
-        request.auth.uid == request.resource.data.ownerId;
-
-      // Update: owner, members, or users joining/leaving public challenges
-      allow update: if isAuthenticated() && (
-        // Owner can update anything
-        request.auth.uid == resource.data.ownerId ||
-        // Members can update (for check-ins, leaving, etc.)
+        resource.data.isGlobal == true ||
         request.auth.uid in resource.data.members ||
-        // Allow joining public challenges (non-members adding themselves)
-        (
-          resource.data.visibility == 'public' &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberCount', 'updatedAt', 'lastActivityAt'])
-        )
+        isAdmin()
       );
 
-      // Delete: only challenge owner
+      // Create: admins can create any challenge, regular users only non-global
+      allow create: if isAuthenticated() && isActiveUser() &&
+        (isAdmin()
+         || (request.resource.data.isGlobal != true && request.auth.uid == request.resource.data.ownerId));
+
+      // Update: owner/members for non-global, admins for global, public/global join
+      allow update: if isAuthenticated() && isActiveUser() && (
+        request.auth.uid == resource.data.ownerId ||
+        request.auth.uid in resource.data.members ||
+        isAdmin() ||
+        ((resource.data.visibility == 'public' || resource.data.isGlobal == true) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberCount', 'updatedAt', 'lastActivityAt']))
+      );
+
+      // Delete: owner for non-global, admin for any
       allow delete: if isAuthenticated() &&
-        request.auth.uid == resource.data.ownerId;
+        (isAdmin() || (request.auth.uid == resource.data.ownerId && resource.data.isGlobal != true));
     }
 
     // Challenge Participants (leaderboard and progress tracking)
@@ -440,6 +493,14 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isGroupOwner(request.resource.data.groupId);
       allow update, delete: if isAuthenticated() && isGroupOwner(resource.data.groupId);
+    }
+
+    // ========== EVENTS (Workshop Codes) ==========
+    match /events/{eventId} {
+      // No client reads — validation happens via Cloud Function
+      allow read: if false;
+      // No client writes — events created manually in Firebase Console
+      allow create, update, delete: if false;
     }
 
     // ========== GROUP & CHALLENGE INVITES ==========
@@ -536,6 +597,8 @@ service cloud.firestore {
       );
 
       // Create: if user is one of the participants
+      // Note: isActiveUser() removed — connection requests should work even for
+      // users without a fully populated profile document
       allow create: if isAuthenticated() && (
         request.auth.uid == request.resource.data.a ||
         request.auth.uid == request.resource.data.b ||
@@ -571,7 +634,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (resource == null || request.auth.uid in resource.data.participants);
 
       // Create: if user is one of the participants
-      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participants;
+      allow create: if isAuthenticated() && isActiveUser() && request.auth.uid in request.resource.data.participants;
 
       // Update: if user is a participant (for lastMessage update)
       allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
@@ -589,7 +652,7 @@ service cloud.firestore {
       );
 
       // Create: if user is the sender AND a participant in the conversation
-      allow create: if isAuthenticated() &&
+      allow create: if isAuthenticated() && isActiveUser() &&
         request.auth.uid == request.resource.data.senderId &&
         request.auth.uid in get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data.participants;
 
@@ -839,6 +902,31 @@ service cloud.firestore {
       match /requests/{endpoint} {
         allow read, write: if false;
       }
+    }
+
+    // ========== ADMIN COLLECTIONS ==========
+
+    // Admin analytics — read-only for admins, written by Cloud Functions
+    match /adminAnalytics/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Moderation queue — admins read + update status fields only
+    match /moderationQueue/{itemId} {
+      allow read: if isAdmin();
+      allow create: if false;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status', 'reviewedBy', 'reviewedAt', 'action']);
+      allow delete: if false;
+    }
+
+    // Moderation actions audit trail — admins create, no modifications
+    match /moderationActions/{actionId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
     }
   }
 }

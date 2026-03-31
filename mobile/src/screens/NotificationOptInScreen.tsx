@@ -129,7 +129,7 @@ const NotificationOptInScreen: React.FC<NotificationOptInScreenProps> = ({ navig
         {/* Body */}
         <Text style={styles.body}>
           Vara can send a gentle reminder at the time that works for your routine.
-          You choose when — and you can always change it.
+          You choose when, and you can always change it.
         </Text>
 
         {/* Time Selector */}

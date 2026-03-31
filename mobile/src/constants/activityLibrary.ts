@@ -31,37 +31,22 @@ export const MORNING_ACTIVITIES: ActivityTemplate[] = [
 ];
 
 /**
- * Bedtime routine activities
- */
-export const BEDTIME_ACTIVITIES: ActivityTemplate[] = [
-  { name: 'Dim Lights', duration: 5, icon: 'brightness-6', color: 'orange' },
-  { name: 'Phone to DND', duration: 1, icon: 'cellphone-off', color: 'gray' },
-  { name: 'Meditation/Breathwork', duration: 10, icon: 'meditation', color: 'purple' },
-  { name: 'Gratitude Journal', duration: 10, icon: 'notebook', color: 'blue' },
-  { name: 'Read Book', duration: 20, icon: 'book-open', color: 'indigo' },
-  { name: 'Stretching', duration: 10, icon: 'yoga', color: 'green' },
-  { name: 'Herbal Tea', duration: 10, icon: 'tea', color: 'brown' },
-  { name: 'Sleep Sounds', duration: 2, icon: 'music-note', color: 'purple' },
-  { name: 'Cool Room (65-68°F)', duration: 2, icon: 'thermometer', color: 'blue' },
-  { name: 'Eye Mask/Earplugs', duration: 2, icon: 'sleep', color: 'indigo' },
-  { name: 'No Screens 1hr Before', duration: 60, icon: 'monitor-off', color: 'red' },
-  { name: 'Skincare Routine', duration: 10, icon: 'face-woman', color: 'pink' },
-];
-
-/**
- * Evening routine activities
+ * Evening routine activities (merged evening + bedtime)
  */
 export const EVENING_ACTIVITIES: ActivityTemplate[] = [
+  { name: 'Dim Lights', duration: 5, icon: 'brightness-6', color: 'orange' },
+  { name: 'Phone to DND', duration: 1, icon: 'cellphone-off', color: 'gray' },
   { name: 'Evening Walk', duration: 20, icon: 'walk', color: 'green' },
-  { name: 'Dinner', duration: 30, icon: 'food', color: 'orange' },
-  { name: 'Reading', duration: 30, icon: 'book', color: 'blue' },
-  { name: 'Meditation', duration: 15, icon: 'meditation', color: 'purple' },
+  { name: 'Stretching', duration: 10, icon: 'yoga', color: 'green' },
+  { name: 'Meditation/Breathwork', duration: 10, icon: 'meditation', color: 'purple' },
+  { name: 'Gratitude Journal', duration: 10, icon: 'notebook', color: 'blue' },
+  { name: 'Reading', duration: 20, icon: 'book-open', color: 'indigo' },
+  { name: 'Herbal Tea', duration: 10, icon: 'tea', color: 'brown' },
   { name: 'Journaling', duration: 15, icon: 'notebook', color: 'indigo' },
-  { name: 'Relaxing Music', duration: 20, icon: 'music', color: 'purple' },
-  { name: 'Skincare', duration: 10, icon: 'face-woman', color: 'pink' },
   { name: 'Plan Tomorrow', duration: 10, icon: 'calendar-check', color: 'teal' },
+  { name: 'Sleep Sounds', duration: 2, icon: 'music-note', color: 'purple' },
+  { name: 'Skincare', duration: 10, icon: 'face-woman', color: 'pink' },
   { name: 'No Screens', duration: 30, icon: 'monitor-off', color: 'red' },
-  { name: 'Gratitude Practice', duration: 5, icon: 'heart', color: 'red' },
 ];
 
 /**
@@ -98,8 +83,6 @@ export function getActivitiesForType(type: RoutineType): ActivityTemplate[] {
   switch (type) {
     case 'morning':
       return MORNING_ACTIVITIES;
-    case 'bedtime':
-      return BEDTIME_ACTIVITIES;
     case 'evening':
       return EVENING_ACTIVITIES;
     case 'custom':
@@ -116,8 +99,6 @@ export function getRoutineTypeDisplayName(type: RoutineType): string {
   switch (type) {
     case 'morning':
       return 'Morning';
-    case 'bedtime':
-      return 'Bedtime';
     case 'evening':
       return 'Evening';
     case 'custom':
@@ -134,12 +115,10 @@ export function getRoutineTypeDescription(type: RoutineType): string {
   switch (type) {
     case 'morning':
       return 'Start your day with intention and energy';
-    case 'bedtime':
-      return 'Wind down and prepare for restful sleep';
     case 'evening':
-      return 'Transition from work to relaxation';
+      return 'Wind down and prepare for restful sleep';
     case 'custom':
-      return 'Create a routine for this time of day—whenever you\'re ready.';
+      return 'Create a routine for this time of day, whenever you\'re ready.';
     default:
       return '';
   }
@@ -152,10 +131,8 @@ export function getRoutineTypeIcon(type: RoutineType): string {
   switch (type) {
     case 'morning':
       return 'white-balance-sunny';
-    case 'bedtime':
-      return 'moon-waning-crescent';
     case 'evening':
-      return 'weather-sunset';
+      return 'moon-waning-crescent';
     case 'custom':
       return 'calendar';
     default:

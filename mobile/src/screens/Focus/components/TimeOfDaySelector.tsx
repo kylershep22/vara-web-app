@@ -3,7 +3,7 @@
  * Horizontal chip row for selecting routine time of day
  *
  * Per Focus Page Spec Section 6.1:
- * - Options: Morning, Evening, Bedtime, Custom (4 total - removed Sunday)
+ * - Options: Morning, Evening, Sunday, Custom (4 total - removed Bedtime)
  * - Layout: Horizontal flex row, 8px gap, vertical icon+label
  * - Selected: primary bg, white text/icon
  * - Unselected: surface bg, 1.5px secondary border
@@ -19,7 +19,7 @@ import {
   RadiusTokens,
 } from '../../../tokens/design-tokens';
 
-export type TimeOfDay = 'morning' | 'evening' | 'bedtime' | 'custom';
+export type TimeOfDay = 'morning' | 'evening' | 'sunday' | 'custom';
 
 interface TimeOption {
   value: TimeOfDay;
@@ -29,9 +29,9 @@ interface TimeOption {
 
 const TIME_OPTIONS: TimeOption[] = [
   { value: 'morning', label: 'Morning', icon: 'white-balance-sunny' },
-  { value: 'evening', label: 'Evening', icon: 'weather-sunset' },
-  { value: 'bedtime', label: 'Bedtime', icon: 'moon-waning-crescent' },
-  { value: 'custom', label: 'Custom', icon: 'calendar' },
+  { value: 'evening', label: 'Evening', icon: 'moon-waning-crescent' },
+  { value: 'sunday', label: 'Sunday', icon: 'calendar' },
+  { value: 'custom', label: 'Custom', icon: 'creation' },
 ];
 
 interface TimeOfDaySelectorProps {

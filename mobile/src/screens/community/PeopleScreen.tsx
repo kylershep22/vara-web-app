@@ -136,12 +136,18 @@ const PeopleScreen: React.FC = () => {
     } else if (filter === 'requests') {
       return requestProfiles.map((p) => ({ ...p, uid: p.id } as EnhancedUserProfile));
     } else {
-      // 'discover' - show search results, filter out current user and existing connections
-      return searchResults
+      // 'discover' - show search results if searching, otherwise show suggestions
+      if (searchQuery.trim().length >= 1) {
+        return searchResults
+          .filter((u) => u.id !== user?.uid && !isConnected(u.id))
+          .map((p) => ({ ...p, uid: p.id } as EnhancedUserProfile));
+      }
+      // No search query — show suggested connections
+      return suggestions
         .filter((u) => u.id !== user?.uid && !isConnected(u.id))
         .map((p) => ({ ...p, uid: p.id } as EnhancedUserProfile));
     }
-  }, [filter, connectionProfiles, requestProfiles, searchResults, user, isConnected]);
+  }, [filter, connectionProfiles, requestProfiles, searchResults, suggestions, searchQuery, user, isConnected]);
 
   const loading = connectionsLoading || profilesLoading || (filter === 'discover' && searchLoading);
 
@@ -150,8 +156,12 @@ const PeopleScreen: React.FC = () => {
       await sendRequest(userId);
       Alert.alert('Success', `Connection request sent to ${userName}`);
       refreshSuggestions();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send connection request');
+    } catch (error: any) {
+      const msg = error?.message || 'Unknown error';
+      console.error('[PeopleScreen] Connection request failed:', msg);
+      Alert.alert('Error', msg.includes('permission')
+        ? 'Unable to send request. Please try again.'
+        : msg);
     }
   };
 
@@ -461,16 +471,16 @@ const PeopleScreen: React.FC = () => {
                   ? 'No pending requests'
                   : searchQuery.length >= 1
                   ? 'No people found'
-                  : 'Find new connections'}
+                  : 'Discover people'}
               </Text>
               <Text style={styles.emptyText}>
                 {filter === 'connections'
-                  ? 'Use the search bar above to find and connect with people'
+                  ? 'Tap Discover to find and connect with people'
                   : filter === 'requests'
                   ? 'Connection requests will appear here'
                   : searchQuery.length >= 1
                   ? `No results for "${searchQuery}". Try a different name.`
-                  : 'Start typing a name to find people in the community'}
+                  : 'Use the search bar to find people in the community'}
               </Text>
               {filter === 'connections' && (
                 <Button
@@ -478,7 +488,7 @@ const PeopleScreen: React.FC = () => {
                   style={styles.findPeopleButton}
                   onPress={() => setFilter('discover')}
                 >
-                  Find People
+                  Discover People
                 </Button>
               )}
             </View>

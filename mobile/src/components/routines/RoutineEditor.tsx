@@ -162,6 +162,7 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
         const routineId = await createRoutine(userId, {
           name: routineName.trim(),
           type: routineType,
+          mode: 'checklist',
           activities,
           active: true,
           reminderTime: reminderTime.trim() || null,

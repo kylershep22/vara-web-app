@@ -1,53 +1,54 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Lightbulb, X } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
-import { useWeeklyCorrelations } from "../../hooks/useWeeklyCorrelations";
-import { selectInsight } from "../../constants/weekInsightTemplates";
+/**
+ * WeekInsightCard
+ * Template-driven correlation insight shown on the dashboard.
+ * Features a 3px left accent bar and dismiss control.
+ */
 
-const DISMISS_KEY = "vara_week_insight_dismissed";
+import React from 'react';
+import { Lightbulb, ArrowRight, X } from 'lucide-react';
 
-export default function WeekInsightCard() {
-  const { user } = useAuth();
-  const { data, loading } = useWeeklyCorrelations(user?.uid);
-  const navigate = useNavigate();
-
-  const [dismissed, setDismissed] = useState(() => {
-    const stored = localStorage.getItem(DISMISS_KEY);
-    if (!stored) return false;
-    const parsed = JSON.parse(stored);
-    return Date.now() - parsed.timestamp < 7 * 24 * 60 * 60 * 1000;
-  });
-
-  if (loading || dismissed) return null;
-
-  const insight = selectInsight(data);
-  if (!insight) return null;
-
-  function handleDismiss() {
-    localStorage.setItem(DISMISS_KEY, JSON.stringify({ timestamp: Date.now() }));
-    setDismissed(true);
-  }
-
+export default function WeekInsightCard({ headline, supporting, onPressFullStory, onDismiss }) {
   return (
-    <div className="bg-white rounded-vara-lg shadow-vara-md border-l-[3px] border-l-evergreen-teal border border-divider p-vara-lg">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-3">
-          <Lightbulb size={20} className="text-evergreen-teal mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-soft-charcoal">{insight.headline}</p>
-            <p className="text-sm text-muted-sage-gray mt-1">{insight.detail}</p>
-            <button
-              onClick={() => navigate("/insights")}
-              className="text-xs text-evergreen-teal hover:underline mt-2 inline-block"
-            >
-              See your full week story
-            </button>
-          </div>
+    <div className="bg-white rounded-vara-lg border border-divider/30 shadow-vara-md overflow-hidden flex flex-row">
+      {/* Left accent bar */}
+      <div className="w-[3px] shrink-0 bg-evergreen-teal" />
+
+      {/* Content */}
+      <div className="flex-1 p-vara-lg relative">
+        {/* Dismiss button */}
+        {onDismiss && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="absolute top-3 right-3 p-1 text-muted-sage-gray hover:opacity-70 transition-opacity"
+            aria-label="Dismiss insight"
+          >
+            <X size={14} />
+          </button>
+        )}
+
+        {/* Headline row */}
+        <div className="flex items-start gap-2 pr-6">
+          <Lightbulb size={15} className="text-evergreen-teal shrink-0 mt-0.5" />
+          <p className="text-[15px] font-semibold text-soft-charcoal leading-snug">{headline}</p>
         </div>
-        <button onClick={handleDismiss} className="text-muted-sage-gray hover:text-soft-charcoal flex-shrink-0">
-          <X size={16} />
-        </button>
+
+        {/* Supporting text */}
+        {supporting && (
+          <p className="text-[13px] text-muted-sage-gray mt-2 leading-relaxed">{supporting}</p>
+        )}
+
+        {/* Full story link */}
+        {onPressFullStory && (
+          <button
+            type="button"
+            onClick={onPressFullStory}
+            className="flex items-center gap-1 mt-3 text-[13px] text-evergreen-teal font-semibold hover:opacity-75 transition-opacity"
+          >
+            See your full week story
+            <ArrowRight size={13} className="shrink-0" />
+          </button>
+        )}
       </div>
     </div>
   );

@@ -12,13 +12,20 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { Colors } from '../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { AIAssistantFAB } from '../components/ai/AIAssistantFAB';
-import { useGoals } from '../hooks/useGoals';
 import { useHabits } from '../hooks/useHabits';
-import { useTasks } from '../hooks/useTasks';
 import { useSubscription } from '../hooks/useSubscription';
+import { ONBOARDING_V2 } from '../constants/dashboardConfig';
 import { linking } from './linking';
 
 export const navigationRef = createNavigationContainerRef();
+
+/** Standard header styling used across all navigators */
+const standardHeaderOptions = {
+  headerStyle: { backgroundColor: Colors.mistWhite, elevation: 0, shadowOpacity: 0 } as any,
+  headerTintColor: Colors.evergreenTeal,
+  headerTitleStyle: { fontWeight: '600' as const, color: Colors.softCharcoal },
+  headerBackTitleVisible: false,
+};
 
 // Auth screens
 import {
@@ -30,7 +37,6 @@ import {
 
 // App screens
 import DashboardScreen from '../screens/DashboardScreen';
-import BrainHealthDashboard from '../screens/BrainHealthDashboard';
 import MoreMenuScreen from '../screens/MoreMenuScreen';
 import PlanScreen from '../screens/PlanScreen';
 import { FocusScreen } from '../screens/Focus';
@@ -47,7 +53,6 @@ import PaywallScreen from '../screens/PaywallScreen';
 import RedeemCodeScreen from '../screens/RedeemCodeScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
 import HabitDetailScreen from '../screens/HabitDetailScreen';
-import TaskDetailScreen from '../screens/TaskDetailScreen';
 import WearableIntegrationScreen from '../screens/WearableIntegrationScreen';
 import {
   CommunityScreen,
@@ -72,6 +77,9 @@ import {
   OnboardingConfirmationScreen,
   OnboardingValuesScreen,
   OnboardingPersonalizedEntryScreen,
+  OnboardingV2WelcomeScreen,
+  OnboardingV2CheckInScreen,
+  OnboardingV2ProtocolScreen,
 } from '../screens/onboarding';
 
 // Discover screens
@@ -86,6 +94,7 @@ import {
   MasterclassScreen,
   MasterclassDetailScreen,
 } from '../screens/discover';
+import PodcastEpisodeScreen from '../screens/discover/PodcastEpisodeScreen';
 
 // Create navigators
 const AuthStack = createNativeStackNavigator();
@@ -110,12 +119,22 @@ const OnboardingNavigator = () => {
         animation: 'slide_from_right',
       }}
     >
-      <OnboardingStack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen} />
-      <OnboardingStack.Screen name="OnboardingCheckIn" component={OnboardingCheckInScreen} />
-      <OnboardingStack.Screen name="OnboardingInsight" component={OnboardingInsightScreen} />
-      <OnboardingStack.Screen name="OnboardingActivity" component={OnboardingActivityScreen} />
-      <OnboardingStack.Screen name="OnboardingValues" component={OnboardingValuesScreen} />
-      <OnboardingStack.Screen name="OnboardingPersonalizedEntry" component={OnboardingPersonalizedEntryScreen} />
+      {ONBOARDING_V2 ? (
+        <>
+          <OnboardingStack.Screen name="OnboardingV2Welcome" component={OnboardingV2WelcomeScreen} />
+          <OnboardingStack.Screen name="OnboardingV2CheckIn" component={OnboardingV2CheckInScreen} />
+          <OnboardingStack.Screen name="OnboardingV2Protocol" component={OnboardingV2ProtocolScreen} />
+        </>
+      ) : (
+        <>
+          <OnboardingStack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen} />
+          <OnboardingStack.Screen name="OnboardingCheckIn" component={OnboardingCheckInScreen} />
+          <OnboardingStack.Screen name="OnboardingInsight" component={OnboardingInsightScreen} />
+          <OnboardingStack.Screen name="OnboardingActivity" component={OnboardingActivityScreen} />
+          <OnboardingStack.Screen name="OnboardingValues" component={OnboardingValuesScreen} />
+          <OnboardingStack.Screen name="OnboardingPersonalizedEntry" component={OnboardingPersonalizedEntryScreen} />
+        </>
+      )}
     </OnboardingStack.Navigator>
   );
 };
@@ -165,15 +184,11 @@ const CommunityNavigator = () => {
   return (
     <CommunityStack.Navigator
       screenOptions={{
+        ...standardHeaderOptions,
         animation: 'slide_from_right',
-        headerStyle: {
-          backgroundColor: Colors.evergreenTeal,
-        },
+        headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
         headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: '700',
-        },
-        headerBackTitleVisible: false,
+        headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
       }}
     >
       <CommunityStack.Screen
@@ -230,7 +245,6 @@ const CommunityNavigator = () => {
         component={ChatScreen}
         options={{
           headerShown: true,
-          headerBackTitleVisible: false,
         }}
       />
       <CommunityStack.Screen
@@ -267,15 +281,8 @@ const DiscoverNavigator = () => {
   return (
     <DiscoverStack.Navigator
       screenOptions={{
+        ...standardHeaderOptions,
         animation: 'slide_from_right',
-        headerStyle: {
-          backgroundColor: Colors.mistWhite,
-        },
-        headerTintColor: Colors.evergreenTeal,
-        headerTitleStyle: {
-          fontWeight: '600',
-          color: Colors.softCharcoal,
-        },
         headerShadowVisible: false,
       }}
     >
@@ -299,24 +306,12 @@ const DiscoverNavigator = () => {
       <DiscoverStack.Screen
         name="Sleep"
         component={SleepScreen}
-        options={{
-          title: 'Sleep Library',
-          headerStyle: { backgroundColor: Colors.mistWhite },
-          headerTintColor: Colors.evergreenTeal,
-          headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
-          headerShadowVisible: false,
-        }}
+        options={{ title: 'Sleep Library' }}
       />
       <DiscoverStack.Screen
         name="SleepDetail"
         component={SleepDetailScreen}
-        options={{
-          title: 'Sleep Content',
-          headerStyle: { backgroundColor: Colors.mistWhite },
-          headerTintColor: Colors.evergreenTeal,
-          headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
-          headerShadowVisible: false,
-        }}
+        options={{ title: 'Sleep Content' }}
       />
       <DiscoverStack.Screen
         name="Movement"
@@ -338,6 +333,15 @@ const DiscoverNavigator = () => {
         component={MasterclassDetailScreen}
         options={{ title: 'Class Details' }}
       />
+      <DiscoverStack.Screen
+        name="PodcastEpisode"
+        component={PodcastEpisodeScreen}
+        options={{
+          ...standardHeaderOptions,
+          title: 'Episode',
+          headerShadowVisible: false,
+        }}
+      />
     </DiscoverStack.Navigator>
   );
 };
@@ -350,6 +354,7 @@ const ProfileNavigator = () => {
   return (
     <ProfileStack.Navigator
       screenOptions={{
+        ...standardHeaderOptions,
         animation: 'slide_from_right',
       }}
     >
@@ -358,13 +363,10 @@ const ProfileNavigator = () => {
         component={ProfileScreen}
         options={{
           title: 'Profile',
-          headerStyle: {
-            backgroundColor: Colors.evergreenTeal,
-          },
+          ...standardHeaderOptions,
+          headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
           headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: '700',
-          },
+          headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
         }}
       />
       <ProfileStack.Screen
@@ -372,13 +374,10 @@ const ProfileNavigator = () => {
         component={SettingsScreen}
         options={{
           title: 'Settings',
-          headerStyle: {
-            backgroundColor: Colors.evergreenTeal,
-          },
+          ...standardHeaderOptions,
+          headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
           headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: '700',
-          },
+          headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
         }}
       />
       <ProfileStack.Screen
@@ -435,22 +434,12 @@ const BottomTabsNavigator = () => {
         }}
       />
       <BottomTabs.Screen
-        name="Track"
+        name="Rhythms"
         component={PlanScreen}
         options={{
-          tabBarLabel: 'Track',
+          tabBarLabel: 'Rhythms',
           tabBarIcon: ({ color, size }) => (
             <Icon name="clipboard-check" size={size} color={color} />
-          ),
-        }}
-      />
-      <BottomTabs.Screen
-        name="Focus"
-        component={FocusScreen}
-        options={{
-          tabBarLabel: 'Focus',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="timer-outline" size={size} color={color} />
           ),
         }}
       />
@@ -485,17 +474,13 @@ const BottomTabsNavigator = () => {
 const MainNavigator = () => {
   // Call hooks at top level (required by Rules of Hooks)
   // Provide safe defaults if data isn't available yet
-  const goalsData = useGoals();
   const habitsData = useHabits();
-  const tasksData = useTasks();
 
   // Track current active tab to conditionally show/hide AI FAB
   const [activeTab, setActiveTab] = React.useState<string>('Home');
 
   // Safely extract data with fallbacks
-  const goals = goalsData?.goals || [];
   const habits = habitsData?.habits || [];
-  const tasks = tasksData?.tasks || [];
 
   // Hide AI FAB on Community tab (community screens have their own action buttons)
   const showAIFab = activeTab !== 'Community';
@@ -538,26 +523,22 @@ const MainNavigator = () => {
           name="Insights"
           component={InsightsScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
-            title: 'Insights',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            title: 'Your week',
             headerShadowVisible: false,
           }}
         />
-        {/* Brain Health - Accessible from Wellness menu */}
+        {/* Focus Timer - Accessible from Wellness menu */}
         <AppStack.Screen
-          name="BrainHealth"
-          component={BrainHealthDashboard}
+          name="FocusTimer"
+          component={FocusScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
-            title: 'Brain Health',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            title: 'Focus',
             headerShadowVisible: false,
           }}
         />
@@ -575,12 +556,10 @@ const MainNavigator = () => {
           name="Breathwork"
           component={BreathworkScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Breathwork',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -588,12 +567,10 @@ const MainNavigator = () => {
           name="BreathworkDetail"
           component={BreathworkDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Session Details',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -602,12 +579,10 @@ const MainNavigator = () => {
           name="Sleep"
           component={SleepScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Sleep Library',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -615,12 +590,10 @@ const MainNavigator = () => {
           name="SleepDetail"
           component={SleepDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Sleep Content',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -629,12 +602,10 @@ const MainNavigator = () => {
           name="Movement"
           component={MovementScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Movement Library',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -642,12 +613,10 @@ const MainNavigator = () => {
           name="MovementDetail"
           component={MovementDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Workout Details',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -656,12 +625,10 @@ const MainNavigator = () => {
           name="Masterclass"
           component={MasterclassScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Masterclasses',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
             headerShadowVisible: false,
           }}
         />
@@ -669,12 +636,21 @@ const MainNavigator = () => {
           name="MasterclassDetail"
           component={MasterclassDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Class Details',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            headerShadowVisible: false,
+          }}
+        />
+        <AppStack.Screen
+          name="PodcastEpisode"
+          component={PodcastEpisodeScreen}
+          options={{
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: 'Episode',
             headerShadowVisible: false,
           }}
         />
@@ -687,17 +663,15 @@ const MainNavigator = () => {
             headerShown: false,
           }}
         />
-        {/* Wearable Integration - Coming Soon */}
+        {/* Connected Apps */}
         <AppStack.Screen
           name="WearableIntegration"
           component={WearableIntegrationScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
-            title: 'Wearables',
-            headerStyle: { backgroundColor: Colors.mistWhite },
-            headerTintColor: Colors.evergreenTeal,
-            headerTitleStyle: { fontWeight: '600', color: Colors.softCharcoal },
+            title: 'Connected Apps',
             headerShadowVisible: false,
           }}
         />
@@ -706,25 +680,13 @@ const MainNavigator = () => {
           name="HabitDetail"
           component={HabitDetailScreen}
           options={{
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Habit Details',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
+            headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
             headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
-          }}
-        />
-        {/* Task Detail - Accessible from Plan/Track screen */}
-        <AppStack.Screen
-          name="TaskDetail"
-          component={TaskDetailScreen}
-          options={{
-            animation: 'slide_from_right',
-            headerShown: true,
-            title: 'Task Details',
-            headerStyle: { backgroundColor: Colors.evergreenTeal },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' },
+            headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
           }}
         />
         {/* Profile screens accessible from anywhere */}
@@ -753,9 +715,7 @@ const MainNavigator = () => {
         <AIAssistantFAB
           context={{
             screen: 'global',
-            userGoals: goals.slice(0, 5),
-            userHabits: habits.slice(0, 10),
-            userTasks: tasks.slice(0, 10),
+            userHabits: habits,
           }}
         />
       )}

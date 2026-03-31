@@ -123,6 +123,9 @@ export interface Habit {
   name: string;
   type: 'daily' | 'weekly' | 'custom';
   frequency: number; // times per week
+  frequencyType?: 'daily' | 'specific_days' | 'flexible';
+  specificDays?: number[];  // 0=Sun, 1=Mon, ..., 6=Sat
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'anytime';
   streak: number;
   longestStreak: number;
   active: boolean;
@@ -646,6 +649,10 @@ export interface AIPromptResponse {
   prompt: string;
 }
 
+export interface JournalPromptRawResponse {
+  text: string;
+}
+
 export interface JournalSummaryRequest {
   userId: string;
   entries: JournalEntry[];
@@ -753,6 +760,48 @@ export interface MorningCheckIn {
   energyLevel: number; // 1-5 scale
   mood: number; // 1-5 scale
   note?: string; // Optional quick note
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ==========================================
+// BRAIN STATE CHECK-IN (Dashboard V2)
+// ==========================================
+
+export type BrainState = 'wired' | 'foggy' | 'okay' | 'clear' | 'energized';
+
+/**
+ * Brain State Check-In
+ * Single-tap daily check-in that maps to a recommended protocol.
+ * Stored in the `brainStateCheckIns` collection.
+ */
+export interface BrainStateCheckIn {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  brainState: BrainState;
+  protocolId: string;
+  protocolCompleted: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ==========================================
+// DAILY REFLECTION (End-of-Day Check-In)
+// ==========================================
+
+export type DailyReflectionValue = 'smooth' | 'okay' | 'hard';
+
+/**
+ * Daily Reflection
+ * End-of-day difficulty signal captured after all habits completed.
+ * Stored in the `dailyReflections` collection.
+ */
+export interface DailyReflection {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  reflection: DailyReflectionValue;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

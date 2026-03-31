@@ -23,13 +23,15 @@ import {
 import { Habit, CompletionData } from '../types';
 import { isCognitiveReserveCategory } from '../constants/habitCategories';
 import { HabitFormData } from '../components/habits/wizard/types';
+import { DASHBOARD_V2 } from '../constants/dashboardConfig';
+import { SimpleHabitFormData } from '../components/habits/SimpleHabitCreateScreen';
 import { logger } from '../utils/logger';
 import { scheduleHabitReminder, cancelHabitReminder } from '../services/reminderScheduler.service';
 
 export function useHabitsScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const { habits, loading, error: habitsError } = useHabits(true);
+  const { habits, loading, error: habitsError, retry: retryHabits } = useHabits(true);
   const { shouldShowPrompt: shouldShowNotifPrompt, markPromptShown: markNotifPromptShown } = useNotificationOptIn();
   const notifOptInChecked = useRef(false);
   const {
@@ -177,6 +179,57 @@ export function useHabitsScreen() {
     }
   }, [user, editingHabit]);
 
+  const handleSimpleHabitSave = useCallback(async (formData: SimpleHabitFormData) => {
+    if (!user || !user.uid) {
+      Alert.alert('Authentication Error', 'You must be logged in to create a habit.');
+      return;
+    }
+
+    try {
+      const frequencyMap = {
+        daily: { type: 'daily' as const, frequency: 7 },
+        specific_days: { type: 'weekly' as const, frequency: formData.specificDays.length },
+        flexible: { type: 'custom' as const, frequency: 0 },
+      };
+      const { type, frequency } = frequencyMap[formData.frequencyType];
+
+      const habitData: any = {
+        name: formData.name,
+        type,
+        frequency,
+        frequencyType: formData.frequencyType,
+        active: true,
+        totalStepsTaken: 0,
+        thisWeekSteps: 0,
+        missedYesterday: false,
+        consecutiveMisses: 0,
+        scalingPhase: 'getting_started',
+      };
+
+      if (formData.specificDays.length > 0) {
+        habitData.specificDays = formData.specificDays;
+      }
+
+      if (formData.timeOfDay !== 'anytime') {
+        habitData.timeOfDay = formData.timeOfDay;
+      }
+
+      if (formData.intention) {
+        habitData.intention = {
+          label: formData.intention,
+          category: 'focus_clarity',
+          isCustom: true,
+        };
+      }
+
+      await createHabit(user.uid, habitData);
+      setModalVisible(false);
+    } catch (error: any) {
+      logger.error('Error saving habit:', error);
+      Alert.alert('Unable to Save Habit', error?.message || 'Failed to save habit.');
+    }
+  }, [user]);
+
   const handleDeleteHabit = useCallback((habitId: string) => {
     Alert.alert(
       'Delete Habit',
@@ -213,12 +266,12 @@ export function useHabitsScreen() {
           return newSet;
         });
         setAllHabitsCompletedToday(false);
-      } else if (!reflectionEnabled) {
-        // Silent completion — reflections disabled, mark done immediately
+      } else if (DASHBOARD_V2 || !reflectionEnabled) {
+        // V2: single-tap completion, no sheet. Also used when reflections disabled.
         await markHabitComplete(habitId, user!.uid, today, { source: 'track' });
         completeHabitLocally(habitId);
       } else {
-        // Open the completion sheet for reflection
+        // V1: Open the completion sheet for reflection
         const habit = habits.find((h) => h.id === habitId);
         if (habit) {
           setCompletionSheetHabit(habit);
@@ -281,6 +334,7 @@ export function useHabitsScreen() {
     habits,
     loading,
     habitsError,
+    retryHabits,
     modalVisible,
     setModalVisible,
     editingHabit,
@@ -292,6 +346,7 @@ export function useHabitsScreen() {
     handleCreateHabit,
     handleEditHabit,
     handleWizardComplete,
+    handleSimpleHabitSave,
     handleDeleteHabit,
     handleToggleCompletion,
     // Completion sheet

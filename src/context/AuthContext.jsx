@@ -7,6 +7,8 @@ import {
   sendEmailVerification
 } from "firebase/auth";
 import { auth } from "../firebase";
+import { db } from "../firebase";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -36,6 +38,15 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setIsAuthReady(true);
+
+      // Track last active time for analytics (DAU/WAU/MAU)
+      if (u) {
+        updateDoc(doc(db, 'users', u.uid), {
+          lastActiveAt: serverTimestamp(),
+        }).catch(() => {
+          // Silently ignore — user doc may not exist yet during signup
+        });
+      }
 
       // keep the external store in sync
       _snapshot = { user: u, isAuthReady: true };

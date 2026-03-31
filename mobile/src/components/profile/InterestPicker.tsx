@@ -12,15 +12,33 @@ import {
   ScrollView,
   Modal,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import {
   WELLNESS_INTERESTS,
+  WELLNESS_GOALS,
   INTEREST_CATEGORIES,
+  GOAL_CATEGORIES,
   getInterestById,
+  getGoalById,
   type WellnessInterest,
+  type WellnessGoal,
 } from '../../constants/interests';
+
+interface PickerItem {
+  id: string;
+  label: string;
+  category: string;
+}
+
+interface CategoryDef {
+  id: string;
+  label: string;
+  icon: string;
+}
 
 interface InterestPickerProps {
   selectedInterests: string[];
@@ -29,6 +47,14 @@ interface InterestPickerProps {
   showPrivacyToggle?: boolean;
   isPublic?: boolean;
   onPrivacyChange?: (isPublic: boolean) => void;
+  /** Override items and categories to reuse for goals */
+  items?: readonly PickerItem[];
+  categories?: readonly CategoryDef[];
+  label?: string;
+  modalTitle?: string;
+  addButtonLabel?: string;
+  emptyText?: string;
+  lookupFn?: (id: string) => PickerItem | undefined;
 }
 
 export const InterestPicker: React.FC<InterestPickerProps> = ({
@@ -38,13 +64,21 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
   showPrivacyToggle = true,
   isPublic = true,
   onPrivacyChange,
+  items = WELLNESS_INTERESTS,
+  categories = INTEREST_CATEGORIES,
+  label = 'Interests',
+  modalTitle = 'Select Interests',
+  addButtonLabel = 'Add Interests',
+  emptyText = 'No interests selected',
+  lookupFn = getInterestById,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [customInput, setCustomInput] = useState('');
 
   const filteredInterests = useMemo(() => {
-    let interests = [...WELLNESS_INTERESTS];
+    let interests = [...items];
 
     // Filter by category
     if (selectedCategory) {
@@ -78,7 +112,7 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
     <View style={styles.container}>
       {/* Header with Privacy Toggle */}
       <View style={styles.header}>
-        <Text style={styles.label}>Interests</Text>
+        <Text style={styles.label}>{label}</Text>
         {showPrivacyToggle && onPrivacyChange && (
           <TouchableOpacity
             style={styles.privacyToggle}
@@ -106,7 +140,7 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
         {selectedInterests.length > 0 ? (
           <View style={styles.chipsContainer}>
             {selectedInterests.map((interestId) => {
-              const interest = getInterestById(interestId);
+              const interest = lookupFn(interestId);
               return (
                 <View key={interestId} style={styles.chip}>
                   <Text style={styles.chipText}>{interest?.label || interestId}</Text>
@@ -121,7 +155,7 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
             })}
           </View>
         ) : (
-          <Text style={styles.emptyText}>No interests selected</Text>
+          <Text style={styles.emptyText}>{emptyText}</Text>
         )}
       </View>
 
@@ -132,7 +166,7 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
       >
         <Icon name="plus" size={20} color={Colors.evergreenTeal} />
         <Text style={styles.addButtonText}>
-          Add Interests ({selectedInterests.length}/{maxSelections})
+          {addButtonLabel} ({selectedInterests.length}/{maxSelections})
         </Text>
       </TouchableOpacity>
 
@@ -143,10 +177,13 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
         presentationStyle="pageSheet"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
+        <KeyboardAvoidingView
+          style={styles.modalContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           {/* Modal Header */}
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Interests</Text>
+            <Text style={styles.modalTitle}>{modalTitle}</Text>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
@@ -190,7 +227,7 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
                 All
               </Text>
             </TouchableOpacity>
-            {INTEREST_CATEGORIES.map((category) => (
+            {categories.map((category) => (
               <TouchableOpacity
                 key={category.id}
                 style={[
@@ -261,6 +298,41 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
             </View>
           </ScrollView>
 
+          {/* Other / Custom Input */}
+          <View style={styles.customInputContainer}>
+            <Text style={styles.customInputLabel}>Other</Text>
+            <View style={styles.customInputRow}>
+              <TextInput
+                style={styles.customInputField}
+                value={customInput}
+                onChangeText={setCustomInput}
+                placeholder="Type your own..."
+                placeholderTextColor={Colors.textSecondary}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  const val = customInput.trim();
+                  if (val && !selectedInterests.includes(val) && selectedInterests.length < maxSelections) {
+                    onInterestsChange([...selectedInterests, val]);
+                    setCustomInput('');
+                  }
+                }}
+              />
+              <TouchableOpacity
+                style={[styles.customAddButton, (!customInput.trim() || selectedInterests.length >= maxSelections) && { opacity: 0.4 }]}
+                onPress={() => {
+                  const val = customInput.trim();
+                  if (val && !selectedInterests.includes(val) && selectedInterests.length < maxSelections) {
+                    onInterestsChange([...selectedInterests, val]);
+                    setCustomInput('');
+                  }
+                }}
+                disabled={!customInput.trim() || selectedInterests.length >= maxSelections}
+              >
+                <Icon name="plus" size={20} color={Colors.textOnPrimary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Done Button */}
           <View style={styles.modalFooter}>
             <TouchableOpacity
@@ -272,7 +344,7 @@ export const InterestPicker: React.FC<InterestPickerProps> = ({
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -460,6 +532,39 @@ const styles = StyleSheet.create({
   },
   interestItemTextDisabled: {
     color: Colors.textSecondary,
+  },
+  customInputContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  customInputLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  customInputRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  customInputField: {
+    flex: 1,
+    height: 42,
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    fontSize: Typography.fontSize.base,
+    color: Colors.textPrimary,
+  },
+  customAddButton: {
+    width: 42,
+    height: 42,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.evergreenTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalFooter: {
     padding: Spacing.lg,

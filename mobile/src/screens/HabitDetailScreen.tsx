@@ -140,17 +140,25 @@ const HabitDetailScreen: React.FC = () => {
           )}
         </BaseCard>
 
-        {/* Monthly Engagement Card */}
+        {/* Progress Card */}
         <BaseCard style={styles.statsCard}>
-          <Text style={styles.sectionTitle}>This Month</Text>
+          <Text style={styles.sectionTitle}>Your Progress</Text>
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <View style={styles.statIconContainer}>
                 <Icon name="leaf" size={24} color={Colors.evergreenTeal} />
               </View>
-              <Text style={styles.statValue}>{habit.streak || 0}</Text>
-              <Text style={styles.statLabel}>Days completed this month</Text>
+              <Text style={styles.statValue}>{habit.totalStepsTaken || 0}</Text>
+              <Text style={styles.statLabel}>Completions total</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Icon name="calendar-week" size={24} color={Colors.evergreenTeal} />
+              </View>
+              <Text style={styles.statValue}>{habit.thisWeekSteps || 0}</Text>
+              <Text style={styles.statLabel}>Active days this week</Text>
             </View>
           </View>
         </BaseCard>

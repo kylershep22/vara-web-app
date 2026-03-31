@@ -169,13 +169,16 @@ const UserProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Back Button */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back" size={20} color={colors.evergreenTeal} />
-      </TouchableOpacity>
+      {/* Header Bar */}
+      <View style={styles.headerBar}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.evergreenTeal} />
+        </TouchableOpacity>
+      </View>
 
       <ScrollView style={styles.scrollContainer}>
         <ProfileHeader
@@ -322,11 +325,20 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   backButton: {
-    position: 'absolute',
-    top: 12,
-    left: 16,
-    zIndex: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Layout.shadow.sm,
   },
   loadingContainer: {
     flex: 1,

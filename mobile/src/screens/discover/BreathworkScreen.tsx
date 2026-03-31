@@ -104,13 +104,13 @@ const getContextualGreeting = (): string => {
   const timeOfDay = getTimeOfDay();
   switch (timeOfDay) {
     case 'morning':
-      return 'Good morning — try an energizing session to start your day';
+      return 'Good morning. Try an energizing session to start your day';
     case 'afternoon':
-      return 'Afternoon — a quick reset can support your focus';
+      return 'Afternoon. A quick reset can support your focus';
     case 'evening':
-      return 'Evening — a calming session can help you wind down';
+      return 'Evening. A calming session can help you wind down';
     case 'night':
-      return 'Late night — gentle breathing can prepare your mind for rest';
+      return 'Late night. Gentle breathing can prepare your mind for rest';
   }
 };
 
@@ -790,13 +790,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     gap: 8,
+    alignItems: 'center',
   },
   filterChip: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1.2,
     borderColor: Colors.silverSage,
     borderRadius: 16,
-    paddingVertical: 7,
+    height: 36,
+    justifyContent: 'center',
     paddingHorizontal: 16,
     marginRight: 8,
   },

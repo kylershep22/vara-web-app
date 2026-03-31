@@ -52,7 +52,7 @@ const INSIGHT_CONTENT_POOL = [
   'Focus often improves when there\'s less competing demand on your attention.',
   'Supporting brain health creates the conditions where habits can stick.',
   'Small changes work better when they respect how the brain functions.',
-  'Recovery isn\'t a break from progress — it\'s part of how the brain sustains it.',
+  'Recovery isn\'t a break from progress. It\'s part of how the brain sustains it.',
   'Consistency doesn\'t require perfection.',
   'Habits are easier to maintain when they work with your brain\'s energy and attention.',
   // Focus & clarity insights
@@ -62,27 +62,20 @@ const INSIGHT_CONTENT_POOL = [
   'Your brain\'s clarity peaks when you pair focused work with intentional rest.',
   // Regulation & recovery insights
   'Emotional regulation is a skill that strengthens with each mindful repetition.',
-  'Recovery isn\'t passive — it\'s an active process your brain gets better at.',
+  'Recovery isn\'t passive. It\'s an active process your brain gets better at.',
   'Small regulation habits compound into greater emotional flexibility over time.',
   'Your nervous system adapts to the patterns you practice most consistently.',
   // Sustainable consistency insights
   'Consistency rewires your brain\'s default patterns, making habits feel automatic.',
   'The most sustainable habits are the ones you can do even on your hardest days.',
-  'Your brain rewards consistency itself — each completion strengthens the neural loop.',
+  'Your brain rewards consistency itself. Each completion strengthens the neural loop.',
   'Building momentum matters more than intensity. Show up, and the rest follows.',
   // Energy & resilience insights
   'Resilience is built through small, repeated energy management practices.',
   'Your body\'s energy systems adapt to consistent habits within weeks.',
   'Strategic recovery habits are as important as active energy-building ones.',
-  'Energy resilience means bouncing back faster — and your habits train that response.',
+  'Energy resilience means bouncing back faster, and your habits train that response.',
 ];
-
-const GOAL_MILESTONE_MESSAGES: Record<number, { title: string; body: string }> = {
-  25: { title: 'A quarter of the way', body: 'Your goal is taking shape. Nice work so far.' },
-  50: { title: 'Halfway to your goal', body: 'You\'ve made real progress. Take a moment to appreciate that.' },
-  75: { title: 'Three-quarters complete', body: 'Your goal is well within reach.' },
-  100: { title: 'Goal complete', body: 'You did it. That\'s worth celebrating.' },
-};
 
 const TIME_REFLECTION_MESSAGES: Record<string, { title: string; body: string }> = {
   '1_week': { title: 'One week with Vara', body: 'You\'ve been building your routine for a week. How\'s it feeling?' },
@@ -355,8 +348,7 @@ export async function sendMentionNotification(
 
 export async function sendMilestoneNotification(
   userId: string,
-  milestoneType: 'goal' | 'dailyCompletion',
-  value?: number,
+  milestoneType: 'dailyCompletion',
 ): Promise<string | null> {
   try {
     const preferences = await getNotificationPreferences(userId);
@@ -376,36 +368,10 @@ export async function sendMilestoneNotification(
       );
     }
 
-    if (milestoneType === 'goal' && value) {
-      const message = GOAL_MILESTONE_MESSAGES[value];
-      if (!message) return null;
-
-      return await sendThrottledNotification(
-        {
-          title: message.title,
-          body: message.body,
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.DEFAULT,
-          data: { type: 'goal_milestone' as NotificationType, category: 'milestones_reflection', milestoneValue: value },
-        },
-        preferences.quietHours,
-      );
-    }
-
     return null;
   } catch (error) {
     console.error('Error sending milestone notification:', error);
     return null;
-  }
-}
-
-export async function checkAndSendGoalMilestone(
-  userId: string,
-  progressPercent: number,
-): Promise<void> {
-  const milestones = Object.keys(GOAL_MILESTONE_MESSAGES).map(Number);
-  if (milestones.includes(progressPercent)) {
-    await sendMilestoneNotification(userId, 'goal', progressPercent);
   }
 }
 

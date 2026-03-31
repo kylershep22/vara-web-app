@@ -84,7 +84,7 @@ const OnboardingIntentionActivity: React.FC<OnboardingIntentionActivityProps> = 
 
         {/* Hint Text */}
         <Text style={styles.hintText}>
-          Keep it simple — a single word or short phrase works best
+          Keep it simple. A single word or short phrase works best
         </Text>
 
         {/* Submit Button */}

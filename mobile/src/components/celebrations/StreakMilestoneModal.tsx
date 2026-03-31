@@ -25,7 +25,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 const HEADINGS = [
   "You've been taking care of yourself.",
   'Showing up, even briefly, is worth something.',
-  'Whatever brought you back — it counts.',
+  'Whatever brought you back, it counts.',
   "You're building something that matters.",
 ];
 

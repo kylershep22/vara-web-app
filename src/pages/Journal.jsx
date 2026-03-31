@@ -1,1013 +1,663 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import SidebarLayout from '../components/layout/SidebarLayout';
-import {
-  BookOpen, Share2, FileText, Mic, MicOff, Pencil, Trash2, Flame, HelpCircle, Sparkles
-} from 'lucide-react';
+import { BookOpen, Sparkles, Pencil, Trash2, Plus, Search, X } from 'lucide-react';
 import { db } from '../firebase';
 import {
-  addDoc, collection, getDocs, query, where, Timestamp, doc, updateDoc, deleteDoc, orderBy, serverTimestamp
+  addDoc, collection, getDocs, query, where, Timestamp, doc, updateDoc, deleteDoc, serverTimestamp
 } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import RichTextEditor from '../components/RichTextEditor';
 import { authedPost } from '../lib/apiClient';
-import DOMPurify from 'dompurify';
+
+// 5-level mood config matching mobile
+const MOODS = [
+  { value: 'great',     label: 'Great',     color: 'bg-emerald-500' },
+  { value: 'good',      label: 'Good',      color: 'bg-green-400' },
+  { value: 'okay',      label: 'Okay',      color: 'bg-yellow-400' },
+  { value: 'low',       label: 'Low',       color: 'bg-orange-400' },
+  { value: 'difficult', label: 'Difficult', color: 'bg-red-400' },
+];
+
+function getMoodDotClass(value) {
+  return MOODS.find(m => m.value === value)?.color || 'bg-gray-300';
+}
+
+function getMoodLabel(value) {
+  return MOODS.find(m => m.value === value)?.label || value || '';
+}
 
 export default function Journal() {
   const { user } = useAuth();
 
-  // Tabs: "journal" | "reflections"
-  const [activeTab, setActiveTab] = useState('journal');
-
   // Data
-  const [entries, setEntries] = useState([]);          // journalEntries (rich text)
-  const [reflections, setReflections] = useState([]);  // journal_entries (now rich text as well)
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Journal editor state
-  const [newEntry, setNewEntry] = useState('');
-  const [mood, setMood] = useState('');
-  const [tags, setTags] = useState([]);
-  const [tagInput, setTagInput] = useState('');
-  const [recording, setRecording] = useState(false);
-  const recognitionRef = useRef(null);
-  const [editingId, setEditingId] = useState(null);
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
 
-  // Reflections composer state (now parity with Journal)
-  const [refHtml, setRefHtml] = useState('');
-  const [refMood, setRefMood] = useState('');
-  const [refTags, setRefTags] = useState([]);
-  const [refTagInput, setRefTagInput] = useState('');
-  const [refPeriod, setRefPeriod] = useState(() => (new Date().getHours() >= 16 ? 'pm' : 'am'));
-  const todayStr = yyyymmdd(new Date());
+  // Form fields (inside modal)
+  const [formContent, setFormContent] = useState('');
+  const [formMood, setFormMood] = useState('okay');
+  const [formTags, setFormTags] = useState([]);
+  const [formTagInput, setFormTagInput] = useState('');
+  const [formSaving, setFormSaving] = useState(false);
 
-  // Other UI / analytics
-  const [streak, setStreak] = useState(0);
+  // AI prompts
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [loadingPrompts, setLoadingPrompts] = useState(false);
+
+  // Weekly summary
+  const [weeklySummary, setWeeklySummary] = useState('');
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  // Search & filter
   const [search, setSearch] = useState('');
-  const [filterMood, setFilterMood] = useState('');
   const [filterTag, setFilterTag] = useState('');
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [aiGeneratedPrompt, setAiGeneratedPrompt] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
-  // Split weekly outputs (journal vs reflections)
-  const [journalWeeklyInsight, setJournalWeeklyInsight] = useState('');
-  const [journalWeeklySummary, setJournalWeeklySummary] = useState('');
-  const [reflectionWeeklyInsight, setReflectionWeeklyInsight] = useState('');
-  const [reflectionWeeklySummary, setReflectionWeeklySummary] = useState('');
+  // Detail view
+  const [detailEntry, setDetailEntry] = useState(null);
 
   useEffect(() => {
-    if (user) {
-      fetchAllContent();
-      const savedDraft = sessionStorage.getItem('journalDraft');
-      if (savedDraft) setNewEntry(savedDraft);
-      const savedRefDraft = sessionStorage.getItem('reflectionDraft');
-      if (savedRefDraft) setRefHtml(savedRefDraft);
-    }
+    if (user) fetchEntries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      sessionStorage.setItem('journalDraft', newEntry);
-    }, 1000);
-    return () => clearTimeout(timeout);
-  }, [newEntry]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      sessionStorage.setItem('reflectionDraft', refHtml);
-    }, 1000);
-    return () => clearTimeout(timeout);
-  }, [refHtml]);
-
-  const fetchAllContent = async () => {
+  const fetchEntries = async () => {
     if (!user?.uid) return;
-
-    const [journals, refl] = await Promise.all([
-      fetchJournalEntries(user.uid),
-      fetchReflections(user.uid)
-    ]);
-
-    setEntries(journals);
-    setReflections(refl);
-
-    const combined = [...journals, ...refl];
-    calculateStreak(combined);
-    fetchWeeklyBundles(journals, refl);
-  };
-
-  // Your existing journals (rich text)
-  const fetchJournalEntries = async (uid) => {
-    const q = query(
-      collection(db, 'journalEntries'),
-      where('userId', '==', uid)
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(d => {
-      const data = d.data();
-      return {
-        id: d.id,
-        ...data,
-        entryType: data.entryType || 'freeform',
-        createdAt: data.createdAt || Timestamp.now(),
-        isHtml: true
-      };
-    });
-  };
-
-  // Reflections (now rich text + mood + tags) saved in "journal_entries"
-  const fetchReflections = async (uid) => {
+    setLoading(true);
     try {
-      const q = query(
-        collection(db, 'journal_entries'),
-        where('userId', '==', uid),
-        where('entryType', '==', 'reflection')
-        // NOTE: no orderBy here to avoid a composite index requirement
-      );
+      const q = query(collection(db, 'journalEntries'), where('userId', '==', user.uid));
       const snapshot = await getDocs(q);
-      const rows = snapshot.docs.map(d => {
-        const data = d.data();
-        return {
-          id: d.id,
-          ...data,
-          entryType: 'reflection',
-          createdAt: data.createdAt || Timestamp.now(),
-          isHtml: true
-        };
-      });
-
-      // Sort newest first on the client
-      rows.sort((a, b) => {
-        const at = safeToDate(a.createdAt).getTime();
-        const bt = safeToDate(b.createdAt).getTime();
-        return bt - at;
-      });
-
-      return rows;
-    } catch (e) {
-      console.error('fetchReflections error:', e);
-      return [];
+      const rows = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+        createdAt: d.data().createdAt || Timestamp.now(),
+      }));
+      // Sort newest first on client
+      rows.sort((a, b) => safeToDate(b.createdAt) - safeToDate(a.createdAt));
+      setEntries(rows);
+      fetchWeeklySummary(rows);
+    } catch (err) {
+      console.error('Journal fetch error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const calculateStreak = (allEntries) => {
-    const dateStrings = new Set(
-      allEntries
-        .filter(e => e?.createdAt)
-        .map(e => {
-          try {
-            return new Date(e.createdAt.toDate()).toDateString();
-          } catch {
-            return new Date().toDateString();
-          }
-        })
-    );
-    let currentStreak = 0;
-    const cursor = new Date();
-    while (dateStrings.has(cursor.toDateString())) {
-      currentStreak++;
-      cursor.setDate(cursor.getDate() - 1);
+  const fetchWeeklySummary = async (allEntries) => {
+    const cutoff = Date.now() - 7 * 86400000;
+    const week = allEntries
+      .filter(e => safeToDate(e.createdAt) >= cutoff)
+      .map(e => e.content || e.text || '')
+      .filter(Boolean);
+    if (!week.length) {
+      setWeeklySummary('');
+      return;
     }
-    setStreak(currentStreak);
-  };
-
-  // Build and request weekly bundles—Journal-only and Reflection-only, with guardrails.
-  const fetchWeeklyBundles = async (journalOnly, reflectionOnly) => {
-    const last7 = (arr) =>
-      arr
-        .filter(e => (Date.now() - safeToDate(e.createdAt).getTime()) / 86400000 <= 7)
-        .map(e => (e.isHtml ? stripHtml(e.text || '') : (e.text || '')))
-        .filter(Boolean);
-
-    const journal7 = last7(journalOnly);
-    const refl7 = last7(reflectionOnly);
-
+    setSummaryLoading(true);
     try {
-      const url = `${process.env.REACT_APP_API_URL}/api/journal-summary`;
-
-      // Journal Insights
-      if (journal7.length) {
-        const resInsight = await authedPost(url, {
-          entries: journal7.join('\n'),
-          type: 'journal',
-          guardrails: true,
-          instruction: [
-            'Summarize only what is present in the texts.',
-            'Do not invent details.',
-            'Prefer short bullets (max 5).',
-            'Highlight recurring themes and mood patterns.'
-          ].join(' ')
-        });
-        const insightData = await resInsight.json();
-        setJournalWeeklyInsight(insightData?.text || '');
-      } else {
-        setJournalWeeklyInsight('');
-      }
-
-      // Journal Summary (brief narrative)
-      if (journal7.length) {
-        const resSummary = await authedPost(url, {
-          entries: journal7.join('\n'),
-          type: 'journal',
-          guardrails: true,
-          instruction: [
-            'Write a 3–5 sentence factual recap.',
-            'Reference only observed details.',
-            'One gentle, actionable suggestion at the end.'
-          ].join(' ')
-        });
-        const summaryData = await resSummary.json();
-        setJournalWeeklySummary(summaryData?.text || '');
-      } else {
-        setJournalWeeklySummary('');
-      }
-
-      // Reflection Insights
-      if (refl7.length) {
-        const resRInsight = await authedPost(url, {
-          entries: refl7.join('\n'),
-          type: 'reflection',
-          guardrails: true,
-          instruction: [
-            'Extract micro-patterns from brief AM/PM notes.',
-            'Bullet points, max 4.',
-            'If AM/PM appears, compare them concisely.'
-          ].join(' ')
-        });
-        const rInsightData = await resRInsight.json();
-        setReflectionWeeklyInsight(rInsightData?.text || '');
-      } else {
-        setReflectionWeeklyInsight('');
-      }
-
-      // Reflection Summary
-      if (refl7.length) {
-        const resRSummary = await authedPost(url, {
-          entries: refl7.join('\n'),
-          type: 'reflection',
-          guardrails: true,
-          instruction: [
-            'Write 2–4 concise sentences.',
-            'Focus on daily tone shifts and quick wins.',
-            'Close with one simple suggestion for the next week.'
-          ].join(' ')
-        });
-        const rSummaryData = await resRSummary.json();
-        setReflectionWeeklySummary(rSummaryData?.text || '');
-      } else {
-        setReflectionWeeklySummary('');
-      }
+      const res = await authedPost(`${process.env.REACT_APP_API_URL}/api/journal-summary`, {
+        entries: week.join('\n'),
+        type: 'journal',
+        guardrails: true,
+        instruction: 'Write a 3–5 sentence factual recap. Reference only observed details. One gentle, actionable suggestion at the end.'
+      });
+      const data = await res.json();
+      setWeeklySummary(data?.text || '');
     } catch (err) {
       console.error('Weekly summary error:', err);
+    } finally {
+      setSummaryLoading(false);
     }
   };
 
-  // ------- Journal save / edit -------
-  const saveEntry = async () => {
-    if (!newEntry.trim()) return;
+  // ---- Modal helpers ----
+  const openCreateModal = () => {
+    setEditingEntry(null);
+    setFormContent('');
+    setFormMood('okay');
+    setFormTags([]);
+    setFormTagInput('');
+    setAiSuggestions([]);
+    setModalOpen(true);
+  };
 
-    const entryData = {
-      userId: user.uid,
-      text: newEntry,
-      mood,
-      tags,
-      createdAt: Timestamp.now(),
-      entryType: 'freeform'
-    };
+  const openEditModal = (entry) => {
+    setEditingEntry(entry);
+    setFormContent(entry.content || entry.text || '');
+    setFormMood(entry.mood || 'okay');
+    setFormTags(entry.tags || []);
+    setFormTagInput('');
+    setAiSuggestions([]);
+    setModalOpen(true);
+  };
 
-    if (editingId) {
-      const entryRef = doc(db, 'journalEntries', editingId);
-      await updateDoc(entryRef, entryData);
-      setEditingId(null);
-    } else {
-      await addDoc(collection(db, 'journalEntries'), entryData);
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditingEntry(null);
+  };
+
+  // ---- AI Prompts ----
+  const handleInspireMe = async () => {
+    setLoadingPrompts(true);
+    try {
+      const res = await authedPost(`${process.env.REACT_APP_API_URL}/api/journal-prompt`, {
+        prompt: 'Give 3 concise, meaningful daily journaling prompts. Return them as a JSON array of strings, no other text.'
+      });
+      const data = await res.json();
+      let prompts = [];
+      try {
+        prompts = JSON.parse(data.text || '[]');
+      } catch {
+        // If not valid JSON, split by newline
+        prompts = (data.text || '').split('\n').map(s => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean).slice(0, 3);
+      }
+      setAiSuggestions(prompts.slice(0, 3));
+    } catch (err) {
+      console.error('AI prompt error:', err);
+    } finally {
+      setLoadingPrompts(false);
     }
+  };
 
-    setNewEntry('');
-    setMood('');
-    setTags([]);
-    sessionStorage.removeItem('journalDraft');
-    setAiGeneratedPrompt('');
-    fetchAllContent();
+  const handleSelectPrompt = (suggestion) => {
+    setFormContent(prev => prev.trim() ? `${prev}\n\n${suggestion}` : suggestion);
+  };
+
+  // ---- Tags ----
+  const addFormTag = () => {
+    if (!formTagInput.trim()) return;
+    const cleaned = formTagInput.trim().toLowerCase();
+    if (!formTags.includes(cleaned)) setFormTags(prev => [...prev, cleaned]);
+    setFormTagInput('');
+  };
+
+  // ---- Save / Delete ----
+  const saveEntry = async () => {
+    if (!formContent.trim()) return;
+    setFormSaving(true);
+    try {
+      const payload = {
+        userId: user.uid,
+        content: formContent,
+        mood: formMood,
+        tags: formTags,
+        createdAt: editingEntry ? editingEntry.createdAt : Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        entryType: 'freeform',
+      };
+      if (editingEntry) {
+        await updateDoc(doc(db, 'journalEntries', editingEntry.id), payload);
+      } else {
+        await addDoc(collection(db, 'journalEntries'), payload);
+      }
+      closeModal();
+      fetchEntries();
+    } catch (err) {
+      console.error('Save entry error:', err);
+    } finally {
+      setFormSaving(false);
+    }
   };
 
   const deleteEntry = async (id) => {
-    if (window.confirm('Are you sure you want to delete this entry?')) {
-      await deleteDoc(doc(db, 'journalEntries', id));
-      fetchAllContent();
-    }
+    if (!window.confirm('Delete this journal entry?')) return;
+    await deleteDoc(doc(db, 'journalEntries', id));
+    if (detailEntry?.id === id) setDetailEntry(null);
+    fetchEntries();
   };
 
-  const startEditing = (entry) => {
-    setEditingId(entry.id);
-    setNewEntry(entry.text);
-    setMood(entry.mood || '');
-    setTags(entry.tags || []);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // ---- Derived data ----
+  const allTags = useMemo(() => {
+    const counts = {};
+    entries.forEach(e => (e.tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; }));
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([t]) => t);
+  }, [entries]);
 
-  // ------- Speech to text (shared handler toggled by a flag) -------
-  const handleVoiceInput = (target) => {
-    if (!('webkitSpeechRecognition' in window)) {
-      alert('Speech Recognition not supported in your browser');
-      return;
-    }
-
-    if (recording && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setRecording(false);
-      return;
-    }
-
-    const recognition = new window.webkitSpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-    recognitionRef.current = recognition;
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      if (target === 'journal') {
-        setNewEntry(prev => prev + (prev ? ' ' : '') + transcript);
-      } else {
-        setRefHtml(prev => prev + (prev ? ' ' : '') + escapeHtml(transcript));
-      }
-    };
-
-    recognition.onend = () => {
-      setRecording(false);
-    };
-
-    recognition.start();
-    setRecording(true);
-  };
-
-  // ------- Tags -------
-  const addTag = () => {
-    if (!tagInput.trim()) return;
-    const cleaned = tagInput.trim().toLowerCase();
-    if (!tags.includes(cleaned)) {
-      setTags([...tags, cleaned]);
-    }
-    setTagInput('');
-  };
-  const removeTag = (t) => setTags(tags.filter(x => x !== t));
-
-  const addRefTag = () => {
-    if (!refTagInput.trim()) return;
-    const cleaned = refTagInput.trim().toLowerCase();
-    if (!refTags.includes(cleaned)) {
-      setRefTags([...refTags, cleaned]);
-    }
-    setRefTagInput('');
-  };
-  const removeRefTag = (t) => setRefTags(refTags.filter(x => x !== t));
-
-  // ------- Reflections save (rich) -------
-  const saveReflection = async () => {
-    if (!user?.uid || !stripHtml(refHtml).trim()) return;
-    try {
-      const refDoc = await addDoc(collection(db, 'journal_entries'), {
-        userId: user.uid,
-        entryType: 'reflection',
-        text: refHtml,           // store HTML (TinyMCE)
-        tags: refTags,
-        mood: refMood,
-        period: refPeriod,       // 'am' | 'pm'
-        yyyymmdd: todayStr,
-        createdAt: Timestamp.now()
+  const filteredEntries = useMemo(() => {
+    let result = entries;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(e => {
+        const text = (e.content || e.text || '').toLowerCase();
+        return text.includes(q) || (e.tags || []).some(t => t.toLowerCase().includes(q));
       });
-      console.log('Saved reflection id:', refDoc.id);
-
-      // reset composer
-      setRefHtml('');
-      setRefMood('');
-      setRefTags([]);
-
-      // refresh lists
-      fetchAllContent();
-    } catch (e) {
-      console.error('fetchReflections error:', e);
-      return [];
     }
-  };
-
-  // ------- Filters / visible list -------
-  const combinedEntries = useMemo(() => {
-    const merged = [...entries, ...reflections];
-    return merged.sort((a, b) => {
-      const at = safeToDate(a.createdAt).getTime();
-      const bt = safeToDate(b.createdAt).getTime();
-      return bt - at;
-    });
-  }, [entries, reflections]);
-
-  const filterFn = (entry) => {
-    const text = entry.isHtml ? stripHtml(entry.text || '') : (entry.text || '');
-    const textMatch = text.toLowerCase().includes(search.toLowerCase());
-    const moodMatch = filterMood ? (entry.mood === filterMood) : true;
-    const tagMatch = filterTag
-      ? ((entry.tags || []).map(t => (t || '').toLowerCase()).includes(filterTag.toLowerCase()))
-      : true;
-    return textMatch && moodMatch && tagMatch;
-  };
-
-  const visibleEntries = useMemo(() => {
-    const base = activeTab === 'reflections' ? reflections : combinedEntries;
-    return base.filter(filterFn);
-  }, [activeTab, reflections, combinedEntries, search, filterMood, filterTag]);
-
-  // ------- AI prompt helper -------
-  const fetchAISuggestion = async () => {
-    try {
-      const res = await authedPost(`${process.env.REACT_APP_API_URL}/api/journal-prompt`, {
-        prompt: `Give a concise, meaningful daily ${activeTab === 'reflections' ? 'reflection' : 'journal'} prompt related to: ${aiPrompt}. Avoid filler; be specific to the topic.`
-      });
-      const data = await res.json();
-      setAiGeneratedPrompt(data.text || '');
-    } catch (err) {
-      console.error('AI error:', err);
+    if (filterTag) {
+      result = result.filter(e => (e.tags || []).includes(filterTag));
     }
-  };
+    return result;
+  }, [entries, search, filterTag]);
 
-  const MOODS = ["😊 Happy", "😢 Sad", "😐 Neutral", "😠 Frustrated", "😌 Calm"];
+  const hasRecentEntries = useMemo(() => {
+    const cutoff = Date.now() - 7 * 86400000;
+    return entries.some(e => safeToDate(e.createdAt) >= cutoff);
+  }, [entries]);
+
+  const groupedEntries = useMemo(() => groupByDate(filteredEntries), [filteredEntries]);
 
   return (
     <SidebarLayout>
-      <div className="p-vara-lg max-w-6xl mx-auto space-y-12">
-        {/* Header + streak */}
-        <div className="flex flex-col md:flex-row justify-between md:items-center gap-vara-base">
-          <div className="flex items-center gap-vara-md">
-            <BookOpen size={28} className="text-evergreen-teal" />
-            <h1 className="text-vara-2xl font-semibold text-soft-charcoal">Journal</h1>
-          </div>
-          <div className="flex items-center gap-vara-sm text-muted-sage-gray text-vara-sm">
-            <Flame size={18} className="text-evergreen-teal" />
-            Daily Streak: <strong>{streak} days</strong>
-          </div>
-        </div>
+      <div className="p-vara-lg max-w-3xl mx-auto space-y-6">
 
-        {/* Tabs */}
-        <div className="inline-flex rounded-vara-lg border border-divider overflow-hidden">
-          {[
-            { key: 'journal', label: 'Journal' },
-            { key: 'reflections', label: 'Reflections' }
-          ].map(tab => (
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-vara-sm">
+              <BookOpen size={24} className="text-evergreen-teal" />
+              <h1 className="text-vara-2xl font-semibold text-soft-charcoal">Journal</h1>
+            </div>
+            <p className="text-vara-sm text-muted-sage-gray mt-1">Reflect on your wellness journey</p>
+          </div>
+          <div className="flex items-center gap-vara-sm">
             <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-vara-base py-2 text-vara-sm font-medium transition ${
-                activeTab === tab.key ? 'bg-evergreen-teal text-white' : 'text-soft-charcoal hover:bg-dew-sage'
-              }`}
+              onClick={() => setShowSearch(s => !s)}
+              className="p-2 rounded-full text-muted-sage-gray hover:text-evergreen-teal hover:bg-dew-sage transition"
+              aria-label="Toggle search"
             >
-              {tab.label}
+              <Search size={18} />
             </button>
-          ))}
-        </div>
-
-        {/* Modern helper: "Which should I use?" */}
-        <div className="grid md:grid-cols-2 gap-vara-base">
-          <div className="bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm">
-            <div className="flex items-center gap-vara-sm mb-1">
-              <HelpCircle className="text-evergreen-teal" size={18} />
-              <h3 className="text-vara-sm font-semibold text-evergreen-teal uppercase tracking-wide">Journal</h3>
-            </div>
-            <ul className="text-vara-sm text-soft-charcoal space-y-2">
-              <li>• Longer-form thoughts with <strong>rich text</strong>, <strong>mood</strong>, and <strong>tags</strong>.</li>
-              <li>• Use for deeper processing, stories, and key moments.</li>
-              <li>• Great for patterns over time and searching by tag.</li>
-            </ul>
-          </div>
-          <div className="bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm">
-            <div className="flex items-center gap-vara-sm mb-1">
-              <Sparkles className="text-evergreen-teal" size={18} />
-              <h3 className="text-vara-sm font-semibold text-evergreen-teal uppercase tracking-wide">Reflections</h3>
-            </div>
-            <ul className="text-vara-sm text-soft-charcoal space-y-2">
-              <li>• <strong>AM/PM</strong> quick notes with rich text, mood, and tags.</li>
-              <li>• Capture intentions (AM) and wins/gratitude (PM).</li>
-              <li>• Perfect for daily cadence and fast check-ins.</li>
-            </ul>
+            <button
+              onClick={openCreateModal}
+              className="flex items-center gap-1 bg-evergreen-teal text-white px-vara-base py-2 rounded-full text-vara-sm font-medium hover:opacity-90 transition"
+            >
+              <Plus size={16} /> New Entry
+            </button>
           </div>
         </div>
 
-        {/* JOURNAL TAB */}
-        {activeTab === 'journal' && (
-          <>
-            <div className="bg-white border border-divider rounded-vara-lg p-vara-lg space-y-4 shadow">
-              <RichTextEditor
-                value={newEntry}
-                onChange={setNewEntry}
-                placeholder="Write about your day, thoughts, or feelings..."
-                minHeight={220}
-              />
+        {/* Collapsible search */}
+        {showSearch && (
+          <div className="relative">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search entries..."
+              className="w-full border border-divider rounded-vara-lg px-4 py-2 text-vara-sm pr-8"
+              autoFocus
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-sage-gray hover:text-soft-charcoal"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        )}
 
-              <div className="flex flex-wrap gap-vara-sm items-center">
-                <select
-                  aria-label="Mood"
-                  className="border border-divider rounded px-3 py-2 text-vara-sm"
-                  value={mood}
-                  onChange={(e) => setMood(e.target.value)}
-                >
-                  <option value="">Select Mood</option>
-                  {["😊 Happy", "😢 Sad", "😐 Neutral", "😠 Frustrated", "😌 Calm"].map((tag, i) => (
-                    <option key={i} value={tag}>{tag}</option>
+        {/* Tag filter chips */}
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {allTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => setFilterTag(filterTag === tag ? '' : tag)}
+                className={`px-3 py-1 rounded-full text-vara-xs font-medium transition ${
+                  filterTag === tag
+                    ? 'bg-evergreen-teal text-white'
+                    : 'bg-dew-sage text-evergreen-teal hover:opacity-80'
+                }`}
+              >
+                #{tag}
+              </button>
+            ))}
+            {filterTag && (
+              <button
+                onClick={() => setFilterTag('')}
+                className="px-3 py-1 rounded-full text-vara-xs text-muted-sage-gray border border-divider hover:bg-dew-sage transition"
+              >
+                Clear filter
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* AI Weekly Summary card */}
+        {!loading && hasRecentEntries && (
+          <div className="bg-mist-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm">
+            <h3 className="text-vara-sm font-semibold text-evergreen-teal mb-2">Weekly Reflection</h3>
+            {summaryLoading ? (
+              <p className="text-vara-sm text-muted-sage-gray italic">Generating your weekly summary...</p>
+            ) : weeklySummary ? (
+              <p className="text-vara-sm text-soft-charcoal whitespace-pre-wrap">{weeklySummary}</p>
+            ) : (
+              <p className="text-vara-sm text-muted-sage-gray italic">Add a few entries this week to unlock your personalized summary.</p>
+            )}
+          </div>
+        )}
+
+        {/* Gentle encouragement card (no recent entries) */}
+        {!loading && !hasRecentEntries && entries.length === 0 && (
+          <div className="bg-dew-sage/40 border border-silver-sage rounded-vara-lg p-vara-lg text-center">
+            <p className="text-vara-base font-medium text-evergreen-teal mb-1">Welcome to your journal</p>
+            <p className="text-vara-sm text-soft-charcoal">Taking time to reflect is an act of self-care. Start with a single thought.</p>
+            <button
+              onClick={openCreateModal}
+              className="mt-vara-base inline-flex items-center gap-1 bg-evergreen-teal text-white px-vara-base py-2 rounded-full text-vara-sm font-medium hover:opacity-90 transition"
+            >
+              <Plus size={15} /> Write first entry
+            </button>
+          </div>
+        )}
+
+        {/* Entry list grouped by date */}
+        {!loading && filteredEntries.length > 0 && (
+          <div className="space-y-6">
+            {groupedEntries.map(({ label, items }) => (
+              <div key={label}>
+                <h2 className="text-vara-xs font-semibold text-muted-sage-gray uppercase tracking-wider mb-3">{label}</h2>
+                <div className="space-y-3">
+                  {items.map(entry => (
+                    <EntryCard
+                      key={entry.id}
+                      entry={entry}
+                      onView={() => setDetailEntry(entry)}
+                      onEdit={() => openEditModal(entry)}
+                      onDelete={() => deleteEntry(entry.id)}
+                      onTagClick={tag => setFilterTag(filterTag === tag ? '' : tag)}
+                    />
                   ))}
-                </select>
-
-                <div className="flex items-center gap-vara-sm">
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    placeholder="Add tag…"
-                    className="border border-divider rounded px-3 py-2 text-vara-sm"
-                    onKeyDown={(e) => e.key === 'Enter' && addTag()}
-                  />
-                  <button
-                    onClick={addTag}
-                    className="bg-evergreen-teal text-white px-3 py-2 rounded text-vara-xs hover:opacity-90"
-                  >
-                    Add
-                  </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-vara-sm">
-                    {tags.map((t, i) => (
-                      <button
-                        type="button"
-                        key={i}
-                        onClick={() => removeTag(t)}
-                        className="bg-dew-sage text-evergreen-teal text-vara-xs px-2 py-1 rounded-full"
-                        title="Remove tag"
-                      >
-                        #{t} ✕
-                      </button>
-                    ))}
-                  </div>
-                )}
+        {/* Empty filtered state */}
+        {!loading && filteredEntries.length === 0 && entries.length > 0 && (
+          <div className="bg-white border border-divider rounded-vara-lg p-vara-lg text-center text-vara-sm text-muted-sage-gray">
+            No entries match your search or filter.
+          </div>
+        )}
 
-                <button
-                  onClick={() => handleVoiceInput('journal')}
-                  className="text-vara-sm text-evergreen-teal flex items-center gap-1 ml-auto"
-                  title={recording ? 'Stop recording' : 'Dictate with your voice'}
-                >
-                  {recording ? <MicOff size={16} /> : <Mic size={16} />} {recording ? 'Stop' : 'Voice'}
-                </button>
+        {loading && (
+          <div className="text-center text-vara-sm text-muted-sage-gray py-12">Loading journal...</div>
+        )}
+      </div>
 
-                <button
-                  onClick={saveEntry}
-                  className="bg-evergreen-teal text-white px-vara-base py-2 rounded hover:opacity-90 transition text-vara-sm"
-                >
-                  {editingId ? 'Update Entry' : 'Save Entry'}
-                </button>
+      {/* Create / Edit Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-vara-xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="p-vara-lg space-y-4">
+              <h2 className="text-vara-lg font-semibold text-evergreen-teal">
+                {editingEntry ? 'Edit Entry' : 'New Journal Entry'}
+              </h2>
+
+              {/* Mood selector */}
+              <div>
+                <p className="text-vara-sm text-muted-sage-gray mb-2">How are you feeling?</p>
+                <div className="flex gap-2 flex-wrap">
+                  {MOODS.map(m => (
+                    <button
+                      key={m.value}
+                      onClick={() => setFormMood(m.value)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-vara-md border text-vara-sm transition ${
+                        formMood === m.value
+                          ? 'border-evergreen-teal bg-dew-sage text-evergreen-teal font-medium'
+                          : 'border-divider text-soft-charcoal hover:bg-dew-sage/50'
+                      }`}
+                    >
+                      <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${m.color}`} />
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {aiGeneratedPrompt && (
-                <div className="bg-mist-white border border-divider rounded-vara-lg p-vara-base mt-2 shadow-vara-sm">
-                  <h4 className="text-evergreen-teal font-semibold mb-2">✨ Suggested Prompt</h4>
-                  <p className="text-soft-charcoal text-vara-sm italic">"{aiGeneratedPrompt}"</p>
-                  <div className="flex gap-vara-sm">
+              {/* Inspire Me button */}
+              <button
+                onClick={handleInspireMe}
+                disabled={loadingPrompts}
+                className="w-full flex items-center justify-center gap-2 border border-evergreen-teal text-evergreen-teal py-2 rounded-vara-md text-vara-sm font-medium hover:bg-dew-sage/50 transition disabled:opacity-50"
+              >
+                <Sparkles size={16} />
+                {loadingPrompts ? 'Loading...' : 'Inspire Me'}
+              </button>
+
+              {/* AI suggestion chips */}
+              {aiSuggestions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {aiSuggestions.map((s, i) => (
                     <button
-                      onClick={() => setNewEntry(aiGeneratedPrompt)}
-                      className="mt-2 text-vara-sm text-evergreen-teal underline hover:opacity-80"
+                      key={i}
+                      onClick={() => handleSelectPrompt(s)}
+                      className="bg-dew-sage text-evergreen-teal text-vara-xs px-3 py-1.5 rounded-full border border-evergreen-teal/25 hover:opacity-80 transition text-left"
                     >
-                      Use in editor
+                      {s}
                     </button>
-                    <button
-                      onClick={() => setAiGeneratedPrompt('')}
-                      className="mt-2 text-vara-sm text-evergreen-teal underline hover:opacity-80"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
+                  ))}
                 </div>
               )}
-            </div>
 
-            {/* Prompt helper (shared) */}
-            <div className="bg-mist-white border border-divider p-vara-base rounded-vara-lg flex gap-vara-sm items-center">
-              <input
-                placeholder="Ask AI for a journaling prompt…"
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                className="flex-1 border border-divider rounded p-2 text-vara-sm"
-              />
-              <button
-                onClick={fetchAISuggestion}
-                className="text-vara-sm px-vara-base py-2 bg-silver-sage text-evergreen-teal rounded hover:bg-dew-sage"
-              >
-                Get Prompt
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* REFLECTIONS TAB */}
-        {activeTab === 'reflections' && (
-          <>
-            {/* Quick-add reflection (now rich + parity controls) */}
-            <div className="bg-white border border-divider rounded-vara-lg p-vara-lg space-y-3 shadow">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-vara-md">
-                <p className="text-vara-sm text-muted-sage-gray">
-                  Add a quick {refPeriod.toUpperCase()} note for <span className="font-medium">{prettyDate(todayStr)}</span>.
-                </p>
-                <div className="inline-flex items-center rounded-vara-md border border-divider overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setRefPeriod('am')}
-                    className={`px-3 py-1 text-vara-xs font-medium transition ${refPeriod === 'am' ? 'bg-evergreen-teal text-white' : 'text-soft-charcoal hover:bg-dew-sage'}`}
-                  >
-                    Morning
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRefPeriod('pm')}
-                    className={`px-3 py-1 text-vara-xs font-medium transition ${refPeriod === 'pm' ? 'bg-evergreen-teal text-white' : 'text-soft-charcoal hover:bg-dew-sage'}`}
-                  >
-                    Evening
-                  </button>
-                </div>
+              {/* Content textarea */}
+              <div>
+                <p className="text-vara-sm text-muted-sage-gray mb-2">What's on your mind?</p>
+                <textarea
+                  value={formContent}
+                  onChange={e => setFormContent(e.target.value)}
+                  placeholder="Write your thoughts..."
+                  rows={8}
+                  className="w-full border border-divider rounded-vara-lg p-3 text-vara-sm text-soft-charcoal resize-none focus:outline-none focus:border-evergreen-teal"
+                />
               </div>
 
-              <RichTextEditor
-                value={refHtml}
-                onChange={setRefHtml}
-                placeholder="Quick AM intention or PM reflection..."
-                minHeight={160}
-              />
-
-              <div className="flex flex-wrap gap-vara-sm items-center">
-                <select
-                  aria-label="Mood"
-                  className="border border-divider rounded px-3 py-2 text-vara-sm"
-                  value={refMood}
-                  onChange={(e) => setRefMood(e.target.value)}
-                >
-                  <option value="">Select Mood</option>
-                  {["😊 Happy", "😢 Sad", "😐 Neutral", "😠 Frustrated", "😌 Calm"].map((tag, i) => (
-                    <option key={i} value={tag}>{tag}</option>
-                  ))}
-                </select>
-
-                <div className="flex items-center gap-vara-sm">
+              {/* Tags input */}
+              <div>
+                <p className="text-vara-sm text-muted-sage-gray mb-2">Tags (optional)</p>
+                <div className="flex gap-2">
                   <input
                     type="text"
-                    value={refTagInput}
-                    onChange={(e) => setRefTagInput(e.target.value)}
-                    placeholder="Add tag…"
-                    className="border border-divider rounded px-3 py-2 text-vara-sm"
-                    onKeyDown={(e) => e.key === 'Enter' && addRefTag()}
+                    value={formTagInput}
+                    onChange={e => setFormTagInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addFormTag()}
+                    placeholder="Add a tag"
+                    className="flex-1 border border-divider rounded-vara-md px-3 py-2 text-vara-sm focus:outline-none focus:border-evergreen-teal"
                   />
                   <button
-                    onClick={addRefTag}
-                    className="bg-evergreen-teal text-white px-3 py-2 rounded text-vara-xs hover:opacity-90"
+                    onClick={addFormTag}
+                    disabled={!formTagInput.trim()}
+                    className="bg-evergreen-teal text-white px-4 py-2 rounded-vara-md text-vara-sm disabled:opacity-50 hover:opacity-90 transition"
                   >
                     Add
                   </button>
                 </div>
-
-                {refTags.length > 0 && (
-                  <div className="flex flex-wrap gap-vara-sm">
-                    {refTags.map((t, i) => (
-                      <button
-                        type="button"
-                        key={i}
-                        onClick={() => removeRefTag(t)}
-                        className="bg-dew-sage text-evergreen-teal text-vara-xs px-2 py-1 rounded-full"
-                        title="Remove tag"
-                      >
-                        #{t} ✕
-                      </button>
+                {formTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formTags.map(tag => (
+                      <span key={tag} className="flex items-center gap-1 bg-dew-sage text-evergreen-teal text-vara-xs px-3 py-1 rounded-full">
+                        #{tag}
+                        <button onClick={() => setFormTags(prev => prev.filter(t => t !== tag))} className="ml-1 hover:opacity-70">
+                          <X size={12} />
+                        </button>
+                      </span>
                     ))}
                   </div>
                 )}
+              </div>
 
+              {/* Modal actions */}
+              <div className="flex gap-2 pt-2">
                 <button
-                  onClick={() => handleVoiceInput('reflection')}
-                  className="text-vara-sm text-evergreen-teal flex items-center gap-1 ml-auto"
-                  title={recording ? 'Stop recording' : 'Dictate with your voice'}
+                  onClick={closeModal}
+                  className="flex-1 border border-divider rounded-vara-md py-2.5 text-vara-sm text-soft-charcoal hover:bg-dew-sage/50 transition"
                 >
-                  {recording ? <MicOff size={16} /> : <Mic size={16} />} {recording ? 'Stop' : 'Voice'}
+                  Cancel
                 </button>
+                <button
+                  onClick={saveEntry}
+                  disabled={formSaving || !formContent.trim()}
+                  className="flex-1 bg-evergreen-teal text-white rounded-vara-md py-2.5 text-vara-sm font-medium hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {formSaving ? 'Saving...' : editingEntry ? 'Update' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-                <div className="flex items-center gap-vara-sm">
-                  <button
-                    onClick={() => setRefHtml('')}
-                    className="px-3 py-2 border border-divider rounded-vara-md text-vara-sm text-soft-charcoal hover:bg-dew-sage-light transition"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    onClick={saveReflection}
-                    disabled={!user || !stripHtml(refHtml).trim()}
-                    className={`px-vara-base py-2 rounded-vara-md text-vara-sm transition ${
-                      !user || !stripHtml(refHtml).trim()
-                        ? 'bg-dew-sage-light text-muted-sage-gray cursor-not-allowed'
-                        : 'bg-evergreen-teal text-white hover:opacity-90'
-                    }`}
-                  >
-                    Save Reflection
-                  </button>
+      {/* Detail Modal */}
+      {detailEntry && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setDetailEntry(null)}>
+          <div className="bg-white rounded-vara-xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="p-vara-lg space-y-4">
+              <div className="flex items-center justify-between border-b border-divider pb-3">
+                <div className="flex items-center gap-2">
+                  <span className={`w-3 h-3 rounded-full ${getMoodDotClass(detailEntry.mood)}`} />
+                  <span className="text-vara-sm text-muted-sage-gray">{getMoodLabel(detailEntry.mood)}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-vara-sm font-medium text-evergreen-teal">{formatDate(detailEntry.createdAt)}</p>
+                  <p className="text-vara-xs text-muted-sage-gray">{formatTime(detailEntry.createdAt)}</p>
                 </div>
               </div>
-              {!user && <p className="text-vara-xs text-muted-sage-gray">Sign in to save reflections.</p>}
-            </div>
 
-            {/* Prompt helper (shared wording) */}
-            <div className="bg-mist-white border border-divider p-vara-base rounded-vara-lg flex gap-vara-sm items-center">
-              <input
-                placeholder="Ask AI for a reflection prompt…"
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                className="flex-1 border border-divider rounded p-2 text-vara-sm"
-              />
+              <p className="text-soft-charcoal text-vara-sm whitespace-pre-wrap leading-relaxed">
+                {detailEntry.content || detailEntry.text || ''}
+              </p>
+
+              {(detailEntry.tags || []).length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {detailEntry.tags.map(tag => (
+                    <span key={tag} className="bg-dew-sage text-evergreen-teal text-vara-xs px-3 py-1 rounded-full">#{tag}</span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => { setDetailEntry(null); openEditModal(detailEntry); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 border border-divider rounded-vara-md py-2.5 text-vara-sm text-soft-charcoal hover:bg-dew-sage/50 transition"
+                >
+                  <Pencil size={14} /> Edit
+                </button>
+                <button
+                  onClick={() => deleteEntry(detailEntry.id)}
+                  className="flex-1 flex items-center justify-center gap-1.5 border border-divider rounded-vara-md py-2.5 text-vara-sm text-red-500 hover:bg-red-50 transition"
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
+              </div>
+
               <button
-                onClick={fetchAISuggestion}
-                className="text-vara-sm px-vara-base py-2 bg-silver-sage text-evergreen-teal rounded hover:bg-dew-sage"
+                onClick={() => setDetailEntry(null)}
+                className="w-full bg-evergreen-teal text-white rounded-vara-md py-2.5 text-vara-sm font-medium hover:opacity-90 transition"
               >
-                Get Prompt
+                Close
               </button>
             </div>
-          </>
-        )}
-
-        {/* Weekly insights & summaries (split) */}
-        <section className="grid lg:grid-cols-2 gap-vara-lg">
-          {/* Journal panel */}
-          <div className="bg-mist-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm space-y-4">
-            <h3 className="text-evergreen-teal font-semibold text-vara-sm uppercase tracking-wide">🧠 Journal — Weekly Insights</h3>
-            {journalWeeklyInsight ? (
-              <p className="text-vara-sm text-soft-charcoal whitespace-pre-wrap">{journalWeeklyInsight}</p>
-            ) : (
-              <EmptyWeeklyPlaceholder type="journal" />
-            )}
-
-            <h4 className="text-evergreen-teal font-semibold mt-2">📊 Journal — Weekly Summary</h4>
-            {journalWeeklySummary ? (
-              <p className="text-vara-sm text-soft-charcoal whitespace-pre-wrap">{journalWeeklySummary}</p>
-            ) : (
-              <EmptyWeeklyPlaceholder type="journal" summary />
-            )}
-          </div>
-
-          {/* Reflections panel */}
-          <div className="bg-mist-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm space-y-4">
-            <h3 className="text-evergreen-teal font-semibold text-vara-sm uppercase tracking-wide">✨ Reflections — Weekly Insights</h3>
-            {reflectionWeeklyInsight ? (
-              <p className="text-vara-sm text-soft-charcoal whitespace-pre-wrap">{reflectionWeeklyInsight}</p>
-            ) : (
-              <EmptyWeeklyPlaceholder type="reflections" />
-            )}
-
-            <h4 className="text-evergreen-teal font-semibold mt-2">📈 Reflections — Weekly Summary</h4>
-            {reflectionWeeklySummary ? (
-              <p className="text-vara-sm text-soft-charcoal whitespace-pre-wrap">{reflectionWeeklySummary}</p>
-            ) : (
-              <EmptyWeeklyPlaceholder type="reflections" summary />
-            )}
-          </div>
-        </section>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-vara-md items-center">
-          <input
-            type="text"
-            placeholder={`Search ${activeTab === 'reflections' ? 'reflections' : 'entries'}…`}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border border-divider rounded px-3 py-2 text-vara-sm"
-          />
-
-          {/* Mood + tag filters now available on both tabs */}
-          <select
-            className="border border-divider rounded px-3 py-2 text-vara-sm"
-            value={filterMood}
-            onChange={(e) => setFilterMood(e.target.value)}
-          >
-            <option value="">All Moods</option>
-            {["😊 Happy", "😢 Sad", "😐 Neutral", "😠 Frustrated", "😌 Calm"].map((tag, i) => (
-              <option key={i} value={tag}>{tag}</option>
-            ))}
-          </select>
-
-          <input
-            type="text"
-            placeholder="Filter by tag…"
-            value={filterTag}
-            onChange={(e) => setFilterTag(e.target.value)}
-            className="border border-divider rounded px-3 py-2 text-vara-sm"
-          />
-
-          {(filterMood || filterTag) && (
-            <button
-              type="button"
-              onClick={() => { setFilterMood(''); setFilterTag(''); }}
-              className="text-vara-xs underline text-evergreen-teal"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
-
-        {/* List */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-vara-lg font-semibold text-soft-charcoal">
-              {activeTab === 'reflections' ? 'My Reflections' : 'My Entries'}
-            </h2>
-          </div>
-
-          {visibleEntries.length === 0 ? (
-            <div className="bg-white border border-divider rounded-vara-lg p-vara-lg text-vara-sm text-muted-sage-gray">
-              {activeTab === 'reflections'
-                ? (
-                  <div>
-                    <p className="mb-2">No reflections yet. Start with a quick AM intention or PM win.</p>
-                    <button
-                      onClick={() => setActiveTab('reflections')}
-                      className="px-3 py-2 bg-evergreen-teal text-white rounded text-vara-xs"
-                    >
-                      Add first reflection
-                    </button>
-                  </div>
-                )
-                : (
-                  <div>
-                    <p className="mb-2">No journal entries yet. Capture a thought to begin your streak.</p>
-                    <button
-                      onClick={() => setActiveTab('journal')}
-                      className="px-3 py-2 bg-evergreen-teal text-white rounded text-vara-xs"
-                    >
-                      Write your first entry
-                    </button>
-                  </div>
-                )}
-            </div>
-          ) : (
-            visibleEntries.map(entry => (
-              <div
-                key={entry.id}
-                className="bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <p className="text-vara-sm text-muted-sage-gray">
-                    {toReadable(entry.createdAt)}
-                    {entry.entryType === 'reflection' && (
-                      <span className="ml-2 text-vara-xs text-evergreen-teal border border-silver-sage rounded px-2 py-0.5">
-                        Reflection {entry.period ? `(${entry.period.toUpperCase()})` : ''}
-                      </span>
-                    )}
-                  </p>
-
-                  {/* Edit/delete for journal entries only (adjust if you want to edit reflections later) */}
-                  {entry.entryType !== 'reflection' && (
-                    <div className="flex gap-vara-sm">
-                      <button
-                        onClick={() => startEditing(entry)}
-                        className="text-vara-xs text-evergreen-teal flex items-center gap-1 hover:underline"
-                      >
-                        <Pencil size={14} /> Edit
-                      </button>
-                      <button
-                        onClick={() => deleteEntry(entry.id)}
-                        className="text-vara-xs text-red-500 flex items-center gap-1 hover:underline"
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {entry.isHtml ? (
-                  <div
-                    className="text-soft-charcoal text-vara-sm"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(entry.text, {
-                        ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li'],
-                        ALLOWED_ATTR: []
-                      })
-                    }}
-                  />
-                ) : (
-                  <p className="text-soft-charcoal text-vara-sm whitespace-pre-wrap">{entry.text}</p>
-                )}
-
-                {(entry.mood || (entry.tags && entry.tags.length > 0)) && (
-                  <div className="mt-2 flex flex-wrap items-center gap-vara-md">
-                    {entry.mood && (
-                      <span
-                        onClick={() => setFilterMood(entry.mood)}
-                        className="text-vara-xs text-evergreen-teal font-medium cursor-pointer underline underline-offset-2"
-                        title="Filter by this mood"
-                      >
-                        Mood: {entry.mood}
-                      </span>
-                    )}
-                    {entry.tags && entry.tags.length > 0 && (
-                      <div className="flex gap-vara-sm flex-wrap">
-                        {entry.tags.map((t, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setFilterTag((t || '').toLowerCase())}
-                            className="bg-dew-sage text-evergreen-teal text-vara-xs px-2 py-1 rounded-full"
-                            title="Filter by this tag"
-                          >
-                            #{t}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Export */}
-        <div className="mt-12">
-          <h3 className="text-vara-lg font-semibold text-soft-charcoal mb-vara-base flex items-center gap-vara-sm">
-            <Share2 className="text-evergreen-teal" size={20} /> Export or Share
-          </h3>
-          <div className="bg-white/80 border border-divider rounded-vara-lg p-5 shadow-vara-sm flex items-center justify-between">
-            <p className="text-soft-charcoal">Export all entries and reflections as a secure PDF or .txt file.</p>
-            <button className="px-vara-base py-2 bg-evergreen-teal text-white rounded-vara-md flex items-center gap-vara-sm text-vara-sm hover:scale-105 transition">
-              <FileText size={16} /> Export
-            </button>
           </div>
         </div>
-      </div>
+      )}
     </SidebarLayout>
   );
 }
 
-/* ---------------- helpers ---------------- */
+/* ---- Sub-components ---- */
 
-function toReadable(ts) {
-  try {
-    const d = ts?.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleString();
-  } catch {
-    return new Date().toLocaleString();
-  }
+function EntryCard({ entry, onView, onEdit, onDelete, onTagClick }) {
+  const preview = (entry.content || entry.text || '').slice(0, 160);
+  const hasMore = (entry.content || entry.text || '').length > 160;
+
+  return (
+    <div
+      className="bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm cursor-pointer hover:border-evergreen-teal/40 transition"
+      onClick={onView}
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          {entry.mood && (
+            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${getMoodDotClass(entry.mood)}`} />
+          )}
+          <span className="text-vara-xs text-muted-sage-gray">{formatDate(entry.createdAt)}, {formatTime(entry.createdAt)}</span>
+        </div>
+        <div className="flex gap-2 ml-2" onClick={e => e.stopPropagation()}>
+          <button
+            onClick={onEdit}
+            className="text-vara-xs text-evergreen-teal flex items-center gap-0.5 hover:underline"
+          >
+            <Pencil size={12} /> Edit
+          </button>
+          <button
+            onClick={onDelete}
+            className="text-vara-xs text-red-400 flex items-center gap-0.5 hover:underline"
+          >
+            <Trash2 size={12} /> Delete
+          </button>
+        </div>
+      </div>
+
+      <p className="text-soft-charcoal text-vara-sm whitespace-pre-wrap leading-relaxed">
+        {preview}{hasMore && <span className="text-muted-sage-gray">…</span>}
+      </p>
+
+      {(entry.tags || []).length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2" onClick={e => e.stopPropagation()}>
+          {entry.tags.map(tag => (
+            <button
+              key={tag}
+              onClick={() => onTagClick(tag)}
+              className="bg-dew-sage text-evergreen-teal text-vara-xs px-2 py-0.5 rounded-full hover:opacity-80"
+            >
+              #{tag}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
+
+/* ---- Helpers ---- */
 
 function safeToDate(ts) {
   try {
-    return ts?.toDate ? ts.toDate() : new Date(ts);
+    const d = ts?.toDate ? ts.toDate() : new Date(ts);
+    return isNaN(d.getTime()) ? new Date() : d;
   } catch {
     return new Date();
   }
 }
 
-function stripHtml(html) {
-  const clean = DOMPurify.sanitize(html || '', { ALLOWED_TAGS: [] });
-  // DOMPurify with no allowed tags returns plain text with entities decoded
-  const tmp = document.createElement('div');
-  tmp.innerHTML = clean;
-  return tmp.textContent || tmp.innerText || '';
+function formatDate(ts) {
+  return safeToDate(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function escapeHtml(s = '') {
-  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-  return s.replace(/[&<>"']/g, m => map[m]);
+function formatTime(ts) {
+  return safeToDate(ts).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-function yyyymmdd(d = new Date()) {
-  const y = d.getFullYear();
-  const m = `${d.getMonth() + 1}`.padStart(2, '0');
-  const day = `${d.getDate()}`.padStart(2, '0');
-  return `${y}-${m}-${day}`;
+function getDateGroup(ts) {
+  const now = new Date();
+  const d = safeToDate(ts);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+  const entryDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.floor((today - entryDay) / 86400000);
+
+  if (entryDay.getTime() === today.getTime()) return 'Today';
+  if (entryDay.getTime() === yesterday.getTime()) return 'Yesterday';
+  if (diffDays <= 6) return 'This Week';
+  if (diffDays <= 13) return 'Last Week';
+  return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 }
 
-function prettyDate(yyyymmdd) {
-  const [y, m, d] = yyyymmdd.split('-').map(n => parseInt(n, 10));
-  const dt = new Date(y, m - 1, d);
-  return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+function groupByDate(entries) {
+  const groups = {};
+  const order = [];
+  entries.forEach(entry => {
+    const label = getDateGroup(entry.createdAt);
+    if (!groups[label]) {
+      groups[label] = [];
+      order.push(label);
+    }
+    groups[label].push(entry);
+  });
+  return order.map(label => ({ label, items: groups[label] }));
 }
-
-/** Placeholder card used when no weekly items are available */
-function EmptyWeeklyPlaceholder({ type, summary = false }) {
-  const title = summary ? 'Summary coming soon' : 'Insights coming soon';
-  const blurb =
-    type === 'journal'
-      ? 'Write at least one journal entry this week to unlock personalized analysis.'
-      : 'Add an AM or PM reflection to see tailored insights.';
-  return (
-    <div className="border border-dashed border-divider rounded-vara-md p-3 bg-white/50">
-      <p className="text-vara-sm text-muted-sage-gray">
-        <strong>{title}.</strong> {blurb}
-      </p>
-    </div>
-  );
-}
-
-
-
-
-
-
-
-
-

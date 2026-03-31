@@ -27,7 +27,6 @@ import {
   initializeUserNotifications,
   updateNotificationsFromPreferences,
   cancelAllUserNotifications,
-  checkAndSendGoalMilestone,
   sendMilestoneNotification,
   scheduleDailyReminder,
   sendConnectionRequestNotification,
@@ -38,7 +37,6 @@ import {
 
 interface NotificationContextType {
   initializeNotifications: () => Promise<void>;
-  onGoalProgressUpdated: (progressPercent: number) => Promise<void>;
   onDailyCompletionAchieved: () => Promise<void>;
   notifyConnectionRequest: (senderName: string, senderId: string) => Promise<void>;
   notifyNewMessage: (senderName: string, messagePreview: string, conversationId: string, senderId: string) => Promise<void>;
@@ -128,7 +126,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (!data?.type || !navigationRef.isReady()) return;
 
       if (data.type === 'habit-reminder') {
-        navigationRef.navigate('Track' as never);
+        navigationRef.navigate('Rhythms' as never);
       } else if (data.type === 'routine-reminder') {
         navigationRef.navigate('Focus' as never);
       }
@@ -153,11 +151,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       await initializeUserNotifications(user.uid);
     }
   }, [user?.uid, serverPush]);
-
-  const onGoalProgressUpdated = useCallback(async (progressPercent: number) => {
-    if (!user?.uid) return;
-    await checkAndSendGoalMilestone(user.uid, progressPercent);
-  }, [user?.uid]);
 
   const onDailyCompletionAchieved = useCallback(async () => {
     if (!user?.uid) return;
@@ -186,7 +179,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const value: NotificationContextType = {
     initializeNotifications,
-    onGoalProgressUpdated,
     onDailyCompletionAchieved,
     notifyConnectionRequest,
     notifyNewMessage,

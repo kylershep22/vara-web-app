@@ -73,7 +73,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
 }) => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const { goals, loading, error: goalsError } = useGoals();
+  const { goals, loading, error: goalsError, retry: retryGoals } = useGoals();
   const [filter, setFilter] = useState(externalFilter || 'all');
 
   // Sync filter with external filter from PlanScreen
@@ -337,6 +337,13 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
           <Text style={[styles.emptyText, { marginTop: Spacing.sm }]}>
             Error: {goalsError.message}
           </Text>
+          <Button
+            variant="outline"
+            onPress={retryGoals}
+            style={{ marginTop: 12 }}
+          >
+            Try again
+          </Button>
         </View>
       </SafeAreaView>
     );
@@ -391,7 +398,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({
             A fresh space for your goals
           </Text>
           <Text style={styles.emptyText}>
-            Add a goal whenever you're ready — no rush.
+            Add a goal whenever you're ready - no rush.
           </Text>
           {!showInlineCreate && (
             <Button

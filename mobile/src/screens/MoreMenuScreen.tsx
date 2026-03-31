@@ -18,7 +18,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
-import { useHabits } from '../hooks';
+import { useHabits, useMovement } from '../hooks';
 
 // ==========================================
 // TYPES
@@ -50,15 +50,6 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     route: 'Insights',
   },
   {
-    id: 'brain-health',
-    title: 'Brain Health',
-    subtitle: 'Track your cognitive wellness',
-    icon: 'brain',
-    iconColor: Colors.evergreenTeal,
-    gradientColors: [Colors.dewSage + '60', Colors.dewSage] as [string, string],
-    route: 'BrainHealth',
-  },
-  {
     id: 'journal',
     title: 'Journal',
     subtitle: 'Reflect with AI-guided prompts',
@@ -86,6 +77,15 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     route: 'Sleep',
   },
   {
+    id: 'focus',
+    title: 'Focus',
+    subtitle: 'Set a focused window for deep work',
+    icon: 'timer-outline',
+    iconColor: Colors.evergreenTeal,
+    gradientColors: [Colors.dewSage + '40', Colors.dewSage + '60'] as [string, string],
+    route: 'FocusTimer',
+  },
+  {
     id: 'movement',
     title: 'Movement',
     subtitle: 'Exercise & mobility routines',
@@ -104,12 +104,12 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
     route: 'Masterclass',
   },
   {
-    id: 'wearables',
-    title: 'Wearables',
-    subtitle: 'Coming soon — sync your devices',
-    icon: 'watch',
-    iconColor: Colors.mutedSageGray,
-    gradientColors: [Colors.silverSage + '20', Colors.silverSage + '30'] as [string, string],
+    id: 'connected-apps',
+    title: 'Connected Apps',
+    subtitle: 'Tell us what tools you use',
+    icon: 'link-variant',
+    iconColor: Colors.evergreenTeal,
+    gradientColors: [Colors.dewSage + '40', Colors.dewSage + '60'] as [string, string],
     route: 'WearableIntegration',
   },
 ];
@@ -191,13 +191,13 @@ const InsightStrip: React.FC<InsightStripProps> = ({ consecutiveDays, hasActivit
 
   if (consecutiveDays >= 1) {
     boldText = 'Active this month';
-    regularText = ` — ${consecutiveDays} day${consecutiveDays > 1 ? 's' : ''} of activity. Every check-in supports your wellbeing.`;
+    regularText = `. ${consecutiveDays} day${consecutiveDays > 1 ? 's' : ''} of activity. Every check-in supports your wellbeing.`;
   } else if (hasActivity) {
     boldText = 'Welcome back';
-    regularText = ' — picking up where you left off is a sign of resilience, not failure.';
+    regularText = '. Picking up where you left off is a sign of resilience, not failure.';
   } else {
     boldText = 'Did you know?';
-    regularText = ' — Small, consistent actions support your brain more than occasional intense effort.';
+    regularText = '. Small, consistent actions support your brain more than occasional intense effort.';
   }
 
   return (
@@ -297,6 +297,7 @@ export default function MoreMenuScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { habits } = useHabits();
+  const { content: movementContent } = useMovement();
 
   // Calculate consecutive days from habit completions
   const { consecutiveDays, hasActivity } = useMemo(() => {
@@ -317,6 +318,16 @@ export default function MoreMenuScreen() {
       hasActivity: hasAnyActivity || habits.length > 0,
     };
   }, [habits]);
+
+  // Filter tools based on content availability
+  const visibleTools = useMemo(() =>
+    YOUR_TOOLS_ITEMS.filter((item) => {
+      // Hide Movement until it has 3+ content items
+      if (item.id === 'movement') return (movementContent?.length || 0) >= 3;
+      return true;
+    }),
+    [movementContent]
+  );
 
   // Animation setup
   const totalItems = YOUR_TOOLS_ITEMS.length + ACCOUNT_ITEMS.length + 2; // +2 for hero and insight
@@ -420,7 +431,7 @@ export default function MoreMenuScreen() {
         {/* Your Tools Section */}
         <Section
           label="YOUR TOOLS"
-          items={YOUR_TOOLS_ITEMS}
+          items={visibleTools}
           onItemPress={handleItemPress}
           startIndex={2}
           animations={animations}

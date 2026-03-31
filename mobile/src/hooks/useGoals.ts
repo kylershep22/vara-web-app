@@ -14,6 +14,13 @@ export const useGoals = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+
+  const retry = () => {
+    setError(null);
+    setLoading(true);
+    setRetryKey(k => k + 1);
+  };
 
   useEffect(() => {
     if (!user) {
@@ -58,7 +65,7 @@ export const useGoals = () => {
     );
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, retryKey]);
 
-  return { goals, loading, error };
+  return { goals, loading, error, retry };
 };

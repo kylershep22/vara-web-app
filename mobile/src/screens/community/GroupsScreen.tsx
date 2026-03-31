@@ -220,6 +220,14 @@ const GroupsScreen: React.FC = () => {
               Find your community
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={() => setShowCreateGroup(true)}
+            style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.evergreenTeal, alignItems: 'center', justifyContent: 'center' }}
+            accessibilityRole="button"
+            accessibilityLabel="Create group"
+          >
+            <Icon name="plus" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -654,18 +662,21 @@ const styles = StyleSheet.create({
 
   // Category Filter Chips
   categoryScroll: {
-    maxHeight: 44,
+    flexGrow: 0,
   },
   categoryContainer: {
     paddingHorizontal: 16,
+    paddingVertical: 8,
     paddingBottom: 12,
     gap: 8,
+    alignItems: 'center',
   },
   categoryChip: {
     backgroundColor: Colors.white,
-    paddingVertical: 8,
+    height: 34,
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 17,
     borderWidth: 1,
     borderColor: Colors.divider,
   },

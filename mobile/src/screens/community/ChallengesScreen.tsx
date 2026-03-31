@@ -418,13 +418,21 @@ const ChallengesScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Icon name="arrow-left" size={20} color={Colors.evergreenTeal} />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>Challenges</Text>
+        <Text style={[styles.navTitle, { flex: 1 }]}>Challenges</Text>
+        <TouchableOpacity
+          onPress={() => setShowCreateModal(true)}
+          style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.evergreenTeal, alignItems: 'center', justifyContent: 'center' }}
+          accessibilityRole="button"
+          accessibilityLabel="Create challenge"
+        >
+          <Icon name="plus" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
       {/* Section B: Title Area */}
       <View style={styles.titleArea}>
         <Text style={styles.screenTitle}>Challenges</Text>
-        <Text style={styles.subtitle}>A time-bound intention you explore alongside others. No pressure — just shared commitment.</Text>
+        <Text style={styles.subtitle}>A time-bound intention you explore alongside others. No pressure, just shared commitment.</Text>
       </View>
 
       {/* Section C: Search Bar */}

@@ -173,4 +173,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ConsolidatedMetricsCard;
+export { ConsolidatedMetricsCard };

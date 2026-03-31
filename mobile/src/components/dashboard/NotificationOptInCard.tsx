@@ -26,7 +26,7 @@ const CARD_CONTENT = {
   milestones: {
     icon: 'trophy-outline' as const,
     title: 'Celebrate Your Milestones',
-    description: 'Get notified when you reach meaningful milestones — like your first week, first month, and beyond.',
+    description: 'Get notified when you reach meaningful milestones, like your first week, first month, and beyond.',
   },
 };
 

@@ -93,7 +93,7 @@ const OnboardingValuesScreen: React.FC<OnboardingValuesScreenProps> = ({
       case 1:
         return 'Choose 1 more to continue';
       case 2:
-        return "You're set — or add one more";
+        return "You're set, or add one more";
       case 3:
         return 'Perfect';
       default:
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.evergreenTeal,
   },
   cardDisabled: {
-    opacity: 0.35,
+    opacity: 0.55,
   },
   todayTag: {
     position: 'absolute',

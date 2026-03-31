@@ -4,7 +4,7 @@
  * Thin UI shell that delegates state/handlers to useDashboard.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +15,6 @@ import {
   NextBestActionCard,
   WellnessScoreCard,
   WellnessScoreBreakdown,
-  MorningCheckIn,
   WellnessScoreOptInCard,
   QuickActionsRow,
 } from '../components/dashboard';
@@ -23,8 +22,17 @@ import { WeeklyHabitsCard } from '../components/dashboard/WeeklyHabitsCard';
 import { AIDailyPlanCard } from '../components/dashboard/AIDailyPlanCard';
 import WelcomeBackCard from '../components/dashboard/WelcomeBackCard';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
+import WeekInsightCard from '../components/dashboard/WeekInsightCard';
+import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
+import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
+import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
+import { EventCodeCard } from '../components/events/EventCodeCard';
+import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
+import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 import { useDashboard } from '../hooks/useDashboard';
+import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
+import { selectWeekInsight } from '../constants/weekInsightTemplates';
 
 const DashboardScreen: React.FC = () => {
   const {
@@ -57,11 +65,6 @@ const DashboardScreen: React.FC = () => {
     setShowOptInPrompt,
     handleRefreshWellnessScore,
     handleWellnessScoreEnable,
-    morningCheckIn,
-    morningCheckInLoading,
-    showMorningCheckIn,
-    setShowMorningCheckIn,
-    handleMorningCheckInComplete,
     fourThreeTwoOneEntry,
     handleFourThreeTwoOneChange,
     showWelcomeBack,
@@ -70,7 +73,24 @@ const DashboardScreen: React.FC = () => {
     handleNotifOptIn,
     handleNotifDismiss,
     handleRefresh,
+    brainStateCheckIn,
+    brainStateCheckInLoading,
+    handleBrainStateCheckIn,
+    handleMarkProtocolCompleted,
+    todaysProtocol,
+    showDailyReflection,
+    handleDailyReflection,
+    handleDailyReflectionSkip,
+    showEventCodeCard,
+    eventCodeSheetVisible,
+    setEventCodeSheetVisible,
+    handleEventCodeDismiss,
+    handleEventCodeSuccess,
   } = useDashboard();
+
+  const { correlations } = useWeeklyCorrelations();
+  const weekInsight = correlations ? selectWeekInsight(correlations) : null;
+  const [weekInsightDismissed, setWeekInsightDismissed] = useState(false);
 
   if (dataLoading) {
     return <LoadingSpinner message="Loading your wellness dashboard..." />;
@@ -99,110 +119,200 @@ const DashboardScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Welcome Back Card (returning users, 3+ days away) */}
-        {showWelcomeBack && (
-          <WelcomeBackCard
-            onDismiss={() => {
-              setShowWelcomeBack(false);
-            }}
-          />
-        )}
+        {DASHBOARD_V2 ? (
+          <>
+            {/* Notification Opt-In Card (progressive disclosure) */}
+            {notifOptInCard && (
+              <View style={{ paddingHorizontal: Spacing.base }}>
+                <NotificationOptInCard
+                  category={notifOptInCard}
+                  onOptIn={() => handleNotifOptIn(notifOptInCard)}
+                  onDismiss={() => handleNotifDismiss(notifOptInCard)}
+                />
+              </View>
+            )}
 
-        {/* Notification Opt-In Card (progressive disclosure) */}
-        {notifOptInCard && (
-          <View style={{ paddingHorizontal: Spacing.base }}>
-            <NotificationOptInCard
-              category={notifOptInCard}
-              onOptIn={() => handleNotifOptIn(notifOptInCard)}
-              onDismiss={() => handleNotifDismiss(notifOptInCard)}
+            {/* Event Code Card (new users < 48 hours, contextual) */}
+            {showEventCodeCard && (
+              <View style={{ paddingHorizontal: Spacing.base }}>
+                <EventCodeCard
+                  onEnterCode={() => setEventCodeSheetVisible(true)}
+                  onDismiss={handleEventCodeDismiss}
+                />
+              </View>
+            )}
+
+            {/* Position 1: Brain State Check-In */}
+            <BrainStateCheckin
+              currentCheckIn={brainStateCheckIn}
+              onSelect={handleBrainStateCheckIn}
+              loading={brainStateCheckInLoading}
             />
-          </View>
-        )}
 
-        {/* Weekly Habits Tracker */}
-        <WeeklyHabitsCard
-          habits={habits}
-          visibleDays={visibleDays}
-          today={today}
-          allCompletions={allCompletions}
-          weeklyCompletions={weeklyCompletions}
-          processingHabits={processingHabits}
-          onHabitToggle={handleHabitToggle}
-          onNavigateToHabits={() => navigation.navigate('Track' as never, { tab: 'habits' } as never)}
-          onAddHabit={() => navigation.navigate('Track' as never, { tab: 'habits', openCreateModal: true } as never)}
-        />
+            {/* Position 2: Today's Protocol (only after check-in) */}
+            {brainStateCheckIn && todaysProtocol && (
+              <TodaysProtocolCard
+                protocol={todaysProtocol}
+                completed={brainStateCheckIn.protocolCompleted}
+                onMarkCompleted={handleMarkProtocolCompleted}
+              />
+            )}
 
-        {/* Next Best Action Card */}
-        <NextBestActionCard
-          wellnessScore={wellnessScore}
-          habits={habits}
-          tasks={tasks}
-          completedTodayHabits={completedToday}
-          fourThreeTwoOne={fourThreeTwoOneEntry}
-          lastJournalDate={lastJournalDate}
-          hasMorningCheckIn={!!morningCheckIn}
-          hasDailyPlan={!!dailyPlan}
-          onGeneratePlan={handleGenerateDailyPlan}
-          onMorningCheckIn={() => setShowMorningCheckIn(true)}
-        />
+            {/* Daily Reflection (after all habits completed) */}
+            {showDailyReflection && (
+              <DailyReflectionCard
+                onReflect={handleDailyReflection}
+                onSkip={handleDailyReflectionSkip}
+              />
+            )}
 
-        {/* Quick Actions Row */}
-        <QuickActionsRow
-          onJournalPress={() => navigation.navigate('Journal' as never)}
-          onReflectPress={() => navigation.navigate('Focus' as never)}
-        />
+            {/* Position 3: Weekly Habits Tracker */}
+            <WeeklyHabitsCard
+              habits={habits}
+              visibleDays={visibleDays}
+              today={today}
+              allCompletions={allCompletions}
+              weeklyCompletions={weeklyCompletions}
+              processingHabits={processingHabits}
+              onHabitToggle={handleHabitToggle}
+              onNavigateToHabits={() => navigation.navigate('Rhythms' as never, { tab: 'habits' } as never)}
+              onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
+            />
 
-        {/* --- Below fold --- */}
+            {/* Position 4: Week Insight (below fold, conditional) */}
+            {weekInsight && !weekInsightDismissed && (
+              <WeekInsightCard
+                headline={weekInsight.headline}
+                supporting={weekInsight.supporting}
+                onPressFullStory={() => navigation.navigate('Insights' as never)}
+                onDismiss={() => setWeekInsightDismissed(true)}
+              />
+            )}
 
-        {/* 4-3-2-1 Daily Practice */}
-        <FourThreeTwoOneCard onChange={handleFourThreeTwoOneChange} defaultCollapsed={true} />
+          </>
+        ) : (
+          <>
+            {/* ========== V1 DASHBOARD LAYOUT ========== */}
 
-        {/* AI Daily Plan Card */}
-        <AIDailyPlanCard
-          dailyPlan={dailyPlan}
-          generatingPlan={generatingPlan}
-          isPlanExpanded={isPlanExpanded}
-          onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
-          onGenerate={handleGenerateDailyPlan}
-        />
+            {/* Welcome Back Card (returning users, 3+ days away) */}
+            {showWelcomeBack && (
+              <WelcomeBackCard
+                onDismiss={() => {
+                  setShowWelcomeBack(false);
+                }}
+              />
+            )}
 
-        {/* Brain Health Insight Strip */}
-        <BrainHealthInsightStrip compact />
+            {/* Notification Opt-In Card (progressive disclosure) */}
+            {notifOptInCard && (
+              <View style={{ paddingHorizontal: Spacing.base }}>
+                <NotificationOptInCard
+                  category={notifOptInCard}
+                  onOptIn={() => handleNotifOptIn(notifOptInCard)}
+                  onDismiss={() => handleNotifDismiss(notifOptInCard)}
+                />
+              </View>
+            )}
 
-        {/* Wellness Score Opt-In */}
-        {wellnessScoreEnabled === false && showOptInPrompt && (
-          <WellnessScoreOptInCard
-            onEnable={handleWellnessScoreEnable}
-            onDismiss={() => setShowOptInPrompt(false)}
-          />
-        )}
+            {/* Weekly Habits Tracker */}
+            <WeeklyHabitsCard
+              habits={habits}
+              visibleDays={visibleDays}
+              today={today}
+              allCompletions={allCompletions}
+              weeklyCompletions={weeklyCompletions}
+              processingHabits={processingHabits}
+              onHabitToggle={handleHabitToggle}
+              onNavigateToHabits={() => navigation.navigate('Rhythms' as never, { tab: 'habits' } as never)}
+              onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
+            />
 
-        {/* Wellness Score Card */}
-        {wellnessScoreEnabled && (
-          <WellnessScoreCard
-            score={wellnessScore}
-            loading={wellnessScoreLoading}
-            onPress={() => setShowScoreBreakdown(true)}
-            onRefresh={handleRefreshWellnessScore}
-          />
-        )}
+            {/* Next Best Action Card */}
+            <NextBestActionCard
+              wellnessScore={wellnessScore}
+              habits={habits}
+              tasks={tasks}
+              completedTodayHabits={completedToday}
+              fourThreeTwoOne={fourThreeTwoOneEntry}
+              lastJournalDate={lastJournalDate}
+              hasMorningCheckIn={true}
+              hasDailyPlan={!!dailyPlan}
+              onGeneratePlan={handleGenerateDailyPlan}
+              onMorningCheckIn={() => {}}
+            />
 
-        {/* Morning Check-In */}
-        {showMorningCheckIn && !morningCheckIn && (
-          <MorningCheckIn
-            onComplete={handleMorningCheckInComplete}
-            onDismiss={() => setShowMorningCheckIn(false)}
-            loading={morningCheckInLoading}
-          />
+            {/* Quick Actions Row */}
+            <QuickActionsRow
+              onJournalPress={() => navigation.navigate('Journal' as never)}
+              onReflectPress={() => navigation.navigate('Focus' as never)}
+            />
+
+            {/* --- Below fold --- */}
+
+            {/* 4-3-2-1 Daily Practice */}
+            <FourThreeTwoOneCard onChange={handleFourThreeTwoOneChange} defaultCollapsed={true} />
+
+            {/* Week Insight Card */}
+            {weekInsight && !weekInsightDismissed && (
+              <WeekInsightCard
+                headline={weekInsight.headline}
+                supporting={weekInsight.supporting}
+                onPressFullStory={() => navigation.navigate('Insights' as never)}
+                onDismiss={() => setWeekInsightDismissed(true)}
+              />
+            )}
+
+
+            {/* AI Daily Plan Card */}
+            <AIDailyPlanCard
+              dailyPlan={dailyPlan}
+              generatingPlan={generatingPlan}
+              isPlanExpanded={isPlanExpanded}
+              onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
+              onGenerate={handleGenerateDailyPlan}
+            />
+
+            {/* Brain Health Insight Strip */}
+            <BrainHealthInsightStrip compact />
+
+            {/* Wellness Score Opt-In */}
+            {wellnessScoreEnabled === false && showOptInPrompt && (
+              <WellnessScoreOptInCard
+                onEnable={handleWellnessScoreEnable}
+                onDismiss={() => setShowOptInPrompt(false)}
+              />
+            )}
+
+            {/* Wellness Score Card */}
+            {wellnessScoreEnabled && (
+              <WellnessScoreCard
+                score={wellnessScore}
+                loading={wellnessScoreLoading}
+                onPress={() => setShowScoreBreakdown(true)}
+                onRefresh={handleRefreshWellnessScore}
+              />
+            )}
+
+
+          </>
         )}
       </ScrollView>
 
-      {/* Wellness Score Breakdown Modal */}
-      <WellnessScoreBreakdown
-        visible={showScoreBreakdown}
-        onClose={() => setShowScoreBreakdown(false)}
-        score={wellnessScore}
-        onNavigate={(route) => navigation.navigate(route as never)}
+      {/* Wellness Score Breakdown Modal (V1 only) */}
+      {!DASHBOARD_V2 && (
+        <WellnessScoreBreakdown
+          visible={showScoreBreakdown}
+          onClose={() => setShowScoreBreakdown(false)}
+          score={wellnessScore}
+          onNavigate={(route) => navigation.navigate(route as never)}
+        />
+      )}
+
+      {/* Event Code Sheet */}
+      <EventCodeSheet
+        visible={eventCodeSheetVisible}
+        onDismiss={() => setEventCodeSheetVisible(false)}
+        onSuccess={handleEventCodeSuccess}
       />
     </SafeAreaView>
   );

@@ -11,13 +11,11 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { format, subDays, isSameDay } from "date-fns";
-import { triggerConfetti } from "../../utils/confetti"; // 🎉 Confetti helper
 import EditHabitForm from "./EditHabitForm";
 
 export default function HabitList({ userId, goalId }) {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [celebration, setCelebration] = useState(null);
   const [editingHabitId, setEditingHabitId] = useState(null);
   const today = new Date().toDateString();
 
@@ -64,12 +62,6 @@ export default function HabitList({ userId, goalId }) {
         streak: newStreak,
       });
 
-      if (newStreak > 0 && newStreak % 7 === 0) {
-        triggerConfetti();
-        setCelebration(`🎉 You're on a ${newStreak}-day streak for "${habit.title}"! Keep going!`);
-        setTimeout(() => setCelebration(null), 5000);
-      }
-
       fetchHabits();
     } catch (err) {
       console.error("Error marking habit complete:", err);
@@ -100,12 +92,6 @@ export default function HabitList({ userId, goalId }) {
 
   return (
     <div className="space-y-4 relative">
-      {celebration && (
-        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[9999] bg-white border border-sunrise-amber px-6 py-3 rounded-xl shadow-lg text-evergreen-teal text-center font-semibold animate-fadeIn">
-          {celebration}
-        </div>
-      )}
-
       {habits.map((habit) => {
         const completedToday = habit.completions?.some((c) =>
           c.date?.toDate?.().toDateString() === today

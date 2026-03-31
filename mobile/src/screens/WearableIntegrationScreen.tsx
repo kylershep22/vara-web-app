@@ -1,188 +1,221 @@
 /**
- * Wearable Integration Screen
- * Coming Soon placeholder for wearable device integration
+ * Connected Apps Screen
+ * Collects user feedback on desired integrations
+ * Replaces the old "Coming Soon" wearables placeholder
  */
 
-import React from 'react';
-import { View, StyleSheet, ScrollView, Image, Text } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { Button, BaseCard } from '../components';
+import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../constants';
+import { useAuth } from '../context/AuthContext';
+import { db } from '../config/firebase';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
-interface WearableDevice {
-  id: string;
-  name: string;
-  icon: string;
-  description: string;
-  status: 'coming-soon' | 'available';
-}
+const VARA_COLORS = {
+  teal: '#1B5E57',
+  mistWhite: '#FAFAF6',
+  charcoal: '#3E3E3E',
+  sageGray: '#6F7F77',
+  dewSage: '#D5E3D1',
+};
 
-const WEARABLE_DEVICES: WearableDevice[] = [
-  {
-    id: 'apple-watch',
-    name: 'Apple Watch',
-    icon: 'watch',
-    description: 'Sync activity, heart rate, and sleep data from your Apple Watch',
-    status: 'coming-soon',
-  },
-  {
-    id: 'fitbit',
-    name: 'Fitbit',
-    icon: 'watch-variant',
-    description: 'Connect your Fitbit to track steps, exercise, and sleep patterns',
-    status: 'coming-soon',
-  },
-  {
-    id: 'garmin',
-    name: 'Garmin',
-    icon: 'watch-vibrate',
-    description: 'Import fitness metrics and stress tracking from Garmin devices',
-    status: 'coming-soon',
-  },
-  {
-    id: 'oura',
-    name: 'Oura Ring',
-    icon: 'ring',
-    description: 'Track sleep quality, readiness score, and activity with Oura',
-    status: 'coming-soon',
-  },
-  {
-    id: 'whoop',
-    name: 'WHOOP',
-    icon: 'arm-flex',
-    description: 'Sync strain, recovery, and sleep data from your WHOOP band',
-    status: 'coming-soon',
-  },
-  {
-    id: 'health-apps',
-    name: 'Apple Health & Google Fit',
-    icon: 'heart-pulse',
-    description: 'Connect to Apple Health or Google Fit as a central hub',
-    status: 'coming-soon',
-  },
+const CONNECTED_APPS = [
+  { id: 'apple-watch', label: 'Apple Watch', icon: 'watch' },
+  { id: 'fitbit', label: 'Fitbit', icon: 'watch-variant' },
+  { id: 'garmin', label: 'Garmin', icon: 'watch-vibrate' },
+  { id: 'strava', label: 'Strava', icon: 'run-fast' },
+  { id: 'peloton', label: 'Peloton', icon: 'bike' },
+  { id: 'oura-ring', label: 'Oura Ring', icon: 'ring' },
+  { id: 'whoop', label: 'WHOOP', icon: 'arm-flex' },
+  { id: 'google-fit', label: 'Google Fit', icon: 'google-fit' },
+  { id: 'samsung-health', label: 'Samsung Health', icon: 'cellphone' },
 ];
 
-const WearableIntegrationScreen: React.FC = () => {
-  const navigation = useNavigation();
+const ConnectedAppsScreen: React.FC = () => {
+  const { user } = useAuth();
+  const [showPicker, setShowPicker] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [otherText, setOtherText] = useState('');
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Check if user already submitted
+  useEffect(() => {
+    if (!user?.uid || !db) {
+      setLoading(false);
+      return;
+    }
+    const check = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && userDoc.data().connectedAppsPicks) {
+          setHasSubmitted(true);
+        }
+      } catch {
+        // Ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    check();
+  }, [user]);
+
+  const toggleApp = useCallback((appId: string) => {
+    Haptics.selectionAsync();
+    setSelected((prev) =>
+      prev.includes(appId) ? prev.filter((id) => id !== appId) : [...prev, appId]
+    );
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
+    if (!user?.uid || !db || (selected.length === 0 && !otherText.trim())) return;
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    const picks = [...selected];
+    if (otherText.trim()) picks.push(`other: ${otherText.trim()}`);
+
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        connectedAppsPicks: picks,
+        connectedAppsSubmittedAt: serverTimestamp(),
+      });
+      setHasSubmitted(true);
+      setShowPicker(false);
+    } catch (err) {
+      console.error('Error saving connected apps picks:', err);
+    }
+  }, [user, selected, otherText]);
+
+  if (loading) return null;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <View style={styles.comingSoonBadge}>
-            <Icon name="clock-outline" size={16} color={Colors.evergreenTeal} />
-            <Text style={styles.comingSoonText}>Coming Soon</Text>
-          </View>
-
-          <View style={styles.iconCircle}>
-            <Icon name="watch" size={48} color={Colors.evergreenTeal} />
-          </View>
-
-          <Text style={styles.heroTitle}>Wearable Integration</Text>
-          <Text style={styles.heroSubtitle}>
-            Connect your favorite wearables to automatically sync health data
-            and get personalized insights based on your real-world metrics.
-          </Text>
-        </View>
-
-        {/* Benefits Section */}
-        <View style={styles.benefitsSection}>
-          <Text style={styles.sectionTitle}>What You'll Get</Text>
-
-          <View style={styles.benefitRow}>
-            <View style={styles.benefitIcon}>
-              <Icon name="sync" size={20} color={Colors.evergreenTeal} />
+        {hasSubmitted ? (
+          // Post-submission quiet state
+          <View style={styles.card}>
+            <View style={styles.iconRow}>
+              <Icon name="check-circle" size={32} color={VARA_COLORS.teal} />
             </View>
-            <View style={styles.benefitContent}>
-              <Text style={styles.benefitTitle}>Automatic Sync</Text>
-              <Text style={styles.benefitDescription}>
-                Your activity, sleep, and wellness data syncs seamlessly in the background
-              </Text>
-            </View>
+            <Text style={styles.headline}>
+              Thanks — your input shapes what we build next.
+            </Text>
           </View>
-
-          <View style={styles.benefitRow}>
-            <View style={styles.benefitIcon}>
-              <Icon name="brain" size={20} color={Colors.evergreenTeal} />
+        ) : (
+          // Pre-submission feedback card
+          <View style={styles.card}>
+            <View style={styles.iconRow}>
+              <Icon name="link-variant" size={32} color={VARA_COLORS.teal} />
             </View>
-            <View style={styles.benefitContent}>
-              <Text style={styles.benefitTitle}>Smarter Insights</Text>
-              <Text style={styles.benefitDescription}>
-                AI recommendations adapt based on your actual sleep, stress, and activity levels
-              </Text>
-            </View>
+            <Text style={styles.headline}>What apps do you use?</Text>
+            <Text style={styles.body}>
+              We're building smart connections so Vara can work with tools you already use.
+              Tell us what matters to you.
+            </Text>
+            <TouchableOpacity
+              style={styles.ctaButton}
+              onPress={() => setShowPicker(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.ctaText}>Share your pick</Text>
+            </TouchableOpacity>
           </View>
-
-          <View style={styles.benefitRow}>
-            <View style={styles.benefitIcon}>
-              <Icon name="target" size={20} color={Colors.evergreenTeal} />
-            </View>
-            <View style={styles.benefitContent}>
-              <Text style={styles.benefitTitle}>Goal Tracking</Text>
-              <Text style={styles.benefitDescription}>
-                Automatically track fitness and wellness goals with real data
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.benefitRow}>
-            <View style={styles.benefitIcon}>
-              <Icon name="chart-timeline-variant" size={20} color={Colors.evergreenTeal} />
-            </View>
-            <View style={styles.benefitContent}>
-              <Text style={styles.benefitTitle}>Trend Analysis</Text>
-              <Text style={styles.benefitDescription}>
-                See how your habits impact your health metrics over time
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Devices Section */}
-        <View style={styles.devicesSection}>
-          <Text style={styles.sectionTitle}>Supported Devices</Text>
-          <Text style={styles.sectionSubtitle}>
-            We're working on integrations for these popular wearables
-          </Text>
-
-          <View style={styles.devicesGrid}>
-            {WEARABLE_DEVICES.map((device) => (
-              <View key={device.id} style={styles.deviceCard}>
-                <View style={styles.deviceIconContainer}>
-                  <Icon name={device.icon as any} size={28} color={Colors.textSecondary} />
-                </View>
-                <Text style={styles.deviceName}>{device.name}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Notify Section */}
-        <BaseCard style={styles.notifyCard}>
-          <Icon name="bell-outline" size={32} color={Colors.evergreenTeal} />
-          <Text style={styles.notifyTitle}>Get Notified</Text>
-          <Text style={styles.notifyDescription}>
-            We'll let you know as soon as wearable integration is available.
-            Your notification preferences already have you covered.
-          </Text>
-          <View style={styles.notifyBadge}>
-            <Icon name="check-circle" size={16} color={Colors.success} />
-            <Text style={styles.notifyBadgeText}>You're on the list</Text>
-          </View>
-        </BaseCard>
-
-        {/* Back Button */}
-        <Button
-          variant="outline"
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          Back to Wellness
-        </Button>
+        )}
       </ScrollView>
+
+      {/* Multi-select bottom sheet */}
+      <Modal
+        visible={showPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowPicker(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select your apps</Text>
+            <TouchableOpacity onPress={() => setShowPicker(false)}>
+              <Icon name="close" size={24} color={VARA_COLORS.charcoal} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.modalSubtitle}>
+            Pick everything you use. This helps us prioritize.
+          </Text>
+
+          {/* App grid */}
+          <ScrollView style={styles.appList} contentContainerStyle={styles.appGrid}>
+            {CONNECTED_APPS.map((app) => {
+              const isSelected = selected.includes(app.id);
+              return (
+                <TouchableOpacity
+                  key={app.id}
+                  style={[styles.appChip, isSelected && styles.appChipSelected]}
+                  onPress={() => toggleApp(app.id)}
+                  activeOpacity={0.7}
+                >
+                  <Icon
+                    name={app.icon as any}
+                    size={20}
+                    color={isSelected ? '#FFFFFF' : VARA_COLORS.sageGray}
+                  />
+                  <Text style={[styles.appChipText, isSelected && styles.appChipTextSelected]}>
+                    {app.label}
+                  </Text>
+                  {isSelected && <Icon name="check" size={16} color="#FFFFFF" />}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Other text input */}
+          <View style={styles.otherSection}>
+            <Text style={styles.otherLabel}>Other</Text>
+            <TextInput
+              style={styles.otherInput}
+              value={otherText}
+              onChangeText={setOtherText}
+              placeholder="Something else? Type it here..."
+              placeholderTextColor={VARA_COLORS.sageGray}
+              returnKeyType="done"
+            />
+          </View>
+
+          {/* Submit */}
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                (selected.length === 0 && !otherText.trim()) && styles.submitButtonDisabled,
+              ]}
+              onPress={handleSubmit}
+              disabled={selected.length === 0 && !otherText.trim()}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.submitText}>
+                Submit{selected.length > 0 ? ` (${selected.length} selected)` : ''}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -190,177 +223,159 @@ const WearableIntegrationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.mistWhite,
+    backgroundColor: VARA_COLORS.mistWhite,
   },
   scrollContent: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xl * 2,
   },
-  // Hero Section
-  heroSection: {
+
+  // Feedback card
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    shadowColor: VARA_COLORS.teal,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  iconRow: {
+    marginBottom: 16,
+  },
+  headline: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: VARA_COLORS.teal,
+    marginBottom: 8,
+    lineHeight: 24,
+  },
+  body: {
+    fontSize: 14,
+    color: VARA_COLORS.sageGray,
+    lineHeight: 21,
+    marginBottom: 20,
+  },
+  ctaButton: {
+    borderWidth: 1.5,
+    borderColor: VARA_COLORS.teal,
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginBottom: Spacing.xl,
   },
-  comingSoonBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.evergreenTeal + '15',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
-    borderRadius: Layout.borderRadius.full,
-    marginBottom: Spacing.lg,
-    gap: Spacing.xs,
+  ctaText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: VARA_COLORS.teal,
   },
-  comingSoonText: {
-    color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.semibold as any,
-    fontSize: Typography.fontSize.sm,
-  },
-  iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.dewSage,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  heroTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold as any,
-    color: Colors.softCharcoal,
-    marginBottom: Spacing.sm,
-    textAlign: 'center',
-  },
-  heroSubtitle: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: Typography.fontSize.base * 1.5,
-    paddingHorizontal: Spacing.base,
-  },
-  // Benefits Section
-  benefitsSection: {
-    marginBottom: Spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold as any,
-    color: Colors.softCharcoal,
-    marginBottom: Spacing.base,
-  },
-  sectionSubtitle: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.base,
-  },
-  benefitRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.base,
-    backgroundColor: Colors.surface,
-    padding: Spacing.base,
-    borderRadius: Layout.borderRadius.md,
-  },
-  benefitIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.dewSage,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.base,
-  },
-  benefitContent: {
+
+  // Modal
+  modalContainer: {
     flex: 1,
+    backgroundColor: VARA_COLORS.mistWhite,
   },
-  benefitTitle: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold as any,
-    color: Colors.softCharcoal,
-    marginBottom: 4,
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.base,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(27,94,87,0.08)',
   },
-  benefitDescription: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
-    lineHeight: Typography.fontSize.sm * 1.4,
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: VARA_COLORS.charcoal,
   },
-  // Devices Section
-  devicesSection: {
-    marginBottom: Spacing.xl,
+  modalSubtitle: {
+    fontSize: 14,
+    color: VARA_COLORS.sageGray,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.base,
+    paddingBottom: Spacing.sm,
   },
-  devicesGrid: {
+
+  // App grid
+  appList: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  appGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
+    gap: 10,
+    paddingVertical: Spacing.base,
   },
-  deviceCard: {
-    width: '31%',
-    backgroundColor: Colors.surface,
-    borderRadius: Layout.borderRadius.md,
-    padding: Spacing.base,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    borderStyle: 'dashed',
-  },
-  deviceIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.borderLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  deviceName: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.medium as any,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  // Notify Section
-  notifyCard: {
-    alignItems: 'center',
-    padding: Spacing.xl,
-    marginBottom: Spacing.lg,
-    backgroundColor: Colors.evergreenTeal + '08',
-    borderWidth: 1,
-    borderColor: Colors.evergreenTeal + '20',
-  },
-  notifyTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold as any,
-    color: Colors.softCharcoal,
-    marginTop: Spacing.base,
-    marginBottom: Spacing.sm,
-  },
-  notifyDescription: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: Typography.fontSize.sm * 1.5,
-    marginBottom: Spacing.base,
-  },
-  notifyBadge: {
+  appChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    backgroundColor: Colors.success + '15',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
-    borderRadius: Layout.borderRadius.full,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(27,94,87,0.12)',
   },
-  notifyBadgeText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.success,
-    fontWeight: Typography.fontWeight.medium as any,
+  appChipSelected: {
+    backgroundColor: VARA_COLORS.teal,
+    borderColor: VARA_COLORS.teal,
   },
-  // Back Button
-  backButton: {
-    marginTop: Spacing.base,
+  appChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: VARA_COLORS.charcoal,
+  },
+  appChipTextSelected: {
+    color: '#FFFFFF',
+  },
+
+  // Other
+  otherSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(27,94,87,0.08)',
+    paddingTop: Spacing.base,
+  },
+  otherLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: VARA_COLORS.sageGray,
+    marginBottom: 6,
+  },
+  otherInput: {
+    height: 42,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: VARA_COLORS.charcoal,
+    borderWidth: 1,
+    borderColor: 'rgba(27,94,87,0.1)',
+  },
+
+  // Footer
+  modalFooter: {
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(27,94,87,0.08)',
+  },
+  submitButton: {
+    backgroundColor: VARA_COLORS.teal,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  submitButtonDisabled: {
+    opacity: 0.4,
+  },
+  submitText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 
-export default WearableIntegrationScreen;
+export default ConnectedAppsScreen;

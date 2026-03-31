@@ -62,11 +62,15 @@ interface UseTimerReturn {
   isBreak: boolean;
   /** Check if timer is active (running or break_running) */
   isActive: boolean;
+  /** Current break duration in minutes */
+  breakDurationMinutes: number;
+  /** Set break duration (clamped 1-15 minutes) */
+  setBreakDuration: (minutes: number) => void;
 }
 
 export const useTimer = ({
   durationMinutes,
-  breakDurationMinutes = 5,
+  breakDurationMinutes: initialBreakMinutes = 5,
   onSessionComplete,
   onBreakComplete,
   onTick,
@@ -74,6 +78,7 @@ export const useTimer = ({
   const [state, setState] = useState<TimerState>('idle');
   const [remainingSeconds, setRemainingSeconds] = useState(durationMinutes * 60);
   const [totalSeconds, setTotalSeconds] = useState(durationMinutes * 60);
+  const [breakMinutes, setBreakMinutes] = useState(initialBreakMinutes);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Clear interval on unmount
@@ -172,12 +177,17 @@ export const useTimer = ({
   const startBreak = useCallback(() => {
     if (state === 'session_complete') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const breakSeconds = breakDurationMinutes * 60;
+      const breakSeconds = breakMinutes * 60;
       setRemainingSeconds(breakSeconds);
       setTotalSeconds(breakSeconds);
       setState('break_running');
     }
-  }, [state, breakDurationMinutes]);
+  }, [state, breakMinutes]);
+
+  const setBreakDuration = useCallback((minutes: number) => {
+    const clamped = Math.max(1, Math.min(15, minutes));
+    setBreakMinutes(clamped);
+  }, []);
 
   const beginAnother = useCallback(() => {
     if (state === 'break_complete') {
@@ -213,6 +223,8 @@ export const useTimer = ({
     beginAnother,
     isBreak: state === 'break_running' || state === 'break_complete',
     isActive: state === 'running' || state === 'break_running',
+    breakDurationMinutes: breakMinutes,
+    setBreakDuration,
   };
 };
 

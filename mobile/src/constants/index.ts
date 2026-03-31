@@ -102,3 +102,10 @@ export {
   getOrderedUpcomingFeatures,
   initializeFeatureStates,
 } from './featureDiscovery';
+export { DASHBOARD_V2, ONBOARDING_V2 } from './dashboardConfig';
+export {
+  BRAIN_STATE_PROTOCOLS,
+  getProtocolForState,
+  type BrainStateProtocol,
+  type ProtocolCategory,
+} from './brainStateProtocols';

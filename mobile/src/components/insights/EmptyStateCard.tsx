@@ -53,4 +53,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EmptyStateCard;
+export { EmptyStateCard };

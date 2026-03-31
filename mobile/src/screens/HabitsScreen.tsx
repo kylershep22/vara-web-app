@@ -7,13 +7,15 @@
 import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LoadingSpinner, BrainPillarInfoModal, InlineCreateButton } from '../components';
+import { LoadingSpinner, BrainPillarInfoModal, InlineCreateButton, Button } from '../components';
 import { QuietFinish } from '../components/celebrations';
 import { WizardContainer } from '../components/habits/wizard';
 import { HabitListItem } from '../components/habits/HabitListItem';
 import { IntentionsSummaryCard } from '../components/habits/IntentionsSummaryCard';
 import { HabitCompletionSheet } from '../components/HabitCompletionSheet';
 import { Colors, Spacing, Typography, Layout } from '../constants';
+import { DASHBOARD_V2 } from '../constants/dashboardConfig';
+import { SimpleHabitCreateScreen } from '../components/habits/SimpleHabitCreateScreen';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Habit } from '../types';
 import { useHabitsScreen } from '../hooks/useHabitsScreen';
@@ -35,6 +37,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
     habits,
     loading,
     habitsError,
+    retryHabits,
     modalVisible,
     setModalVisible,
     editingHabit,
@@ -45,6 +48,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
     setAllHabitsCompletedToday,
     handleCreateHabit,
     handleWizardComplete,
+    handleSimpleHabitSave,
     handleToggleCompletion,
     completionSheetHabit,
     handleCompletionSheetDone,
@@ -92,6 +96,13 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
           <Text style={[styles.emptyText, { marginTop: Spacing.sm }]}>
             Error: {habitsError.message}
           </Text>
+          <Button
+            variant="outline"
+            onPress={retryHabits}
+            style={{ marginTop: 12 }}
+          >
+            Try again
+          </Button>
         </View>
       </SafeAreaView>
     );
@@ -140,7 +151,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
               <View style={styles.insightNudge}>
                 <Text style={styles.insightHeadline}>🌿 Some habits build more than consistency</Text>
                 <Text style={styles.insightBody}>
-                  Habits marked 🌿 CR support cognitive reserve — your brain's long-term resilience. These are worth prioritizing.
+                  Habits marked 🌿 CR support cognitive reserve, your brain's long-term resilience. These are worth prioritizing.
                 </Text>
               </View>
               <IntentionsSummaryCard habits={habits} />
@@ -163,12 +174,20 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
         </TouchableOpacity>
       )}
 
-      <WizardContainer
-        visible={modalVisible}
-        onDismiss={() => setModalVisible(false)}
-        editingHabit={editingHabit}
-        onComplete={handleWizardComplete}
-      />
+      {DASHBOARD_V2 ? (
+        <SimpleHabitCreateScreen
+          visible={modalVisible}
+          onDismiss={() => setModalVisible(false)}
+          onSave={handleSimpleHabitSave}
+        />
+      ) : (
+        <WizardContainer
+          visible={modalVisible}
+          onDismiss={() => setModalVisible(false)}
+          editingHabit={editingHabit}
+          onComplete={handleWizardComplete}
+        />
+      )}
 
       <BrainPillarInfoModal
         visible={pillarInfoVisible}

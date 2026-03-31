@@ -45,6 +45,7 @@ import {
 } from 'firebase/firestore';
 
 import AddHabitForm from '../components/habits/AddHabitForm';
+import HabitCreateModal from '../components/dashboard/HabitCreateModal';
 import AIBasedSuggestions from '../components/habits/AIBasedSuggestions';
 import GoalCreationForm from '../components/goals/GoalCreationForm';
 import GoalDetailsModal from '../components/goals/GoalDetailsModal';
@@ -1544,21 +1545,11 @@ export default function GoalsHabits() {
             </div>
 
             {creatingHabit && (
-              <div className="bg-white border border-silver-sage rounded-vara-lg p-vara-lg shadow-vara-sm">
-                <div className="flex items-center justify-between mb-vara-base">
-                  <h3 className="text-vara-lg font-semibold text-evergreen-teal">Create New Habit</h3>
-                  <button onClick={() => setCreatingHabit(false)} className="p-2 hover:bg-dew-sage-light rounded-vara-md">
-                    <X size={18} className="text-muted-sage-gray" />
-                  </button>
-                </div>
-                <AddHabitForm
-                  userId={user.uid}
-                  goals={goals}
-                  connectedApps={connectedApps.filter((app) => app.connected)}
-                  onSave={handleSaveHabit}
-                  onCancel={() => setCreatingHabit(false)}
-                />
-              </div>
+              <HabitCreateModal
+                userId={user.uid}
+                onClose={() => setCreatingHabit(false)}
+                onSave={() => setCreatingHabit(false)}
+              />
             )}
 
 

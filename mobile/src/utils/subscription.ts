@@ -5,7 +5,7 @@
 
 import { Timestamp } from 'firebase/firestore';
 
-export type SubscriptionType = 'trial' | 'premium' | 'coaching' | 'expired';
+export type SubscriptionType = 'trial' | 'premium' | 'coaching' | 'event' | 'expired';
 
 export interface SubscriptionStatus {
   type: SubscriptionType;
@@ -21,6 +21,9 @@ export interface SubscriptionStatus {
   premiumExpiresAt?: Date;
   isInGracePeriod?: boolean;
   graceDaysRemaining?: number;
+
+  // Event access info
+  eventDaysRemaining?: number;
 
   // Expiration info
   expiredAt?: Date;
@@ -46,6 +49,10 @@ export interface SubscriptionData {
   coachingGrantedAt?: Timestamp;
   coachingInviteCode?: string;
   coachingGrantedBy?: string;
+
+  // Event access
+  eventAccessExpiresAt?: Timestamp;
+  eventGrantedAt?: Timestamp;
 
   // Expiration
   expiredAt?: Timestamp;
@@ -185,6 +192,27 @@ export function getSubscriptionStatus(userDoc: { subscription?: SubscriptionData
       };
     }
 
+    case 'event': {
+      const isExpired = isPast(sub.eventAccessExpiresAt);
+
+      if (isExpired) {
+        return {
+          type: 'expired',
+          isActive: false,
+          canAccessApp: false,
+        };
+      }
+
+      const daysRemaining = daysUntil(sub.eventAccessExpiresAt);
+
+      return {
+        type: 'event',
+        isActive: true,
+        canAccessApp: true,
+        eventDaysRemaining: daysRemaining,
+      };
+    }
+
     case 'expired':
     default: {
       const retentionDays = sub.dataRetentionDeadline
@@ -213,6 +241,8 @@ export function formatSubscriptionType(type: SubscriptionType): string {
       return 'Premium';
     case 'coaching':
       return 'Coaching (Lifetime)';
+    case 'event':
+      return 'Event Access';
     case 'expired':
       return 'Expired';
     default:
@@ -239,6 +269,12 @@ export function getSubscriptionDescription(status: SubscriptionStatus): string {
 
     case 'coaching':
       return 'Lifetime access included with coaching';
+
+    case 'event':
+      if (status.eventDaysRemaining === 1) {
+        return '1 day of event access remaining';
+      }
+      return `${status.eventDaysRemaining} days of event access remaining`;
 
     case 'expired':
       if (status.dataRetentionDaysRemaining) {

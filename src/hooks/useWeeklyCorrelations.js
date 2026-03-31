@@ -1,86 +1,259 @@
-import { useState, useEffect } from "react";
-import { db } from "../firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { useState, useEffect } from 'react';
+import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../context/AuthContext';
+import { computeCorrelations } from '../services/correlationEngine.service';
 
-function getDayRange(days) {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - days + 1);
-  start.setHours(0, 0, 0, 0);
-  const dates = [];
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
-  }
-  return dates;
+const CACHE_KEY = 'vara_weekly_correlations';
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export function useWeeklyCorrelations(userId) {
-  const [data, setData] = useState(null);
+function dateRange(days) {
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  const start = new Date();
+  start.setDate(start.getDate() - (days - 1));
+  start.setHours(0, 0, 0, 0);
+
+  const dates = [];
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    dates.push(
+      `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`
+    );
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return { start, end, dates };
+}
+
+export function useWeeklyCorrelations() {
+  const { user } = useAuth();
+  const [correlations, setCorrelations] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
 
     async function load() {
+      // Check localStorage cache first
       try {
-        const dates = getDayRange(7);
-        const startDate = dates[0];
-
-        const hcSnap = await getDocs(
-          query(collection(db, "habitCompletions"), where("userId", "==", userId), where("dateISO", ">=", startDate))
-        );
-        const completionsByDay = new Map();
-        hcSnap.docs.forEach((d) => {
-          const date = d.data().dateISO;
-          completionsByDay.set(date, (completionsByDay.get(date) || 0) + 1);
-        });
-
-        const jeSnap = await getDocs(
-          query(collection(db, "journalEntries"), where("userId", "==", userId))
-        );
-        const journalDays = new Set();
-        jeSnap.docs.forEach((d) => {
-          const ts = d.data().createdAt?.toDate?.();
-          if (ts) {
-            const iso = `${ts.getFullYear()}-${String(ts.getMonth() + 1).padStart(2, "0")}-${String(ts.getDate()).padStart(2, "0")}`;
-            if (dates.includes(iso)) journalDays.add(iso);
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.date === todayStr()) {
+            if (!cancelled) {
+              setCorrelations(parsed.data);
+              setLoading(false);
+            }
+            return;
           }
+        }
+      } catch {
+        // Cache miss — compute fresh
+      }
+
+      try {
+        const { start, end, dates } = dateRange(7);
+        const uid = user.uid;
+
+        // Fetch all data sources in parallel
+        const [morningCheckIns, brainMetrics, journalEntries, focusSessions, habits] =
+          await Promise.all([
+            fetchMorningCheckIns(uid, dates),
+            fetchBrainMetrics(uid, dates),
+            fetchJournalEntries(uid, start, end),
+            fetchFocusSessions(uid, start, end),
+            fetchHabitsAndCompletions(uid, dates),
+          ]);
+
+        // Build daily data points
+        const dailyData = dates.map((date) => {
+          const checkIn = morningCheckIns.get(date);
+          const brain = brainMetrics.get(date);
+          const journaled = journalEntries.has(date);
+          const focus = focusSessions.get(date) || 0;
+          const habitRate = habits.get(date);
+
+          return {
+            date,
+            sleepQuality: brain?.sleepQuality ?? null,
+            mood: checkIn?.mood ?? null,
+            energy: checkIn?.energyLevel ?? null,
+            stress: brain?.stressLevel ?? null,
+            habitCompletionRate: habitRate ?? null,
+            focusMinutes: focus > 0 ? focus : null,
+            journaled,
+          };
         });
 
-        const fsSnap = await getDocs(
-          query(collection(db, "focusSessions"), where("userId", "==", userId))
-        );
-        let focusMinutes = 0;
-        fsSnap.docs.forEach((d) => {
-          const ts = d.data().startedAt?.toDate?.();
-          if (ts) {
-            const iso = `${ts.getFullYear()}-${String(ts.getMonth() + 1).padStart(2, "0")}-${String(ts.getDate()).padStart(2, "0")}`;
-            if (dates.includes(iso) && d.data().completed) focusMinutes += (d.data().durationMinutes || 25);
-          }
-        });
+        const result = computeCorrelations(dailyData);
 
-        const completionCounts = dates.map((d) => completionsByDay.get(d) || 0);
-        const totalCompletions = completionCounts.reduce((a, b) => a + b, 0);
-        const bestDayIdx = completionCounts.indexOf(Math.max(...completionCounts));
-        const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const bestDay = new Date(dates[bestDayIdx] + "T00:00:00");
+        // Cache result in localStorage
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ date: todayStr(), data: result }));
+        } catch {
+          // Non-critical cache write failure
+        }
 
-        setData({
-          totalCompletions,
-          completionCounts,
-          journalDays: journalDays.size,
-          focusMinutes,
-          bestDay: dayLabels[bestDay.getDay()],
-          dates,
-        });
+        if (!cancelled) {
+          setCorrelations(result);
+          setLoading(false);
+        }
       } catch (err) {
-        console.error("Weekly correlations error:", err);
-      } finally {
-        setLoading(false);
+        console.error('Error computing correlations:', err);
+        if (!cancelled) setLoading(false);
       }
     }
-    load();
-  }, [userId]);
 
-  return { data, loading };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
+
+  return { correlations, loading };
+}
+
+// --- Data fetchers ---
+
+async function fetchMorningCheckIns(uid, dates) {
+  const map = new Map();
+  const fetches = dates.map(async (date) => {
+    try {
+      const docRef = doc(db, 'morningCheckIns', `${uid}_${date}`);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        map.set(date, { mood: data.mood, energyLevel: data.energyLevel });
+      }
+    } catch {
+      // Skip this date
+    }
+  });
+  await Promise.all(fetches);
+  return map;
+}
+
+async function fetchBrainMetrics(uid, dates) {
+  const map = new Map();
+  const fetches = dates.map(async (date) => {
+    try {
+      const docRef = doc(db, 'brainMetrics', `${uid}_${date}`);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        map.set(date, {
+          sleepQuality: data.sleepQuality ?? null,
+          stressLevel: data.stressLevel ?? null,
+        });
+      }
+    } catch {
+      // Skip this date
+    }
+  });
+  await Promise.all(fetches);
+  return map;
+}
+
+async function fetchJournalEntries(uid, start, end) {
+  const set = new Set();
+  try {
+    const q = query(
+      collection(db, 'journalEntries'),
+      where('userId', '==', uid),
+      where('createdAt', '>=', Timestamp.fromDate(start)),
+      where('createdAt', '<=', Timestamp.fromDate(end))
+    );
+    const snap = await getDocs(q);
+    snap.docs.forEach((d) => {
+      const ts = d.data().createdAt;
+      if (ts?.toDate) {
+        const date = ts.toDate();
+        set.add(
+          `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+        );
+      }
+    });
+  } catch {
+    // Return empty set
+  }
+  return set;
+}
+
+async function fetchFocusSessions(uid, start, end) {
+  const map = new Map();
+  try {
+    const q = query(
+      collection(db, 'focusSessions'),
+      where('userId', '==', uid)
+    );
+    const snap = await getDocs(q);
+    snap.docs.forEach((d) => {
+      const data = d.data();
+      if (!data.completed) return;
+      const seconds = data.startedAt?.seconds || 0;
+      if (seconds < start.getTime() / 1000 || seconds > end.getTime() / 1000) return;
+      const date = new Date(seconds * 1000);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      map.set(key, (map.get(key) || 0) + (data.duration || 0));
+    });
+  } catch {
+    // Return empty map
+  }
+  return map;
+}
+
+async function fetchHabitsAndCompletions(uid, dates) {
+  const map = new Map();
+  try {
+    const q = query(
+      collection(db, 'habits'),
+      where('userId', '==', uid),
+      where('active', '==', true)
+    );
+    const habitsSnap = await getDocs(q);
+    const habitIds = habitsSnap.docs.map((d) => d.id);
+
+    if (habitIds.length === 0) return map;
+
+    // For each habit, fetch completions subcollection docs matching our date range
+    const completionPromises = habitIds.map(async (habitId) => {
+      try {
+        const completionsSnap = await getDocs(
+          query(
+            collection(db, 'habits', habitId, 'completions'),
+            where('date', 'in', dates)
+          )
+        );
+        return completionsSnap.docs
+          .map((d) => d.data())
+          .filter((c) => c.completed);
+      } catch {
+        return [];
+      }
+    });
+
+    const allCompletions = await Promise.all(completionPromises);
+
+    // allCompletions[i] is an array of completion records for habit at habitIds[i]
+    for (const date of dates) {
+      let completed = 0;
+      for (const habitCompletions of allCompletions) {
+        if (habitCompletions.some((c) => c.date === date)) completed++;
+      }
+      const rate = Math.round((completed / habitIds.length) * 100);
+      map.set(date, rate);
+    }
+  } catch {
+    // Return empty map
+  }
+  return map;
 }

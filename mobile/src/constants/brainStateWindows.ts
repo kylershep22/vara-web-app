@@ -22,7 +22,7 @@ const WINDOWS: { startHour: number; endHour: number; window: BrainStateWindow }[
       timeRange: '6am – 10am',
       background: '#FEF3C7',
       textColor: '#92400E',
-      description: 'Creative, receptive window — high neuroplasticity. Best for learning, journaling, and new skills.',
+      description: 'Creative, receptive window with high neuroplasticity. Best for learning, journaling, and new skills.',
       chips: ['Learning', 'Journaling', 'Meditation'],
     },
   },
@@ -30,7 +30,7 @@ const WINDOWS: { startHour: number; endHour: number; window: BrainStateWindow }[
     startHour: 10,
     endHour: 14,
     window: {
-      label: 'Beta — Peak Focus',
+      label: 'Beta, Peak Focus',
       timeRange: '10am – 2pm',
       background: '#EAF2E8',
       textColor: '#1B5E57',
@@ -42,7 +42,7 @@ const WINDOWS: { startHour: number; endHour: number; window: BrainStateWindow }[
     startHour: 14,
     endHour: 17,
     window: {
-      label: 'Beta — Declining',
+      label: 'Beta, Declining',
       timeRange: '2pm – 5pm',
       background: '#FFF0F0',
       textColor: '#9B3B3B',

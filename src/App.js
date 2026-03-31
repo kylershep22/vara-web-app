@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 
 import Welcome from './pages/Welcome';
@@ -21,6 +21,9 @@ import Breathwork from './pages/library/Breathwork';
 import Sleep from './pages/library/Sleep';
 import Movement from './pages/library/Movement';
 import GoalsHabits from './pages/GoalsHabits';
+import Goals from './pages/Goals';
+import Tasks from './pages/Tasks';
+import Habits from './pages/Habits';
 import GroupForumPage from './pages/Community/GroupForumPage';
 import ChallengesPage from './pages/Community/ChallengesPage';
 import ChallengeDetailPage from './pages/Community/ChallengeDetailPage';
@@ -29,6 +32,7 @@ import Focus from './pages/Focus';
 import Insights from './pages/Insights';
 import Masterclass from './pages/Masterclass';
 import Discover from './pages/Discover';
+import Reflections from './pages/Reflections';
 
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import { VideoPlayerProvider } from './context/VideoPlayerContext';
@@ -44,6 +48,8 @@ import EditProfile from './pages/Profile/EditProfile';
 import PeopleSearchPage from './pages/Community/PeopleSearchPage';
 import SeedTagsTool from "./dev/SeedTagsTool";
 import MigrationAdmin from "./pages/MigrationAdmin";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import AdminRoute from "./components/AdminRoute";
 import UserProfilePage from "./pages/Profile/UserProfilePage";
 import MyProfileRedirect from './pages/Profile/MyProfileRedirect';
 import LegacyProfileRedirect from './pages/Profile/LegacyProfileRedirect';
@@ -51,6 +57,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import NotificationSettings from './pages/NotificationSettings';
 import MutedAccounts from './pages/MutedAccounts';
+
+import SidebarLayout from './components/layout/SidebarLayout';
 
 import './styles/tailwind.css';
 
@@ -301,6 +309,33 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/reflections"
+            element={
+              <ProtectedRoute>
+                <Reflections />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
+
+          {/* Mobile-aligned routes */}
+          <Route path="/habits" element={<ProtectedRoute><ErrorBoundary level="feature"><Habits /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/goals" element={<ProtectedRoute><ErrorBoundary level="feature"><Goals /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/tasks" element={<ProtectedRoute><ErrorBoundary level="feature"><Tasks /></ErrorBoundary></ProtectedRoute>} />
+
+          {/* Discover sub-routes */}
+          <Route path="/discover/breathwork" element={<ProtectedRoute><ErrorBoundary level="feature"><Breathwork /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/discover/sleep" element={<ProtectedRoute><ErrorBoundary level="feature"><Sleep /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/discover/movement" element={<ProtectedRoute><ErrorBoundary level="feature"><Movement /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/discover/masterclass" element={<ProtectedRoute><ErrorBoundary level="feature"><Masterclass /></ErrorBoundary></ProtectedRoute>} />
         </Routes>
 
         {/* Persistent Media Bars */}

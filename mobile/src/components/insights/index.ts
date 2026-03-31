@@ -4,7 +4,7 @@
  */
 
 export { HeroSummaryCard } from './HeroSummaryCard';
-export { SparklineTrendCard, SparklineTrendCardRow } from './SparklineTrendCard';
+export { SparklineTrendCard, SparklineTrendCardRow, AtAGlanceCard } from './SparklineTrendCard';
 export { RingProgressCard } from './RingProgressCard';
 export { HabitHeatmap } from './HabitHeatmap';
 export { WeeklyBarChart } from './WeeklyBarChart';

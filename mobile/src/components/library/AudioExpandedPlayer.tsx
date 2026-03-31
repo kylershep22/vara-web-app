@@ -17,6 +17,7 @@ import {
   Easing,
   Dimensions,
   PanResponder,
+  Image,
 } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -59,7 +60,7 @@ const formatTime = (millis: number): string => {
 // Sleep Visual Sub-Component
 // =====================
 
-function SleepVisual({ isPlaying }: { isPlaying: boolean }) {
+function SleepVisual({ isPlaying, artwork }: { isPlaying: boolean; artwork?: any }) {
   const reduceMotion = useReducedMotion();
 
   // Three ring animations with different durations
@@ -151,13 +152,17 @@ function SleepVisual({ isPlaying }: { isPlaying: boolean }) {
         );
       })}
 
-      {/* Center circle */}
-      <LinearGradient
-        colors={['#E8F0E4', Colors.dewSage]}
-        style={sleepVisualStyles.centerCircle}
-      >
-        <Icon name="weather-night" size={48} color={Colors.evergreenTeal} />
-      </LinearGradient>
+      {/* Center circle — show artwork if available, otherwise moon icon */}
+      {artwork ? (
+        <Image source={artwork} style={sleepVisualStyles.artworkImage} />
+      ) : (
+        <LinearGradient
+          colors={['#E8F0E4', Colors.dewSage]}
+          style={sleepVisualStyles.centerCircle}
+        >
+          <Icon name="weather-night" size={48} color={Colors.evergreenTeal} />
+        </LinearGradient>
+      )}
     </View>
   );
 }
@@ -178,6 +183,12 @@ const sleepVisualStyles = StyleSheet.create({
     borderRadius: 70,
     borderWidth: 1.5,
     borderColor: Colors.silverSage,
+  },
+  artworkImage: {
+    width: 160,
+    height: 160,
+    borderRadius: 16,
+    zIndex: 10,
   },
   centerCircle: {
     width: 120,
@@ -206,6 +217,10 @@ export function AudioExpandedPlayer() {
     stop,
     seek,
     setLooping,
+    skipForward,
+    skipBack,
+    playbackRate,
+    setPlaybackRate,
     setSleepTimer,
     setIsExpanded,
   } = useAudioPlayer();
@@ -402,13 +417,13 @@ export function AudioExpandedPlayer() {
           <Icon name="close" size={18} color={Colors.textSecondary} />
         </TouchableOpacity>
 
-        {/* Sleep Visual */}
-        <SleepVisual isPlaying={isPlaying} />
+        {/* Visual */}
+        <SleepVisual isPlaying={isPlaying} artwork={currentTrack.artwork} />
 
         {/* Track Info */}
         <View style={styles.trackInfo}>
           <Text style={styles.trackTitle}>{currentTrack.title}</Text>
-          <Text style={styles.trackCategory}>Sleep Sound</Text>
+          <Text style={styles.trackCategory}>{currentTrack.artwork ? 'Podcast' : 'Sleep Sound'}</Text>
         </View>
 
         {/* Seekbar */}
@@ -448,6 +463,16 @@ export function AudioExpandedPlayer() {
             {isLooping && <View style={styles.activeIndicatorDot} />}
           </TouchableOpacity>
 
+          {/* Skip Back */}
+          <TouchableOpacity
+            onPress={() => skipBack(15)}
+            style={styles.skipButton}
+            accessibilityLabel="Skip back 15 seconds"
+            accessibilityRole="button"
+          >
+            <Icon name="rewind-15" size={28} color={Colors.textPrimary} />
+          </TouchableOpacity>
+
           {/* Play/Pause */}
           <Animated.View style={{ transform: [{ scale: playScaleAnim }] }}>
             <TouchableOpacity
@@ -465,6 +490,16 @@ export function AudioExpandedPlayer() {
               />
             </TouchableOpacity>
           </Animated.View>
+
+          {/* Skip Forward */}
+          <TouchableOpacity
+            onPress={() => skipForward(15)}
+            style={styles.skipButton}
+            accessibilityLabel="Skip forward 15 seconds"
+            accessibilityRole="button"
+          >
+            <Icon name="fast-forward-15" size={28} color={Colors.textPrimary} />
+          </TouchableOpacity>
 
           {/* Sleep timer shortcut */}
           <TouchableOpacity
@@ -486,6 +521,21 @@ export function AudioExpandedPlayer() {
               <Text style={styles.timerRemainingText}>{timerRemaining}m</Text>
             )}
           </TouchableOpacity>
+        </View>
+
+        {/* Playback Speed */}
+        <View style={styles.speedRow}>
+          {[1, 1.25, 1.5, 2].map((rate) => (
+            <TouchableOpacity
+              key={rate}
+              onPress={() => setPlaybackRate(rate)}
+              style={[styles.speedChip, playbackRate === rate && styles.speedChipActive]}
+            >
+              <Text style={[styles.speedText, playbackRate === rate && styles.speedTextActive]}>
+                {rate}x
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Sleep Timer Chips */}
@@ -641,6 +691,13 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: Colors.evergreenTeal,
   },
+  skipButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
   playButton: {
     width: 72,
     height: 72,
@@ -656,6 +713,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.evergreenTeal,
+  },
+
+  // Playback speed
+  speedRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+    marginTop: 16,
+  },
+  speedChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(213,227,209,0.4)',
+  },
+  speedChipActive: {
+    backgroundColor: '#1B5E57',
+  },
+  speedText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#3E3E3E',
+  },
+  speedTextActive: {
+    color: '#FFFFFF',
   },
 
   // Sleep timer chips

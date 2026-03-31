@@ -14,6 +14,13 @@ export const useHabits = (activeOnly: boolean = false) => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+
+  const retry = () => {
+    setError(null);
+    setLoading(true);
+    setRetryKey(k => k + 1);
+  };
 
   useEffect(() => {
     if (!user) {
@@ -68,7 +75,7 @@ export const useHabits = (activeOnly: boolean = false) => {
     );
 
     return () => unsubscribe();
-  }, [user, activeOnly]);
+  }, [user, activeOnly, retryKey]);
 
-  return { habits, loading, error };
+  return { habits, loading, error, retry };
 };

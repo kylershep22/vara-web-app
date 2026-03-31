@@ -4,30 +4,35 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   ClipboardCheck,
+  Target,
+  ListTodo,
   Timer,
-  Users,
-  Leaf,
-  Lightbulb,
+  Brain,
+  Wind,
+  Moon,
+  Activity,
   GraduationCap,
+  Users,
+  UserSearch,
   BookOpen,
+  Lightbulb,
+  Bot,
   User,
   Settings as SettingsIcon,
   ChevronLeft,
   ChevronRight,
   Menu,
   X,
-  Wind,
-  Moon,
-  Activity,
-  UserSearch,
   Compass,
+  Shield,
 } from "lucide-react";
 import NotificationBell from "../notifications/NotificationBell";
 import VaraLogo from "../../assets/logo/vara-logo.png";
 import AIChatWidget from "../ai/AIChatWidget";
 import Footer from "./Footer";
+import { useAdmin } from "../../hooks/useAdmin";
 
-// Navigation structure mirroring mobile's 5 bottom tabs
+// Navigation structure mirroring mobile's information architecture
 const navSections = [
   {
     id: "home",
@@ -40,9 +45,9 @@ const navSections = [
     id: "track",
     label: "Track",
     items: [
-      { path: "/goals-habits", label: "Goals & Habits", icon: ClipboardCheck },
-      { path: "/journal", label: "Journal", icon: BookOpen },
-      { path: "/insights", label: "Insights", icon: Lightbulb },
+      { path: "/habits", label: "Habits", icon: ClipboardCheck },
+      { path: "/goals", label: "Goals", icon: Target },
+      { path: "/tasks", label: "Tasks", icon: ListTodo },
     ],
   },
   {
@@ -50,6 +55,18 @@ const navSections = [
     label: "Focus",
     items: [
       { path: "/focus", label: "Pomodoro & Routines", icon: Timer },
+      { path: "/brain-health", label: "Brain Health", icon: Brain },
+    ],
+  },
+  {
+    id: "discover",
+    label: "Discover",
+    items: [
+      { path: "/discover", label: "Discover", icon: Compass },
+      { path: "/discover/breathwork", label: "Breathwork", icon: Wind },
+      { path: "/discover/sleep", label: "Sleep", icon: Moon },
+      { path: "/discover/movement", label: "Movement", icon: Activity },
+      { path: "/discover/masterclass", label: "Masterclass", icon: GraduationCap },
     ],
   },
   {
@@ -60,24 +77,26 @@ const navSections = [
       { path: "/community/people", label: "People", icon: UserSearch },
     ],
   },
-  {
-    id: "wellness",
-    label: "Wellness",
-    items: [
-      { path: "/discover", label: "Discover", icon: Compass },
-    ],
-  },
 ];
 
-const bottomItems = [
-  { path: "/profile", label: "My Profile", icon: User },
-  { path: "/settings", label: "Settings", icon: SettingsIcon },
+// Standalone items rendered between sections and bottom items
+const standaloneItems = [
+  { path: "/journal", label: "Journal", icon: BookOpen },
+  { path: "/insights", label: "Insights", icon: Lightbulb },
 ];
 
 export default function SidebarLayout({ children }) {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isAdmin } = useAdmin();
+
+  const bottomItems = [
+    { path: "/ai", label: "AI Companion", icon: Bot },
+    { path: "/profile", label: "My Profile", icon: User },
+    { path: "/settings", label: "Settings", icon: SettingsIcon },
+    ...(isAdmin ? [{ path: "/admin", label: "Admin", icon: Shield }] : []),
+  ];
 
   const isActive = (pathname, itemPath) => {
     if (itemPath === "/community") {
@@ -155,6 +174,13 @@ export default function SidebarLayout({ children }) {
             </ul>
           </div>
         ))}
+        {/* Standalone items */}
+        {collapsed && <div className="border-b border-divider mb-2 mx-2" />}
+        <ul className="space-y-0.5 mb-vara-base">
+          {standaloneItems.map((item) => (
+            <NavLink key={item.path} item={item} />
+          ))}
+        </ul>
       </nav>
 
       {/* Bottom Items */}
@@ -244,6 +270,12 @@ export default function SidebarLayout({ children }) {
                   </ul>
                 </div>
               ))}
+              {/* Standalone items */}
+              <ul className="space-y-0.5 mb-vara-base">
+                {standaloneItems.map((item) => (
+                  <NavLink key={item.path} item={item} />
+                ))}
+              </ul>
             </nav>
             <div className="border-t border-divider px-3 py-3">
               <ul className="space-y-0.5">

@@ -8,12 +8,12 @@ import { isSupported, getAnalytics } from "firebase/analytics";
 
 // Build config from CRA env vars (keep these in .env*.local; never commit secrets)
 const firebaseConfig = {
-  apiKey: "AIzaSyB_RQJh0cMU3ruEm3vAY1uSKIk7vPlY6lc",
-  authDomain: "vara-4a99f.firebaseapp.com",
-  projectId: "vara-4a99f",
-  storageBucket: "vara-4a99f.firebasestorage.app",
-  messagingSenderId: "621980275569",
-  appId: "1:621980275569:web:10a8fe77b202ac97575cd0",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
 // Initialize (safe for hot reload)

@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 
-export type RoutineType = 'morning' | 'bedtime' | 'evening' | 'custom';
+export type RoutineType = 'morning' | 'evening' | 'custom';
 
 export interface Activity {
   id: number;
@@ -36,6 +36,7 @@ export interface Routine {
   activities: Activity[];
   active: boolean;
   reminderTime: string | null;
+  mode: 'checklist' | 'timed';
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -114,6 +115,7 @@ export async function createRoutine(
       userId,
       ...routineData,
       active: true,
+      mode: routineData.mode || 'checklist',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

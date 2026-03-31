@@ -4,7 +4,7 @@
  * Shows optional CR callout, 3 reflection chips, skip, and confirmation state.
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { isCognitiveReserveCategory } from '../../constants/habitCategories';
 import { HabitCompletionSheetProps, STANDARD_AFFIRMING_COPY } from './types';
+import { getCompletionInsight } from '../../constants/brainInsightsCopy';
 import type { HabitReflection } from '../../types';
 
 const CONFIRMATION_HOLD_MS = 900;
@@ -36,6 +37,7 @@ export const StandardSheet: React.FC<HabitCompletionSheetProps> = ({
   const iconBgAnim = useRef(new Animated.Value(0)).current;
 
   const isCR = isCognitiveReserveCategory(habit.category);
+  const insight = useMemo(() => getCompletionInsight(habit.category), [habit.category]);
 
   const handleSelect = useCallback((key: HabitReflection | 'skip') => {
     if (confirmed) return;
@@ -104,7 +106,7 @@ export const StandardSheet: React.FC<HabitCompletionSheetProps> = ({
       {!confirmed && isCR && (
         <View style={styles.crCallout}>
           <Text style={styles.crCalloutText}>
-            {'\u{1F33F}'} This builds your cognitive reserve — one of the highest-value habits for long-term brain health.
+            {'\u{1F33F}'} This builds your cognitive reserve, one of the highest-value habits for long-term brain health.
           </Text>
         </View>
       )}
@@ -138,6 +140,8 @@ export const StandardSheet: React.FC<HabitCompletionSheetProps> = ({
           </TouchableOpacity>
         </>
       )}
+
+      <Text style={styles.didYouKnow}>{insight}</Text>
     </View>
   );
 };
@@ -247,5 +251,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '400',
     color: '#9AA89E',
+  },
+  didYouKnow: {
+    fontSize: 12,
+    color: '#6F7F77',
+    lineHeight: 17,
+    textAlign: 'center',
+    marginTop: 12,
+    paddingHorizontal: 16,
   },
 });

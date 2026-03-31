@@ -4,6 +4,7 @@ import {
   collection, query, where, orderBy, onSnapshot, serverTimestamp
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { sanitizeText } from '../utils/sanitization';
 
 // Deterministic ID so we never create dup conversations
 const convIdFor = (a, b) => (a < b ? `${a}_${b}` : `${b}_${a}`);
@@ -54,7 +55,7 @@ export function subscribeMessages(conversationId, cb) {
 
 /** Send a text message. Also updates conversation's lastMessage + updatedAt. */
 export async function sendDirectMessage(conversationId, senderId, text) {
-  const trimmed = (text || "").trim();
+  const trimmed = sanitizeText((text || "").trim());
   if (!trimmed) return;
 
   await addDoc(collection(db, "directMessages"), {
