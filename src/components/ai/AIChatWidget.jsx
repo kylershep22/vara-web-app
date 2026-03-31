@@ -133,39 +133,27 @@ export default function AIChatWidget() {
   };
 
   const suggestionChips = useMemo(() => {
-    switch (pageLabel) {
-      case 'Goals':
-        return [
-          'Recommend habits for my top goal',
-          'Break my goal into milestones',
-          'How should I track progress each week?'
-        ];
-      case 'Habits':
-        return [
-          'Suggest a 2-week plan to build consistency',
-          'How can I improve my streak?',
-          'Give me habit stacking ideas'
-        ];
-      case 'Journal':
-        return [
-          'Give me a reflection prompt',
-          'Summarize patterns in my recent entries',
-          'Help me reframe a stressful thought'
-        ];
-      case 'Community':
-        return [
-          'Find motivation from the community',
-          'What challenge should I try this week?',
-          'Draft a supportive reply'
-        ];
-      default:
-        return [
-          'What’s a small win I can get today?',
-          'Recommend a 10-minute routine',
-          'Personalized daily suggestion'
-        ];
+    // Show universal quick prompts when chat is fresh
+    if (messages.length <= 1) {
+      return [
+        ‘Help me focus’,
+        ‘I need a reset’,
+        ‘Build a routine’,
+        ‘Feeling overwhelmed’,
+      ];
     }
-  }, [pageLabel]);
+    // Page-specific suggestions after conversation starts
+    switch (pageLabel) {
+      case ‘Goals’:
+        return [‘Recommend habits for my top goal’, ‘Break my goal into milestones’];
+      case ‘Habits’:
+        return [‘Suggest a plan to build consistency’, ‘Give me habit stacking ideas’];
+      case ‘Journal’:
+        return [‘Give me a reflection prompt’, ‘Help me reframe a stressful thought’];
+      default:
+        return ["What’s a small win I can get today?", ‘Recommend a 10-minute routine’];
+    }
+  }, [pageLabel, messages.length]);
 
   // -------- UI (Portal to <body> prevents clipping and stacking issues) --------
   const ui = (
