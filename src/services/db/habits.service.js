@@ -1,7 +1,7 @@
 import { db } from "../../firebase";
 import {
   collection, doc, getDoc, getDocs, query, where, orderBy, limit,
-  addDoc, updateDoc, deleteDoc, serverTimestamp
+  addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp
 } from "firebase/firestore";
 
 export async function listHabits(userId, opts = {}) {
@@ -40,4 +40,36 @@ export async function removeHabit(id) {
   const ref = doc(db, "habits", id);
   await deleteDoc(ref);
   return { id, deleted: true };
+}
+
+/**
+ * Log a habit completion with optional reflection data.
+ * Creates a doc in habitCompletions with a deterministic ID (habitId_dateISO).
+ */
+export async function logCompletion(userId, habitId, dateISO, reflectionData = {}) {
+  const completionId = `${habitId}_${dateISO}`;
+  const ref = doc(db, "habitCompletions", completionId);
+  await setDoc(ref, {
+    userId,
+    habitId,
+    dateISO,
+    reflection: reflectionData.reflection ?? null,
+    connectionQuality: reflectionData.connectionQuality ?? null,
+    skippedReflection: reflectionData.skippedReflection ?? false,
+    source: reflectionData.source ?? 'track',
+    crFlagged: reflectionData.crFlagged ?? false,
+    valueAlignment: reflectionData.valueAlignment ?? null,
+    createdAt: serverTimestamp(),
+  });
+  return { id: completionId };
+}
+
+/**
+ * Remove a habit completion (un-toggle).
+ */
+export async function removeCompletion(habitId, dateISO) {
+  const completionId = `${habitId}_${dateISO}`;
+  const ref = doc(db, "habitCompletions", completionId);
+  await deleteDoc(ref);
+  return { id: completionId, deleted: true };
 }
