@@ -3,6 +3,8 @@ import { db } from '../firebase';
 import {
   collection, query, where, getDocs, limit
 } from 'firebase/firestore';
+import { getTodayCheckIn } from './db/brainStateCheckIn.service';
+import { getTodayReflection } from './db/dailyReflection.service';
 
 /**
  * Summarize a few items to keep tokens low.
@@ -41,7 +43,39 @@ export async function buildUserContextSummary(userId) {
     };
   });
 
-  return { goals, habits };
+  // ---- Brain state check-in ----
+  let brainState = null;
+  try {
+    const checkIn = await getTodayCheckIn(userId);
+    brainState = checkIn?.brainState || null;
+  } catch { /* non-critical */ }
+
+  // ---- Daily reflection ----
+  let dailyReflection = null;
+  try {
+    const refl = await getTodayReflection(userId);
+    dailyReflection = refl?.difficulty || null;
+  } catch { /* non-critical */ }
+
+  // ---- Habits completed today ----
+  const today = new Date();
+  const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  let habitsCompletedToday = 0;
+  try {
+    const compSnap = await getDocs(
+      query(collection(db, 'habitCompletions'), where('userId', '==', userId), where('dateISO', '==', todayISO))
+    );
+    habitsCompletedToday = compSnap.size;
+  } catch { /* non-critical */ }
+
+  return {
+    goals,
+    habits,
+    brainState,
+    dailyReflection,
+    activeHabits: habits.length,
+    habitsCompletedToday,
+  };
 }
 
 /**
