@@ -142,7 +142,7 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
               style={styles.scrollView}
               contentContainerStyle={styles.scrollContent}
               inputAccessoryViewID={accessoryID}
-              showDoneButton={hasInputs}
+              showDoneButton={false}
               enableKeyboardAvoidance={true}
               keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
               nestedScrollEnabled={true}
