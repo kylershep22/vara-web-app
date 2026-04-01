@@ -12,6 +12,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { Colors } from '../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { AIAssistantFAB } from '../components/ai/AIAssistantFAB';
+import { OfflineIndicator } from '../components/shared/OfflineIndicator';
 import { useHabits } from '../hooks/useHabits';
 import { useSubscription } from '../hooks/useSubscription';
 import { ONBOARDING_V2 } from '../constants/dashboardConfig';
@@ -487,6 +488,7 @@ const MainNavigator = () => {
 
   return (
     <>
+      <OfflineIndicator />
       <AppStack.Navigator
         screenOptions={{
           headerShown: false,

@@ -3,7 +3,7 @@
  * Individual message bubble with support for grouping consecutive messages.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -42,6 +42,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   isFirstInGroup,
   isLastInGroup,
 }) => {
+  const [avatarError, setAvatarError] = useState(false);
   const showAvatar = !isMine && isLastInGroup;
   const showTimestamp = isLastInGroup;
 
@@ -74,8 +75,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       {/* Avatar space for received messages */}
       {!isMine && (
         <View style={styles.avatarSpace}>
-          {showAvatar && senderAvatarUrl ? (
-            <Image source={{ uri: senderAvatarUrl }} style={styles.avatar} />
+          {showAvatar && senderAvatarUrl && !avatarError ? (
+            <Image
+              source={{ uri: senderAvatarUrl }}
+              style={styles.avatar}
+              onError={() => setAvatarError(true)}
+            />
           ) : showAvatar ? (
             <View style={styles.avatarPlaceholder} />
           ) : null}

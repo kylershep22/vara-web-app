@@ -54,11 +54,23 @@ export function useDashboard() {
   const goalsResult = useGoals();
   const goals = DASHBOARD_V2 ? [] : goalsResult.goals;
   const goalsLoading = DASHBOARD_V2 ? false : goalsResult.loading;
-  const { habits, loading: habitsLoading } = useHabits(true);
+  const goalsError = DASHBOARD_V2 ? null : goalsResult.error;
+  const { habits, loading: habitsLoading, error: habitsError } = useHabits(true);
   const tasksResult = useTasks();
   const allTasks = DASHBOARD_V2 ? [] : tasksResult.tasks;
   const tasksLoading = DASHBOARD_V2 ? false : tasksResult.loading;
-  const { entries: journalEntries } = useJournal(1);
+  const tasksError = DASHBOARD_V2 ? null : tasksResult.error;
+  const { entries: journalEntries, error: journalError } = useJournal(1);
+
+  // Collect any data-fetch errors for the UI to display
+  const dataErrors = useMemo(() => {
+    const errors: string[] = [];
+    if (goalsError) errors.push('goals');
+    if (habitsError) errors.push('habits');
+    if (tasksError) errors.push('tasks');
+    if (journalError) errors.push('journal');
+    return errors;
+  }, [goalsError, habitsError, tasksError, journalError]);
 
   const { trackEngagement, evaluateTriggers, pendingToasts, markToastShown } = useFeatureDiscovery();
   const { queueUnlockToasts } = useToast();
@@ -512,6 +524,7 @@ export function useDashboard() {
     user,
     navigation,
     dataLoading,
+    dataErrors,
     refreshing,
     greeting,
     formattedDate,

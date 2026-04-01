@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, Image, ImageStyle, ViewStyle, StyleProp, Text } from 'react-native';
 import { Colors } from '../../constants';
 
@@ -39,13 +39,15 @@ export const CommunityAvatar: React.FC<CommunityAvatarProps> = ({
   size = 36,
   style,
 }) => {
+  const [imageError, setImageError] = useState(false);
   const bgColor = name ? getColorFromName(name) : Colors.evergreenTeal;
   const fontSize = Math.round(size * 0.36);
 
-  if (photoURL) {
+  if (photoURL && !imageError) {
     return (
       <Image
         source={{ uri: photoURL }}
+        onError={() => setImageError(true)}
         style={[
           {
             width: size,

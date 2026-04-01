@@ -38,6 +38,7 @@ const DashboardScreen: React.FC = () => {
   const {
     navigation,
     dataLoading,
+    dataErrors,
     refreshing,
     greeting,
     formattedDate,
@@ -118,6 +119,16 @@ const DashboardScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Error banner — non-blocking, shows which data failed */}
+        {dataErrors.length > 0 && (
+          <View style={styles.errorBanner}>
+            <Icon name="alert-circle-outline" size={18} color={Colors.error} />
+            <Text style={styles.errorBannerText}>
+              Could not load {dataErrors.join(', ')}. Pull to refresh.
+            </Text>
+          </View>
+        )}
 
         {DASHBOARD_V2 ? (
           <>
@@ -347,6 +358,21 @@ const styles = StyleSheet.create({
   dateText: {
     color: Colors.textSecondary,
     fontSize: Typography.fontSize.sm,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(217,122,110,0.1)',
+    borderRadius: 8,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.error,
   },
   settingsButton: {
     width: 48,

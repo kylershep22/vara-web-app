@@ -3,7 +3,7 @@
  * Educational course detail with progress tracking
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -36,11 +36,8 @@ export default function MasterclassDetailScreen() {
     }
   };
 
-  const handleStartContinue = () => {
-    // In a real implementation, this would navigate to the course content
-    // For now, we'll just show a placeholder
-    alert('Masterclass content player coming soon!');
-  };
+  // Content player not yet available — button is shown in disabled state
+  const contentPlayerAvailable = false;
 
   if (loading) {
     return <LoadingSpinner message="Loading masterclass..." />;
@@ -153,17 +150,27 @@ export default function MasterclassDetailScreen() {
             </View>
           )}
 
-          {/* Start/Continue Button */}
+          {/* Start/Continue Button — disabled until content player is available */}
           <View style={styles.actionSection}>
-            <TouchableOpacity
-              onPress={handleStartContinue}
-              style={{backgroundColor: Colors.evergreenTeal, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: 12, flexDirection: 'row', justifyContent: 'center', gap: 8}}
-            >
-              <Icon name={userProgress && userProgress.progress > 0 ? 'play-circle' : 'play'} size={20} color="#FFFFFF" />
-              <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>
-                {userProgress && userProgress.progress > 0 ? 'Continue Learning' : 'Start Masterclass'}
-              </Text>
-            </TouchableOpacity>
+            {contentPlayerAvailable ? (
+              <TouchableOpacity
+                style={{backgroundColor: Colors.evergreenTeal, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: 12, flexDirection: 'row', justifyContent: 'center', gap: 8}}
+              >
+                <Icon name={userProgress && userProgress.progress > 0 ? 'play-circle' : 'play'} size={20} color="#FFFFFF" />
+                <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>
+                  {userProgress && userProgress.progress > 0 ? 'Continue Learning' : 'Start Masterclass'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View
+                style={{backgroundColor: Colors.borderLight, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: 12, flexDirection: 'row', justifyContent: 'center', gap: 8, opacity: 0.6}}
+              >
+                <Icon name="lock-outline" size={20} color={Colors.textSecondary} />
+                <Text style={{color: Colors.textSecondary, fontSize: 16, fontWeight: '600'}}>
+                  Available Soon
+                </Text>
+              </View>
+            )}
 
             {userProgress?.completed && (
               <View style={styles.completedBadge}>

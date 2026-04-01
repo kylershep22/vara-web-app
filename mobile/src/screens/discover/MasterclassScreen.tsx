@@ -174,28 +174,20 @@ export default function MasterclassScreen() {
           </View>
         )}
 
-        {/* Masterclass Section - Coming Soon */}
-        <View style={styles.masterclassSection}>
-          <Text style={styles.sectionLabel}>MASTERCLASS</Text>
-          {masterclasses.length > 0 ? (
-            masterclasses.map((item: Masterclass) => (
+        {/* Masterclass Section - only show when content exists */}
+        {masterclasses.length > 0 && (
+          <View style={styles.masterclassSection}>
+            <Text style={styles.sectionLabel}>MASTERCLASS</Text>
+            {masterclasses.map((item: Masterclass) => (
               <MasterclassCard
                 key={item.id}
                 masterclass={item}
                 progress={getProgress(item.id)}
                 onPress={() => navigation.navigate('MasterclassDetail', { classId: item.id })}
               />
-            ))
-          ) : (
-            <View style={styles.comingSoonCard}>
-              <Icon name="school-outline" size={32} color={VARA_COLORS.apricot} />
-              <Text style={styles.comingSoonTitle}>Coming Soon</Text>
-              <Text style={styles.comingSoonText}>
-                Expert-led masterclasses on brain health, stress resilience, and peak performance.
-              </Text>
-            </View>
-          )}
-        </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

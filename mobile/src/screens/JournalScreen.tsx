@@ -22,6 +22,7 @@ import {
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { getMoodConfig } from '../constants/journalTags';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { useJournal, useJournalStats, useWeeklySummary } from '../hooks';
 import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import { createJournalEntry, updateJournalEntry, deleteJournalEntry, refreshWellnessScore } from '../services/firebase';
@@ -352,6 +353,7 @@ const JournalScreen: React.FC = () => {
   const { user } = useAuth();
   const { entries, loading } = useJournal();
   const navigation = useNavigation<any>();
+  const { showNotificationToast } = useToast();
   const { shouldShowPrompt: shouldShowNotifPrompt, markPromptShown: markNotifPromptShown } = useNotificationOptIn();
   const notifOptInChecked = useRef(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -443,8 +445,10 @@ const JournalScreen: React.FC = () => {
 
     if (isEditing && entryId) {
       await updateJournalEntry(entryId, entryData);
+      showNotificationToast('Entry updated', 'Your journal entry has been saved.');
     } else {
       await createJournalEntry(user.uid, entryData);
+      showNotificationToast('Entry saved', 'Your journal entry has been saved.');
 
       // Notification opt-in: trigger on first journal entry save
       if (!notifOptInChecked.current && shouldShowNotifPrompt) {
@@ -463,7 +467,7 @@ const JournalScreen: React.FC = () => {
         console.error('Error refreshing wellness score after journal entry:', error);
       }
     }
-  }, [user]);
+  }, [user, showNotificationToast]);
 
   const handleDeleteEntry = useCallback((entryId: string) => {
     Alert.alert(

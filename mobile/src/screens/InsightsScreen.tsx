@@ -8,6 +8,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -235,6 +236,13 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     return totalCompletions < 3 && journalEntries.length < 2;
   }, [habitCompletionData, journalEntries]);
 
+  const isEmpty = useMemo(() => {
+    const totalCompletions = Object.values(habitCompletionData).reduce(
+      (sum, dates) => sum + dates.length, 0
+    );
+    return habits.length === 0 && journalEntries.length === 0 && totalCompletions === 0;
+  }, [habits, habitCompletionData, journalEntries]);
+
   if (loading || habitsLoading) {
     return <LoadingSpinner message="Loading insights..." />;
   }
@@ -266,44 +274,56 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
           </View>
         </View>
 
-        {/* Widget 1: AI Narrative */}
-        <NarrativeRecap
-          narrative={aiNarrative}
-          loading={narrativeLoading}
-          timeframeLabel={timeFrame === 'week' ? 'This Week' : 'This Month'}
-          hasInsufficientData={hasInsufficientData}
-        />
+        {isEmpty ? (
+          <View style={styles.emptyState}>
+            <Icon name="chart-line" size={56} color={VARA_COLORS.sageGray} />
+            <Text style={styles.emptyStateTitle}>No insights yet</Text>
+            <Text style={styles.emptyStateBody}>
+              Start tracking habits and journaling to see your insights here.
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* Widget 1: AI Narrative */}
+            <NarrativeRecap
+              narrative={aiNarrative}
+              loading={narrativeLoading}
+              timeframeLabel={timeFrame === 'week' ? 'This Week' : 'This Month'}
+              hasInsufficientData={hasInsufficientData}
+            />
 
-        {/* Widget 2: 30-day Habit Heatmap */}
-        <HabitHeatmap
-          data={heatmapData}
-          totalHabits={habits.length}
-          daysToShow={30}
-        />
+            {/* Widget 2: 30-day Habit Heatmap */}
+            <HabitHeatmap
+              data={heatmapData}
+              totalHabits={habits.length}
+              daysToShow={30}
+            />
 
-        {/* Widget 3: At a Glance */}
-        <AtAGlanceCard
-          metrics={[
-            {
-              label: 'Days active',
-              value: metrics.activeDays,
-              data: [],
-              color: VARA_COLORS.teal,
-            },
-            {
-              label: 'Protocols completed',
-              value: metrics.protocolsCompleted,
-              data: [],
-              color: VARA_COLORS.tealMid,
-            },
-            {
-              label: 'Reflections',
-              value: metrics.reflections,
-              data: [],
-              color: VARA_COLORS.apricot,
-            },
-          ]}
-        />
+            {/* Widget 3: At a Glance */}
+            <AtAGlanceCard
+              metrics={[
+                {
+                  label: 'Days active',
+                  value: metrics.activeDays,
+                  data: [],
+                  color: VARA_COLORS.teal,
+                },
+                {
+                  label: 'Protocols completed',
+                  value: metrics.protocolsCompleted,
+                  data: [],
+                  color: VARA_COLORS.tealMid,
+                },
+                {
+                  label: 'Reflections',
+                  value: metrics.reflections,
+                  data: [],
+                  color: VARA_COLORS.apricot,
+                },
+              ]}
+            />
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -357,6 +377,25 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     fontSize: 14,
     color: '#FFFFFF',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl * 2,
+    paddingHorizontal: Spacing.lg,
+  },
+  emptyStateTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: VARA_COLORS.charcoal,
+    marginTop: Spacing.base,
+    marginBottom: Spacing.sm,
+  },
+  emptyStateBody: {
+    fontSize: Typography.fontSize.base,
+    color: VARA_COLORS.sageGray,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
 

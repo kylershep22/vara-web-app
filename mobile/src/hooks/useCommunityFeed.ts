@@ -117,7 +117,8 @@ export function useCommunityFeed() {
 
     await createPost(content, undefined, mediaArray, selectedPostType || 'update');
     setSelectedPostType(null);
-  }, [user, createPost, selectedPostType]);
+    showNotificationToast('Post shared', 'Your post is now live in the feed.');
+  }, [user, createPost, selectedPostType, showNotificationToast]);
 
   const handleLike = useCallback(async (postId: string): Promise<boolean> => {
     try {

@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useHabits } from './useHabits';
 import { useCelebrations } from './useCelebrations';
 import { useNotificationOptIn } from './useNotificationOptIn';
+import { useToast } from '../context/ToastContext';
 import {
   createHabit,
   updateHabit,
@@ -33,6 +34,7 @@ export function useHabitsScreen() {
   const navigation = useNavigation<any>();
   const { habits, loading, error: habitsError, retry: retryHabits } = useHabits(true);
   const { shouldShowPrompt: shouldShowNotifPrompt, markPromptShown: markNotifPromptShown } = useNotificationOptIn();
+  const { showNotificationToast } = useToast();
   const notifOptInChecked = useRef(false);
   const {
     allHabitsCompletedToday,
@@ -291,13 +293,17 @@ export function useHabitsScreen() {
       navigation.navigate('NotificationOptIn');
     }
 
+    const habit = habits.find((h) => h.id === habitId);
+    const habitName = habit?.name || 'Habit';
+    showNotificationToast('Nice work!', `${habitName} marked complete.`);
+
     const newCompletedSet = new Set(completedToday).add(habitId);
     setCompletedToday(newCompletedSet);
 
     if (newCompletedSet.size === habits.length && habits.length > 0) {
       setTimeout(() => setAllHabitsCompletedToday(true), 300);
     }
-  }, [completedToday, habits.length, shouldShowNotifPrompt, markNotifPromptShown, navigation, setAllHabitsCompletedToday]);
+  }, [completedToday, habits, shouldShowNotifPrompt, markNotifPromptShown, navigation, setAllHabitsCompletedToday, showNotificationToast]);
 
   /** Called when the HabitCompletionSheet finishes (user tapped a chip or skipped) */
   const handleCompletionSheetDone = useCallback(async (data: CompletionData) => {

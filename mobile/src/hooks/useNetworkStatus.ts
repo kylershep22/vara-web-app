@@ -1,13 +1,13 @@
 /**
  * Network Status Hook
- * Monitors offline queue status
+ * Monitors device connectivity and offline queue status
  *
- * Note: This is a simplified implementation that doesn't require native
- * network modules. It assumes online status and tracks pending operations
- * in the offline queue.
+ * Uses expo-network to detect real connectivity changes and tracks
+ * pending operations in the offline queue.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import * as Network from 'expo-network';
 import {
   getPendingCount,
   processQueue,
@@ -25,12 +25,32 @@ export interface NetworkStatus {
 
 export const useNetworkStatus = () => {
   const [status, setStatus] = useState<NetworkStatus>({
-    isConnected: true, // Assume online
+    isConnected: true, // Optimistic default until first check
     isInternetReachable: true,
     connectionType: null,
     pendingOperations: 0,
     syncStatus: 'idle',
   });
+
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Check current network state
+  const checkNetwork = useCallback(async () => {
+    try {
+      const state = await Network.getNetworkStateAsync();
+      setStatus((prev) => ({
+        ...prev,
+        isConnected: state.isConnected ?? false,
+        isInternetReachable: state.isInternetReachable ?? null,
+        connectionType: state.type ? String(state.type) : null,
+      }));
+    } catch (error) {
+      // On error, assume connected to avoid false offline banners
+      if (__DEV__) {
+        console.warn('Network status check failed:', error);
+      }
+    }
+  }, []);
 
   // Update pending count
   const updatePendingCount = useCallback(async () => {
@@ -48,7 +68,15 @@ export const useNetworkStatus = () => {
     await updatePendingCount();
   }, [updatePendingCount]);
 
+  // Poll network state and manage offline queue
   useEffect(() => {
+    // Initial network check
+    checkNetwork();
+
+    // Poll every 5 seconds for connectivity changes
+    // expo-network doesn't provide an event listener, so polling is required
+    pollRef.current = setInterval(checkNetwork, 5000);
+
     // Initialize offline queue
     const cleanupQueue = initializeOfflineQueue();
 
@@ -69,14 +97,24 @@ export const useNetworkStatus = () => {
     });
 
     return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+      }
       cleanupQueue();
       unsubscribeSync();
     };
-  }, [updatePendingCount]);
+  }, [checkNetwork, updatePendingCount]);
+
+  // When we come back online, trigger sync of pending changes
+  useEffect(() => {
+    if (status.isConnected && status.pendingOperations > 0) {
+      triggerSync();
+    }
+  }, [status.isConnected, status.pendingOperations, triggerSync]);
 
   return {
     ...status,
-    isOffline: false, // Always assume online in this simplified implementation
+    isOffline: !status.isConnected,
     hasPendingChanges: status.pendingOperations > 0,
     triggerSync,
     refreshPendingCount: updatePendingCount,

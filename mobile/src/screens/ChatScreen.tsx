@@ -58,6 +58,7 @@ const ChatScreen = () => {
   const { messages, loading, sending, sendMessage } = useConversation(conversationId);
   const [newMessage, setNewMessage] = useState('');
   const [otherUser, setOtherUser] = useState<any>(null);
+  const [headerAvatarError, setHeaderAvatarError] = useState(false);
 
   useEffect(() => {
     loadOtherUser();
@@ -75,8 +76,12 @@ const ChatScreen = () => {
             accessibilityRole="button"
             accessibilityLabel={`View ${otherUser.displayName}'s profile`}
           >
-            {otherUser.avatarUrl ? (
-              <Image source={{ uri: otherUser.avatarUrl }} style={styles.headerAvatar} />
+            {otherUser.avatarUrl && !headerAvatarError ? (
+              <Image
+                source={{ uri: otherUser.avatarUrl }}
+                style={styles.headerAvatar}
+                onError={() => setHeaderAvatarError(true)}
+              />
             ) : (
               <View style={styles.headerAvatarPlaceholder}>
                 <Text style={styles.headerAvatarText}>
