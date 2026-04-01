@@ -32,15 +32,12 @@ export const listJournalEntries = async (
 ): Promise<JournalEntry[]> => {
   if (!db) return [];
   try {
-    let q = query(
+    const q = query(
       collection(db, COLLECTION),
       where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(limitCount || 200)
     );
-
-    if (limitCount) {
-      q = query(q, limit(limitCount));
-    }
 
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ({
@@ -177,7 +174,8 @@ export const getJournalEntriesByMood = async (
       collection(db, COLLECTION),
       where('userId', '==', userId),
       where('mood', '==', mood),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
 
     const snapshot = await getDocs(q);

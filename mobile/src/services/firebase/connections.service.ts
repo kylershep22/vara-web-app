@@ -53,20 +53,23 @@ export async function getConnectionIds(userId: string): Promise<string[]> {
   const queryWeb = query(
     connectionsRef,
     where('participants', 'array-contains', userId),
-    where('status', '==', 'accepted')
+    where('status', '==', 'accepted'),
+    limit(500)
   );
 
   // Query mobile app format (a/b fields)
   const queryA = query(
     connectionsRef,
     where('a', '==', userId),
-    where('status', '==', 'accepted')
+    where('status', '==', 'accepted'),
+    limit(500)
   );
 
   const queryB = query(
     connectionsRef,
     where('b', '==', userId),
-    where('status', '==', 'accepted')
+    where('status', '==', 'accepted'),
+    limit(500)
   );
 
   const [snapshotWeb, snapshotA, snapshotB] = await Promise.all([
@@ -110,14 +113,16 @@ export async function getPendingConnectionIds(userId: string): Promise<string[]>
   const querySent = query(
     connectionsRef,
     where('requesterId', '==', userId),
-    where('status', '==', 'pending')
+    where('status', '==', 'pending'),
+    limit(200)
   );
 
   // Web format: pending requests received by user
   const queryReceived = query(
     connectionsRef,
     where('addresseeId', '==', userId),
-    where('status', '==', 'pending')
+    where('status', '==', 'pending'),
+    limit(200)
   );
 
   const [sentSnapshot, receivedSnapshot] = await Promise.all([

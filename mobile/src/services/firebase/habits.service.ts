@@ -14,6 +14,7 @@ import {
   query,
   where,
   orderBy,
+  limit,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -44,7 +45,8 @@ export const listHabits = async (userId: string): Promise<Habit[]> => {
     const q = query(
       collection(db, COLLECTION),
       where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(200)
     );
 
     const snapshot = await getDocs(q);

@@ -22,6 +22,7 @@ import { useFeatureUnlock } from '../hooks/useFeatureUnlock';
 import { FEATURE_METADATA, FeatureId } from '../constants/featureUnlock';
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 
@@ -193,19 +194,45 @@ const SettingsScreen = () => {
     );
   };
 
+  const [deleting, setDeleting] = useState(false);
+
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
-      'This action is permanent and cannot be undone. All your data will be deleted.',
+      'This action is permanent and cannot be undone. All your data, including goals, habits, journal entries, and connections, will be permanently deleted.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Delete My Account',
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Contact Support',
-              'Please contact support@vara.app to delete your account.'
+              'Are you sure?',
+              'This cannot be reversed. Your account and all associated data will be permanently removed.',
+              [
+                { text: 'Go Back', style: 'cancel' },
+                {
+                  text: 'Yes, Delete Everything',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setDeleting(true);
+                    try {
+                      const functions = getFunctions();
+                      const deleteAccountFn = httpsCallable(functions, 'deleteAccount');
+                      await deleteAccountFn();
+                      // Sign out locally so auth listener navigates to login,
+                      // not onboarding (the user doc is already deleted).
+                      await logout();
+                    } catch (err: any) {
+                      setDeleting(false);
+                      Alert.alert(
+                        'Deletion Failed',
+                        'Something went wrong. Please try again or contact support@varawellness.co for help.'
+                      );
+                    }
+                  },
+                },
+              ]
             );
           },
         },
@@ -632,14 +659,20 @@ const SettingsScreen = () => {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.settingRow} onPress={handleDeleteAccount}>
+          <TouchableOpacity style={styles.settingRow} onPress={handleDeleteAccount} disabled={deleting}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.settingLabel, { color: Colors.softCoral }]}>Delete Account</Text>
+              <Text style={[styles.settingLabel, { color: Colors.softCoral }]}>
+                {deleting ? 'Deleting Account...' : 'Delete Account'}
+              </Text>
               <Text style={styles.settingDescription}>
-                Permanently delete your account
+                Permanently delete your account and all data
               </Text>
             </View>
-            <Ionicons name="trash-outline" size={20} color={Colors.softCoral} />
+            {deleting ? (
+              <ActivityIndicator size="small" color={Colors.softCoral} />
+            ) : (
+              <Ionicons name="trash-outline" size={20} color={Colors.softCoral} />
+            )}
           </TouchableOpacity>
         </View>
       </View>

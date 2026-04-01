@@ -124,7 +124,8 @@ export const fetchPublicGroups = async (): Promise<Group[]> => {
     const q = query(
       collection(ensureFirestore(), GROUPS_COLLECTION),
       where('visibility', '==', 'public'),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
 
     const snapshot = await getDocs(q);
@@ -147,7 +148,8 @@ export const fetchUserGroups = async (userId: string): Promise<Group[]> => {
     const q = query(
       collection(ensureFirestore(), GROUPS_COLLECTION),
       where('members', 'array-contains', userId),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
 
     const snapshot = await getDocs(q);

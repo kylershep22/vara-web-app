@@ -14,6 +14,7 @@ import {
   query,
   where,
   orderBy,
+  limit,
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
@@ -42,7 +43,8 @@ export const listGoals = async (userId: string): Promise<Goal[]> => {
     const q = query(
       collection(db, COLLECTION),
       where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
 
     const snapshot = await getDocs(q);

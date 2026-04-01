@@ -206,11 +206,13 @@ exports.generateHabitSuggestions = onCall(
         throw new HttpsError("invalid-argument", "Goal must be a string.");
       }
 
+      const sanitizedGoal = sanitizeInput(goal, 500);
+
       try {
         const openai = await makeOpenAI();
 
         const prompt = [
-          `A user has the wellness goal: "${goal}".`,
+          `A user has the wellness goal: "${sanitizedGoal}".`,
           "Suggest 5 simple daily or weekly habits that will help.",
           "Be specific and encouraging. Return as a JSON array of short strings.",
         ].join(" ");
@@ -260,25 +262,30 @@ exports.generateDailyPlan = onCall(
         throw new HttpsError("invalid-argument", "`goals` must be an array.");
       }
 
-      const tone = preferences?.tone || "gentle";
-      const intensity = preferences?.intensity || "standard";
+      const safeName = sanitizeInput(name || "Anonymous", 100);
+      const validTones = ["gentle", "motivating", "direct", "playful"];
+      const validIntensities = ["light", "standard", "intense"];
+      const tone = validTones.includes(preferences?.tone) ? preferences.tone : "gentle";
+      const intensity = validIntensities.includes(preferences?.intensity) ? preferences.intensity : "standard";
+      const safeModifier = modifier ? sanitizeInput(modifier, 500) : "";
       const hour = new Date().getHours();
       const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
 
       const readableGoals = goals
-          .map((g) => `${g.title}: ${g.progress}/${g.target} ${g.unit}`)
+          .slice(0, 20)
+          .map((g) => `${sanitizeInput(g.title || "", 200)}: ${g.progress}/${g.target} ${sanitizeInput(g.unit || "", 50)}`)
           .join("\n");
 
       const moodDescription = mood ?
-      `${mood.emoji ?? ""} (${mood.label ?? "Unknown"})${mood.note ? " - " + mood.note : ""}` :
+      `${sanitizeInput(mood.emoji ?? "", 10)} (${sanitizeInput(mood.label ?? "Unknown", 50)})${mood.note ? " - " + sanitizeInput(mood.note, 200) : ""}` :
       "No mood check-in yet.";
 
-      const modifierText = modifier ? `User added instruction: ${modifier}` : "";
+      const modifierText = safeModifier ? `User added instruction: ${safeModifier}` : "";
 
       const userPrompt = `You are a compassionate and encouraging wellness coach named Vara.
 Generate a personalized daily wellness plan for a user based on their goals, mood, and preferences.
 
-User: ${name ?? "Anonymous"}
+User: ${safeName}
 Tone: ${tone}
 Intensity: ${intensity}
 Time of Day: ${timeOfDay}
@@ -853,7 +860,11 @@ async function handleGenerateDailyPlan(req, res) {
   const tasks = Array.isArray(req.body?.tasks)
     ? req.body.tasks.map((t) => sanitizeInput(String(t), 500))
     : [];
-  const preferences = req.body?.preferences || {};
+  const rawPrefs = req.body?.preferences || {};
+  const preferences = {
+    tone: sanitizeInput(String(rawPrefs.tone || "gentle"), 50),
+    intensity: sanitizeInput(String(rawPrefs.intensity || "standard"), 50),
+  };
 
   try {
     const openai = await makeOpenAI();
@@ -863,10 +874,10 @@ Focus on realistic, achievable steps that align with the user's goals and habits
 Keep suggestions practical and time-bound.`;
 
     const userPrompt = `Create a daily plan for me based on:
-- Goals: ${JSON.stringify(goals || [])}
-- Habits: ${JSON.stringify(habits || [])}
-- Tasks: ${JSON.stringify(tasks || [])}
-- Preferences: ${JSON.stringify(preferences || {})}
+- Goals: ${goals.slice(0, 20).join(", ") || "None"}
+- Habits: ${habits.slice(0, 20).join(", ") || "None"}
+- Tasks: ${tasks.slice(0, 20).join(", ") || "None"}
+- Tone: ${preferences.tone}, Intensity: ${preferences.intensity}
 
 Provide a structured plan with morning, afternoon, and evening suggestions.`;
 
@@ -933,7 +944,7 @@ Return only a JSON object with "momentsOfJoy" (array of 4 strings) and "mindBody
 - Recent Journal Entries: ${recentJournals.join(" | ") || "None"}
 
 Current Recap (if any):
-${JSON.stringify(currentRecap, null, 2)}
+${sanitizeInput(JSON.stringify(currentRecap || {}), 2000)}
 
 Based on this information, suggest:
 1. 4 moments of joy they might have experienced
@@ -951,7 +962,13 @@ Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}`;
       response_format: {type: "json_object"},
     });
 
-    const suggestions = JSON.parse(response.choices?.[0]?.message?.content || "{}");
+    let suggestions;
+    try {
+      suggestions = JSON.parse(response.choices?.[0]?.message?.content || "{}");
+    } catch (parseErr) {
+      logger.error("Week recap JSON parse failed");
+      return res.status(500).json({error: "Invalid response format"});
+    }
     return res.status(200).json(suggestions);
   } catch (err) {
     logger.error("Week recap suggestions error:", err);
