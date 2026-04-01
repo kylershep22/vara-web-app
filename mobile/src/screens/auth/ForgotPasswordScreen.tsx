@@ -169,7 +169,6 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
                 autoComplete="email"
                 error={!!emailError}
                 errorText={emailError}
-                left={<Icon name="email-outline" size={20} color={Colors.textSecondary} />}
                 style={styles.input}
               />
 

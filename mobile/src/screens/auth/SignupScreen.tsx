@@ -303,7 +303,6 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                 textContentType="name"
                 error={!!nameError}
                 errorText={nameError}
-                left={<Icon name="account-outline" size={20} color={Colors.textSecondary} />}
               />
 
               {/* Email Input */}
@@ -320,7 +319,6 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                 textContentType="emailAddress"
                 error={!!emailError}
                 errorText={emailError}
-                left={<Icon name="email-outline" size={20} color={Colors.textSecondary} />}
               />
 
               {/* Password Input */}
@@ -332,7 +330,6 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                 autoCapitalize="none"
                 autoComplete="password-new"
                 textContentType="newPassword"
-                left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
                 right={
                   <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
                     <Icon
@@ -353,7 +350,6 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                 autoCapitalize="none"
                 autoComplete="password-new"
                 textContentType="newPassword"
-                left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
                 right={
                   <TouchableOpacity onPress={() => setSecureConfirmEntry(!secureConfirmEntry)}>
                     <Icon

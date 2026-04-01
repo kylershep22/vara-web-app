@@ -243,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       logger.log('✅ Login successful');
     } catch (error: any) {
-      logger.error('❌ Login error:', error?.code, error?.message);
+      logger.warn('Login error:', error?.code);
       throw error;
     } finally {
       setIsLoading(false);

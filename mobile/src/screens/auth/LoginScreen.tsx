@@ -12,7 +12,10 @@ import {
   Platform,
   TouchableOpacity,
   Text,
+  Image,
+  Alert,
   Animated,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -57,14 +60,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   }, [isFirebaseReady]);
 
   const showError = (message: string) => {
+    Keyboard.dismiss();
     setErrorMessage(message);
-    Animated.timing(errorOpacity, {
-      toValue: 1,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
-    // Scroll to top so the error is visible
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    errorOpacity.setValue(1);
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    }, 150);
   };
 
   const dismissError = () => {
@@ -103,14 +104,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await login(email.trim(), password);
       // Navigation will happen automatically via auth state change
     } catch (error: any) {
-      // Log the full error for debugging
-      console.error('Login error details:', {
-        code: error?.code,
-        message: error?.message,
-        fullError: error,
-      });
+      if (__DEV__) {
+        console.warn('Login screen caught error:', error?.code);
+      }
       const message = getAuthErrorMessage(error?.code, error?.message);
-      showError(message);
+      Alert.alert('Login Error', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -127,6 +125,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../../assets/iOS Icon 2 - 1024x1024.png')}
+              style={styles.logo}
+            />
+          </View>
+
           {/* Header */}
           <AuthHeader
             title="Welcome Back"
@@ -160,7 +166,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               textContentType="emailAddress"
               error={!!emailError}
               errorText={emailError}
-              left={<Icon name="email-outline" size={20} color={Colors.textSecondary} />}
               style={styles.input}
             />
 
@@ -178,7 +183,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               textContentType="password"
               error={!!passwordError}
               errorText={passwordError}
-              left={<Icon name="lock-outline" size={20} color={Colors.textSecondary} />}
               right={
                 <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
                   <Icon
@@ -243,6 +247,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xl,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
   },
   form: {
     flex: 1,
