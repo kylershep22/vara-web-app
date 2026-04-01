@@ -63,7 +63,7 @@ export default function Login() {
     <div
       className="min-h-screen bg-cover bg-center flex items-center justify-center px-4"
       style={{
-        backgroundImage: "url('/images/vara-welcome-bg.png')",
+        backgroundImage: "url('/images/vara-welcome-bg-2.png')",
       }}
     >
       <form

@@ -597,39 +597,9 @@ const SettingsScreen = () => {
             )}
           </View>
 
-          {/* Show different options based on subscription type */}
+          {/* Show redeem code option for non-coaching users */}
           {subscriptionStatus?.type !== 'coaching' && (
             <>
-              <View style={styles.divider} />
-
-              {subscriptionStatus?.type === 'premium' ? (
-                <TouchableOpacity
-                  style={styles.settingRow}
-                  onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.settingLabel}>Manage Subscription</Text>
-                    <Text style={styles.settingDescription}>
-                      View or cancel in App Store
-                    </Text>
-                  </View>
-                  <Ionicons name="open-outline" size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.settingRow}
-                  onPress={() => navigation.navigate('Paywall' as never)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.settingLabel}>Upgrade to Premium</Text>
-                    <Text style={styles.settingDescription}>
-                      Unlock all features
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-              )}
-
               <View style={styles.divider} />
 
               <TouchableOpacity

@@ -10,7 +10,7 @@ export default function Welcome() {
     <div
       className="min-h-screen bg-cover bg-center flex items-center justify-center px-6"
       style={{
-        backgroundImage: "url('/images/vara-welcome-bg.png')",
+        backgroundImage: "url('/images/vara-welcome-bg-2.png')",
       }}
     >
       <div className="w-full max-w-3xl bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-10 text-center">

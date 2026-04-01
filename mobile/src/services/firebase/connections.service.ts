@@ -376,33 +376,40 @@ export async function getSuggestedConnections(
   }
 
   // 3. Get friends of friends (lowest priority)
+  // Note: This may fail due to Firestore rules (users can only read their own connections).
+  // Wrapped in try/catch so group and interest suggestions still work.
   if (suggestions.size < maxSuggestions) {
-    for (const friendId of existingConnections) {
-      if (suggestions.size >= maxSuggestions) break;
-
-      const friendsOfFriend = await getConnectionIds(friendId);
-
-      for (const fofId of friendsOfFriend) {
+    try {
+      for (const friendId of existingConnections) {
         if (suggestions.size >= maxSuggestions) break;
-        if (fofId === currentUserId || excludedIds.has(fofId)) continue;
 
-        const fofDoc = await getDoc(doc(db, 'users', fofId));
-        if (fofDoc.exists()) {
-          // Calculate mutual connections for this suggestion
-          const mutuals = await getMutualConnections(currentUserId, fofId);
+        const friendsOfFriend = await getConnectionIds(friendId);
 
-          addSuggestion(
-            {
-              id: fofDoc.id,
-              uid: fofDoc.id,
-              ...fofDoc.data(),
-              mutualConnections: mutuals,
-              mutualConnectionCount: mutuals.length,
-            } as EnhancedUserProfile,
-            'friends_of_friends'
-          );
+        for (const fofId of friendsOfFriend) {
+          if (suggestions.size >= maxSuggestions) break;
+          if (fofId === currentUserId || excludedIds.has(fofId)) continue;
+
+          const fofDoc = await getDoc(doc(db, 'users', fofId));
+          if (fofDoc.exists()) {
+            // Calculate mutual connections for this suggestion
+            const mutuals = await getMutualConnections(currentUserId, fofId);
+
+            addSuggestion(
+              {
+                id: fofDoc.id,
+                uid: fofDoc.id,
+                ...fofDoc.data(),
+                mutualConnections: mutuals,
+                mutualConnectionCount: mutuals.length,
+              } as EnhancedUserProfile,
+              'friends_of_friends'
+            );
+          }
         }
       }
+    } catch {
+      // Friends-of-friends lookup requires reading other users' connections,
+      // which Firestore rules correctly block. Silently skip this source.
     }
   }
 
