@@ -1,35 +1,33 @@
 /**
  * useDashboardV2 Hook
- * Aggregates all data for the new card-based Dashboard layout.
+ * Aggregates all data for the V2 card-based Dashboard layout.
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
-  collection,
-  getDocs,
-  query,
-  where,
   doc,
   getDoc,
-  addDoc,
-  setDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { useHabits } from './useHabits';
+
+// Brain state services
 import {
-  getMorningCheckIn,
-  getWellnessScore,
-  refreshWellnessScore,
-} from '../services/wellnessScore.service';
+  getTodayCheckIn,
+  saveCheckIn,
+  markProtocolCompleted,
+} from '../services/db/brainStateCheckIn.service';
+import { getProtocolForState } from '../constants/brainStateProtocols';
+
+// Daily reflection services
+import {
+  getTodayReflection,
+  saveReflection,
+} from '../services/db/dailyReflection.service';
 
 /* ==================== HELPERS ==================== */
-
-const LAST_OPEN_KEY = 'vara_last_app_open_date';
-const WELLNESS_SCORE_ENABLED_KEY = 'vara_wellness_score_enabled';
-const FOUR_THREE_TWO_ONE_COLLECTION = 'fourThreeTwoOne';
 
 function todayYMD() {
   const d = new Date();
@@ -75,69 +73,6 @@ function buildVisibleDays() {
   return days;
 }
 
-/**
- * Derive a single next-best-action recommendation from current data.
- */
-function buildRecommendation({ morningCheckIn, habits, habitCompletionsMap, today, navigate }) {
-  // 1. No morning check-in
-  if (!morningCheckIn) {
-    return {
-      icon: null,
-      title: 'Start your morning check-in',
-      subtitle: 'Log your energy and mood to start the day.',
-      reason: null,
-      actionLabel: null,
-      onAction: null,
-    };
-  }
-
-  // 2. Habits due today not yet completed
-  const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const todayShort = shortDays[new Date().getDay()];
-
-  const activeHabits = habits.filter((h) => h.active !== false);
-  const dueToday = activeHabits.filter((h) => {
-    const type = h?.type || h?.frequency?.type || (h?.frequency === 'daily' ? 'daily' : h?.frequency);
-    if (!type || type === 'daily') return true;
-    if (type === 'weekly') {
-      const days = h?.days || h?.frequency?.days || [];
-      return Array.isArray(days) && days.length ? days.includes(todayShort) : true;
-    }
-    return true;
-  });
-
-  const completedToday = dueToday.filter((h) => {
-    const dates = habitCompletionsMap[h.id] || [];
-    return dates.includes(today);
-  });
-
-  const remaining = dueToday.length - completedToday.length;
-  if (remaining > 0) {
-    const nextHabit = dueToday.find((h) => {
-      const dates = habitCompletionsMap[h.id] || [];
-      return !dates.includes(today);
-    });
-    return {
-      icon: null,
-      title: nextHabit ? `Complete "${nextHabit.name}"` : `${remaining} habit${remaining > 1 ? 's' : ''} remaining today`,
-      subtitle: `${completedToday.length} of ${dueToday.length} done today`,
-      reason: null,
-      actionLabel: null,
-      onAction: null,
-    };
-  }
-
-  // 3. All habits done — encourage journaling
-  return {
-    icon: null,
-    title: 'All habits done for today!',
-    subtitle: 'Consider journaling to reflect on your progress.',
-    reason: null,
-    actionLabel: 'Open Journal',
-    onAction: () => navigate('/journal'),
-  };
-}
-
 /* ==================== HOOK ==================== */
 
 export function useDashboardV2() {
@@ -149,32 +84,12 @@ export function useDashboardV2() {
   const [userName, setUserName] = useState('');
   const [dataLoading, setDataLoading] = useState(true);
 
-  // Welcome back
-  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  // Brain state check-in
+  const [brainStateCheckIn, setBrainStateCheckIn] = useState(null);
+  const [brainStateLoading, setBrainStateLoading] = useState(false);
 
-  // Morning check-in
-  const [morningCheckIn, setMorningCheckIn] = useState(null);
-  const [showMorningCheckIn, setShowMorningCheckIn] = useState(false);
-
-  // 4-3-2-1
-  const [fourThreeTwoOneEntry, setFourThreeTwoOneEntry] = useState(null);
-
-  // AI daily plan
-  const [dailyPlan, setDailyPlan] = useState('');
-  const [generatingPlan, setGeneratingPlan] = useState(false);
-  const [isPlanExpanded, setIsPlanExpanded] = useState(false);
-
-  // Wellness score
-  const [wellnessScore, setWellnessScore] = useState(null);
-  const [wellnessScoreLoading, setWellnessScoreLoading] = useState(false);
-  const [wellnessScoreEnabled, setWellnessScoreEnabled] = useState(() => {
-    try {
-      return localStorage.getItem(WELLNESS_SCORE_ENABLED_KEY) === 'true';
-    } catch {
-      return false;
-    }
-  });
-  const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
+  // Daily reflection
+  const [dailyReflection, setDailyReflection] = useState(null);
 
   /* ---- Derived constants ---- */
 
@@ -195,17 +110,40 @@ export function useDashboardV2() {
     return map;
   }, [habitCompletionsArray]);
 
-  /* ---- Next best action ---- */
-  const recommendation = useMemo(() => {
-    if (dataLoading) return null;
-    return buildRecommendation({
-      morningCheckIn,
-      habits,
-      habitCompletionsMap: weeklyCompletions,
-      today,
-      navigate: (path) => { window.location.href = path; },
+  /* ---- Derived: today's protocol from brain state ---- */
+  const todaysProtocol = useMemo(() => {
+    if (!brainStateCheckIn?.brainState) return null;
+    return getProtocolForState(brainStateCheckIn.brainState);
+  }, [brainStateCheckIn]);
+
+  /* ---- Derived: show daily reflection when all active habits completed today ---- */
+  const showDailyReflection = useMemo(() => {
+    if (dailyReflection) return true; // Show saved state
+    const activeHabits = habits.filter((h) => h.active !== false);
+    if (activeHabits.length === 0) return false;
+
+    const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const todayShort = shortDays[new Date().getDay()];
+
+    const dueToday = activeHabits.filter((h) => {
+      const type = h?.type || h?.frequency?.type || (h?.frequency === 'daily' ? 'daily' : h?.frequency);
+      if (!type || type === 'daily') return true;
+      if (type === 'weekly') {
+        const days = h?.days || h?.frequency?.days || [];
+        return Array.isArray(days) && days.length ? days.includes(todayShort) : true;
+      }
+      return true;
     });
-  }, [dataLoading, morningCheckIn, habits, weeklyCompletions, today]);
+
+    if (dueToday.length === 0) return false;
+
+    const allCompleted = dueToday.every((h) => {
+      const dates = weeklyCompletions[h.id] || [];
+      return dates.includes(today);
+    });
+
+    return allCompleted;
+  }, [habits, weeklyCompletions, today, dailyReflection]);
 
   /* ==================== Data fetching ==================== */
 
@@ -217,30 +155,17 @@ export function useDashboardV2() {
     async function loadDashboardData() {
       setDataLoading(true);
       try {
-        const [userSnap, checkIn, score, fttoSnap] = await Promise.all([
+        const [userSnap, checkIn, reflection] = await Promise.all([
           getDoc(doc(db, 'users', user.uid)),
-          getMorningCheckIn(user.uid),
-          wellnessScoreEnabled ? getWellnessScore(user.uid) : Promise.resolve(null),
-          getDoc(doc(db, FOUR_THREE_TWO_ONE_COLLECTION, `${user.uid}_${todayYMD()}`)),
+          getTodayCheckIn(user.uid),
+          getTodayReflection(user.uid),
         ]);
 
         if (cancelled) return;
 
         setUserName(userSnap.data()?.displayName || user.displayName || 'there');
-
-        // Morning check-in
-        setMorningCheckIn(checkIn);
-        setShowMorningCheckIn(!checkIn);
-
-        // Wellness score
-        if (wellnessScoreEnabled && score) {
-          setWellnessScore(score);
-        }
-
-        // 4-3-2-1
-        if (fttoSnap.exists()) {
-          setFourThreeTwoOneEntry(fttoSnap.data());
-        }
+        setBrainStateCheckIn(checkIn);
+        setDailyReflection(reflection);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -248,40 +173,40 @@ export function useDashboardV2() {
       }
     }
 
-    // Welcome back check
-    try {
-      const lastOpen = localStorage.getItem(LAST_OPEN_KEY);
-      if (lastOpen) {
-        const lastOpenDate = new Date(lastOpen);
-        const now = new Date();
-        const diffHours = (now - lastOpenDate) / (1000 * 60 * 60);
-        if (diffHours > 48) {
-          setShowWelcomeBack(true);
-        }
-      }
-      localStorage.setItem(LAST_OPEN_KEY, new Date().toISOString());
-    } catch {
-      // localStorage not available — skip
-    }
-
     loadDashboardData();
 
     return () => {
       cancelled = true;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid, wellnessScoreEnabled]);
+  }, [user?.uid]);
 
   /* ==================== Handlers ==================== */
 
-  const dismissWelcomeBack = useCallback(() => {
-    setShowWelcomeBack(false);
-  }, []);
+  const handleBrainStateCheckIn = useCallback(
+    async (brainState) => {
+      if (!user?.uid || brainStateLoading) return;
+      setBrainStateLoading(true);
+      try {
+        const result = await saveCheckIn(user.uid, brainState);
+        setBrainStateCheckIn(result);
+      } catch (error) {
+        console.error('Error saving brain state check-in:', error);
+      } finally {
+        setBrainStateLoading(false);
+      }
+    },
+    [user?.uid, brainStateLoading]
+  );
 
-  const handleMorningCheckInComplete = useCallback((checkInData) => {
-    setMorningCheckIn(checkInData);
-    setShowMorningCheckIn(false);
-  }, []);
+  const handleMarkProtocolCompleted = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      await markProtocolCompleted(user.uid);
+      setBrainStateCheckIn((prev) => prev ? { ...prev, protocolCompleted: true } : prev);
+    } catch (error) {
+      console.error('Error marking protocol completed:', error);
+    }
+  }, [user?.uid]);
 
   const handleHabitToggle = useCallback(
     async (habitId, date) => {
@@ -295,108 +220,18 @@ export function useDashboardV2() {
     [habits, today, logHabitToday]
   );
 
-  const handleFourThreeTwoOneChange = useCallback(
-    async (draft) => {
+  const handleDailyReflection = useCallback(
+    async (difficulty) => {
       if (!user?.uid) return;
       try {
-        const docId = `${user.uid}_${today}`;
-        await setDoc(
-          doc(db, FOUR_THREE_TWO_ONE_COLLECTION, docId),
-          {
-            ...draft,
-            userId: user.uid,
-            date: today,
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-        setFourThreeTwoOneEntry(draft);
+        const result = await saveReflection(user.uid, difficulty);
+        setDailyReflection(result);
       } catch (error) {
-        console.error('Error saving 4-3-2-1:', error);
+        console.error('Error saving daily reflection:', error);
       }
     },
-    [user?.uid, today]
+    [user?.uid]
   );
-
-  const handleGenerateDailyPlan = useCallback(async () => {
-    if (!user?.uid) return;
-    if (generatingPlan) return;
-
-    setGeneratingPlan(true);
-    try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const name = userDoc.data()?.displayName || user.displayName || 'there';
-
-      const goalsSnap = await getDocs(
-        query(collection(db, 'goals'), where('userId', '==', user.uid))
-      );
-      const goals = goalsSnap.docs.map((d) => d.data());
-
-      if (goals.length === 0 && habits.length === 0) {
-        setDailyPlan('Create some goals and habits to get your personalized daily plan!');
-        setIsPlanExpanded(true);
-        return;
-      }
-
-      const goalsData = goals.map((g) => ({
-        title: g.title || 'Untitled Goal',
-        progress: g.progress || 0,
-        target: g.target || 100,
-        unit: g.unit || '%',
-      }));
-
-      const functions = getFunctions();
-      const generateDailyPlanFn = httpsCallable(functions, 'generateDailyPlan');
-      const result = await generateDailyPlanFn({
-        name,
-        preferences: { tone: 'gentle', intensity: 'standard' },
-        mood: morningCheckIn?.mood ?? null,
-        goals: goalsData,
-        modifier: null,
-      });
-      setDailyPlan(result.data?.plan || 'No plan generated');
-      setIsPlanExpanded(true);
-    } catch (error) {
-      console.error('Error generating daily plan:', error);
-      setDailyPlan('AI plan is temporarily unavailable. Click Generate to try again.');
-      setIsPlanExpanded(true);
-    } finally {
-      setGeneratingPlan(false);
-    }
-  }, [user?.uid, user?.displayName, habits, morningCheckIn, generatingPlan]);
-
-  const handleRefreshWellnessScore = useCallback(async () => {
-    if (!user?.uid || wellnessScoreLoading) return;
-    setWellnessScoreLoading(true);
-    try {
-      const score = await refreshWellnessScore(user.uid);
-      setWellnessScore(score);
-    } catch (error) {
-      console.error('Error refreshing wellness score:', error);
-    } finally {
-      setWellnessScoreLoading(false);
-    }
-  }, [user?.uid, wellnessScoreLoading]);
-
-  const handleWellnessScoreEnable = useCallback(async () => {
-    try {
-      localStorage.setItem(WELLNESS_SCORE_ENABLED_KEY, 'true');
-    } catch {
-      // localStorage not available
-    }
-    setWellnessScoreEnabled(true);
-    // Score will load on next effect run (wellnessScoreEnabled dependency)
-    if (!user?.uid) return;
-    setWellnessScoreLoading(true);
-    try {
-      const score = await refreshWellnessScore(user.uid);
-      setWellnessScore(score);
-    } catch (error) {
-      console.error('Error loading wellness score on enable:', error);
-    } finally {
-      setWellnessScoreLoading(false);
-    }
-  }, [user?.uid]);
 
   /* ==================== Return ==================== */
 
@@ -409,42 +244,22 @@ export function useDashboardV2() {
     today,
     dataLoading,
 
-    // Welcome Back
-    showWelcomeBack,
-    dismissWelcomeBack,
+    // Brain State Check-In
+    brainStateCheckIn,
+    brainStateLoading,
+    handleBrainStateCheckIn,
+    handleMarkProtocolCompleted,
+    todaysProtocol,
 
-    // Morning Check-In
-    morningCheckIn,
-    showMorningCheckIn,
-    handleMorningCheckInComplete,
+    // Daily Reflection
+    dailyReflection,
+    showDailyReflection,
+    handleDailyReflection,
 
     // Habits (for weekly grid)
     habits,
     weeklyCompletions,
     visibleDays,
     handleHabitToggle,
-
-    // Next Best Action
-    recommendation,
-
-    // 4-3-2-1
-    fourThreeTwoOneEntry,
-    handleFourThreeTwoOneChange,
-
-    // AI Daily Plan
-    dailyPlan,
-    generatingPlan,
-    isPlanExpanded,
-    setIsPlanExpanded,
-    handleGenerateDailyPlan,
-
-    // Wellness Score
-    wellnessScore,
-    wellnessScoreLoading,
-    wellnessScoreEnabled,
-    showScoreBreakdown,
-    setShowScoreBreakdown,
-    handleRefreshWellnessScore,
-    handleWellnessScoreEnable,
   };
 }
