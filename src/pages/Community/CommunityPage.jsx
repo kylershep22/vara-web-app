@@ -4,6 +4,7 @@ import {
   Users,
   Plus,
   Search,
+  Edit3,
   MessageCircle,
   Lock,
   Globe,
@@ -89,6 +90,7 @@ import CommunityOrientationCard from '../../components/community/CommunityOrient
 import PostTypeSelector from '../../components/community/PostTypeSelector';
 import PostTypeBadge from '../../components/community/PostTypeBadge';
 import ReportPostModal from '../../components/community/ReportPostModal';
+import EditPostModal from '../../components/community/EditPostModal';
 import { fetchMutedUserIds, muteUser as muteUserService } from '../../services/db/moderation.service';
 
 const CommunityPage = () => {
@@ -132,6 +134,7 @@ const CommunityPage = () => {
   const [showOrientation, setShowOrientation] = useState(false);
   const [mutedUserIds, setMutedUserIds] = useState(new Set());
   const [reportingPost, setReportingPost] = useState(null);
+  const [editingPost, setEditingPost] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -660,6 +663,20 @@ const CommunityPage = () => {
     }
   };
 
+  const handleEditPost = async (postId, { content }) => {
+    try {
+      await updateDoc(doc(db, 'posts', postId), { content, updatedAt: new Date() });
+      setPosts((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, content } : p))
+      );
+      toast.success('Post updated!');
+    } catch (error) {
+      console.error('Failed to edit post:', error);
+      toast.error('Failed to update post. Please try again.');
+      throw error;
+    }
+  };
+
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post?')) return;
 
@@ -726,6 +743,14 @@ const CommunityPage = () => {
                   className="absolute right-0 mt-2 w-48 bg-white rounded-vara-lg shadow-vara-lg border border-divider py-1 z-10"
                 >
                   {isOwnPost ? (
+                    <>
+                    <button
+                      onClick={() => { setEditingPost(post); setOpenPostMenu(null); }}
+                      className="w-full px-vara-base py-2 text-left text-vara-sm text-soft-charcoal hover:bg-dew-sage-light flex items-center gap-vara-sm"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Edit Post
+                    </button>
                     <button
                       onClick={() => handleDeletePost(post.id)}
                       className="w-full px-vara-base py-2 text-left text-vara-sm text-red-600 hover:bg-red-50 flex items-center gap-vara-sm"
@@ -733,6 +758,7 @@ const CommunityPage = () => {
                       <X className="w-4 h-4" />
                       Delete Post
                     </button>
+                    </>
                   ) : (
                     <>
                       <button
@@ -2212,6 +2238,12 @@ const CommunityPage = () => {
           onClose={() => setReportingPost(null)}
         />
       )}
+      <EditPostModal
+        isOpen={!!editingPost}
+        onClose={() => setEditingPost(null)}
+        post={editingPost}
+        onSave={(updates) => handleEditPost(editingPost.id, updates)}
+      />
     </SidebarLayout>
   );
 };
