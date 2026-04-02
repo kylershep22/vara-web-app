@@ -64,6 +64,7 @@ import TermsOfService from './pages/TermsOfService';
 import NotificationSettings from './pages/NotificationSettings';
 import MutedAccounts from './pages/MutedAccounts';
 import Wellness from './pages/Wellness';
+import Rhythms from './pages/Rhythms';
 
 import SidebarLayout from './components/layout/SidebarLayout';
 
@@ -359,7 +360,19 @@ function App() {
             }
           />
 
-          {/* Mobile-aligned routes */}
+          {/* Rhythms (Habits + Routines) */}
+          <Route
+            path="/rhythms"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Rhythms">
+                  <Rhythms />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Deep-link routes (accessible from detail pages, not primary nav) */}
           <Route path="/habits" element={<ProtectedRoute><ErrorBoundary level="feature"><Habits /></ErrorBoundary></ProtectedRoute>} />
           <Route path="/habits/:habitId" element={<ProtectedRoute><ErrorBoundary level="feature"><HabitDetail /></ErrorBoundary></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><ErrorBoundary level="feature"><Goals /></ErrorBoundary></ProtectedRoute>} />
