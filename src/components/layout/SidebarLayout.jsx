@@ -4,10 +4,24 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   ClipboardCheck,
+  ListChecks,
+  RotateCcw,
   Users,
   UserSearch,
-  Leaf,
   Trophy,
+  UsersRound,
+  MessageCircle,
+  Leaf,
+  BarChart3,
+  BookOpen,
+  Wind,
+  Moon,
+  Timer,
+  Dumbbell,
+  GraduationCap,
+  Brain,
+  Settings as SettingsIcon,
+  HelpCircle,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -33,7 +47,8 @@ const navSections = [
     id: "rhythms",
     label: "Rhythms",
     items: [
-      { path: "/rhythms", label: "Rhythms", icon: ClipboardCheck },
+      { path: "/rhythms", label: "Habits", icon: ListChecks },
+      { path: "/rhythms?tab=routines", label: "Routines", icon: RotateCcw },
     ],
   },
   {
@@ -43,13 +58,23 @@ const navSections = [
       { path: "/community", label: "Feed", icon: Users },
       { path: "/community/people", label: "People", icon: UserSearch },
       { path: "/community/challenges", label: "Challenges", icon: Trophy },
+      { path: "/community/groups", label: "Groups", icon: UsersRound },
+      { path: "/community/messages", label: "Messages", icon: MessageCircle },
     ],
   },
   {
     id: "wellness",
     label: "Wellness",
     items: [
-      { path: "/wellness", label: "Wellness", icon: Leaf },
+      { path: "/insights", label: "Insights", icon: BarChart3 },
+      { path: "/journal", label: "Journal", icon: BookOpen },
+      { path: "/library/breathwork", label: "Breathwork", icon: Wind },
+      { path: "/library/sleep", label: "Sleep", icon: Moon },
+      { path: "/focus", label: "Focus", icon: Timer },
+      { path: "/library/movement", label: "Movement", icon: Dumbbell },
+      { path: "/masterclass", label: "Masterclass", icon: GraduationCap },
+      { path: "/brain-health", label: "Brain Health", icon: Brain },
+      { path: "/settings", label: "Settings", icon: SettingsIcon },
     ],
   },
 ];
@@ -65,14 +90,17 @@ export default function SidebarLayout({ children }) {
   ];
 
   const isActive = (pathname, itemPath) => {
+    // Strip query strings for comparison
+    const cleanPath = itemPath.split("?")[0];
     if (itemPath === "/community") return pathname === "/community";
     if (itemPath === "/community/people") return pathname === "/community/people";
     if (itemPath === "/community/challenges") return pathname.startsWith("/community/challenges");
-    if (itemPath === "/rhythms") return pathname === "/rhythms" || pathname.startsWith("/habits");
-    if (itemPath === "/wellness") {
-      return pathname === "/wellness" || ["/insights", "/journal", "/focus", "/brain-health", "/library", "/discover", "/masterclass", "/settings", "/profile"].some(p => pathname.startsWith(p));
-    }
-    return pathname === itemPath || pathname.startsWith(itemPath + "/");
+    if (itemPath === "/community/groups") return pathname.startsWith("/community/groups") || pathname.startsWith("/group/");
+    if (itemPath === "/community/messages") return pathname.startsWith("/community/messages") || pathname.startsWith("/messages");
+    // Rhythms tabs: match based on query param
+    if (itemPath === "/rhythms") return pathname === "/rhythms" && !location.search.includes("tab=routines");
+    if (itemPath === "/rhythms?tab=routines") return pathname === "/rhythms" && location.search.includes("tab=routines");
+    return pathname === cleanPath || pathname.startsWith(cleanPath + "/");
   };
 
   const NavLink = ({ item }) => {

@@ -1,7 +1,7 @@
 // src/pages/Rhythms.jsx
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ClipboardCheck, Plus, Leaf, CheckCircle2, Circle, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import SidebarLayout from '../components/layout/SidebarLayout';
@@ -85,9 +85,15 @@ function EmptyFilterState({ filter, onClear }) {
 export default function Rhythms() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  // Tab + filter state
-  const [activeTab, setActiveTab] = useState('Habits');
+  // Tab + filter state — sync with URL query param
+  const tabFromUrl = searchParams.get('tab') === 'routines' ? 'Routines' : 'Habits';
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
+
+  useEffect(() => {
+    setActiveTab(tabFromUrl);
+  }, [tabFromUrl]);
   const [subFilter, setSubFilter] = useState('All');
 
   // Habits data
