@@ -52,6 +52,8 @@ import OnboardingConfirmation from './pages/onboarding/OnboardingConfirmation';
 import OnboardingValues from './pages/onboarding/OnboardingValues';
 import EditProfile from './pages/Profile/EditProfile';
 import PeopleSearchPage from './pages/Community/PeopleSearchPage';
+import GroupsPage from './pages/Community/GroupsPage';
+import MessagesPage from './pages/Community/MessagesPage';
 import SeedTagsTool from "./dev/SeedTagsTool";
 import MigrationAdmin from "./pages/MigrationAdmin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
@@ -288,6 +290,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <PeopleSearchPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community/groups"
+            element={
+              <ProtectedRoute>
+                <GroupsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community/messages"
+            element={
+              <ProtectedRoute>
+                <MessagesPage />
               </ProtectedRoute>
             }
           />
