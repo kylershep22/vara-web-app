@@ -32,6 +32,7 @@ function dateRange(days) {
 export function useWeeklyCorrelations() {
   const { user } = useAuth();
   const [correlations, setCorrelations] = useState(null);
+  const [brainStateDistribution, setBrainStateDistribution] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,9 +66,10 @@ export function useWeeklyCorrelations() {
         const uid = user.uid;
 
         // Fetch all data sources in parallel
-        const [morningCheckIns, brainMetrics, journalEntries, focusSessions, habits] =
+        const [morningCheckIns, brainStateCheckIns, brainMetrics, journalEntries, focusSessions, habits] =
           await Promise.all([
             fetchMorningCheckIns(uid, dates),
+            fetchBrainStateCheckIns(uid, dates),
             fetchBrainMetrics(uid, dates),
             fetchJournalEntries(uid, start, end),
             fetchFocusSessions(uid, start, end),
@@ -77,10 +79,12 @@ export function useWeeklyCorrelations() {
         // Build daily data points
         const dailyData = dates.map((date) => {
           const checkIn = morningCheckIns.get(date);
+          const brainCheck = brainStateCheckIns.get(date);
           const brain = brainMetrics.get(date);
           const journaled = journalEntries.has(date);
           const focus = focusSessions.get(date) || 0;
           const habitRate = habits.get(date);
+          const bState = brainCheck?.brainState;
 
           return {
             date,
@@ -91,10 +95,63 @@ export function useWeeklyCorrelations() {
             habitCompletionRate: habitRate ?? null,
             focusMinutes: focus > 0 ? focus : null,
             journaled,
+            brainState: bState ?? null,
+            protocolCompleted: brainCheck?.protocolCompleted ?? false,
           };
         });
 
         const result = computeCorrelations(dailyData);
+
+        // Brain state distribution
+        let brainDist = null;
+        const currentBrainStates = [];
+        for (const date of dates) {
+          const entry = brainStateCheckIns.get(date);
+          if (entry?.brainState) currentBrainStates.push(entry.brainState);
+        }
+
+        if (currentBrainStates.length >= 3) {
+          const stateConfig = [
+            { key: 'energized', label: 'Energized\u26A1', positive: true },
+            { key: 'clear', label: 'Clear\u2728', positive: true },
+            { key: 'okay', label: 'Okay\uD83C\uDF24\uFE0F', positive: false },
+            { key: 'foggy', label: 'Foggy\uD83C\uDF2B\uFE0F', positive: false },
+            { key: 'wired', label: 'Wired\u26A0\uFE0F', positive: false },
+          ];
+          const distribution = stateConfig.map(({ key, label }) => ({
+            state: key,
+            label,
+            count: currentBrainStates.filter((s) => s === key).length,
+          }));
+          const positiveDays = currentBrainStates.filter(
+            (s) => s === 'clear' || s === 'energized'
+          ).length;
+
+          // Fetch prior 7-day period for comparison
+          const priorRange = dateRange(14);
+          const priorDates = priorRange.dates.slice(0, 7);
+          let priorPositiveDays = 0;
+          try {
+            const priorCheckIns = await fetchBrainStateCheckIns(uid, priorDates);
+            const priorStates = [];
+            for (const date of priorDates) {
+              const entry = priorCheckIns.get(date);
+              if (entry?.brainState) priorStates.push(entry.brainState);
+            }
+            priorPositiveDays = priorStates.filter(
+              (s) => s === 'clear' || s === 'energized'
+            ).length;
+          } catch {
+            // Prior period unavailable
+          }
+
+          brainDist = {
+            distribution,
+            positiveDays,
+            priorPositiveDays,
+            totalCheckIns: currentBrainStates.length,
+          };
+        }
 
         // Cache result in localStorage
         try {
@@ -105,6 +162,7 @@ export function useWeeklyCorrelations() {
 
         if (!cancelled) {
           setCorrelations(result);
+          setBrainStateDistribution(brainDist);
           setLoading(false);
         }
       } catch (err) {
@@ -119,7 +177,7 @@ export function useWeeklyCorrelations() {
     };
   }, [user?.uid]);
 
-  return { correlations, loading };
+  return { correlations, brainStateDistribution, loading };
 }
 
 // --- Data fetchers ---
@@ -133,6 +191,27 @@ async function fetchMorningCheckIns(uid, dates) {
       if (snap.exists()) {
         const data = snap.data();
         map.set(date, { mood: data.mood, energyLevel: data.energyLevel });
+      }
+    } catch {
+      // Skip this date
+    }
+  });
+  await Promise.all(fetches);
+  return map;
+}
+
+async function fetchBrainStateCheckIns(uid, dates) {
+  const map = new Map();
+  const fetches = dates.map(async (date) => {
+    try {
+      const docRef = doc(db, 'brainStateCheckIns', `${uid}_${date}`);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        map.set(date, {
+          brainState: data.brainState,
+          protocolCompleted: data.protocolCompleted ?? false,
+        });
       }
     } catch {
       // Skip this date
