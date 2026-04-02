@@ -18,8 +18,12 @@ import GroupPage from './pages/Community/GroupPage';
 import GroupDetailPage from './pages/GroupDetailPage';
 import Notifications from './pages/Notifications';
 import Breathwork from './pages/library/Breathwork';
+import BreathworkDetail from './pages/library/BreathworkDetail';
 import Sleep from './pages/library/Sleep';
+import SleepDetail from './pages/library/SleepDetail';
 import Movement from './pages/library/Movement';
+import MovementDetail from './pages/library/MovementDetail';
+import MasterclassDetail from './pages/library/MasterclassDetail';
 import GoalsHabits from './pages/GoalsHabits';
 import Goals from './pages/Goals';
 import Tasks from './pages/Tasks';
@@ -240,6 +244,10 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/library/breathwork/:id" element={<ProtectedRoute><BreathworkDetail /></ProtectedRoute>} />
+          <Route path="/library/sleep/:id" element={<ProtectedRoute><SleepDetail /></ProtectedRoute>} />
+          <Route path="/library/movement/:id" element={<ProtectedRoute><MovementDetail /></ProtectedRoute>} />
+          <Route path="/masterclass/:id" element={<ProtectedRoute><MasterclassDetail /></ProtectedRoute>} />
           <Route
             path="/group/:groupId/forum"
             element={
