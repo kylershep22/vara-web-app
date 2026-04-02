@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import SidebarLayout from '../../components/layout/SidebarLayout';
 import { Moon } from 'lucide-react';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
@@ -8,6 +9,7 @@ export default function Sleep() {
 
   const sleepSounds = [
     {
+      id: 'delta-waves',
       title: 'Delta Waves',
       duration: '3:43 min',
       type: 'Brainwave',
@@ -15,6 +17,7 @@ export default function Sleep() {
       audioSrc: 'https://firebasestorage.googleapis.com/v0/b/vara-4a99f.firebasestorage.app/o/sleep-audio%2FDeltaWaves.mp3?alt=media&token=26646854-091e-4c5d-b0e8-99e37fa5998d',
     },
     {
+      id: 'calming-melody',
       title: 'Calming Melody',
       duration: '3:27 min',
       type: 'Nature',
@@ -22,6 +25,7 @@ export default function Sleep() {
       audioSrc: 'https://firebasestorage.googleapis.com/v0/b/vara-4a99f.firebasestorage.app/o/sleep-audio%2FCalmingMelody.mp3?alt=media&token=e13ba763-1cd1-4831-b893-06fce2836093',
     },
     {
+      id: 'surreal-forest',
       title: 'Surreal Forest',
       duration: '2:01 min',
       type: 'Nature',
@@ -32,12 +36,14 @@ export default function Sleep() {
 
   const sleepStories = [
     {
+      id: 'forest-journey',
       title: 'The Forest Journey',
       duration: '18 min',
       description: 'A relaxing narrative through serene woods.',
       audioSrc: '/audio/forest-journey.mp3',
     },
     {
+      id: 'starry-skies',
       title: 'Starry Skies',
       duration: '22 min',
       description: 'Travel across the night sky in a soothing story.',
@@ -47,6 +53,7 @@ export default function Sleep() {
 
   const guidedMeditations = [
     {
+      id: 'evening-body-scan',
       title: 'Evening Body Scan',
       duration: '12 min',
       description: 'Full-body relaxation from head to toe.',
@@ -58,17 +65,19 @@ export default function Sleep() {
     <div className="mb-10">
       <h2 className="text-vara-lg font-semibold text-soft-charcoal mb-3">{title}</h2>
       <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-silver-sage">
-        {items.map((item, index) => (
+        {items.map((item) => (
           <div
-            key={index}
+            key={item.id}
             className="min-w-[240px] flex-shrink-0 bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm hover:shadow-vara-md transition"
           >
-            <h3 className="text-md font-semibold text-evergreen-teal mb-1">{item.title}</h3>
-            <p className="text-vara-sm text-muted-sage-gray mb-2">{item.description}</p>
-            <div className="text-vara-xs text-muted-sage-gray">{item.duration} {item.type ? `• ${item.type}` : ''}</div>
+            <Link to={`/library/sleep/${item.id}`} className="block mb-2">
+              <h3 className="text-md font-semibold text-evergreen-teal mb-1 hover:underline">{item.title}</h3>
+              <p className="text-vara-sm text-muted-sage-gray mb-2">{item.description}</p>
+              <div className="text-vara-xs text-muted-sage-gray">{item.duration} {item.type ? `• ${item.type}` : ''}</div>
+            </Link>
             <button
               onClick={() => playTrack(item.title, item.audioSrc)}
-              className="mt-4 px-4 py-2 bg-evergreen-teal text-white text-vara-sm rounded-vara-md hover:opacity-90 transition"
+              className="mt-2 px-4 py-2 bg-evergreen-teal text-white text-vara-sm rounded-vara-md hover:opacity-90 transition"
             >
               Play
             </button>

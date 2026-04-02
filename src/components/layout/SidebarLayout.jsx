@@ -4,26 +4,28 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   ClipboardCheck,
-  Target,
-  ListTodo,
-  Timer,
-  Brain,
-  Wind,
-  Moon,
-  Activity,
-  GraduationCap,
+  ListChecks,
+  RotateCcw,
   Users,
   UserSearch,
+  Trophy,
+  UsersRound,
+  MessageCircle,
+  Leaf,
+  BarChart3,
   BookOpen,
-  Lightbulb,
-  Bot,
-  User,
+  Wind,
+  Moon,
+  Timer,
+  Dumbbell,
+  GraduationCap,
+  Brain,
   Settings as SettingsIcon,
+  HelpCircle,
   ChevronLeft,
   ChevronRight,
   Menu,
   X,
-  Compass,
   Shield,
 } from "lucide-react";
 import NotificationBell from "../notifications/NotificationBell";
@@ -32,41 +34,21 @@ import AIChatWidget from "../ai/AIChatWidget";
 import Footer from "./Footer";
 import { useAdmin } from "../../hooks/useAdmin";
 
-// Navigation structure mirroring mobile's information architecture
+// Navigation structure matching mobile's 4-tab architecture
 const navSections = [
   {
     id: "home",
     label: "Home",
     items: [
-      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/dashboard", label: "Home", icon: LayoutDashboard },
     ],
   },
   {
-    id: "track",
-    label: "Track",
+    id: "rhythms",
+    label: "Rhythms",
     items: [
-      { path: "/habits", label: "Habits", icon: ClipboardCheck },
-      { path: "/goals", label: "Goals", icon: Target },
-      { path: "/tasks", label: "Tasks", icon: ListTodo },
-    ],
-  },
-  {
-    id: "focus",
-    label: "Focus",
-    items: [
-      { path: "/focus", label: "Pomodoro & Routines", icon: Timer },
-      { path: "/brain-health", label: "Brain Health", icon: Brain },
-    ],
-  },
-  {
-    id: "discover",
-    label: "Discover",
-    items: [
-      { path: "/discover", label: "Discover", icon: Compass },
-      { path: "/discover/breathwork", label: "Breathwork", icon: Wind },
-      { path: "/discover/sleep", label: "Sleep", icon: Moon },
-      { path: "/discover/movement", label: "Movement", icon: Activity },
-      { path: "/discover/masterclass", label: "Masterclass", icon: GraduationCap },
+      { path: "/rhythms", label: "Habits", icon: ListChecks },
+      { path: "/rhythms?tab=routines", label: "Routines", icon: RotateCcw },
     ],
   },
   {
@@ -75,14 +57,26 @@ const navSections = [
     items: [
       { path: "/community", label: "Feed", icon: Users },
       { path: "/community/people", label: "People", icon: UserSearch },
+      { path: "/community/challenges", label: "Challenges", icon: Trophy },
+      { path: "/community/groups", label: "Groups", icon: UsersRound },
+      { path: "/community/messages", label: "Messages", icon: MessageCircle },
     ],
   },
-];
-
-// Standalone items rendered between sections and bottom items
-const standaloneItems = [
-  { path: "/journal", label: "Journal", icon: BookOpen },
-  { path: "/insights", label: "Insights", icon: Lightbulb },
+  {
+    id: "wellness",
+    label: "Wellness",
+    items: [
+      { path: "/insights", label: "Insights", icon: BarChart3 },
+      { path: "/journal", label: "Journal", icon: BookOpen },
+      { path: "/library/breathwork", label: "Breathwork", icon: Wind },
+      { path: "/library/sleep", label: "Sleep", icon: Moon },
+      { path: "/focus", label: "Focus", icon: Timer },
+      { path: "/library/movement", label: "Movement", icon: Dumbbell },
+      { path: "/masterclass", label: "Masterclass", icon: GraduationCap },
+      { path: "/brain-health", label: "Brain Health", icon: Brain },
+      { path: "/settings", label: "Settings", icon: SettingsIcon },
+    ],
+  },
 ];
 
 export default function SidebarLayout({ children }) {
@@ -92,23 +86,21 @@ export default function SidebarLayout({ children }) {
   const { isAdmin } = useAdmin();
 
   const bottomItems = [
-    { path: "/ai", label: "AI Companion", icon: Bot },
-    { path: "/profile", label: "My Profile", icon: User },
-    { path: "/settings", label: "Settings", icon: SettingsIcon },
     ...(isAdmin ? [{ path: "/admin", label: "Admin", icon: Shield }] : []),
   ];
 
   const isActive = (pathname, itemPath) => {
-    if (itemPath === "/community") {
-      return pathname === "/community";
-    }
-    if (itemPath === "/community/people") {
-      return pathname === "/community/people";
-    }
-    if (itemPath === "/profile") {
-      return pathname === "/profile";
-    }
-    return pathname === itemPath || pathname.startsWith(itemPath + "/");
+    // Strip query strings for comparison
+    const cleanPath = itemPath.split("?")[0];
+    if (itemPath === "/community") return pathname === "/community";
+    if (itemPath === "/community/people") return pathname === "/community/people";
+    if (itemPath === "/community/challenges") return pathname.startsWith("/community/challenges");
+    if (itemPath === "/community/groups") return pathname.startsWith("/community/groups") || pathname.startsWith("/group/");
+    if (itemPath === "/community/messages") return pathname.startsWith("/community/messages") || pathname.startsWith("/messages");
+    // Rhythms tabs: match based on query param
+    if (itemPath === "/rhythms") return pathname === "/rhythms" && !location.search.includes("tab=routines");
+    if (itemPath === "/rhythms?tab=routines") return pathname === "/rhythms" && location.search.includes("tab=routines");
+    return pathname === cleanPath || pathname.startsWith(cleanPath + "/");
   };
 
   const NavLink = ({ item }) => {
@@ -174,13 +166,6 @@ export default function SidebarLayout({ children }) {
             </ul>
           </div>
         ))}
-        {/* Standalone items */}
-        {collapsed && <div className="border-b border-divider mb-2 mx-2" />}
-        <ul className="space-y-0.5 mb-vara-base">
-          {standaloneItems.map((item) => (
-            <NavLink key={item.path} item={item} />
-          ))}
-        </ul>
       </nav>
 
       {/* Bottom Items */}
@@ -270,12 +255,6 @@ export default function SidebarLayout({ children }) {
                   </ul>
                 </div>
               ))}
-              {/* Standalone items */}
-              <ul className="space-y-0.5 mb-vara-base">
-                {standaloneItems.map((item) => (
-                  <NavLink key={item.path} item={item} />
-                ))}
-              </ul>
             </nav>
             <div className="border-t border-divider px-3 py-3">
               <ul className="space-y-0.5">

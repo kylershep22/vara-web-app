@@ -1,22 +1,26 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import SidebarLayout from '../../components/layout/SidebarLayout';
 import { Wind } from 'lucide-react';
 
 export default function Breathwork() {
   const resources = [
     {
+      id: 'box-breathing',
       title: 'Box Breathing (4-4-4-4)',
       description: 'A calming breathing pattern to reduce anxiety and center yourself.',
       duration: '5 min',
       type: 'Audio',
     },
     {
+      id: 'morning-energizer',
       title: 'Morning Energizer',
       description: 'A breathwork routine to stimulate your energy and clarity.',
       duration: '6 min',
       type: 'Video',
     },
     {
+      id: 'evening-unwind',
       title: 'Evening Unwind',
       description: 'Wind down with gentle breath awareness.',
       duration: '7 min',
@@ -38,17 +42,18 @@ export default function Breathwork() {
 
         {/* Resource Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-vara-lg">
-          {resources.map((item, i) => (
-            <div
-              key={i}
-              className="bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm hover:shadow-vara-md transition"
+          {resources.map((item) => (
+            <Link
+              key={item.id}
+              to={`/library/breathwork/${item.id}`}
+              className="bg-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm hover:shadow-vara-md transition block"
             >
               <h3 className="text-vara-lg font-semibold text-evergreen-teal mb-1">{item.title}</h3>
               <p className="text-vara-sm text-muted-sage-gray mb-2">{item.description}</p>
               <div className="text-vara-xs text-muted-sage-gray">
                 {item.duration} • {item.type}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

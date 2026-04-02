@@ -18,12 +18,17 @@ import GroupPage from './pages/Community/GroupPage';
 import GroupDetailPage from './pages/GroupDetailPage';
 import Notifications from './pages/Notifications';
 import Breathwork from './pages/library/Breathwork';
+import BreathworkDetail from './pages/library/BreathworkDetail';
 import Sleep from './pages/library/Sleep';
+import SleepDetail from './pages/library/SleepDetail';
 import Movement from './pages/library/Movement';
+import MovementDetail from './pages/library/MovementDetail';
+import MasterclassDetail from './pages/library/MasterclassDetail';
 import GoalsHabits from './pages/GoalsHabits';
 import Goals from './pages/Goals';
 import Tasks from './pages/Tasks';
 import Habits from './pages/Habits';
+import HabitDetail from './pages/HabitDetail';
 import GroupForumPage from './pages/Community/GroupForumPage';
 import ChallengesPage from './pages/Community/ChallengesPage';
 import ChallengeDetailPage from './pages/Community/ChallengeDetailPage';
@@ -32,6 +37,7 @@ import Focus from './pages/Focus';
 import Insights from './pages/Insights';
 import Masterclass from './pages/Masterclass';
 import Discover from './pages/Discover';
+import BrainHealth from './pages/BrainHealth';
 import Reflections from './pages/Reflections';
 
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
@@ -46,6 +52,8 @@ import OnboardingConfirmation from './pages/onboarding/OnboardingConfirmation';
 import OnboardingValues from './pages/onboarding/OnboardingValues';
 import EditProfile from './pages/Profile/EditProfile';
 import PeopleSearchPage from './pages/Community/PeopleSearchPage';
+import GroupsPage from './pages/Community/GroupsPage';
+import MessagesPage from './pages/Community/MessagesPage';
 import SeedTagsTool from "./dev/SeedTagsTool";
 import MigrationAdmin from "./pages/MigrationAdmin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
@@ -57,6 +65,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import NotificationSettings from './pages/NotificationSettings';
 import MutedAccounts from './pages/MutedAccounts';
+import Wellness from './pages/Wellness';
+import Rhythms from './pages/Rhythms';
 
 import SidebarLayout from './components/layout/SidebarLayout';
 
@@ -139,6 +149,16 @@ function App() {
             }
           />
           <Route path="/discover" element={<ProtectedRoute><ErrorBoundary level="feature" featureName="Discover"><Discover /></ErrorBoundary></ProtectedRoute>} />
+          <Route
+            path="/brain-health"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Brain Health">
+                  <BrainHealth />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/library"
             element={
@@ -229,6 +249,10 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/library/breathwork/:id" element={<ProtectedRoute><BreathworkDetail /></ProtectedRoute>} />
+          <Route path="/library/sleep/:id" element={<ProtectedRoute><SleepDetail /></ProtectedRoute>} />
+          <Route path="/library/movement/:id" element={<ProtectedRoute><MovementDetail /></ProtectedRoute>} />
+          <Route path="/masterclass/:id" element={<ProtectedRoute><MasterclassDetail /></ProtectedRoute>} />
           <Route
             path="/group/:groupId/forum"
             element={
@@ -266,6 +290,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <PeopleSearchPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community/groups"
+            element={
+              <ProtectedRoute>
+                <GroupsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community/messages"
+            element={
+              <ProtectedRoute>
+                <MessagesPage />
               </ProtectedRoute>
             }
           />
@@ -326,8 +366,33 @@ function App() {
             }
           />
 
-          {/* Mobile-aligned routes */}
+          {/* Wellness Hub */}
+          <Route
+            path="/wellness"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Wellness">
+                  <Wellness />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Rhythms (Habits + Routines) */}
+          <Route
+            path="/rhythms"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Rhythms">
+                  <Rhythms />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Deep-link routes (accessible from detail pages, not primary nav) */}
           <Route path="/habits" element={<ProtectedRoute><ErrorBoundary level="feature"><Habits /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/habits/:habitId" element={<ProtectedRoute><ErrorBoundary level="feature"><HabitDetail /></ErrorBoundary></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><ErrorBoundary level="feature"><Goals /></ErrorBoundary></ProtectedRoute>} />
           <Route path="/tasks" element={<ProtectedRoute><ErrorBoundary level="feature"><Tasks /></ErrorBoundary></ProtectedRoute>} />
 

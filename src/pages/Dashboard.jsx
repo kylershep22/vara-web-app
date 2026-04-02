@@ -1,5 +1,5 @@
 // src/pages/Dashboard.jsx
-// Card-based dashboard layout — state lives in useDashboardV2.
+// V2 card-based dashboard layout — matches mobile V2.
 
 import React from 'react';
 import SidebarLayout from '../components/layout/SidebarLayout';
@@ -8,57 +8,33 @@ import { useDashboardV2 } from '../hooks/useDashboardV2';
 import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
 import { selectWeekInsight } from '../constants/weekInsightTemplates';
 
-import WelcomeBackCard from '../components/dashboard/WelcomeBackCard';
-import MorningCheckInCard from '../components/dashboard/MorningCheckInCard';
+import BrainStateCheckin from '../components/dashboard/BrainStateCheckin';
+import TodaysProtocolCard from '../components/dashboard/TodaysProtocolCard';
+import DailyReflectionCard from '../components/dashboard/DailyReflectionCard';
 import WeeklyHabitsCard from '../components/dashboard/WeeklyHabitsCard';
-import NextBestActionCard from '../components/dashboard/NextBestActionCard';
-import QuickActionsRow from '../components/dashboard/QuickActionsRow';
-import FourThreeTwoOneCard from '../components/dashboard/FourThreeTwoOneCard';
 import WeekInsightCard from '../components/dashboard/WeekInsightCard';
-import BrainHealthEducationCard from '../components/dashboard/BrainHealthEducationCard';
-import AIDailyPlanCard from '../components/dashboard/AIDailyPlanCard';
-import WellnessScoreCard from '../components/dashboard/WellnessScoreCard';
-import WellnessScoreBreakdown from '../components/dashboard/WellnessScoreBreakdown';
-import BrainHealthInsightStrip from '../components/dashboard/BrainHealthInsightStrip';
 
 export default function Dashboard() {
   const {
-    user,
     userName,
     greeting,
     formattedDate,
     dataLoading,
 
-    showWelcomeBack,
-    dismissWelcomeBack,
+    brainStateCheckIn,
+    brainStateLoading,
+    handleBrainStateCheckIn,
+    handleMarkProtocolCompleted,
+    todaysProtocol,
 
-    morningCheckIn,
-    showMorningCheckIn,
-    handleMorningCheckInComplete,
+    dailyReflection,
+    showDailyReflection,
+    handleDailyReflection,
 
     habits,
     weeklyCompletions,
     visibleDays,
     handleHabitToggle,
-
-    recommendation,
-
-    fourThreeTwoOneEntry,
-    handleFourThreeTwoOneChange,
-
-    dailyPlan,
-    generatingPlan,
-    isPlanExpanded,
-    setIsPlanExpanded,
-    handleGenerateDailyPlan,
-
-    wellnessScore,
-    wellnessScoreLoading,
-    wellnessScoreEnabled,
-    showScoreBreakdown,
-    setShowScoreBreakdown,
-    handleRefreshWellnessScore,
-    handleWellnessScoreEnable,
   } = useDashboardV2();
 
   const { correlations } = useWeeklyCorrelations();
@@ -79,7 +55,7 @@ export default function Dashboard() {
 
   return (
     <SidebarLayout>
-      <div className="max-w-5xl mx-auto px-vara-base py-vara-lg">
+      <div className="max-w-2xl mx-auto px-vara-base py-vara-lg">
 
         {/* ==================== HEADER ==================== */}
         <h1 className="text-vara-2xl font-semibold text-soft-charcoal">
@@ -87,103 +63,51 @@ export default function Dashboard() {
         </h1>
         <p className="text-vara-sm text-muted-sage-gray mt-1">{formattedDate}</p>
 
-        {/* ==================== CARD GRID ==================== */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-vara-base mt-vara-lg">
+        {/* ==================== V2 CARDS ==================== */}
+        <div className="space-y-vara-base mt-vara-lg">
 
-          {/* Full-width: Welcome Back */}
-          {showWelcomeBack && (
-            <div className="lg:col-span-2">
-              <WelcomeBackCard onDismiss={dismissWelcomeBack} />
-            </div>
-          )}
-
-          {/* Full-width: Morning Check-In */}
-          {showMorningCheckIn && (
-            <div className="lg:col-span-2">
-              <MorningCheckInCard
-                userId={user?.uid}
-                checkIn={morningCheckIn}
-                onComplete={handleMorningCheckInComplete}
-              />
-            </div>
-          )}
-
-          {/* Full-width: Weekly Habits Grid */}
-          <div className="lg:col-span-2">
-            <WeeklyHabitsCard
-              habits={habits.filter((h) => h.active !== false)}
-              completions={weeklyCompletions}
-              visibleDays={visibleDays}
-              onToggle={handleHabitToggle}
-            />
-          </div>
-
-          {/* Single column: Next Best Action */}
-          <NextBestActionCard recommendation={recommendation} />
-
-          {/* Single column: Quick Actions */}
-          <QuickActionsRow />
-
-          {/* Full-width: 4-3-2-1 */}
-          <div className="lg:col-span-2">
-            <FourThreeTwoOneCard
-              entry={fourThreeTwoOneEntry}
-              onChange={handleFourThreeTwoOneChange}
-              userId={user?.uid}
-            />
-          </div>
-
-          {/* Full-width: Week Insight (only when there's a correlation) */}
-          {weekInsight && (
-            <div className="lg:col-span-2">
-              <WeekInsightCard
-                headline={weekInsight.headline}
-                supporting={weekInsight.supporting}
-              />
-            </div>
-          )}
-
-          {/* Full-width: Brain Health Education */}
-          <div className="lg:col-span-2">
-            <BrainHealthEducationCard />
-          </div>
-
-          {/* Full-width: AI Daily Plan */}
-          <div className="lg:col-span-2">
-            <AIDailyPlanCard
-              plan={dailyPlan}
-              generating={generatingPlan}
-              onGenerate={handleGenerateDailyPlan}
-              expanded={isPlanExpanded}
-              onToggleExpand={() => setIsPlanExpanded((prev) => !prev)}
-            />
-          </div>
-
-          {/* Single column: Wellness Score */}
-          <WellnessScoreCard
-            score={wellnessScore}
-            loading={wellnessScoreLoading}
-            enabled={wellnessScoreEnabled}
-            onRefresh={handleRefreshWellnessScore}
-            onEnable={handleWellnessScoreEnable}
-            onShowBreakdown={() => setShowScoreBreakdown(true)}
+          {/* 1. Brain State Check-In (always visible) */}
+          <BrainStateCheckin
+            currentCheckIn={brainStateCheckIn}
+            onSelect={handleBrainStateCheckIn}
+            loading={brainStateLoading}
           />
 
-          {/* Full-width: Brain Health Insight Strip */}
-          <div className="lg:col-span-2">
-            <BrainHealthInsightStrip />
-          </div>
+          {/* 2. Today's Protocol (after check-in) */}
+          {brainStateCheckIn && todaysProtocol && (
+            <TodaysProtocolCard
+              brainState={brainStateCheckIn.brainState}
+              protocolCompleted={brainStateCheckIn.protocolCompleted}
+              onComplete={handleMarkProtocolCompleted}
+            />
+          )}
+
+          {/* 3. Daily Reflection (after all habits done) */}
+          {showDailyReflection && (
+            <DailyReflectionCard
+              reflection={dailyReflection}
+              onSave={handleDailyReflection}
+            />
+          )}
+
+          {/* 4. Weekly Habits Tracker (always visible) */}
+          <WeeklyHabitsCard
+            habits={habits.filter((h) => h.active !== false)}
+            completions={weeklyCompletions}
+            visibleDays={visibleDays}
+            onToggle={handleHabitToggle}
+          />
+
+          {/* 5. Week Insight (conditional) */}
+          {weekInsight && (
+            <WeekInsightCard
+              headline={weekInsight.headline}
+              supporting={weekInsight.supporting}
+            />
+          )}
 
         </div>
       </div>
-
-      {/* ==================== MODALS ==================== */}
-      {showScoreBreakdown && (
-        <WellnessScoreBreakdown
-          score={wellnessScore}
-          onClose={() => setShowScoreBreakdown(false)}
-        />
-      )}
     </SidebarLayout>
   );
 }
