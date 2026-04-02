@@ -29,6 +29,7 @@ import {
   ArrowLeftRight,
   MapPin,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 
 // Import new connections service
@@ -278,6 +279,7 @@ export default function PeopleSearchPage() {
   const [outgoing, setOutgoing] = useState([]); // pending invites from me
   const [connectedSet, setConnectedSet] = useState(new Set()); // Set of userIds already connected with
   const [quickMsg, setQuickMsg] = useState({}); // { [userId]: "hi" }
+  const [suggestions, setSuggestions] = useState([]);
 
   const { labelFor } = useTagLabelCache();
 
@@ -297,7 +299,7 @@ export default function PeopleSearchPage() {
     })();
   }, [user?.uid]);
 
-  // Optional: preload some suggestions
+  // Preload browse results + suggested connections
   useEffect(() => {
     if (!user?.uid) return;
     (async () => {
@@ -306,19 +308,26 @@ export default function PeopleSearchPage() {
           collection(db, "users"),
           where("searchable", "==", true),
           orderBy("displayName"),
-          limit(12)
+          limit(20)
         );
         const snap = await getDocs(q1);
         const arr = snap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
           .filter((u) => u.id !== user.uid);
         setResults(arr);
+
+        // Build suggestions: users not already connected and not pending
+        const pendingIds = new Set(outgoing.map((i) => i.addresseeId));
+        const suggested = arr
+          .filter((u) => !connectedSet.has(u.id) && !pendingIds.has(u.id))
+          .slice(0, 5);
+        setSuggestions(suggested);
       } catch (e) {
         // non-fatal
         console.warn("Suggestion preload failed", e);
       }
     })();
-  }, [user?.uid]);
+  }, [user?.uid, connectedSet, outgoing]);
 
   const doSearch = async () => {
     if (!user?.uid) return;
@@ -478,6 +487,66 @@ export default function PeopleSearchPage() {
             </div>
           </div>
         </div>
+
+        {/* Suggested for You */}
+        {suggestions.length > 0 && !searching && (
+          <div className="mb-vara-lg">
+            <h2 className="text-vara-lg font-bold text-soft-charcoal mb-vara-base flex items-center gap-vara-sm">
+              <Sparkles className="w-5 h-5 text-evergreen-teal" />
+              Suggested for You
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-vara-base">
+              {suggestions.map((u) => {
+                const pending = isPendingTo(u.id);
+                const connected = isConnectedTo(u.id);
+                return (
+                  <div
+                    key={u.id}
+                    className="p-vara-base rounded-vara-lg border border-divider bg-white hover:shadow-vara-sm transition flex flex-col items-center text-center"
+                  >
+                    <Link to={`/u/${u.id}`}>
+                      <img
+                        src={u.avatarUrl || avatarFor(u.displayName)}
+                        alt={u.displayName || "User"}
+                        className="w-16 h-16 rounded-full object-cover ring-2 ring-white shadow-vara-sm mb-3 hover:opacity-90"
+                      />
+                    </Link>
+                    <Link
+                      to={`/u/${u.id}`}
+                      className="font-semibold text-soft-charcoal hover:underline truncate max-w-full"
+                    >
+                      {u.displayName || "User"}
+                    </Link>
+                    {u.bio && (
+                      <p className="text-vara-xs text-muted-sage-gray line-clamp-2 mt-1">
+                        {u.bio}
+                      </p>
+                    )}
+                    <button
+                      onClick={() => onConnect(u.id)}
+                      disabled={pending || connected}
+                      className={`mt-3 inline-flex items-center gap-vara-sm px-4 py-1.5 rounded-vara-md text-vara-sm font-medium transition ${
+                        connected
+                          ? "bg-teal-light text-evergreen-teal cursor-not-allowed"
+                          : pending
+                          ? "bg-dew-sage-light text-muted-sage-gray cursor-not-allowed"
+                          : "bg-evergreen-teal text-white hover:opacity-90"
+                      }`}
+                    >
+                      {connected ? (
+                        <><ArrowLeftRight className="w-4 h-4" /> Connected</>
+                      ) : pending ? (
+                        <><ArrowLeftRight className="w-4 h-4" /> Requested</>
+                      ) : (
+                        <><UserPlus className="w-4 h-4" /> Connect</>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Results */}
         <div className="space-y-3">
