@@ -1,7 +1,7 @@
 // src/pages/Insights.jsx
 // Single scrollable Insights page replacing the 8-tab layout.
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import SidebarLayout from '../components/layout/SidebarLayout';
 import { BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +14,10 @@ import {
   LineChart, Line
 } from 'recharts';
 import WeeklyNarrativeCard from '../components/insights/WeeklyNarrativeCard';
+import CorrelationCard from '../components/insights/CorrelationCard';
+import BrainStateDistribution from '../components/insights/BrainStateDistribution';
+import WeekOverWeekSummary from '../components/insights/WeekOverWeekSummary';
+import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
 
 // ── Timeframe config ───────────────────────────────────────────────────────────
 
@@ -175,7 +179,7 @@ function cellColor(count) {
   return 'bg-evergreen-teal';
 }
 
-function HabitHeatmap({ heatmapData }) {
+function HabitHeatmap({ heatmapData, strongestDays }) {
   // heatmapData: Map<dateKey, completionCount>
   // Build last 35 days grid (5 weeks × 7 days)
   const DAYS = 35;
@@ -220,6 +224,13 @@ function HabitHeatmap({ heatmapData }) {
         ))}
         <span>More</span>
       </div>
+      <p className="text-center text-xs text-muted-sage-gray mt-2">
+        {strongestDays && strongestDays.length === 2
+          ? `Your strongest days this month have been ${strongestDays[0]} and ${strongestDays[1]}`
+          : strongestDays && strongestDays.length === 1
+          ? `Your strongest day this month has been ${strongestDays[0]}`
+          : 'Your activity has been consistent across the week'}
+      </p>
     </div>
   );
 }
@@ -252,6 +263,9 @@ export default function Insights() {
   const [timeframe, setTimeframe] = useState('7d');
   const [rawData, setRawData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [priorMetrics, setPriorMetrics] = useState(null);
+  const scrollContainerRef = useRef(null);
+  const correlationRefs = useRef({});
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
 
@@ -358,6 +372,7 @@ export default function Insights() {
           query(collection(db, 'focusSessions'), where('userId', '==', uid))
         );
         const focusMinsPerDay = new Map();
+        let focusSessionCount = 0;
         focusSnap.docs.forEach(d => {
           const data = d.data();
           if (!data.completed) return;
@@ -366,6 +381,7 @@ export default function Insights() {
           if (date < windowStart) return;
           const key = dateKey(date);
           focusMinsPerDay.set(key, (focusMinsPerDay.get(key) ?? 0) + (data.duration || 0));
+          focusSessionCount++;
         });
         const totalFocusMins = [...focusMinsPerDay.values()].reduce((a, b) => a + b, 0);
 
@@ -383,6 +399,7 @@ export default function Insights() {
             activeDays: activeDays.size,
             totalFocusMins,
             focusMinsPerDay,
+            focusSessionCount,
             totalCheckIns: journalSnap.size,
             dateRange,
           });
@@ -395,6 +412,100 @@ export default function Insights() {
     }
 
     fetchAll();
+    return () => { cancelled = true; };
+  }, [user?.uid, timeframe]);
+
+  // ── Prior-period fetch (for WeekOverWeekSummary, 7d only) ─────────────────
+
+  useEffect(() => {
+    if (!user?.uid || timeframe !== '7d') {
+      setPriorMetrics(null);
+      return;
+    }
+    let cancelled = false;
+
+    async function fetchPrior() {
+      try {
+        const uid = user.uid;
+        const priorEnd = new Date();
+        priorEnd.setDate(priorEnd.getDate() - 7);
+        priorEnd.setHours(23, 59, 59, 999);
+        const priorStart = new Date();
+        priorStart.setDate(priorStart.getDate() - 14);
+        priorStart.setHours(0, 0, 0, 0);
+        const priorStartTs = Timestamp.fromDate(priorStart);
+        const priorEndTs = Timestamp.fromDate(priorEnd);
+
+        const priorDateRange = [];
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(priorStart);
+          d.setDate(d.getDate() + i);
+          priorDateRange.push(dateKey(d));
+        }
+
+        // Habits completions for prior period
+        const habitsSnap = await getDocs(
+          query(collection(db, 'habits'), where('userId', '==', uid), where('active', '==', true))
+        );
+        const habitIds = habitsSnap.docs.map(d => d.id);
+        const priorActiveDays = new Set();
+
+        for (const habitId of habitIds) {
+          try {
+            const compSnap = await getDocs(
+              query(
+                collection(db, 'habits', habitId, 'completions'),
+                where('date', 'in', priorDateRange.slice(0, 7))
+              )
+            );
+            compSnap.docs.forEach(d => {
+              const data = d.data();
+              if (!data.completed) return;
+              priorActiveDays.add(data.date);
+            });
+          } catch { /* skip */ }
+        }
+
+        // Journal entries for prior period
+        const journalSnap = await getDocs(
+          query(
+            collection(db, 'journalEntries'),
+            where('userId', '==', uid),
+            where('createdAt', '>=', priorStartTs),
+            where('createdAt', '<=', priorEndTs)
+          )
+        );
+        journalSnap.docs.forEach(d => {
+          const ts = d.data().createdAt;
+          if (ts?.toDate) priorActiveDays.add(dateKey(ts.toDate()));
+        });
+
+        // Focus sessions for prior period
+        const focusSnap = await getDocs(
+          query(collection(db, 'focusSessions'), where('userId', '==', uid))
+        );
+        let priorFocusCount = 0;
+        focusSnap.docs.forEach(d => {
+          const data = d.data();
+          if (!data.completed) return;
+          const seconds = data.startedAt?.seconds || 0;
+          const date = new Date(seconds * 1000);
+          if (date >= priorStart && date <= priorEnd) priorFocusCount++;
+        });
+
+        if (!cancelled) {
+          setPriorMetrics({
+            daysActive: priorActiveDays.size,
+            protocols: priorFocusCount,
+            reflections: journalSnap.size,
+          });
+        }
+      } catch {
+        if (!cancelled) setPriorMetrics(null);
+      }
+    }
+
+    fetchPrior();
     return () => { cancelled = true; };
   }, [user?.uid, timeframe]);
 
@@ -461,6 +572,74 @@ export default function Insights() {
     return { heroStats, sparklineCards, rings, barData, heatmapMap };
   }, [rawData]);
 
+  // ── Correlation hook ──────────────────────────────────────────────────────
+
+  const { correlations, brainStateDistribution } = useWeeklyCorrelations();
+
+  const insightCorrelations = useMemo(() => correlations?.insightCorrelations ?? [], [correlations]);
+
+  const correlationTags = useMemo(() => {
+    return insightCorrelations.map(c => ({ label: c.title, anchor: c.id }));
+  }, [insightCorrelations]);
+
+  const noCorrelationsMessage = useMemo(() => {
+    if (insightCorrelations.length === 0 && derived) {
+      return 'Still gathering patterns — keep checking in and your insights will get more specific.';
+    }
+    return undefined;
+  }, [insightCorrelations, derived]);
+
+  // ── Strongest days for heatmap ────────────────────────────────────────────
+
+  const strongestDays = useMemo(() => {
+    if (!derived?.heatmapMap) return null;
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayTotals = {};
+
+    derived.heatmapMap.forEach((count, dateStr) => {
+      const dayName = dayNames[new Date(dateStr + 'T00:00:00').getDay()];
+      if (!dayTotals[dayName]) dayTotals[dayName] = [];
+      dayTotals[dayName].push(count);
+    });
+
+    const dayAverages = Object.entries(dayTotals).map(([day, counts]) => ({
+      day,
+      avg: counts.reduce((a, b) => a + b, 0) / counts.length,
+    }));
+
+    if (dayAverages.length < 2) return null;
+    const overallAvg = dayAverages.reduce((sum, d) => sum + d.avg, 0) / dayAverages.length;
+    const threshold = overallAvg * 1.2;
+
+    const qualifying = dayAverages
+      .filter(d => d.avg > threshold)
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 2)
+      .map(d => d.day);
+
+    return qualifying.length > 0 ? qualifying : null;
+  }, [derived]);
+
+  // ── Week-over-week metrics ────────────────────────────────────────────────
+
+  const focusSessionCount = rawData?.focusSessionCount ?? 0;
+
+  const weekOverWeekMetrics = useMemo(() => {
+    if (!derived || !priorMetrics) return null;
+    return [
+      { value: derived.heroStats.daysActive, label: 'Days active', delta: derived.heroStats.daysActive - (priorMetrics.daysActive ?? 0), color: '#1B5E57' },
+      { value: focusSessionCount, label: 'Protocols', delta: focusSessionCount - (priorMetrics.protocols ?? 0), color: '#1B5E57' },
+      { value: derived.heroStats.totalCheckIns, label: 'Reflections', delta: derived.heroStats.totalCheckIns - (priorMetrics.reflections ?? 0), color: '#F5B971' },
+    ];
+  }, [derived, priorMetrics, focusSessionCount]);
+
+  // ── Chip tap handler ──────────────────────────────────────────────────────
+
+  const handleChipPress = useCallback((anchor) => {
+    const el = correlationRefs.current[anchor];
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+
   // ── Loading skeleton ───────────────────────────────────────────────────────
 
   if (loading) {
@@ -499,11 +678,83 @@ export default function Insights() {
         <TimeframeSelector value={timeframe} onChange={setTimeframe} />
 
         {/* Content */}
-        <div className="space-y-vara-base mt-vara-lg">
+        <div className="space-y-vara-base mt-vara-lg" ref={scrollContainerRef}>
 
-          {/* AI Narrative (7-day only) */}
+          {/* AI Narrative (7-day only) + insight chips */}
           {timeframe === '7d' && (
-            <WeeklyNarrativeCard userId={user?.uid} />
+            <div>
+              <WeeklyNarrativeCard userId={user?.uid} />
+              {correlationTags.length > 0 && (
+                <>
+                  <div className="h-px bg-silver-sage/30 my-4" />
+                  <div className="flex flex-wrap gap-1.5">
+                    {correlationTags.map(tag => (
+                      <button
+                        key={tag.anchor}
+                        onClick={() => handleChipPress(tag.anchor)}
+                        className="bg-evergreen-teal/[0.06] text-evergreen-teal text-xs font-medium py-1 px-2.5 rounded-xl hover:bg-evergreen-teal/[0.1] transition"
+                      >
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {noCorrelationsMessage && correlationTags.length === 0 && (
+                <p className="text-xs text-muted-sage-gray mt-3">{noCorrelationsMessage}</p>
+              )}
+            </div>
+          )}
+
+          {/* Primary Correlation Card */}
+          {insightCorrelations[0] && (
+            <div ref={el => { correlationRefs.current[insightCorrelations[0].id] = el; }}>
+              <CorrelationCard
+                title={insightCorrelations[0].title}
+                highConditionLabel={insightCorrelations[0].highConditionLabel}
+                lowConditionLabel={insightCorrelations[0].lowConditionLabel}
+                highValue={insightCorrelations[0].highValue}
+                lowValue={insightCorrelations[0].lowValue}
+                footnote={insightCorrelations[0].footnote}
+                isPrimary
+              />
+            </div>
+          )}
+
+          {/* Secondary Correlation Card */}
+          {insightCorrelations[1] && (
+            <div ref={el => { correlationRefs.current[insightCorrelations[1].id] = el; }}>
+              <CorrelationCard
+                title={insightCorrelations[1].title}
+                highConditionLabel={insightCorrelations[1].highConditionLabel}
+                lowConditionLabel={insightCorrelations[1].lowConditionLabel}
+                highValue={insightCorrelations[1].highValue}
+                lowValue={insightCorrelations[1].lowValue}
+                footnote={insightCorrelations[1].footnote}
+              />
+            </div>
+          )}
+
+          {/* Brain State Distribution */}
+          {brainStateDistribution && (
+            <BrainStateDistribution
+              distribution={brainStateDistribution.distribution.map(d => ({
+                state: d.label.replace(/[^\w\s]/g, '').trim(),
+                emoji: d.label.replace(/[\w\s]/g, '').trim() || '',
+                days: d.count,
+              }))}
+              totalDays={brainStateDistribution.totalCheckIns}
+              positiveStateDays={brainStateDistribution.positiveDays}
+              priorPositiveStateDays={brainStateDistribution.priorPositiveDays}
+            />
+          )}
+
+          {/* Habit Heatmap */}
+          {derived && <HabitHeatmap heatmapData={derived.heatmapMap} strongestDays={strongestDays} />}
+
+          {/* Week Over Week Summary */}
+          {weekOverWeekMetrics && (
+            <WeekOverWeekSummary metrics={weekOverWeekMetrics} />
           )}
 
           {/* Hero Summary */}
@@ -525,9 +776,6 @@ export default function Insights() {
 
           {/* Ring Progress */}
           {derived && <RingProgressCard rings={derived.rings} />}
-
-          {/* Habit Heatmap */}
-          {derived && <HabitHeatmap heatmapData={derived.heatmapMap} />}
 
           {/* Weekly Bar Chart */}
           {derived && <WeeklyBarChart barData={derived.barData} />}
