@@ -63,6 +63,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import NotificationSettings from './pages/NotificationSettings';
 import MutedAccounts from './pages/MutedAccounts';
+import Wellness from './pages/Wellness';
 
 import SidebarLayout from './components/layout/SidebarLayout';
 
@@ -343,6 +344,18 @@ function App() {
               <AdminRoute>
                 <AdminDashboard />
               </AdminRoute>
+            }
+          />
+
+          {/* Wellness Hub */}
+          <Route
+            path="/wellness"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Wellness">
+                  <Wellness />
+                </ErrorBoundary>
+              </ProtectedRoute>
             }
           />
 
