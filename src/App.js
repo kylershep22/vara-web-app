@@ -32,6 +32,7 @@ import Focus from './pages/Focus';
 import Insights from './pages/Insights';
 import Masterclass from './pages/Masterclass';
 import Discover from './pages/Discover';
+import BrainHealth from './pages/BrainHealth';
 import Reflections from './pages/Reflections';
 
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
@@ -139,6 +140,16 @@ function App() {
             }
           />
           <Route path="/discover" element={<ProtectedRoute><ErrorBoundary level="feature" featureName="Discover"><Discover /></ErrorBoundary></ProtectedRoute>} />
+          <Route
+            path="/brain-health"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary level="feature" featureName="Brain Health">
+                  <BrainHealth />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/library"
             element={
