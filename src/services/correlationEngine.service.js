@@ -61,6 +61,133 @@ function compositeScore(day) {
   return factors > 0 ? score / factors : 0;
 }
 
+export function computeInsightCorrelations(data) {
+  const results = [];
+
+  // Correlation 1: Brain state → habit completion
+  const highBrainDays = data.filter(
+    (d) => (d.brainState === 'clear' || d.brainState === 'energized') && d.habitCompletionRate !== null
+  );
+  const lowBrainDays = data.filter(
+    (d) => (d.brainState === 'foggy' || d.brainState === 'wired') && d.habitCompletionRate !== null
+  );
+  if (highBrainDays.length >= 2 && lowBrainDays.length >= 2) {
+    const highValue = Math.round(avg(highBrainDays.map((d) => d.habitCompletionRate)));
+    const lowValue = Math.round(avg(lowBrainDays.map((d) => d.habitCompletionRate)));
+    const gap = Math.abs(highValue - lowValue);
+    if (gap >= 15) {
+      results.push({
+        id: 'correlation-brain-habit',
+        title: 'Brain state \u2192 habit completion',
+        highConditionLabel: 'Clear or Energized days',
+        lowConditionLabel: 'Foggy or Wired days',
+        highValue,
+        lowValue,
+        footnote: 'Based on your brain state check-ins and habit data this week',
+        gap,
+      });
+    }
+  }
+
+  // Correlation 2: Journal → brain state
+  const journaledWithBrain = data.filter((d) => d.journaled === true && d.brainState !== null);
+  const noJournalWithBrain = data.filter((d) => d.journaled === false && d.brainState !== null);
+  if (journaledWithBrain.length >= 2 && noJournalWithBrain.length >= 2) {
+    const highValue = Math.round(
+      (journaledWithBrain.filter((d) => d.brainState === 'clear' || d.brainState === 'energized').length /
+        journaledWithBrain.length) * 100
+    );
+    const lowValue = Math.round(
+      (noJournalWithBrain.filter((d) => d.brainState === 'clear' || d.brainState === 'energized').length /
+        noJournalWithBrain.length) * 100
+    );
+    const gap = Math.abs(highValue - lowValue);
+    if (gap >= 15) {
+      results.push({
+        id: 'correlation-journal-brain',
+        title: 'Journaling \u2192 brain state',
+        highConditionLabel: 'Days with journal entry',
+        lowConditionLabel: 'Days without',
+        footnote: '% of days in Clear or Energized state',
+        highValue,
+        lowValue,
+        gap,
+      });
+    }
+  }
+
+  // Correlation 3: Protocol → next-day state
+  const afterProtocol = [];
+  const afterNoProtocol = [];
+  for (let i = 0; i < data.length - 1; i++) {
+    const nextBrain = data[i + 1].brainState;
+    if (nextBrain === null) continue;
+    if (data[i].protocolCompleted) {
+      afterProtocol.push(nextBrain);
+    } else {
+      afterNoProtocol.push(nextBrain);
+    }
+  }
+  if (afterProtocol.length >= 2 && afterNoProtocol.length >= 2) {
+    const highValue = Math.round(
+      (afterProtocol.filter((s) => s === 'clear' || s === 'energized').length / afterProtocol.length) * 100
+    );
+    const lowValue = Math.round(
+      (afterNoProtocol.filter((s) => s === 'clear' || s === 'energized').length / afterNoProtocol.length) * 100
+    );
+    const gap = Math.abs(highValue - lowValue);
+    if (gap >= 15) {
+      results.push({
+        id: 'correlation-protocol-nextday',
+        title: 'Protocols \u2192 next-day state',
+        highConditionLabel: 'Day after a protocol',
+        lowConditionLabel: 'Day after no protocol',
+        footnote: '% of next days in Clear or Energized state',
+        highValue,
+        lowValue,
+        gap,
+      });
+    }
+  }
+
+  // Correlation 4: Day-of-week pattern
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const byDay = {};
+  for (const d of data) {
+    if (d.habitCompletionRate === null) continue;
+    const dayIdx = new Date(d.date).getDay();
+    if (!byDay[dayIdx]) byDay[dayIdx] = [];
+    byDay[dayIdx].push(d.habitCompletionRate);
+  }
+  const dayEntries = Object.entries(byDay).map(([idx, vals]) => ({
+    dayIdx: Number(idx),
+    avg: avg(vals),
+  }));
+  if (dayEntries.length >= 4) {
+    dayEntries.sort((a, b) => b.avg - a.avg);
+    const top2 = dayEntries.slice(0, 2);
+    const bottom2 = dayEntries.slice(-2);
+    const highValue = Math.round(avg(top2.map((e) => e.avg)));
+    const lowValue = Math.round(avg(bottom2.map((e) => e.avg)));
+    const gap = Math.abs(highValue - lowValue);
+    if (gap >= 15) {
+      results.push({
+        id: 'correlation-dayofweek',
+        title: 'Weekday pattern \u2192 completion',
+        highConditionLabel: `${dayNames[top2[0].dayIdx]} and ${dayNames[top2[1].dayIdx]}`,
+        lowConditionLabel: `${dayNames[bottom2[0].dayIdx]} and ${dayNames[bottom2[1].dayIdx]}`,
+        footnote: 'Average habit completion by day of week',
+        highValue,
+        lowValue,
+        gap,
+      });
+    }
+  }
+
+  results.sort((a, b) => b.gap - a.gap);
+  return results;
+}
+
 export function computeCorrelations(data) {
   // Count days with mood or sleep data
   const daysWithData = data.filter(
@@ -249,5 +376,6 @@ export function computeCorrelations(data) {
     stressTrend,
     weekOverWeek: { scoreChange: 0, habitChange: 0 },
     dataCompleteness,
+    insightCorrelations: computeInsightCorrelations(data),
   };
 }
