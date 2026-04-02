@@ -28,6 +28,7 @@ import GoalsHabits from './pages/GoalsHabits';
 import Goals from './pages/Goals';
 import Tasks from './pages/Tasks';
 import Habits from './pages/Habits';
+import HabitDetail from './pages/HabitDetail';
 import GroupForumPage from './pages/Community/GroupForumPage';
 import ChallengesPage from './pages/Community/ChallengesPage';
 import ChallengeDetailPage from './pages/Community/ChallengeDetailPage';
@@ -347,6 +348,7 @@ function App() {
 
           {/* Mobile-aligned routes */}
           <Route path="/habits" element={<ProtectedRoute><ErrorBoundary level="feature"><Habits /></ErrorBoundary></ProtectedRoute>} />
+          <Route path="/habits/:habitId" element={<ProtectedRoute><ErrorBoundary level="feature"><HabitDetail /></ErrorBoundary></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><ErrorBoundary level="feature"><Goals /></ErrorBoundary></ProtectedRoute>} />
           <Route path="/tasks" element={<ProtectedRoute><ErrorBoundary level="feature"><Tasks /></ErrorBoundary></ProtectedRoute>} />
 

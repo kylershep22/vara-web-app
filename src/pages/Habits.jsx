@@ -1,6 +1,7 @@
 // src/pages/Habits.jsx
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Leaf, CheckCircle2, Circle, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import SidebarLayout from '../components/layout/SidebarLayout';
@@ -58,6 +59,7 @@ function EmptyState({ onAdd }) {
 
 export default function Habits() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [habits, setHabits] = useState([]);
   const [completionsByHabit, setCompletionsByHabit] = useState({});
@@ -204,7 +206,7 @@ export default function Habits() {
                 <div
                   key={habit.id}
                   className="bg-white border border-divider rounded-xl p-4 shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setDetailPanel(habit)}
+                  onClick={() => navigate(`/habits/${habit.id}`)}
                 >
                   {/* Completion toggle */}
                   <button
