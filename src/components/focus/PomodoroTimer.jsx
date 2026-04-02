@@ -1,9 +1,15 @@
 // src/components/focus/PomodoroTimer.jsx
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Coffee } from 'lucide-react';
+import { Play, Pause, RotateCcw, Coffee, Droplets, Trees, StretchHorizontal } from 'lucide-react';
 import { db } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
+const BREAK_ACTIVITIES = [
+  { label: 'Stretch and move', icon: StretchHorizontal },
+  { label: 'Hydrate', icon: Droplets },
+  { label: 'Step outside', icon: Trees },
+];
 
 const PomodoroTimer = ({ userId, onSessionComplete }) => {
   const [minutes, setMinutes] = useState(25);
@@ -14,14 +20,16 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
   const [selectedDuration, setSelectedDuration] = useState(25);
   const [customDuration, setCustomDuration] = useState('');
   const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [activityLabel, setActivityLabel] = useState('');
+  const [phase, setPhase] = useState('idle'); // 'idle' | 'running' | 'break-prompt' | 'on-break' | 'break-done'
+  const [breakDuration, setBreakDuration] = useState(5);
 
   const audioRef = useRef(null);
   const intervalRef = useRef(null);
 
   const presets = [
-    { label: '10 min', value: 10 },
-    { label: '15 min', value: 15 },
     { label: '25 min', value: 25 },
+    { label: '45 min', value: 45 },
     { label: '60 min', value: 60 },
     { label: '90 min', value: 90 }
   ];
@@ -68,7 +76,8 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
           completed: true,
           startedAt: sessionStartTime,
           endedAt: serverTimestamp(),
-          interrupted: false
+          interrupted: false,
+          activityLabel: activityLabel || null
         });
 
         if (onSessionComplete) {
@@ -79,10 +88,14 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
       }
     }
 
-    // Auto-suggest break
+    // Show break prompt or break-done screen
     if (sessionType === 'focus') {
-      const breakDuration = selectedDuration >= 60 ? 15 : 5;
-      alert(`🎉 Great work! Take a ${breakDuration}-minute break.`);
+      const suggestedBreak = selectedDuration <= 30 ? 5 : 10;
+      setBreakDuration(suggestedBreak);
+      setPhase('break-prompt');
+    } else {
+      // Break timer finished
+      setPhase('break-done');
     }
   };
 
@@ -107,6 +120,7 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
   const startTimer = () => {
     setIsActive(true);
     setIsPaused(false);
+    setPhase('running');
     setSessionStartTime(new Date());
   };
 
@@ -124,6 +138,34 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
     setMinutes(selectedDuration);
     setSeconds(0);
     setSessionStartTime(null);
+    setPhase('idle');
+  };
+
+  const startBreak = () => {
+    setSessionType('short-break');
+    setSelectedDuration(breakDuration);
+    setMinutes(breakDuration);
+    setSeconds(0);
+    setIsActive(true);
+    setIsPaused(false);
+    setPhase('on-break');
+    setSessionStartTime(new Date());
+  };
+
+  const skipBreak = () => {
+    resetToFocus();
+  };
+
+  const resetToFocus = () => {
+    setSessionType('focus');
+    setSelectedDuration(25);
+    setMinutes(25);
+    setSeconds(0);
+    setIsActive(false);
+    setIsPaused(false);
+    setPhase('idle');
+    setSessionStartTime(null);
+    setActivityLabel('');
   };
 
   const handlePresetClick = (duration) => {
@@ -152,47 +194,144 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  // Break prompt screen
+  if (phase === 'break-prompt') {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-lg text-center max-w-md mx-auto">
+          <Coffee className="mx-auto text-evergreen-teal mb-4" size={40} />
+          <h2 className="text-vara-xl font-semibold text-soft-charcoal mb-2">Time for a break</h2>
+          <p className="text-muted-sage-gray text-vara-sm mb-6">
+            You've earned a {breakDuration}-minute break. Recharge before your next session.
+          </p>
+
+          <div className="flex flex-col gap-2 mb-6">
+            {BREAK_ACTIVITIES.map(({ label, icon: Icon }) => (
+              <div key={label} className="flex items-center gap-3 px-4 py-2.5 bg-dew-sage-light rounded-vara-md">
+                <Icon size={18} className="text-evergreen-teal" />
+                <span className="text-vara-sm text-soft-charcoal">{label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={startBreak}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-evergreen-teal text-white hover:opacity-90 transition-all shadow-lg font-semibold"
+            >
+              <Play size={20} />
+              Start Break
+            </button>
+            <button
+              onClick={skipBreak}
+              className="px-6 py-3 rounded-xl border-2 border-divider text-soft-charcoal hover:bg-dew-sage-light transition-all font-semibold"
+            >
+              Skip Break
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Break done screen
+  if (phase === 'break-done') {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-vara-lg shadow-vara-sm border border-divider p-vara-lg text-center max-w-md mx-auto">
+          <Coffee className="mx-auto text-evergreen-teal mb-4" size={40} />
+          <h2 className="text-vara-xl font-semibold text-soft-charcoal mb-2">Break complete</h2>
+          <p className="text-muted-sage-gray text-vara-sm mb-6">Ready to focus?</p>
+          <button
+            onClick={resetToFocus}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-evergreen-teal text-white hover:opacity-90 transition-all shadow-lg font-semibold mx-auto"
+          >
+            <Play size={20} />
+            Start Another Session
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Duration Preset Chips */}
+      {sessionType === 'focus' && !isActive && (
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          {presets.map(preset => (
+            <button
+              key={preset.value}
+              onClick={() => handlePresetClick(preset.value)}
+              className={`px-5 py-2 rounded-full font-medium text-vara-sm transition-all ${
+                selectedDuration === preset.value
+                  ? 'bg-evergreen-teal text-white'
+                  : 'bg-white text-soft-charcoal border border-divider hover:border-evergreen-teal'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Activity Label Input */}
+      {sessionType === 'focus' && !isActive && (
+        <div className="max-w-sm mx-auto">
+          <label className="block text-vara-sm font-medium text-soft-charcoal mb-1.5">
+            What are you focusing on?
+          </label>
+          <input
+            type="text"
+            value={activityLabel}
+            onChange={(e) => setActivityLabel(e.target.value)}
+            placeholder="e.g., Deep work, Reading, Planning..."
+            className="w-full px-4 py-2.5 rounded-vara-md border border-divider focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal/20 outline-none text-vara-sm"
+          />
+        </div>
+      )}
+
       {/* Session Type Selector */}
-      <div className="flex items-center gap-2 justify-center">
-        <button
-          onClick={() => setSessionType('focus')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            sessionType === 'focus'
-              ? 'bg-evergreen-teal text-white shadow-sm'
-              : 'bg-dew-sage-light text-muted-sage-gray hover:bg-silver-sage/30'
-          }`}
-        >
-          Focus
-        </button>
-        <button
-          onClick={() => {
-            setSessionType('short-break');
-            handlePresetClick(5);
-          }}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            sessionType === 'short-break'
-              ? 'bg-evergreen-teal text-white shadow-sm'
-              : 'bg-dew-sage-light text-muted-sage-gray hover:bg-silver-sage/30'
-          }`}
-        >
-          Short Break (5m)
-        </button>
-        <button
-          onClick={() => {
-            setSessionType('long-break');
-            handlePresetClick(15);
-          }}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            sessionType === 'long-break'
-              ? 'bg-blue-500 text-white shadow-sm'
-              : 'bg-dew-sage-light text-muted-sage-gray hover:bg-silver-sage/30'
-          }`}
-        >
-          Long Break (15m)
-        </button>
-      </div>
+      {!isActive && phase === 'idle' && (
+        <div className="flex items-center gap-2 justify-center">
+          <button
+            onClick={() => setSessionType('focus')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              sessionType === 'focus'
+                ? 'bg-evergreen-teal text-white shadow-sm'
+                : 'bg-dew-sage-light text-muted-sage-gray hover:bg-silver-sage/30'
+            }`}
+          >
+            Focus
+          </button>
+          <button
+            onClick={() => {
+              setSessionType('short-break');
+              handlePresetClick(5);
+            }}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              sessionType === 'short-break'
+                ? 'bg-evergreen-teal text-white shadow-sm'
+                : 'bg-dew-sage-light text-muted-sage-gray hover:bg-silver-sage/30'
+            }`}
+          >
+            Short Break (5m)
+          </button>
+          <button
+            onClick={() => {
+              setSessionType('long-break');
+              handlePresetClick(15);
+            }}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              sessionType === 'long-break'
+                ? 'bg-blue-500 text-white shadow-sm'
+                : 'bg-dew-sage-light text-muted-sage-gray hover:bg-silver-sage/30'
+            }`}
+          >
+            Long Break (15m)
+          </button>
+        </div>
+      )}
 
       {/* Circular Timer Display */}
       <div className="flex items-center justify-center">
@@ -227,8 +366,13 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
             <div className="text-6xl font-bold text-soft-charcoal mb-2">
               {formatTime(minutes, seconds)}
             </div>
+            {activityLabel && isActive && sessionType === 'focus' && (
+              <div className="text-sm text-evergreen-teal font-medium mb-1 max-w-[200px] truncate">
+                {activityLabel}
+              </div>
+            )}
             <div className="text-sm text-muted-sage-gray uppercase tracking-wide">
-              {sessionType.replace('-', ' ')}
+              {phase === 'on-break' ? 'Break' : sessionType.replace('-', ' ')}
             </div>
             <div className="text-xs text-muted-sage-gray/60 mt-1">
               {selectedDuration} minute session
@@ -274,49 +418,25 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
         </button>
       </div>
 
-      {/* Preset Durations */}
-      {sessionType === 'focus' && (
-        <div className="space-y-4">
-          <div className="text-center">
-            <p className="text-sm font-medium text-soft-charcoal mb-3">Quick Presets</p>
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              {presets.map(preset => (
-                <button
-                  key={preset.value}
-                  onClick={() => handlePresetClick(preset.value)}
-                  disabled={isActive}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    selectedDuration === preset.value
-                      ? 'bg-evergreen-teal text-white'
-                      : 'bg-dew-sage-light text-soft-charcoal hover:bg-silver-sage/30'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Custom Duration */}
-          <div className="flex items-center justify-center gap-2">
-            <input
-              type="number"
-              value={customDuration}
-              onChange={(e) => setCustomDuration(e.target.value)}
-              placeholder="Custom (min)"
-              min="1"
-              max="180"
-              disabled={isActive}
-              className="w-32 px-3 py-2 rounded-lg border border-divider focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal/20 outline-none disabled:opacity-50"
-            />
-            <button
-              onClick={handleCustomDuration}
-              disabled={isActive || !customDuration}
-              className="px-4 py-2 rounded-lg bg-silver-sage/30 text-soft-charcoal hover:bg-dew-sage-light transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Set
-            </button>
-          </div>
+      {/* Custom Duration — shown when idle on focus tab */}
+      {sessionType === 'focus' && !isActive && (
+        <div className="flex items-center justify-center gap-2">
+          <input
+            type="number"
+            value={customDuration}
+            onChange={(e) => setCustomDuration(e.target.value)}
+            placeholder="Custom (min)"
+            min="1"
+            max="180"
+            className="w-32 px-3 py-2 rounded-lg border border-divider focus:border-evergreen-teal focus:ring-2 focus:ring-evergreen-teal/20 outline-none"
+          />
+          <button
+            onClick={handleCustomDuration}
+            disabled={!customDuration}
+            className="px-4 py-2 rounded-lg bg-silver-sage/30 text-soft-charcoal hover:bg-dew-sage-light transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Set
+          </button>
         </div>
       )}
 
@@ -325,7 +445,7 @@ const PomodoroTimer = ({ userId, onSessionComplete }) => {
 
       {/* Tips */}
       <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm">
-        <p className="font-semibold text-blue-900 mb-1">💡 Focus Tip</p>
+        <p className="font-semibold text-blue-900 mb-1">Focus Tip</p>
         <p className="text-blue-700">
           {sessionType === 'focus'
             ? 'Eliminate distractions. Turn off notifications and close unnecessary tabs.'
