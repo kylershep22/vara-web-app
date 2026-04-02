@@ -602,6 +602,7 @@ const ProfilePage = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [incoming, setIncoming] = useState([]);
   const [outgoing, setOutgoing] = useState([]);
+  const [mutualCount, setMutualCount] = useState(0);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searching, setSearching] = useState(false);
@@ -658,6 +659,28 @@ const ProfilePage = () => {
           if (user.uid !== viewedUserId) {
             const connected = await areConnected(user.uid, viewedUserId);
             setIsConnected(connected);
+
+            // Compute mutual connections
+            try {
+              const [mySnap, theirSnap] = await Promise.all([
+                getDocs(query(collection(db, 'connections'), where('participants', 'array-contains', user.uid), where('status', '==', 'active'))),
+                getDocs(query(collection(db, 'connections'), where('participants', 'array-contains', viewedUserId), where('status', '==', 'active'))),
+              ]);
+              const myConnIds = new Set();
+              mySnap.docs.forEach(d => {
+                const parts = d.data().participants || [];
+                parts.forEach(id => { if (id !== user.uid) myConnIds.add(id); });
+              });
+              let mutual = 0;
+              theirSnap.docs.forEach(d => {
+                const parts = d.data().participants || [];
+                parts.forEach(id => { if (id !== viewedUserId && myConnIds.has(id)) mutual++; });
+              });
+              setMutualCount(mutual);
+            } catch (e) {
+              console.warn('Mutual connections fetch failed', e);
+              setMutualCount(0);
+            }
           } else {
             const [inc, out] = await Promise.all([
               listIncomingInvites(user.uid),
@@ -965,6 +988,12 @@ const ProfilePage = () => {
                   </Pill>
                 </div>
                 <p className="text-muted-sage-gray">{profile.location || (isMe ? 'Add your location' : '')}</p>
+                {!isMe && mutualCount > 0 && (
+                  <p className="text-vara-sm text-evergreen-teal font-medium flex items-center gap-1 mt-0.5">
+                    <Users className="w-3.5 h-3.5" />
+                    {mutualCount} mutual connection{mutualCount !== 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
             </div>
 
