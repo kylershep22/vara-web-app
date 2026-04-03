@@ -44,6 +44,13 @@ import {
 } from '../services/firebase';
 import { BrainState, BrainStateCheckIn as BrainStateCheckInType, DailyReflection as DailyReflectionType, DailyReflectionValue } from '../types';
 import { getNudgeSuggestion, NudgeSuggestion } from '../utils/getNudgeSuggestion';
+import {
+  fetchUserRoutines,
+  getRoutineCompletionToday,
+  createRoutine,
+  Routine,
+} from '../services/firebase/routines.service';
+import { RoutineTemplate } from '../constants/routineTemplates';
 
 const SMALL_SCREEN_WIDTH = 375;
 const MEDIUM_SCREEN_WIDTH = 414;
@@ -123,6 +130,12 @@ export function useDashboard() {
   const [nudgeSuggestion, setNudgeSuggestion] = useState<NudgeSuggestion | null>(null);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [visitedFeatures] = useState<Set<string>>(() => new Set());
+
+  // Routines
+  const [dashboardRoutines, setDashboardRoutines] = useState<Routine[]>([]);
+  const [routineCompletions, setRoutineCompletions] = useState<Record<string, boolean>>({});
+  const [activePlayerRoutine, setActivePlayerRoutine] = useState<Routine | null>(null);
+  const [routinePlayerVisible, setRoutinePlayerVisible] = useState(false);
 
   // Responsive day count
   const daysToShow = useMemo(() => {
@@ -306,6 +319,38 @@ export function useDashboard() {
     };
     loadWellnessData();
   }, [user?.uid, today]);
+
+  // Load routines + today's completions for dashboard card
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const allRoutines = await fetchUserRoutines(user.uid);
+        const activeRoutines = allRoutines.filter(r => r.active);
+
+        if (cancelled) return;
+        setDashboardRoutines(activeRoutines);
+
+        // Check completions for each active routine
+        const todayStr = new Date().toISOString().split('T')[0];
+        const completionMap: Record<string, boolean> = {};
+        await Promise.all(
+          activeRoutines.map(async (r) => {
+            const completion = await getRoutineCompletionToday(r.id, todayStr);
+            completionMap[r.id] = !!completion;
+          })
+        );
+
+        if (!cancelled) setRoutineCompletions(completionMap);
+      } catch (error) {
+        console.error('Error loading dashboard routines:', error);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [user]);
 
   // Load weekly completions when habits load
   useEffect(() => {
@@ -579,6 +624,44 @@ export function useDashboard() {
     }
   }, [user]);
 
+  const handleBeginRoutine = useCallback((routine: Routine) => {
+    setActivePlayerRoutine(routine);
+    setRoutinePlayerVisible(true);
+  }, []);
+
+  const handleCloseRoutinePlayer = useCallback(() => {
+    setRoutinePlayerVisible(false);
+    setActivePlayerRoutine(null);
+  }, []);
+
+  const handleRoutineComplete = useCallback((routineId: string) => {
+    setRoutineCompletions(prev => ({ ...prev, [routineId]: true }));
+  }, []);
+
+  const handleApplyRoutineTemplate = useCallback(async (template: RoutineTemplate) => {
+    if (!user) return;
+    try {
+      const activities = template.activities.map((a, i) => ({
+        ...a,
+        id: i + 1,
+        order: i,
+      }));
+      await createRoutine(user.uid, {
+        name: template.name,
+        type: template.type as any,
+        activities,
+        active: true,
+        reminderTime: null,
+        mode: 'checklist',
+      });
+      // Re-fetch routines
+      const allRoutines = await fetchUserRoutines(user.uid);
+      setDashboardRoutines(allRoutines.filter(r => r.active));
+    } catch (error) {
+      console.error('Error applying routine template:', error);
+    }
+  }, [user]);
+
   const dataLoading = goalsLoading || habitsLoading || tasksLoading;
 
   return {
@@ -662,5 +745,15 @@ export function useDashboard() {
     nudgeSuggestion,
     dismissNudge,
     markFeatureVisited,
+
+    // Routines (dashboard card)
+    dashboardRoutines,
+    routineCompletions,
+    activePlayerRoutine,
+    routinePlayerVisible,
+    handleBeginRoutine,
+    handleCloseRoutinePlayer,
+    handleRoutineComplete,
+    handleApplyRoutineTemplate,
   };
 }
