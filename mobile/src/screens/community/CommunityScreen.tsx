@@ -140,6 +140,8 @@ const CommunityScreen: React.FC = () => {
           <CommunityOrientationCard
             onFindGroup={() => dismissOrientation(true)}
             onSkip={() => dismissOrientation(false)}
+            onNavigateGroups={() => navigation.navigate('Groups')}
+            onNavigateChallenges={() => navigation.navigate('Challenges')}
           />
           <Text style={styles.recentActivityLabel}>RECENT ACTIVITY</Text>
         </>
@@ -171,6 +173,7 @@ const CommunityScreen: React.FC = () => {
         formatTimestamp={formatTimestamp}
         onGroupPress={item.groupId ? () => navigation.navigate('GroupDetail', { groupId: item.groupId, groupName: item.groupName }) : undefined}
         onMorePress={handleMorePress}
+        onAuthorPress={(userId) => navigation.navigate('UserProfile', { userId })}
       />
     </View>
   ), [handleLike, setCommentPost, formatTimestamp, navigation, handleMorePress]);

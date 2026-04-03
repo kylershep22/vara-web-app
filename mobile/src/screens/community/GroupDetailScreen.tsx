@@ -139,8 +139,9 @@ const GroupDetailScreen: React.FC = () => {
       disabledMessage="Join this group to support and comment on posts"
       hideGroupBadge
       onMorePress={handleMorePress}
+      onAuthorPress={(userId) => navigation.navigate('UserProfile', { userId })}
     />
-  ), [handleLikePost, isMember, handleMorePress, setCommentPost, formatTimestamp]);
+  ), [handleLikePost, isMember, handleMorePress, setCommentPost, formatTimestamp, navigation]);
 
   if (loading) {
     return <LoadingSpinner message="Loading group..." />;
