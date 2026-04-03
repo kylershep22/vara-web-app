@@ -23,6 +23,8 @@ import { AIDailyPlanCard } from '../components/dashboard/AIDailyPlanCard';
 import WelcomeBackCard from '../components/dashboard/WelcomeBackCard';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
 import WeekInsightCard from '../components/dashboard/WeekInsightCard';
+import RoutinesCard from '../components/dashboard/RoutinesCard';
+import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
 import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
@@ -91,6 +93,14 @@ const DashboardScreen: React.FC = () => {
     nudgeSuggestion,
     dismissNudge,
     markFeatureVisited,
+    dashboardRoutines,
+    routineCompletions,
+    activePlayerRoutine,
+    routinePlayerVisible,
+    handleBeginRoutine,
+    handleCloseRoutinePlayer,
+    handleRoutineComplete,
+    handleApplyRoutineTemplate,
   } = useDashboard();
 
   const { correlations } = useWeeklyCorrelations();
@@ -203,6 +213,15 @@ const DashboardScreen: React.FC = () => {
               onHabitToggle={handleHabitToggle}
               onNavigateToHabits={() => navigation.navigate('Rhythms' as never, { tab: 'habits' } as never)}
               onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
+            />
+
+            {/* Position 5: Routines Card */}
+            <RoutinesCard
+              routines={dashboardRoutines}
+              completions={routineCompletions}
+              onBeginRoutine={handleBeginRoutine}
+              onNavigateToRoutines={() => navigation.navigate('Rhythms' as never, { tab: 'routines' } as never)}
+              onApplyTemplate={handleApplyRoutineTemplate}
             />
 
             {/* Position 4: Week Insight (always visible) */}
@@ -338,6 +357,20 @@ const DashboardScreen: React.FC = () => {
         onDismiss={() => setEventCodeSheetVisible(false)}
         onSuccess={handleEventCodeSuccess}
       />
+
+      {/* Routine Player Modal */}
+      {activePlayerRoutine && (
+        <ActiveRoutinePlayer
+          visible={routinePlayerVisible}
+          routine={activePlayerRoutine}
+          onClose={handleCloseRoutinePlayer}
+          onEditRoutine={() => {
+            handleCloseRoutinePlayer();
+            navigation.navigate('Rhythms' as never, { tab: 'routines' } as never);
+          }}
+          onComplete={handleRoutineComplete}
+        />
+      )}
     </SafeAreaView>
   );
 };
