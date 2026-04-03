@@ -14,6 +14,8 @@ import {
   doc,
   serverTimestamp,
   Timestamp,
+  getDoc,
+  setDoc,
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 
@@ -197,4 +199,47 @@ async function deactivateRoutinesOfType(
  */
 export function calculateTotalDuration(activities: Activity[]): number {
   return activities.reduce((total, activity) => total + activity.duration, 0);
+}
+
+/**
+ * Mark a routine as completed for a given date.
+ * Writes to routines/{routineId}/completions/{dateISO}.
+ * Skips write if already completed today.
+ */
+export async function markRoutineComplete(
+  routineId: string,
+  data: { mode: 'timed' | 'checklist'; durationMinutes: number }
+): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+  const today = new Date();
+  const dateISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const ref = doc(db, 'routines', routineId, 'completions', dateISO);
+  const existing = await getDoc(ref);
+  if (existing.exists()) return; // Already completed today
+
+  await setDoc(ref, {
+    date: dateISO,
+    completedAt: serverTimestamp(),
+    mode: data.mode,
+    durationMinutes: data.durationMinutes,
+  });
+}
+
+/**
+ * Check if a routine was completed today.
+ * Returns the completion doc data or null.
+ */
+export async function getRoutineCompletionToday(
+  routineId: string,
+  dateISO: string
+): Promise<{ date: string; mode: string; durationMinutes: number } | null> {
+  if (!db) return null;
+  try {
+    const ref = doc(db, 'routines', routineId, 'completions', dateISO);
+    const snap = await getDoc(ref);
+    return snap.exists() ? (snap.data() as any) : null;
+  } catch {
+    return null;
+  }
 }
