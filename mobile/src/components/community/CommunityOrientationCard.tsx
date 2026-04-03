@@ -6,6 +6,8 @@ import { Colors, Typography, Spacing } from '../../constants';
 interface CommunityOrientationCardProps {
   onFindGroup: () => void;
   onSkip: () => void;
+  onNavigateGroups?: () => void;
+  onNavigateChallenges?: () => void;
 }
 
 const GroupsIcon: React.FC = () => (
@@ -33,10 +35,11 @@ interface PillProps {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
+  onPress?: () => void;
 }
 
-const ConceptPill: React.FC<PillProps> = ({ icon, title, subtitle }) => (
-  <View style={styles.pill}>
+const ConceptPill: React.FC<PillProps> = ({ icon, title, subtitle, onPress }) => (
+  <TouchableOpacity style={styles.pill} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.pillIconBox}>
       {icon}
     </View>
@@ -44,12 +47,14 @@ const ConceptPill: React.FC<PillProps> = ({ icon, title, subtitle }) => (
       <Text style={styles.pillTitle}>{title}</Text>
       <Text style={styles.pillSubtitle}>{subtitle}</Text>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 export const CommunityOrientationCard: React.FC<CommunityOrientationCardProps> = ({
   onFindGroup,
   onSkip,
+  onNavigateGroups,
+  onNavigateChallenges,
 }) => (
   <View>
     <View style={styles.card}>
@@ -63,16 +68,19 @@ export const CommunityOrientationCard: React.FC<CommunityOrientationCardProps> =
           icon={<GroupsIcon />}
           title="Groups"
           subtitle="Ongoing shared spaces for connection"
+          onPress={onNavigateGroups}
         />
         <ConceptPill
           icon={<ChallengesIcon />}
           title="Challenges"
           subtitle="Time-bound intentions to try together"
+          onPress={onNavigateChallenges}
         />
         <ConceptPill
           icon={<PostsIcon />}
           title="Posts & Check-ins"
           subtitle="Share moments from your journey"
+          onPress={onSkip}
         />
       </View>
 

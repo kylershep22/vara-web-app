@@ -140,6 +140,8 @@ const CommunityScreen: React.FC = () => {
           <CommunityOrientationCard
             onFindGroup={() => dismissOrientation(true)}
             onSkip={() => dismissOrientation(false)}
+            onNavigateGroups={() => navigation.navigate('Groups')}
+            onNavigateChallenges={() => navigation.navigate('Challenges')}
           />
           <Text style={styles.recentActivityLabel}>RECENT ACTIVITY</Text>
         </>
