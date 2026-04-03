@@ -24,6 +24,9 @@ export interface UploadProgress {
  */
 async function uriToBlob(uri: string): Promise<Blob> {
   const response = await fetch(uri);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch blob: HTTP ${response.status}`);
+  }
   const blob = await response.blob();
   return blob;
 }
