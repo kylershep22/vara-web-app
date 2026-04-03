@@ -209,7 +209,7 @@ const GroupsScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => navigation.navigate('CommunityMain')} style={styles.backButton}>
             <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerTitles}>
