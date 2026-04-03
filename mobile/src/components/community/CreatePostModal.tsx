@@ -3,7 +3,7 @@
  * Modal for creating a new post in a group with optional media attachments.
  */
 
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import {
   Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { safePickFromLibrary, safePickFromCamera } from '../../utils/safeImagePicker';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { logger } from '../../utils/logger';
@@ -36,6 +37,7 @@ export interface CreatePostModalProps {
 }
 
 const CreatePostModal = memo(({ visible, onDismiss, onSubmit, groupName, title, placeholder }: CreatePostModalProps) => {
+  const isPickerOpen = useRef(false);
   const [postContent, setPostContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -45,82 +47,71 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, groupName, title, 
     id: string;
   }>>([]);
 
-  const requestCameraPermission = async (): Promise<boolean> => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Camera access is needed to take photos and videos');
-      return false;
-    }
-    return true;
-  };
-
-  const requestLibraryPermission = async (): Promise<boolean> => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Photo library access is needed to select media');
-      return false;
-    }
-    return true;
-  };
-
   const handleTakePhoto = async () => {
-    if (!(await requestCameraPermission())) return;
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setSelectedMedia(prev => [...prev, {
-        uri: result.assets[0].uri,
-        type: 'image',
-        id: Date.now().toString(),
-      }]);
+    if (isPickerOpen.current) return;
+    isPickerOpen.current = true;
+    try {
+      const assets = await safePickFromCamera({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (assets) {
+        setSelectedMedia(prev => [...prev, {
+          uri: assets[0].uri,
+          type: 'image' as const,
+          id: Date.now().toString(),
+        }]);
+      }
+    } finally {
+      isPickerOpen.current = false;
     }
   };
 
   const handleRecordVideo = async () => {
-    if (!(await requestCameraPermission())) return;
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      videoMaxDuration: 300,
-      videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
-    });
-
-    if (!result.canceled) {
-      if (result.assets[0].duration && result.assets[0].duration > 300) {
-        Alert.alert('Video Too Long', 'Videos must be 5 minutes or less');
-        return;
+    if (isPickerOpen.current) return;
+    isPickerOpen.current = true;
+    try {
+      const assets = await safePickFromCamera({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        videoMaxDuration: 300,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+      });
+      if (assets) {
+        if (assets[0].duration && assets[0].duration > 300) {
+          Alert.alert('Video Too Long', 'Videos must be 5 minutes or less');
+          return;
+        }
+        setSelectedMedia(prev => [...prev, {
+          uri: assets[0].uri,
+          type: 'video' as const,
+          id: Date.now().toString(),
+        }]);
       }
-
-      setSelectedMedia(prev => [...prev, {
-        uri: result.assets[0].uri,
-        type: 'video',
-        id: Date.now().toString(),
-      }]);
+    } finally {
+      isPickerOpen.current = false;
     }
   };
 
   const handleChooseFromLibrary = async () => {
-    if (!(await requestLibraryPermission())) return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      const newMedia = result.assets.map(asset => ({
-        uri: asset.uri,
-        type: asset.type === 'video' ? 'video' as const : 'image' as const,
-        id: `${Date.now()}_${Math.random()}`,
-      }));
-
-      setSelectedMedia(prev => [...prev, ...newMedia]);
+    if (isPickerOpen.current) return;
+    isPickerOpen.current = true;
+    try {
+      const assets = await safePickFromLibrary({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+      if (assets) {
+        const newMedia = assets.map(asset => ({
+          uri: asset.uri,
+          type: asset.type === 'video' ? 'video' as const : 'image' as const,
+          id: `${Date.now()}_${Math.random()}`,
+        }));
+        setSelectedMedia(prev => [...prev, ...newMedia]);
+      }
+    } finally {
+      isPickerOpen.current = false;
     }
   };
 
