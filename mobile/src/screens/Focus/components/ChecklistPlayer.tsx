@@ -23,7 +23,7 @@ export const ChecklistPlayer: React.FC<ChecklistPlayerProps> = ({
   onComplete,
   routineName,
 }) => {
-  const [completedIds, setCompletedIds] = useState<Set<number>>(new Set());
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const allDone = completedIds.size === activities.length;
 
   useEffect(() => {
@@ -34,14 +34,15 @@ export const ChecklistPlayer: React.FC<ChecklistPlayerProps> = ({
     }
   }, [allDone]);
 
-  const toggleActivity = (id: number) => {
+  const toggleActivity = (id: number | string) => {
+    const stringId = String(id);
     Haptics.selectionAsync();
     setCompletedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+      if (next.has(stringId)) {
+        next.delete(stringId);
       } else {
-        next.add(id);
+        next.add(stringId);
       }
       return next;
     });
@@ -68,7 +69,7 @@ export const ChecklistPlayer: React.FC<ChecklistPlayerProps> = ({
 
       <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
         {activities.map((activity) => {
-          const isCompleted = completedIds.has(activity.id);
+          const isCompleted = completedIds.has(String(activity.id));
           const activityColor = getActivityColor(activity.color);
 
           return (
