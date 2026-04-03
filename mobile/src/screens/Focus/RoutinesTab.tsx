@@ -27,6 +27,7 @@ import {
   calculateTotalDuration,
   updateRoutine,
   createRoutine,
+  markRoutineComplete,
 } from '../../services/firebase/routines.service';
 import { getTemplatesForType, RoutineTemplate } from '../../constants/routineTemplates';
 import { runMigrationIfNeeded } from '../../services/firebase/routineMigration.service';
@@ -277,6 +278,12 @@ const RoutineView: React.FC<RoutineViewProps> = ({
         activities={routine.activities}
         routineName={routine.name}
         onComplete={() => setIsRoutineComplete(true)}
+        onRoutineComplete={() => {
+          markRoutineComplete(routine.id, {
+            mode: 'checklist',
+            durationMinutes: calculateTotalDuration(routine.activities),
+          }).catch(() => {});
+        }}
       />
     );
   }

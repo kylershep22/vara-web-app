@@ -16,12 +16,15 @@ interface ChecklistPlayerProps {
   activities: Activity[];
   onComplete: () => void;
   routineName: string;
+  /** Called when all items are checked for completion persistence */
+  onRoutineComplete?: () => void;
 }
 
 export const ChecklistPlayer: React.FC<ChecklistPlayerProps> = ({
   activities,
   onComplete,
   routineName,
+  onRoutineComplete,
 }) => {
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const allDone = completedIds.size === activities.length;
@@ -29,6 +32,7 @@ export const ChecklistPlayer: React.FC<ChecklistPlayerProps> = ({
   useEffect(() => {
     if (allDone && activities.length > 0) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onRoutineComplete?.();
       const timeout = setTimeout(() => onComplete(), 600);
       return () => clearTimeout(timeout);
     }
