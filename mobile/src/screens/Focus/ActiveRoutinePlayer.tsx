@@ -39,6 +39,7 @@ import {
 import { useReducedMotion } from '../../hooks';
 import { TimerRing, UpNextCard, RoutineCompleteState } from './components';
 import { getActivityColor } from './components/activityColors';
+import { markRoutineComplete, calculateTotalDuration } from '../../services/firebase/routines.service';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -54,6 +55,7 @@ interface Routine {
   id: string;
   name: string;
   activities: Activity[];
+  mode?: 'checklist' | 'timed';
 }
 
 interface ActiveRoutinePlayerProps {
@@ -65,6 +67,8 @@ interface ActiveRoutinePlayerProps {
   onClose: () => void;
   /** Callback to edit routine */
   onEditRoutine: () => void;
+  /** Called when routine is completed (for persistence) */
+  onComplete?: (routineId: string) => void;
 }
 
 export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
@@ -72,6 +76,7 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
   routine,
   onClose,
   onEditRoutine,
+  onComplete,
 }) => {
   const reduceMotion = useReducedMotion();
 
@@ -84,6 +89,18 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
   const [timeRemaining, setTimeRemaining] = useState(safeActivities[0]?.duration ? safeActivities[0].duration * 60 : 0);
   const [isPaused, setIsPaused] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+
+  // Persist completion when routine finishes
+  useEffect(() => {
+    if (isCompleted && routine.id) {
+      const totalDuration = calculateTotalDuration(safeActivities);
+      markRoutineComplete(routine.id, {
+        mode: routine.mode || 'timed',
+        durationMinutes: totalDuration,
+      }).catch(() => {}); // Non-blocking
+      onComplete?.(routine.id);
+    }
+  }, [isCompleted]);
 
   // Timestamp-based tracking for background support
   const activityStartTimeRef = useRef<number>(Date.now());
