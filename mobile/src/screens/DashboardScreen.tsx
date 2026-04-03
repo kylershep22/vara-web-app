@@ -26,6 +26,7 @@ import WeekInsightCard from '../components/dashboard/WeekInsightCard';
 import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
+import NudgeCard from '../components/dashboard/NudgeCard';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
@@ -87,6 +88,9 @@ const DashboardScreen: React.FC = () => {
     setEventCodeSheetVisible,
     handleEventCodeDismiss,
     handleEventCodeSuccess,
+    nudgeSuggestion,
+    dismissNudge,
+    markFeatureVisited,
   } = useDashboard();
 
   const { correlations } = useWeeklyCorrelations();
@@ -165,6 +169,18 @@ const DashboardScreen: React.FC = () => {
                 protocol={todaysProtocol}
                 completed={brainStateCheckIn.protocolCompleted}
                 onMarkCompleted={handleMarkProtocolCompleted}
+              />
+            )}
+
+            {/* Nudge Card (after protocol, before habits) */}
+            {nudgeSuggestion && (
+              <NudgeCard
+                suggestion={nudgeSuggestion}
+                onAction={() => {
+                  markFeatureVisited(nudgeSuggestion.feature);
+                  navigation.navigate(nudgeSuggestion.screenName as never);
+                }}
+                onDismiss={dismissNudge}
               />
             )}
 
