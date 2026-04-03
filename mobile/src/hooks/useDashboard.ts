@@ -144,7 +144,7 @@ export function useDashboard() {
       if (hour >= 5 && hour < 12) timeGreeting = 'Good morning';
       else if (hour >= 12 && hour < 17) timeGreeting = 'Good afternoon';
       else if (hour >= 17 && hour < 22) timeGreeting = 'Good evening';
-      else timeGreeting = 'Hey';
+      else timeGreeting = 'Good evening';
     } else {
       timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     }
