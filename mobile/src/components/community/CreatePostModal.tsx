@@ -18,6 +18,8 @@ import {
   ScrollView,
   ImageStyle,
   Modal,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { safePickFromLibrary, safePickFromCamera } from '../../utils/safeImagePicker';
@@ -172,8 +174,17 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, groupName, title, 
       animationType="fade"
       onRequestClose={handleDismiss}
     >
-    <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', paddingHorizontal: Spacing.lg}}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <KeyboardAvoidingView
+      style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', paddingHorizontal: Spacing.lg}}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
     <View style={modalStyles.modal}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+    >
       <Text style={modalStyles.modalTitle}>
         {title || (groupName ? `Post to ${groupName}` : 'Share with the community')}
       </Text>
@@ -241,8 +252,10 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, groupName, title, 
           <Text style={{color: '#fff', fontSize: 14, fontWeight: '500'}}>{isUploading ? 'Uploading...' : 'Post'}</Text>
         </TouchableOpacity>
       </View>
+    </ScrollView>
     </View>
-    </View>
+    </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
     </Modal>
   );
 });

@@ -9,9 +9,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Text,
 } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -117,15 +114,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
 
   return (
     <EnhancedModal visible={visible} onDismiss={handleDismiss} title="New Habit">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardAvoid}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+      <View style={styles.scrollContent}>
           {/* Habit Name */}
           <Input
             label="What's the habit?"
@@ -220,22 +209,18 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
               onPress={handleSave}
               fullWidth
               disabled={!name.trim()}
-              accessibilityLabel="Save Rhythm"
+              accessibilityLabel="Save Habit"
             >
-              Save Rhythm
+              Save Habit
             </Button>
             <Text style={styles.saveSubtext}>You can always adjust this later</Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </EnhancedModal>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardAvoid: {
-    flex: 1,
-  },
   scrollContent: {
     padding: Spacing.lg,
     paddingBottom: Spacing['2xl'],
