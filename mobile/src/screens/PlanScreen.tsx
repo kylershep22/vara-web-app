@@ -261,7 +261,7 @@ const PlanScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.pageTitle}>Rhythms</Text>
-        <Text style={styles.pageSubtitle}>{getSubtitle()}</Text>
+        <Text style={styles.pageSubtitle}>Your habits and routines</Text>
       </View>
 
       {/* Primary Tab Group */}
