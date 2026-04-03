@@ -44,6 +44,7 @@ export function useHabitsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [completedToday, setCompletedToday] = useState<Set<string>>(new Set());
+  const [togglingHabits, setTogglingHabits] = useState<Set<string>>(new Set());
   const [pillarInfoVisible, setPillarInfoVisible] = useState(false);
   const [completionSheetHabit, setCompletionSheetHabit] = useState<Habit | null>(null);
   const [reflectionEnabled, setReflectionEnabled] = useState(true);
@@ -256,22 +257,26 @@ export function useHabitsScreen() {
   }, []);
 
   const handleToggleCompletion = useCallback(async (habitId: string) => {
+    // Prevent rapid double-taps on the same habit
+    if (togglingHabits.has(habitId)) return;
+    setTogglingHabits(prev => new Set(prev).add(habitId));
+
     const isCompleted = completedToday.has(habitId);
 
     try {
       if (isCompleted) {
-        // Unchecking — no sheet needed
-        await unmarkHabitComplete(habitId, today);
+        // Optimistic: immediately show as unchecked
         setCompletedToday(prev => {
           const newSet = new Set(prev);
           newSet.delete(habitId);
           return newSet;
         });
         setAllHabitsCompletedToday(false);
+        await unmarkHabitComplete(habitId, today);
       } else if (DASHBOARD_V2 || !reflectionEnabled) {
-        // V2: single-tap completion, no sheet. Also used when reflections disabled.
-        await markHabitComplete(habitId, user!.uid, today, { source: 'track' });
+        // Optimistic: immediately show as checked
         completeHabitLocally(habitId);
+        await markHabitComplete(habitId, user!.uid, today, { source: 'track' });
       } else {
         // V1: Open the completion sheet for reflection
         const habit = habits.find((h) => h.id === habitId);
@@ -280,10 +285,28 @@ export function useHabitsScreen() {
         }
       }
     } catch (error) {
+      // Rollback on failure
+      if (isCompleted) {
+        // Was trying to uncheck — restore checked state
+        completeHabitLocally(habitId);
+      } else {
+        // Was trying to check — restore unchecked state
+        setCompletedToday(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(habitId);
+          return newSet;
+        });
+      }
       logger.error('Error toggling habit completion:', error);
-      Alert.alert('Error', 'Failed to update habit');
+      Alert.alert('Error', 'Failed to update habit. Please try again.');
+    } finally {
+      setTogglingHabits(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(habitId);
+        return newSet;
+      });
     }
-  }, [completedToday, today, user, habits, reflectionEnabled, setAllHabitsCompletedToday]);
+  }, [completedToday, today, user, habits, reflectionEnabled, togglingHabits, setAllHabitsCompletedToday]);
 
   /** Shared logic to mark habit complete in local state + trigger celebration / notif opt-in */
   const completeHabitLocally = useCallback((habitId: string) => {
