@@ -79,8 +79,9 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
   // Activity state
+  const safeActivities = routine.activities || [];
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(routine.activities[0]?.duration * 60 || 0);
+  const [timeRemaining, setTimeRemaining] = useState(safeActivities[0]?.duration ? safeActivities[0].duration * 60 : 0);
   const [isPaused, setIsPaused] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
 
@@ -94,18 +95,18 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const currentActivity = routine.activities[currentIndex];
-  const totalActivities = routine.activities.length;
+  const currentActivity = safeActivities[currentIndex];
+  const totalActivities = safeActivities.length;
   const nextActivity = currentIndex < totalActivities - 1
-    ? routine.activities[currentIndex + 1]
+    ? safeActivities[currentIndex + 1]
     : null;
 
   // Overall progress calculation
-  const completedTime = routine.activities
+  const completedTime = safeActivities
     .slice(0, currentIndex)
     .reduce((sum, a) => sum + a.duration * 60, 0);
   const currentElapsed = (currentActivity?.duration * 60 || 0) - timeRemaining;
-  const totalTime = routine.activities.reduce((sum, a) => sum + a.duration * 60, 0);
+  const totalTime = safeActivities.reduce((sum, a) => sum + a.duration * 60, 0);
   const overallProgress = totalTime > 0 ? (completedTime + currentElapsed) / totalTime : 0;
 
   // Activity progress
@@ -121,7 +122,7 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
 
     for (let i = currentIndex; i < totalActivities; i++) {
       const isLast = i === totalActivities - 1;
-      const nextName = !isLast ? routine.activities[i + 1]?.name : '';
+      const nextName = !isLast ? safeActivities[i + 1]?.name : '';
 
       if (cumulativeSeconds > 0) {
         try {
@@ -130,7 +131,7 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
               title: isLast ? 'Routine Complete!' : `Up next: ${nextName}`,
               body: isLast
                 ? `You finished ${routine.name}!`
-                : `${routine.activities[i].name} is done.`,
+                : `${safeActivities[i].name} is done.`,
               sound: 'default',
               data: { type: 'routine-activity-complete', routineId: routine.id },
             },
@@ -146,7 +147,7 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
       }
 
       if (i + 1 < totalActivities) {
-        cumulativeSeconds += routine.activities[i + 1].duration * 60;
+        cumulativeSeconds += safeActivities[i + 1].duration * 60;
       }
     }
   }, [currentIndex, timeRemaining, isPaused, isCompleted, totalActivities, routine]);
@@ -167,13 +168,13 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
 
     let totalElapsed = elapsedSeconds;
     let idx = currentIndex;
-    let remainingInCurrent = (routine.activities[idx]?.duration * 60 || 0) - pausedElapsedRef.current;
+    let remainingInCurrent = (safeActivities[idx]?.duration * 60 || 0) - pausedElapsedRef.current;
 
     // Walk through activities that may have completed while backgrounded
     while (totalElapsed >= remainingInCurrent && idx < totalActivities - 1) {
       totalElapsed -= remainingInCurrent;
       idx++;
-      remainingInCurrent = routine.activities[idx]?.duration * 60 || 0;
+      remainingInCurrent = safeActivities[idx]?.duration * 60 || 0;
     }
 
     if (totalElapsed >= remainingInCurrent && idx === totalActivities - 1) {
@@ -191,8 +192,8 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
     setTimeRemaining(newRemaining);
 
     activityStartTimeRef.current = now;
-    pausedElapsedRef.current = (routine.activities[idx]?.duration * 60 || 0) - newRemaining;
-  }, [currentIndex, isPaused, isCompleted, totalActivities, routine.activities]);
+    pausedElapsedRef.current = (safeActivities[idx]?.duration * 60 || 0) - newRemaining;
+  }, [currentIndex, isPaused, isCompleted, totalActivities, safeActivities]);
 
   // AppState listener for background/foreground transitions
   useEffect(() => {
@@ -292,7 +293,7 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
       // Update state after brief delay for animation
       setTimeout(() => {
         setCurrentIndex(nextIndex);
-        setTimeRemaining(routine.activities[nextIndex].duration * 60);
+        setTimeRemaining(safeActivities[nextIndex].duration * 60);
         activityStartTimeRef.current = Date.now();
         pausedElapsedRef.current = 0;
       }, reduceMotion ? 0 : 200);
@@ -300,7 +301,7 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
       // Routine complete
       setIsCompleted(true);
     }
-  }, [currentIndex, totalActivities, routine.activities, reduceMotion]);
+  }, [currentIndex, totalActivities, safeActivities, reduceMotion]);
 
   const handlePause = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -322,12 +323,12 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const prevIndex = currentIndex - 1;
       setCurrentIndex(prevIndex);
-      setTimeRemaining(routine.activities[prevIndex].duration * 60);
+      setTimeRemaining(safeActivities[prevIndex].duration * 60);
       activityStartTimeRef.current = Date.now();
       pausedElapsedRef.current = 0;
       setIsPaused(false);
     }
-  }, [currentIndex, routine.activities]);
+  }, [currentIndex, safeActivities]);
 
   const handleRestart = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -343,13 +344,13 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
     if (currentIndex < totalActivities - 1) {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
-      setTimeRemaining(routine.activities[nextIndex].duration * 60);
+      setTimeRemaining(safeActivities[nextIndex].duration * 60);
       activityStartTimeRef.current = Date.now();
       pausedElapsedRef.current = 0;
     } else {
       setIsCompleted(true);
     }
-  }, [currentIndex, totalActivities, routine.activities]);
+  }, [currentIndex, totalActivities, safeActivities]);
 
   const handleClose = useCallback(() => {
     Alert.alert(
@@ -389,6 +390,33 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
   const activityColor = currentActivity ? getActivityColor(currentActivity.color) : ColorTokens.primary;
 
   if (!visible) return null;
+
+  if (totalActivities === 0) {
+    return (
+      <Modal visible={visible} transparent animationType="slide">
+        <SafeAreaView style={styles.container}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+            <Icon name="playlist-remove" size={48} color={ColorTokens.textSecondary} />
+            <Text style={{ fontSize: 18, fontWeight: '600', color: ColorTokens.textPrimary, marginTop: 16, textAlign: 'center' }}>
+              No activities added yet
+            </Text>
+            <Text style={{ fontSize: 14, color: ColorTokens.textSecondary, marginTop: 8, textAlign: 'center' }}>
+              Edit this routine to add activities.
+            </Text>
+            <TouchableOpacity
+              onPress={onEditRoutine}
+              style={{ marginTop: 24, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: ColorTokens.evergreenTeal, borderRadius: 12 }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>Edit Routine</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onClose} style={{ marginTop: 12 }}>
+              <Text style={{ color: ColorTokens.textSecondary, fontSize: 14 }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
