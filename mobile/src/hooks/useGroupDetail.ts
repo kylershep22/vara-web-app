@@ -349,7 +349,7 @@ export function useGroupDetail(groupId: string, initialGroupName?: string) {
       Alert.alert('Join Required', 'Join this group to comment on posts');
       return;
     }
-    await addCommentToPost(postId, { userId: user.uid, text });
+    await addCommentToPost(postId, { userId: user.uid, text, authorName: user.displayName || 'Someone' });
     await loadGroupData();
   }, [user, group, loadGroupData]);
 
