@@ -1,5 +1,5 @@
 // mobile/src/screens/ProfileScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import {
   InputAccessoryView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { safePickFromLibrary, safeUriToBlob } from '../utils/safeImagePicker';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -101,6 +101,7 @@ const ProfileScreen = () => {
   const [uploading, setUploading] = useState(false);
   const [newInterest, setNewInterest] = useState('');
   const [newGoal, setNewGoal] = useState('');
+  const isPickerOpen = useRef(false);
 
   useEffect(() => {
     loadProfile();
@@ -287,55 +288,57 @@ const ProfileScreen = () => {
 
   const handleUploadImage = async (type: 'avatar' | 'banner') => {
     if (!user || !db) return;
+    if (isPickerOpen.current) return;
 
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Permission Required', 'Please grant camera roll permissions');
+    isPickerOpen.current = true;
+    const assets = await safePickFromLibrary({
+      allowsEditing: true,
+      aspect: type === 'avatar' ? [1, 1] : [16, 9],
+    });
+
+    if (assets === null) {
+      isPickerOpen.current = false;
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: type === 'avatar' ? [1, 1] : [16, 9],
-      quality: 0.8,
-    });
+    setUploading(true);
+    try {
+      const blob = await safeUriToBlob(assets[0].uri);
 
-    if (!result.canceled && result.assets?.length > 0) {
-      setUploading(true);
-      try {
-        const uri = result.assets[0].uri;
-        const response = await fetch(uri);
-        const blob = await response.blob();
-
-        const filename = `${user.uid}/${type}_${Date.now()}.jpg`;
-        const storageRef = ref(storage, `users/${filename}`);
-
-        await uploadBytes(storageRef, blob);
-        const downloadURL = await getDownloadURL(storageRef);
-
-        const userRef = doc(db, 'users', user.uid);
-        const updateData = type === 'avatar'
-          ? { avatarUrl: downloadURL }
-          : { bannerUrl: downloadURL };
-
-        await updateDoc(userRef, {
-          ...updateData,
-          updatedAt: serverTimestamp(),
-        });
-
-        setProfile(prev => ({
-          ...prev,
-          [type === 'avatar' ? 'avatarUrl' : 'bannerUrl']: downloadURL,
-        }));
-
-        Alert.alert('Success', `${type === 'avatar' ? 'Avatar' : 'Banner'} updated!`);
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        Alert.alert('Error', 'Failed to upload image');
-      } finally {
+      if (blob === null) {
         setUploading(false);
+        isPickerOpen.current = false;
+        return;
       }
+
+      const filename = `${user.uid}/${type}_${Date.now()}.jpg`;
+      const storageRef = ref(storage, `users/${filename}`);
+
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      const userRef = doc(db, 'users', user.uid);
+      const updateData = type === 'avatar'
+        ? { avatarUrl: downloadURL }
+        : { bannerUrl: downloadURL };
+
+      await updateDoc(userRef, {
+        ...updateData,
+        updatedAt: serverTimestamp(),
+      });
+
+      setProfile(prev => ({
+        ...prev,
+        [type === 'avatar' ? 'avatarUrl' : 'bannerUrl']: downloadURL,
+      }));
+
+      Alert.alert('Success', `${type === 'avatar' ? 'Avatar' : 'Banner'} updated!`);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'Failed to upload image');
+    } finally {
+      setUploading(false);
+      isPickerOpen.current = false;
     }
   };
 
