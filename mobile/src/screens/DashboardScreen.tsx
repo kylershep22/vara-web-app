@@ -91,7 +91,6 @@ const DashboardScreen: React.FC = () => {
 
   const { correlations } = useWeeklyCorrelations();
   const weekInsight = correlations ? selectWeekInsight(correlations) : null;
-  const [weekInsightDismissed, setWeekInsightDismissed] = useState(false);
 
   if (dataLoading) {
     return <LoadingSpinner message="Loading your wellness dashboard..." />;
@@ -190,15 +189,13 @@ const DashboardScreen: React.FC = () => {
               onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
             />
 
-            {/* Position 4: Week Insight (below fold, conditional) */}
-            {weekInsight && !weekInsightDismissed && (
-              <WeekInsightCard
-                headline={weekInsight.headline}
-                supporting={weekInsight.supporting}
-                onPressFullStory={() => navigation.navigate('Insights' as never)}
-                onDismiss={() => setWeekInsightDismissed(true)}
-              />
-            )}
+            {/* Position 4: Week Insight (always visible) */}
+            <WeekInsightCard
+              headline={weekInsight?.headline}
+              supporting={weekInsight?.supporting}
+              onPressFullStory={weekInsight ? () => navigation.navigate('Insights' as never) : undefined}
+              empty={!weekInsight}
+            />
 
           </>
         ) : (
