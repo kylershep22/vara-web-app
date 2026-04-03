@@ -757,6 +757,12 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // Routine completions subcollection
+    match /routines/{routineId}/completions/{completionId} {
+      allow read, write: if isAuthenticated()
+        && get(/databases/$(database)/documents/routines/$(routineId)).data.userId == request.auth.uid;
+    }
+
     // Weekly Recaps (4-3-2-1 framework)
     match /weeklyRecaps/{recapId} {
       allow read: if isAuthenticated() && isOwner(resource.data.userId);
@@ -906,10 +912,10 @@ service cloud.firestore {
 
     // ========== ADMIN COLLECTIONS ==========
 
-    // Admin analytics — read-only for admins, written by Cloud Functions
+    // Admin analytics — admins can read and write (Cloud Functions or client-side aggregation)
     match /adminAnalytics/{docId} {
       allow read: if isAdmin();
-      allow write: if false;
+      allow write: if isAdmin();
     }
 
     // Moderation queue — admins read + update status fields only
