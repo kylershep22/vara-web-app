@@ -8,7 +8,7 @@ import { useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -43,6 +43,7 @@ import {
   saveDailyReflection,
 } from '../services/firebase';
 import { BrainState, BrainStateCheckIn as BrainStateCheckInType, DailyReflection as DailyReflectionType, DailyReflectionValue } from '../types';
+import { getNudgeSuggestion, NudgeSuggestion } from '../utils/getNudgeSuggestion';
 
 const SMALL_SCREEN_WIDTH = 375;
 const MEDIUM_SCREEN_WIDTH = 414;
@@ -118,6 +119,11 @@ export function useDashboard() {
   const [showEventCodeCard, setShowEventCodeCard] = useState(false);
   const [eventCodeSheetVisible, setEventCodeSheetVisible] = useState(false);
 
+  // Nudge card state
+  const [nudgeSuggestion, setNudgeSuggestion] = useState<NudgeSuggestion | null>(null);
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const [visitedFeatures] = useState<Set<string>>(() => new Set());
+
   // Responsive day count
   const daysToShow = useMemo(() => {
     if (screenWidth < SMALL_SCREEN_WIDTH) return 5;
@@ -144,7 +150,7 @@ export function useDashboard() {
       if (hour >= 5 && hour < 12) timeGreeting = 'Good morning';
       else if (hour >= 12 && hour < 17) timeGreeting = 'Good afternoon';
       else if (hour >= 17 && hour < 22) timeGreeting = 'Good evening';
-      else timeGreeting = 'Hey';
+      else timeGreeting = 'Good evening';
     } else {
       timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     }
@@ -447,6 +453,52 @@ export function useDashboard() {
     return getProtocolForState(brainStateCheckIn.brainState);
   }, [brainStateCheckIn]);
 
+  // Compute nudge suggestion after check-in + protocol
+  useEffect(() => {
+    if (!user || !db || !brainStateCheckIn?.brainState || nudgeDismissed) {
+      setNudgeSuggestion(null);
+      return;
+    }
+
+    // Only show nudge after protocol is done or not available
+    if (todaysProtocol && !brainStateCheckIn.protocolCompleted) {
+      setNudgeSuggestion(null);
+      return;
+    }
+
+    const checkCompletedFeatures = async () => {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const completed = new Set<string>(visitedFeatures);
+
+      try {
+        // Check journal
+        const journalSnap = await getDocs(
+          query(collection(db, 'journalEntries'), where('userId', '==', user.uid), where('createdAt', '>=', new Date(todayStr)), limit(1))
+        );
+        if (journalSnap.size > 0) completed.add('journal');
+
+        // Check focus sessions
+        const focusSnap = await getDocs(
+          query(collection(db, 'focusSessions'), where('userId', '==', user.uid), where('startedAt', '>=', new Date(todayStr)), limit(1))
+        );
+        if (focusSnap.size > 0) completed.add('focus');
+
+        // Check brain metrics
+        const metricsSnap = await getDocs(
+          query(collection(db, 'brainMetrics'), where('userId', '==', user.uid), where('date', '==', todayStr), limit(1))
+        );
+        if (metricsSnap.size > 0) completed.add('brainHealth');
+      } catch (error) {
+        // Non-blocking — if checks fail, just show a nudge anyway
+      }
+
+      const suggestion = getNudgeSuggestion(brainStateCheckIn.brainState as any, completed as any);
+      setNudgeSuggestion(suggestion);
+    };
+
+    checkCompletedFeatures();
+  }, [user, db, brainStateCheckIn, todaysProtocol, nudgeDismissed, visitedFeatures]);
+
   const showDailyReflection = useMemo(() => {
     if (!DASHBOARD_V2) return false;
     if (dailyReflection || dailyReflectionDismissed) return false;
@@ -485,6 +537,15 @@ export function useDashboard() {
     setShowEventCodeCard(false);
     setEventCodeSheetVisible(false);
   }, []);
+
+  const dismissNudge = useCallback(() => {
+    setNudgeDismissed(true);
+    setNudgeSuggestion(null);
+  }, []);
+
+  const markFeatureVisited = useCallback((feature: string) => {
+    visitedFeatures.add(feature);
+  }, [visitedFeatures]);
 
   const handleRefreshWellnessScore = useCallback(async () => {
     if (!user?.uid) return;
@@ -596,5 +657,10 @@ export function useDashboard() {
     setEventCodeSheetVisible,
     handleEventCodeDismiss,
     handleEventCodeSuccess,
+
+    // Nudge
+    nudgeSuggestion,
+    dismissNudge,
+    markFeatureVisited,
   };
 }

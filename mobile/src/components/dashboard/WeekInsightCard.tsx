@@ -4,10 +4,11 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography } from '../../constants';
 
 interface WeekInsightCardProps {
-  headline: string;
-  supporting: string;
+  headline?: string;
+  supporting?: string;
   onPressFullStory?: () => void;
   onDismiss?: () => void;
+  empty?: boolean;
 }
 
 const WeekInsightCard: React.FC<WeekInsightCardProps> = ({
@@ -15,7 +16,25 @@ const WeekInsightCard: React.FC<WeekInsightCardProps> = ({
   supporting,
   onPressFullStory,
   onDismiss,
+  empty,
 }) => {
+  if (empty) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.accentBar} />
+        <View style={styles.content}>
+          <View style={styles.headlineRow}>
+            <Icon name="lightbulb-outline" size={18} color={Colors.evergreenTeal} style={styles.icon} />
+            <Text style={styles.headline}>Your weekly patterns</Text>
+          </View>
+          <Text style={styles.supporting}>
+            As you check in and build habits this week, patterns will appear here to help you understand what works for your brain.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.accentBar} />

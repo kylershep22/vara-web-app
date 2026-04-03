@@ -26,6 +26,7 @@ import WeekInsightCard from '../components/dashboard/WeekInsightCard';
 import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
+import NudgeCard from '../components/dashboard/NudgeCard';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
@@ -87,11 +88,13 @@ const DashboardScreen: React.FC = () => {
     setEventCodeSheetVisible,
     handleEventCodeDismiss,
     handleEventCodeSuccess,
+    nudgeSuggestion,
+    dismissNudge,
+    markFeatureVisited,
   } = useDashboard();
 
   const { correlations } = useWeeklyCorrelations();
   const weekInsight = correlations ? selectWeekInsight(correlations) : null;
-  const [weekInsightDismissed, setWeekInsightDismissed] = useState(false);
 
   if (dataLoading) {
     return <LoadingSpinner message="Loading your wellness dashboard..." />;
@@ -169,6 +172,18 @@ const DashboardScreen: React.FC = () => {
               />
             )}
 
+            {/* Nudge Card (after protocol, before habits) */}
+            {nudgeSuggestion && (
+              <NudgeCard
+                suggestion={nudgeSuggestion}
+                onAction={() => {
+                  markFeatureVisited(nudgeSuggestion.feature);
+                  navigation.navigate(nudgeSuggestion.screenName as never);
+                }}
+                onDismiss={dismissNudge}
+              />
+            )}
+
             {/* Daily Reflection (after all habits completed) */}
             {showDailyReflection && (
               <DailyReflectionCard
@@ -190,15 +205,13 @@ const DashboardScreen: React.FC = () => {
               onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
             />
 
-            {/* Position 4: Week Insight (below fold, conditional) */}
-            {weekInsight && !weekInsightDismissed && (
-              <WeekInsightCard
-                headline={weekInsight.headline}
-                supporting={weekInsight.supporting}
-                onPressFullStory={() => navigation.navigate('Insights' as never)}
-                onDismiss={() => setWeekInsightDismissed(true)}
-              />
-            )}
+            {/* Position 4: Week Insight (always visible) */}
+            <WeekInsightCard
+              headline={weekInsight?.headline}
+              supporting={weekInsight?.supporting}
+              onPressFullStory={weekInsight ? () => navigation.navigate('Insights' as never) : undefined}
+              empty={!weekInsight}
+            />
 
           </>
         ) : (
