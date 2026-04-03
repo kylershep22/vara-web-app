@@ -173,6 +173,7 @@ const CommunityScreen: React.FC = () => {
         formatTimestamp={formatTimestamp}
         onGroupPress={item.groupId ? () => navigation.navigate('GroupDetail', { groupId: item.groupId, groupName: item.groupName }) : undefined}
         onMorePress={handleMorePress}
+        onAuthorPress={(userId) => navigation.navigate('UserProfile', { userId })}
       />
     </View>
   ), [handleLike, setCommentPost, formatTimestamp, navigation, handleMorePress]);

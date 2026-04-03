@@ -37,6 +37,8 @@ interface PostCardProps {
   hideGroupBadge?: boolean;
   /** Called when the overflow ⋯ icon is tapped */
   onMorePress?: (post: any) => void;
+  /** Called when the author name/avatar is tapped */
+  onAuthorPress?: (userId: string) => void;
 }
 
 const PostCardComponent: React.FC<PostCardProps> = ({
@@ -49,6 +51,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({
   onGroupPress,
   hideGroupBadge = false,
   onMorePress,
+  onAuthorPress,
 }) => {
   const authorName = post.author?.displayName || 'Unknown';
   const content = String(post.content || '');
@@ -158,17 +161,24 @@ const PostCardComponent: React.FC<PostCardProps> = ({
 
       {/* Author Row */}
       <View style={styles.authorRow}>
-        <CommunityAvatar
-          name={authorName}
-          photoURL={avatarUrl}
-          size={36}
-        />
-        <View style={styles.authorInfo}>
-          <Text style={styles.authorName}>{authorName}</Text>
-          <Text style={styles.timestamp}>
-            {isChallengePost ? `checked in \u00B7 ${timestamp}` : timestamp}
-          </Text>
-        </View>
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+          onPress={() => onAuthorPress?.(post.author?.uid || post.userId)}
+          disabled={!onAuthorPress}
+          activeOpacity={0.7}
+        >
+          <CommunityAvatar
+            name={authorName}
+            photoURL={avatarUrl}
+            size={36}
+          />
+          <View style={styles.authorInfo}>
+            <Text style={styles.authorName}>{authorName}</Text>
+            <Text style={styles.timestamp}>
+              {isChallengePost ? `checked in \u00B7 ${timestamp}` : timestamp}
+            </Text>
+          </View>
+        </TouchableOpacity>
         {badge && (
           <View style={[
             styles.postTypeBadge,
