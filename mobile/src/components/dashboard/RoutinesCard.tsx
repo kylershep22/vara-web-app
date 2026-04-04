@@ -152,32 +152,35 @@ const RoutinesCard: React.FC<RoutinesCardProps> = ({
 
     return (
       <View style={styles.card}>
-        <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>Your Routines</Text>
-        </View>
-        <View style={styles.emptyState}>
-          <Icon name="lightbulb-outline" size={28} color={Colors.evergreenTeal} />
-          <Text style={styles.emptyHeadline}>Build your first routine</Text>
-          <Text style={styles.emptyBody}>
-            Structured routines help your brain build consistency.
-          </Text>
-          {templates.map(template => (
-            <TouchableOpacity
-              key={template.id}
-              style={styles.templateRow}
-              onPress={() => onApplyTemplate(template)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.templateInfo}>
-                <Text style={styles.templateName}>{template.name}</Text>
-                <Text style={styles.templateDuration}>{template.totalMinutes} min</Text>
-              </View>
-              <Text style={styles.templateCta}>Try this</Text>
+        <View style={styles.accentBar} />
+        <View style={styles.cardContent}>
+          <View style={styles.headerRow}>
+            <Text style={styles.headerTitle}>Your Routines</Text>
+          </View>
+          <View style={styles.emptyState}>
+            <Icon name="lightbulb-outline" size={24} color={Colors.evergreenTeal} />
+            <Text style={styles.emptyHeadline}>Build your first routine</Text>
+            <Text style={styles.emptyBody}>
+              Structured routines help your brain build consistency.
+            </Text>
+            {templates.map(template => (
+              <TouchableOpacity
+                key={template.id}
+                style={styles.templateRow}
+                onPress={() => onApplyTemplate(template)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.templateInfo}>
+                  <Text style={styles.templateName}>{template.name}</Text>
+                  <Text style={styles.templateDuration}>{template.totalMinutes} min</Text>
+                </View>
+                <Text style={styles.templateCta}>Try this</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={onNavigateToRoutines} style={styles.browseLink}>
+              <Text style={styles.browseLinkText}>Browse all routines</Text>
             </TouchableOpacity>
-          ))}
-          <TouchableOpacity onPress={onNavigateToRoutines} style={styles.browseLink}>
-            <Text style={styles.browseLinkText}>Browse all routines</Text>
-          </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -185,72 +188,82 @@ const RoutinesCard: React.FC<RoutinesCardProps> = ({
 
   return (
     <View style={styles.card}>
-      <TouchableOpacity style={styles.headerRow} onPress={toggleCardCollapse} activeOpacity={0.7}>
-        <Text style={styles.headerTitle}>Your Routines</Text>
-        <Icon name={cardCollapsed ? 'chevron-down' : 'chevron-up'} size={22} color={Colors.textSecondary} />
-      </TouchableOpacity>
+      <View style={styles.accentBar} />
+      <View style={styles.cardContent}>
+        <TouchableOpacity style={styles.headerRow} onPress={toggleCardCollapse} activeOpacity={0.7}>
+          <Text style={styles.headerTitle}>Your Routines</Text>
+          <Icon name={cardCollapsed ? 'chevron-down' : 'chevron-up'} size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
 
-      {!cardCollapsed && (
-        <View style={styles.routinesList}>
-          {routines.map(routine => (
-            <RoutineRow
-              key={routine.id}
-              routine={routine}
-              isExpanded={expandedIds.has(routine.id)}
-              isCompleted={!!completions[routine.id]}
-              onToggleExpand={() => toggleRowExpand(routine.id)}
-              onBegin={() => onBeginRoutine(routine)}
-            />
-          ))}
-        </View>
-      )}
+        {!cardCollapsed && (
+          <View style={styles.routinesList}>
+            {routines.map(routine => (
+              <RoutineRow
+                key={routine.id}
+                routine={routine}
+                isExpanded={expandedIds.has(routine.id)}
+                isCompleted={!!completions[routine.id]}
+                onToggleExpand={() => toggleRowExpand(routine.id)}
+                onBegin={() => onBeginRoutine(routine)}
+              />
+            ))}
+          </View>
+        )}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
+    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(184,205,186,0.3)',
-    marginHorizontal: Spacing.base,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
     overflow: 'hidden',
+  },
+  accentBar: {
+    width: 3,
+    backgroundColor: Colors.evergreenTeal,
+  },
+  cardContent: {
+    flex: 1,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    padding: 16,
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.textPrimary,
   },
   routinesList: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
   },
   emptyState: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   emptyHeadline: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.textPrimary,
-    marginTop: 10,
+    marginTop: 8,
   },
   emptyBody: {
     fontSize: 13,
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: 4,
-    marginBottom: 16,
+    marginBottom: 14,
+    lineHeight: 18,
   },
   templateRow: {
     flexDirection: 'row',
@@ -259,9 +272,9 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    backgroundColor: Colors.dewSage,
+    backgroundColor: 'rgba(184,205,186,0.15)',
     borderRadius: 8,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   templateInfo: {
     flex: 1,
@@ -293,7 +306,7 @@ const styles = StyleSheet.create({
 
 const rowStyles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.dewSage,
+    backgroundColor: 'rgba(184,205,186,0.15)',
     borderRadius: 10,
     marginBottom: 6,
     overflow: 'hidden',
