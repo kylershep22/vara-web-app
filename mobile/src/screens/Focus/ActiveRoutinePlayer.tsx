@@ -22,7 +22,7 @@ import {
   AppState,
   AppStateStatus,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
@@ -37,7 +37,7 @@ import {
   FocusCopy,
 } from '../../tokens/design-tokens';
 import { useReducedMotion } from '../../hooks';
-import { TimerRing, UpNextCard, RoutineCompleteState } from './components';
+import { TimerRing, UpNextCard, RoutineCompleteState, ChecklistPlayer } from './components';
 import { getActivityColor } from './components/activityColors';
 import { markRoutineComplete, calculateTotalDuration } from '../../services/firebase/routines.service';
 
@@ -79,6 +79,7 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
   onComplete,
 }) => {
   const reduceMotion = useReducedMotion();
+  const insets = useSafeAreaInsets();
 
   // Slide animation
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -448,16 +449,44 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
           { transform: [{ translateY: slideAnim }] },
         ]}
       >
-        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           {isCompleted ? (
             <RoutineCompleteState
               onBackToFocus={handleBackToFocus}
               onAdjustRoutine={onEditRoutine}
               routineName={routine.name}
             />
+          ) : routine.mode === 'checklist' ? (
+            <>
+              {/* Checklist Header */}
+              <View style={styles.header}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={handleBackToFocus}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close routine"
+                >
+                  <Icon name="close" size={22} color={ColorTokens.textPrimary} />
+                </TouchableOpacity>
+                <Text style={styles.routineName}>{routine.name}</Text>
+                <View style={styles.headerSpacer} />
+              </View>
+              <ChecklistPlayer
+                activities={safeActivities}
+                routineName={routine.name}
+                onComplete={() => setIsCompleted(true)}
+                onRoutineComplete={() => {
+                  markRoutineComplete(routine.id, {
+                    mode: 'checklist',
+                    durationMinutes: calculateTotalDuration(safeActivities),
+                  }).catch(() => {});
+                  onComplete?.(routine.id);
+                }}
+              />
+            </>
           ) : (
             <>
-              {/* Header */}
+              {/* Timed Header */}
               <View style={styles.header}>
                 <TouchableOpacity
                   style={styles.closeButton}
@@ -594,7 +623,7 @@ export const ActiveRoutinePlayer: React.FC<ActiveRoutinePlayerProps> = ({
               )}
             </>
           )}
-        </SafeAreaView>
+        </View>
       </Animated.View>
     </Modal>
   );
