@@ -28,7 +28,7 @@ export default function EngagementHeatmap({ data }) {
       <h3 className="text-vara-lg font-semibold text-soft-charcoal mb-vara-sm">
         Engagement by Day & Time
       </h3>
-      <p className="text-vara-xs text-muted-sage-gray mb-vara-base">Last 7 days — darker = more activity</p>
+      <p className="text-vara-xs text-muted-sage-gray mb-vara-base">Last 7 days. Darker cells mean more activity.</p>
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">

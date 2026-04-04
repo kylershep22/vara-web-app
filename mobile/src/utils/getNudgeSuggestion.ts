@@ -51,7 +51,7 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
       wired: { headline: 'Try focused calm', description: 'A structured session can channel racing thoughts.' },
       foggy: { headline: 'Sharpen your focus', description: 'A short focus session can cut through the fog.' },
       okay: { headline: 'Build some momentum', description: 'A focus session can turn okay into productive.' },
-      clear: { headline: 'Ride this focus', description: 'Your brain is ready \u2014 a focus session will feel effortless.' },
+      clear: { headline: 'Ride this focus', description: 'Your brain is ready. A focus session will feel effortless.' },
       energized: { headline: 'Put this energy to work', description: 'Channel your momentum into something meaningful.' },
     },
   },

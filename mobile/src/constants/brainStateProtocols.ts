@@ -94,7 +94,7 @@ export const BRAIN_STATE_PROTOCOLS: Record<BrainState, BrainStateProtocol> = {
     instructions: [
       'Write down or mentally name the single most important task for this energy.',
       'Close your eyes. Take 5 deep breaths to center your focus.',
-      'Visualize the task from start to finish — what does "done" look like?',
+      'Visualize the task from start to finish. What does "done" look like?',
       'Set a clear intention: "For the next block of time, I focus only on this."',
       'Open your eyes and begin immediately. Do not check your phone first.',
     ],

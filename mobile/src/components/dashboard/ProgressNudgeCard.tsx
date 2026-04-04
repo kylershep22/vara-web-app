@@ -56,7 +56,7 @@ const ProgressNudgeCard: React.FC<ProgressNudgeCardProps> = ({
 
       return {
         title: "You've been showing up for yourself.",
-        message: `No rush \u2014 take it at your own pace.`,
+        message: `No rush. Take it at your own pace.`,
         icon: 'leaf',
         iconColor: Colors.evergreenTeal,
         backgroundColor: Colors.dewSage,

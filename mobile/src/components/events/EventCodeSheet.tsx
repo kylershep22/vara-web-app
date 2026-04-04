@@ -99,7 +99,7 @@ export const EventCodeSheet: React.FC<EventCodeSheetProps> = ({
             <View style={styles.successContainer}>
               <Icon name="check-circle" size={48} color={Colors.evergreenTeal} />
               <Text style={styles.successText}>
-                You're in — welcome from {success}.
+                You're in! Welcome from {success}.
               </Text>
             </View>
           ) : (

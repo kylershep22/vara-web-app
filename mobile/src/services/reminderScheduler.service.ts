@@ -166,7 +166,7 @@ export async function scheduleRoutineReminder(routine: Routine): Promise<void> {
       identifier,
       content: {
         title: `Your ${typeLabel}routine is ready`,
-        body: `${routine.name} \u2014 ${totalDuration} min`,
+        body: `${routine.name} · ${totalDuration} min`,
         sound: true,
         data: { type: 'routine-reminder', routineId: routine.id, routineType: routine.type },
       },

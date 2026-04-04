@@ -98,7 +98,7 @@ const PaywallScreen: React.FC = () => {
         <Text style={styles.body}>
           {isExpired
             ? 'We hope Vara has been useful. To continue, choose a subscription below.'
-            : 'Everything Vara offers \u2014 designed around how your brain actually works.'}
+            : 'Everything Vara offers, designed around how your brain actually works.'}
         </Text>
 
         {/* Feature List */}

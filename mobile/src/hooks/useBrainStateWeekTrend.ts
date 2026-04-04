@@ -101,7 +101,7 @@ export function computeSummary(days: DaySlot[]): string | null {
   const parts = sorted
     .slice(0, 2)
     .map(([state, count]) => `${count} ${state}`);
-  return `Mixed week — ${parts.join(', ')}`;
+  return `Mixed week: ${parts.join(', ')}`;
 }
 
 /**

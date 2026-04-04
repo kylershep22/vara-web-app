@@ -210,7 +210,7 @@ export const BREATHWORK_SESSIONS: BreathworkSession[] = [
     type: 'Guided',
     purpose: 'Relax',
     difficulty: 'beginner',
-    breathingPattern: 'No breathing pattern — visual focus exercise',
+    breathingPattern: 'No breathing pattern, visual focus exercise',
     featured: false,
     instructions: 'Find a spot ahead of you and let your eyes rest on it. Without moving your eyes, begin to notice what is in your peripheral vision. Slowly expand your awareness to the edges of your visual field. Hold this wide, soft gaze for 60 seconds. Notice any shift in how calm or alert you feel.',
   },

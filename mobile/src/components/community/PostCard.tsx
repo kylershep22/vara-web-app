@@ -108,7 +108,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({
 
     const success = await onLike(post.id);
     if (!success) {
-      setSupportError("Couldn't save that \u2014 try again when you're ready.");
+      setSupportError("Couldn't save that. Try again when you're ready.");
       errorTimeoutRef.current = setTimeout(() => {
         setSupportError(null);
       }, 3000);

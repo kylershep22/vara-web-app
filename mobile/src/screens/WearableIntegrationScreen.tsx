@@ -112,7 +112,7 @@ const ConnectedAppsScreen: React.FC = () => {
               <Icon name="check-circle" size={32} color={VARA_COLORS.teal} />
             </View>
             <Text style={styles.headline}>
-              Thanks — your input shapes what we build next.
+              Thanks! Your input shapes what we build next.
             </Text>
           </View>
         ) : (
