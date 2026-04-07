@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -138,29 +138,32 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
   // Expanded state (not yet checked in, or user tapped "Change")
   return (
     <View style={styles.container}>
-      <Text style={styles.prompt}>How's your brain feeling?</Text>
+      <Text style={styles.prompt}>How are you feeling right now?</Text>
       <Text style={styles.subtext}>Just one tap. No wrong answers.</Text>
 
-      <View style={styles.statesContainer}>
-        {BRAIN_STATES.map((item) => (
-          <TouchableOpacity
-            key={item.state}
-            style={[
-              styles.stateRow,
-              currentCheckIn?.brainState === item.state && styles.stateRowSelected,
-            ]}
-            onPress={() => handleSelect(item.state)}
-            activeOpacity={0.7}
-            disabled={loading}
-          >
-            <View style={[styles.dot, { backgroundColor: item.color }]} />
-            <View style={styles.stateTextContainer}>
-              <Text style={styles.stateLabel}>{item.label}</Text>
-              <Text style={styles.stateDescription}>{item.description}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {BRAIN_STATES.map((item) => {
+          const selected = currentCheckIn?.brainState === item.state;
+          return (
+            <TouchableOpacity
+              key={item.state}
+              style={[styles.pill, selected && styles.pillSelected]}
+              onPress={() => handleSelect(item.state)}
+              activeOpacity={0.7}
+              disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel={item.label}
+            >
+              <View style={[styles.dot, { backgroundColor: item.color }]} />
+              <Text style={styles.pillLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       {loading && (
         <View style={styles.loadingOverlay}>
@@ -189,38 +192,35 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: Spacing.lg,
   },
-  statesContainer: {
-    gap: Spacing.sm,
-  },
-  stateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.base,
-    borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.background.default,
-  },
-  stateRowSelected: {
-    backgroundColor: Colors.dewSage,
-  },
   dot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    marginRight: Spacing.md,
+    marginRight: Spacing.xs,
   },
-  stateTextContainer: {
-    flex: 1,
+  scrollContent: {
+    paddingVertical: Spacing.xs,
+    paddingRight: Spacing.base,
+    gap: Spacing.sm,
   },
-  stateLabel: {
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: 'transparent',
+  },
+  pillSelected: {
+    backgroundColor: Colors.dewSage,
+    borderColor: Colors.dewSage,
+  },
+  pillLabel: {
     fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: Typography.fontWeight.medium,
     color: Colors.textPrimary,
-  },
-  stateDescription: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.textSecondary,
-    marginTop: 1,
   },
   // Collapsed state
   collapsedRow: {
