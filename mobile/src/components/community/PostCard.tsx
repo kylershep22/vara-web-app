@@ -55,6 +55,11 @@ const PostCardComponent: React.FC<PostCardProps> = ({
 }) => {
   const authorName = post.author?.displayName || 'Unknown';
   const content = String(post.content || '');
+  const postImages: string[] = Array.isArray(post.media)
+    ? post.media.filter((m: any) => m?.type === 'image' && m?.url).map((m: any) => m.url)
+    : Array.isArray(post.images)
+      ? post.images.filter((u: any) => typeof u === 'string' && u.length > 0)
+      : [];
   const timestamp = formatTimestamp(post);
   const likesCount = post.likesCount || 0;
   const commentsCount = post.commentsCount || 0;
@@ -204,9 +209,25 @@ const PostCardComponent: React.FC<PostCardProps> = ({
       </View>
 
       {/* Post Content */}
-      <View style={styles.contentContainer}>
-        <Text style={styles.postContent}>{content}</Text>
-      </View>
+      {content.length > 0 && (
+        <View style={styles.contentContainer}>
+          <Text style={styles.postContent}>{content}</Text>
+        </View>
+      )}
+
+      {/* Post Images */}
+      {postImages.length > 0 && (
+        <View style={styles.imagesContainer}>
+          {postImages.map((uri, i) => (
+            <Image
+              key={`${uri}-${i}`}
+              source={{ uri }}
+              style={[styles.postImage, i > 0 && { marginTop: Spacing.sm }]}
+              resizeMode="cover"
+            />
+          ))}
+        </View>
+      )}
 
       {/* Support Avatars + Comment Count */}
       {(likesCount > 0 || commentsCount > 0) && (
@@ -387,6 +408,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22.5,
     color: Colors.softCharcoal,
+  },
+
+  // Images
+  imagesContainer: {
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.md,
+  },
+  postImage: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.dewSageLight,
   },
 
   // Stats Row
