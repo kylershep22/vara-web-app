@@ -346,6 +346,7 @@ const styles = StyleSheet.create({
   },
   authorInfo: {
     flex: 1,
+    marginLeft: Spacing.sm,
   },
   authorName: {
     fontSize: 16,
@@ -379,6 +380,7 @@ const styles = StyleSheet.create({
   // Content
   contentContainer: {
     paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
     paddingHorizontal: Spacing.base,
   },
   postContent: {
@@ -396,7 +398,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     borderTopWidth: 1,
     borderTopColor: Colors.divider,
-    marginTop: Spacing.md,
   },
   supportSection: {
     flexDirection: 'row',
