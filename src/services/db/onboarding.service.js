@@ -82,6 +82,8 @@ export async function completeOnboarding(userId, habitCreated = false) {
     onboardingHabitCreated: habitCreated,
     updatedAt: serverTimestamp(),
   });
+  // Cache locally so ProtectedRoute sees it immediately
+  try { sessionStorage.setItem('onboarding_complete', '1'); } catch {}
 }
 
 /**
@@ -101,9 +103,15 @@ export async function saveSelectedValues(userId, values) {
  */
 export async function hasCompletedOnboarding(userId) {
   if (!userId) return false;
+  // Fast path: if we just completed onboarding this session, skip Firestore read
+  try { if (sessionStorage.getItem('onboarding_complete') === '1') return true; } catch {}
   const ref = doc(db, USERS, userId);
   const snap = await getDoc(ref);
-  return snap.exists() && snap.data()?.hasCompletedOnboarding === true;
+  const completed = snap.exists() && snap.data()?.hasCompletedOnboarding === true;
+  if (completed) {
+    try { sessionStorage.setItem('onboarding_complete', '1'); } catch {}
+  }
+  return completed;
 }
 
 /**

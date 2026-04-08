@@ -44,12 +44,9 @@ import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import { VideoPlayerProvider } from './context/VideoPlayerContext';
 import NowPlayingBar from './components/audio/NowPlayingBar';
 import VideoPlayerBar from './components/video/VideoPlayerBar';
-import OnboardingWelcome from './pages/onboarding/OnboardingWelcome';
-import OnboardingCheckIn from './pages/onboarding/OnboardingCheckIn';
-import OnboardingInsight from './pages/onboarding/OnboardingInsight';
-import OnboardingActivity from './pages/onboarding/OnboardingActivity';
-import OnboardingConfirmation from './pages/onboarding/OnboardingConfirmation';
-import OnboardingValues from './pages/onboarding/OnboardingValues';
+import OnboardingV2Welcome from './pages/onboarding/OnboardingV2Welcome';
+import OnboardingV2CheckIn from './pages/onboarding/OnboardingV2CheckIn';
+import OnboardingV2Protocol from './pages/onboarding/OnboardingV2Protocol';
 import EditProfile from './pages/Profile/EditProfile';
 import PeopleSearchPage from './pages/Community/PeopleSearchPage';
 import GroupsPage from './pages/Community/GroupsPage';
@@ -86,13 +83,10 @@ function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
 
-          {/* Onboarding Flow */}
-          <Route path="/onboarding/welcome" element={<ProtectedRoute><OnboardingWelcome /></ProtectedRoute>} />
-          <Route path="/onboarding/check-in" element={<ProtectedRoute><OnboardingCheckIn /></ProtectedRoute>} />
-          <Route path="/onboarding/insight" element={<ProtectedRoute><OnboardingInsight /></ProtectedRoute>} />
-          <Route path="/onboarding/activity" element={<ProtectedRoute><OnboardingActivity /></ProtectedRoute>} />
-          <Route path="/onboarding/confirmation" element={<ProtectedRoute><OnboardingConfirmation /></ProtectedRoute>} />
-          <Route path="/onboarding/values" element={<ProtectedRoute><OnboardingValues /></ProtectedRoute>} />
+          {/* Onboarding V2 Flow (3 screens — matches mobile) */}
+          <Route path="/onboarding/welcome" element={<ProtectedRoute><OnboardingV2Welcome /></ProtectedRoute>} />
+          <Route path="/onboarding/check-in" element={<ProtectedRoute><OnboardingV2CheckIn /></ProtectedRoute>} />
+          <Route path="/onboarding/protocol" element={<ProtectedRoute><OnboardingV2Protocol /></ProtectedRoute>} />
 
           {/* Protected Routes */}
           <Route

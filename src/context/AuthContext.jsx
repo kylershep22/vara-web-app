@@ -61,7 +61,10 @@ export const AuthProvider = ({ children }) => {
   const login = (email, password) =>
     signInWithEmailAndPassword(auth, email, password);
 
-  const logout = () => signOut(auth);
+  const logout = () => {
+    try { sessionStorage.removeItem('onboarding_complete'); } catch {}
+    return signOut(auth);
+  };
 
   const sendVerificationEmail = (user) => {
     const actionCodeSettings = {

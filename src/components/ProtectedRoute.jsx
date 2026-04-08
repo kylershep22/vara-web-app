@@ -21,6 +21,9 @@ export default function ProtectedRoute({ children }) {
       return;
     }
 
+    // Reset while re-checking so stale needsOnboarding doesn't cause a redirect
+    setOnboardingChecked(false);
+
     (async () => {
       try {
         const completed = await hasCompletedOnboarding(user.uid);
