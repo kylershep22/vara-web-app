@@ -80,7 +80,7 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, groupName, title, 
         videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
       });
       if (assets) {
-        if (assets[0].duration && assets[0].duration > 300) {
+        if (assets[0].duration && assets[0].duration > 300_000) {
           Alert.alert('Video Too Long', 'Videos must be 5 minutes or less');
           return;
         }
