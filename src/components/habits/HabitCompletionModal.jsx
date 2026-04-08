@@ -5,6 +5,7 @@ import { CheckCircle2, X } from 'lucide-react';
 import { db } from '../../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getCompletionInsight } from '../../constants/brainInsightsCopy';
+import { useAuth } from '../../context/AuthContext';
 
 const REFLECTION_OPTIONS = [
   { key: 'smooth', label: 'Smooth', affirm: 'Captured.' },
@@ -13,6 +14,7 @@ const REFLECTION_OPTIONS = [
 ];
 
 export default function HabitCompletionModal({ habit, date, onComplete, onDismiss, isOpen }) {
+  const { user } = useAuth();
   const [selectedReflection, setSelectedReflection] = useState(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -38,6 +40,7 @@ export default function HabitCompletionModal({ habit, date, onComplete, onDismis
     if (!habit || saving) return;
     setSaving(true);
     try {
+      // Write to subcollection (used by Habits page)
       const completionRef = doc(db, 'habits', habit.id, 'completions', date);
       await setDoc(completionRef, {
         date,
@@ -45,6 +48,21 @@ export default function HabitCompletionModal({ habit, date, onComplete, onDismis
         completedAt: serverTimestamp(),
         ...(reflection ? { reflection } : {}),
       });
+
+      // Write to top-level habitCompletions (used by dashboard/useHabits)
+      if (user?.uid) {
+        const topLevelRef = doc(db, 'habitCompletions', `${habit.id}_${date}`);
+        await setDoc(topLevelRef, {
+          userId: user.uid,
+          habitId: habit.id,
+          dateISO: date,
+          reflection: reflection ?? null,
+          skippedReflection: !reflection,
+          source: 'habits_page',
+          createdAt: serverTimestamp(),
+        });
+      }
+
       setSaved(true);
       if (onComplete) onComplete(habit.id, date);
     } catch (err) {

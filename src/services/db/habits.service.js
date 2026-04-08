@@ -56,6 +56,8 @@ export async function removeHabit(id) {
  */
 export async function logCompletion(userId, habitId, dateISO, reflectionData = {}) {
   const completionId = `${habitId}_${dateISO}`;
+
+  // Write to top-level habitCompletions collection (used by dashboard/useHabits)
   const ref = doc(db, "habitCompletions", completionId);
   await setDoc(ref, {
     userId,
@@ -69,6 +71,15 @@ export async function logCompletion(userId, habitId, dateISO, reflectionData = {
     valueAlignment: reflectionData.valueAlignment ?? null,
     version: reflectionData.version ?? null,
     createdAt: serverTimestamp(),
+  });
+
+  // Write to subcollection (used by Habits page)
+  const subRef = doc(db, "habits", habitId, "completions", dateISO);
+  await setDoc(subRef, {
+    date: dateISO,
+    completed: true,
+    completedAt: serverTimestamp(),
+    reflection: reflectionData.reflection ?? null,
   });
 
   // Reset bounce-back tracking on completion
@@ -87,8 +98,15 @@ export async function logCompletion(userId, habitId, dateISO, reflectionData = {
  */
 export async function removeCompletion(habitId, dateISO) {
   const completionId = `${habitId}_${dateISO}`;
+
+  // Remove from top-level collection
   const ref = doc(db, "habitCompletions", completionId);
   await deleteDoc(ref);
+
+  // Remove from subcollection
+  const subRef = doc(db, "habits", habitId, "completions", dateISO);
+  await deleteDoc(subRef);
+
   return { id: completionId, deleted: true };
 }
 

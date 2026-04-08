@@ -78,7 +78,13 @@ function buildVisibleDays() {
 export function useDashboardV2() {
   const { user } = useAuth();
 
-  const { habits, habitCompletions: habitCompletionsArray, logHabitToday } = useHabits(user?.uid);
+  const {
+    habits,
+    habitCompletions: habitCompletionsArray,
+    beginToggle,
+    pendingReflection,
+    confirmCompletion,
+  } = useHabits(user?.uid);
 
   // --- Core state ---
   const [userName, setUserName] = useState('');
@@ -97,6 +103,13 @@ export function useDashboardV2() {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const formattedDate = useMemo(() => getFormattedDate(), []);
   const visibleDays = useMemo(() => buildVisibleDays(), []);
+
+  // Auto-confirm habit completions on dashboard (skip reflection modal)
+  useEffect(() => {
+    if (pendingReflection) {
+      confirmCompletion({ source: 'dashboard' });
+    }
+  }, [pendingReflection, confirmCompletion]);
 
   /* ---- habitCompletions map: { [habitId]: ['YYYY-MM-DD', ...] } ---- */
   const weeklyCompletions = useMemo(() => {
@@ -214,10 +227,10 @@ export function useDashboardV2() {
       if (!habit) return;
       // Only allow toggling today
       if (date === today) {
-        await logHabitToday(habit);
+        beginToggle(habit, date);
       }
     },
-    [habits, today, logHabitToday]
+    [habits, today, beginToggle]
   );
 
   const handleDailyReflection = useCallback(
