@@ -17,6 +17,7 @@ import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { CommunityAvatar } from '../shared/CommunityAvatar';
 import { HeartIcon } from './HeartIcon';
 import { GroupContextBar } from './GroupContextBar';
+import { VideoPlayer } from '../media/VideoPlayer';
 
 interface Comment {
   userId: string;
@@ -60,6 +61,9 @@ const PostCardComponent: React.FC<PostCardProps> = ({
     : Array.isArray(post.images)
       ? post.images.filter((u: any) => typeof u === 'string' && u.length > 0)
       : [];
+  const postVideos: string[] = Array.isArray(post.media)
+    ? post.media.filter((m: any) => m?.type === 'video' && m?.url).map((m: any) => m.url)
+    : [];
   const timestamp = formatTimestamp(post);
   const likesCount = post.likesCount || 0;
   const commentsCount = post.commentsCount || 0;
@@ -225,6 +229,20 @@ const PostCardComponent: React.FC<PostCardProps> = ({
               style={[styles.postImage, i > 0 && { marginTop: Spacing.sm }]}
               resizeMode="cover"
             />
+          ))}
+        </View>
+      )}
+
+      {/* Post Videos */}
+      {postVideos.length > 0 && (
+        <View style={styles.imagesContainer}>
+          {postVideos.map((uri, i) => (
+            <View
+              key={`${uri}-${i}`}
+              style={[styles.postVideoWrapper, i > 0 && { marginTop: Spacing.sm }]}
+            >
+              <VideoPlayer uri={uri} style={styles.postVideo} />
+            </View>
           ))}
         </View>
       )}
@@ -420,6 +438,17 @@ const styles = StyleSheet.create({
     aspectRatio: 4 / 3,
     borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.dewSageLight,
+  },
+  postVideoWrapper: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: Layout.borderRadius.md,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+  },
+  postVideo: {
+    width: '100%',
+    height: '100%',
   },
 
   // Stats Row
