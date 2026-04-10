@@ -106,8 +106,82 @@ function compositeScore(day: DailyDataPoint): number {
   return factors > 0 ? score / factors : 0;
 }
 
+/**
+ * Average composite wellness score (0-100) for a set of daily data points.
+ * Only includes days that have at least one metric present.
+ */
+export function computePeriodScore(data: DailyDataPoint[]): number {
+  const daysWithData = data.filter(
+    (d) =>
+      d.mood !== null ||
+      d.sleepQuality !== null ||
+      d.habitCompletionRate !== null ||
+      d.stress !== null ||
+      d.energy !== null
+  );
+  if (daysWithData.length === 0) return 0;
+  const total = daysWithData.reduce((sum, d) => sum + compositeScore(d), 0);
+  return Math.round(total / daysWithData.length);
+}
+
+/**
+ * Compute week-over-week (or month-over-month) delta.
+ * Takes the full 2x dataset and the period length (7 or 30).
+ * Returns scoreChange and habitChange as percentage point deltas.
+ */
+export function computeWeekOverWeek(
+  allData: DailyDataPoint[],
+  periodDays: number
+): { scoreChange: number; habitChange: number } {
+  const currentPeriod = allData.slice(-periodDays);
+  const priorPeriod = allData.slice(0, allData.length - periodDays);
+
+  if (priorPeriod.length === 0) {
+    return { scoreChange: 0, habitChange: 0 };
+  }
+
+  const currentScore = computePeriodScore(currentPeriod);
+  const priorScore = computePeriodScore(priorPeriod);
+
+  const currentHabits = currentPeriod.filter((d) => d.habitCompletionRate !== null);
+  const priorHabits = priorPeriod.filter((d) => d.habitCompletionRate !== null);
+
+  const currentHabitAvg =
+    currentHabits.length > 0
+      ? currentHabits.reduce((s, d) => s + d.habitCompletionRate!, 0) / currentHabits.length
+      : 0;
+  const priorHabitAvg =
+    priorHabits.length > 0
+      ? priorHabits.reduce((s, d) => s + d.habitCompletionRate!, 0) / priorHabits.length
+      : 0;
+
+  return {
+    scoreChange: Math.round(currentScore - priorScore),
+    habitChange: Math.round(currentHabitAvg - priorHabitAvg),
+  };
+}
+
+/**
+ * Compute daily activity counts for bar chart.
+ * Each day's count = habits completed + (1 if journaled) + focus sessions.
+ * focusSessionCounts is a map of date -> number of completed sessions.
+ */
+export function computeDailyActivityCounts(
+  data: DailyDataPoint[],
+  habitCompletionsByDate: Map<string, number>,
+  focusSessionsByDate: Map<string, number>
+): number[] {
+  return data.map((d) => {
+    const habitsCompleted = habitCompletionsByDate.get(d.date) || 0;
+    const journaled = d.journaled ? 1 : 0;
+    const focusSessions = focusSessionsByDate.get(d.date) || 0;
+    return habitsCompleted + journaled + focusSessions;
+  });
+}
+
 export function computeCorrelations(
-  data: DailyDataPoint[]
+  data: DailyDataPoint[],
+  allData?: DailyDataPoint[]
 ): WeeklyCorrelations | null {
   // Count days with mood or sleep data
   const daysWithData = data.filter(
@@ -298,7 +372,9 @@ export function computeCorrelations(
     },
     brightSpot,
     stressTrend,
-    weekOverWeek: { scoreChange: 0, habitChange: 0 },
+    weekOverWeek: allData
+      ? computeWeekOverWeek(allData, data.length)
+      : { scoreChange: 0, habitChange: 0 },
     dataCompleteness,
   };
 }
