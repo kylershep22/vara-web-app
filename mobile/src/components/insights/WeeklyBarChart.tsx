@@ -12,7 +12,6 @@ import Animated, {
   withDelay,
   Easing,
 } from 'react-native-reanimated';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 // Vara brand colors
 const VARA_COLORS = {
@@ -113,12 +112,7 @@ export const WeeklyBarChart: React.FC<WeeklyBarChartProps> = ({
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.iconContainer}>
-          <Icon name="clock-outline" size={18} color={VARA_COLORS.teal} />
-        </View>
-        <Text style={styles.title}>{customTitle || 'Daily activity'}</Text>
-      </View>
+      <Text style={styles.title}>{customTitle || 'Daily activity'}</Text>
 
       {/* Bar chart */}
       <View style={styles.chartContainer}>
@@ -151,24 +145,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(27,94,87,0.06)',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  iconContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: VARA_COLORS.dewSage,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
   title: {
     fontSize: 14,
     fontWeight: '600',
     color: VARA_COLORS.charcoal,
+    marginBottom: 12,
   },
   chartContainer: {
     flexDirection: 'row',
@@ -176,6 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     height: 64,
     paddingHorizontal: 4,
+    overflow: 'hidden',
   },
   barContainer: {
     flex: 1,
