@@ -26,12 +26,13 @@
       },
       "infoPlist": {
         "NSCameraUsageDescription": "Vara needs access to your camera to upload profile pictures and content.",
-        "NSPhotoLibraryUsageDescription": "Vara needs access to your photo library to upload images."
+        "NSPhotoLibraryUsageDescription": "Vara needs access to your photo library to upload images.",
+        "NSPhotoLibraryAddUsageDescription": "Vara needs access to save images to your photo library."
       }
     },
     "android": {
       "package": "com.vara.wellness",
-      "versionCode": 1,
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/Adaptive Android Icon 1.png",
         "backgroundColor": "#D5E3D1"
