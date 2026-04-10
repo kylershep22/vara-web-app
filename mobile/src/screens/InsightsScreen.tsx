@@ -1,9 +1,12 @@
 /**
  * Insights Screen — "Your week"
- * Simplified to 3 high-value widgets:
- * 1. AI weekly narrative
- * 2. 30-day habit heatmap
- * 3. At a glance sparklines
+ * Progressive widget hierarchy:
+ * 1. Hero — Wellness Score
+ * 2. AI Narrative
+ * 3. Correlation Insight
+ * 4. Daily Activity Bar Chart
+ * 5. 30-day Habit Heatmap
+ * 6. At a Glance
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -15,8 +18,11 @@ import {
   LoadingSpinner,
   NarrativeRecap,
   HabitHeatmap,
+  HeroSummaryCard,
+  WeeklyBarChart,
 } from '../components';
 import { AtAGlanceCard } from '../components/insights/SparklineTrendCard';
+import { CorrelationInsightCard } from '../components/insights/CorrelationInsightCard';
 import { Colors, Spacing, Typography } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { useHabits } from '../hooks';
@@ -40,10 +46,11 @@ type TimeFrame = 'week' | 'month';
 const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false }) => {
   const { user } = useAuth();
   const { habits, loading: habitsLoading } = useHabits();
-  const { correlations } = useWeeklyCorrelations();
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>('week');
+  const days = timeFrame === 'week' ? 7 : 30;
+  const { correlations, compositeScore, dailyActivityCounts } = useWeeklyCorrelations(days);
   const [aiNarrative, setAiNarrative] = useState<string | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
-  const [timeFrame, setTimeFrame] = useState<TimeFrame>('week');
   const [habitCompletionData, setHabitCompletionData] = useState<{ [habitId: string]: string[] }>({});
   const [focusSessions, setFocusSessions] = useState<{ id: string; duration: number; completed: boolean; startedAt: any }[]>([]);
   const [journalEntries, setJournalEntries] = useState<{ id: string; createdAt: any }[]>([]);
@@ -174,8 +181,54 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
           dataCompleteness: correlations.dataCompleteness,
         };
 
+        // Format best/worst day names for the narrative
+        const formatDayName = (dateStr: string) => {
+          const date = new Date(dateStr + 'T12:00:00');
+          return date.toLocaleDateString('en-US', { weekday: 'long' });
+        };
+
+        const bestDay = {
+          day: formatDayName(correlations.bestDay.day),
+          factors: correlations.bestDay.factors,
+        };
+        const hardestDay = {
+          day: formatDayName(correlations.hardestDay.day),
+          factors: correlations.hardestDay.factors,
+        };
+
+        // Top significant correlations for the narrative
+        const topCorrelations = [
+          correlations.sleepHabitCorrelation.significant && {
+            factor: 'sleep-habits',
+            direction: 'positive',
+            impact: Math.round(Math.abs(
+              correlations.sleepHabitCorrelation.highSleepCompletion -
+              correlations.sleepHabitCorrelation.lowSleepCompletion
+            )),
+          },
+          correlations.energyHabitCorrelation.significant && {
+            factor: 'energy-habits',
+            direction: 'positive',
+            impact: Math.round(Math.abs(
+              correlations.energyHabitCorrelation.highEnergyCompletion -
+              correlations.energyHabitCorrelation.lowEnergyCompletion
+            )),
+          },
+          correlations.journalMoodCorrelation.significant && {
+            factor: 'journaling-mood',
+            direction: 'positive',
+            impact: Math.round(Math.abs(
+              correlations.journalMoodCorrelation.journalDayMood -
+              correlations.journalMoodCorrelation.nonJournalDayMood
+            ) * 20),
+          },
+        ].filter(Boolean);
+
         const response = await apiPost<{ narrative: string }>('/weekly-narrative', {
           correlationData,
+          bestDay,
+          hardestDay,
+          topCorrelations,
         }, { debug: __DEV__ });
 
         try {
@@ -217,6 +270,43 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
     const reflections = journalEntries.length;
     return { activeDays, protocolsCompleted, reflections };
   }, [habitCompletionData, focusSessions, journalEntries]);
+
+  const heroProps = useMemo(() => {
+    if (!correlations) {
+      return { readinessScore: 0, trend: 'steady' as const, deltaPercentage: 0, checkInsCount: 0 };
+    }
+    const delta = correlations.weekOverWeek.scoreChange;
+    let trend: 'up' | 'steady' | 'down' = 'steady';
+    if (delta > 2) trend = 'up';
+    else if (delta < -2) trend = 'down';
+
+    // Count check-ins: days with at least one activity
+    const checkInsCount = Object.values(habitCompletionData).flat().length > 0
+      ? new Set(Object.values(habitCompletionData).flat()).size
+      : 0;
+
+    return {
+      readinessScore: compositeScore,
+      trend,
+      deltaPercentage: delta,
+      checkInsCount,
+    };
+  }, [correlations, compositeScore, habitCompletionData]);
+
+  const barChartProps = useMemo(() => {
+    if (timeFrame === 'week') {
+      return { data: dailyActivityCounts, labels: undefined, title: undefined };
+    }
+    // Month view: aggregate into weeks
+    const weeks: number[] = [];
+    const labels: string[] = [];
+    for (let i = 0; i < dailyActivityCounts.length; i += 7) {
+      const weekSlice = dailyActivityCounts.slice(i, i + 7);
+      weeks.push(weekSlice.reduce((a, b) => a + b, 0));
+      labels.push(`W${weeks.length}`);
+    }
+    return { data: weeks, labels, title: 'Weekly activity' };
+  }, [dailyActivityCounts, timeFrame]);
 
   // Heatmap data
   const heatmapData = useMemo(() => {
@@ -284,7 +374,17 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
           </View>
         ) : (
           <>
-            {/* Widget 1: AI Narrative */}
+            {/* Widget 1: Hero — Wellness Score */}
+            <HeroSummaryCard
+              readinessScore={heroProps.readinessScore}
+              checkInsCount={heroProps.checkInsCount}
+              trend={heroProps.trend}
+              timeframeLabel={timeFrame === 'week' ? 'This week' : 'This month'}
+              deltaPercentage={heroProps.deltaPercentage}
+              periodLabel={timeFrame === 'week' ? 'week' : 'month'}
+            />
+
+            {/* Widget 2: AI Narrative */}
             <NarrativeRecap
               narrative={aiNarrative}
               loading={narrativeLoading}
@@ -292,14 +392,28 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
               hasInsufficientData={hasInsufficientData}
             />
 
-            {/* Widget 2: 30-day Habit Heatmap */}
+            {/* Widget 3: Correlation Insight (only if significant) */}
+            {correlations && !hasInsufficientData && (
+              <CorrelationInsightCard correlations={correlations} />
+            )}
+
+            {/* Widget 4: Daily Activity Bar Chart */}
+            {!hasInsufficientData && dailyActivityCounts.length > 0 && (
+              <WeeklyBarChart
+                data={barChartProps.data}
+                labels={barChartProps.labels}
+                title={barChartProps.title}
+              />
+            )}
+
+            {/* Widget 5: 30-day Habit Heatmap */}
             <HabitHeatmap
               data={heatmapData}
               totalHabits={habits.length}
               daysToShow={30}
             />
 
-            {/* Widget 3: At a Glance */}
+            {/* Widget 6: At a Glance */}
             <AtAGlanceCard
               metrics={[
                 {
