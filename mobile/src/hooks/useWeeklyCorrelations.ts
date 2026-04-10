@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { getHabitCompletions } from '../services/firebase/habits.service';
 import {
   computeCorrelations,
+  computePeriodScore,
+  computeDailyActivityCounts,
   type DailyDataPoint,
   type WeeklyCorrelations,
 } from '../services/correlationEngine.service';
@@ -33,12 +35,16 @@ function dateRange(days: number): { start: Date; end: Date; dates: string[] } {
   return { start, end, dates };
 }
 
-export function useWeeklyCorrelations(): {
+export function useWeeklyCorrelations(days: number = 7): {
   correlations: WeeklyCorrelations | null;
+  compositeScore: number;
+  dailyActivityCounts: number[];
   loading: boolean;
 } {
   const { user } = useAuth();
   const [correlations, setCorrelations] = useState<WeeklyCorrelations | null>(null);
+  const [compositeScore, setCompositeScore] = useState<number>(0);
+  const [dailyActivityCounts, setDailyActivityCounts] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,9 +61,11 @@ export function useWeeklyCorrelations(): {
         const cached = await AsyncStorage.getItem(CACHE_KEY);
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (parsed.date === todayStr()) {
+          if (parsed.date === todayStr() && parsed.days === days) {
             if (!cancelled) {
               setCorrelations(parsed.data);
+              setCompositeScore(parsed.compositeScore ?? 0);
+              setDailyActivityCounts(parsed.dailyActivityCounts ?? []);
               setLoading(false);
             }
             return;
@@ -68,17 +76,20 @@ export function useWeeklyCorrelations(): {
       }
 
       try {
-        const { start, end, dates } = dateRange(7);
+        const fetchDays = days * 2;
+        const { start, end, dates } = dateRange(fetchDays);
         const uid = user!.uid;
 
         // Fetch all data sources in parallel
-        const [brainStateCheckIns, brainMetrics, journalEntries, focusSessions, habits] = await Promise.all([
+        const [brainStateCheckIns, brainMetrics, journalEntries, focusSessions, habitsResult] = await Promise.all([
           fetchBrainStateCheckIns(uid, dates),
           fetchBrainMetrics(uid, dates),
           fetchJournalEntries(uid, start, end),
           fetchFocusSessions(uid, start, end),
           fetchHabitsAndCompletions(uid, dates),
         ]);
+        const habits = habitsResult.rates;
+        const habitCounts = habitsResult.counts;
 
         // Build daily data points
         const dailyData: DailyDataPoint[] = dates.map(date => {
@@ -108,17 +119,48 @@ export function useWeeklyCorrelations(): {
           };
         });
 
-        const result = computeCorrelations(dailyData);
+        // Split into current period and full dataset
+        const currentPeriodData = dailyData.slice(-days);
+        const result = computeCorrelations(currentPeriodData, dailyData);
+
+        // Compute composite score for current period
+        const score = computePeriodScore(currentPeriodData);
+
+        // Compute daily activity counts for current period
+        const currentDates = dates.slice(-days);
+        const habitCountsByDate = new Map<string, number>();
+        const focusCountsByDate = new Map<string, number>();
+        for (const date of currentDates) {
+          habitCountsByDate.set(date, habitCounts.get(date) || 0);
+          focusCountsByDate.set(date, focusSessions.get(date) ? 1 : 0);
+        }
+
+        const activityCounts = computeDailyActivityCounts(
+          currentPeriodData,
+          habitCountsByDate,
+          focusCountsByDate
+        );
 
         // Cache result
         try {
-          await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({ date: todayStr(), data: result }));
+          await AsyncStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({
+              date: todayStr(),
+              days,
+              data: result,
+              compositeScore: score,
+              dailyActivityCounts: activityCounts,
+            })
+          );
         } catch {
           // Non-critical cache write failure
         }
 
         if (!cancelled) {
           setCorrelations(result);
+          setCompositeScore(score);
+          setDailyActivityCounts(activityCounts);
           setLoading(false);
         }
       } catch (err) {
@@ -129,9 +171,9 @@ export function useWeeklyCorrelations(): {
 
     load();
     return () => { cancelled = true; };
-  }, [user?.uid]);
+  }, [user?.uid, days]);
 
-  return { correlations, loading };
+  return { correlations, compositeScore, dailyActivityCounts, loading };
 }
 
 // --- Data fetchers ---
@@ -242,10 +284,11 @@ async function fetchFocusSessions(
 async function fetchHabitsAndCompletions(
   uid: string,
   dates: string[],
-): Promise<Map<string, number>> {
-  const map = new Map<string, number>();
+): Promise<{ rates: Map<string, number>; counts: Map<string, number> }> {
+  const rates = new Map<string, number>();
+  const counts = new Map<string, number>();
   try {
-    if (!db) return map;
+    if (!db) return { rates, counts };
     const q = query(
       collection(db, 'habits'),
       where('userId', '==', uid),
@@ -254,7 +297,7 @@ async function fetchHabitsAndCompletions(
     const habitsSnap = await getDocs(q);
     const habitIds = habitsSnap.docs.map(d => d.id);
 
-    if (habitIds.length === 0) return map;
+    if (habitIds.length === 0) return { rates, counts };
 
     // For each habit, fetch completions in date range
     const completionPromises = habitIds.map(async (habitId) => {
@@ -270,10 +313,11 @@ async function fetchHabitsAndCompletions(
         if (match) completed++;
       }
       const rate = Math.round((completed / habitIds.length) * 100);
-      map.set(date, rate);
+      rates.set(date, rate);
+      counts.set(date, completed);
     }
   } catch {
-    // Return empty map
+    // Return empty maps
   }
-  return map;
+  return { rates, counts };
 }
