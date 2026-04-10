@@ -15,7 +15,9 @@ export const ActivityItem: React.FC<{ checkIn: ChallengeCheckIn }> = ({ checkIn 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    getUserById(checkIn.userId).then(setUserProfile);
+    getUserById(checkIn.userId)
+      .then(setUserProfile)
+      .catch(() => {});
   }, [checkIn.userId]);
 
   const formatTime = (timestamp: any) => {
