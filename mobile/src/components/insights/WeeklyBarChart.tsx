@@ -173,13 +173,14 @@ const styles = StyleSheet.create({
   chartContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    justifyContent: 'space-between',
     height: 64,
-    gap: 5,
+    paddingHorizontal: 4,
   },
   barContainer: {
     flex: 1,
     alignItems: 'center',
-    maxWidth: 28,
+    marginHorizontal: 3,
   },
   barWrapper: {
     width: '100%',

@@ -338,17 +338,11 @@ const InsightsScreen: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={hideHeader ? [] : ['top']}>
-      {!hideHeader && (
-        <View style={styles.header}>
-          <Text style={styles.screenTitle}>Your week</Text>
-          <Text style={styles.subtitle}>{getDateRangeLabel()}</Text>
-        </View>
-      )}
-
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Timeframe Selector */}
         <View style={styles.filterSection}>
+          <Text style={styles.dateRange}>{getDateRangeLabel()}</Text>
           <View style={styles.chipContainer}>
             {(['week', 'month'] as TimeFrame[]).map((tf) => (
               <TouchableOpacity
@@ -448,26 +442,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: VARA_COLORS.mistWhite,
   },
-  header: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.base,
-  },
-  screenTitle: {
-    fontSize: 24,
-    fontWeight: Typography.fontWeight.bold,
-    color: VARA_COLORS.teal,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: VARA_COLORS.sageGray,
-    marginTop: Spacing.xs,
-  },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl,
+    paddingTop: Spacing.sm,
   },
   filterSection: {
     marginBottom: Spacing.base,
+  },
+  dateRange: {
+    fontSize: 14,
+    color: VARA_COLORS.sageGray,
+    marginBottom: Spacing.sm,
   },
   chipContainer: {
     flexDirection: 'row',
