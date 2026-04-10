@@ -27,6 +27,8 @@ interface HeroSummaryCardProps {
   checkInsCount: number;
   trend: 'up' | 'steady' | 'down';
   timeframeLabel: string;
+  deltaPercentage?: number;
+  periodLabel?: string; // "week" or "month"
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -97,16 +99,18 @@ export const HeroSummaryCard: React.FC<HeroSummaryCardProps> = ({
   checkInsCount,
   trend,
   timeframeLabel,
+  deltaPercentage,
+  periodLabel,
 }) => {
   const getTrendText = () => {
-    switch (trend) {
-      case 'up':
-        return 'Trending up';
-      case 'down':
-        return 'Needs attention';
-      default:
-        return 'Trending steady';
+    if (checkInsCount === 0) return '';
+    const period = periodLabel || 'week';
+    if (deltaPercentage !== undefined && deltaPercentage !== 0) {
+      const direction = deltaPercentage > 0 ? 'Up' : 'Down';
+      const abs = Math.abs(deltaPercentage);
+      return `${direction} ${abs}% from last ${period}`;
     }
+    return 'Holding steady';
   };
 
   return (
@@ -124,7 +128,7 @@ export const HeroSummaryCard: React.FC<HeroSummaryCardProps> = ({
       <View style={styles.content}>
         <View style={styles.textContent}>
           <Text style={styles.eyebrow}>{timeframeLabel} at a glance</Text>
-          <Text style={styles.title}>Brain Readiness</Text>
+          <Text style={styles.title}>Wellness Score</Text>
           <Text style={[styles.subtitle, checkInsCount === 0 && styles.subtitleZero]}>
             {checkInsCount === 0
               ? 'Your score appears after your first check-in'
