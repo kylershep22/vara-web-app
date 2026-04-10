@@ -59,16 +59,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Safety timeout: if onAuthStateChanged never fires (e.g. Firebase SDK
     // stalls or config is wrong), unblock the app so users see the login
     // screen instead of an indefinite loading spinner.
+    let authResolved = false;
+
     const authTimeout = setTimeout(() => {
-      setIsAuthReady((prev) => {
-        if (!prev) {
-          logger.warn('⚠️ Auth state timeout - unblocking app after 5s');
-        }
-        return true;
-      });
+      if (!authResolved) {
+        authResolved = true;
+        logger.warn('⚠️ Auth state timeout - unblocking app after 5s');
+        setIsAuthReady(true);
+      }
     }, 5000);
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      authResolved = true;
       clearTimeout(authTimeout);
       setUser(user);
       setIsAuthReady(true);
