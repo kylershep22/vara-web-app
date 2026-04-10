@@ -53,7 +53,15 @@ const ChatScreen = () => {
   const { user } = useAuth();
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { conversationId, otherUserId } = route.params;
+  const { conversationId, otherUserId } = route.params ?? {};
+
+  if (!conversationId || !otherUserId) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Unable to load conversation.</Text>
+      </View>
+    );
+  }
 
   const { messages, loading, sending, sendMessage } = useConversation(conversationId);
   const [newMessage, setNewMessage] = useState('');

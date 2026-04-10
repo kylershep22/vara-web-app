@@ -17,7 +17,12 @@ import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { REPORT_REASONS } from '../../types/moderation';
 
 const ReportReasonScreen = ({ navigation, route }: any) => {
-  const { postId, reportedUserId } = route.params;
+  const { postId, reportedUserId } = route.params ?? {};
+
+  if (!postId || !reportedUserId) {
+    navigation.goBack();
+    return null;
+  }
 
   const handleSelectReason = (reasonId: string) => {
     navigation.navigate('ReportDetail', {

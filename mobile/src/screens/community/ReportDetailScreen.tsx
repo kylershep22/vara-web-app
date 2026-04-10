@@ -25,11 +25,16 @@ const MAX_CHARS = 500;
 const SHOW_COUNT_THRESHOLD = 400;
 
 const ReportDetailScreen = ({ navigation, route }: any) => {
-  const { postId, reportedUserId, reason } = route.params as {
-    postId: string;
-    reportedUserId: string;
-    reason: PostReportReason;
+  const { postId, reportedUserId, reason } = (route.params ?? {}) as {
+    postId?: string;
+    reportedUserId?: string;
+    reason?: PostReportReason;
   };
+
+  if (!postId || !reportedUserId || !reason) {
+    navigation.goBack();
+    return null;
+  }
   const { user } = useAuth();
   const [detail, setDetail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
