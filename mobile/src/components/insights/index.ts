@@ -11,3 +11,4 @@ export { WeeklyBarChart } from './WeeklyBarChart';
 export { NarrativeRecap } from './NarrativeRecap';
 export { EmptyStateCard } from './EmptyStateCard';
 export { ConsolidatedMetricsCard } from './ConsolidatedMetricsCard';
+export { CorrelationInsightCard } from './CorrelationInsightCard';
