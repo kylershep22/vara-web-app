@@ -321,7 +321,7 @@ Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}
 // Weekly Narrative - AI-generated summary from correlation data
 // Receives ONLY anonymized aggregate numbers. No PII.
 app.post('/api/weekly-narrative', aiLimiter, requireAuth, async (req, res) => {
-  const { correlationData } = req.body;
+  const { correlationData, bestDay, hardestDay, topCorrelations } = req.body;
 
   if (!correlationData) {
     return res.status(400).json({ error: 'Missing required field: correlationData' });
@@ -340,6 +340,7 @@ Voice rules:
 - No scientific jargon. No medical claims.
 - If insufficient data to draw a meaningful pattern, respond with exactly: "More patterns will emerge as you use Vara this week."
 - Acknowledge effort over outcomes. Consistency matters more than perfection.
+- When provided with best/worst day info and correlations, weave them naturally into the narrative. Don't list them mechanically. Example: "Wednesday stood out, with good sleep and energy carrying you through your habits." Not: "Best day: Wednesday. Factors: good sleep, high energy."
 - End with one gentle observation or reflection, not a directive or suggestion.
 - Tone: warm, brief, like a thoughtful friend who notices patterns without judging.
     `.trim();
@@ -362,8 +363,9 @@ ${correlationData.stressTrend ? `- Stress trend: ${correlationData.stressTrend}`
 ${correlationData.brightSpot?.insight ? `- Bright spot: ${correlationData.brightSpot.insight}` : ''}
 ${correlationData.weekOverWeek?.scoreChange ? `- Wellness score change from last week: ${correlationData.weekOverWeek.scoreChange > 0 ? '+' : ''}${correlationData.weekOverWeek.scoreChange} points` : ''}
 
-Best day factors: ${correlationData.bestDay?.factors?.join(', ') || 'not enough data'}
-Hardest day factors: ${correlationData.hardestDay?.factors?.join(', ') || 'not enough data'}
+Best day: ${bestDay?.day || correlationData.bestDay?.day || 'unknown'} (${bestDay?.factors?.join(', ') || correlationData.bestDay?.factors?.join(', ') || 'not enough data'})
+Hardest day: ${hardestDay?.day || correlationData.hardestDay?.day || 'unknown'} (${hardestDay?.factors?.join(', ') || correlationData.hardestDay?.factors?.join(', ') || 'not enough data'})
+${topCorrelations?.length ? `\nTop behavioral correlations:\n${topCorrelations.map(c => `- ${c.factor}: ${c.direction} impact of ${c.impact} points`).join('\n')}` : ''}
 
 Write a 3-5 sentence weekly summary based on these patterns.
     `.trim();
