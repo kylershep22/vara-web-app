@@ -157,42 +157,59 @@ export const useFeed = () => {
           logger.log('User connections:', connectionIds);
           logger.log('User groups:', groupIds);
 
-          // Filter posts: own posts, connection posts, or group posts
-          // Support both authorId (web app) and userId (mobile app)
-          // Also filter out hidden posts, muted users, and soft-deleted posts
-          const feedPosts = allPosts.filter((post) => {
+          // Pre-filter: remove deleted, challenge, hidden, muted posts
+          const candidatePosts = allPosts.filter((post) => {
             const postAuthor = post.authorId || post.userId;
             if (!postAuthor) return false;
-
-            // Filter out soft-deleted posts
             if ((post as any).deleted) return false;
-
-            // Filter out challenge check-in posts (these belong in the challenge feed only)
             if ((post as any).challengeId) return false;
-
-            // Filter out hidden posts
             if (hiddenPostIds.includes(post.id)) return false;
-
-            // Filter out posts from muted users
             if (mutedUserIds.includes(postAuthor)) return false;
+            return true;
+          });
+
+          // Batch-fetch author profiles for personal (non-group) posts
+          // so we can check their privacy settings (matching web behavior)
+          const personalPostAuthorIds = [
+            ...new Set(
+              candidatePosts
+                .filter((p) => !p.groupId)
+                .map((p) => p.authorId || p.userId)
+                .filter((id): id is string => !!id && id !== user.uid)
+            ),
+          ];
+
+          const profilePrivacyMap = new Map<string, string>();
+          for (let i = 0; i < personalPostAuthorIds.length; i += 10) {
+            const chunk = personalPostAuthorIds.slice(i, i + 10);
+            const profileDocs = await getDocs(
+              query(collection(db, 'users'), where(documentId(), 'in', chunk))
+            );
+            profileDocs.forEach((doc) => {
+              const data = doc.data();
+              // Match web logic: check privacy field, fall back to visibility, default "public"
+              const privacy = data.privacy || (data.visibility === 'public' ? 'public' : 'public');
+              profilePrivacyMap.set(doc.id, privacy);
+            });
+          }
+
+          // Filter posts using privacy-aware logic (aligned with web)
+          const feedPosts = candidatePosts.filter((post) => {
+            const postAuthor = (post.authorId || post.userId) as string;
 
             // User's own posts
-            if (postAuthor === user.uid) {
-              logger.log('Including own post:', post.id);
-              return true;
-            }
+            if (postAuthor === user.uid) return true;
 
-            // Posts from connections (no groupId = personal/public posts)
-            // Include ALL personal posts from connections, regardless of age
-            if (!post.groupId && connectionIds.includes(postAuthor)) {
-              logger.log('Including connection post:', post.id, 'from:', postAuthor);
-              return true;
-            }
+            // Group posts: user must be a member
+            if (post.groupId) return groupIds.includes(post.groupId);
 
-            // Posts from groups user is member of
-            if (post.groupId && groupIds.includes(post.groupId)) {
-              logger.log('Including group post:', post.id, 'in group:', post.groupId);
-              return true;
+            // Personal posts: check author's privacy setting
+            const authorPrivacy = profilePrivacyMap.get(postAuthor) || 'public';
+
+            if (authorPrivacy === 'public') return true;
+
+            if (authorPrivacy === 'connections' || authorPrivacy === 'private') {
+              return connectionIds.includes(postAuthor);
             }
 
             return false;
