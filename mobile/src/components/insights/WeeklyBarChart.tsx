@@ -26,7 +26,9 @@ const VARA_COLORS = {
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 interface WeeklyBarChartProps {
-  data: number[]; // Array of 7 values (Mon-Sun)
+  data: number[]; // Array of values
+  labels?: string[]; // Custom labels (defaults to M T W T F S S)
+  title?: string; // Custom title (defaults to "Daily activity")
 }
 
 const AnimatedBar: React.FC<{
@@ -81,13 +83,18 @@ const AnimatedBar: React.FC<{
   );
 };
 
-export const WeeklyBarChart: React.FC<WeeklyBarChartProps> = ({ data }) => {
-  // Ensure we have exactly 7 values
-  const normalizedData = [...data];
-  while (normalizedData.length < 7) {
-    normalizedData.push(0);
+export const WeeklyBarChart: React.FC<WeeklyBarChartProps> = ({
+  data,
+  labels,
+  title: customTitle,
+}) => {
+  const chartData = [...data];
+  const chartLabels = labels || DAY_LABELS;
+
+  // Pad data to match labels if needed
+  while (chartData.length < chartLabels.length) {
+    chartData.push(0);
   }
-  const chartData = normalizedData.slice(0, 7);
 
   // Find the maximum value and peak day index
   const maxValue = Math.max(...chartData);
@@ -110,19 +117,19 @@ export const WeeklyBarChart: React.FC<WeeklyBarChartProps> = ({ data }) => {
         <View style={styles.iconContainer}>
           <Icon name="clock-outline" size={18} color={VARA_COLORS.teal} />
         </View>
-        <Text style={styles.title}>Weekly Activity</Text>
+        <Text style={styles.title}>{customTitle || 'Daily activity'}</Text>
       </View>
 
       {/* Bar chart */}
       <View style={styles.chartContainer}>
-        {chartData.map((value, index) => (
+        {chartData.slice(0, chartLabels.length).map((value, index) => (
           <AnimatedBar
             key={index}
             value={value}
             maxValue={maxValue}
             isPeak={index === peakIndex}
             index={index}
-            label={DAY_LABELS[index]}
+            label={chartLabels[index]}
           />
         ))}
       </View>
