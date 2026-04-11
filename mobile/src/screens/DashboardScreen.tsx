@@ -4,8 +4,9 @@
  * Thin UI shell that delegates state/handlers to useDashboard.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Text } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingSpinner } from '../components';
@@ -29,6 +30,8 @@ import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
 import NudgeCard from '../components/dashboard/NudgeCard';
+import { BrainBrief } from '../components/dashboard/BrainBrief';
+import { BrainStatusBar } from '../components/dashboard/BrainStatusBar';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
@@ -101,10 +104,99 @@ const DashboardScreen: React.FC = () => {
     handleCloseRoutinePlayer,
     handleRoutineComplete,
     handleApplyRoutineTemplate,
+    dashboardPhase,
+    cardOrder,
   } = useDashboard();
 
   const { correlations } = useWeeklyCorrelations();
   const weekInsight = correlations ? selectWeekInsight(correlations) : null;
+
+  const cardOpacity = useSharedValue(dashboardPhase === 'pre-checkin' ? 0.5 : 1);
+
+  useEffect(() => {
+    cardOpacity.value = withTiming(
+      dashboardPhase === 'pre-checkin' ? 0.5 : 1,
+      { duration: 400 }
+    );
+  }, [dashboardPhase]);
+
+  const mutedStyle = useAnimatedStyle(() => ({
+    opacity: cardOpacity.value,
+  }));
+
+  const isMuted = dashboardPhase === 'pre-checkin';
+
+  const renderCard = (cardId: string) => {
+    switch (cardId) {
+      case 'protocol':
+        return brainStateCheckIn && todaysProtocol ? (
+          <TodaysProtocolCard
+            key="protocol"
+            protocol={todaysProtocol}
+            completed={brainStateCheckIn.protocolCompleted}
+            onMarkCompleted={handleMarkProtocolCompleted}
+          />
+        ) : null;
+      case 'nudge':
+        return nudgeSuggestion ? (
+          <NudgeCard
+            key="nudge"
+            suggestion={nudgeSuggestion}
+            onAction={() => {
+              markFeatureVisited(nudgeSuggestion.feature);
+              navigation.navigate(nudgeSuggestion.screenName as never);
+            }}
+            onDismiss={dismissNudge}
+          />
+        ) : null;
+      case 'reflection':
+        return showDailyReflection ? (
+          <DailyReflectionCard
+            key="reflection"
+            onReflect={handleDailyReflection}
+            onSkip={handleDailyReflectionSkip}
+          />
+        ) : null;
+      case 'habits':
+        return (
+          <WeeklyHabitsCard
+            key="habits"
+            habits={habits}
+            visibleDays={visibleDays}
+            today={today}
+            allCompletions={allCompletions}
+            weeklyCompletions={weeklyCompletions}
+            processingHabits={processingHabits}
+            onHabitToggle={handleHabitToggle}
+            onNavigateToHabits={() => navigation.navigate('Rhythms' as never, { tab: 'habits' } as never)}
+            onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
+          />
+        );
+      case 'routines':
+        return (
+          <RoutinesCard
+            key="routines"
+            routines={dashboardRoutines}
+            completions={routineCompletions}
+            onBeginRoutine={handleBeginRoutine}
+            onNavigateToRoutines={() => navigation.navigate('Rhythms' as never, { tab: 'routines' } as never)}
+            onApplyTemplate={handleApplyRoutineTemplate}
+          />
+        );
+      case 'weekInsight':
+        return (
+          <WeekInsightCard
+            key="weekInsight"
+            headline={weekInsight?.headline}
+            supporting={weekInsight?.supporting}
+            onPressFullStory={weekInsight ? () => navigation.navigate('Insights' as never) : undefined}
+            empty={!weekInsight}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   if (dataLoading) {
     return <LoadingSpinner message="Loading your wellness dashboard..." />;
@@ -166,72 +258,42 @@ const DashboardScreen: React.FC = () => {
               </View>
             )}
 
-            {/* Position 1: Brain State Check-In */}
-            <BrainStateCheckin
-              currentCheckIn={brainStateCheckIn}
-              onSelect={handleBrainStateCheckIn}
-              loading={brainStateCheckInLoading}
-            />
+            {/* Phase-dependent top section */}
+            {dashboardPhase === 'post-checkin' && brainStateCheckIn && (
+              <BrainBrief brainState={brainStateCheckIn.brainState} />
+            )}
 
-            {/* Position 2: Today's Protocol (only after check-in) */}
-            {brainStateCheckIn && todaysProtocol && (
-              <TodaysProtocolCard
-                protocol={todaysProtocol}
-                completed={brainStateCheckIn.protocolCompleted}
-                onMarkCompleted={handleMarkProtocolCompleted}
+            {dashboardPhase === 'returning' && brainStateCheckIn && (
+              <BrainStatusBar
+                brainState={brainStateCheckIn.brainState}
+                protocolCompleted={brainStateCheckIn.protocolCompleted}
+                onChangeState={handleBrainStateCheckIn}
               />
             )}
 
-            {/* Nudge Card (after protocol, before habits) */}
-            {nudgeSuggestion && (
-              <NudgeCard
-                suggestion={nudgeSuggestion}
-                onAction={() => {
-                  markFeatureVisited(nudgeSuggestion.feature);
-                  navigation.navigate(nudgeSuggestion.screenName as never);
-                }}
-                onDismiss={dismissNudge}
+            {/* Brain State Check-In (only visible in pre-checkin phase) */}
+            {dashboardPhase === 'pre-checkin' && (
+              <BrainStateCheckin
+                currentCheckIn={brainStateCheckIn}
+                onSelect={handleBrainStateCheckIn}
+                loading={brainStateCheckInLoading}
               />
             )}
 
-            {/* Daily Reflection (after all habits completed) */}
-            {showDailyReflection && (
-              <DailyReflectionCard
-                onReflect={handleDailyReflection}
-                onSkip={handleDailyReflectionSkip}
-              />
+            {/* Pre-checkin hint */}
+            {dashboardPhase === 'pre-checkin' && (
+              <Text style={styles.checkinHint}>
+                Check in to unlock your personalized dashboard
+              </Text>
             )}
 
-            {/* Position 3: Weekly Habits Tracker */}
-            <WeeklyHabitsCard
-              habits={habits}
-              visibleDays={visibleDays}
-              today={today}
-              allCompletions={allCompletions}
-              weeklyCompletions={weeklyCompletions}
-              processingHabits={processingHabits}
-              onHabitToggle={handleHabitToggle}
-              onNavigateToHabits={() => navigation.navigate('Rhythms' as never, { tab: 'habits' } as never)}
-              onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
-            />
-
-            {/* Position 5: Routines Card */}
-            <RoutinesCard
-              routines={dashboardRoutines}
-              completions={routineCompletions}
-              onBeginRoutine={handleBeginRoutine}
-              onNavigateToRoutines={() => navigation.navigate('Rhythms' as never, { tab: 'routines' } as never)}
-              onApplyTemplate={handleApplyRoutineTemplate}
-            />
-
-            {/* Position 4: Week Insight (always visible) */}
-            <WeekInsightCard
-              headline={weekInsight?.headline}
-              supporting={weekInsight?.supporting}
-              onPressFullStory={weekInsight ? () => navigation.navigate('Insights' as never) : undefined}
-              empty={!weekInsight}
-            />
-
+            {/* Dashboard cards: muted in pre-checkin, ordered by brain state */}
+            <Animated.View
+              style={[mutedStyle]}
+              pointerEvents={isMuted ? 'none' : 'auto'}
+            >
+              {cardOrder.map((cardId) => renderCard(cardId))}
+            </Animated.View>
           </>
         ) : (
           <>
@@ -427,6 +489,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: -8,
+  },
+  checkinHint: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.base,
+    fontStyle: 'italic',
   },
 });
 
