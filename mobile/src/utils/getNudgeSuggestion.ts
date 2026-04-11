@@ -12,15 +12,15 @@ export interface NudgeSuggestion {
   screenName: string;
 }
 
-type BrainState = 'wired' | 'foggy' | 'okay' | 'clear' | 'energized';
-type Feature = 'journal' | 'focus' | 'breathwork' | 'community' | 'brainHealth' | 'discover';
+export type BrainState = 'wired' | 'foggy' | 'okay' | 'clear' | 'energized';
+export type Feature = 'journal' | 'focus' | 'breathwork' | 'community' | 'brainHealth' | 'discover' | 'masterclass';
 
-const PRIORITY_MAP: Record<BrainState, Feature[]> = {
+export const PRIORITY_MAP: Record<BrainState, Feature[]> = {
   wired: ['breathwork', 'journal', 'discover', 'community', 'brainHealth', 'focus'],
   foggy: ['focus', 'breathwork', 'brainHealth', 'journal', 'discover', 'community'],
   okay: ['journal', 'community', 'discover', 'focus', 'breathwork', 'brainHealth'],
   clear: ['focus', 'journal', 'brainHealth', 'discover', 'community', 'breathwork'],
-  energized: ['focus', 'community', 'brainHealth', 'journal', 'discover', 'breathwork'],
+  energized: ['masterclass', 'community', 'brainHealth', 'journal', 'focus', 'breathwork'],
 };
 
 interface FeatureConfig {
@@ -100,6 +100,18 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
       foggy: { headline: 'Let someone else do the thinking', description: 'Listen to something that sparks a new thought.' },
       okay: { headline: 'Explore something new', description: 'Masterclasses and podcasts for your wellness journey.' },
       clear: { headline: 'Learn something new', description: 'A clear mind absorbs information best.' },
+      energized: { headline: 'Feed your curiosity', description: 'Channel your energy into learning something new.' },
+    },
+  },
+  masterclass: {
+    icon: 'school-outline',
+    ctaLabel: 'Browse Masterclasses',
+    screenName: 'DiscoverNavigator',
+    headlines: {
+      wired: { headline: 'Learn something calming', description: 'A masterclass can redirect a restless mind.' },
+      foggy: { headline: 'Let an expert guide you', description: 'Sometimes listening is easier than doing.' },
+      okay: { headline: 'Grow your knowledge', description: 'Masterclasses for your wellness journey.' },
+      clear: { headline: 'Deepen your understanding', description: 'A clear mind absorbs knowledge best.' },
       energized: { headline: 'Feed your curiosity', description: 'Channel your energy into learning something new.' },
     },
   },
