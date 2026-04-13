@@ -52,7 +52,10 @@
               "scheme": "vara"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -77,7 +80,8 @@
         }
       ],
       "expo-video",
-      "expo-asset"
+      "expo-asset",
+      "@react-native-community/datetimepicker"
     ],
     "owner": "kylershep",
     "extra": {
