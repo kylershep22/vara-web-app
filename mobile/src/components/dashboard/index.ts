@@ -26,3 +26,4 @@ export { QuickActionsRow } from './QuickActionsRow';
 export { BrainStateCheckin } from './BrainStateCheckin';
 export { TodaysProtocolCard } from './TodaysProtocolCard';
 export { DailyReflectionCard } from './DailyReflectionCard';
+export { LockedDivider } from './LockedDivider';
