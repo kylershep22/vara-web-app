@@ -224,7 +224,7 @@ Accepts the same data `BrainStateCheckin.tsx` currently computes inline:
 interface BrainStateCollapsedViewProps {
   selectedState: BrainStateOption;
   onChangePress: () => void;
-  days: BrainStateWeekDay[];  // from useBrainStateWeekTrend
+  days: DaySlot[];  // from useBrainStateWeekTrend (DaySlot is the hook's exported type)
   summary: string | null;
   trendLoading: boolean;
 }
@@ -372,6 +372,7 @@ Add or extend a `BrainStateCheckin.test.tsx`:
 | File | Change |
 |---|---|
 | `mobile/src/constants/colors.ts` | Add `freshMoss: '#4A9B7E'` token |
+| `mobile/src/hooks/useBrainStateWeekTrend.ts` | Update `STATE_COLORS.energized` to `Colors.freshMoss` (single line) |
 | `mobile/src/components/dashboard/BrainStateCheckin.tsx` | Rewrite: orchestrator + inline `BrainStateExpandedView` |
 | `mobile/src/components/dashboard/brainStateCheckin/brainStateOptions.ts` | New: shared `BRAIN_STATES` array |
 | `mobile/src/components/dashboard/brainStateCheckin/colorUtils.ts` | New: `withAlpha` helper |
@@ -389,7 +390,7 @@ The dashboard barrel (`mobile/src/components/dashboard/index.ts`) already re-exp
 ## Out of Scope
 
 - Changes to brain-state data shape, `BRAIN_STATES` contents, or spectrum ordering.
-- Changes to the week-trend logic in `useBrainStateWeekTrend` or the collapsed view's visual design.
+- Changes to the week-trend logic in `useBrainStateWeekTrend` or the collapsed view's visual design. (Exception: the hook's `STATE_COLORS` mapping for `energized` is updated from `Colors.success` to `Colors.freshMoss` so the week-trend dot color stays consistent with the option row color. No other hook logic changes.)
 - Changes to how `onSelect` is plumbed through `useDashboard` to Firestore.
 - SE-class (pre-iPhone-12) device polish.
 - Dark mode support (the card uses alpha-tinted light backgrounds which would need rework for dark mode; deferred).
