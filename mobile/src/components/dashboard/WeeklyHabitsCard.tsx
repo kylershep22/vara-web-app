@@ -6,7 +6,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { Card, Button } from '../../components';
+import Card from '../Card';
+import Button from '../Button';
 import { ConsistencyBadge } from '../../components/habits';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
@@ -63,11 +64,7 @@ export const WeeklyHabitsCard: React.FC<WeeklyHabitsCardProps> = ({
       {habits.length === 0 ? (
         <View style={styles.emptyStateContainer}>
           <Icon name="checkbox-marked-circle-outline" size={48} color={Colors.dewSage} />
-          <Text style={styles.emptyText}>No active habits yet</Text>
-          <Text style={styles.emptySubtext}>Small daily actions build lasting change</Text>
-          <TouchableOpacity style={styles.addHabitButton} onPress={onAddHabit}>
-            <Text style={styles.addHabitButtonText}>Add Your First Habit</Text>
-          </TouchableOpacity>
+          <Text style={styles.emptyText}>Your habits will appear here when you'd like to start</Text>
         </View>
       ) : (
         <View>
@@ -194,24 +191,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.sm,
     fontSize: Typography.fontSize.base,
-  },
-  emptySubtext: {
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: Spacing.xs,
-    fontSize: Typography.fontSize.sm,
-  },
-  addHabitButton: {
-    marginTop: Spacing.base,
-    backgroundColor: Colors.evergreenTeal,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Layout.borderRadius.full,
-  },
-  addHabitButtonText: {
-    color: '#FFFFFF',
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    paddingHorizontal: Spacing.base,
   },
   weekHeader: {
     flexDirection: 'row',

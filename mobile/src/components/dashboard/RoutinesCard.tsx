@@ -159,9 +159,9 @@ const RoutinesCard: React.FC<RoutinesCardProps> = ({
           </View>
           <View style={styles.emptyState}>
             <Icon name="lightbulb-outline" size={24} color={Colors.evergreenTeal} />
-            <Text style={styles.emptyHeadline}>Build your first routine</Text>
+            <Text style={styles.emptyHeadline}>Routines help when you want structure.</Text>
             <Text style={styles.emptyBody}>
-              Structured routines help your brain build consistency.
+              None yet — and that's fine.
             </Text>
             {templates.map(template => (
               <TouchableOpacity

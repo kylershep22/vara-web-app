@@ -204,13 +204,18 @@ const DashboardScreen: React.FC = () => {
           />
         );
       case 'weekInsight':
+        // Only render when there's a real insight. When the user has fewer
+        // than ~3 days of check-in data, no correlation in selectWeekInsight
+        // reaches significance and it returns null. We suppress the card
+        // entirely in that case rather than showing a "come back later"
+        // placeholder, per the voice guide's rule against empty-data cards.
+        if (!weekInsight) return null;
         return (
           <WeekInsightCard
             key="weekInsight"
-            headline={weekInsight?.headline}
-            supporting={weekInsight?.supporting}
-            onPressFullStory={weekInsight ? () => navigation.navigate('Insights' as never) : undefined}
-            empty={!weekInsight}
+            headline={weekInsight.headline}
+            supporting={weekInsight.supporting}
+            onPressFullStory={() => navigation.navigate('Insights' as never)}
           />
         );
       default:
