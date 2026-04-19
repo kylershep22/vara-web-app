@@ -20,7 +20,7 @@ const STATE_COLORS: Record<BrainState, string> = {
   foggy: Colors.sunriseAmber,
   okay: Colors.mutedSageGray,
   clear: Colors.evergreenTeal,
-  energized: Colors.success,
+  energized: Colors.freshMoss,
 };
 
 const STATE_RANK: Record<BrainState, number> = {
