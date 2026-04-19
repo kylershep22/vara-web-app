@@ -70,7 +70,7 @@ export const BrainStateCapturedView: React.FC<BrainStateCapturedViewProps> = ({
               option={option}
               onPress={() => {}}
               selected={isWinner}
-              disabled
+              disabled={!isWinner}
               isLast={isLast}
             />
           </Animated.View>
