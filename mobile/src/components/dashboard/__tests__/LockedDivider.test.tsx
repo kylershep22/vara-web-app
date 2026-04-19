@@ -3,10 +3,10 @@ import { render } from '@testing-library/react-native';
 import { LockedDivider } from '../LockedDivider';
 
 describe('LockedDivider', () => {
-  it('renders the unlock label text', () => {
+  it('renders the check-in invitation text', () => {
     const { getByText } = render(<LockedDivider />);
     expect(
-      getByText('Check in to unlock your personalized dashboard')
+      getByText('Your dashboard responds after you check in')
     ).toBeTruthy();
   });
 

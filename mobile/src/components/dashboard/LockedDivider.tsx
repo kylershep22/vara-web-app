@@ -20,7 +20,7 @@ export const LockedDivider: React.FC = () => {
           style={styles.icon}
         />
         <Text style={styles.label} numberOfLines={1}>
-          Check in to unlock your personalized dashboard
+          Your dashboard responds after you check in
         </Text>
       </View>
       <View style={styles.rule} />
