@@ -6,9 +6,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Text } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedProps,
+  withTiming,
+  FadeIn,
+  FadeOut,
+} from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { LoadingSpinner } from '../components';
 import {
   FourThreeTwoOneCard,
@@ -32,6 +40,7 @@ import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard
 import NudgeCard from '../components/dashboard/NudgeCard';
 import { BrainBrief } from '../components/dashboard/BrainBrief';
 import { BrainStatusBar } from '../components/dashboard/BrainStatusBar';
+import { LockedDivider } from '../components/dashboard/LockedDivider';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
@@ -39,6 +48,8 @@ import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 import { useDashboard } from '../hooks/useDashboard';
 import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
 import { selectWeekInsight } from '../constants/weekInsightTemplates';
+
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 const DashboardScreen: React.FC = () => {
   const {
@@ -111,17 +122,26 @@ const DashboardScreen: React.FC = () => {
   const { correlations } = useWeeklyCorrelations();
   const weekInsight = correlations ? selectWeekInsight(correlations) : null;
 
-  const cardOpacity = useSharedValue(dashboardPhase === 'pre-checkin' ? 0.5 : 1);
+  const cardOpacity = useSharedValue(dashboardPhase === 'pre-checkin' ? 0.35 : 1);
+  const blurIntensity = useSharedValue(dashboardPhase === 'pre-checkin' ? 15 : 0);
 
   useEffect(() => {
     cardOpacity.value = withTiming(
-      dashboardPhase === 'pre-checkin' ? 0.5 : 1,
+      dashboardPhase === 'pre-checkin' ? 0.35 : 1,
+      { duration: 400 }
+    );
+    blurIntensity.value = withTiming(
+      dashboardPhase === 'pre-checkin' ? 15 : 0,
       { duration: 400 }
     );
   }, [dashboardPhase]);
 
-  const mutedStyle = useAnimatedStyle(() => ({
+  const cardWrapperStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
+  }));
+
+  const blurAnimatedProps = useAnimatedProps(() => ({
+    intensity: blurIntensity.value,
   }));
 
   const isMuted = dashboardPhase === 'pre-checkin';
@@ -280,19 +300,28 @@ const DashboardScreen: React.FC = () => {
               />
             )}
 
-            {/* Pre-checkin hint */}
+            {/* Pre-checkin locked divider */}
             {dashboardPhase === 'pre-checkin' && (
-              <Text style={styles.checkinHint}>
-                Check in to unlock your personalized dashboard
-              </Text>
+              <Animated.View
+                entering={FadeIn.duration(200)}
+                exiting={FadeOut.duration(200)}
+              >
+                <LockedDivider />
+              </Animated.View>
             )}
 
-            {/* Dashboard cards: muted in pre-checkin, ordered by brain state */}
+            {/* Dashboard cards: muted + blurred in pre-checkin, ordered by brain state */}
             <Animated.View
-              style={[mutedStyle]}
+              style={[cardWrapperStyle]}
               pointerEvents={isMuted ? 'none' : 'auto'}
             >
               {cardOrder.map((cardId) => renderCard(cardId))}
+              <AnimatedBlurView
+                animatedProps={blurAnimatedProps}
+                tint="light"
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
             </Animated.View>
           </>
         ) : (
@@ -489,13 +518,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: -8,
-  },
-  checkinHint: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.base,
-    fontStyle: 'italic',
   },
 });
 
