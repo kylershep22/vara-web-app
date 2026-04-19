@@ -40,6 +40,9 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
     currentCheckIn?.brainState
   );
 
+  // Sync phase with currentCheckIn changes. Intentionally does not handle the
+  // 'captured' phase: the 1.2s celebration plays to completion, then
+  // handleCapturedComplete transitions to 'collapsed' normally.
   useEffect(() => {
     if (currentCheckIn && phase === 'expanded') {
       setPhase('collapsed');
