@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors, Spacing, Layout } from '../../../constants';
+import { Colors, Spacing, Layout, Typography } from '../../../constants';
 import { BrainState } from '../../../types';
 import { BRAIN_STATES } from './brainStateOptions';
 import { BrainStateOptionRow } from './BrainStateOptionRow';
@@ -58,6 +58,10 @@ export const BrainStateCapturedView: React.FC<BrainStateCapturedViewProps> = ({
 
   return (
     <View style={styles.container}>
+      <Animated.View style={nonWinnerStyle}>
+        <Text style={styles.prompt}>How are you feeling right now?</Text>
+        <Text style={styles.subtext}>Just one tap. No wrong answers.</Text>
+      </Animated.View>
       {BRAIN_STATES.map((option, index) => {
         const isWinner = option.state === selectedState;
         const isLast = index === BRAIN_STATES.length - 1;
@@ -86,5 +90,16 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.base,
+  },
+  prompt: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  subtext: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
   },
 });
