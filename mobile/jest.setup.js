@@ -26,6 +26,11 @@ jest.mock('firebase/firestore', () => ({
 
 jest.mock('expo-secure-store');
 
+// Mock expo vector icons
+jest.mock('@expo/vector-icons', () => ({
+  MaterialCommunityIcons: 'MockedMaterialCommunityIcons',
+}));
+
 // Set required environment variables for tests
 process.env.REACT_APP_FIREBASE_API_KEY = 'test-api-key';
 process.env.REACT_APP_FIREBASE_AUTH_DOMAIN = 'test.firebaseapp.com';
