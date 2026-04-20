@@ -55,18 +55,21 @@ Internally, the component owns:
 
 ### Triggers
 
-| Trigger | Recommended behavior |
+| Trigger | Behavior |
 |---|---|
 | **User tap on anchor** | Toggle collapsed ↔ expanded. Primary interaction. |
-| **Scroll past ~200px of dashboard content** | Auto-collapse (one-way). Feels natural: the anchor tucks away as the user engages with the rest of the dashboard. |
-| **Scroll back to top** | Auto-expand only if the user never manually collapsed it this session. Once the user manually toggles, respect their intent for the rest of the session. |
-| **Timer** | **Not recommended.** Auto-collapsing on a timer feels like the app is rushing the user. Violates "calm over pressure." |
+| **Scroll past ~200px of dashboard content** | Auto-collapse. |
+| **Scroll back above ~50px** | Auto-expand. Scroll tracking is **continuous**, not a one-shot threshold. The anchor acts as a companion to the scroll position. |
+| **Timer** | Not used. Auto-collapsing on a timer feels like the app is rushing the user. Violates "calm over pressure." |
 | **Re-check-in** | New check-in re-expands the anchor with the new brief (see Section 4). |
+
+The manual tap and the scroll tracker interact through a small precedence rule: after a manual tap within the same render, the scroll-driven auto-behavior is paused until the user crosses the opposite threshold. This prevents the anchor from jittering if the user manually collapses while slightly above the collapse threshold.
 
 ### Initial state
 
-- Immediately after a check-in completes (returning from `BrainStateCheckin`'s captured view): **expanded**.
-- On subsequent dashboard mounts (navigating back to the tab, opening the app later in the day): see Question Q3.
+- **Immediately after a check-in completes** (returning from `BrainStateCheckin`'s captured view): expanded.
+- **On subsequent dashboard mounts within the same check-in day**: remembered — whatever state the user last left it in (via AsyncStorage keyed on the check-in doc's date, e.g., `dashboard_anchor_collapsed_2026-04-20`).
+- **On the first mount of a new check-in day**: expanded, regardless of yesterday's state. Persistence key is date-scoped, so a new day's key doesn't exist yet, so the component defaults to expanded.
 
 ### Animation
 
@@ -76,9 +79,9 @@ Internally, the component owns:
 
 ### Sticky behavior
 
-- When collapsed **during scroll**, the anchor sticks to the top of the scroll viewport as a thin bar until the user scrolls back above its original position.
-- When **at top of scroll** (no scroll), collapsed or expanded, the anchor sits inline in its natural position.
-- See Question Q4 for the sticky implementation approach.
+- The collapsed anchor sticks to the top of the scroll viewport. As the user scrolls down past its original position, it transitions to a thin bar anchored at the top of the visible area.
+- When scrolled back above the anchor's original position, it returns to its inline location.
+- Implementation: use the `stickyHeaderIndices` prop on `Animated.ScrollView`, with the anchor at a known index, OR position the anchor absolutely with a `translateY` animated from the `scrollY` shared value. The second approach integrates more cleanly with the blur/opacity animations we're already driving via reanimated, so it is the preferred path.
 
 ---
 
@@ -126,9 +129,16 @@ When the user taps the anchor's "Change" affordance (today's `BrainStatusBar` st
 
 ### What the re-check-in flow looks like UI-side
 
-The collapsed anchor already has a "Change" touch target today (`BrainStatusBar` chevron opens the inline state picker). The unified component keeps that affordance in the collapsed view. Tapping "Change" opens the redesigned `BrainStateCheckin` expanded view (not the legacy inline pill row — see Section 7's notes on `BrainStatusBar`'s pill regression).
+The collapsed anchor has a "Change" touch target. Tapping it opens the **redesigned `BrainStateCheckin` expanded view in place** — displacing the anchor in the dashboard layout until the new check-in completes. No modal, no navigation. The check-in lives in the same layout slot it occupies during the `pre-checkin` phase.
 
-See Question Q2: should the "Change" action open the full `BrainStateCheckin` screen / modal, or should it expand a state picker inside the anchor?
+Sequence:
+1. User taps "Change" on the collapsed anchor.
+2. Anchor animates out (opacity → 0, 150ms).
+3. `BrainStateCheckin` renders in the same slot (expanded view, current selection highlighted per the existing `selected` prop flow).
+4. User picks a state. The captured animation from `BrainStateCheckin` plays (existing 1.2s sequence).
+5. On `onComplete`, the anchor re-mounts with the new brief, expanded, with `SlideInUp` entry.
+
+This means `DashboardScreen` treats the anchor slot and the check-in slot as the same physical slot, switched by orchestration state. Internally, this state (`showCheckInOverAnchor: boolean`) is owned by `DashboardScreen` or by a thin wrapper that composes both components, not by the anchor itself. See Section 7 for implementation notes.
 
 ---
 
@@ -201,29 +211,71 @@ mobile/src/components/dashboard/
 interface DashboardAnchorProps {
   brainState: BrainState;
   protocolCompleted: boolean;
-  onChangeStatePress: () => void;        // Opens the BrainStateCheckin expanded view
-  scrollY?: Animated.SharedValue<number>; // Optional — enables scroll-based collapse
+  checkInDate: string;                    // "YYYY-MM-DD" for the current check-in. Used as AsyncStorage key suffix for collapsed-state persistence.
+  onChangeStatePress: () => void;         // Called when the user taps "Change" on the collapsed view.
+  scrollY: Animated.SharedValue<number>;  // Required — drives scroll-based auto-collapse.
 }
 ```
 
-The component accepts a `scrollY` shared value (driven by `DashboardScreen`'s `ScrollView`) so the scroll-triggered collapse logic can live inside the anchor and drive its own reanimated style without requiring the parent to manage anchor state.
+The component accepts a `scrollY` shared value (driven by `DashboardScreen`'s `Animated.ScrollView`) so the scroll-triggered collapse/expand logic lives inside the anchor and drives its own reanimated styles without requiring the parent to manage anchor state.
 
 ### Shared state / context
 
 None at component level. Internal state only:
 
 ```ts
-const [collapsed, setCollapsed] = useState(false);
-const [userLocked, setUserLocked] = useState(false); // set true after manual toggle
+const [collapsed, setCollapsed] = useState(false);        // visual state
+const [manualOverrideUntilCross, setManualOverrideUntilCross] = useState(false);
 ```
 
-`userLocked` ensures a user who explicitly collapsed the anchor doesn't see it auto-expand on a scroll-to-top event.
+- `collapsed` is hydrated on mount from `AsyncStorage.getItem('dashboard_anchor_collapsed_' + checkInDate)`.
+- On every change to `collapsed`, the new value is written to that same key.
+- `manualOverrideUntilCross` is set to `true` when the user manually taps to toggle. It pauses scroll-driven auto-transitions. Reset to `false` once the scroll position crosses the opposite threshold (e.g., if the user manually collapses, the scroll auto-expand stays suppressed until they scroll *back up past the collapse threshold*, at which point scroll-driven behavior resumes).
+
+### Re-check-in slot wiring
+
+The decision that "Change" opens the full `BrainStateCheckin` expanded view **in place** requires a small orchestration wrapper in `DashboardScreen.tsx` (or a new thin component if `DashboardScreen` gets too dense):
+
+```tsx
+// Inside DashboardScreen's render tree, in the slot formerly holding
+// BrainBrief / BrainStatusBar:
+{showCheckInOverAnchor ? (
+  <BrainStateCheckin
+    currentCheckIn={brainStateCheckIn}
+    onSelect={(state) => {
+      handleBrainStateCheckIn(state);
+      setShowCheckInOverAnchor(false);
+    }}
+    loading={brainStateCheckInLoading}
+  />
+) : (
+  <DashboardAnchor
+    brainState={brainStateCheckIn.brainState}
+    protocolCompleted={brainStateCheckIn.protocolCompleted}
+    checkInDate={brainStateCheckIn.date}
+    onChangeStatePress={() => setShowCheckInOverAnchor(true)}
+    scrollY={scrollY}
+  />
+)}
+```
+
+`showCheckInOverAnchor` is a new local state in `DashboardScreen`. It is `true` only between the moment the user taps "Change" and the moment the new check-in completes.
+
+### Accessibility
+
+When collapsed, the anchor's `accessibilityLabel` contains the **full brief message**, not the abbreviated collapsed copy. Example label for a Foggy user:
+
+> "Foggy. Low energy day. That's okay, your brain needs activation. A short breathwork session can shift things before you dive in. Protocol ready. Double-tap to expand, or swipe right to change state."
+
+This ensures screen-reader users get the same information as sighted users, even though the visible text is compressed. The `accessibilityHint` carries the interaction guidance ("Double-tap to expand...").
+
+When expanded, the `accessibilityLabel` is the label + message pair, and the hint says "Double-tap to collapse."
 
 ### Approximate LOC impact
 
 | File | LOC |
 |---|---|
-| `DashboardAnchor.tsx` (orchestrator + state + animations) | ~100 |
+| `DashboardAnchor.tsx` (orchestrator + state + animations + sticky) | ~130 |
 | `DashboardAnchorExpanded.tsx` (expanded view, extracted from BrainBrief) | ~70 |
 | `DashboardAnchorCollapsed.tsx` (collapsed view, extracted from BrainStatusBar minus the pill picker) | ~60 |
 | `brainStateBriefs.ts` (the `BRAIN_STATE_CONFIG` map) | ~40 |
@@ -305,37 +357,45 @@ No feature flag. No phased rollout. Each step is a small commit; the visible cha
 
 ---
 
-## Open questions
+## Resolved decisions
 
-Questions the implementer should not answer on their own. Product decisions.
+Answered by the product owner after the initial spec review:
 
-| # | Question | Why it needs a product decision |
-|---|---|---|
-| **Q1** | Does `scrollY`-driven auto-collapse fire only once (a threshold crossing) or track continuously (collapse at >200, re-expand at <50)? The recommendation is track continuously for natural feel, but some users may find the automatic re-expansion unwanted when they scroll back to adjust a card above. | Balances "anchor as always-visible companion" vs "anchor as non-intrusive marker." |
-| **Q2** | When the user taps "Change" on the collapsed anchor, what UI appears? (a) the redesigned `BrainStateCheckin` expanded view rendered inline in the dashboard (displacing the anchor until complete); (b) a modal / bottom sheet containing `BrainStateCheckin`; (c) navigate to a dedicated check-in screen. | Each option carries different weight. (a) is fastest but disrupts the dashboard layout. (b) is a new UI pattern for this app. (c) is the most explicit but costs a navigation. |
-| **Q3** | On mount (user returns to the Dashboard tab), what's the initial collapsed state? Three options: (a) always expanded — welcome them back with the full brief; (b) always collapsed — don't re-grab their attention; (c) remember the last state via AsyncStorage. | (a) is warm but can feel like nagging on re-entry. (b) is restrained but may hide content they'd want to see. (c) is most "respect the user" but adds a persistence hop. |
-| **Q4** | Should the collapsed anchor **stick to the top of the scroll viewport** as the user scrolls down, or should it scroll away with the rest of the content? A sticky bar provides a true always-visible anchor; a non-sticky one is a marker that fades as you read. | Sticky = stronger anchor, heavier visual commitment. Non-sticky = lighter, more like a label. Need product call. |
-| **Q5** | Does the brief's content need to be **re-generated** if the user checks in twice with the same state? Example: user checks in "Foggy" at 8am, protocol doesn't help, checks in "Foggy" again at 2pm. Is the anchor's message identical, or subtly different? | Today they'd be identical (content is state-keyed, not time-keyed). The perceived value may be low; the implementation cost is non-trivial. Ties into Section 3. |
-| **Q6** | If a user wants to **undo a check-in**, is that supported? If yes, how does the anchor react? | Today there is no undo flow. Product decision on whether this spec should include the beginning of that capability. |
-| **Q7** | Accessibility: when the anchor is **collapsed**, should VoiceOver announce the abbreviated content, or should the full brief be part of the accessibility label so screen readers hear the complete message? | Visual collapse vs semantic collapse are different concerns. Both approaches are defensible. |
-| **Q8** | Does the anchor need a **loading state** for the brief? Today, `BrainBrief` renders synchronously from hard-coded content. If Q5 goes toward dynamic / time-of-day content, the anchor needs a loading or skeleton state. | Only relevant if Q5 introduces async content. For the static v1, no loading state is needed. |
+| # | Decision |
+|---|---|
+| Q1 | Scroll-driven auto-collapse is **continuous**: collapse at scrollY > 200, re-expand at scrollY < 50. Manual tap temporarily pauses auto-behavior until the opposite threshold is crossed. |
+| Q2 | "Change" on the collapsed anchor **opens the full `BrainStateCheckin` expanded view in place** (displacing the anchor in its own layout slot). No modal, no navigation. Handled by a new `showCheckInOverAnchor` local state in `DashboardScreen`. |
+| Q3 | Initial collapsed state on dashboard re-entry is **remembered within the same check-in day** (persisted to AsyncStorage keyed on the check-in doc's date). **Resets to expanded on a new day** — because a new day produces a new storage key that doesn't yet exist. |
+| Q4 | Collapsed anchor **sticks to the top of the scroll viewport**. Implementation via absolute positioning + `scrollY`-driven `translateY`, to compose cleanly with the existing reanimated blur/opacity animations. |
+| Q7 | When collapsed, the anchor's `accessibilityLabel` contains the **full brief message** (not the abbreviated visible copy), so screen-reader users receive the same information as sighted users. |
+
+## Deferred open questions
+
+Can be revisited after v1 data. Not blockers for implementation.
+
+| # | Question |
+|---|---|
+| **Q5** | Does the brief's content need to be re-generated if the user checks in twice with the same state? (Today: identical. Value unclear; cost non-trivial.) |
+| **Q6** | If a user wants to undo a check-in, is that supported? (No undo flow exists today.) |
+| **Q8** | Does the anchor need a loading state for the brief? (Not needed for static content in v1; becomes relevant only if Q5 introduces async content.) |
 
 ---
 
 ## Summary
 
-| Decision | Recommendation |
+| Decision | Final |
 |---|---|
 | Component structure | Single component, internal state |
 | Primary trigger | User tap |
-| Secondary trigger | Scroll past ~200px |
-| Timer auto-collapse | Not recommended |
+| Secondary trigger | Continuous scroll tracking (collapse > 200px, expand < 50px) |
+| Timer auto-collapse | Not used |
+| Initial state on mount | Remembered within the day; expanded on a new day |
 | Content freshness | Static per check-in for v1 |
-| Re-check-in | Replace, with fade |
+| Re-check-in UI | Full `BrainStateCheckin` expanded view, in place |
+| Sticky | Yes, collapsed anchor sticks to top on scroll |
+| Accessibility | Collapsed `accessibilityLabel` contains full brief |
 | Cross-tab | Dashboard-only for v1 |
 | Dismissibility | Collapsible only, not dismissible |
 | Migration | One-shot after the load-bearing refactors land |
 
-Open questions Q1, Q2, Q3, Q4, Q7 all need a product decision before the implementer starts. Q5, Q6, Q8 can be deferred as follow-up items.
-
-Once Q1–Q4 and Q7 are answered, this spec is detailed enough for a standalone implementation task.
+All blocker questions resolved. This spec is implementation-ready.
