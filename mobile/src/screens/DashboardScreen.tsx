@@ -158,6 +158,9 @@ const DashboardScreen: React.FC = () => {
           />
         ) : null;
       case 'notifOptIn':
+        // Skip in pre-checkin; it's rendered above the muted wrapper in
+        // that phase so it stays interactive (treated as a setting).
+        if (isMuted) return null;
         return notifOptInCard ? (
           <View key="notifOptIn" style={{ paddingHorizontal: Spacing.base }}>
             <NotificationOptInCard
@@ -301,6 +304,20 @@ const DashboardScreen: React.FC = () => {
                 onSelect={handleBrainStateCheckIn}
                 loading={brainStateCheckInLoading}
               />
+            )}
+
+            {/* Notification opt-in: treated as a setting, accessible in every
+                phase. In post-checkin / returning it renders inside cardOrder
+                after protocol. In pre-checkin it renders here, above the
+                muted wrapper, so it stays fully interactive. */}
+            {dashboardPhase === 'pre-checkin' && notifOptInCard && (
+              <View style={{ paddingHorizontal: Spacing.base }}>
+                <NotificationOptInCard
+                  category={notifOptInCard}
+                  onOptIn={() => handleNotifOptIn(notifOptInCard)}
+                  onDismiss={() => handleNotifDismiss(notifOptInCard)}
+                />
+              </View>
             )}
 
             {/* Pre-checkin locked divider */}
