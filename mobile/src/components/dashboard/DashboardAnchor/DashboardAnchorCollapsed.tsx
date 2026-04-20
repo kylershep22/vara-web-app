@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Typography } from '../../../constants';
 import { BrainState } from '../../../types';
-import { BRAIN_STATE_BRIEFS } from './brainStateBriefs';
+import { getBrainStateBrief } from './brainStateBriefs';
 
 interface DashboardAnchorCollapsedProps {
   brainState: BrainState;
@@ -22,7 +22,7 @@ export const DashboardAnchorCollapsed: React.FC<DashboardAnchorCollapsedProps> =
   accessibilityLabel,
   accessibilityHint,
 }) => {
-  const brief = BRAIN_STATE_BRIEFS[brainState];
+  const brief = getBrainStateBrief(brainState);
   const protocolText = protocolCompleted ? 'Protocol done' : 'Protocol ready';
 
   return (

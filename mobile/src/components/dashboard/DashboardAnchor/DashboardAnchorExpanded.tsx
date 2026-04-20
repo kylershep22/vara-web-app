@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Typography } from '../../../constants';
 import { BrainState } from '../../../types';
-import { BRAIN_STATE_BRIEFS } from './brainStateBriefs';
+import { getBrainStateBrief } from './brainStateBriefs';
 
 interface DashboardAnchorExpandedProps {
   brainState: BrainState;
@@ -12,7 +12,7 @@ interface DashboardAnchorExpandedProps {
 export const DashboardAnchorExpanded: React.FC<DashboardAnchorExpandedProps> = ({
   brainState,
 }) => {
-  const brief = BRAIN_STATE_BRIEFS[brainState];
+  const brief = getBrainStateBrief(brainState);
 
   return (
     <View style={[styles.container, { borderLeftColor: brief.accentColor }]}>

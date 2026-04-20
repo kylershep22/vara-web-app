@@ -2,6 +2,11 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DashboardAnchor } from '../DashboardAnchor';
+import { getBrainStateBrief } from '../brainStateBriefs';
+
+const foggyBrief = getBrainStateBrief('foggy');
+
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(),
@@ -39,14 +44,14 @@ describe('DashboardAnchor', () => {
     const { findByText } = render(<DashboardAnchor {...baseProps} />);
     expect(
       await findByText(
-        "Low energy day. That's okay, your brain needs activation. A short breathwork session can shift things before you dive in."
+        foggyBrief.message
       )
     ).toBeTruthy();
   });
 
   it('toggles to collapsed view when tapped', async () => {
     const { getByTestId, findByText, getByText } = render(<DashboardAnchor {...baseProps} />);
-    await findByText("Low energy day. That's okay, your brain needs activation. A short breathwork session can shift things before you dive in.");
+    await findByText(foggyBrief.message);
     fireEvent.press(getByTestId('dashboard-anchor-expanded-pressable'));
     await waitFor(() => {
       expect(getByText('Protocol ready')).toBeTruthy();
@@ -55,7 +60,7 @@ describe('DashboardAnchor', () => {
 
   it('persists collapsed state to AsyncStorage keyed on checkInDate', async () => {
     const { getByTestId, findByText } = render(<DashboardAnchor {...baseProps} />);
-    await findByText("Low energy day. That's okay, your brain needs activation. A short breathwork session can shift things before you dive in.");
+    await findByText(foggyBrief.message);
     fireEvent.press(getByTestId('dashboard-anchor-expanded-pressable'));
     await waitFor(() => {
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
@@ -85,13 +90,15 @@ describe('DashboardAnchor', () => {
   it('exposes the full brief message in the accessibility label when collapsed', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue('true');
     const { findByLabelText } = render(<DashboardAnchor {...baseProps} />);
-    const node = await findByLabelText(/Foggy.*Low energy day.*Protocol ready/);
+    const node = await findByLabelText(
+      new RegExp(`Foggy\\..*${escapeRegex(foggyBrief.message)}.*Protocol ready`)
+    );
     expect(node).toBeTruthy();
   });
 
   it('uses a different AsyncStorage key when checkInDate changes (new day)', async () => {
     const { rerender, findByText } = render(<DashboardAnchor {...baseProps} />);
-    await findByText("Low energy day. That's okay, your brain needs activation. A short breathwork session can shift things before you dive in.");
+    await findByText(foggyBrief.message);
 
     rerender(<DashboardAnchor {...baseProps} checkInDate="2026-04-21" brainState="clear" />);
 

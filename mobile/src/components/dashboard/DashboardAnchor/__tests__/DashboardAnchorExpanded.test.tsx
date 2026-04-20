@@ -1,6 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { DashboardAnchorExpanded } from '../DashboardAnchorExpanded';
+import { getBrainStateBrief } from '../brainStateBriefs';
 
 describe('DashboardAnchorExpanded', () => {
   it('renders the label for the given brain state', () => {
@@ -9,10 +10,9 @@ describe('DashboardAnchorExpanded', () => {
   });
 
   it('renders the message for the given brain state', () => {
+    const clearBrief = getBrainStateBrief('clear');
     const { getByText } = render(<DashboardAnchorExpanded brainState="clear" />);
-    expect(
-      getByText("You're in a great headspace. This is the day to lock in focus work and build on your habits.")
-    ).toBeTruthy();
+    expect(getByText(clearBrief.message)).toBeTruthy();
   });
 
   it('renders the icon by testID', () => {

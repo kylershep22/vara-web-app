@@ -4,39 +4,119 @@ import { BrainState } from '../../../types';
 export interface BrainStateBrief {
   label: string;
   icon: string;
-  message: string;
   accentColor: string;
+  message: string;
 }
 
-export const BRAIN_STATE_BRIEFS: Record<BrainState, BrainStateBrief> = {
-  wired: {
-    label: 'Wired',
-    icon: 'lightning-bolt',
-    message: "Your mind is running hot today. Let's channel that energy. Start with a calming protocol, then ease into your habits.",
-    accentColor: Colors.softCoral,
-  },
-  foggy: {
-    label: 'Foggy',
-    icon: 'weather-fog',
-    message: "Low energy day. That's okay, your brain needs activation. A short breathwork session can shift things before you dive in.",
-    accentColor: Colors.sunriseAmber,
-  },
-  okay: {
-    label: 'Okay',
-    icon: 'minus-circle-outline',
-    message: "Steady baseline today. A good day to reflect and connect. Your journal and community are where you'll find momentum.",
-    accentColor: Colors.mutedSageGray,
-  },
-  clear: {
-    label: 'Clear',
-    icon: 'check-circle-outline',
-    message: "You're in a great headspace. This is the day to lock in focus work and build on your habits.",
-    accentColor: Colors.evergreenTeal,
-  },
-  energized: {
-    label: 'Energized',
-    icon: 'flash-outline',
-    message: 'Sharp and ready. Use this energy. Explore a masterclass, connect with your community, then ride the momentum through your habits.',
-    accentColor: Colors.freshMoss,
-  },
+export const BRAIN_STATE_BRIEFS: Record<BrainState, BrainStateBrief[]> = {
+  wired: [
+    {
+      label: 'Wired',
+      icon: 'lightning-bolt',
+      accentColor: Colors.softCoral,
+      message: "Activation is elevated today. A short breathwork session first can help your system settle before you take on anything else.",
+    },
+    {
+      label: 'Wired',
+      icon: 'lightning-bolt',
+      accentColor: Colors.softCoral,
+      message: "Your nervous system is working hard right now. Today's a good day to start with regulation before habits or focus work.",
+    },
+    {
+      label: 'Wired',
+      icon: 'lightning-bolt',
+      accentColor: Colors.softCoral,
+      message: "When activation is high, the brain's harder to direct. A calming protocol first creates the conditions for everything else.",
+    },
+  ],
+  foggy: [
+    {
+      label: 'Foggy',
+      icon: 'weather-fog',
+      accentColor: Colors.sunriseAmber,
+      message: "Foggy mornings are often a signal your brain needs gentle activation, not pressure. A short breathwork session can help.",
+    },
+    {
+      label: 'Foggy',
+      icon: 'weather-fog',
+      accentColor: Colors.sunriseAmber,
+      message: "Low clarity days are information, not failure. Start with one small activating step and let the rest of the day follow.",
+    },
+    {
+      label: 'Foggy',
+      icon: 'weather-fog',
+      accentColor: Colors.sunriseAmber,
+      message: "Today's a lower-bandwidth day. A brief breathwork session can shift things. No need to force the rest.",
+    },
+  ],
+  okay: [
+    {
+      label: 'Okay',
+      icon: 'minus-circle-outline',
+      accentColor: Colors.mutedSageGray,
+      message: "A steady baseline is its own kind of good day. Reflection and small, consistent steps tend to land well from here.",
+    },
+    {
+      label: 'Okay',
+      icon: 'minus-circle-outline',
+      accentColor: Colors.mutedSageGray,
+      message: "Nothing dramatic in either direction today. A good opportunity to check in with your journal or add to a habit you're building.",
+    },
+    {
+      label: 'Okay',
+      icon: 'minus-circle-outline',
+      accentColor: Colors.mutedSageGray,
+      message: "Neutral days build the base that harder days rest on. No need to push, steady is the work.",
+    },
+  ],
+  clear: [
+    {
+      label: 'Clear',
+      icon: 'check-circle-outline',
+      accentColor: Colors.evergreenTeal,
+      message: "Your brain has bandwidth today. A good day to lean into focus work.",
+    },
+    {
+      label: 'Clear',
+      icon: 'check-circle-outline',
+      accentColor: Colors.evergreenTeal,
+      message: "Clarity like this is a chance to make steady progress on the habits that matter most to you.",
+    },
+    {
+      label: 'Clear',
+      icon: 'check-circle-outline',
+      accentColor: Colors.evergreenTeal,
+      message: "A clear headspace is one of the conditions habits stick in. Use it where it counts.",
+    },
+  ],
+  energized: [
+    {
+      label: 'Energized',
+      icon: 'flash-outline',
+      accentColor: Colors.freshMoss,
+      message: "High-capacity day. Today's a good one for focus work.",
+    },
+    {
+      label: 'Energized',
+      icon: 'flash-outline',
+      accentColor: Colors.freshMoss,
+      message: "Energized days are rarer than we think. A good day to protect the time for what matters most.",
+    },
+    {
+      label: 'Energized',
+      icon: 'flash-outline',
+      accentColor: Colors.freshMoss,
+      message: "When energy is this available, the brain can hold more. Pick the one thing worth that capacity.",
+    },
+  ],
 };
+
+export function getBrainStateBrief(
+  state: BrainState,
+  date: Date = new Date()
+): BrainStateBrief {
+  const variants = BRAIN_STATE_BRIEFS[state];
+  const dayIndex = Math.floor(date.getTime() / (1000 * 60 * 60 * 24));
+  const variantIndex = dayIndex % variants.length;
+  return variants[variantIndex];
+}

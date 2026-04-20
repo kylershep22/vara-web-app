@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BrainState } from '../../../types';
-import { BRAIN_STATE_BRIEFS } from './brainStateBriefs';
+import { getBrainStateBrief } from './brainStateBriefs';
 import { DashboardAnchorExpanded } from './DashboardAnchorExpanded';
 import { DashboardAnchorCollapsed } from './DashboardAnchorCollapsed';
 
@@ -123,7 +123,7 @@ export const DashboardAnchor: React.FC<DashboardAnchorProps> = ({
     return { transform: [{ translateY: Math.max(0, scrollY.value) }], zIndex: 10 };
   }, [collapsed]);
 
-  const brief = BRAIN_STATE_BRIEFS[brainState];
+  const brief = getBrainStateBrief(brainState);
   const protocolText = protocolCompleted ? 'Protocol done' : 'Protocol ready';
   const fullAccessibilityLabel =
     `${brief.label}. ${brief.message} ${protocolText}.`;
