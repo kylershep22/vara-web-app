@@ -5,11 +5,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, RefreshControl, TouchableOpacity, Text } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useAnimatedProps,
+  useAnimatedScrollHandler,
   withTiming,
   FadeIn,
   FadeOut,
@@ -124,6 +125,11 @@ const DashboardScreen: React.FC = () => {
 
   const cardOpacity = useSharedValue(dashboardPhase === 'pre-checkin' ? 0.35 : 1);
   const blurIntensity = useSharedValue(dashboardPhase === 'pre-checkin' ? 15 : 0);
+
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
 
   useEffect(() => {
     cardOpacity.value = withTiming(
@@ -251,9 +257,11 @@ const DashboardScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView
+      <Animated.ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -450,7 +458,7 @@ const DashboardScreen: React.FC = () => {
 
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Wellness Score Breakdown Modal (V1 only) */}
       {!DASHBOARD_V2 && (
