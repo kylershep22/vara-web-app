@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useAnimatedReaction,
   useSharedValue,
-  withTiming,
   runOnJS,
-  interpolate,
-  Extrapolation,
+  FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BrainState } from '../../../types';
@@ -27,6 +26,12 @@ const COLLAPSE_THRESHOLD = 200;
 const EXPAND_THRESHOLD = 50;
 const STORAGE_KEY_PREFIX = 'dashboard_anchor_collapsed_';
 
+// Numeric codes for manualOverrideDirection shared value (worklet-safe).
+// 0 = null (no override), 1 = 'collapse', 2 = 'expand'
+const OVERRIDE_NONE = 0;
+const OVERRIDE_COLLAPSE = 1;
+const OVERRIDE_EXPAND = 2;
+
 function storageKey(checkInDate: string): string {
   return `${STORAGE_KEY_PREFIX}${checkInDate}`;
 }
@@ -41,6 +46,7 @@ export const DashboardAnchor: React.FC<DashboardAnchorProps> = ({
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const manualOverrideActive = useSharedValue(false);
+  const manualOverrideDirection = useSharedValue(OVERRIDE_NONE);
 
   // Hydrate from AsyncStorage whenever checkInDate changes (new day = new key).
   useEffect(() => {
@@ -72,13 +78,22 @@ export const DashboardAnchor: React.FC<DashboardAnchorProps> = ({
   }, []);
 
   // Scroll-driven auto-collapse/expand. Paused by manualOverrideActive until
-  // the scroll position crosses the opposite threshold.
+  // the scroll position crosses the *opposite* threshold from the direction of
+  // the manual toggle.
   useAnimatedReaction(
     () => scrollY.value,
     (y) => {
       if (manualOverrideActive.value) {
-        if (y > COLLAPSE_THRESHOLD || y < EXPAND_THRESHOLD) {
+        const dir = manualOverrideDirection.value;
+        // User manually collapsed → clear only when scrolling back to top.
+        // User manually expanded → clear only when scrolling down past threshold.
+        const shouldClear =
+          (dir === OVERRIDE_COLLAPSE && y < EXPAND_THRESHOLD) ||
+          (dir === OVERRIDE_EXPAND && y > COLLAPSE_THRESHOLD);
+
+        if (shouldClear) {
           manualOverrideActive.value = false;
+          manualOverrideDirection.value = OVERRIDE_NONE;
         }
         return;
       }
@@ -92,9 +107,12 @@ export const DashboardAnchor: React.FC<DashboardAnchorProps> = ({
   );
 
   const handleManualToggle = useCallback(() => {
+    // Record the direction the toggle is moving INTO before flipping state.
+    // If currently collapsed, user is expanding; otherwise collapsing.
+    manualOverrideDirection.value = collapsed ? OVERRIDE_EXPAND : OVERRIDE_COLLAPSE;
     manualOverrideActive.value = true;
     setCollapsed((prev) => !prev);
-  }, [manualOverrideActive]);
+  }, [manualOverrideActive, manualOverrideDirection, collapsed]);
 
   // Sticky-to-top: when collapsed, translate the anchor down by the current
   // scrollY so it visually stays at the top of the viewport.
@@ -102,22 +120,8 @@ export const DashboardAnchor: React.FC<DashboardAnchorProps> = ({
     if (!collapsed) {
       return { transform: [{ translateY: 0 }] };
     }
-    const translate = interpolate(
-      scrollY.value,
-      [0, 10000],
-      [0, 10000],
-      Extrapolation.CLAMP
-    );
-    return { transform: [{ translateY: translate }], zIndex: 10 };
+    return { transform: [{ translateY: Math.max(0, scrollY.value) }], zIndex: 10 };
   }, [collapsed]);
-
-  // Cross-fade between expanded and collapsed views.
-  const expandedOpacity = useAnimatedStyle(() => ({
-    opacity: withTiming(collapsed ? 0 : 1, { duration: 250 }),
-  }), [collapsed]);
-  const collapsedOpacity = useAnimatedStyle(() => ({
-    opacity: withTiming(collapsed ? 1 : 0, { duration: 250 }),
-  }), [collapsed]);
 
   const brief = BRAIN_STATE_BRIEFS[brainState];
   const protocolText = protocolCompleted ? 'Protocol done' : 'Protocol ready';
@@ -125,33 +129,31 @@ export const DashboardAnchor: React.FC<DashboardAnchorProps> = ({
     `${brief.label}. ${brief.message} ${protocolText}.`;
 
   return (
-    <Animated.View
-      style={stickyStyle}
-      accessibilityLabel={fullAccessibilityLabel}
-      accessibilityHint={collapsed ? 'Double-tap to expand' : 'Double-tap to collapse'}
-    >
+    <Animated.View style={stickyStyle}>
       {!collapsed && (
-        <Animated.View style={expandedOpacity}>
+        <Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(250)}>
           <Pressable
             testID="dashboard-anchor-expanded-pressable"
             onPress={handleManualToggle}
+            accessibilityLabel={fullAccessibilityLabel}
+            accessibilityHint="Double-tap to collapse"
           >
             <DashboardAnchorExpanded brainState={brainState} />
           </Pressable>
         </Animated.View>
       )}
       {collapsed && (
-        <Animated.View style={collapsedOpacity}>
+        <Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(250)}>
           <DashboardAnchorCollapsed
             brainState={brainState}
             protocolCompleted={protocolCompleted}
             onChangePress={onChangeStatePress}
             onAnchorPress={handleManualToggle}
+            accessibilityLabel={fullAccessibilityLabel}
+            accessibilityHint="Double-tap to expand"
           />
         </Animated.View>
       )}
     </Animated.View>
   );
 };
-
-const styles = StyleSheet.create({});

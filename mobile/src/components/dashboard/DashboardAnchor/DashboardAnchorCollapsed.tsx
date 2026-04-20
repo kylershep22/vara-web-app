@@ -10,6 +10,8 @@ interface DashboardAnchorCollapsedProps {
   protocolCompleted: boolean;
   onChangePress: () => void;
   onAnchorPress: () => void;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 export const DashboardAnchorCollapsed: React.FC<DashboardAnchorCollapsedProps> = ({
@@ -17,6 +19,8 @@ export const DashboardAnchorCollapsed: React.FC<DashboardAnchorCollapsedProps> =
   protocolCompleted,
   onChangePress,
   onAnchorPress,
+  accessibilityLabel,
+  accessibilityHint,
 }) => {
   const brief = BRAIN_STATE_BRIEFS[brainState];
   const protocolText = protocolCompleted ? 'Protocol done' : 'Protocol ready';
@@ -28,6 +32,8 @@ export const DashboardAnchorCollapsed: React.FC<DashboardAnchorCollapsedProps> =
         style={styles.body}
         onPress={onAnchorPress}
         activeOpacity={0.7}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
       >
         <View style={styles.left}>
           <Icon name={brief.icon as any} size={18} color={brief.accentColor} />
