@@ -157,6 +157,25 @@ const DashboardScreen: React.FC = () => {
             onMarkCompleted={handleMarkProtocolCompleted}
           />
         ) : null;
+      case 'notifOptIn':
+        return notifOptInCard ? (
+          <View key="notifOptIn" style={{ paddingHorizontal: Spacing.base }}>
+            <NotificationOptInCard
+              category={notifOptInCard}
+              onOptIn={() => handleNotifOptIn(notifOptInCard)}
+              onDismiss={() => handleNotifDismiss(notifOptInCard)}
+            />
+          </View>
+        ) : null;
+      case 'eventCode':
+        return showEventCodeCard ? (
+          <View key="eventCode" style={{ paddingHorizontal: Spacing.base }}>
+            <EventCodeCard
+              onEnterCode={() => setEventCodeSheetVisible(true)}
+              onDismiss={handleEventCodeDismiss}
+            />
+          </View>
+        ) : null;
       case 'nudge':
         return nudgeSuggestion ? (
           <NudgeCard
@@ -262,27 +281,6 @@ const DashboardScreen: React.FC = () => {
 
         {DASHBOARD_V2 ? (
           <>
-            {/* Notification Opt-In Card (progressive disclosure) */}
-            {notifOptInCard && (
-              <View style={{ paddingHorizontal: Spacing.base }}>
-                <NotificationOptInCard
-                  category={notifOptInCard}
-                  onOptIn={() => handleNotifOptIn(notifOptInCard)}
-                  onDismiss={() => handleNotifDismiss(notifOptInCard)}
-                />
-              </View>
-            )}
-
-            {/* Event Code Card (new users < 48 hours, contextual) */}
-            {showEventCodeCard && (
-              <View style={{ paddingHorizontal: Spacing.base }}>
-                <EventCodeCard
-                  onEnterCode={() => setEventCodeSheetVisible(true)}
-                  onDismiss={handleEventCodeDismiss}
-                />
-              </View>
-            )}
-
             {/* Phase-dependent top section */}
             {dashboardPhase === 'post-checkin' && brainStateCheckIn && (
               <BrainBrief brainState={brainStateCheckIn.brainState} />
