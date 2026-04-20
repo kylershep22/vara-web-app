@@ -293,16 +293,13 @@ const DashboardScreen: React.FC = () => {
         {DASHBOARD_V2 ? (
           <>
             {/* Phase-dependent top section */}
-            {dashboardPhase === 'post-checkin' && brainStateCheckIn && (
-              <BrainBrief brainState={brainStateCheckIn.brainState} />
-            )}
-
-            {dashboardPhase === 'returning' && brainStateCheckIn && (
-              <BrainStatusBar
-                brainState={brainStateCheckIn.brainState}
-                protocolCompleted={brainStateCheckIn.protocolCompleted}
-                onChangeState={handleBrainStateCheckIn}
-              />
+            {dashboardPhase === 'checked-in' && brainStateCheckIn && (
+              <>
+                <BrainBrief brainState={brainStateCheckIn.brainState} />
+                {/* BrainStatusBar is intentionally not rendered here anymore.
+                    The brief now persists through the whole day until a later task
+                    replaces this block with the unified DashboardAnchor. */}
+              </>
             )}
 
             {/* Brain State Check-In (only visible in pre-checkin phase) */}

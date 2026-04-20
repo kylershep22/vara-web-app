@@ -3,7 +3,7 @@
  * State management and event handlers for the DashboardScreen.
  */
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -117,7 +117,6 @@ export function useDashboard() {
 
   // Dashboard V2: Brain State Check-In
   const [brainStateCheckIn, setBrainStateCheckIn] = useState<BrainStateCheckInType | null>(null);
-  const hasSeenBriefThisSession = useRef(false);
   const [brainStateCheckInLoading, setBrainStateCheckInLoading] = useState(false);
 
   // Dashboard V2: Daily Reflection
@@ -500,19 +499,8 @@ export function useDashboard() {
     return getProtocolForState(brainStateCheckIn.brainState);
   }, [brainStateCheckIn]);
 
-  // Dashboard phase: pre-checkin, post-checkin, or returning
-  const dashboardPhase = useMemo((): 'pre-checkin' | 'post-checkin' | 'returning' => {
-    if (!brainStateCheckIn) return 'pre-checkin';
-    if (!hasSeenBriefThisSession.current) return 'post-checkin';
-    return 'returning';
-  }, [brainStateCheckIn]);
-
-  // Mark brief as seen when we enter post-checkin
-  useEffect(() => {
-    if (dashboardPhase === 'post-checkin') {
-      hasSeenBriefThisSession.current = true;
-    }
-  }, [dashboardPhase]);
+  // Dashboard phase: pre-checkin or checked-in
+  const dashboardPhase: 'pre-checkin' | 'checked-in' = brainStateCheckIn ? 'checked-in' : 'pre-checkin';
 
   // Card order based on brain state
   const cardOrder = useMemo((): DashboardCardId[] => {
