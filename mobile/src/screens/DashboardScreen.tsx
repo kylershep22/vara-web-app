@@ -39,8 +39,7 @@ import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
 import NudgeCard from '../components/dashboard/NudgeCard';
-import { BrainBrief } from '../components/dashboard/BrainBrief';
-import { BrainStatusBar } from '../components/dashboard/BrainStatusBar';
+import { DashboardAnchor } from '../components/dashboard/DashboardAnchor/DashboardAnchor';
 import { LockedDivider } from '../components/dashboard/LockedDivider';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
@@ -122,6 +121,8 @@ const DashboardScreen: React.FC = () => {
 
   const { correlations } = useWeeklyCorrelations();
   const weekInsight = correlations ? selectWeekInsight(correlations) : null;
+
+  const [showCheckInOverAnchor, setShowCheckInOverAnchor] = useState(false);
 
   const cardOpacity = useSharedValue(dashboardPhase === 'pre-checkin' ? 0.35 : 1);
   const blurIntensity = useSharedValue(dashboardPhase === 'pre-checkin' ? 15 : 0);
@@ -294,12 +295,24 @@ const DashboardScreen: React.FC = () => {
           <>
             {/* Phase-dependent top section */}
             {dashboardPhase === 'checked-in' && brainStateCheckIn && (
-              <>
-                <BrainBrief brainState={brainStateCheckIn.brainState} />
-                {/* BrainStatusBar is intentionally not rendered here anymore.
-                    The brief now persists through the whole day until a later task
-                    replaces this block with the unified DashboardAnchor. */}
-              </>
+              showCheckInOverAnchor ? (
+                <BrainStateCheckin
+                  currentCheckIn={brainStateCheckIn}
+                  onSelect={(state) => {
+                    handleBrainStateCheckIn(state);
+                    setShowCheckInOverAnchor(false);
+                  }}
+                  loading={brainStateCheckInLoading}
+                />
+              ) : (
+                <DashboardAnchor
+                  brainState={brainStateCheckIn.brainState}
+                  protocolCompleted={brainStateCheckIn.protocolCompleted}
+                  checkInDate={brainStateCheckIn.date}
+                  onChangeStatePress={() => setShowCheckInOverAnchor(true)}
+                  scrollY={scrollY}
+                />
+              )
             )}
 
             {/* Brain State Check-In (only visible in pre-checkin phase) */}

@@ -12,7 +12,7 @@ import { PRIORITY_MAP, type BrainState, type Feature } from './getNudgeSuggestio
  *
  * `notifOptIn` and `eventCode` are system-level prompts (not state-driven).
  * They are placed immediately after `protocol` so that, after the
- * BrainBrief and the primary action card, any light optional surfaces
+ * DashboardAnchor and the primary action card, any light optional surfaces
  * appear before the rest of the state-driven stack.
  */
 export type DashboardCardId =
