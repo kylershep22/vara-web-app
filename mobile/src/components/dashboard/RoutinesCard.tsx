@@ -161,7 +161,7 @@ const RoutinesCard: React.FC<RoutinesCardProps> = ({
             <Icon name="lightbulb-outline" size={24} color={Colors.evergreenTeal} />
             <Text style={styles.emptyHeadline}>Routines help when you want structure.</Text>
             <Text style={styles.emptyBody}>
-              None yet — and that's fine.
+              None yet, and that's fine.
             </Text>
             {templates.map(template => (
               <TouchableOpacity
