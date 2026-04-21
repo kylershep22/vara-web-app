@@ -94,7 +94,7 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   discover: {
     icon: 'headphones',
     ctaLabel: 'Browse Content',
-    screenName: 'DiscoverNavigator',
+    screenName: 'Wellness',
     headlines: {
       wired: { headline: 'Listen and unwind', description: 'A podcast or masterclass can redirect a restless mind.' },
       foggy: { headline: 'Let someone else do the thinking', description: 'Listen to something that sparks a new thought.' },
@@ -106,7 +106,7 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   masterclass: {
     icon: 'school-outline',
     ctaLabel: 'Browse Masterclasses',
-    screenName: 'DiscoverNavigator',
+    screenName: 'Wellness',
     headlines: {
       wired: { headline: 'Learn something calming', description: 'A masterclass can redirect a restless mind.' },
       foggy: { headline: 'Let an expert guide you', description: 'Sometimes listening is easier than doing.' },
