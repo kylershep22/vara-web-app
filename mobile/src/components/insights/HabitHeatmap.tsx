@@ -195,5 +195,3 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
 });
-
-export { HabitHeatmap };

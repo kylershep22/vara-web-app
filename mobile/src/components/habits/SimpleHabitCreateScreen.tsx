@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Input, Button } from '../../components';
+import Input from '../Input';
+import Button from '../Button';
 import { EnhancedModal } from '../../components/shared/EnhancedModal';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 

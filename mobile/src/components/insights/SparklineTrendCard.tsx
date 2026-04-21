@@ -327,5 +327,3 @@ const atAGlanceStyles = StyleSheet.create({
     borderRadius: 2,
   },
 });
-
-export { SparklineTrendCard, AtAGlanceCard };

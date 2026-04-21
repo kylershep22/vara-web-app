@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { BaseCard } from '../../components';
+import { BaseCard } from '../shared/BaseCard';
 import { AnimatedCheckbox } from '../../components/celebrations';
 import { Colors } from '../../constants';
 import { isCognitiveReserveCategory } from '../../constants/habitCategories';

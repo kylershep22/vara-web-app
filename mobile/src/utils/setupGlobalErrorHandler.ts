@@ -22,8 +22,12 @@ declare const ErrorUtils: {
 if (typeof ErrorUtils !== 'undefined') {
   const originalHandler = ErrorUtils.getGlobalHandler();
   ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
-    // Always log the error for debugging
-    console.error(`[Global Error Handler] ${isFatal ? 'FATAL' : 'non-fatal'}:`, error?.message || error);
+    // Enhanced logging to diagnose "property is not configurable" errors
+    console.error(
+      `[Global Error Handler] ${isFatal ? 'FATAL' : 'non-fatal'}:`,
+      error?.message || error,
+      '\nStack:', error?.stack?.split('\n').slice(0, 8).join('\n')
+    );
 
     // For non-fatal errors, delegate to the original handler
     // For fatal errors, do NOT call the original handler — it calls native abort()

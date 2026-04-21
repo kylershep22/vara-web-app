@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { Button } from '..';
+import Button from '../Button';
 import { ChallengeCard } from './ChallengeCard';
 import { Badge } from '../shared/Badge';
 import { Colors, Spacing, Typography, Layout } from '../../constants';

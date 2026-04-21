@@ -11,4 +11,6 @@ export { default as FocusAreaBottomSheet } from './FocusAreaBottomSheet';
 export { default as OnboardingActivityCard } from './OnboardingActivityCard';
 
 // Activity execution components
-export * from './activities';
+export { default as OnboardingBreathingActivity } from './activities/OnboardingBreathingActivity';
+export { default as OnboardingReflectionActivity } from './activities/OnboardingReflectionActivity';
+export { default as OnboardingIntentionActivity } from './activities/OnboardingIntentionActivity';

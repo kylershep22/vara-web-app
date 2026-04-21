@@ -19,7 +19,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { Button, Input, AuthHeader } from '../../components';
+import Button from '../../components/Button';
+import Input from '../../components/Input';
+import { AuthHeader } from '../../components/auth/AuthHeader';
 import { Colors, Spacing, Typography } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { validateEmail, getAuthErrorMessage } from '../../utils/validation';

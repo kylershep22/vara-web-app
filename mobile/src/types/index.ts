@@ -1,8 +1,108 @@
 /**
  * Type definitions barrel export
+ *
+ * NOTE: Explicit re-exports to avoid Metro "export *" issues.
  */
 
-export * from './models';
-export * from './onboarding';
-export * from './featureDiscovery';
-export * from './moderation';
+// models
+export type {
+  UserValue,
+  UserProfile,
+  Goal,
+  Milestone,
+  Habit,
+  HabitCompletion,
+  CompletionData,
+  Task,
+  JournalEntry,
+  JournalWeeklySummary,
+  FourThreeTwoOneEntry,
+  Mood,
+  Group,
+  GroupPrompt,
+  Challenge,
+  ChallengeCheckIn,
+  ChallengeParticipant,
+  GroupInvite,
+  ChallengeInvite,
+  Post,
+  Comment,
+  Connection,
+  Conversation,
+  DirectMessage,
+  Notification,
+  NotificationCategory,
+  LegacyNotificationPreferences,
+  NotificationPreferences,
+  DailyPlanRequest,
+  DailyPlanResponse,
+  AIPromptRequest,
+  AIPromptResponse,
+  JournalPromptRawResponse,
+  JournalSummaryRequest,
+  JournalSummaryResponse,
+  BrainMetrics,
+  NervousSystemSession,
+  AMCCChallenge,
+  WellnessScorePillar,
+  WellnessScoreComponent,
+  WellnessIncompleteAction,
+  MorningCheckIn,
+  BrainStateCheckIn,
+  DailyReflection,
+  DailyWellnessScore,
+  WellnessScoreHistoryEntry,
+  BrainPillar,
+  HabitReflection,
+  ConnectionQuality,
+  CompletionSource,
+  IntentionCategory,
+  HabitIntention,
+  BodyFuelOption,
+  GroupCategory,
+  ChallengeStatus,
+  ChallengeFrequency,
+  InviteStatus,
+  NotificationType,
+  NotificationFrequency,
+  ReminderTime,
+  BrainState,
+  DailyReflectionValue,
+} from './models';
+
+// onboarding
+export type {
+  OnboardingCheckInData,
+  OnboardingInsightResult,
+  OnboardingActivityOption,
+  CompletedOnboardingActivity,
+  OnboardingState,
+  OnboardingFeatureDiscoveryState,
+  OnboardingStackParamList,
+} from './onboarding';
+
+// featureDiscovery
+export type {
+  DiscoverableFeatureId,
+  FeatureDiscoveryStatus,
+  FeatureDiscoveryState,
+  FeatureDiscoveryMap,
+  UserEngagementMetrics,
+  UnlockTrigger,
+  FeaturePreviewContent,
+  FeatureCardContent,
+  UnlockToastContent,
+  FeatureDiscoveryDocument,
+  PendingUnlockToast,
+  UseFeatureDiscoveryReturn,
+} from './featureDiscovery';
+
+// moderation
+export type {
+  PostReportReason,
+  PostReportReasonOption,
+  PostReport,
+  HiddenPost,
+  MutedUser,
+} from './moderation';
+export { REPORT_REASONS } from './moderation';

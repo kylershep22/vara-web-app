@@ -231,5 +231,3 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
 });
-
-export { HeroSummaryCard };

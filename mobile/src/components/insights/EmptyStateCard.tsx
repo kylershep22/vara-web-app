@@ -52,5 +52,3 @@ const styles = StyleSheet.create({
     color: VARA_COLORS.sageGray,
   },
 });
-
-export { EmptyStateCard };
