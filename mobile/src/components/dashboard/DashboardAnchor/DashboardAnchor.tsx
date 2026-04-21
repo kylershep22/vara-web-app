@@ -7,6 +7,7 @@ import Animated, {
   runOnJS,
   FadeIn,
   FadeOut,
+  type SharedValue,
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BrainState } from '../../../types';
@@ -19,7 +20,7 @@ interface DashboardAnchorProps {
   protocolCompleted: boolean;
   checkInDate: string;                          // YYYY-MM-DD from the check-in doc
   onChangeStatePress: () => void;
-  scrollY: Animated.SharedValue<number>;
+  scrollY: SharedValue<number>;
 }
 
 const COLLAPSE_THRESHOLD = 200;
