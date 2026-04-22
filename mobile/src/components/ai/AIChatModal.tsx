@@ -63,6 +63,59 @@ interface AIChatModalProps {
   initialContext?: any;
 }
 
+// Rate-limit response shape returned by the backend (both Cloud Functions and Express).
+// See backend/server.js rateLimitHandler and functions/index.js 429 response.
+type RateLimitCode = 'daily_limit_exceeded' | 'hourly_limit_exceeded';
+interface RateLimitPayload {
+  code: RateLimitCode;
+  resetAt: string;
+  retryAfter: number;
+}
+
+function extractRateLimit(error: unknown): RateLimitPayload | null {
+  const data = (error as { response?: { data?: unknown } })?.response?.data;
+  if (!data || typeof data !== 'object') return null;
+  const d = data as Partial<RateLimitPayload>;
+  if (d.code !== 'daily_limit_exceeded' && d.code !== 'hourly_limit_exceeded') return null;
+  if (typeof d.resetAt !== 'string' || typeof d.retryAfter !== 'number') return null;
+  return { code: d.code, resetAt: d.resetAt, retryAfter: d.retryAfter };
+}
+
+function formatResetTime(resetAt: string): string {
+  const reset = new Date(resetAt);
+  if (Number.isNaN(reset.getTime())) return 'later';
+  const now = new Date();
+  const timeStr = reset.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (reset.toDateString() === now.toDateString()) {
+    return `at ${timeStr}`;
+  }
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (reset.toDateString() === tomorrow.toDateString()) {
+    return `tomorrow at ${timeStr}`;
+  }
+  return `on ${reset.toLocaleDateString([], { weekday: 'long' })} at ${timeStr}`;
+}
+
+function formatRetryDuration(retryAfter: number): string {
+  if (retryAfter <= 60) return 'in about a minute';
+  const minutes = Math.ceil(retryAfter / 60);
+  if (minutes < 60) return `in about ${minutes} minute${minutes === 1 ? '' : 's'}`;
+  const hours = Math.ceil(minutes / 60);
+  return `in about ${hours} hour${hours === 1 ? '' : 's'}`;
+}
+
+function buildChatErrorContent(error: unknown): string {
+  const rate = extractRateLimit(error);
+  if (rate?.code === 'daily_limit_exceeded') {
+    return `You've reached today's Vara Coach limit. You can chat again ${formatResetTime(rate.resetAt)}.`;
+  }
+  if (rate?.code === 'hourly_limit_exceeded') {
+    return `You've sent a lot of messages quickly. Try again ${formatRetryDuration(rate.retryAfter)}.`;
+  }
+  return "I'm having trouble connecting right now. Please try again in a moment.";
+}
+
 // Abstract Ribbon V Icon for header avatar
 const VaraIcon = ({ size = 28, color = EVERGREEN_TEAL }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
@@ -421,7 +474,7 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "I'm having trouble connecting right now. Please try again in a moment.",
+        content: buildChatErrorContent(error),
         timestamp: new Date(),
       };
 

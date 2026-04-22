@@ -71,6 +71,23 @@ const globalLimiter = rateLimit({
 });
 app.use('/api', globalLimiter);
 
+// Shared 429 response shape — mirrors the Cloud Functions structure so the
+// mobile client can render a consistent message on either path.
+function rateLimitHandler(code, message, windowMs) {
+  return (req, res) => {
+    const resetAt = req.rateLimit?.resetTime?.getTime?.() ?? Date.now() + windowMs;
+    const retryAfter = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000));
+    res.set('Retry-After', retryAfter.toString());
+    res.status(429).json({
+      error: 'Too many requests',
+      code,
+      message,
+      retryAfter,
+      resetAt: new Date(resetAt).toISOString(),
+    });
+  };
+}
+
 // AI endpoints: 30 requests per hour, keyed by authenticated user
 const aiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -78,8 +95,12 @@ const aiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.uid || req.ip,
-  message: { error: 'AI rate limit exceeded. Please try again later.' },
   validate: false,
+  handler: rateLimitHandler(
+    'hourly_limit_exceeded',
+    "You've exceeded the rate limit. Please try again later.",
+    60 * 60 * 1000,
+  ),
 });
 
 // AI endpoints: 150 requests per 24h, keyed by authenticated user
@@ -89,8 +110,12 @@ const aiDailyLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.uid || req.ip,
-  message: { error: "You've reached today's AI usage limit. Try again tomorrow." },
   validate: false,
+  handler: rateLimitHandler(
+    'daily_limit_exceeded',
+    "You've reached today's limit for this feature. Try again tomorrow.",
+    24 * 60 * 60 * 1000,
+  ),
 });
 
 // ---- Auth: require Firebase token on all /api routes ----

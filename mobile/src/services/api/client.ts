@@ -138,10 +138,12 @@ export async function apiRequest<T>(
     } catch (error) {
       lastError = error;
 
-      // Don't retry on client errors (4xx)
+      // Don't retry on client errors (4xx). 429 is explicit back-pressure —
+      // retrying just burns through the reset window and worsens the problem,
+      // so treat it as a hard stop and surface the error to the caller.
       if (axios.isAxiosError(error) && error.response) {
         const status = error.response.status;
-        if (status >= 400 && status < 500 && status !== 429) {
+        if (status >= 400 && status < 500) {
           throw error;
         }
       }

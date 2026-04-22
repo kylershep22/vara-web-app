@@ -564,13 +564,16 @@ exports.api = onRequest(
 
           if (!rateLimit.allowed) {
             logger.warn("Request blocked by rate limit", {userId, path, reason: rateLimit.reason});
-            const message = rateLimit.reason === "daily" ?
-              "You've reached today's limit for this feature. Try again tomorrow." :
-              "You've exceeded the rate limit. Please try again later.";
+            const retryAfter = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+            const isDaily = rateLimit.reason === "daily";
+            res.set("Retry-After", retryAfter.toString());
             return res.status(429).json({
               error: "Too many requests",
-              message,
-              retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000), // seconds
+              code: isDaily ? "daily_limit_exceeded" : "hourly_limit_exceeded",
+              message: isDaily ?
+                "You've reached today's limit for this feature. Try again tomorrow." :
+                "You've exceeded the rate limit. Please try again later.",
+              retryAfter,
               resetAt: new Date(rateLimit.resetAt).toISOString(),
             });
           }
