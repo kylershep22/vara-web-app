@@ -86,15 +86,17 @@ function stripMarkdown(text) {
 
 /**
  * Rate limiting configuration per endpoint
- * Format: { endpoint: { maxRequests: number, windowMs: number } }
+ * Format: { endpoint: { maxRequests, windowMs, dailyMax? } }
+ * When dailyMax is set, the endpoint is also capped to that many requests per 24h.
  */
+const DAY_MS = 24 * 60 * 60 * 1000;
 const RATE_LIMITS = {
-  "/journal-summary": {maxRequests: 10, windowMs: 60 * 60 * 1000}, // 10 per hour
-  "/ai-chat": {maxRequests: 20, windowMs: 60 * 60 * 1000}, // 20 per hour
-  "/openai": {maxRequests: 30, windowMs: 60 * 60 * 1000}, // 30 per hour
-  "/api/journal-summary": {maxRequests: 10, windowMs: 60 * 60 * 1000}, // 10 per hour
-  "/api/ai-chat": {maxRequests: 20, windowMs: 60 * 60 * 1000}, // 20 per hour
-  "/api/openai": {maxRequests: 30, windowMs: 60 * 60 * 1000}, // 30 per hour
+  "/journal-summary": {maxRequests: 10, windowMs: 60 * 60 * 1000, dailyMax: 20},
+  "/ai-chat": {maxRequests: 20, windowMs: 60 * 60 * 1000, dailyMax: 100},
+  "/openai": {maxRequests: 30, windowMs: 60 * 60 * 1000, dailyMax: 150},
+  "/api/journal-summary": {maxRequests: 10, windowMs: 60 * 60 * 1000, dailyMax: 20},
+  "/api/ai-chat": {maxRequests: 20, windowMs: 60 * 60 * 1000, dailyMax: 100},
+  "/api/openai": {maxRequests: 30, windowMs: 60 * 60 * 1000, dailyMax: 150},
 };
 
 /**
@@ -115,7 +117,10 @@ async function checkRateLimit(userId, endpoint) {
   }
 
   const now = Date.now();
-  const windowStart = now - limit.windowMs;
+  const hourlyWindowStart = now - limit.windowMs;
+  const dailyWindowStart = now - DAY_MS;
+  // Retain timestamps for the wider of the two windows so both checks stay correct.
+  const retentionStart = limit.dailyMax ? dailyWindowStart : hourlyWindowStart;
 
   // Firestore path: rateLimits/{userId}/requests/{endpoint}
   // Sanitize endpoint for use as Firestore doc ID (no forward slashes)
@@ -127,42 +132,51 @@ async function checkRateLimit(userId, endpoint) {
     const doc = await docRef.get();
     const data = doc.exists ? doc.data() : null;
 
-    // Clean up old requests outside the time window
-    let requests = data?.requests || [];
-    requests = requests.filter((timestamp) => timestamp > windowStart);
+    // Keep all timestamps within the retention window (24h when daily cap is set).
+    let requests = (data?.requests || []).filter((ts) => ts > retentionStart);
 
-    // Check if limit exceeded
-    if (requests.length >= limit.maxRequests) {
-      const oldestRequest = Math.min(...requests);
-      const resetAt = oldestRequest + limit.windowMs;
+    const hourlyCount = requests.filter((ts) => ts > hourlyWindowStart).length;
+    const dailyCount = requests.length;
 
-      logger.warn("Rate limit exceeded", {
-        userId,
-        endpoint,
-        count: requests.length,
-        limit: limit.maxRequests,
+    if (hourlyCount >= limit.maxRequests) {
+      const oldestInHour = Math.min(...requests.filter((ts) => ts > hourlyWindowStart));
+      logger.warn("Rate limit exceeded (hourly)", {
+        userId, endpoint, count: hourlyCount, limit: limit.maxRequests,
       });
-
       return {
         allowed: false,
         remaining: 0,
-        resetAt,
+        resetAt: oldestInHour + limit.windowMs,
+        reason: "hourly",
       };
     }
 
-    // Add current request timestamp
-    requests.push(now);
+    if (limit.dailyMax && dailyCount >= limit.dailyMax) {
+      const oldestInDay = Math.min(...requests);
+      logger.warn("Rate limit exceeded (daily)", {
+        userId, endpoint, count: dailyCount, limit: limit.dailyMax,
+      });
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: oldestInDay + DAY_MS,
+        reason: "daily",
+      };
+    }
 
-    // Update Firestore
+    // Add current request timestamp and persist
+    requests.push(now);
     await docRef.set({
       requests,
       lastRequest: now,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    const hourlyRemaining = limit.maxRequests - (hourlyCount + 1);
+    const dailyRemaining = limit.dailyMax ? limit.dailyMax - (dailyCount + 1) : Infinity;
     return {
       allowed: true,
-      remaining: limit.maxRequests - requests.length,
+      remaining: Math.min(hourlyRemaining, dailyRemaining),
       resetAt: now + limit.windowMs,
     };
   } catch (err) {
@@ -221,6 +235,7 @@ exports.generateHabitSuggestions = onCall(
           model: "gpt-4o-mini",
           messages: [{role: "user", content: prompt}],
           temperature: 0.7,
+          max_tokens: 500,
         });
 
         const text = completion.choices?.[0]?.message?.content ?? "";
@@ -306,6 +321,7 @@ Provide 3–5 short, motivating tasks for the day. Keep tone ${tone}. Format as 
             {role: "user", content: userPrompt},
           ],
           temperature: 0.7,
+          max_tokens: 1500,
         });
 
         const plan = completion.choices?.[0]?.message?.content || "";
@@ -389,6 +405,7 @@ exports.journalPrompt = onRequest(
             {role: "user", content: sanitizedPrompt},
           ],
           temperature: 0.7,
+          max_tokens: 400,
         });
 
         const text = completion.choices?.[0]?.message?.content || "";
@@ -546,10 +563,13 @@ exports.api = onRequest(
           res.set("X-RateLimit-Reset", new Date(rateLimit.resetAt).toISOString());
 
           if (!rateLimit.allowed) {
-            logger.warn("Request blocked by rate limit", {userId, path});
+            logger.warn("Request blocked by rate limit", {userId, path, reason: rateLimit.reason});
+            const message = rateLimit.reason === "daily" ?
+              "You've reached today's limit for this feature. Try again tomorrow." :
+              "You've exceeded the rate limit. Please try again later.";
             return res.status(429).json({
               error: "Too many requests",
-              message: "You've exceeded the rate limit. Please try again later.",
+              message,
               retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000), // seconds
               resetAt: new Date(rateLimit.resetAt).toISOString(),
             });
@@ -624,6 +644,7 @@ Please summarize the main themes, emotions, and any meaningful insights or patte
         {role: "user", content: finalPrompt},
       ],
       temperature: 0.7,
+      max_tokens: 1500,
     });
 
     const text = response.choices?.[0]?.message?.content || "";
@@ -739,6 +760,7 @@ Use the user's actual data (goals, habits, brain state) to personalize responses
       model: "gpt-4o-mini",
       temperature: 0.7,
       messages: history,
+      max_tokens: 600,
     });
 
     const raw =
@@ -795,6 +817,7 @@ async function handleOpenAISuggestions(req, res) {
         {role: "user", content: prompt},
       ],
       temperature: 0.7,
+      max_tokens: 800,
     });
 
     const text = response.choices?.[0]?.message?.content || "";
@@ -831,6 +854,7 @@ async function handleJournalPrompt(req, res) {
         {role: "user", content: userContent},
       ],
       temperature: 0.7,
+      max_tokens: 400,
     });
 
     const raw = response.choices?.[0]?.message?.content || "";
@@ -888,6 +912,7 @@ Provide a structured plan with morning, afternoon, and evening suggestions.`;
         {role: "user", content: userPrompt},
       ],
       temperature: 0.7,
+      max_tokens: 1500,
     });
 
     const plan = response.choices?.[0]?.message?.content || "";
@@ -960,6 +985,7 @@ Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}`;
       ],
       temperature: 0.7,
       response_format: {type: "json_object"},
+      max_tokens: 800,
     });
 
     let suggestions;

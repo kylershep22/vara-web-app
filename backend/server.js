@@ -82,6 +82,17 @@ const aiLimiter = rateLimit({
   validate: false,
 });
 
+// AI endpoints: 150 requests per 24h, keyed by authenticated user
+const aiDailyLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 150,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.uid || req.ip,
+  message: { error: "You've reached today's AI usage limit. Try again tomorrow." },
+  validate: false,
+});
+
 // ---- Auth: require Firebase token on all /api routes ----
 app.use('/api', requireAuth);
 
@@ -89,10 +100,10 @@ app.use('/api', requireAuth);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Routes
-app.use('/api/generate-daily-plan', aiLimiter, validateDailyPlan, dailyPlanRoute);
+app.use('/api/generate-daily-plan', aiLimiter, aiDailyLimiter, validateDailyPlan, dailyPlanRoute);
 
 // ✅ AI Suggestions for Goals, Habits, or Tasks
-app.post('/api/openai', aiLimiter, validateAISuggestions, async (req, res) => {
+app.post('/api/openai', aiLimiter, aiDailyLimiter, validateAISuggestions, async (req, res) => {
   const { type, context, modifier = '' } = req.body;
 
   try {
@@ -105,7 +116,7 @@ app.post('/api/openai', aiLimiter, validateAISuggestions, async (req, res) => {
 });
 
 // ✅ Journal Prompt Suggestions
-app.post('/api/journal-prompt', aiLimiter, validateJournalPrompt, async (req, res) => {
+app.post('/api/journal-prompt', aiLimiter, aiDailyLimiter, validateJournalPrompt, async (req, res) => {
   const { prompt } = req.body;
 
   try {
@@ -116,7 +127,8 @@ app.post('/api/journal-prompt', aiLimiter, validateJournalPrompt, async (req, re
         { role: 'system', content: 'You are Vara, a warm wellness journaling companion. Return exactly 3 journal prompts, one per line. Rules: Each prompt must be a single question under 12 words. No em dashes. No markdown, no bold, no asterisks, no quotes, no headers, no bullet points, no numbering. No preamble or labels. Just 3 plain short questions, one per line.' },
         { role: 'user', content: prompt || 'Give me 3 reflective journal prompts for today.' }
       ],
-      temperature: 0.7
+      temperature: 0.7,
+      max_tokens: 400,
     });
 
     const raw = response.choices?.[0]?.message?.content || '';
@@ -128,7 +140,7 @@ app.post('/api/journal-prompt', aiLimiter, validateJournalPrompt, async (req, re
 });
 
 // ✅ Journal Weekly Summary
-app.post('/api/journal-summary', aiLimiter, validateJournalEntries, async (req, res) => {
+app.post('/api/journal-summary', aiLimiter, aiDailyLimiter, validateJournalEntries, async (req, res) => {
   const { entries } = req.body;
 
   if (!entries || (typeof entries === 'string' && entries.trim().length === 0)) {
@@ -151,7 +163,8 @@ Please summarize the main themes, emotions, and any meaningful insights or patte
 Keep it encouraging and brief (4–6 sentences max), with 1–3 actionable nudges for next week. Write naturally, like you're talking to a friend - no lists or bullet points.`
         }
       ],
-      temperature: 0.7
+      temperature: 0.7,
+      max_tokens: 1500,
     });
 
     const raw = response.choices?.[0]?.message?.content || '';
@@ -164,7 +177,7 @@ Keep it encouraging and brief (4–6 sentences max), with 1–3 actionable nudge
 
 // ✅ AI Chat (non-streaming) — used by the floating AI Companion widget
 // Expects: { messages: [{role, content}], context: { page: {path,label}, userSummary: {goals:[], habits:[]}} }
-app.post('/api/ai-chat', aiLimiter, validateAIChat, async (req, res) => {
+app.post('/api/ai-chat', aiLimiter, aiDailyLimiter, validateAIChat, async (req, res) => {
   try {
     const { messages = [], context = {} } = req.body || {};
     const { page, userSummary } = context || {};
@@ -242,7 +255,8 @@ Use the user's actual data (goals, habits, brain state) to personalize responses
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       temperature: 0.7,
-      messages: history
+      messages: history,
+      max_tokens: 600,
     });
 
     const raw = completion?.choices?.[0]?.message?.content?.trim() || "I couldn't find the right words - try again?";
@@ -255,7 +269,7 @@ Use the user's actual data (goals, habits, brain state) to personalize responses
 });
 
 // ✅ Week Recap AI Suggestions (Phase 2)
-app.post('/api/week-recap-suggestions', aiLimiter, validateWeekRecap, async (req, res) => {
+app.post('/api/week-recap-suggestions', aiLimiter, aiDailyLimiter, validateWeekRecap, async (req, res) => {
   const userId = req.uid; // Use verified UID from auth middleware
   const { weekData, currentRecap } = req.body;
 
@@ -300,7 +314,8 @@ Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}
         { role: 'user', content: userPrompt }
       ],
       temperature: 0.7,
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
+      max_tokens: 800,
     });
 
     const suggestions = JSON.parse(response.choices?.[0]?.message?.content || '{}');
@@ -320,7 +335,7 @@ Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}
 
 // Weekly Narrative - AI-generated summary from correlation data
 // Receives ONLY anonymized aggregate numbers. No PII.
-app.post('/api/weekly-narrative', aiLimiter, requireAuth, async (req, res) => {
+app.post('/api/weekly-narrative', aiLimiter, aiDailyLimiter, requireAuth, async (req, res) => {
   const { correlationData, bestDay, hardestDay, topCorrelations } = req.body;
 
   if (!correlationData) {
@@ -377,6 +392,7 @@ Write a 3-5 sentence weekly summary based on these patterns.
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
+      max_tokens: 400,
     });
 
     const raw = response.choices?.[0]?.message?.content?.trim() || '';

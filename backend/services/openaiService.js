@@ -45,7 +45,8 @@ Keep tone ${tone}.`;
       { role: 'system', content: 'You are a supportive, empathetic wellness coach. Your output is displayed as plain text in a mobile app. Never use any formatting - no markdown, no bold, no italics, no asterisks, no hashtags, no headers, no bullet points, no numbered lists. Write naturally in flowing sentences like you are texting a friend.' },
       { role: 'user', content: prompt }
     ],
-    temperature: 0.7
+    temperature: 0.7,
+    max_tokens: 1500,
   });
 
   return stripMarkdown(response.choices[0].message.content);

@@ -51,7 +51,8 @@ module.exports = async function generateHabitSuggestions(type = 'habits', contex
         content: promptIntro
       }
     ],
-    temperature: 0.7
+    temperature: 0.7,
+    max_tokens: 800,
   });
 
   return stripMarkdown(response.choices?.[0]?.message?.content);

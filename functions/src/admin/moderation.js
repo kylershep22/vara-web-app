@@ -117,6 +117,7 @@ async function aiReviewText(openai, content) {
     model: "gpt-4o-mini",
     temperature: 0,
     response_format: {type: "json_object"},
+    max_tokens: 200,
     messages: [
       {
         role: "system",
