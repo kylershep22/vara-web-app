@@ -133,7 +133,7 @@ async function checkRateLimit(userId, endpoint) {
     const data = doc.exists ? doc.data() : null;
 
     // Keep all timestamps within the retention window (24h when daily cap is set).
-    let requests = (data?.requests || []).filter((ts) => ts > retentionStart);
+    const requests = (data?.requests || []).filter((ts) => ts > retentionStart);
 
     const hourlyCount = requests.filter((ts) => ts > hourlyWindowStart).length;
     const dailyCount = requests.length;
