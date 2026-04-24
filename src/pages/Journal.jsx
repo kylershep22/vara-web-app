@@ -6,6 +6,7 @@ import {
   addDoc, collection, getDocs, query, where, Timestamp, doc, updateDoc, deleteDoc, serverTimestamp
 } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import { useAIConsent } from '../context/AIConsentContext';
 import { authedPost } from '../lib/apiClient';
 
 // 5-level mood config matching mobile
@@ -27,6 +28,7 @@ function getMoodLabel(value) {
 
 export default function Journal() {
   const { user } = useAuth();
+  const { hasConsent, requireConsent } = useAIConsent();
 
   // Data
   const [entries, setEntries] = useState([]);
@@ -78,13 +80,21 @@ export default function Journal() {
       // Sort newest first on client
       rows.sort((a, b) => safeToDate(b.createdAt) - safeToDate(a.createdAt));
       setEntries(rows);
-      fetchWeeklySummary(rows);
+      if (hasConsent) fetchWeeklySummary(rows);
     } catch (err) {
       console.error('Journal fetch error:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Re-fetch weekly summary once consent is granted mid-session
+  useEffect(() => {
+    if (hasConsent && entries.length > 0 && !weeklySummary && !summaryLoading) {
+      fetchWeeklySummary(entries);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasConsent]);
 
   const fetchWeeklySummary = async (allEntries) => {
     const cutoff = Date.now() - 7 * 86400000;
@@ -140,7 +150,7 @@ export default function Journal() {
   };
 
   // ---- AI Prompts ----
-  const handleInspireMe = async () => {
+  const runInspireMe = async () => {
     setLoadingPrompts(true);
     try {
       const res = await authedPost(`${process.env.REACT_APP_API_URL}/api/journal-prompt`, {
@@ -161,6 +171,8 @@ export default function Journal() {
       setLoadingPrompts(false);
     }
   };
+
+  const handleInspireMe = () => requireConsent(runInspireMe);
 
   const handleSelectPrompt = (suggestion) => {
     setFormContent(prev => prev.trim() ? `${prev}\n\n${suggestion}` : suggestion);
@@ -321,7 +333,20 @@ export default function Journal() {
         {!loading && hasRecentEntries && (
           <div className="bg-mist-white border border-divider rounded-vara-lg p-vara-base shadow-vara-sm">
             <h3 className="text-vara-sm font-semibold text-evergreen-teal mb-2">Weekly Reflection</h3>
-            {summaryLoading ? (
+            {hasConsent === false ? (
+              <>
+                <p className="text-vara-sm text-muted-sage-gray">
+                  Enable AI features to see a weekly reflection on your entries.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => requireConsent(() => fetchWeeklySummary(entries))}
+                  className="mt-3 inline-flex items-center gap-1.5 bg-evergreen-teal text-white text-vara-sm font-medium px-vara-base py-2 rounded-full hover:opacity-90 transition"
+                >
+                  <Sparkles size={14} /> Enable AI
+                </button>
+              </>
+            ) : summaryLoading ? (
               <p className="text-vara-sm text-muted-sage-gray italic">Generating your weekly summary...</p>
             ) : weeklySummary ? (
               <p className="text-vara-sm text-soft-charcoal whitespace-pre-wrap">{weeklySummary}</p>

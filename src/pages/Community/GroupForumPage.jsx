@@ -454,7 +454,7 @@ export default function GroupForumPage() {
                   className="hidden"
                 />
               </div>
-              
+
               <button
                 type="submit"
                 disabled={isPosting || (!newPost.trim() && selectedImages.length === 0)}
@@ -470,6 +470,9 @@ export default function GroupForumPage() {
                 )}
               </button>
             </div>
+            <p className="text-vara-xs text-muted-sage-gray mt-2">
+              Posts are reviewed by automated moderation.
+            </p>
           </form>
         </div>
 

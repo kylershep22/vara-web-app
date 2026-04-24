@@ -48,10 +48,12 @@ import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 import { useDashboard } from '../hooks/useDashboard';
 import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
 import { selectWeekInsight } from '../constants/weekInsightTemplates';
+import { useAIConsent } from '../context/AIConsentContext';
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 const DashboardScreen: React.FC = () => {
+  const { requireConsent } = useAIConsent();
   const {
     navigation,
     dataLoading,
@@ -409,7 +411,7 @@ const DashboardScreen: React.FC = () => {
               lastJournalDate={lastJournalDate}
               hasMorningCheckIn={true}
               hasDailyPlan={!!dailyPlan}
-              onGeneratePlan={handleGenerateDailyPlan}
+              onGeneratePlan={() => requireConsent(handleGenerateDailyPlan)}
               onMorningCheckIn={() => {}}
             />
 
@@ -441,7 +443,7 @@ const DashboardScreen: React.FC = () => {
               generatingPlan={generatingPlan}
               isPlanExpanded={isPlanExpanded}
               onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
-              onGenerate={handleGenerateDailyPlan}
+              onGenerate={() => requireConsent(handleGenerateDailyPlan)}
             />
 
             {/* Brain Health Insight Strip */}

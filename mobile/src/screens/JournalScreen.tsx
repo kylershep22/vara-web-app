@@ -30,6 +30,7 @@ import { getJournalPromptSuggestions } from '../services/api';
 import { JournalEntry } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useAIConsent } from '../context/AIConsentContext';
 
 const INPUT_ACCESSORY_VIEW_ID = 'journalInputAccessory';
 
@@ -52,6 +53,7 @@ interface JournalEntryModalProps {
 }
 
 const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: JournalEntryModalProps) => {
+  const { requireConsent } = useAIConsent();
   const [content, setContent] = useState('');
   const [mood, setMood] = useState('okay');
   const [tags, setTags] = useState<string[]>([]);
@@ -78,7 +80,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
     }
   }, [visible, editingEntry]);
 
-  const handleGetSuggestions = async () => {
+  const runGetSuggestions = async () => {
     setLoadingPrompt(true);
     try {
       const suggestions = await getJournalPromptSuggestions();
@@ -90,6 +92,8 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
       setLoadingPrompt(false);
     }
   };
+
+  const handleGetSuggestions = () => requireConsent(runGetSuggestions);
 
   const handleSelectSuggestion = (suggestion: string) => {
     const newContent = content.trim()
@@ -355,6 +359,7 @@ const JournalScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { showNotificationToast } = useToast();
   const { shouldShowPrompt: shouldShowNotifPrompt, markPromptShown: markNotifPromptShown } = useNotificationOptIn();
+  const { hasConsent: aiConsent, requireConsent: requireAIConsent } = useAIConsent();
   const notifOptInChecked = useRef(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -366,14 +371,14 @@ const JournalScreen: React.FC = () => {
   // Journal stats for filter chips
   const journalStats = useJournalStats(entries || []);
 
-  // AI weekly summary
+  // AI weekly summary — only fetched when the user has granted AI consent.
   const {
     summary: weeklySummary,
     loading: summaryLoading,
     error: summaryError,
     refetch: refetchSummary,
     hasEnoughEntries: summaryHasEnoughEntries,
-  } = useWeeklySummary(entries || []);
+  } = useWeeklySummary(aiConsent ? (entries || []) : []);
 
   // Filter entries by search query and tag
   const filteredEntries = useMemo(() => {
@@ -600,14 +605,34 @@ const JournalScreen: React.FC = () => {
           stickySectionHeadersEnabled={true}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            <AIWeeklySummaryCard
-              summary={weeklySummary}
-              loading={summaryLoading}
-              error={summaryError}
-              onRetry={refetchSummary}
-              hasEnoughEntries={summaryHasEnoughEntries}
-              weekEntryCount={journalStats.thisWeekCount}
-            />
+            aiConsent === false ? (
+              <View style={styles.aiConsentPlaceholder}>
+                <Ionicons name="sparkles-outline" size={20} color={Colors.evergreenTeal} />
+                <View style={styles.aiConsentPlaceholderText}>
+                  <Text style={styles.aiConsentPlaceholderTitle}>Weekly Insights</Text>
+                  <Text style={styles.aiConsentPlaceholderBody}>
+                    Enable AI features to see a weekly reflection on your entries.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.aiConsentPlaceholderButton}
+                  onPress={() => requireAIConsent(refetchSummary)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Enable AI"
+                >
+                  <Text style={styles.aiConsentPlaceholderButtonText}>Enable AI</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <AIWeeklySummaryCard
+                summary={weeklySummary}
+                loading={summaryLoading}
+                error={summaryError}
+                onRetry={refetchSummary}
+                hasEnoughEntries={summaryHasEnoughEntries}
+                weekEntryCount={journalStats.thisWeekCount}
+              />
+            )
           }
         />
       )}
@@ -1023,6 +1048,41 @@ const styles = StyleSheet.create({
   keyboardAccessoryButtonText: {
     color: Colors.textOnPrimary,
     fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  aiConsentPlaceholder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.dewSage,
+    borderRadius: Layout.borderRadius.lg,
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.base,
+    marginBottom: Spacing.sm,
+    padding: Spacing.base,
+    gap: Spacing.sm,
+  },
+  aiConsentPlaceholderText: {
+    flex: 1,
+  },
+  aiConsentPlaceholderTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.xs,
+  },
+  aiConsentPlaceholderBody: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+  },
+  aiConsentPlaceholderButton: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    borderRadius: Layout.borderRadius.full,
+    backgroundColor: Colors.evergreenTeal,
+  },
+  aiConsentPlaceholderButtonText: {
+    color: Colors.white,
+    fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
   },
 });

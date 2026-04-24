@@ -3,12 +3,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useAIConsent } from '../../context/AIConsentContext';
 import { buildUserContextSummary, pageLabelFromPath } from '../../services/userContextService';
 import { Bot, Send, X, MessageCircle, Loader2 } from 'lucide-react';
 import { authedPost } from '../../lib/apiClient';
 
 export default function AIChatWidget() {
   const { user, isAuthReady } = useAuth?.() || { user: null, isAuthReady: true };
+  const { requireConsent } = useAIConsent();
   const location = useLocation();
 
   const [isOpen, setIsOpen] = useState(() => {
@@ -80,10 +82,13 @@ export default function AIChatWidget() {
   }, [isOpen]);
 
   const toggleOpen = () => {
-    setIsOpen((prev) => {
-      const next = !prev;
-      if (next) setUnread(false);
-      return next;
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
+    requireConsent(() => {
+      setUnread(false);
+      setIsOpen(true);
     });
   };
 

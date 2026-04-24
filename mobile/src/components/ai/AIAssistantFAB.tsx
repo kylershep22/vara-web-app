@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { Spacing } from '../../constants';
 import { AIChatModal } from './AIChatModal';
+import { useAIConsent } from '../../context/AIConsentContext';
 
 // Brand colors
 const EVERGREEN_TEAL = '#1B5E57';
@@ -54,6 +55,11 @@ export function AIAssistantFAB({ context }: AIAssistantFABProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const { requireConsent } = useAIConsent();
+
+  const handlePress = () => {
+    requireConsent(() => setModalVisible(true));
+  };
 
   const handlePressIn = () => {
     setIsPressed(true);
@@ -85,7 +91,7 @@ export function AIAssistantFAB({ context }: AIAssistantFABProps) {
         ]}
       >
         <TouchableOpacity
-          onPress={() => setModalVisible(true)}
+          onPress={handlePress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           activeOpacity={1}

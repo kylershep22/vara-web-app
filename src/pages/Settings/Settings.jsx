@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
+import { useAIConsent } from "../../context/AIConsentContext";
 import { useToast } from "../../context/ToastContext";
 import { useSubscription } from "../../hooks/useSubscription";
 import logger from "../../utils/logger";
@@ -37,6 +38,7 @@ const tzGuess = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 export default function Settings() {
   const { user } = useAuth();
+  const { hasConsent, setConsent } = useAIConsent();
   const toast = useToast();
   const fileInputRef = useRef();
   const { status: subscriptionStatus, formattedType, description: subscriptionDescription } = useSubscription();
@@ -161,10 +163,12 @@ export default function Settings() {
     setSaving(true);
     try {
       const ref = doc(db, "users", user.uid);
+      // aiConsent is managed by AIConsentContext; exclude it from this save path.
+      const { aiConsent: _omitConsent, ...saveable } = formData;
       const sanitizedData = {
-        ...formData,
-        ...(formData.displayName ? { displayName: sanitizeText(formData.displayName) } : {}),
-        ...(formData.bio ? { bio: sanitizeBio(formData.bio) } : {}),
+        ...saveable,
+        ...(saveable.displayName ? { displayName: sanitizeText(saveable.displayName) } : {}),
+        ...(saveable.bio ? { bio: sanitizeBio(saveable.bio) } : {}),
       };
       await updateDoc(ref, {
         ...sanitizedData,
@@ -378,6 +382,36 @@ export default function Settings() {
                 />
               </div>
             </div>
+          </SectionCard>
+
+          {/* AI Features (consent) */}
+          <SectionCard
+            icon={<Sparkles className="w-5 h-5 text-evergreen-teal" />}
+            title="AI Features"
+            subtitle="Control whether Vara uses OpenAI to personalize your experience."
+          >
+            <label className="flex items-start gap-vara-md cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!hasConsent}
+                onChange={async (e) => {
+                  try {
+                    await setConsent(e.target.checked);
+                    toast.success(
+                      e.target.checked ? "AI features enabled." : "AI features disabled."
+                    );
+                  } catch (err) {
+                    logger.error("Failed to update AI consent", err, { userId: user?.uid });
+                    toast.error("Couldn't update AI setting. Please try again.");
+                  }
+                }}
+                className="mt-1 rounded text-evergreen-teal"
+              />
+              <span className="text-vara-sm text-soft-charcoal">
+                Let Vara use OpenAI for daily plan, AI chat, and journal tools. OpenAI doesn't use
+                this data to train their models.
+              </span>
+            </label>
           </SectionCard>
 
           {/* AI Companion */}

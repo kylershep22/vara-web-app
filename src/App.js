@@ -42,6 +42,7 @@ import Reflections from './pages/Reflections';
 
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import { VideoPlayerProvider } from './context/VideoPlayerContext';
+import { AIConsentProvider } from './context/AIConsentContext';
 import NowPlayingBar from './components/audio/NowPlayingBar';
 import VideoPlayerBar from './components/video/VideoPlayerBar';
 import OnboardingV2Welcome from './pages/onboarding/OnboardingV2Welcome';
@@ -73,6 +74,7 @@ function App() {
   return (
     <AudioPlayerProvider>
       <VideoPlayerProvider>
+        <AIConsentProvider>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Welcome />} />
@@ -400,6 +402,7 @@ function App() {
         {/* Persistent Media Bars */}
         <NowPlayingBar />
         <VideoPlayerBar />
+        </AIConsentProvider>
       </VideoPlayerProvider>
     </AudioPlayerProvider>
   );

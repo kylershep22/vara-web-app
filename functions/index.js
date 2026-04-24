@@ -744,7 +744,6 @@ Make medical claims or diagnoses. Prescribe medications or supplement dosages. P
 === CONTEXT ===
 
 - Current page: ${page?.label || "Unknown"} (path: ${page?.path || "/"})
-${brainHealthContext}
 - User summary:
   - Goals: ${goalsText}
   - Habits: ${habitsText}

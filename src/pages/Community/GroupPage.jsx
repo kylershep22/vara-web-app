@@ -694,7 +694,10 @@ const GroupPage = () => {
                       rows={3}
                       className="w-full px-3 py-2 border border-divider rounded-vara-md focus:outline-none focus:ring-2 focus:ring-evergreen-teal resize-none"
                     />
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-between gap-vara-base">
+                      <p className="text-vara-xs text-muted-sage-gray">
+                        Posts are reviewed by automated moderation.
+                      </p>
                       <button
                         type="submit"
                         disabled={!newPostContent.trim() || isPosting}

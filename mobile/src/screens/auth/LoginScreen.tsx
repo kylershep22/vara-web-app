@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { TextInput as PaperTextInput } from 'react-native-paper';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import { AuthHeader } from '../../components/auth/AuthHeader';
@@ -186,13 +187,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               error={!!passwordError}
               errorText={passwordError}
               right={
-                <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
-                  <Icon
-                    name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
-                    size={20}
-                    color={Colors.textSecondary}
-                  />
-                </TouchableOpacity>
+                <PaperTextInput.Icon
+                  icon={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+                  onPress={() => setSecureTextEntry(!secureTextEntry)}
+                  forceTextInputFocus={false}
+                  color={Colors.textSecondary}
+                  accessibilityLabel={secureTextEntry ? 'Show password' : 'Hide password'}
+                />
               }
               style={styles.input}
             />

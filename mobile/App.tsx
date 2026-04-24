@@ -25,6 +25,7 @@ import { AuthProvider } from './src/context/AuthContext';
 import { ToastProvider } from './src/context/ToastContext';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { AudioPlayerProvider } from './src/context/AudioPlayerContext';
+import { AIConsentProvider } from './src/context/AIConsentContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AudioMiniPlayer } from './src/components/library/AudioMiniPlayer';
 import { AudioExpandedPlayer } from './src/components/library/AudioExpandedPlayer';
@@ -76,9 +77,11 @@ export default function App() {
               <ToastProvider>
                 <NotificationProvider>
                   <AudioPlayerProvider>
-                    <StatusBar style="auto" />
-                    <AppNavigator />
-                    <AudioPlayerOverlay />
+                    <AIConsentProvider>
+                      <StatusBar style="auto" />
+                      <AppNavigator />
+                      <AudioPlayerOverlay />
+                    </AIConsentProvider>
                   </AudioPlayerProvider>
                 </NotificationProvider>
               </ToastProvider>

@@ -237,6 +237,10 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, groupName, title, 
         <Text style={modalStyles.addMediaText}>Add Photos/Videos</Text>
       </TouchableOpacity>
 
+      <Text style={modalStyles.moderationNotice}>
+        Posts are reviewed by automated moderation.
+      </Text>
+
       <View style={modalStyles.modalActions}>
         <TouchableOpacity
           onPress={handleDismiss}
@@ -341,6 +345,11 @@ const modalStyles = StyleSheet.create({
     color: Colors.evergreenTeal,
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
+  },
+  moderationNotice: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginBottom: Spacing.base,
   },
 });
 

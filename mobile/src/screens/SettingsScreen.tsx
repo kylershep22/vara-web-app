@@ -16,6 +16,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import { useAIConsent } from '../context/AIConsentContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { useSubscription } from '../hooks/useSubscription';
 import { useFeatureUnlock } from '../hooks/useFeatureUnlock';
@@ -38,6 +39,7 @@ interface Settings {
 
 const SettingsScreen = () => {
   const { user, logout } = useAuth();
+  const { hasConsent: aiConsent, setConsent: setAIConsent } = useAIConsent();
   const navigation = useNavigation();
   const { permissionStatus, requestPermissions } = useNotifications();
   const { status: subscriptionStatus, formattedType, description: subscriptionDescription } = useSubscription();
@@ -455,6 +457,34 @@ const SettingsScreen = () => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* AI Features Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>AI Features</Text>
+        <View style={styles.card}>
+          <View style={styles.settingRow}>
+            <View style={{ flex: 1, marginRight: Spacing.base }}>
+              <Text style={styles.settingLabel}>Use AI features</Text>
+              <Text style={styles.settingDescription}>
+                Let Vara use OpenAI to power your daily plan, AI chat, and journal tools. OpenAI
+                doesn't use this data to train their models.
+              </Text>
+            </View>
+            <Switch
+              value={!!aiConsent}
+              onValueChange={async (value) => {
+                try {
+                  await setAIConsent(value);
+                } catch (err) {
+                  Alert.alert('Error', "Couldn't update AI setting. Please try again.");
+                }
+              }}
+              trackColor={{ false: '#D5E3D1', true: Colors.evergreenTeal }}
+              thumbColor="#fff"
+            />
+          </View>
         </View>
       </View>
 
