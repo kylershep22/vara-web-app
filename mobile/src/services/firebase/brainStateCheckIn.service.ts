@@ -20,6 +20,30 @@ import { db } from '../../config/firebase';
 import { BrainState, BrainStateCheckIn } from '../../types';
 import { getProtocolForState } from '../../constants/brainStateProtocols';
 import { logger } from '../../utils/logger';
+import {
+  normalizeBrainState,
+  serializeBrainState,
+} from '../../utils/brainStateNormalizer';
+
+// Turn a raw Firestore doc into a BrainStateCheckIn, normalizing legacy
+// brainState values ("okay" → "steady", "energized" → "alive"). Returns null
+// if the doc's brainState is missing or unrecognizable — caller decides how
+// to handle (skip in a list, treat as "no check-in today," etc.).
+function toBrainStateCheckIn(
+  id: string,
+  data: Record<string, unknown>
+): BrainStateCheckIn | null {
+  try {
+    const brainState = normalizeBrainState(data.brainState as string);
+    return { id, ...data, brainState } as BrainStateCheckIn;
+  } catch (error) {
+    logger.warn(
+      `Skipping brainStateCheckIn doc ${id} with invalid brainState:`,
+      error
+    );
+    return null;
+  }
+}
 
 const COLLECTION = 'brainStateCheckIns';
 
@@ -43,7 +67,7 @@ export const getTodayBrainStateCheckIn = async (
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as BrainStateCheckIn;
+      return toBrainStateCheckIn(docSnap.id, docSnap.data());
     }
     return null;
   } catch (error) {
@@ -69,11 +93,22 @@ export const saveBrainStateCheckIn = async (
 
     const existingDoc = await getDoc(docRef);
     const existingData = existingDoc.exists() ? existingDoc.data() : null;
+    const serializedState = serializeBrainState(brainState);
 
     if (existingData) {
-      const stateChanged = existingData.brainState !== brainState;
+      // Normalize the stored value before comparing so a legacy "okay" doc
+      // isn't treated as different from an incoming "steady".
+      let existingBrainState: BrainState | null = null;
+      try {
+        existingBrainState = normalizeBrainState(
+          existingData.brainState as string
+        );
+      } catch {
+        existingBrainState = null;
+      }
+      const stateChanged = existingBrainState !== brainState;
       await updateDoc(docRef, {
-        brainState,
+        brainState: serializedState,
         protocolId: protocol.id,
         // Only reset protocol completion if brain state actually changed
         ...(stateChanged && { protocolCompleted: false }),
@@ -90,7 +125,7 @@ export const saveBrainStateCheckIn = async (
       await setDoc(docRef, {
         userId,
         date: todayDate,
-        brainState,
+        brainState: serializedState,
         protocolId: protocol.id,
         protocolCompleted: false,
         createdAt: serverTimestamp(),
@@ -147,7 +182,9 @@ export const getBrainStateHistory = async (
       limit(days)
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as BrainStateCheckIn));
+    return snapshot.docs
+      .map((d) => toBrainStateCheckIn(d.id, d.data()))
+      .filter((checkIn): checkIn is BrainStateCheckIn => checkIn !== null);
   } catch (error) {
     logger.error('Error getting brain state history:', error);
     return [];

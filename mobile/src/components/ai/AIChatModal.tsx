@@ -28,6 +28,7 @@ import { chatWithAI } from '../../services/api/ai.service';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../config/firebase';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { normalizeBrainState } from '../../utils/brainStateNormalizer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Brand Colors
@@ -326,7 +327,14 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
     ]);
 
     // Parse results
-    const brainState = brainStateResult?.exists?.() ? brainStateResult.data()?.brainState : null;
+    let brainState: string | null = null;
+    if (brainStateResult?.exists?.()) {
+      try {
+        brainState = normalizeBrainState(brainStateResult.data()?.brainState);
+      } catch {
+        brainState = null;
+      }
+    }
     const reflection = dailyReflectionResult?.exists?.() ? dailyReflectionResult.data()?.reflection : null;
     const brainMetrics = brainMetricsResult?.exists?.() ? brainMetricsResult.data() : null;
 

@@ -52,9 +52,17 @@ export interface UserProfile {
   // Group memberships (for suggested connections)
   groupIds?: string[];
 
+  // Intent path captured during onboarding (wired during Phase 3).
+  // Missing field on existing profile docs is treated as 'default' by readers.
+  intentPath?: IntentPath;
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+// User intent path, drives first-week recommendations and copy tone.
+// See Vara_Intent_Paths.md for full spec.
+export type IntentPath = 'down_regulation' | 'sleep' | 'activation' | 'default';
 
 // ==========================================
 // BRAIN HEALTH MODELS
@@ -768,7 +776,7 @@ export interface MorningCheckIn {
 // BRAIN STATE CHECK-IN (Dashboard V2)
 // ==========================================
 
-export type BrainState = 'wired' | 'foggy' | 'okay' | 'clear' | 'energized';
+export type BrainState = 'wired' | 'foggy' | 'steady' | 'clear' | 'alive';
 
 /**
  * Brain State Check-In
@@ -784,6 +792,48 @@ export interface BrainStateCheckIn {
   protocolCompleted: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+// ==========================================
+// PROTOCOL SESSION (Phase 0 scaffolding — unused until Phase 2)
+// ==========================================
+
+// Time window (in minutes) a user has available when selecting a protocol.
+export type ProtocolTimeWindow = 2 | 5 | 10 | 20 | 45;
+
+// Outcome of a protocol session, computed from the state transition
+// (stateBefore → stateAfter) and whether the user completed the protocol.
+export type ProtocolSessionOutcome =
+  | 'shifted'
+  | 'not_shifted'
+  | 'maintenance'
+  | 'abandoned';
+
+// User-chosen next step after a not-shifted re-check.
+export type ProtocolNextStep =
+  | 'try_longer'
+  | 'rest_later'
+  | 'dismissed';
+
+/**
+ * Protocol Session
+ * Full session record capturing state-in, state-out, time window, duration,
+ * and outcome. The authoritative data source for the Patterns algorithm
+ * starting in Phase 2.
+ * Stored in the `protocolSessions` collection.
+ */
+export interface ProtocolSession {
+  userId: string;
+  protocolId: string;
+  stateBefore: BrainState;
+  stateAfter: BrainState | null; // null until re-check completes
+  timeWindowSelected: ProtocolTimeWindow;
+  durationActualSeconds: number;
+  outcome: ProtocolSessionOutcome;
+  userChosenNextStep: ProtocolNextStep | null;
+  intentPath: IntentPath;
+  createdAt: Timestamp;
+  completedAt: Timestamp | null;
 }
 
 // ==========================================

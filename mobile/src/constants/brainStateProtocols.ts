@@ -51,9 +51,9 @@ export const BRAIN_STATE_PROTOCOLS: Record<BrainState, BrainStateProtocol> = {
       'Finish with one deep breath in and a slow exhale out.',
     ],
   },
-  okay: {
+  steady: {
     id: 'micro-reset',
-    brainState: 'okay',
+    brainState: 'steady',
     name: '90-Second Micro-Reset',
     description: 'A brief pause to reconnect with your senses and sharpen your awareness.',
     duration: '90 sec',
@@ -83,9 +83,9 @@ export const BRAIN_STATE_PROTOCOLS: Record<BrainState, BrainStateProtocol> = {
       'Open your eyes when you are ready.',
     ],
   },
-  energized: {
+  alive: {
     id: 'focus-primer',
-    brainState: 'energized',
+    brainState: 'alive',
     name: 'Focus Primer',
     description: 'Channel high energy into a single intention before it scatters.',
     duration: '5 min',

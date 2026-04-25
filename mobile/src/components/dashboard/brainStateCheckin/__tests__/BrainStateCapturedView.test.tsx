@@ -51,9 +51,9 @@ describe('BrainStateCapturedView', () => {
     );
     expect(getByTestId('brain-state-dot-wired')).toBeTruthy();
     expect(getByTestId('brain-state-dot-foggy')).toBeTruthy();
-    expect(getByTestId('brain-state-dot-okay')).toBeTruthy();
+    expect(getByTestId('brain-state-dot-steady')).toBeTruthy();
     expect(getByTestId('brain-state-dot-clear')).toBeTruthy();
-    expect(getByTestId('brain-state-dot-energized')).toBeTruthy();
+    expect(getByTestId('brain-state-dot-alive')).toBeTruthy();
   });
 
   it('calls onComplete after 1200ms', () => {

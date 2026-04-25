@@ -68,6 +68,11 @@ export type {
   ReminderTime,
   BrainState,
   DailyReflectionValue,
+  IntentPath,
+  ProtocolTimeWindow,
+  ProtocolSessionOutcome,
+  ProtocolNextStep,
+  ProtocolSession,
 } from './models';
 
 // onboarding

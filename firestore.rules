@@ -203,6 +203,16 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
+    // Protocol Sessions (Phase 2+ — full state-in/state-out session records)
+    // Doc ID convention: auto-generated. Multiple sessions per user per day are expected.
+    // Unlike brainStateCheckIns ({userId}_{date}), this collection supports many-per-day.
+    match /protocolSessions/{sessionId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
     // Daily Reflections (end-of-day difficulty signal)
     match /dailyReflections/{docId} {
       allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);

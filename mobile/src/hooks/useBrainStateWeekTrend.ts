@@ -18,17 +18,17 @@ export interface WeekTrend {
 const STATE_COLORS: Record<BrainState, string> = {
   wired: Colors.softCoral,
   foggy: Colors.sunriseAmber,
-  okay: Colors.mutedSageGray,
+  steady: Colors.mutedSageGray,
   clear: Colors.evergreenTeal,
-  energized: Colors.freshMoss,
+  alive: Colors.freshMoss,
 };
 
 const STATE_RANK: Record<BrainState, number> = {
   foggy: 1,
   wired: 2,
-  okay: 3,
+  steady: 3,
   clear: 4,
-  energized: 5,
+  alive: 5,
 };
 
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
