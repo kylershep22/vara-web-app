@@ -254,6 +254,38 @@ decisions before composition begins:
   feedback, modal fades) colocated in the same file if obvious during
   the scan; ambiguous cases defer to a future cleanup.
 
+### Sub-step 2.3 entry — TransitionKey table sizing
+
+`ShiftedResponse` copy table (sub-step 2.3 deliverable) uses
+`Record<TransitionKey, string>` where `TransitionKey` encodes
+`(stateBefore, stateAfter)` — e.g. `'wired_to_steady'`. Table sizing
+must cover **all** transitions that classify as `'shifted'` /
+`'partial_shift'` / `'maintenance'`, including upward green-to-green
+shifts. Don't size assuming only "negative→green" transitions exist.
+
+Concretely, the table needs entries for at minimum:
+- `wired_to_foggy` (partial_shift — only this one)
+- 6 `(wired|foggy) → (steady|clear|alive)` shifts
+- 3 upward green shifts: `steady_to_clear`, `steady_to_alive`,
+  `clear_to_alive` (per the 2.2 classifier rule — see
+  SPEC_CONSISTENCY_BACKLOG.md "Outcome classifier" entry)
+- 6 maintenance entries: 3 same-state green (`steady_to_steady`,
+  `clear_to_clear`, `alive_to_alive`) + 3 downward green
+  (`alive_to_clear`, `clear_to_steady`, `alive_to_steady`)
+
+Total: 16 transitions worth copy. Different emotional moments
+(`wired_to_clear` vs `steady_to_alive` vs `clear_to_clear`); don't
+collapse them into a single template.
+
+Phase 5 expansion: `Record<IntentPath, Record<TransitionKey, string>>`
+multiplies this by 4 paths. Design 2.3's data shape so the path
+nesting can be added without a structural rewrite (e.g., default-path
+table at the inner level from day one).
+
+The `'not_shifted'` path doesn't need per-transition copy — Core Loop
+v2 uses one validating message regardless of the specific (before,
+after) pair.
+
 ### Firestore rules deploy required before first write
 
 The `protocolSessions/{sessionId}` rules block was added in Phase 0 but

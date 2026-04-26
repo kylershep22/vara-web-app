@@ -132,6 +132,38 @@ practice duration. Specifically:
 - `docs/Vara_Protocol_Detail_Content.md` — same three protocols'
   Metadata strips.
 
+## Outcome classifier: upward green-to-green = 'shifted'
+
+**Codebase resolution:** `services/outcomeClassifier.ts` (Phase 2 sub-
+step 2.2) classifies upward green-zone transitions (steady→clear,
+steady→alive, clear→alive) as `'shifted'`, not `'maintenance'`.
+Same-state green and downward green-zone transitions remain
+`'maintenance'`. Inferred rule, not in `Vara_Core_Loop_v2.md`.
+
+**Why:** Core Loop v2's "shifted vs not shifted" framing addresses
+movement toward the green zone and the Wired→Foggy edge case but
+doesn't disambiguate green-to-green direction. The "user remains
+functional" rationale fits same-state and downward green moves
+(protocol held the line against drift) but underclaims upward moves
+(the user actively lifted within the working zone — steady morning
+vs alive morning is a felt difference). Compressing this into the
+outcome enum keeps Patterns queries fast without per-row trajectory
+reconstruction.
+
+**Phase 5 escape hatch:** if Patterns analysis surfaces a need to
+distinguish "lift from baseline" (steady→clear) from "lift from
+negative state" (wired→clear) without reconstructing the
+(stateBefore, stateAfter) pair on read, consider adding a fifth
+outcome value or a separate metadata column. Current rule is the
+simpler default; revisit only if data shows it.
+
+**Doc to update:**
+- `docs/Vara_Core_Loop_v2.md` §"Defining 'shifted' vs 'not shifted'"
+  (lines 198–209) — current text leaves green-to-green ambiguous.
+  Add: "Upward shifts within the green zone (steady→clear,
+  steady→alive, clear→alive) classify as 'shifted'. Same-state and
+  downward green-zone shifts classify as 'maintenance'."
+
 ---
 
 ## Notes for the docs-only commit
