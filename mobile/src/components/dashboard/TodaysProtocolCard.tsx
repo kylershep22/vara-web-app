@@ -9,10 +9,15 @@ import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
-import { BrainStateProtocol } from '../../constants/brainStateProtocols';
+import type { Protocol } from '../../types/models';
+import {
+  deriveStepInstructions,
+  formatProtocolDuration,
+  modalityIconName,
+} from '../../utils/protocolDisplay';
 
 interface TodaysProtocolCardProps {
-  protocol: BrainStateProtocol;
+  protocol: Protocol;
   completed: boolean;
   onMarkCompleted: () => void;
   startExpanded?: boolean;
@@ -37,22 +42,27 @@ export const TodaysProtocolCard: React.FC<TodaysProtocolCardProps> = ({
     setShowInstructions(false);
   };
 
-  const categoryIcon = {
-    breathwork: 'weather-windy',
-    reflection: 'head-lightbulb-outline',
-    reset: 'refresh',
-  }[protocol.category] as 'weather-windy' | 'head-lightbulb-outline' | 'refresh';
+  const iconName = modalityIconName(protocol.modality) as
+    | 'weather-windy'
+    | 'run-fast'
+    | 'headphones'
+    | 'eye-outline'
+    | 'snowflake'
+    | 'brain'
+    | 'weather-sunny';
+  const durationLabel = formatProtocolDuration(protocol);
+  const instructions = deriveStepInstructions(protocol.steps);
 
   return (
     <View style={styles.container}>
       {/* Header row */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Icon name={categoryIcon} size={20} color={Colors.evergreenTeal} />
+          <Icon name={iconName} size={20} color={Colors.evergreenTeal} />
           <Text style={styles.protocolName}>{protocol.name}</Text>
         </View>
         <View style={styles.durationBadge}>
-          <Text style={styles.durationText}>{protocol.duration}</Text>
+          <Text style={styles.durationText}>{durationLabel}</Text>
         </View>
       </View>
 
@@ -76,7 +86,7 @@ export const TodaysProtocolCard: React.FC<TodaysProtocolCardProps> = ({
 
       {showInstructions && (
         <View style={styles.instructionsContainer}>
-          {protocol.instructions.map((step, index) => (
+          {instructions.map((step, index) => (
             <View key={index} style={styles.instructionRow}>
               <Text style={styles.instructionNumber}>{index + 1}.</Text>
               <Text style={styles.instructionText}>{step}</Text>

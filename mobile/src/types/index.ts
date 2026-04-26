@@ -72,7 +72,20 @@ export type {
   ProtocolTimeWindow,
   ProtocolSessionOutcome,
   ProtocolNextStep,
+  ProtocolAbandonReason,
   ProtocolSession,
+  ProtocolSessionSummary,
+  EvidenceTier,
+  TimeOfDay,
+  ProtocolModality,
+  ProtocolFamily,
+  BreathPhase,
+  BreathStep,
+  AudioStep,
+  InstructionStep,
+  TimerStep,
+  ProtocolStep,
+  Protocol,
 } from './models';
 
 // onboarding

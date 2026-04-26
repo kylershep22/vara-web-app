@@ -105,7 +105,9 @@ export {
 export { DASHBOARD_V2, ONBOARDING_V2 } from './dashboardConfig';
 export {
   BRAIN_STATE_PROTOCOLS,
+  getProtocolById,
+  getAllProtocols,
+  getProtocolsForState,
   getProtocolForState,
-  type BrainStateProtocol,
-  type ProtocolCategory,
+  type ProtocolId,
 } from './brainStateProtocols';
