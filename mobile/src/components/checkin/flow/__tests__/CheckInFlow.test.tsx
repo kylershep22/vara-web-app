@@ -197,12 +197,13 @@ describe('CheckInFlow — re-check → response with auto-dismiss', () => {
     expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
     fireEvent.press(getByLabelText('Steady'));
 
-    // Response screen renders. Auto-dismiss timer is armed; not yet
-    // fired. onComplete should NOT have been called at this point.
-    expect(await findByTestId('checkin-flow-response')).toBeTruthy();
+    // ShiftedResponse renders for positive outcomes (sub-step 2.3).
+    // Auto-dismiss timer is armed; not yet fired.
+    expect(await findByTestId('shifted-response')).toBeTruthy();
     expect(onComplete).not.toHaveBeenCalled();
 
-    // Advance the auto-dismiss timer (4000ms in ResponseStepView).
+    // Advance the auto-dismiss timer (AUTO_DISMISS_MS = 4000 in
+    // ShiftedResponse.tsx).
     act(() => {
       jest.advanceTimersByTime(4000);
     });
@@ -223,7 +224,7 @@ describe('CheckInFlow — re-check → response with auto-dismiss', () => {
 
     // Response view unmounts on terminal transition (CheckInFlow's
     // renderStep returns null for terminal steps).
-    expect(queryByTestId('checkin-flow-response')).toBeNull();
+    expect(queryByTestId('shifted-response')).toBeNull();
   });
 
   it('not_shifted path does NOT auto-dismiss — waits for explicit user choice', async () => {

@@ -209,6 +209,7 @@ function renderStep(
           stateBefore={state.stateBefore}
           stateAfter={state.stateAfter}
           outcome={state.outcome}
+          durationActualSeconds={state.durationActualSeconds}
           onChoose={(choice) =>
             dispatch({ type: 'next_step_chosen', choice })
           }
