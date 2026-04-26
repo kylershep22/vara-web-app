@@ -182,19 +182,77 @@ transform-pattern extension landed at Phase 2 entry:
 - **Tests:** 542 passed / 542 total
 - **tsc:** 181 pre-existing errors (unchanged from Phase 0/1 baseline)
 
-**Note on prior baselines.** Phase 1's "299/299 across 14 suites" report
-(sub-step 4.3.4 close) was scoped narrower than the full project. The
-pre-existing `firebase/storage` ESM transform issue prevented the
-`useBrainStateWeekTrend.test.ts` suite from loading at all, and Phase 1
-runs apparently filtered to brain-state-touching paths rather than
-`npx jest` with no path filter. The full-project baseline going into
-Phase 2 is now 35/542 — treat that as the truth, not the Phase 1
-numbers.
+**Asterisk on prior Phase 1 baselines.** Phase 1's "299/299 across 14
+suites" reports (sub-step 4.3.4 close, similar reports across earlier
+sub-steps) were technically accurate but **scoped to suites that ran
+successfully** — the pre-existing `firebase/storage` ESM transform
+issue meant `useBrainStateWeekTrend.test.ts` never executed during
+those reported sweeps. Phase 1 runs appear to have been path-filtered
+to brain-state-touching code, which silently excluded the unloadable
+suite from the result line. A full-project `npx jest` (no path filter)
+at any point during Phase 1 would have shown "1 failed, N passed" and
+surfaced the gap. The asterisk: prior Phase 1 baselines reflected what
+ran, not the full project state. Treat 35/542 as the Phase 2-going-
+forward truth.
 
 The dep chain that triggered the latent failure (`useBrainStateWeekTrend.ts`
 → `brainStateCheckIn.service.ts` → `src/config/firebase.ts` →
 `firebase/storage`) was assembled pre-redesign (last link 2026-03-30,
 Phase 0 starts 2026-04-24). Not a Phase 1 regression; just unobserved.
+
+### Sub-step 2.2 entry — locked decisions
+
+Sub-step 2.2 builds the multi-step check-in flow orchestration (state
+→ time → recommendation → running → re-check → response). Locked
+decisions before composition begins:
+
+- **Reducer treats `GuidedSessionPlayer` as opaque.** Render
+  `<GuidedSessionPlayer onExit={...}>`. Do not observe internal player
+  state.
+- **Back navigation:** enabled during state-pick, time-pick,
+  recommendation. **Disabled** during running, re-check, response.
+  Once a protocol starts, the only exits are End early (→ abandoned)
+  and Complete (→ re-check → response).
+- **Practices index screen ships in 2.2** (resolves the "See other
+  options" route gap). Thin screen listing protocols matching
+  `(state, timeWindow)`; tap to launch `GuidedSessionPlayer`. No
+  ranking, no algorithm — Phase 4 adds ranking on top of the existing
+  screen. Pre-builds the surface that the Build Guide's "Practices
+  index" tab root will eventually align to. The "Try something longer"
+  affordance on the not-shifted response routes to the same screen.
+  Estimated +4–6 hours on top of the reducer work; kept in 2.2, not a
+  separate sub-step.
+- **Overwhelm Safety Card flow** skips state-pick, time-pick, AND
+  recommendation. Caller pre-picks the protocol (Cyclic Sighing or
+  Sensory Reset 2-min) and the flow initializes directly at the
+  running step. The Safety Card itself is the consent moment.
+- **Abandoned outcome short-circuits.** Player exit with
+  `reason='ended_early'` writes the ProtocolSession with
+  `outcome='abandoned'`, `stateAfter=null`, and exits to Today with a
+  soft "come back when ready" surface. Re-check is **not** shown.
+  Implication: `ReCheckStep` and `ResponseStep` are only reachable
+  with `playerExitReason: 'completed'`.
+- **Auto-dismiss vs user-tap on shifted path.** Distinguish
+  `'dismissed'` (user tapped Continue) from `'auto_dismissed'` (4-second
+  timer fired without interaction) in `userChosenNextStep`. Phase 5
+  Patterns may care about the difference.
+- **Outcome classifier as pure function.** `outcomeClassifier.ts`
+  pulled forward from sub-step 2.3 because the 2.2 reducer needs it at
+  the re-check → response transition. Lives at
+  `mobile/src/services/outcomeClassifier.ts` (decoupled from UI for
+  later reuse). Rules: `wired→foggy = 'partial_shift'` (strict, only
+  this transition); negative→green = `'shifted'`; green→green (any
+  direction, including upward) = `'maintenance'` per the "user remains
+  functional" rationale; same-negative-state and green→negative
+  regressions = `'not_shifted'`. **`'failed'` is reserved for system
+  failures (audio_error and similar)** — user-side regressions are
+  `'not_shifted'`, not `'failed'`.
+- **`STEP_TRANSITION_DURATION_MS = 250`** hoisted to
+  `mobile/src/constants/motion.ts` (new file). Both
+  `GuidedSessionPlayer.tsx:487` and 2.2's flow transitions reference
+  it. Other Build Guide motion-range constants (haptic timings, button
+  feedback, modal fades) colocated in the same file if obvious during
+  the scan; ambiguous cases defer to a future cleanup.
 
 ### Firestore rules deploy required before first write
 
