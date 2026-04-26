@@ -146,6 +146,15 @@ const DEV_ITEMS: MenuItem[] = [
     gradientColors: [Colors.softCoral + '15', Colors.softCoral + '25'] as [string, string],
     route: 'DevGuidedSessionPlayer',
   },
+  {
+    id: 'dev-checkin-flow',
+    title: 'Dev: Check-In Flow',
+    subtitle: 'Multi-step state→time→protocol→re-check→response',
+    icon: 'flask-outline',
+    iconColor: Colors.softCoral,
+    gradientColors: [Colors.softCoral + '15', Colors.softCoral + '25'] as [string, string],
+    route: 'DevCheckInFlow',
+  },
 ];
 
 const ACCOUNT_ITEMS: MenuItem[] = [
