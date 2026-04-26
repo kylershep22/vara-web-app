@@ -50,6 +50,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { Colors, Spacing, Typography } from '../../constants';
+import { STEP_TRANSITION_DURATION_MS } from '../../constants/motion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { prefetchProtocolAudio } from '../../services/audio/protocolAudioLoader';
 import type {
@@ -484,7 +485,7 @@ export function GuidedSessionPlayer({
           <Animated.View
             key={`step-${currentStepIndex}`}
             style={styles.stepWrap}
-            entering={reduceMotion ? undefined : FadeIn.duration(250)}
+            entering={reduceMotion ? undefined : FadeIn.duration(STEP_TRANSITION_DURATION_MS)}
           >
             {renderStep}
           </Animated.View>
