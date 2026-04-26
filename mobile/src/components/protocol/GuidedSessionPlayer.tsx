@@ -484,7 +484,7 @@ export function GuidedSessionPlayer({
           <Animated.View
             key={`step-${currentStepIndex}`}
             style={styles.stepWrap}
-            entering={reduceMotion ? undefined : FadeIn.duration(200)}
+            entering={reduceMotion ? undefined : FadeIn.duration(250)}
           >
             {renderStep}
           </Animated.View>

@@ -67,6 +67,24 @@ only the extension differs.
   `nsdr_10min_v1.m4a` and `nsdr_20min_v1.m4a`" should reference `.mp3`
   filenames.
 
+## Step transition fade duration: 250ms, not 200ms
+
+**Codebase resolution:** `GuidedSessionPlayer.tsx` step transitions
+use `FadeIn.duration(250)`, aligned to the Build Guide's transition
+range (250–300ms).
+
+**Why:** Build Guide §UI motion (lines 188-191) defines the canonical
+ranges: 100–150ms feedback, 250–300ms transitions, 400–500ms content
+fills. A step-view crossfade is a transition by that taxonomy. The
+original Phase 1 implementation shipped 200ms (also fine perceptually,
+slightly below the Build Guide's lower bound) and was lifted to 250ms
+during Phase 2 prep so the codebase doesn't ship two fade constants.
+
+**Doc to update:**
+- `docs/Vara_Core_Loop_v2.md` line 81 — currently says "200ms fade
+  transition." Update to 250ms or refer to the Build Guide range
+  rather than pinning a specific value.
+
 ## Re-check copy shortened to "How are you now?" alone
 
 **Codebase resolution:** Phase 2's `PostProtocolReCheck` screen uses
