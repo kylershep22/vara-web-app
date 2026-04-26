@@ -173,6 +173,29 @@ on production audio.
 
 ## Phase 2
 
+### Phase 2 entry test baseline (post-jest-config-fix)
+
+After the `firebase|@firebase` transformIgnorePatterns fix and `mjs`
+transform-pattern extension landed at Phase 2 entry:
+
+- **Test suites:** 35 passed / 35 total
+- **Tests:** 542 passed / 542 total
+- **tsc:** 181 pre-existing errors (unchanged from Phase 0/1 baseline)
+
+**Note on prior baselines.** Phase 1's "299/299 across 14 suites" report
+(sub-step 4.3.4 close) was scoped narrower than the full project. The
+pre-existing `firebase/storage` ESM transform issue prevented the
+`useBrainStateWeekTrend.test.ts` suite from loading at all, and Phase 1
+runs apparently filtered to brain-state-touching paths rather than
+`npx jest` with no path filter. The full-project baseline going into
+Phase 2 is now 35/542 — treat that as the truth, not the Phase 1
+numbers.
+
+The dep chain that triggered the latent failure (`useBrainStateWeekTrend.ts`
+→ `brainStateCheckIn.service.ts` → `src/config/firebase.ts` →
+`firebase/storage`) was assembled pre-redesign (last link 2026-03-30,
+Phase 0 starts 2026-04-24). Not a Phase 1 regression; just unobserved.
+
 ### Firestore rules deploy required before first write
 
 The `protocolSessions/{sessionId}` rules block was added in Phase 0 but
