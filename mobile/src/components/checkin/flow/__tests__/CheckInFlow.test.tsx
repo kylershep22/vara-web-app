@@ -241,7 +241,8 @@ describe('CheckInFlow — re-check → response with auto-dismiss', () => {
     // wired → wired = not_shifted (matrix cell 1, locked rules).
     fireEvent.press(getByLabelText('Wired'));
 
-    expect(await findByTestId('checkin-flow-response')).toBeTruthy();
+    // NotShiftedResponse renders for the not_shifted path (sub-step 2.4).
+    expect(await findByTestId('not-shifted-response')).toBeTruthy();
 
     // Run timers a long way past the would-be 4s mark. No auto-dismiss
     // should fire on not_shifted.
@@ -261,6 +262,71 @@ describe('CheckInFlow — re-check → response with auto-dismiss', () => {
       expect(terminal.outcome).toBe('not_shifted');
       expect(terminal.userChosenNextStep).toBe('rest_later');
     }
+  });
+});
+
+describe('CheckInFlow — late-night NSDR override prop pass-through (sub-step 2.4)', () => {
+  // Verifies the (stateBefore, device-local-hour) → lateNightOverride
+  // computation in ResponseStepView reaches NotShiftedResponse and
+  // changes the rendered button label. Without this test, a refactor
+  // that breaks the prop pass-through would only surface on device.
+
+  beforeEach(() => {
+    // Modern fake timers replace Date too. setSystemTime forces
+    // new Date().getHours() to return the mocked hour, which is what
+    // ResponseStepView reads.
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('renders the late-night NSDR copy variant when wired + local hour 23 + not_shifted', async () => {
+    // 2026-04-26T23:00 — late-night window. stateBefore="wired"
+    // because overwhelm entry forces it. wired→wired re-check
+    // classifies as not_shifted, which routes to NotShiftedResponse
+    // with lateNightOverride=true.
+    jest.setSystemTime(new Date('2026-04-26T23:00:00'));
+
+    const { findByTestId, getByLabelText } = render(
+      <CheckInFlow init={buildOverwhelmInit()} onComplete={jest.fn()} />
+    );
+
+    act(() => {
+      lastOnExit!(summary({ completed: true, protocolId: 'cyclic-sighing-2' }));
+    });
+
+    expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
+    fireEvent.press(getByLabelText('Wired')); // wired→wired = not_shifted
+
+    expect(await findByTestId('not-shifted-response')).toBeTruthy();
+
+    // The "Try something longer" button should carry the NSDR-
+    // specific accessibility label, not the standard one.
+    const tryLonger = await findByTestId('not-shifted-response-try-longer');
+    expect(tryLonger.props.accessibilityLabel).toBe(
+      "Try NSDR when you're ready"
+    );
+  });
+
+  it('renders the standard try-longer copy when wired + local hour 14 + not_shifted', async () => {
+    // 14:00 — daytime, no override regardless of state.
+    jest.setSystemTime(new Date('2026-04-26T14:00:00'));
+
+    const { findByTestId, getByLabelText } = render(
+      <CheckInFlow init={buildOverwhelmInit()} onComplete={jest.fn()} />
+    );
+
+    act(() => {
+      lastOnExit!(summary({ completed: true, protocolId: 'cyclic-sighing-2' }));
+    });
+
+    expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
+    fireEvent.press(getByLabelText('Wired'));
+
+    const tryLonger = await findByTestId('not-shifted-response-try-longer');
+    expect(tryLonger.props.accessibilityLabel).toBe('Try something longer');
   });
 });
 

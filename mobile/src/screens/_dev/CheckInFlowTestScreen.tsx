@@ -25,6 +25,7 @@ import type { BrainState, ProtocolTimeWindow } from '../../types/models';
 
 type DevCheckInFlowNav = NativeStackNavigationProp<{
   Practices: { state: BrainState; timeWindow: ProtocolTimeWindow };
+  PracticeRun: { protocolId: string; stateBefore: BrainState };
 }>;
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -35,15 +36,28 @@ import {
 } from '../../components/checkin/flow/CheckInFlow';
 import type { FlowInit } from '../../components/checkin/flow/types';
 import { getProtocolById } from '../../constants/brainStateProtocols';
+import { getLateNightNSDRSwap } from '../../services/lateNightNSDRSwap';
 
 type Phase = 'setup' | 'playing';
 type EntryChoice = 'standard' | 'overwhelm';
+
+// Captures which navigation branch fired on the parent-side swap, so
+// device verification can confirm the right path triggered without
+// reading source. Sub-step 2.4 wires this in the dev harness only —
+// production callers pick up the same swap-then-route logic in 2.5.
+type NavBranchTag =
+  | 'late_night_nsdr_override'
+  | 'no_override_practices_index'
+  | 'no_navigation_non_try_longer'
+  | 'no_navigation_abandoned';
 
 const OVERWHELM_PROTOCOL_IDS = ['cyclic-sighing-2', 'sensory-reset-2'] as const;
 
 interface LogEntry {
   ts: number;
   terminal: TerminalFlowState;
+  navBranch: NavBranchTag;
+  navDetail: string;
 }
 
 export function CheckInFlowTestScreen() {
@@ -83,8 +97,42 @@ export function CheckInFlowTestScreen() {
           navigation.navigate('Practices', { state, timeWindow })
         }
         onComplete={(terminal) => {
+          // Parent-side late-night NSDR swap. Sub-step 2.4 dev harness
+          // is the only place this path fires until 2.5 wires the
+          // production callers. Visible navBranch tag in the log so
+          // device verification can confirm the right branch.
+          let navBranch: NavBranchTag;
+          let navDetail: string;
+          if (terminal.step === 'abandoned') {
+            navBranch = 'no_navigation_abandoned';
+            navDetail = 'Flow abandoned mid-protocol — no try-longer routing.';
+          } else if (terminal.userChosenNextStep === 'try_longer') {
+            const override = getLateNightNSDRSwap(
+              terminal.stateBefore,
+              new Date().getHours()
+            );
+            if (override !== null) {
+              navBranch = 'late_night_nsdr_override';
+              navDetail = `Late-night NSDR override: routing to PracticeRun(${override.protocolId})`;
+              navigation.navigate('PracticeRun', {
+                protocolId: override.protocolId,
+                stateBefore: terminal.stateBefore,
+              });
+            } else {
+              navBranch = 'no_override_practices_index';
+              navDetail = `No late-night override: routing to Practices index for (${terminal.stateBefore}, ${terminal.timeWindow})`;
+              navigation.navigate('Practices', {
+                state: terminal.stateBefore,
+                timeWindow: terminal.timeWindow,
+              });
+            }
+          } else {
+            navBranch = 'no_navigation_non_try_longer';
+            navDetail = `userChosenNextStep="${terminal.userChosenNextStep}" — no parent-side swap fires.`;
+          }
+
           setLog((prev) => [
-            { ts: Date.now(), terminal },
+            { ts: Date.now(), terminal, navBranch, navDetail },
             ...prev.slice(0, 9),
           ]);
           setPhase('setup');
@@ -169,6 +217,16 @@ export function CheckInFlowTestScreen() {
             >
               <Text style={styles.logHeader}>
                 {entry.terminal.step} · {new Date(entry.ts).toLocaleTimeString()}
+              </Text>
+              <Text
+                style={[
+                  styles.logNavBranch,
+                  entry.navBranch === 'late_night_nsdr_override'
+                    ? styles.logNavBranchOverride
+                    : null,
+                ]}
+              >
+                {entry.navDetail}
               </Text>
               <Text style={styles.logBody}>
                 {JSON.stringify(
@@ -275,6 +333,15 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.evergreenTeal,
     marginBottom: Spacing.xs,
+  },
+  logNavBranch: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.softCharcoal,
+    marginBottom: Spacing.xs,
+  },
+  logNavBranchOverride: {
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
   },
   logBody: {
     fontSize: Typography.fontSize.xs,
