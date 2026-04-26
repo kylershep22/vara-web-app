@@ -63,20 +63,46 @@ describe('selectProtocol — Phase 2 stub recommender', () => {
     });
   });
 
-  describe('fallback', () => {
-    it('Foggy + 2 min has no matching protocols → falls back to cyclic-sighing-2', () => {
+  describe('no-match — __DEV__ throws (jest runs in __DEV__)', () => {
+    // Contract: when no protocol matches, the dev path throws loudly
+    // with the (state, timeWindow) pair in the message so schema bugs
+    // and call-site bugs surface immediately. The production path
+    // (covered below) falls back to cyclic-sighing-2.
+
+    it('Foggy + 2 min throws with state and timeWindow in the message', () => {
       // No 2-min protocol includes 'foggy' in suitableForStates.
+      expect(() => selectProtocol({ state: 'foggy', timeWindow: 2 })).toThrow(
+        /no protocol matched.*state=foggy.*timeWindow=2/i
+      );
+    });
+
+    it('Clear + 2 min throws', () => {
+      expect(() => selectProtocol({ state: 'clear', timeWindow: 2 })).toThrow(
+        /no protocol matched.*state=clear.*timeWindow=2/i
+      );
+    });
+
+    it('Alive + 2 min throws', () => {
+      expect(() => selectProtocol({ state: 'alive', timeWindow: 2 })).toThrow(
+        /no protocol matched.*state=alive.*timeWindow=2/i
+      );
+    });
+  });
+
+  describe('no-match — production falls back to cyclic-sighing-2', () => {
+    let originalDev: unknown;
+
+    beforeEach(() => {
+      originalDev = (globalThis as unknown as { __DEV__: unknown }).__DEV__;
+      (globalThis as unknown as { __DEV__: boolean }).__DEV__ = false;
+    });
+
+    afterEach(() => {
+      (globalThis as unknown as { __DEV__: unknown }).__DEV__ = originalDev;
+    });
+
+    it('Foggy + 2 min falls back to cyclic-sighing-2 when __DEV__ is false', () => {
       const result = selectProtocol({ state: 'foggy', timeWindow: 2 });
-      expect(result.id).toBe('cyclic-sighing-2');
-    });
-
-    it('Clear + 2 min falls back to cyclic-sighing-2', () => {
-      const result = selectProtocol({ state: 'clear', timeWindow: 2 });
-      expect(result.id).toBe('cyclic-sighing-2');
-    });
-
-    it('Alive + 2 min falls back to cyclic-sighing-2', () => {
-      const result = selectProtocol({ state: 'alive', timeWindow: 2 });
       expect(result.id).toBe('cyclic-sighing-2');
     });
   });

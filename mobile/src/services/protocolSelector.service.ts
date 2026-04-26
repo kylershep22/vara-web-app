@@ -14,10 +14,13 @@
 //      deterministic across runs and across machines — important so
 //      tests don't flake on hashmap iteration order.
 //   4. Return the first.
-//   5. Fallback when nothing matches: Cyclic Sighing 2-min, per Core
-//      Loop v2 line 161. Strictly defensive — for some (state, time)
-//      pairs (Foggy/Clear/Alive at 2 min) the library has no match,
-//      and a sane default beats throwing or returning null.
+//   5. No-match handling:
+//      - In `__DEV__`: throw with a descriptive error so schema bugs
+//        and call-site bugs surface immediately. The function's
+//        contract is "always returns a real match, or tells you it
+//        can't" — silent fallbacks mask both.
+//      - In production: fall back to Cyclic Sighing 2-min per Core
+//        Loop v2 line 161 so users never hit a dead end.
 //
 // Phase 4 NOTE: do not extend this stub. Replace it. The Phase 2 sub-
 // step 2.5 caller migration intentionally points all production
@@ -49,6 +52,12 @@ export function selectProtocol(input: ProtocolSelectionInput): Protocol {
 
   if (eligible.length > 0) {
     return eligible[0];
+  }
+
+  if (__DEV__) {
+    throw new Error(
+      `protocolSelector: no protocol matched (state=${input.state}, timeWindow=${input.timeWindow}). Check protocol metadata and suitableForStates coverage.`
+    );
   }
 
   const fallback = getProtocolById(FALLBACK_PROTOCOL_ID);
