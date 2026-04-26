@@ -309,6 +309,59 @@ Per the Phase 0 rules-block comment: auto-generated IDs (multiple sessions per
 user per day are expected, unlike `brainStateCheckIns` which uses
 `{userId}_{date}`). Use `addDoc()` rather than `setDoc()` with a constructed ID.
 
+### Sub-step 2.4 entry — locked decisions
+
+Sub-step 2.4 builds the polished `NotShiftedResponse` component
+(replacing the 2.2 placeholder in `ResponseStepView`) and adds the
+late-night NSDR swap as a thin Phase-2-stub-extension wrapper.
+
+- **Wrapper, not stub-recommender extension.** Late-night NSDR
+  override lives in `services/lateNightNSDRSwap.ts` as a separate
+  pure function. NOT inside `protocolSelector.service.ts`. Phase 4
+  owns the recommender's full algorithm including time-of-day —
+  injecting it into the Phase 2 stub muddies the contract. Wrapper
+  is marked for absorption into Phase 4; delete the file when Phase 4
+  lands.
+- **Hour boundaries:** `hour >= 22 || hour < 4`. Six hours total
+  (22, 23, 0, 1, 2, 3) trigger the override. 4 AM is the cutoff
+  because someone Wired past that point is closer to "give up and
+  start the day" than "rest" — a 20-minute NSDR is the wrong
+  recommendation.
+- **State filter:** `stateBefore === 'wired'` only. Foggy late-at-
+  night is a different problem; recommender's normal output is fine.
+- **Variant:** hardcoded `nsdr-20`. Phase 4 will pick variant from
+  user's NSDR completion history (users who've abandoned 20-min
+  mid-session should get `nsdr-10`). Comment in the wrapper notes
+  this.
+- **Two consumers, single source of truth.** Both `NotShiftedResponse`
+  (copy adaptation: button label changes to "Try NSDR when you're
+  ready") and the `CheckInFlow` PARENT (navigation routing: route to
+  `PracticeRun(nsdr-20)` instead of Practices index) call
+  `getLateNightNSDRSwap`. Pure + cheap, two callers fine. Avoids a
+  "swap detected for copy but missed for navigation" drift class.
+- **Late-night hint copy is neutral**, not sleep-specific.
+  `'About 20 minutes of guided rest'`. Wired at 11pm doesn't always
+  mean "going to sleep" (working late, traveling, etc.). Vara has
+  `sleep` as a distinct intent path; default-path users getting
+  sleep-framed copy creates cross-path inconsistency. Phase 5 layers
+  in path-specific late-night hints; default stays neutral.
+- **Hour zone source of truth:** device-local-hour
+  (`new Date().getHours()`). Spoofing is self-harm only; user moving
+  timezones works correctly. Logged in TECH_DEBT_BACKLOG for a
+  future device-time-vs-server-time skew check (Phase 4 at the
+  earliest).
+- **Scope-creep guardrail.** Late-night NSDR is the only recommender
+  override in Phase 2. Additional overrides (bright-light morning,
+  post-meal movement, etc.) are Phase 4 territory regardless of how
+  mechanically simple they look. The wrapper pattern is a
+  stub-extension, not a general escape valve.
+- **Action shape unchanged.** The button still fires `'try_longer'`
+  on tap when in late-night mode. Only the affordance copy and the
+  parent-side navigation target differ.
+- **No auto-dismiss on the not_shifted path.** Carried forward from
+  the 2.2 placeholder (and from Core Loop v2 spec). The user gets a
+  decision to make; we don't take it for them.
+
 ### Sub-step 2.5 deliverables
 
 Caller migration + first ProtocolSession writes. The scope is broader

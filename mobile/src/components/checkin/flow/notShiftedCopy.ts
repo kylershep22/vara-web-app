@@ -20,6 +20,17 @@ export interface NotShiftedCopy {
   tryLongerHint: string;
   restLaterLabel: string;
   restLaterHint: string;
+  // Sub-step 2.4 — late-night NSDR swap copy override. Renders when
+  // the user is Wired and the local hour is in the late-night window
+  // (22:00–03:59). Action shape is unchanged — the button still fires
+  // `'try_longer'` on tap; only the affordance copy changes. Phase 5
+  // path-nests these strings alongside the rest of NotShiftedCopy.
+  // Neutral framing per locked decision — Wired at 11pm doesn't
+  // always mean "going to sleep." The default-path stays intent-
+  // neutral; sleep-specific framing belongs in the sleep IntentPath
+  // table when Phase 5 lands.
+  lateNightTryLongerLabel: string;
+  lateNightTryLongerHint: string;
 }
 
 export type NotShiftedCopyTable = Partial<Record<IntentPath, NotShiftedCopy>> & {
@@ -37,6 +48,8 @@ const DEFAULT: NotShiftedCopy = {
   tryLongerHint: 'When you have 10+ minutes',
   restLaterLabel: 'Rest and come back later',
   restLaterHint: 'The next check-in will still be here',
+  lateNightTryLongerLabel: "Try NSDR when you're ready",
+  lateNightTryLongerHint: 'About 20 minutes of guided rest',
 };
 
 export const NOT_SHIFTED_COPY: NotShiftedCopyTable = {

@@ -130,6 +130,33 @@ no one finds out unless the user happens to be tethered to a Mac.
 
 ---
 
+## Late-night NSDR swap — device clock skew detection
+
+`services/lateNightNSDRSwap.ts` (Phase 2 sub-step 2.4) reads
+`new Date().getHours()` to decide whether to route a Wired user's
+"Try something longer" tap to NSDR-20 instead of the Practices
+index. Device-local-hour is the source of truth for v1.
+
+Failure modes that v1 doesn't handle:
+- **Misconfigured device clock.** Rare. User's device set to wrong
+  time. The swap fires (or doesn't fire) at the wrong hour relative
+  to their actual local time.
+- **Device-time vs server-time drift.** Server has the canonical
+  time; we only ever ask the device. No cross-check.
+
+Future versions may want to detect a >30 min skew between device-
+time and server-time and either warn the user or fall back to a
+server-side hour. Phase 4 at the earliest (alongside the recommender
+absorbing this wrapper).
+
+Why not now: spoofing is self-harm only (the user's losing the
+benefit of a tailored recommendation, not harming anyone else).
+Misconfigured clocks are rare. Skew detection adds a network
+dependency to a previously offline-capable surface, which is a
+real cost.
+
+---
+
 ## CRLF normalization warnings — fix before Android development
 
 Every `git add` of files edited on Windows surfaces:
