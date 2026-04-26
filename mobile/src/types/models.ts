@@ -958,13 +958,42 @@ export interface Protocol {
 // Time window (in minutes) a user has available when selecting a protocol.
 export type ProtocolTimeWindow = 2 | 5 | 10 | 20 | 45;
 
-// Outcome of a protocol session, computed from the state transition
-// (stateBefore → stateAfter) and whether the user completed the protocol.
+// Outcome of a protocol session. Computed at Firestore write time
+// from the state transition (stateBefore → stateAfter), the completion
+// flag, and the abandon reason if any.
+//
+//   shifted       — session completed; state moved toward regulation.
+//                   Wired/Foggy → Steady/Clear/Alive, or any "green
+//                   zone" transition.
+//   partial_shift — session completed; specifically Wired → Foggy.
+//                   "The edge is off, fatigue is surfacing" per Core
+//                   Loop v2. The classifier rule is strict to this
+//                   transition only at v1; Phase 5 Patterns analysis
+//                   can expand the rule set if data warrants.
+//   maintenance   — session completed; user started in Steady/Clear/
+//                   Alive and held the same state. Counts as success
+//                   per Core Loop v2 line 209.
+//   not_shifted   — session completed; user stayed in the same
+//                   negative state (Wired → Wired, Foggy → Foggy) or
+//                   moved further from regulation.
+//   abandoned     — session ended by user choice. abandonReason is
+//                   'user_exit' or 'force_quit'.
+//   failed        — session ended due to a technical failure (the
+//                   user didn't choose to leave a working session;
+//                   something prevented completion). abandonReason
+//                   is 'audio_error'.
+//
+// Analytics note: abandon-rate metrics should typically filter to
+// `outcome === 'abandoned' && abandonReason === 'user_exit'`.
+// `force_quit` is an analyst judgment call. `failed` is product
+// failure, not user behavior, and should always be excluded.
 export type ProtocolSessionOutcome =
   | 'shifted'
-  | 'not_shifted'
+  | 'partial_shift'
   | 'maintenance'
-  | 'abandoned';
+  | 'not_shifted'
+  | 'abandoned'
+  | 'failed';
 
 // User-chosen next step after a not-shifted re-check.
 export type ProtocolNextStep =
