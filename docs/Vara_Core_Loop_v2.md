@@ -178,7 +178,7 @@ Per your direction, we are **not** lightening the UI on this step. The re-check 
 
 **Copy:**
 - Title: "How are you now?"
-- Subtitle: "Your state after [Protocol Name]"
+- No subtitle. The just-completed protocol is identified visually elsewhere on the screen (header, breadcrumb, or top card — implementer's choice) so a user re-mounting to the re-check after an interruption isn't confused about which protocol they're re-checking against. The protocol name does not appear in the question copy.
 
 **Selection:** The same five state chips, each with the same one-line description as in step 1. User taps once to select.
 

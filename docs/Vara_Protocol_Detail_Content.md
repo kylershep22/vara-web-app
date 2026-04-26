@@ -32,7 +32,7 @@ Each protocol below follows this structure:
 
 ## Protocol 2: Brief Movement
 
-**Metadata:** Movement · 1–20 min · For Foggy and Alive states
+**Metadata:** Movement · 5 or 10 min (shipped variants) · For Foggy and Alive states
 **Evidence chip:** Strong research backing
 
 ### What it is
@@ -161,7 +161,7 @@ Steady — maintenance practice that strengthens your baseline. Clear — protec
 
 ## Protocol 7: Cold Water Reset
 
-**Metadata:** Somatic / Cold · 1–2 min · For Wired or Foggy states
+**Metadata:** Somatic / Cold · 5 min total (1–2 min cold contact + prep/recovery) · For Wired or Foggy states
 **Evidence chip:** Good research + clinical tradition
 
 ### What it is
@@ -239,11 +239,11 @@ Steady — maintenance practice that reinforces the state you're in. Foggy — w
 
 ## Protocol 10: Focused Work Window
 
-**Metadata:** Cognitive · 25–90 min · For Clear state
+**Metadata:** Cognitive · 45 or 90 min (shipped variants) · For Clear state
 **Evidence chip:** Clinical tradition
 
 ### What it is
-A capacity-aware deep-work session. You pick a duration that matches your current capacity — 25, 45, or 90 minutes — then work on a single task with focus. A timer runs in the background, notifications silence automatically, and at the end you get a brief transition period.
+A capacity-aware deep-work session. You pick a duration that matches your current capacity — 45 or 90 minutes — then work on a single task with focus. A timer runs in the background, notifications silence automatically, and at the end you get a brief transition period.
 
 ### What you'll need
 The task you want to focus on. A space that supports focus. That's it.
@@ -257,7 +257,7 @@ Vara doesn't frame this as a productivity hack. This is about using a regulated 
 Clear — when your state genuinely supports focused cognitive work. Not a protocol to use when you're Wired or Foggy. Forcing focus in those states burns capacity without producing results.
 
 ### First-time orientation copy
-**What you'll do:** Pick a duration (25, 45, or 90 min), pick a task, and focus on just that one thing. A timer runs in the background, notifications silence.
+**What you'll do:** Pick a duration (45 or 90 min), pick a task, and focus on just that one thing. A timer runs in the background, notifications silence.
 **What you'll need:** The task, and a space where you can focus.
 **Why it works:** Your brain has natural 90-minute focus cycles. Matching your session length to your current capacity is higher-yield than forcing arbitrary time blocks.
 
@@ -265,11 +265,11 @@ Clear — when your state genuinely supports focused cognitive work. Not a proto
 
 ## Protocol 11: Bright Light Exposure
 
-**Metadata:** Environmental · 5–10 min · For Foggy state
+**Metadata:** Environmental · 10 or 20 min (shipped variants) · For Foggy state
 **Evidence chip:** Traditional practice, use with care
 
 ### What it is
-Five to ten minutes of exposure to natural light. Stand by a window with outdoor view, step outside, or position yourself where sunlight reaches you. Morning and early afternoon are ideal.
+Ten or twenty minutes of exposure to natural light. Stand by a window with outdoor view, step outside, or position yourself where sunlight reaches you. Morning and early afternoon are ideal. The 5-minute lower bound that appeared in earlier drafts was dropped — the circadian effect is dose-dependent and a 5-minute exposure under-delivers.
 
 ### What you'll need
 A window with outdoor view, or access outside. Not an indoor lamp — natural daylight is significantly brighter than any indoor light and has different spectral properties.
@@ -286,7 +286,7 @@ Foggy — especially foggy mornings or post-lunch slumps. Best paired with anoth
 If you have bipolar disorder, sudden changes in light exposure can affect mood stability — consult your clinician. If you have a photosensitive condition, check with your doctor about whether this practice is appropriate for you.
 
 ### First-time orientation copy
-**What you'll do:** Stand by a window or step outside for 5 to 10 minutes. Morning or early afternoon.
+**What you'll do:** Stand by a window or step outside for 10 or 20 minutes. Morning or early afternoon.
 **What you'll need:** A window with outdoor view, or outdoor access.
 **Why it works:** Natural light regulates your circadian rhythm and triggers alertness cortisol. A daily practice, more than a one-off fix.
 

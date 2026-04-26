@@ -26,7 +26,7 @@ This document contains two complete, production-ready scripts for Vara's NSDR (N
 The scripts are marked with `[pause X sec]` instructions. These are **not suggestions** — they are critical for the protocol's effectiveness. NSDR works in the pause as much as in the words. Long pauses feel unnatural to record but are correct. Trust the silence.
 
 ### Recording technical specs
-- **Format:** WAV master at 48kHz / 24-bit, deliver compressed AAC at 128kbps for app use
+- **Format:** WAV master at 48kHz / 24-bit, deliver compressed MP3 at 192kbps for app use
 - **Environment:** Acoustically treated room, pop filter, condenser microphone
 - **Processing:** Light compression, gentle EQ, no reverb, no music bed
 - **Silence:** Pauses should be true digital silence or very subtle room tone — NOT music, NOT nature sounds. Added audio textures distract from the protocol's mechanism.
@@ -509,9 +509,9 @@ The NSDR protocol is public-domain as a method. The specific language, pacing, a
 
 ### File delivery
 The recorded audio files should be stored in Vara's CDN and streamed or downloaded per user session.
-- Launch with two files: `nsdr_10min_v1.m4a` and `nsdr_20min_v1.m4a`
+- Launch with two files: `nsdr_10min_v1.mp3` and `nsdr_20min_v1.mp3`
 - Version the filenames so re-recordings don't break existing installs
-- Expect file sizes around 2.5MB (10-min) and 5MB (20-min) at 128kbps AAC
+- Expect file sizes around 14MB (10-min) and 29MB (20-min) at 192kbps MP3
 
 ### Player UI
 The NSDR protocol is one of the few where the running screen differs meaningfully from the breath and sensory protocols. It needs:

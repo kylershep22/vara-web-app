@@ -41,7 +41,7 @@ Naming decisions: Wired / Foggy / Clear retained. Okay → Steady (active regula
 
 ## Part 3: The Complete Protocol Library
 
-Twelve protocols at launch, organized by evidence tier.
+Eleven protocols at launch, organized by evidence tier.
 
 ### Evidence tier key
 
@@ -52,20 +52,19 @@ Twelve protocols at launch, organized by evidence tier.
 
 ### Full Protocol Table
 
-| # | Protocol | Primary States | Duration | Modality | Equipment | Evidence | Key Caveat |
+| # | Protocol | Primary States | Duration (shipped) | Modality | Equipment | Evidence | Key Caveat |
 |---|---|---|---|---|---|---|---|
-| 1 | Cyclic Sighing | Wired | 2–5 min | Breath | None | **Tier 1** | — |
-| 2 | Physical Activity (brief) | Foggy, Alive | 1–20 min | Movement | None | **Tier 1** | Adjust for mobility |
-| 3 | Box Breathing (4-4-4-4) | Wired, Steady | 3–5 min | Breath | None | **Tier 2** | — |
-| 4 | Extended Exhale (4:8) | Wired | 3–10 min | Breath | None | **Tier 2** | — |
-| 5 | NSDR / Yoga Nidra | Foggy (from overwork), Evening | 10–20 min | Audio (guided) | Quiet space, lie down | **Tier 2** | — |
-| 6 | Coherence Breathing (5-5) | Steady, Clear | 5–10 min | Breath | None | **Tier 2** | — |
-| 7 | Cold Water Reset | Wired or Foggy | 1–2 min | Somatic/Cold | Sink or bowl of cold water | **Tier 2** | Not if cardiac concerns |
-| 8 | Sensory Reset (5-4-3-2-1) | Wired, Acute overwhelm | 2–3 min | Sensory/Cognitive | None | **Tier 3** | — |
-| 9 | Mindful Walking | Steady, Foggy | 10–20 min | Movement | Safe walking space | **Tier 3** | — |
-| 10 | Focused Work Window | Clear | 25–90 min | Cognitive | — | **Tier 3** | — |
-| 11 | Bellows Breath (brief) | Foggy (acute) | 2–3 min | Breath (stimulating) | None | **Tier 4** | See contraindications |
-| 12 | Bright Light Exposure | Foggy | 5–10 min | Environmental | Window or outdoors | **Tier 4** | Not a substitute for sleep |
+| 1 | Cyclic Sighing | Wired | 2 min | Breath | None | **Tier 1** | — |
+| 2 | Brief Movement | Foggy, Alive | 5 / 10 min | Movement | None | **Tier 1** | Adjust for mobility |
+| 3 | Box Breathing (4-4-4-4) | Wired, Steady | 2 min | Breath | None | **Tier 2** | — |
+| 4 | Extended Exhale (4:8) | Wired | 2 min | Breath | None | **Tier 2** | — |
+| 5 | NSDR / Yoga Nidra | Foggy (from overwork), Evening | 10 / 20 min | Audio (guided) | Quiet space, lie down | **Tier 2** | — |
+| 6 | Coherence Breathing (5-5) | Steady, Clear | 5 min | Breath | None | **Tier 2** | — |
+| 7 | Cold Water Reset | Wired or Foggy | 5 min total (1–2 min cold contact + prep/recovery) | Somatic/Cold | Sink or bowl of cold water | **Tier 2** | Not if cardiac concerns |
+| 8 | Sensory Reset (5-4-3-2-1) | Wired, Acute overwhelm | 2 min | Sensory/Cognitive | None | **Tier 3** | — |
+| 9 | Mindful Walking | Steady, Foggy | 10 / 20 min | Movement | Safe walking space | **Tier 3** | — |
+| 10 | Focused Work Window | Clear | 45 / 90 min | Cognitive | — | **Tier 3** | — |
+| 11 | Bright Light Exposure | Foggy | 10 / 20 min | Environmental | Window or outdoors | **Tier 4** | Not a substitute for sleep |
 
 Naming note: **Sensory Reset** is the in-product name for what's clinically called "5-4-3-2-1 Grounding." Renamed to prevent confusion with earthing/physical grounding (see exclusions section).
 
@@ -82,10 +81,10 @@ Naming note: **Sensory Reset** is the in-product name for what's clinically call
 **Contraindications.** None significant for healthy adults.
 **Primary state fit.** Wired. Also suitable for Foggy when combined with very short duration.
 
-#### 2. Physical Activity (brief)
+#### 2. Brief Movement
 **What it is.** Short bout of structured movement — walking, jumping jacks, stairs, bodyweight squats, yoga flow.
 **What you'll need.** Nothing essential. Some protocols may suggest a walk outside if accessible.
-**Duration.** 1–20 minutes depending on intent.
+**Duration.** 5 or 10 minutes (shipped variants). The literature spans 1–20 minutes; we ship two variants at the points where the time-window filter cleanly bucketed.
 **Why it works.** Increases cerebral blood flow and norepinephrine availability — directly addresses the neurochemistry of cognitive fatigue. Longer sessions also produce BDNF and serve cognitive performance. For Alive state, activity channels the regulated arousal.
 **Evidence (Tier 1).** Decades of peer-reviewed research on acute cognitive benefits of brief exercise. Well-established.
 **Contraindications.** Adjust for mobility; users with cardiac or musculoskeletal limitations should modify.
@@ -130,7 +129,7 @@ Naming note: **Sensory Reset** is the in-product name for what's clinically call
 #### 7. Cold Water Reset
 **What it is.** Brief cold exposure: cold water run over the inner wrists for about 60 seconds, or a cold compress/cloth applied to the face and neck. No submersion, no breath-holding.
 **What you'll need.** Access to a sink or bowl with cold water. No specialized equipment.
-**Duration.** 1–2 minutes total.
+**Duration.** Shipped as a 5-minute total session: about 1–2 minutes of cold contact bracketed by a brief prep and a recovery period for the dive-reflex effect to settle.
 **Why it works.** Triggers the mammalian dive reflex — a rapid parasympathetic activation that slows heart rate. Also drives norepinephrine release, which can restore alertness. Same intervention serves Wired (dive reflex calms) and Foggy (norepinephrine activates), which illustrates why state-appropriate framing matters.
 **Evidence (Tier 2).** Used as a DBT distress tolerance skill; dive reflex is well-established physiologically.
 **Contraindications.** Users with cardiac conditions, Raynaud's, or cold intolerance should avoid. Pregnancy — consult clinician.
@@ -156,29 +155,19 @@ Naming note: **Sensory Reset** is the in-product name for what's clinically call
 **Primary state fit.** Steady (maintenance) and Foggy (gentle activation plus light exposure).
 
 #### 10. Focused Work Window
-**What it is.** A capacity-aware deep-work session. User selects 25, 45, or 90 minutes of single-task focus, followed by a transition break. Timer runs, notifications silenced.
+**What it is.** A capacity-aware deep-work session. User selects 45 or 90 minutes of single-task focus, followed by a transition break. Timer runs, notifications silenced.
 **What you'll need.** The task they want to focus on; a space that supports focus.
-**Duration.** 25–90 minutes.
+**Duration.** 45 or 90 minutes (shipped variants). Two variants instead of three is decision-fatigue cleanup — the 25-minute Pomodoro framing wasn't a fit for Vara's positioning, and the 60-minute middle option was redundant between the half-cycle (45) and full-cycle (90) anchor points.
 **Why it works.** Built on ultradian rhythm research — the brain naturally cycles through ~90-minute high-focus periods separated by recovery troughs. User picks a duration that matches their current capacity rather than an arbitrary timer length.
 **Evidence (Tier 3).** Grounded in ultradian rhythm research (Kleitman, Rossi and others). Specific 25/45/90 framing reflects common cognitive work patterns rather than proprietary finding.
 **Contraindications.** None. Not a "productivity hack" — framed in-app as "channel the clarity."
 **Primary state fit.** Clear.
 **Critical framing.** This protocol is deliberately NOT called "Pomodoro." Pomodoro framing codes this as a productivity app. Vara frames it as using a regulated state well, not as extracting output from the user.
 
-#### 11. Bellows Breath (brief modification)
-**What it is.** Short, sharp exhales through the nose driven by the diaphragm, with passive inhales. 30–60 breaths. Traditional name: Kapalabhati.
-**What you'll need.** Nothing. Sit upright.
-**Duration.** 2–3 minutes including a recovery period.
-**Why it works.** Brief sympathetic activation produces norepinephrine release and alertness. Traditional use: mental energy and wakefulness. Inverse of the parasympathetic breath protocols.
-**Evidence (Tier 4).** Traditional yoga practice with limited modern RCT evidence. Physiologically plausible mechanism (controlled sympathetic activation). Should be presented with appropriate caveats.
-**Contraindications.** **Important — not minor.** Should be avoided by users with anxiety disorders (can trigger panic), pregnancy, cardiovascular conditions, high blood pressure, or hernia. User profile flags required to hide this protocol from affected users.
-**Primary state fit.** Foggy (acute activation).
-**In-app presentation.** Should not be offered as first-line recommendation. Available in library once user has established baseline practice. Requires explicit acknowledgment of contraindications on first use.
-
-#### 12. Bright Light Exposure
-**What it is.** 5–10 minutes of exposure to natural light, ideally from a window or outdoors. Morning or early afternoon preferred.
+#### 11. Bright Light Exposure
+**What it is.** 10–20 minutes of exposure to natural light, ideally from a window or outdoors. Morning or early afternoon preferred.
 **What you'll need.** A window with outdoor view, or access outside.
-**Duration.** 5–10 minutes.
+**Duration.** 10 or 20 minutes (shipped variants). The 5-minute lower bound that appeared in earlier drafts was dropped — the circadian effect is dose-dependent and a 5-minute exposure under-delivers.
 **Why it works.** Morning and early-afternoon light exposure regulates circadian rhythms, triggers appropriate cortisol release (alertness), and supports sleep quality later. For users whose fog comes from sleep disruption or circadian misalignment, this intervention addresses cause more than symptom.
 **Evidence (Tier 4).** Circadian research on light exposure is very strong. Application to acute alertness in a single session is more inferential — the primary mechanism operates over days to weeks. Included because the physiological basis is sound and the intervention is zero-cost.
 **Contraindications.** Bipolar disorder (mania risk with sudden light exposure changes). Photosensitive conditions.
@@ -199,13 +188,21 @@ Deliberate decisions to NOT include specific practices in the Vara library, with
 - Naming conflict. "Grounding" is widely used for the sensory/cognitive technique (now named Sensory Reset in Vara). Including both under similar names creates user confusion.
 **Alternative.** If users want "time barefoot outside" as a practice, that can be an activity inside a routine — framed honestly as time-in-nature, not as a clinically validated protocol.
 
+### Bellows Breath / Kapalabhati (NOT INCLUDED at v1)
+**What it is.** Short, sharp exhales through the nose driven by the diaphragm with passive inhales (30–60 breaths). Traditional sympathetic activator.
+**Why not included at v1.**
+- Contraindication list is broad — anxiety disorders (can trigger panic), pregnancy, cardiovascular conditions, high blood pressure, hernia.
+- Safe inclusion would require a user-profile contraindication-flag system that doesn't exist in v1. Without those flags the app would surface a protocol that's actively harmful for a meaningful slice of the target audience.
+- The activation use case (Foggy → activated) is already covered by Brief Movement and Cold Water Reset, both with cleaner safety profiles.
+**Re-evaluate.** Post-launch, when the contraindication-flag system exists. Until then, Foggy users get safer activation paths.
+
 ### Full Wim Hof Method (NOT INCLUDED)
 **What it is.** Cyclic hyperventilation with breath retention, combined with cold exposure.
 **Why not included.**
 - Too intense for a consumer app first-line experience. The breath retention phases can trigger blackouts (a documented risk when done in water or driving).
 - Contraindication list is long: pregnancy, cardiovascular conditions, seizure history, anxiety disorders.
 - Brief cyclic hyperventilation (without retention) was studied in the Stanford trial and underperformed cyclic sighing.
-**Alternative.** If users want intensive breath practice, the stimulating Bellows Breath is available with proper warnings. The full Wim Hof method belongs in a specialty app with clinical screening, not a general wellness app.
+**Alternative.** If users want intensive breath practice, the full Wim Hof method belongs in a specialty app with clinical screening, not a general wellness app. Bellows Breath was considered as an in-library activator but is excluded at v1 (see Bellows Breath exclusion above).
 
 ### Extended Cold Plunges (NOT INCLUDED)
 **What it is.** Immersion in cold water (typically under 60°F) for 2–10 minutes.
@@ -239,7 +236,7 @@ For the recommendation engine. Each state has its full protocol pool ranked by s
 ### FOGGY (cognitive fatigue → gentle activation or restoration)
 **Primary (for activation):** Physical Activity (Tier 1), Cold Water Reset (Tier 2), Bright Light Exposure (Tier 4)
 **Primary (for restoration, when fog is from overwork):** NSDR / Yoga Nidra (Tier 2)
-**Alternative:** Mindful Walking (Tier 3), Bellows Breath (Tier 4, with caveats)
+**Alternative:** Mindful Walking (Tier 3)
 **Important.** The recommendation engine should present BOTH activation and restoration options for Foggy, with a brief framing: "If you want to gently activate..." and "If you want to rest and recover..." — since these have opposite modalities and users benefit from informed choice.
 
 ### STEADY (maintenance, strengthening)
@@ -312,7 +309,7 @@ On breath retention and full Wim Hof: Multiple case reports document shallow-wat
 
 **New in v2.2:**
 - Complete protocol table with evidence tiers, equipment, contraindications, and state-fit
-- Detailed per-protocol writeup (12 protocols)
+- Detailed per-protocol writeup (11 protocols)
 - Explicit exclusions section with reasoning (earthing, Wim Hof, extended cold, breath retention, supplements)
 - Naming change: "5-4-3-2-1 Grounding" → "Sensory Reset" (prevents earthing confusion)
 - Three-entry-point design for protocol information surface

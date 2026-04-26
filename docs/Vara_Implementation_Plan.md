@@ -176,7 +176,7 @@ Expand the static `BRAIN_STATE_PROTOCOLS` from its current set (Extended Exhale,
   - NSDR (10 min, 20 min variants)
   - Cold Water Reset (5 min including prep)
   - Mindful Walking (10 min, 20 min variants)
-  - Focused Work Window (45 min, 60 min, 90 min)
+  - Focused Work Window (45 min, 90 min)
   - Bright Light Exposure (10 min, 20 min)
 - Each protocol has: id, name, description, evidenceTier, durationSeconds, timeWindow, category, steps (array of {instruction, durationSeconds, audioCue?}), suitableForStates, suitableForTimesOfDay, contraindications
 - Remove or deprecate the old protocol entries (Activating Breathwork, etc.) — if they overlap with new protocols, rename; otherwise remove
@@ -270,7 +270,7 @@ Implement the revised core loop specified in `Vara_Core_Loop_v2.md`. This replac
 **Re-check:**
 - New component: `PostProtocolReCheck.tsx`
 - Same 5 state chips as the initial check-in
-- Copy: "How are you now? Your state after [Protocol Name]"
+- Copy: "How are you now?" (no subtitle — the just-completed protocol is identified visually elsewhere on the screen so users re-mounting after an interruption aren't confused about which protocol they're re-checking against)
 - Single tap advances to adaptive response
 
 **Adaptive response — shifted path:**
