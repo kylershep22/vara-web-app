@@ -130,6 +130,26 @@ no one finds out unless the user happens to be tethered to a Mac.
 
 ---
 
+## Path aliases for imports — Phase 6 polish
+
+Considered during Phase 2 sub-step 2.2 composition. Currently no
+`paths` in `mobile/tsconfig.json` and no `babel-plugin-module-resolver`
+config — every import is relative. Sub-step 2.2's deeper folder
+nesting (`components/checkin/flow/`) makes relative paths fragile
+(`../../../services/outcomeClassifier`).
+
+**Phase 6 path:** introduce `@services/*`, `@components/*`,
+`@constants/*`, `@hooks/*`, `@types/*`, `@utils/*` aliases via
+`tsconfig.json.compilerOptions.paths` + the corresponding
+`babel-plugin-module-resolver` config + Jest's
+`moduleNameMapper`. Sweep the existing tree in one pass.
+
+Not done now: scope creep against the 2.2 charter, and the sweep
+touches every file. Cleanest at Phase 6 alongside the broader
+import/test-config consolidation.
+
+---
+
 ## Phase 1 acceptable, post-launch consolidation
 
 ### Consolidate End early modal — currently two instances
