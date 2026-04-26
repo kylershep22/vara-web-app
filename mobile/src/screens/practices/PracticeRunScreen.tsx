@@ -1,10 +1,31 @@
 // PracticeRun — thin wrapper that mounts GuidedSessionPlayer for a
-// single user-selected protocol from the Practices index. Sub-step
-// 2.2 scope: play the protocol, on exit return to Practices.
+// single user-selected protocol from the Practices index.
 //
-// Sub-step 2.5 will replace this with a Case 4 flow per Core Loop
-// v2 — re-check + simple response after the player exits, since
-// browse-launched sessions are still measurement-bearing data.
+// TODO(2.5) — INTENTIONALLY INCOMPLETE.
+//
+// This screen is sub-step 2.2 scope only: play the protocol, on exit
+// return to Practices. Three things are deliberately missing because
+// sub-step 2.5 owns them:
+//
+//   1. NO RE-CHECK after player exit. The screen calls
+//      `navigation.goBack()` directly. Per Core Loop v2 §Case 4,
+//      browse-launched sessions still need a re-check — re-check IS
+//      the measurement (Build Guide §1, atomic unit of value).
+//      Skipping it produces zero state transitions for ~30% of
+//      launch-window session sources, defeating the data model.
+//
+//   2. NO SESSION WRITE. No `ProtocolSession` Firestore record is
+//      written. CheckInFlow's terminal useEffect logs the would-be
+//      payload; this screen doesn't even do that yet because there's
+//      no flow state to capture.
+//
+//   3. NO ADAPTIVE RESPONSE. No shifted/not-shifted branching. The
+//      user just exits back to Practices.
+//
+// Sub-step 2.5 replaces all of this with a Case 4 mini flow (likely
+// reusing a shared running → re_check → response sub-machine
+// extracted from CheckInFlow). See PHASE_NOTES.md "Sub-step 2.5
+// deliverables" for the full scope.
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';

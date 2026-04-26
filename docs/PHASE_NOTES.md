@@ -309,6 +309,44 @@ Per the Phase 0 rules-block comment: auto-generated IDs (multiple sessions per
 user per day are expected, unlike `brainStateCheckIns` which uses
 `{userId}_{date}`). Use `addDoc()` rather than `setDoc()` with a constructed ID.
 
+### Sub-step 2.5 deliverables
+
+Caller migration + first ProtocolSession writes. The scope is broader
+than just "swap call sites" — measurement coverage is the real
+deliverable.
+
+- **Firestore rules deploy** — run `firebase deploy --only firestore:rules`
+  before any code path writes its first `ProtocolSession` doc. The
+  rules block has been pending deploy since Phase 0.
+- **`protocolSession.service.ts`** — new service module wrapping the
+  `addDoc()`-based write to `protocolSessions/{sessionId}`. Consumers
+  pass the full record assembled from `FlowCompleteStep` /
+  `AbandonedStep` payloads.
+- **CheckInFlow `onComplete` callers** — replace the placeholder
+  `logger.log` in CheckInFlow's terminal-state useEffect with a real
+  Firestore write driven through `protocolSession.service`.
+- **Caller migration** — `BrainStateCheckin.tsx`, `useDashboard.ts`,
+  `OnboardingV2CheckInScreen.tsx`, `OnboardingV2ProtocolScreen.tsx`
+  (per the Phase 1 sub-step 2 list) move from the legacy single-tap
+  pattern to launching `CheckInFlow` with the appropriate
+  `FlowInit`. Surface the entry from the dashboard, onboarding, and
+  any deep-link / notification handler.
+- **Browse-launched sessions write ProtocolSession records via Case 4
+  flow.** Per Core Loop v2 §Case 4 (Practices browse view): state is
+  pre-known from the caller's selection, time-window is pre-known
+  from the picked protocol's `timeWindow` field, recommendation is
+  skipped, but the run → re-check → response loop still runs. The
+  re-check is the measurement (Build Guide §1, atomic unit of value)
+  — a browse-launched session that exits without re-check produces
+  no state transition, defeating the entire data model. Replace
+  `PracticeRunScreen`'s `GuidedSessionPlayer.onExit → goBack()` with
+  a CheckInFlow-style mini flow (or factor a shared running →
+  re_check → response sub-machine and reuse it).
+
+If Case 4 is forgotten, 2.5 looks complete (caller migration done,
+sessions writing) while ~30% of the launch-window's session sources
+silently produce zero state transitions. Track explicitly.
+
 ---
 
 ## Phase 3

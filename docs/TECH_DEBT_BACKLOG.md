@@ -130,6 +130,32 @@ no one finds out unless the user happens to be tethered to a Mac.
 
 ---
 
+## CRLF normalization warnings — fix before Android development
+
+Every `git add` of files edited on Windows surfaces:
+
+```
+warning: in the working copy of '<path>', LF will be replaced by CRLF
+the next time Git touches it
+```
+
+Cosmetic noise in Phase 2 (iOS-only on macOS dev means it's invisible
+to most contributors) but becomes painful when Android development
+starts. Per the Implementation Plan, Android lands at Google Play
+submission later in the cycle — Windows machines doing Android work
+will trip the warning on every commit and risk silent line-ending
+mismatches in CI diffs.
+
+**Fix:** add `.gitattributes` at repo root with
+`* text=auto eol=lf`. 5-minute change. One follow-up
+`git add --renormalize .` to rewrite the index.
+
+**Why not now:** scope creep against Phase 2 charter, and the fix is
+genuinely invisible on macOS until Android work begins. Land before
+the first Windows-side Android session.
+
+---
+
 ## Path aliases for imports — Phase 6 polish
 
 Considered during Phase 2 sub-step 2.2 composition. Currently no
