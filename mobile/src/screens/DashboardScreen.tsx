@@ -36,6 +36,7 @@ import WeekInsightCard from '../components/dashboard/WeekInsightCard';
 import RoutinesCard from '../components/dashboard/RoutinesCard';
 import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
 import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
+import { OverwhelmSafetyCard } from '../components/dashboard/OverwhelmSafetyCard';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
 import NudgeCard from '../components/dashboard/NudgeCard';
@@ -318,6 +319,14 @@ const DashboardScreen: React.FC = () => {
                 currentCheckIn={brainStateCheckIn}
               />
             )}
+
+            {/* Overwhelm Safety Card — sub-step 2.6. Always visible
+                (no surfacing-trigger logic in v1; Phase 5 layers
+                in path-specific thresholds). Below the brain-state
+                check-in card per the locked decision; 2.7 device-
+                verification screenshots iPhone 12/SE/15 confirm
+                this stays above the fold without scrolling. */}
+            <OverwhelmSafetyCard />
 
             {/* Notification opt-in: treated as a setting, accessible in every
                 phase. In post-checkin / returning it renders inside cardOrder
