@@ -37,6 +37,7 @@ import RoutinesCard from '../components/dashboard/RoutinesCard';
 import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
 import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
 import { OverwhelmSafetyCard } from '../components/dashboard/OverwhelmSafetyCard';
+import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
 import NudgeCard from '../components/dashboard/NudgeCard';
@@ -50,11 +51,15 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
 import { selectWeekInsight } from '../constants/weekInsightTemplates';
 import { useAIConsent } from '../context/AIConsentContext';
+import { useAuth } from '../context/AuthContext';
+import { db } from '../config/firebase';
+import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 const DashboardScreen: React.FC = () => {
   const { requireConsent } = useAIConsent();
+  const { user } = useAuth();
   const {
     navigation,
     dataLoading,
@@ -124,6 +129,25 @@ const DashboardScreen: React.FC = () => {
   const weekInsight = correlations ? selectWeekInsight(correlations) : null;
 
   const [showCheckInOverAnchor, setShowCheckInOverAnchor] = useState(false);
+
+  // Sub-step 2.7 — subscribe to the user's firstShiftAt for the
+  // FirstShiftFooter render decision. Real-time so a shift completed
+  // in CheckInFlow surfaces the footer immediately on dashboard
+  // remount or focus, regardless of whether DashboardScreen unmounts
+  // during navigation. Single field, narrow scope; Phase 3 may
+  // refactor into a shared useUserProfile hook when intentPath also
+  // needs subscribing.
+  const [firstShiftAt, setFirstShiftAt] = useState<Timestamp | null>(null);
+  useEffect(() => {
+    if (!user?.uid || !db) return;
+    const userRef = doc(db, 'users', user.uid);
+    const unsubscribe = onSnapshot(userRef, (snap) => {
+      const data = snap.data();
+      const value = (data?.firstShiftAt as Timestamp | undefined) ?? null;
+      setFirstShiftAt(value);
+    });
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   const cardOpacity = useSharedValue(dashboardPhase === 'pre-checkin' ? 0.35 : 1);
   const blurIntensity = useSharedValue(dashboardPhase === 'pre-checkin' ? 15 : 0);
@@ -319,6 +343,16 @@ const DashboardScreen: React.FC = () => {
                 currentCheckIn={brainStateCheckIn}
               />
             )}
+
+            {/* First-shift footer — sub-step 2.7. Renders the one-time
+                "Your first shift is logged in Patterns" acknowledgment
+                directly below whichever check-in card variant is
+                active in the current dashboardPhase. Anchored to the
+                action that produced the first shift, not a separate
+                "achievement" surface. Hidden when firstShiftAt is null
+                (no qualifying shift yet) or when the AsyncStorage
+                marker is set (already shown on this device). */}
+            <FirstShiftFooter firstShiftAt={firstShiftAt} />
 
             {/* Overwhelm Safety Card — sub-step 2.6. Always visible
                 (no surfacing-trigger logic in v1; Phase 5 layers
