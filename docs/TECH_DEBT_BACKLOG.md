@@ -130,6 +130,41 @@ no one finds out unless the user happens to be tethered to a Mac.
 
 ---
 
+## Banned-language regex-guard test across all copy tables
+
+`mobile/src/components/checkin/flow/__tests__/notShiftedCopy.test.ts`
+(landed sub-step 2.4) uses a regex-negative
+(`/sleep|bedtime|wind down/`) on the late-night hint to catch drift
+during minor edits — so a future "improvement" that re-adds sleep
+framing fails the test instead of shipping silently.
+
+The pattern is sound but currently single-purpose. Generalize into a
+shared `bannedLanguageGuard.test.ts` that scans **all** copy tables
+(shifted, not_shifted, future Phase 5 path tables) for banned
+patterns from Build Guide §Copy rules and Voice & Tone Rules:
+
+- `/amazing/i`, `/awesome/i`, `/way to go/i`, `/you did it/i`
+  (celebration creep)
+- `/no excuses/i`, `/just need discipline/i`, `/if you really wanted/i`
+  (shame)
+- `/life-changing/i`, `/guaranteed/i`, `/fix your brain/i`,
+  `/unlock/i` (hype)
+- `/treats anxiety/i`, `/clinically proven/i`, `/cure/i` (medical
+  claims)
+- `/don't miss out/i`, `/act now/i`, `/last chance/i` (urgency)
+- `/streak/i`, `/badge/i`, `/leaderboard/i` (gamification)
+
+Each existing copy table exports its strings; the guard test imports
+them all and runs the regex sweep. Catches regressions across the
+full copy surface in a single test file. ~50 lines of test code, no
+production code change.
+
+Phase 6 polish — best timed after Phase 5 finishes populating the
+intent-path-specific copy tables, so the guard covers everything
+in scope.
+
+---
+
 ## Late-night NSDR swap — device clock skew detection
 
 `services/lateNightNSDRSwap.ts` (Phase 2 sub-step 2.4) reads
