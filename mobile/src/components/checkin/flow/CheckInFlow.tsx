@@ -119,8 +119,16 @@ export function CheckInFlow({
         (error) => {
           // The writer logs internally; this catch keeps the
           // unhandled rejection from bubbling. Production callers'
-          // onComplete still fires; navigation continues.
-          logger.error('[CheckInFlow] writeStandardFlowSession threw:', error);
+          // onComplete still fires; navigation continues. The
+          // explicit "session NOT persisted" wording matters: the
+          // legacy brainStateCheckIns write may still have succeeded
+          // (or vice versa), but the message that a TestFlight
+          // tester / on-call sees needs to make the data-loss
+          // consequence visible — silent-failure mode is the risk.
+          logger.error(
+            '[CheckInFlow] writeStandardFlowSession failed (session NOT persisted to protocolSessions):',
+            error
+          );
         }
       );
       onComplete(state);

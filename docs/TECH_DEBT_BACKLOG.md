@@ -159,6 +159,32 @@ appears or the union grows past 4 variants.
 
 ---
 
+## Engagement event 'brainStateCheckInsCompleted' no longer fires
+
+Sub-step 2.5's caller migration removed `handleBrainStateCheckIn`
+from `useDashboard.ts`, which was the only call site for
+`trackEngagement('brainStateCheckInsCompleted')`. Chip taps on the
+dashboard now navigate to CheckInFlow without firing the
+engagement event.
+
+If downstream analytics depend on this event (cohort metrics,
+notification trigger eligibility, etc.), they need either:
+
+1. **Wire from CheckInFlow.onComplete** (Phase 5/6 telemetry pass)
+   — fire the event when the flow reaches a non-abandoned terminal.
+   Caveat: Overwhelm flow and BrowseRunFlow also produce sessions
+   that arguably count toward the same engagement metric; decide
+   whether to fold them in.
+2. **Read from `protocolSessions` directly** — query for the user's
+   session count instead of relying on the counter event. More
+   accurate (single source of truth) but more expensive at read time.
+
+Out of scope per Phase 2 telemetry-deferral, but worth flagging if
+someone is actively watching the metric — the count will appear to
+flatline starting whenever the migrated dashboard ships.
+
+---
+
 ## Banned-language regex-guard test across all copy tables
 
 `mobile/src/components/checkin/flow/__tests__/notShiftedCopy.test.ts`

@@ -483,6 +483,22 @@ Sub-step 2.7 is "first-shift footer + polish + integration + device
 verify." Polish-tier sub-step. The known failure modes that should
 be on its docket before composition:
 
+- **BLOCKER GATE before TestFlight:** `firebase deploy --only
+  firestore:rules` must be run AND a real check-in must produce a
+  `protocolSessions` doc visible in Firestore Console. Verify by
+  inspecting the doc, not just by absence of crashes. The
+  fire-and-forget pattern in CheckInFlow / BrowseRunFlow means
+  write failures are silent at the UX layer — the legacy
+  brainStateCheckIns write keeps working (so users see no
+  visible breakage), but the new schema's data simply never
+  lands. The protocolSessions rules block has been pending deploy
+  since Phase 0; there is NO automation that runs the deploy.
+  This is on the founder, not Claude Code.
+- **Dashboard chip-tap → CheckInFlow modal mount UX.** Tap a state
+  chip on dashboard. Verify CheckInFlow modal mounts smoothly with
+  no visible empty/loading state during transition. Test on cold
+  app launch AND warm app state. Slow-device flicker between chip
+  tap and modal mount is the failure mode to watch for.
 - **Re_check force-quit recovery.** If the user kills the app
   between player exit (player completes successfully) and re-check
   completion, the session has a `stateBefore` but no `stateAfter`,

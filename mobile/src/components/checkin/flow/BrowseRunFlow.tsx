@@ -89,7 +89,14 @@ export function BrowseRunFlow({
         mapBrowseTerminalToPayload(state, intentPath),
         { dryRun }
       ).catch((error) => {
-        logger.error('[BrowseRunFlow] writeProtocolSession threw:', error);
+        // Silent-failure visibility: BrowseRunFlow has NO legacy
+        // parallel write to fall back on (Case 4 sessions skip
+        // brainStateCheckIns). A failure here means zero data lands
+        // for this session.
+        logger.error(
+          '[BrowseRunFlow] writeProtocolSession failed (session NOT persisted, no legacy fallback):',
+          error
+        );
       });
       onComplete(state);
     }
