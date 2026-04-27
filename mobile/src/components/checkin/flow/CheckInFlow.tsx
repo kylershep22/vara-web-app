@@ -1,8 +1,10 @@
 // CheckInFlow — composition of the Phase 2 multi-step check-in
 // surface. Owns the reducer; renders the active step's view; wires
 // the GuidedSessionPlayer when running; observes the two terminal
-// steps (abandoned / flow_complete) and surfaces them to the parent
-// via `onComplete`.
+// steps (abandoned / flow_complete) and (a) writes the
+// ProtocolSession record + legacy brainStateCheckIns parallel write,
+// (b) surfaces the terminal to the parent via `onComplete` so the
+// parent handles navigation.
 //
 // Reducer is opaque to the player (locked decision A): the player's
 // onExit callback dispatches a single `player_exit` action with
@@ -16,13 +18,13 @@
 //      running / re_check / response steps. There's no UI surface to
 //      tap, so a stray dispatch never gets through.
 //
-// Session-write side effect:
-//   For sub-step 2.2, this component does NOT call
-//   protocolSession.service yet — that wiring is part of sub-step
-//   2.5's caller migration. The terminal-state effect logs the
-//   would-be write so device testing can verify the right data
-//   arrives. Sub-step 2.5 replaces the log with a real Firestore
-//   write.
+// Firestore writes (sub-step 2.5):
+//   The terminal useEffect calls `writeStandardFlowSession` fire-
+//   and-forget — UX shouldn't block on Firestore. Errors are logged
+//   inside the writer and don't propagate to onComplete. The parent's
+//   navigation happens immediately on terminal-state arrival.
+//   `writeMode='dev_dry_run'` skips both writes (new + legacy) and
+//   logs the payload via logger.log — used by the dev harness.
 
 import React, { useEffect, useReducer } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -31,12 +33,14 @@ import { Colors } from '../../../constants';
 import { logger } from '../../../utils/logger';
 import type {
   BrainState,
+  IntentPath,
   ProtocolTimeWindow,
 } from '../../../types/models';
 
 import { GuidedSessionPlayer } from '../../protocol/GuidedSessionPlayer';
 import { ProtocolRecommendation } from '../ProtocolRecommendation';
 import { TimeWindowSelector } from '../TimeWindowSelector';
+import { writeStandardFlowSession } from '../../../services/firebase/brainStateCheckIn.service';
 
 import { flowReducer, initFlow } from './reducer';
 import type { FlowInit, FlowState } from './types';
@@ -44,13 +48,26 @@ import { StatePickStepView } from './StatePickStepView';
 import { ReCheckStepView } from './ReCheckStepView';
 import { ResponseStepView } from './ResponseStepView';
 
+export type CheckInFlowWriteMode = 'production' | 'dev_dry_run';
+
 export interface CheckInFlowProps {
   init: FlowInit;
-  // Fires once when the flow reaches a terminal state. Parent owns:
-  //   - Persisting the ProtocolSession record (sub-step 2.5).
-  //   - Navigating to Today, Practices, etc.
-  //   - Unmounting this component.
+  // Required — the authenticated user. Used as the prefix of the
+  // ProtocolSession doc ID and as the write target's userId field.
+  userId: string;
+  // Fires once when the flow reaches a terminal state. Parent owns
+  // navigation. Firestore writes happen inside this component before
+  // onComplete fires (fire-and-forget — the writes don't block the
+  // callback).
   onComplete: (terminal: TerminalFlowState) => void;
+  // Optional — Phase 3 wires the user's resolved intent path through
+  // the flow. Until then, defaults to 'default' (the only path the
+  // 2.3 copy tables populate).
+  intentPath?: IntentPath;
+  // Optional — controls the Firestore write behavior. Production
+  // callers omit (defaults to 'production', real writes); dev harness
+  // passes 'dev_dry_run' to skip writes and log payloads instead.
+  writeMode?: CheckInFlowWriteMode;
   // Top-left close affordance. Available only on state_pick,
   // time_pick, recommendation. Hidden during running / re_check /
   // response per locked decision B. Optional — overwhelm-entry
@@ -78,7 +95,10 @@ export type TerminalFlowState = Extract<
 
 export function CheckInFlow({
   init,
+  userId,
   onComplete,
+  intentPath = 'default',
+  writeMode = 'production',
   onClose,
   onSeeOtherOptions,
 }: CheckInFlowProps) {
@@ -88,31 +108,27 @@ export function CheckInFlow({
     initFlow
   );
 
-  // Terminal-state observer. The reducer transitions to abandoned or
-  // flow_complete; this effect surfaces that to the parent exactly
-  // once. Logging the would-be ProtocolSession payload is a 2.2
-  // affordance for device testing — sub-step 2.5 replaces with the
-  // real Firestore write.
+  // Terminal-state observer. Fires the Firestore writes
+  // (fire-and-forget, errors logged inside the writer) and surfaces
+  // the terminal to the parent for navigation. The parent's
+  // onComplete runs immediately — UX doesn't block on Firestore.
   useEffect(() => {
     if (state.step === 'abandoned' || state.step === 'flow_complete') {
-      logger.log('[CheckInFlow] Terminal state reached', {
-        step: state.step,
-        protocolId: state.protocol.id,
-        stateBefore: state.stateBefore,
-        durationActualSeconds: state.durationActualSeconds,
-        // Conditional fields kept narrow for log clarity.
-        ...(state.step === 'flow_complete' && {
-          stateAfter: state.stateAfter,
-          outcome: state.outcome,
-          userChosenNextStep: state.userChosenNextStep,
-        }),
-      });
+      const dryRun = writeMode === 'dev_dry_run';
+      writeStandardFlowSession(userId, state, intentPath, { dryRun }).catch(
+        (error) => {
+          // The writer logs internally; this catch keeps the
+          // unhandled rejection from bubbling. Production callers'
+          // onComplete still fires; navigation continues.
+          logger.error('[CheckInFlow] writeStandardFlowSession threw:', error);
+        }
+      );
       onComplete(state);
     }
     // Intentionally narrow: re-run only when the step changes. State
     // mutations within a non-terminal step (none currently exist;
     // every transition produces a new step) wouldn't fire this.
-  }, [state, onComplete]);
+  }, [state, onComplete, userId, intentPath, writeMode]);
 
   return (
     <View style={styles.container} testID="checkin-flow">

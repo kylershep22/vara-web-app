@@ -92,6 +92,11 @@ export function CheckInFlowTestScreen() {
     return (
       <CheckInFlow
         init={init}
+        // Dev harness uses dryRun mode — keeps production schema
+        // clean of harness pollution. Real writes are exercised once
+        // via device verification post-2.5.
+        userId="dev-harness-user"
+        writeMode="dev_dry_run"
         onClose={() => setPhase('setup')}
         onSeeOtherOptions={(state, timeWindow) =>
           navigation.navigate('Practices', { state, timeWindow })

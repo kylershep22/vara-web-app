@@ -81,6 +81,20 @@ function summary(opts: { completed: boolean; protocolId: string }): ProtocolSess
 }
 
 // ────────────────────────────────────────────────────────────
+// Test props helper — sub-step 2.5 added required `userId` and the
+// optional `writeMode` props. Centralizing the dev_dry_run setup
+// here keeps individual tests focused on flow behavior; the writes
+// themselves are covered in protocolSession.service.test.ts.
+// ────────────────────────────────────────────────────────────
+
+const TEST_USER_ID = 'test-user-id';
+
+const TEST_PROPS = {
+  userId: TEST_USER_ID,
+  writeMode: 'dev_dry_run' as const,
+};
+
+// ────────────────────────────────────────────────────────────
 // Tests
 // ────────────────────────────────────────────────────────────
 
@@ -89,6 +103,7 @@ describe('CheckInFlow — initial render by entry source', () => {
     const { getByTestId, queryByTestId } = render(
       <CheckInFlow
         init={{ entrySource: 'standard' }}
+        {...TEST_PROPS}
         onComplete={jest.fn()}
       />
     );
@@ -101,7 +116,7 @@ describe('CheckInFlow — initial render by entry source', () => {
 
   it('overwhelm entry renders the GuidedSessionPlayer at mount (skips state/time/recommendation)', () => {
     const { getByTestId, queryByTestId } = render(
-      <CheckInFlow init={buildOverwhelmInit()} onComplete={jest.fn()} />
+      <CheckInFlow init={buildOverwhelmInit()} {...TEST_PROPS} onComplete={jest.fn()} />
     );
     expect(getByTestId('mock-guided-session-player')).toBeTruthy();
     expect(mockProtocolId).toBe('cyclic-sighing-2');
@@ -115,6 +130,7 @@ describe('CheckInFlow — state-pick → time-pick dispatch', () => {
     const { getByTestId, queryByTestId, getByLabelText } = render(
       <CheckInFlow
         init={{ entrySource: 'standard' }}
+        {...TEST_PROPS}
         onComplete={jest.fn()}
       />
     );
@@ -137,7 +153,7 @@ describe('CheckInFlow — player exit branching', () => {
   it("player onExit { completed: false } drives the flow to AbandonedStep (terminal — onComplete fires with step 'abandoned')", async () => {
     const onComplete = jest.fn();
     render(
-      <CheckInFlow init={buildOverwhelmInit()} onComplete={onComplete} />
+      <CheckInFlow init={buildOverwhelmInit()} {...TEST_PROPS} onComplete={onComplete} />
     );
 
     // Mock player should be mounted and onExit captured.
@@ -160,7 +176,7 @@ describe('CheckInFlow — player exit branching', () => {
   it('player onExit { completed: true } drives the flow to ReCheckStep (re-check UI rendered, onComplete NOT yet fired)', async () => {
     const onComplete = jest.fn();
     const { findByTestId } = render(
-      <CheckInFlow init={buildOverwhelmInit()} onComplete={onComplete} />
+      <CheckInFlow init={buildOverwhelmInit()} {...TEST_PROPS} onComplete={onComplete} />
     );
 
     expect(lastOnExit).toBeTruthy();
@@ -185,7 +201,7 @@ describe('CheckInFlow — re-check → response with auto-dismiss', () => {
   it('selecting a re-check state advances to response; shifted path auto-dismisses after 4s', async () => {
     const onComplete = jest.fn();
     const { findByTestId, getByLabelText, queryByTestId } = render(
-      <CheckInFlow init={buildOverwhelmInit()} onComplete={onComplete} />
+      <CheckInFlow init={buildOverwhelmInit()} {...TEST_PROPS} onComplete={onComplete} />
     );
 
     // Drive: player completes naturally.
@@ -230,7 +246,7 @@ describe('CheckInFlow — re-check → response with auto-dismiss', () => {
   it('not_shifted path does NOT auto-dismiss — waits for explicit user choice', async () => {
     const onComplete = jest.fn();
     const { findByTestId, getByLabelText } = render(
-      <CheckInFlow init={buildOverwhelmInit()} onComplete={onComplete} />
+      <CheckInFlow init={buildOverwhelmInit()} {...TEST_PROPS} onComplete={onComplete} />
     );
 
     act(() => {
@@ -290,7 +306,7 @@ describe('CheckInFlow — late-night NSDR override prop pass-through (sub-step 2
     jest.setSystemTime(new Date('2026-04-26T23:00:00'));
 
     const { findByTestId, getByLabelText } = render(
-      <CheckInFlow init={buildOverwhelmInit()} onComplete={jest.fn()} />
+      <CheckInFlow init={buildOverwhelmInit()} {...TEST_PROPS} onComplete={jest.fn()} />
     );
 
     act(() => {
@@ -315,7 +331,7 @@ describe('CheckInFlow — late-night NSDR override prop pass-through (sub-step 2
     jest.setSystemTime(new Date('2026-04-26T14:00:00'));
 
     const { findByTestId, getByLabelText } = render(
-      <CheckInFlow init={buildOverwhelmInit()} onComplete={jest.fn()} />
+      <CheckInFlow init={buildOverwhelmInit()} {...TEST_PROPS} onComplete={jest.fn()} />
     );
 
     act(() => {
@@ -334,7 +350,7 @@ describe('CheckInFlow — terminal-state useEffect contract', () => {
   it('fires onComplete exactly once with the full session-record payload shape', async () => {
     const onComplete = jest.fn();
     render(
-      <CheckInFlow init={buildOverwhelmInit()} onComplete={onComplete} />
+      <CheckInFlow init={buildOverwhelmInit()} {...TEST_PROPS} onComplete={onComplete} />
     );
 
     act(() => {
