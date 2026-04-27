@@ -1,44 +1,35 @@
-// PracticeRun — thin wrapper that mounts GuidedSessionPlayer for a
-// single user-selected protocol from the Practices index.
+// PracticeRun — wrapper that mounts BrowseRunFlow for a single
+// user-selected protocol from the Practices index.
 //
-// TODO(2.5) — INTENTIONALLY INCOMPLETE.
+// Sub-step 2.5 update — replaces the bare GuidedSessionPlayer +
+// goBack pattern with the Case 4 mini-flow per Core Loop v2 §Case 4.
+// The user still picks a protocol from Practices and runs it; the
+// difference is that re-check now runs at the end so we capture a
+// state-transition data point. ProtocolSession is written with
+// outcome='browse_launched' and stateBefore=null.
 //
-// This screen is sub-step 2.2 scope only: play the protocol, on exit
-// return to Practices. Three things are deliberately missing because
-// sub-step 2.5 owns them:
-//
-//   1. NO RE-CHECK after player exit. The screen calls
-//      `navigation.goBack()` directly. Per Core Loop v2 §Case 4,
-//      browse-launched sessions still need a re-check — re-check IS
-//      the measurement (Build Guide §1, atomic unit of value).
-//      Skipping it produces zero state transitions for ~30% of
-//      launch-window session sources, defeating the data model.
-//
-//   2. NO SESSION WRITE. No `ProtocolSession` Firestore record is
-//      written. CheckInFlow's terminal useEffect logs the would-be
-//      payload; this screen doesn't even do that yet because there's
-//      no flow state to capture.
-//
-//   3. NO ADAPTIVE RESPONSE. No shifted/not-shifted branching. The
-//      user just exits back to Practices.
-//
-// Sub-step 2.5 replaces all of this with a Case 4 mini flow (likely
-// reusing a shared running → re_check → response sub-machine
-// extracted from CheckInFlow). See PHASE_NOTES.md "Sub-step 2.5
-// deliverables" for the full scope.
+// Routing on terminal: back to Practices index per the override in
+// SPEC_CONSISTENCY_BACKLOG "Case 4 routing target after re-check"
+// (the spec says Today; we route to Practices to preserve the
+// user's exploration context).
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 
 import { Colors, Spacing, Typography } from '../../constants';
 import { getProtocolById } from '../../constants/brainStateProtocols';
-import { GuidedSessionPlayer } from '../../components/protocol/GuidedSessionPlayer';
+import { useAuth } from '../../context/AuthContext';
+import { BrowseRunFlow } from '../../components/checkin/flow/BrowseRunFlow';
 import type { BrainState } from '../../types/models';
 
 export interface PracticeRunRouteParams {
   protocolId: string;
+  // The state the user filtered on at Practices index. Forwarded to
+  // GuidedSessionPlayer (which requires a stateBefore for its
+  // recovery summary). NOT written to the ProtocolSession record —
+  // Case 4 sessions persist stateBefore=null.
   stateBefore: BrainState;
 }
 
@@ -50,8 +41,16 @@ type RouteParams = RouteProp<
 export function PracticeRunScreen() {
   const route = useRoute<RouteParams>();
   const navigation = useNavigation();
+  const { user } = useAuth();
   const { protocolId, stateBefore } = route.params;
   const protocol = getProtocolById(protocolId);
+
+  const handleComplete = useCallback(() => {
+    // Both terminal variants (abandoned, flow_complete) route back
+    // to Practices. The session write happens inside BrowseRunFlow's
+    // terminal useEffect.
+    navigation.goBack();
+  }, [navigation]);
 
   if (!protocol) {
     return (
@@ -65,13 +64,19 @@ export function PracticeRunScreen() {
     );
   }
 
+  if (!user?.uid) {
+    // Defensive — AppNavigator shouldn't route here without an
+    // authenticated user, but BrowseRunFlow's userId prop is required.
+    navigation.goBack();
+    return null;
+  }
+
   return (
-    <GuidedSessionPlayer
+    <BrowseRunFlow
       protocol={protocol}
       stateBefore={stateBefore}
-      onExit={() => {
-        navigation.goBack();
-      }}
+      userId={user.uid}
+      onComplete={handleComplete}
     />
   );
 }
