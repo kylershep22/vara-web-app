@@ -25,7 +25,7 @@ import React from 'react';
 import type { BrainState, IntentPath } from '../../../types/models';
 import type { ClassifierOutcome } from '../../../services/outcomeClassifier';
 import { getLateNightNSDRSwap } from '../../../services/lateNightNSDRSwap';
-import type { UserChosenNextStep } from './types';
+import type { FlowEntrySource, UserChosenNextStep } from './types';
 import { ShiftedResponse } from './ShiftedResponse';
 import { NotShiftedResponse } from './NotShiftedResponse';
 
@@ -38,6 +38,11 @@ export interface ResponseStepViewProps {
   // the flow. Until then, defaults to 'default' (the only path 2.3
   // populates). Forwarded to ShiftedResponse / NotShiftedResponse.
   intentPath?: IntentPath;
+  // Optional — sub-step 2.6 plumbing seam. Forwarded to
+  // NotShiftedResponse so Phase 5 can switch on Overwhelm-vs-
+  // standard not-shifted copy without re-opening 2.4's signatures.
+  // Unused in 2.6 by NotShiftedResponse.
+  entrySource?: FlowEntrySource;
   onChoose: (choice: UserChosenNextStep) => void;
 }
 
@@ -47,6 +52,7 @@ export function ResponseStepView({
   outcome,
   durationActualSeconds,
   intentPath = 'default',
+  entrySource,
   onChoose,
 }: ResponseStepViewProps) {
   // Positive outcomes delegate to ShiftedResponse (owns its own
@@ -75,6 +81,7 @@ export function ResponseStepView({
   return (
     <NotShiftedResponse
       intentPath={intentPath}
+      entrySource={entrySource}
       lateNightOverride={lateNightOverride}
       onChoose={onChoose}
     />

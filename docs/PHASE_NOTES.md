@@ -477,6 +477,69 @@ explicitly.
   `protocolSessions` — Phase 5+ (a parallel-write window during
   2.5 keeps both collections in sync).
 
+### Sub-step 2.6 entry — locked decisions
+
+Sub-step 2.6 builds the Overwhelm Safety Card from scratch (not a
+refactor — the spec was always ahead of implementation; no v1
+prototype existed). The CheckInFlow `overwhelm_safety_card` entry
+source has been plumbed since 2.2 and exercised in the dev harness
+since 2.4; the missing piece is the Today-surface UI that mounts
+the flow.
+
+**Locked decisions:**
+
+- **Protocol:** Sensory Reset 2-min via `OVERWHELM_DEFAULT_PROTOCOL_ID`
+  constant (`mobile/src/constants/overwhelmDefaults.ts`). Never
+  inlined as a string literal at call sites — the constant stays
+  stable while Phase 5 may grow conditional selection logic.
+  SPEC_CONSISTENCY_BACKLOG flags Implementation Plan line 294 for
+  doc reconciliation (drop "Cyclic Sighing or" alternative).
+- **Card placement:** Today / dashboard surface, always visible v1.
+  Phase 5 layers in surfacing-trigger logic per Intent Paths spec
+  (Sleep path day 2, default-path Wired-twice-in-a-row threshold).
+- **Visual treatment:** text-only, no icon. Dew Sage card
+  background, Soft Charcoal heading, single-line subhead. A
+  lifebuoy / SOS / similar icon carries emergency connotation
+  banned by Build Guide §4 (calm over stimulation); a neutral icon
+  doesn't help findability — typography and placement do that work.
+  Re-evaluate post-launch if findability data says otherwise.
+- **Card copy:** "Need something right now?" (verbatim from
+  Persona Validation line 108). Subhead: "A two-minute reset for
+  hard moments." (final wording during composition).
+- **Touch target:** full card width, 60–72px tall. Larger than the
+  standard 48px minimum because this is the affordance someone
+  reaches for while overwhelmed; small targets fail.
+- **Accessibility label:** "Need something right now? Two-minute
+  Sensory Reset." Warm and explicit. Not "Overwhelm safety card"
+  (clinical) or "Tap for help" (alarming).
+- **Tap behavior:** `navigation.navigate('CheckInFlow', { entrySource:
+  'overwhelm_safety_card', protocolId: OVERWHELM_DEFAULT_PROTOCOL_ID })`.
+  CheckInFlowScreen's existing `buildFlowInit` switch handles the
+  rest.
+- **No analytics gating, no eligibility check.** v1 ships always-
+  visible. Tap engagement event → Phase 5 / Phase 6 telemetry pass.
+- **`entrySource` plumbing seam.** ResponseStepView →
+  NotShiftedResponse threading lands in 2.6 even though
+  NotShiftedResponse doesn't consume it yet. Phase 5 uses it to
+  surface softer Overwhelm-specific not-shifted copy per Core Loop
+  v2 §Case 3 lines 296–301 ("That was a hard moment. Nothing more
+  is required of you right now. Rest."). Threading now prevents
+  Phase 5 from having to reopen 2.4's component signatures.
+- **Position on Today:** above-the-fold reachability is the bar.
+  Below the brain-state check-in card is acceptable IF the
+  check-in card is compact enough that Overwhelm stays visible
+  without scrolling on iPhone 12-class. Otherwise move Overwhelm
+  above. 2.7 device-verification screenshots iPhone 12, SE, 15.
+
+**Out of scope:**
+- Surfacing-trigger logic (path-specific thresholds) → Phase 5.
+- Tap engagement / analytics → Phase 5/6.
+- Soft Overwhelm not-shifted copy variant → Phase 5 (plumbing
+  threaded in 2.6).
+- "Try longer" affordance from Overwhelm path → not applicable
+  (the late-night NSDR swap fires from the not-shifted response
+  screen; Overwhelm lands there per the standard path).
+
 ### Sub-step 2.7 entry — known failure modes to address
 
 Sub-step 2.7 is "first-shift footer + polish + integration + device
@@ -499,6 +562,12 @@ be on its docket before composition:
   no visible empty/loading state during transition. Test on cold
   app launch AND warm app state. Slow-device flicker between chip
   tap and modal mount is the failure mode to watch for.
+- **Overwhelm Safety Card above-the-fold check.** Screenshot
+  Today screen on iPhone 12, iPhone SE, iPhone 15. Confirm
+  Overwhelm Safety Card is visible above the fold on all three.
+  The 2 AM ruminating scenario assumes a distressed user finds
+  the card without scrolling — a card that requires a scroll
+  fails the persona validation.
 - **Re_check force-quit recovery.** If the user kills the app
   between player exit (player completes successfully) and re-check
   completion, the session has a `stateBefore` but no `stateAfter`,

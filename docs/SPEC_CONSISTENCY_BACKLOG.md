@@ -164,6 +164,35 @@ simpler default; revisit only if data shows it.
   steady→alive, clear→alive) classify as 'shifted'. Same-state and
   downward green-zone shifts classify as 'maintenance'."
 
+## Overwhelm Safety Card protocol selection
+
+**Codebase resolution:** Sub-step 2.6 locks Sensory Reset (`sensory-
+reset-2`) as the Overwhelm Safety Card's protocol via the named
+constant `OVERWHELM_DEFAULT_PROTOCOL_ID` in
+`mobile/src/constants/overwhelmDefaults.ts`.
+
+**Why Sensory Reset over Cyclic Sighing:**
+
+Two of three explicit specs name Sensory Reset specifically:
+- `Vara_Brain_State_Model_v2.2.md:234` — "Sensory Reset (auto-
+  offered on 'Need something now?' card)"
+- `Vara_Persona_Validation.md:108` — "2-minute Sensory Reset, no
+  state selection required"
+
+Plus the rationale baked into the protocol catalog
+(`brainStateProtocols.ts:455`) fits the Overwhelm context: "any
+moment when you need something immediate and can't pause to breathe
+deliberately." The Overwhelm user may not have access to the
+deliberate inhale/double-exhale Cyclic Sighing requires.
+
+**Doc to update:**
+- `docs/Vara_Implementation_Plan.md` line 294 — currently reads "go
+  directly to a Cyclic Sighing or Sensory Reset". Update to "go
+  directly to a Sensory Reset" (drop the "Cyclic Sighing or"
+  alternative).
+
+---
+
 ## Case 4 routing target after re-check
 
 **Codebase resolution:** Sub-step 2.5's BrowseRunFlow routes the

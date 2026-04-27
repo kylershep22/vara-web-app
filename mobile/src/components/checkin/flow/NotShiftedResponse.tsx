@@ -26,7 +26,7 @@ import {
 
 import { Colors, Spacing, Typography } from '../../../constants';
 import type { IntentPath } from '../../../types/models';
-import type { UserChosenNextStep } from './types';
+import type { FlowEntrySource, UserChosenNextStep } from './types';
 import { getNotShiftedCopy } from './notShiftedCopy';
 
 const MIN_TOUCH_TARGET = 48;
@@ -35,6 +35,14 @@ export interface NotShiftedResponseProps {
   // Optional — Phase 3 wires the user's resolved intent path through
   // the flow. Until then, defaults to 'default'.
   intentPath?: IntentPath;
+  // Optional — sub-step 2.6 plumbing seam. Phase 5 will use this to
+  // surface softer not-shifted copy when the flow was entered via
+  // the Overwhelm Safety Card (per Core Loop v2 §Case 3 lines 296–
+  // 301: "That was a hard moment. Nothing more is required of you
+  // right now. Rest."). Threaded but unused in 2.6 to prevent
+  // Phase 5 from having to reopen 2.4's signatures. Same forward-
+  // engineering pattern as FlowInit's discriminated variants.
+  entrySource?: FlowEntrySource;
   // Computed by the parent (ResponseStepView) from stateBefore +
   // device-local-hour via getLateNightNSDRSwap. When true, the
   // "Try something longer" affordance shows the NSDR-specific copy.
@@ -44,6 +52,11 @@ export interface NotShiftedResponseProps {
 
 export function NotShiftedResponse({
   intentPath = 'default',
+  // entrySource is intentionally unused in 2.6 — Phase 5 will read
+  // it to switch on Overwhelm-vs-standard not-shifted copy. Kept on
+  // the prop signature so Phase 5 wiring is non-breaking.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  entrySource,
   lateNightOverride,
   onChoose,
 }: NotShiftedResponseProps) {

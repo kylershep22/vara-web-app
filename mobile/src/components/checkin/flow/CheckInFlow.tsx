@@ -234,6 +234,9 @@ function renderStep(
           stateAfter={state.stateAfter}
           outcome={state.outcome}
           durationActualSeconds={state.durationActualSeconds}
+          // entrySource threaded for Phase 5's Overwhelm not-shifted
+          // copy variant. Unused in 2.6.
+          entrySource={state.entrySource}
           onChoose={(choice) =>
             dispatch({ type: 'next_step_chosen', choice })
           }
