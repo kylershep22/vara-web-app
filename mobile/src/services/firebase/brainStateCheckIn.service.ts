@@ -1,6 +1,10 @@
 /**
  * Brain State Check-In Service
- * CRUD operations for the brainStateCheckIns Firestore collection.
+ * CRUD operations for the brainStateCheckIns Firestore collection,
+ * plus the sub-step 2.5 `writeStandardFlowSession` helper that does
+ * parallel writes to both the legacy `brainStateCheckIns` collection
+ * (for backward compat with v1 read paths) AND the new
+ * `protocolSessions` collection (the Phase 2+ authoritative source).
  */
 
 import {
@@ -24,6 +28,13 @@ import {
   normalizeBrainState,
   serializeBrainState,
 } from '../../utils/brainStateNormalizer';
+import type { TerminalFlowState } from '../../components/checkin/flow/CheckInFlow';
+import type { IntentPath } from '../../types/models';
+import {
+  writeProtocolSession,
+  type ProtocolSessionWritePayload,
+  type WriteProtocolSessionOptions,
+} from './protocolSession.service';
 
 // Turn a raw Firestore doc into a BrainStateCheckIn, normalizing legacy
 // brainState values ("okay" → "steady", "energized" → "alive"). Returns null
@@ -164,6 +175,114 @@ export const markProtocolCompleted = async (userId: string): Promise<void> => {
     throw error;
   }
 };
+
+/**
+ * Maps a CheckInFlow terminal state to the new ProtocolSession write
+ * payload. Pure function — extracted for unit-testability without
+ * mocking Firestore.
+ *
+ * `intentPath` is forwarded from the caller. Phase 3 wires the user's
+ * resolved intent path through the flow; until then, callers pass
+ * `'default'`.
+ *
+ * Outcome mapping:
+ *   - `step === 'abandoned'` → outcome='abandoned', stateAfter=null.
+ *   - `step === 'flow_complete'` → outcome from the terminal's
+ *     classifier output (already computed at re_check → response).
+ */
+export function mapStandardFlowTerminalToPayload(
+  terminal: TerminalFlowState,
+  intentPath: IntentPath
+): ProtocolSessionWritePayload {
+  if (terminal.step === 'abandoned') {
+    return {
+      protocolId: terminal.protocol.id,
+      stateBefore: terminal.stateBefore,
+      stateAfter: null,
+      timeWindowSelected: terminal.timeWindow,
+      durationActualSeconds: terminal.durationActualSeconds,
+      outcome: 'abandoned',
+      userChosenNextStep: null,
+      intentPath,
+      sessionStartedAt: terminal.sessionStartedAt,
+    };
+  }
+  // step === 'flow_complete'
+  return {
+    protocolId: terminal.protocol.id,
+    stateBefore: terminal.stateBefore,
+    stateAfter: terminal.stateAfter,
+    timeWindowSelected: terminal.timeWindow,
+    durationActualSeconds: terminal.durationActualSeconds,
+    outcome: terminal.outcome,
+    userChosenNextStep: terminal.userChosenNextStep,
+    intentPath,
+    sessionStartedAt: terminal.sessionStartedAt,
+  };
+}
+
+/**
+ * Writes both the new `protocolSessions` doc (authoritative) AND
+ * updates the legacy `brainStateCheckIns/{userId}_{date}` doc
+ * (backward compat for v1 read paths still on Today / Patterns /
+ * Dashboard surfaces). Call from CheckInFlow's terminal useEffect.
+ *
+ * BrowseRunFlow does NOT use this — Case 4 sessions skip the legacy
+ * write because browse-launched sessions didn't exist in v1; there's
+ * no backward-compat data dependency. BrowseRunFlow calls
+ * `writeProtocolSession` directly.
+ *
+ * Fire-and-forget at the call site (UX shouldn't block on Firestore).
+ *
+ * Idempotent at both layers: legacy doc is keyed by date (one per
+ * day, updates on subsequent calls); protocolSessions doc is keyed by
+ * `${userId}_${sessionStartedAt}` (one per session, no-op on retry).
+ *
+ * `dryRun` skips ALL writes (both new and legacy) — keeps both
+ * collections clean of dev-harness pollution.
+ */
+export async function writeStandardFlowSession(
+  userId: string,
+  terminal: TerminalFlowState,
+  intentPath: IntentPath,
+  options: WriteProtocolSessionOptions = {}
+): Promise<void> {
+  // New authoritative write.
+  await writeProtocolSession(
+    userId,
+    mapStandardFlowTerminalToPayload(terminal, intentPath),
+    options
+  );
+
+  if (options.dryRun) {
+    logger.log(
+      '[writeStandardFlowSession] dryRun — would also update legacy brainStateCheckIns'
+    );
+    return;
+  }
+
+  // Legacy parallel writes. Only standard-flow has a stateBefore;
+  // BrowseRunFlow never reaches this helper.
+  try {
+    await saveBrainStateCheckIn(userId, terminal.stateBefore);
+    if (terminal.step === 'flow_complete') {
+      // Only naturally-completed sessions mark the legacy
+      // protocolCompleted flag. Abandoned sessions update the
+      // brainState but leave protocolCompleted=false (or unchanged
+      // from a previous same-day successful completion — setDoc
+      // semantics in saveBrainStateCheckIn handle that).
+      await markProtocolCompleted(userId);
+    }
+  } catch (error) {
+    // Legacy write failure shouldn't block the new write succeeding.
+    // Log + swallow — Patterns reads from protocolSessions going
+    // forward; the legacy doc is for v1 surfaces only.
+    logger.error(
+      '[writeStandardFlowSession] legacy brainStateCheckIns write failed:',
+      error
+    );
+  }
+}
 
 /**
  * Fetch brain state check-in history for the last N days.
