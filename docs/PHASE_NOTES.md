@@ -589,11 +589,279 @@ be on its docket before composition:
   correctly in production callers (the dev harness validated them
   in 2.4).
 
+### Phase 2 close summary (sub-step 2.7 wrap)
+
+Phase 2 — Revise core loop (check-in → time → protocol → adaptive
+re-check) — composition complete. Device verification + the BLOCKER
+GATE Firestore deploy are pre-TestFlight founder steps; code work
+is done.
+
+#### Sub-step closures with commit hashes
+
+| Sub-step | Deliverable | Commit(s) |
+|---|---|---|
+| 2.1 | Time-window selector + recommendation + stub recommender | `13c93ef`, `90a5da9` (fix-forward) |
+| 2.2 | Multi-step CheckInFlow + Practices index + outcomeClassifier | `daffec5`, `11586f4`, `de992a6` |
+| 2.3 | ShiftedResponse component + copy tables | `dabafeb`, `37e5202` |
+| 2.4 | NotShiftedResponse + late-night NSDR swap wrapper | `a10b551`, `97db8af` |
+| 2.5 | Firestore wiring + caller migrations + Case 4 mini-flow | `bcae85d`, `7ba83b4`, `1629da5`, `4ab5694`, `73aa686`, `00d1d7c`, `02ab01a` (follow-ups), `66c1ae2` (test follow-up) |
+| 2.6 | OverwhelmSafetyCard + entrySource plumbing seam | `8680764`, `f6a92fb` |
+| 2.7 | First-shift footer + force-quit recovery (re_check) + PHASE_NOTES close | `0eddba8`, `a51064b`, `5e6af98`, this commit |
+
+#### Final baselines
+
+- **Test suites:** 49 (was 35 at Phase 2 entry; +14)
+- **Tests:** 821 (was 542 at Phase 2 entry; +279)
+- **TS errors:** 180 pre-existing (unchanged across the entire phase)
+
+All 14 new test suites and 279 new tests are green. The pre-existing
+181 TS errors held at 180-181 throughout — no Phase 2 work introduced
+new errors. (One transient bump to 181 during sub-step 2.7 commit 3
+composition was caught at edit time and resolved before the commit
+landed; baseline ended at 180.)
+
+#### Locked decisions made during Phase 2 (compiled — beyond what's in any spec)
+
+The following were locked in chat during composition and are
+load-bearing for downstream phases. Each captured in code via comment
+or PHASE_NOTES sub-step entry, but compiled here for Phase 3+ context.
+
+**Outcome classifier rules (sub-step 2.2):**
+- `partial_shift` is **strict**: only the wired→foggy transition
+  classifies as partial_shift. No other transition.
+- Upward green-zone shifts (steady→clear, steady→alive,
+  clear→alive) classify as `'shifted'`, not `'maintenance'`. Same-
+  state-green and downward-green = `'maintenance'`. Inferred rule,
+  not in `Vara_Core_Loop_v2.md` — codified in
+  `services/outcomeClassifier.ts`. (Doc commit: `14f8f83`.)
+- `'failed'` is reserved for system failures (audio_error path).
+  User-side regressions (negative→negative, green→negative) are
+  `'not_shifted'`, NOT `'failed'`.
+
+**ProtocolSession write contract (sub-steps 2.5, 2.7):**
+- `dryRun` pattern on `writeProtocolSession`/
+  `writeStandardFlowSession` — production callers omit; dev harness
+  passes `dryRun: true` to skip Firestore + log payload via
+  `logger.log`. Keeps production schema clean of harness pollution.
+- Doc ID strategy for `protocolSessions`:
+  `${userId}_${sessionStartedAt}` with sessionStartedAt as a
+  millisecond integer (Date.now() shape, not ISO string). Idempotent
+  under network retries / accidental double-fires of `onComplete`.
+  Deviation from Phase 0's "auto-generated IDs" note; the rationale
+  (multiple sessions per user per day) is met by sub-millisecond
+  uniqueness of sessionStartedAt.
+- Fire-and-forget at the call site. CheckInFlow's terminal useEffect
+  has a `.catch` that logs `[CheckInFlow] writeStandardFlowSession
+  failed (session NOT persisted to protocolSessions)` — the wording
+  is deliberate. (TECH_DEBT entry covers Sentry/Crashlytics wiring
+  for release-build visibility.)
+
+**First-shift footer (sub-step 2.7):**
+- Qualifying outcomes: `{'shifted', 'partial_shift'}`. `'maintenance'`
+  excluded — "held the line" isn't a "shift" in user-facing language.
+- `firstShiftAt: Timestamp | null` on UserProfile; set by
+  `setFirstShiftAtIfNeeded` inside `writeStandardFlowSession`.
+- AsyncStorage marker for per-device dismissal. Multi-device users
+  may see footer once per device — accepted v1 trade-off.
+- Footer placement: directly below the brain-state check-in card in
+  both pre-checkin and checked-in dashboard phases. Auto-dismiss on
+  first render via useEffect; no tap, no × button.
+
+**Re_check force-quit recovery (sub-step 2.7):**
+- 30-min timeout anchored to `sessionEndedAt` (NOT
+  sessionStartedAt). Beyond 30 min, the captured stateBefore stops
+  being a meaningful comparison anchor — the re-check would measure
+  life-happening, not the protocol effect.
+- Recovery framing is positive: "Picking up where you left off" /
+  "You finished {protocol name} a few minutes ago. Want to record
+  how you're feeling now?" Build Guide §3 support over surveillance
+  — "we caught you, you don't have to redo," not "you crashed and
+  lost data."
+- One-shot semantics via `recoveryOfferedAt` on the marker. If the
+  user force-quits during recovery_confirm itself, the marker
+  survives but `recoveryOfferedAt` is set; next mount silent-clears
+  instead of looping. No recursive recovery flow.
+- Marker payload extends the locked-spec 7 fields with two more:
+  `entrySource` (Phase 5 forward-compat for Overwhelm not-shifted
+  copy continuity) and `recoveryOfferedAt` (one-shot mechanism).
+- Protocol resolution happens at the screen layer
+  (`CheckInFlowScreen.tsx`), NOT in `initFlow`. Reducer's lazy
+  initializer can't safely throw on protocol-retired; resolving at
+  the screen enables silent fallback to normal flow.
+
+**FlowInit at four discriminated variants:**
+- `standard` / `overwhelm_safety_card` / `state_preselected` /
+  `recovery`. TECH_DEBT escalated from "consider if a fourth lands"
+  to "warranted, Phase 3 territory" — refactor to single config
+  object with optional fields. Phase 3 likely adds a fifth
+  ('time_preselected' for notification entry); landing the refactor
+  before that grows the union to five would be cleaner.
+
+**Recommender extensions and overrides:**
+- Stub recommender (`protocolSelector.service`) is **first-match
+  deterministic** — Phase 4 owns the real algorithm. No scoring,
+  no ranking. Throws in `__DEV__` on no-match (sub-step 2.1
+  fix-forward `90a5da9`); contract enforcement, not silent fallback.
+- Late-night NSDR override: `wired AND (hour >= 22 OR hour < 4) →
+  nsdr-20`. Lives in `services/lateNightNSDRSwap.ts` as a Phase 4
+  stub-extension wrapper. Two consumers (NotShiftedResponse for
+  copy adaptation; CheckInFlowScreen for navigation routing). Phase
+  4 absorbs and deletes the wrapper.
+
+**Surface defaults and routing:**
+- Overwhelm Safety Card protocol: `sensory-reset-2` via the
+  `OVERWHELM_DEFAULT_PROTOCOL_ID` constant in
+  `constants/overwhelmDefaults.ts`. NOT `cyclic-sighing-2`. (Spec
+  consistency item: Implementation Plan line 294 needs to drop
+  "Cyclic Sighing or" alternative.)
+- Case 4 (browse-launched) routing after re-check: Practices index,
+  NOT Today. Override of Core Loop v2 §Case 4 spec. Logged in
+  SPEC_CONSISTENCY_BACKLOG; rationale is preserving the user's
+  exploration context.
+- Re-check copy: "How are you now?" alone, no protocol-name
+  subtitle. Override of Implementation Plan; SPEC_CONSISTENCY entry.
+
+**Re-check shift-ack copy table sizing (sub-step 2.3 entry):**
+- ShiftedResponse `Record<TransitionKey, string>` covers 16
+  transitions: 1 partial_shift (wired→foggy), 6 negative→green
+  shifts, 3 upward green shifts, 6 maintenance entries (3 same-
+  state-green + 3 downward-green). Phase 5 path-specific tables
+  multiply by 4 intent paths.
+
+**entrySource plumbing seam (sub-step 2.6):**
+- `entrySource` is threaded through CheckInFlow → ResponseStepView →
+  NotShiftedResponse but intentionally unused as of end-of-2.7.
+  Phase 5 consumes it for Overwhelm-specific not-shifted copy per
+  Core Loop v2 §Case 3 lines 296–301.
+
+#### Pre-TestFlight blockers (still pending — founder action)
+
+These are not Claude Code work. Listed here so they don't drift.
+
+- **`firebase deploy --only firestore:rules`** — BLOCKER GATE.
+  `protocolSessions` rules block has been pending deploy since
+  Phase 0; the new schema's writes silently no-op without it
+  (legacy `brainStateCheckIns` keeps working, masking the failure
+  at the UX layer). Verify by inspecting a real `protocolSessions`
+  doc in Firestore Console after a check-in — not just by absence
+  of crashes.
+- **NSDR audio production.** Generate via ElevenLabs per
+  `Vara_NSDR_Audio_Scripts.md`, upload to Firebase Storage at
+  `protocolAudio/nsdr/nsdr_10min_v1.mp3` and
+  `protocolAudio/nsdr/nsdr_20min_v1.mp3`. Stub clips currently in
+  place are sufficient for code-path verification but not for
+  TestFlight beta users.
+- **Real device verification (the 2.7 device pass).** Per the
+  scenarios in 2.7 entry: standard happy path on iPhone 12/SE/15,
+  Overwhelm above-the-fold check, browse-launched producing a
+  doc with `stateBefore: null` + `outcome: 'browse_launched'`,
+  late-night NSDR override (clock-spoofed), force-quit recovery
+  at mid-protocol AND mid-re_check, cold/warm modal mount UX,
+  network-failure write surfaces the silent-failure log. Founder
+  step; runs after the Firestore deploy.
+
+#### SPEC_CONSISTENCY items still pending
+
+All of the following live in `docs/SPEC_CONSISTENCY_BACKLOG.md` and
+are meant to land as a single docs-only commit. None blocks code;
+listed here for the docs-update pass that should happen before
+Phase 3 to keep specs in sync with shipped code:
+
+- Bellows Breath excluded at v1 (11 protocols, not 12)
+- Focused Work Window: 45/90, not 45/60/90 or 25/45/90
+- NSDR audio file format: ship MP3, not AAC m4a
+- Step transition fade duration: 250ms, not 200ms
+- Re-check copy shortened to "How are you now?" alone
+- Variant duration alignment with shipped time-window buckets (Cold
+  Water Reset 5-min, Bright Light 10/20-min, Brief Movement 5/10-min)
+- Outcome classifier: upward green-to-green = 'shifted'
+- Overwhelm Safety Card protocol = sensory-reset-2 (drop "Cyclic
+  Sighing or" alternative — Implementation Plan line 294)
+- Case 4 routing target after re-check = Practices, not Today
+
 ---
 
 ## Phase 3
 
-_None yet._
+### Phase 3 entry checklist — skeleton
+
+**Goal restatement (from `Vara_Implementation_Plan.md` Phase 3):**
+Capture the user's intent path during onboarding (down-regulation /
+sleep / activation / default), capture their time-of-day stress
+patterns, and persist both to the user profile for use by the
+algorithm and the copy system.
+
+#### Files anticipated to be touched
+
+- `mobile/src/screens/onboarding/*` — existing Onboarding V2 screens
+  + new IntentCaptureScreen, IntentPathScreen, TimeOfDayWiredScreen,
+  TimeOfDayFoggyScreen.
+- `mobile/src/types/models.ts` — UserProfile additions
+  (`intentSelections`, `wiredTimeOfDay`, `foggyTimeOfDay`).
+  `intentPath` is already on the type since Phase 0.
+- `mobile/src/constants/intentPathContent.ts` (new) — 4 path
+  variants (headline, body, starter Learning).
+- `mobile/src/services/notifications/notificationScheduler.ts` (or
+  equivalent) — wire time-of-day answers into scheduling. Special
+  case: sleep path overrides with evening-specific schedule.
+- Path resolution logic — separate small service likely sitting
+  next to `intentPathContent.ts`.
+
+#### Open questions to surface (do NOT decide now)
+
+These are for the Phase 3 entry conversation, not pre-decisions:
+
+- **Path priority resolution rule** (locked previously in chat,
+  document the rule in the Phase 3 entry): when multiple intent
+  selections match different paths, resolve by priority `sleep >
+  down_regulation > activation > default`. Source: chat decision
+  during Implementation Plan review; not in any spec file as of
+  2.7 close.
+- **Time-of-day question structure** (per Implementation Plan
+  lines 357–360): 7-chip "When during your day do you usually
+  feel most Wired?" + same chips for "Most Foggy?" Both optional
+  ("Not sure yet"). Schedule notifications 30 min before wired
+  time-of-day window.
+- **Multi-select intent capture mapping** per
+  `Vara_Intent_Paths.md` — 7 selectable options mapping to 4
+  paths. Pre-decided in spec; the question is implementation
+  shape (chip group vs list with checkboxes vs other).
+- **Existing-user migration** — TestFlight users who onboarded
+  before this work don't have `intentPath` set. Plan says default
+  to `'default'` in code when reading a profile without the
+  field. Optionally prompt existing users to update their path
+  via Settings — nice-to-have, not required for Phase 3.
+
+#### TECH_DEBT items Phase 3 will likely consume
+
+- **FlowInit refactor to single config object** — escalated to
+  "warranted" in 2.7. Phase 3's notification-entry surface may
+  add a fifth variant ('time_preselected') which is the trigger
+  to do the refactor before the union grows further.
+- **`useUserProfile` hook extraction** — Phase 2's first-shift
+  footer wired a one-field `onSnapshot` subscription directly in
+  DashboardScreen. When Phase 3 also needs `intentPath` (and
+  potentially the time-of-day fields) at multiple call sites,
+  consolidate into a shared hook. Phase 5 will likely extend
+  again.
+
+#### SPEC_CONSISTENCY items Phase 3 should address
+
+The Phase 2 close lists nine SPEC_CONSISTENCY items pending a
+docs-only commit. Phase 3 entry is a natural moment to land that
+commit so the specs are aligned before new path-related content is
+written. Three are particularly relevant to Phase 3 itself:
+
+- Implementation Plan line 294 — "Cyclic Sighing or Sensory Reset"
+  → "Sensory Reset" alone (Overwhelm protocol selection).
+- `Vara_Intent_Paths.md` likely needs cross-check against any
+  path-priority rule documented in the spec vs. the chat-locked
+  `sleep > down_regulation > activation > default` ordering.
+- Any new path-related specs touched during Phase 3 should reference
+  Build Guide §intent paths (Section 4) for the canonical path
+  definitions.
+
+---
 
 ---
 

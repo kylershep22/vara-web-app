@@ -345,3 +345,37 @@ PlayerTransport's End early button and the header X open the same modal.
 Transport calls `onEndEarlyRequested()` (signal, not confirmation);
 player owns visibility and the dispatched-reason mapping. Single source
 of truth for the modal's behavior.
+
+---
+
+## Test suite flakiness — investigate before public launch
+
+`npx jest --forceExit` shows occasional flakiness — observed once
+during a single sweep at sub-step 2.7 close (1 failed / 820 passed
+on the first run; subsequent 11 consecutive runs all clean at 821/
+821). Could not reproduce; the failing test name was not captured.
+
+Most likely source is the reanimated/timers `force exit Jest` warning
+present in every run since Phase 1 sub-step 4.3.4 — the GuidedSession
+Player tests use Reanimated 4 shared values + setTimeout for breath
+pacing + setInterval for the reduce-motion countdown. Open handles
+that survive the suite force-exit can produce sporadic state pollution
+in subsequent runs.
+
+The `--forceExit` flag itself masks the underlying issue — a clean
+test suite shouldn't need it. Tracing the leak with
+`--detectOpenHandles` would surface the actual culprit (likely an
+unflushed timer or unfinished animation frame).
+
+Worth investigating before public launch — flaky tests erode CI signal
+trust. A team that learns to ignore "1 failed" in CI eventually misses
+real regressions.
+
+**Phase 6 paths to consider:**
+- Run `--detectOpenHandles` on the player suite, fix the named leaks,
+  drop `--forceExit` from the test script.
+- Add `jest.useFakeTimers()` at the top of suites that don't already
+  use fake timers (the recovery integration tests in CheckInFlow.test
+  use real timers + waitFor, which is a known race source).
+- If the leak is fundamentally Reanimated/Expo SDK 54 related, file
+  upstream or document the workaround.
