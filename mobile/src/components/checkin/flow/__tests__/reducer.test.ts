@@ -110,6 +110,21 @@ describe('initFlow', () => {
       sessionStartedAt: 5_000_000,
     });
   });
+
+  it('state_preselected entry initializes at time_pick with the caller-provided stateBefore', () => {
+    // Sub-step 2.5 entry source — used by the dashboard chip-tap
+    // migration. Skips state_pick; the caller-provided stateBefore
+    // is captured immediately so the user lands on time_pick.
+    const state = initFlow({
+      entrySource: 'state_preselected',
+      stateBefore: 'foggy',
+    });
+    expect(state).toEqual({
+      step: 'time_pick',
+      entrySource: 'state_preselected',
+      stateBefore: 'foggy',
+    });
+  });
 });
 
 describe('flowReducer — state_pick → time_pick', () => {
@@ -459,6 +474,71 @@ describe('flowReducer — overwhelm-entry happy path (full traversal from runnin
       expect(result.entrySource).toBe('overwhelm_safety_card');
       expect(result.durationActualSeconds).toBe(15);
     }
+  });
+});
+
+describe('flowReducer — state-preselected-entry happy path', () => {
+  // Verifies state_preselected lands on time_pick and progresses
+  // normally through the rest of the flow. Catches accidental
+  // coupling that would force state_preselected through state_pick
+  // unintentionally.
+  it('state_preselected entry → time_selected → recommendation → ... → flow_complete', () => {
+    let state = initFlow({
+      entrySource: 'state_preselected',
+      stateBefore: 'wired',
+    });
+    expect(state.step).toBe('time_pick');
+    if (state.step !== 'time_pick') return;
+    expect(state.stateBefore).toBe('wired');
+
+    state = flowReducer(state, { type: 'time_selected', timeWindow: 5 });
+    expect(state.step).toBe('recommendation');
+
+    state = flowReducer(state, { type: 'protocol_begin', nowMs: 1_000_000 });
+    expect(state.step).toBe('running');
+
+    state = flowReducer(state, {
+      type: 'player_exit',
+      reason: 'completed',
+      nowMs: 1_120_000,
+    });
+    expect(state.step).toBe('re_check');
+
+    state = flowReducer(state, {
+      type: 'state_after_selected',
+      stateAfter: 'steady',
+    });
+    expect(state.step).toBe('response');
+
+    state = flowReducer(state, {
+      type: 'next_step_chosen',
+      choice: 'dismissed',
+    });
+    expect(state.step).toBe('flow_complete');
+    if (state.step === 'flow_complete') {
+      // Entry source carries through the full flow.
+      expect(state.entrySource).toBe('state_preselected');
+      expect(state.stateBefore).toBe('wired');
+      expect(state.stateAfter).toBe('steady');
+    }
+  });
+
+  it('back from time_pick on state_preselected entry returns to state_pick (intentional fallthrough — user can reconsider)', () => {
+    // Note: the reducer's back handler treats every time_pick the
+    // same way regardless of entry source. From state_preselected,
+    // tapping back DOES land on state_pick — giving the user a way
+    // to reconsider the chip they tapped on the dashboard. This is
+    // intentional: state_preselected is a routing optimization, not
+    // a constraint.
+    const start = initFlow({
+      entrySource: 'state_preselected',
+      stateBefore: 'wired',
+    });
+    const result = flowReducer(start, { type: 'back' });
+    expect(result).toEqual({
+      step: 'state_pick',
+      entrySource: 'state_preselected',
+    });
   });
 });
 

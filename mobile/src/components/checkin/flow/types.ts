@@ -13,12 +13,26 @@ import type { ClassifierOutcome } from '../../../services/outcomeClassifier';
 // ────────────────────────────────────────────────────────────
 // Entry source
 // ────────────────────────────────────────────────────────────
-// Drives flow shape and response copy. Overwhelm Safety Card
-// (Core Loop v2 §Case 3) skips state-pick AND time-pick AND
-// recommendation — the Safety Card itself is the consent moment,
-// adding a recommendation screen at peak distress would be friction
-// in the wrong direction.
-export type FlowEntrySource = 'standard' | 'overwhelm_safety_card';
+// Drives flow shape and response copy.
+//
+//   'standard' — full flow; initializes at StatePickStep.
+//   'overwhelm_safety_card' — Core Loop v2 §Case 3. Skips state-pick
+//     AND time-pick AND recommendation; lands directly at RunningStep.
+//     The Safety Card itself is the consent moment.
+//   'state_preselected' — sub-step 2.5. Used when the entry surface
+//     (dashboard chip tap, notification deep-link, etc.) has already
+//     captured the user's stateBefore. Skips state-pick; lands at
+//     TimePickStep with stateBefore pre-populated. Preserves the
+//     single-tap entry feel from v1's BrainStateCheckin while routing
+//     through the new multi-step flow.
+//
+// If a fourth variant lands (e.g., Phase 3 'time_preselected' for
+// notification entry), revisit the FlowInit union shape — see
+// TECH_DEBT_BACKLOG "FlowInit discriminated union — refactor watch."
+export type FlowEntrySource =
+  | 'standard'
+  | 'overwhelm_safety_card'
+  | 'state_preselected';
 
 // ────────────────────────────────────────────────────────────
 // Player exit reason — the only player signal the flow observes
@@ -203,13 +217,16 @@ export type FlowAction =
 // ────────────────────────────────────────────────────────────
 // Standard entry initializes at StatePickStep. Overwhelm entry
 // initializes directly at RunningStep with stateBefore='wired',
-// timeWindow=2, protocol = caller-provided (Cyclic Sighing or
-// Sensory Reset 2-min). The Safety Card itself is the consent
-// moment, so recommendation is skipped per Q1 locked decision.
+// timeWindow=2, protocol = caller-provided. State-preselected entry
+// initializes at TimePickStep with the caller-provided stateBefore.
 export type FlowInit =
   | { entrySource: 'standard' }
   | {
       entrySource: 'overwhelm_safety_card';
       protocol: Protocol;
       nowMs: number; // sessionStartedAt for the running step
+    }
+  | {
+      entrySource: 'state_preselected';
+      stateBefore: BrainState;
     };

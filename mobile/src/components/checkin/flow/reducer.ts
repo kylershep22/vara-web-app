@@ -82,6 +82,15 @@ export function initFlow(init: FlowInit): FlowState {
         protocol: init.protocol,
         sessionStartedAt: init.nowMs,
       };
+    case 'state_preselected':
+      // Skip state_pick; land at time_pick with the caller-provided
+      // state already captured. Used by the dashboard chip-tap entry
+      // and any other surface where stateBefore is known up front.
+      return {
+        step: 'time_pick',
+        entrySource: 'state_preselected',
+        stateBefore: init.stateBefore,
+      };
   }
 }
 
