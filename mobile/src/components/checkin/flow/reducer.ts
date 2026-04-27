@@ -91,6 +91,18 @@ export function initFlow(init: FlowInit): FlowState {
         entrySource: 'state_preselected',
         stateBefore: init.stateBefore,
       };
+    case 'recovery':
+      // Sub-step 2.7. Caller (CheckInFlowScreen) has already verified
+      // the marker is within timeout and resolved the protocolId to a
+      // live Protocol. Land directly at recovery_confirm; the user
+      // chooses whether to continue or start fresh. The original
+      // entrySource is preserved on the step so the downstream
+      // re_check (after recovery_confirmed) inherits it correctly.
+      return {
+        step: 'recovery_confirm',
+        entrySource: init.recoveredPayload.entrySource,
+        recoveredPayload: init.recoveredPayload,
+      };
   }
 }
 
@@ -100,6 +112,8 @@ export function initFlow(init: FlowInit): FlowState {
 
 export function flowReducer(state: FlowState, action: FlowAction): FlowState {
   switch (state.step) {
+    case 'recovery_confirm':
+      return reduceRecoveryConfirm(state, action);
     case 'state_pick':
       return reduceStatePick(state, action);
     case 'time_pick':
@@ -122,6 +136,44 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
 }
 
 // ── per-step handlers ──────────────────────────────────────
+
+function reduceRecoveryConfirm(
+  state: Extract<FlowState, { step: 'recovery_confirm' }>,
+  action: FlowAction
+): FlowState {
+  if (action.type === 'recovery_confirmed') {
+    // Continue the recovered session. Hand the user straight to
+    // re_check with the captured payload, including the original
+    // entrySource so downstream response/copy decisions can branch
+    // on it (Phase 5 Overwhelm not-shifted variant).
+    const p = state.recoveredPayload;
+    return {
+      step: 're_check',
+      entrySource: state.entrySource,
+      stateBefore: p.stateBefore,
+      timeWindow: p.timeWindow,
+      protocol: p.protocol,
+      sessionStartedAt: p.sessionStartedAt,
+      sessionEndedAt: p.sessionEndedAt,
+      durationActualSeconds: p.durationActualSeconds,
+      playerExitReason: 'completed',
+    };
+  }
+  if (action.type === 'recovery_declined') {
+    // Start fresh — discard the recovered session entirely. Per
+    // sub-step 2.7 commit-3 spec: "resets to standard entry (FlowInit
+    // becomes 'standard', state_pick step)". Marker cleanup is
+    // CheckInFlow's useEffect responsibility.
+    return {
+      step: 'state_pick',
+      entrySource: 'standard',
+    };
+  }
+  // `back` from recovery_confirm is a no-op — this is a one-shot
+  // decision surface, not a navigable step. The user must pick one
+  // of the two CTAs.
+  return state;
+}
 
 function reduceStatePick(
   state: Extract<FlowState, { step: 'state_pick' }>,

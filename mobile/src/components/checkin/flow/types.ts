@@ -5,6 +5,7 @@
 
 import type {
   BrainState,
+  IntentPath,
   Protocol,
   ProtocolTimeWindow,
 } from '../../../types/models';
@@ -66,6 +67,7 @@ export type UserChosenNextStep =
 // and unmount the flow.
 
 export type FlowState =
+  | RecoveryConfirmStep
   | StatePickStep
   | TimePickStep
   | RecommendationStep
@@ -74,6 +76,34 @@ export type FlowState =
   | ResponseStep
   | AbandonedStep
   | FlowCompleteStep;
+
+// ────────────────────────────────────────────────────────────
+// Recovery confirm — sub-step 2.7
+// ────────────────────────────────────────────────────────────
+// Reached only via FlowInit `entrySource: 'recovery'`. Prompts the
+// user to either continue the recovered session (advance to re_check
+// with the recovered payload) or start fresh (reset to state_pick
+// with entrySource='standard'). The original session's entrySource
+// is preserved in `recoveredPayload.entrySource` so the downstream
+// re_check inherits it correctly (Phase 5 Overwhelm not-shifted copy
+// branches on entrySource).
+//
+// Auto-dismiss is intentionally NOT used here — the user has already
+// earned the right to a deliberate decision by reopening the app
+// (Build Guide §3 support over surveillance).
+export interface RecoveryConfirmStep {
+  step: 'recovery_confirm';
+  entrySource: FlowEntrySource; // ORIGINAL — preserved from the marker
+  recoveredPayload: {
+    protocol: Protocol;
+    stateBefore: BrainState;
+    timeWindow: ProtocolTimeWindow;
+    sessionStartedAt: number;
+    sessionEndedAt: number;
+    durationActualSeconds: number;
+    intentPath: IntentPath;
+  };
+}
 
 export interface StatePickStep {
   step: 'state_pick';
@@ -207,9 +237,13 @@ export type FlowAction =
   | { type: 'player_exit'; reason: PlayerExitReason; nowMs: number }
   | { type: 'state_after_selected'; stateAfter: BrainState }
   | { type: 'next_step_chosen'; choice: UserChosenNextStep }
+  // Recovery confirm transitions (sub-step 2.7). Only valid from
+  // recovery_confirm step; no-ops elsewhere.
+  | { type: 'recovery_confirmed' }
+  | { type: 'recovery_declined' }
   // Back (allowed only from state_pick / time_pick / recommendation
   // per locked decision B; reducer no-ops on running, re_check,
-  // response, and either terminal step).
+  // response, recovery_confirm, and either terminal step).
   | { type: 'back' };
 
 // ────────────────────────────────────────────────────────────
@@ -219,6 +253,19 @@ export type FlowAction =
 // initializes directly at RunningStep with stateBefore='wired',
 // timeWindow=2, protocol = caller-provided. State-preselected entry
 // initializes at TimePickStep with the caller-provided stateBefore.
+// Recovery entry (sub-step 2.7) initializes at RecoveryConfirmStep
+// with the recovered payload from the flowSessionMarker.
+//
+// FlowInit's `entrySource` discriminator differs from
+// FlowState.entrySource: FlowState uses the `FlowEntrySource` closed
+// union (the runtime context of the current session), while FlowInit
+// includes 'recovery' as a separate init source. The recovery init
+// produces FlowState with entrySource set to the ORIGINAL session's
+// entrySource (preserved via the marker), not 'recovery' itself.
+//
+// FlowInit is now four discriminated variants. See
+// TECH_DEBT_BACKLOG "FlowInit discriminated union — refactor watch."
+// — Phase 3+ work to consolidate into a single config object.
 export type FlowInit =
   | { entrySource: 'standard' }
   | {
@@ -229,4 +276,26 @@ export type FlowInit =
   | {
       entrySource: 'state_preselected';
       stateBefore: BrainState;
+    }
+  | {
+      entrySource: 'recovery';
+      recoveredPayload: {
+        // Caller (CheckInFlowScreen) resolves protocolId → Protocol
+        // before constructing this init. Doing the resolution at the
+        // screen layer enables silent fallback to normal flow on
+        // protocol-retired (initFlow's lazy initializer can't safely
+        // throw; the screen-layer resolver clears the marker and
+        // falls through to buildFlowInit instead).
+        protocol: Protocol;
+        stateBefore: BrainState;
+        timeWindow: ProtocolTimeWindow;
+        sessionStartedAt: number;
+        sessionEndedAt: number;
+        durationActualSeconds: number;
+        intentPath: IntentPath;
+        // Original entrySource of the interrupted session, preserved
+        // through the marker. The recovered re_check inherits this
+        // (Phase 5 not-shifted Overwhelm copy depends on it).
+        entrySource: FlowEntrySource;
+      };
     };

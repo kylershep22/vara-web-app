@@ -14,7 +14,7 @@
 // terminal useEffect (writeStandardFlowSession). This wrapper owns
 // only the navigation routing per the canonical navBranch tag set.
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,6 +28,11 @@ import {
 import type { FlowInit } from '../../components/checkin/flow/types';
 import type { BrainState, ProtocolTimeWindow } from '../../types/models';
 import { getLateNightNSDRSwap } from '../../services/lateNightNSDRSwap';
+import {
+  clearMarker as clearFlowMarker,
+  readMarkerForRecoveryOffer,
+} from '../../utils/flowSessionMarker';
+import { getProtocolById } from '../../constants/brainStateProtocols';
 
 // Route params — discriminated by the same union shape as FlowInit
 // so production callers express intent at the navigation layer
@@ -58,7 +63,61 @@ export function CheckInFlowScreen() {
 
   const params = route.params;
 
-  const init: FlowInit = buildFlowInit(params);
+  // Sub-step 2.7 — async marker check before constructing FlowInit.
+  // The marker resolution lives at the screen layer (not in
+  // CheckInFlow's reducer init) because protocol resolution can fail
+  // (protocol retired between force-quit and recovery), and useReducer's
+  // lazy initializer can't safely throw — error boundaries catch
+  // crashes uncatchably from the parent. Resolving here lets us
+  // silently fall back to normal flow on any failure.
+  //
+  // Resolution policy:
+  //   - No marker / outside 30-min timeout / recoveryOfferedAt set →
+  //     marker silent-cleared by readMarkerForRecoveryOffer; normal
+  //     buildFlowInit(params).
+  //   - Marker eligible AND protocol resolves → 'recovery' FlowInit
+  //     with the resolved Protocol attached to the recoveredPayload.
+  //   - Marker eligible BUT protocol retired → silent clear, normal
+  //     buildFlowInit(params). Phase 1 sessionMarker uses the same
+  //     "carry recovery-essential data on the marker" defense; for
+  //     re_check the live Protocol is needed for the chip display
+  //     (and Phase 5 not-shifted copy branching), so we can't fall
+  //     back to a synthetic.
+  const [init, setInit] = useState<FlowInit | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const eligible = await readMarkerForRecoveryOffer(Date.now());
+      if (cancelled) return;
+      if (eligible !== null) {
+        const protocol = getProtocolById(eligible.protocolId);
+        if (protocol !== null) {
+          setInit({
+            entrySource: 'recovery',
+            recoveredPayload: {
+              protocol,
+              stateBefore: eligible.stateBefore,
+              timeWindow: eligible.timeWindowSelected,
+              sessionStartedAt: eligible.sessionStartedAt,
+              sessionEndedAt: eligible.sessionEndedAt,
+              durationActualSeconds: eligible.durationActualSeconds,
+              intentPath: eligible.intentPath,
+              entrySource: eligible.entrySource,
+            },
+          });
+          return;
+        }
+        // Protocol retired — clear the marker (it's already been
+        // marked as offered via readMarkerForRecoveryOffer; clearing
+        // here ensures no stale data lingers) and fall through.
+        await clearFlowMarker();
+      }
+      setInit(buildFlowInit(params));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [params]);
 
   const handleClose = useCallback(() => {
     // Cancellation from the pre-protocol steps — return to the
@@ -128,6 +187,16 @@ export function CheckInFlowScreen() {
       '[CheckInFlowScreen] no authenticated user; closing flow'
     );
     navigation.goBack();
+    return null;
+  }
+
+  if (init === null) {
+    // Brief async wait while readMarkerForRecoveryOffer resolves.
+    // AsyncStorage reads complete in single-digit ms in practice, so
+    // this typically renders nothing for less than a frame. No
+    // spinner needed; a flash of nothing is preferable to a flash of
+    // misleading content (e.g. state_pick that immediately replaces
+    // itself with recovery_confirm).
     return null;
   }
 

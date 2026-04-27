@@ -4,6 +4,7 @@ import type {
   FlowState,
   RecommendationStep,
   ReCheckStep,
+  RecoveryConfirmStep,
   ResponseStep,
   RunningStep,
   StatePickStep,
@@ -124,6 +125,58 @@ describe('initFlow', () => {
       entrySource: 'state_preselected',
       stateBefore: 'foggy',
     });
+  });
+
+  it('recovery entry initializes at recovery_confirm with the recovered payload', () => {
+    // Sub-step 2.7. Caller (CheckInFlowScreen) has already validated
+    // the marker and resolved protocolId → Protocol; initFlow trusts
+    // the payload and lands at recovery_confirm.
+    const state = initFlow({
+      entrySource: 'recovery',
+      recoveredPayload: {
+        protocol: CYCLIC_SIGHING,
+        stateBefore: 'wired',
+        timeWindow: 2,
+        sessionStartedAt: 1_700_000_000_000,
+        sessionEndedAt: 1_700_000_000_000 + 120_000,
+        durationActualSeconds: 120,
+        intentPath: 'default',
+        entrySource: 'standard',
+      },
+    });
+    expect(state.step).toBe('recovery_confirm');
+    if (state.step === 'recovery_confirm') {
+      // Step.entrySource preserves the ORIGINAL session's entrySource
+      // (NOT 'recovery'). Phase 5 not-shifted Overwhelm copy depends
+      // on this propagating downstream into re_check + response.
+      expect(state.entrySource).toBe('standard');
+      expect(state.recoveredPayload.protocol.id).toBe('cyclic-sighing-2');
+      expect(state.recoveredPayload.stateBefore).toBe('wired');
+      expect(state.recoveredPayload.durationActualSeconds).toBe(120);
+    }
+  });
+
+  it('recovery entry preserves overwhelm_safety_card as the inherited entrySource', () => {
+    // Forward-compat for Phase 5: a recovered Overwhelm session
+    // should land at re_check with entrySource='overwhelm_safety_card'
+    // (not collapsed to 'standard') so NotShiftedResponse can branch
+    // on it. This test catches the regression.
+    const state = initFlow({
+      entrySource: 'recovery',
+      recoveredPayload: {
+        protocol: CYCLIC_SIGHING,
+        stateBefore: 'wired',
+        timeWindow: 2,
+        sessionStartedAt: 1_700_000_000_000,
+        sessionEndedAt: 1_700_000_000_000 + 120_000,
+        durationActualSeconds: 120,
+        intentPath: 'default',
+        entrySource: 'overwhelm_safety_card',
+      },
+    });
+    if (state.step === 'recovery_confirm') {
+      expect(state.entrySource).toBe('overwhelm_safety_card');
+    }
   });
 });
 
@@ -583,6 +636,116 @@ describe('flowReducer — standard-entry happy path (full traversal)', () => {
   });
 });
 
+// ────────────────────────────────────────────────────────────
+// Sub-step 2.7 — recovery_confirm step transitions
+// ────────────────────────────────────────────────────────────
+
+function recoveryConfirmState(
+  overrides: Partial<RecoveryConfirmStep['recoveredPayload']> = {},
+  entrySource: RecoveryConfirmStep['entrySource'] = 'standard'
+): RecoveryConfirmStep {
+  return {
+    step: 'recovery_confirm',
+    entrySource,
+    recoveredPayload: {
+      protocol: CYCLIC_SIGHING,
+      stateBefore: 'wired',
+      timeWindow: 2,
+      sessionStartedAt: 1_700_000_000_000,
+      sessionEndedAt: 1_700_000_000_000 + 120_000,
+      durationActualSeconds: 120,
+      intentPath: 'default',
+      ...overrides,
+    },
+  };
+}
+
+describe('flowReducer — recovery_confirm → re_check (recovery_confirmed)', () => {
+  it('advances to re_check with the recovered payload, preserving entrySource', () => {
+    const start = recoveryConfirmState();
+    const result = flowReducer(start, { type: 'recovery_confirmed' });
+    expect(result.step).toBe('re_check');
+    if (result.step === 're_check') {
+      expect(result.entrySource).toBe('standard');
+      expect(result.stateBefore).toBe('wired');
+      expect(result.timeWindow).toBe(2);
+      expect(result.protocol.id).toBe('cyclic-sighing-2');
+      expect(result.sessionStartedAt).toBe(1_700_000_000_000);
+      expect(result.sessionEndedAt).toBe(1_700_000_000_000 + 120_000);
+      expect(result.durationActualSeconds).toBe(120);
+      expect(result.playerExitReason).toBe('completed');
+    }
+  });
+
+  it('preserves overwhelm_safety_card entrySource through to the recovered re_check', () => {
+    // Phase 5 forward-compat — the recovered Overwhelm session must
+    // land at re_check with entrySource='overwhelm_safety_card', not
+    // collapsed to 'standard'. NotShiftedResponse will read this to
+    // pick softer Overwhelm-specific copy.
+    const start = recoveryConfirmState({}, 'overwhelm_safety_card');
+    const result = flowReducer(start, { type: 'recovery_confirmed' });
+    if (result.step === 're_check') {
+      expect(result.entrySource).toBe('overwhelm_safety_card');
+    }
+  });
+});
+
+describe('flowReducer — recovery_confirm → state_pick (recovery_declined)', () => {
+  it('"Start fresh" resets to state_pick with entrySource standard, discarding the recovered payload', () => {
+    // Locked decision: secondary CTA "resets to standard entry
+    // (FlowInit becomes 'standard', state_pick step)" — even when
+    // the original entrySource was overwhelm_safety_card. Tests
+    // both the standard origin AND the overwhelm origin to make
+    // the override explicit.
+    const fromStandard = recoveryConfirmState({}, 'standard');
+    expect(flowReducer(fromStandard, { type: 'recovery_declined' })).toEqual({
+      step: 'state_pick',
+      entrySource: 'standard',
+    });
+
+    const fromOverwhelm = recoveryConfirmState({}, 'overwhelm_safety_card');
+    expect(flowReducer(fromOverwhelm, { type: 'recovery_declined' })).toEqual({
+      step: 'state_pick',
+      entrySource: 'standard',
+    });
+  });
+});
+
+describe('flowReducer — recovery_confirm no-ops', () => {
+  it('back from recovery_confirm is a no-op (one-shot decision surface)', () => {
+    const start = recoveryConfirmState();
+    expect(flowReducer(start, { type: 'back' })).toBe(start);
+  });
+
+  it('unrelated forward actions are no-ops on recovery_confirm', () => {
+    const start = recoveryConfirmState();
+    expect(flowReducer(start, { type: 'state_selected', state: 'foggy' })).toBe(
+      start
+    );
+    expect(flowReducer(start, { type: 'time_selected', timeWindow: 5 })).toBe(
+      start
+    );
+    expect(
+      flowReducer(start, {
+        type: 'state_after_selected',
+        stateAfter: 'steady',
+      })
+    ).toBe(start);
+  });
+
+  it('recovery actions are no-ops from non-recovery_confirm steps', () => {
+    // Defensive: recovery_confirmed/declined should never arrive
+    // outside recovery_confirm. If they do (race during unmount,
+    // stray dispatch), they're ignored.
+    expect(
+      flowReducer(statePickState(), { type: 'recovery_confirmed' })
+    ).toEqual(statePickState());
+    expect(
+      flowReducer(reCheckState(), { type: 'recovery_declined' })
+    ).toEqual(reCheckState());
+  });
+});
+
 const _TYPECHECK: FlowAction[] = [
   { type: 'state_selected', state: 'wired' },
   { type: 'time_selected', timeWindow: 2 },
@@ -592,6 +755,8 @@ const _TYPECHECK: FlowAction[] = [
   { type: 'state_after_selected', stateAfter: 'steady' },
   { type: 'next_step_chosen', choice: 'dismissed' },
   { type: 'next_step_chosen', choice: 'auto_dismissed' },
+  { type: 'recovery_confirmed' },
+  { type: 'recovery_declined' },
   { type: 'back' },
 ];
 void _TYPECHECK;

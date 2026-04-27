@@ -139,32 +139,44 @@ silently lose state-transition data that Patterns depends on.
 
 ---
 
-## FlowInit discriminated union — refactor watch
+## FlowInit discriminated union — refactor warranted (escalated 2.7)
 
-After sub-step 2.5, `FlowInit` has three discriminated variants:
+**Sub-step 2.7 update — fourth variant landed.** `FlowInit` now has
+four discriminated variants:
+
 - `{ entrySource: 'standard' }`
 - `{ entrySource: 'overwhelm_safety_card'; protocol; nowMs }`
 - `{ entrySource: 'state_preselected'; stateBefore }`
+- `{ entrySource: 'recovery'; recoveredPayload: { protocol, stateBefore, timeWindow, sessionStartedAt, sessionEndedAt, durationActualSeconds, intentPath, entrySource } }`
 
-If a fourth variant lands (Phase 3 might add `'time_preselected'`
-for notification entry, or similar), consider refactoring to a
-single config object with optional fields:
+The original entry (sub-step 2.5) noted "consider refactoring if a
+fourth lands." That condition is met. Refactor is now **warranted,
+not just suggested** — Phase 3 territory (alongside the
+useUserProfile hook extraction).
+
+Refactor target: single config object with optional fields, plus
+runtime validation of required-field combos:
 
 ```typescript
 interface FlowInit {
-  entrySource: FlowEntrySource;
+  entrySource: FlowEntrySource | 'recovery';
   stateBefore?: BrainState;
   protocol?: Protocol;
   nowMs?: number;
+  recoveredPayload?: { ... };
 }
 ```
 
 Trade-off: loses type-level enforcement that overwhelm entries
-must have a protocol. Gains: easier to extend; less union
-proliferation.
+must have a protocol AND that recovery entries must have a payload.
+Gains: easier to extend; less union proliferation; cleaner
+`buildFlowInit` switch.
 
-Don't refactor preemptively. Wait until a fourth variant actually
-appears or the union grows past 4 variants.
+Phase 3 likely adds a fifth variant ('time_preselected' for
+notification entry); landing the refactor before that grows the
+union to five would be cleaner than after.
+
+Don't refactor in 2.7 — polish-tier sub-step, not architecture.
 
 ---
 

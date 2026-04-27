@@ -26,7 +26,7 @@
 //   `writeMode='dev_dry_run'` skips both writes (new + legacy) and
 //   logs the payload via logger.log — used by the dev harness.
 
-import React, { useEffect, useReducer } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Colors } from '../../../constants';
@@ -41,11 +41,16 @@ import { GuidedSessionPlayer } from '../../protocol/GuidedSessionPlayer';
 import { ProtocolRecommendation } from '../ProtocolRecommendation';
 import { TimeWindowSelector } from '../TimeWindowSelector';
 import { writeStandardFlowSession } from '../../../services/firebase/brainStateCheckIn.service';
+import {
+  clearMarker as clearFlowMarker,
+  writeMarker as writeFlowMarker,
+} from '../../../utils/flowSessionMarker';
 
 import { flowReducer, initFlow } from './reducer';
 import type { FlowInit, FlowState } from './types';
 import { StatePickStepView } from './StatePickStepView';
 import { ReCheckStepView } from './ReCheckStepView';
+import { RecoveryConfirmStepView } from './RecoveryConfirmStepView';
 import { ResponseStepView } from './ResponseStepView';
 
 export type CheckInFlowWriteMode = 'production' | 'dev_dry_run';
@@ -138,6 +143,74 @@ export function CheckInFlow({
     // every transition produces a new step) wouldn't fire this.
   }, [state, onComplete, userId, intentPath, writeMode]);
 
+  // Sub-step 2.7 — flow-level force-quit recovery marker.
+  //
+  //   - On entry to re_check (from running, NOT from recovery_confirm):
+  //     write the marker. The "from running" check uses prevStepRef
+  //     to skip writing on the recovered-re_check entry path — the
+  //     existing marker (with recoveryOfferedAt set) is preserved so
+  //     a force-quit during the recovered re_check silent-clears on
+  //     next mount instead of looping.
+  //   - On entry to response, abandoned, or flow_complete: clear the
+  //     marker. response means stateAfter was captured (no need to
+  //     recover); the two terminals are defensive.
+  //   - On the recovery_confirm → state_pick transition (decline
+  //     path): clear the marker. Matches the spec's "Both options
+  //     clear the marker." (Confirm path's clear is implicit — the
+  //     marker rides through to re_check → response, which clears.)
+  //
+  // Skipped entirely under writeMode='dev_dry_run' — harness shouldn't
+  // pollute AsyncStorage with markers that survive across dev runs.
+  //
+  // ONE-SHOT GUARANTEE: re_check recovery is one-shot-per-marker. If
+  // the user force-quits during recovery_confirm itself, the marker
+  // survives but recoveryOfferedAt is set; CheckInFlowScreen's
+  // readMarkerForRecoveryOffer will silent-clear instead of looping.
+  // If the user force-quits during the RECOVERED re_check, same path
+  // — recoveryOfferedAt is still set on the preserved marker.
+  const prevStepRef = useRef<FlowState['step']>(state.step);
+  useEffect(() => {
+    if (writeMode === 'dev_dry_run') {
+      prevStepRef.current = state.step;
+      return;
+    }
+
+    if (state.step === 're_check' && prevStepRef.current !== 'recovery_confirm') {
+      // Original re_check entry from running. Write a fresh marker.
+      (async () => {
+        await writeFlowMarker({
+          protocolId: state.protocol.id,
+          stateBefore: state.stateBefore,
+          timeWindowSelected: state.timeWindow,
+          sessionStartedAt: state.sessionStartedAt,
+          sessionEndedAt: state.sessionEndedAt,
+          durationActualSeconds: state.durationActualSeconds,
+          intentPath,
+          entrySource: state.entrySource,
+          recoveryOfferedAt: null,
+        });
+      })();
+    } else if (
+      state.step === 'response' ||
+      state.step === 'abandoned' ||
+      state.step === 'flow_complete'
+    ) {
+      clearFlowMarker();
+    } else if (
+      state.step === 'state_pick' &&
+      prevStepRef.current === 'recovery_confirm'
+    ) {
+      // Decline path. Explicit clear per locked spec ("Both options
+      // clear the marker"). Without this, the marker would stay in
+      // storage with recoveryOfferedAt set until next mount or
+      // expiry — functionally equivalent (next mount silent-clears)
+      // but leaves obviously-defunct data lingering.
+      clearFlowMarker();
+    }
+
+    prevStepRef.current = state.step;
+  }, [state, intentPath, writeMode]);
+
   return (
     <View style={styles.container} testID="checkin-flow">
       {renderStep(state, dispatch, onClose, onSeeOtherOptions)}
@@ -158,6 +231,15 @@ function renderStep(
   ) => void
 ): React.ReactNode {
   switch (state.step) {
+    case 'recovery_confirm':
+      return (
+        <RecoveryConfirmStepView
+          protocol={state.recoveredPayload.protocol}
+          onConfirm={() => dispatch({ type: 'recovery_confirmed' })}
+          onDecline={() => dispatch({ type: 'recovery_declined' })}
+        />
+      );
+
     case 'state_pick':
       return (
         <StatePickStepView
