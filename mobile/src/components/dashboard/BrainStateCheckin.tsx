@@ -1,48 +1,56 @@
 /**
  * BrainStateCheckin
- * Single-tap daily check-in for Dashboard V2.
- * Orchestrates three views: expanded (pre-checkin), captured (celebration), collapsed (post-checkin).
+ * Single-tap brain state entry surface for the dashboard.
+ *
+ * Sub-step 2.5 migration: tapping a chip now navigates to the new
+ * production CheckInFlow screen with `state_preselected` entry. The
+ * Firestore writes (legacy brainStateCheckIns + new protocolSessions)
+ * happen inside CheckInFlow's terminal useEffect via
+ * writeStandardFlowSession. This component owns only the dashboard
+ * card UX (expanded chip rows pre-checkin; collapsed view post-
+ * checkin); the v1 'captured' celebration phase is removed because
+ * the new flow's response screen IS the celebration.
  */
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { BrainState } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useBrainStateWeekTrend } from '../../hooks/useBrainStateWeekTrend';
 import { BRAIN_STATES } from './brainStateCheckin/brainStateOptions';
 import { BrainStateOptionRow } from './brainStateCheckin/BrainStateOptionRow';
-import { BrainStateCapturedView } from './brainStateCheckin/BrainStateCapturedView';
 import { BrainStateCollapsedView } from './brainStateCheckin/BrainStateCollapsedView';
 
 interface BrainStateCheckinProps {
   currentCheckIn: { brainState: BrainState } | null;
-  onSelect: (state: BrainState) => void;
-  loading?: boolean;
 }
 
-type Phase = 'expanded' | 'captured' | 'collapsed';
+type Phase = 'expanded' | 'collapsed';
+
+type Nav = NativeStackNavigationProp<{
+  CheckInFlow: { entrySource: 'state_preselected'; stateBefore: BrainState };
+  Insights: undefined;
+}>;
 
 export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
   currentCheckIn,
-  onSelect,
-  loading = false,
 }) => {
   const [phase, setPhase] = useState<Phase>(currentCheckIn ? 'collapsed' : 'expanded');
-  const [pendingSelection, setPendingSelection] = useState<BrainState | null>(null);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
   const { user } = useAuth();
   const { days, summary } = useBrainStateWeekTrend(
     user?.uid,
     currentCheckIn?.brainState
   );
 
-  // Sync phase with currentCheckIn changes. Intentionally does not handle the
-  // 'captured' phase: the 1.2s celebration plays to completion, then
-  // handleCapturedComplete transitions to 'collapsed' normally.
+  // Sync phase with currentCheckIn changes. The 'captured' phase is
+  // gone (sub-step 2.5 migration); the new flow's response screen
+  // owns the post-check-in celebration.
   useEffect(() => {
     if (currentCheckIn && phase === 'expanded') {
       setPhase('collapsed');
@@ -53,16 +61,11 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
   }, [currentCheckIn, phase]);
 
   const handleSelect = (state: BrainState) => {
-    if (loading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onSelect(state);
-    setPendingSelection(state);
-    setPhase('captured');
-  };
-
-  const handleCapturedComplete = () => {
-    setPhase('collapsed');
-    setPendingSelection(null);
+    navigation.navigate('CheckInFlow', {
+      entrySource: 'state_preselected',
+      stateBefore: state,
+    });
   };
 
   const handleChangePress = () => {
@@ -73,15 +76,6 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
   const handleSeeWeekPress = () => {
     navigation.navigate('Insights' as never);
   };
-
-  if (phase === 'captured' && pendingSelection) {
-    return (
-      <BrainStateCapturedView
-        selectedState={pendingSelection}
-        onComplete={handleCapturedComplete}
-      />
-    );
-  }
 
   if (phase === 'collapsed' && currentCheckIn) {
     const selected = BRAIN_STATES.find((s) => s.state === currentCheckIn.brainState);
@@ -109,7 +103,6 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
           option={option}
           onPress={handleSelect}
           selected={currentSelection === option.state}
-          disabled={loading}
           isLast={index === BRAIN_STATES.length - 1}
         />
       ))}

@@ -22,7 +22,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { BrainState, BrainStateCheckIn } from '../../types';
-import { getProtocolForState } from '../../constants/brainStateProtocols';
+import { selectProtocol } from '../protocolSelector.service';
 import { logger } from '../../utils/logger';
 import {
   normalizeBrainState,
@@ -100,7 +100,15 @@ export const saveBrainStateCheckIn = async (
     const todayDate = getTodayDate();
     const checkInId = `${userId}_${todayDate}`;
     const docRef = doc(db, COLLECTION, checkInId);
-    const protocol = getProtocolForState(brainState);
+    // Sub-step 2.5 — getProtocolForState was deleted; the legacy doc
+    // continues to carry a protocolId field for v1 read paths
+    // (Dashboard's TodaysProtocolCard). Use the new recommender with
+    // a 5-min default time window — the legacy single-tap pattern
+    // didn't capture a window, and 5min is the spec's "meaningful
+    // shift" tier (Core Loop v2 step 2). Phase 5 migrations remove
+    // this legacy doc field entirely; until then this protocolId is
+    // display-only.
+    const protocol = selectProtocol({ state: brainState, timeWindow: 5 });
 
     const existingDoc = await getDoc(docRef);
     const existingData = existingDoc.exists() ? existingDoc.data() : null;

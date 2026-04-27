@@ -108,6 +108,5 @@ export {
   getProtocolById,
   getAllProtocols,
   getProtocolsForState,
-  getProtocolForState,
   type ProtocolId,
 } from './brainStateProtocols';

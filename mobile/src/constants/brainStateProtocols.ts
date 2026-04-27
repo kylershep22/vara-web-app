@@ -769,32 +769,16 @@ export function getAllProtocols(): Protocol[] {
 }
 
 // All protocols whose `suitableForStates` includes the given state.
-// New helper — preferred over `getProtocolForState` once Phase 2 wires
-// the time-window selector and Phase 4 wires the full recommender.
+// Used by Practices index (sub-step 2.2) and the legacy paths that
+// still need a state-only filter. Phase 4 wires the full recommender
+// with state + timeWindow + timeOfDay + intentPath + recentSessions.
 export function getProtocolsForState(state: BrainState): Protocol[] {
   return getAllProtocols().filter((p) => p.suitableForStates.includes(state));
 }
 
-/**
- * @deprecated Phase 1 transitional helper. Returns the first variant in
- * library order whose `suitableForStates` includes the given state.
- *
- * **Removed in Phase 2** when the new check-in loop replaces all four
- * remaining call sites (`brainStateCheckIn.service.ts`, `useDashboard.ts`,
- * `OnboardingV2CheckInScreen.tsx`, `OnboardingV2ProtocolScreen.tsx`)
- * with the time-window selector + recommender flow. Phase 4 implements
- * `selectProtocol(input)` which considers state + timeWindow + timeOfDay
- * + intentPath + recentSessions. Don't add new callers.
- *
- * Throws if no protocol in the library suits the state — that would be
- * a library bug, not a runtime condition.
- */
-export function getProtocolForState(state: BrainState): Protocol {
-  const match = getProtocolsForState(state)[0];
-  if (!match) {
-    throw new Error(
-      `getProtocolForState: no protocol in library suits state "${state}"`
-    );
-  }
-  return match;
-}
+// `getProtocolForState` was the Phase 1 transitional helper —
+// deleted in sub-step 2.5 alongside the four caller migrations
+// (BrainStateCheckin, useDashboard, OnboardingV2CheckInScreen,
+// OnboardingV2ProtocolScreen). New code uses `selectProtocol` from
+// `services/protocolSelector.service.ts` which takes (state,
+// timeWindow); Phase 4 layers in time-of-day and intent path.

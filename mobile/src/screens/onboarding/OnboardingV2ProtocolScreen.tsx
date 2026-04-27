@@ -14,7 +14,7 @@ import { TodaysProtocolCard } from '../../components/dashboard/TodaysProtocolCar
 import { useAuth } from '../../context/AuthContext';
 import { markProtocolCompleted } from '../../services/firebase';
 import { completeOnboarding } from '../../services/firebase/onboarding.service';
-import { getProtocolForState } from '../../constants/brainStateProtocols';
+import { selectProtocol } from '../../services/protocolSelector.service';
 import { Colors, Spacing, Typography } from '../../constants';
 import { BrainState } from '../../types';
 import { logger } from '../../utils/logger';
@@ -30,7 +30,11 @@ const OnboardingV2ProtocolScreen: React.FC<OnboardingV2ProtocolScreenProps> = ({
 }) => {
   const { user } = useAuth();
   const { brainState } = route.params;
-  const protocol = getProtocolForState(brainState);
+  // Sub-step 2.5 — getProtocolForState was deleted. Match the
+  // sibling CheckIn screen's 5-min default; this screen always
+  // shows the same protocol the user just saw on the previous
+  // screen, so the timeWindow input must match.
+  const protocol = selectProtocol({ state: brainState, timeWindow: 5 });
   const [completing, setCompleting] = useState(false);
 
   const handleMarkCompleted = async () => {

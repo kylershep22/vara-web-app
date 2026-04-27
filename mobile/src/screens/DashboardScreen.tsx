@@ -94,8 +94,6 @@ const DashboardScreen: React.FC = () => {
     handleNotifDismiss,
     handleRefresh,
     brainStateCheckIn,
-    brainStateCheckInLoading,
-    handleBrainStateCheckIn,
     handleMarkProtocolCompleted,
     todaysProtocol,
     showDailyReflection,
@@ -300,11 +298,6 @@ const DashboardScreen: React.FC = () => {
               showCheckInOverAnchor ? (
                 <BrainStateCheckin
                   currentCheckIn={brainStateCheckIn}
-                  onSelect={(state) => {
-                    handleBrainStateCheckIn(state);
-                    setShowCheckInOverAnchor(false);
-                  }}
-                  loading={brainStateCheckInLoading}
                 />
               ) : (
                 <DashboardAnchor
@@ -317,12 +310,12 @@ const DashboardScreen: React.FC = () => {
               )
             )}
 
-            {/* Brain State Check-In (only visible in pre-checkin phase) */}
+            {/* Brain State Check-In (only visible in pre-checkin phase).
+                Sub-step 2.5 — chip tap navigates to CheckInFlow; the
+                save no longer happens here in the dashboard. */}
             {dashboardPhase === 'pre-checkin' && (
               <BrainStateCheckin
                 currentCheckIn={brainStateCheckIn}
-                onSelect={handleBrainStateCheckIn}
-                loading={brainStateCheckInLoading}
               />
             )}
 

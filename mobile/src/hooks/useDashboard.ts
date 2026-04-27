@@ -34,10 +34,10 @@ import { generateDailyPlan } from '../services/api/ai.service';
 import { DailyWellnessScore, FourThreeTwoOneEntry } from '../types';
 import { logger } from '../utils/logger';
 import { DASHBOARD_V2 } from '../constants/dashboardConfig';
-import { getProtocolForState } from '../constants/brainStateProtocols';
+import { getProtocolById } from '../constants/brainStateProtocols';
+import { normalizeProtocolId } from '../utils/protocolIdNormalizer';
 import {
   getTodayBrainStateCheckIn,
-  saveBrainStateCheckIn,
   markProtocolCompleted,
   getTodayDailyReflection,
   saveDailyReflection,
@@ -117,7 +117,6 @@ export function useDashboard() {
 
   // Dashboard V2: Brain State Check-In
   const [brainStateCheckIn, setBrainStateCheckIn] = useState<BrainStateCheckInType | null>(null);
-  const [brainStateCheckInLoading, setBrainStateCheckInLoading] = useState(false);
 
   // Dashboard V2: Daily Reflection
   const [dailyReflection, setDailyReflection] = useState<DailyReflectionType | null>(null);
@@ -276,11 +275,12 @@ export function useDashboard() {
     }
   }, [pendingToasts, queueUnlockToasts, markToastShown]);
 
-  // V2: Load brain state check-in
+  // V2: Load brain state check-in. Sub-step 2.5 removed the loading
+  // state — chip taps navigate to CheckInFlow which handles its own
+  // loading UX; this read path is just an initial fetch.
   useEffect(() => {
     if (!DASHBOARD_V2 || !user?.uid) return;
     const loadBrainStateCheckIn = async () => {
-      setBrainStateCheckInLoading(true);
       try {
         const existing = await getTodayBrainStateCheckIn(user.uid);
         setBrainStateCheckIn(existing);
@@ -288,8 +288,6 @@ export function useDashboard() {
         setDailyReflection(existingReflection);
       } catch (error) {
         logger.error('Error loading brain state check-in:', error);
-      } finally {
-        setBrainStateCheckInLoading(false);
       }
     };
     loadBrainStateCheckIn();
@@ -468,19 +466,16 @@ export function useDashboard() {
     }
   }, [user, goals, habits, tasks, today]);
 
-  const handleBrainStateCheckIn = useCallback(async (state: BrainState) => {
-    if (!user?.uid) return;
-    setBrainStateCheckInLoading(true);
-    try {
-      const checkIn = await saveBrainStateCheckIn(user.uid, state);
-      setBrainStateCheckIn(checkIn);
-      trackEngagement('brainStateCheckInsCompleted').then(() => evaluateTriggers()).catch(logger.error);
-    } catch (error) {
-      logger.error('Error saving brain state check-in:', error);
-    } finally {
-      setBrainStateCheckInLoading(false);
-    }
-  }, [user, trackEngagement, evaluateTriggers]);
+  // Sub-step 2.5: handleBrainStateCheckIn removed — chip taps now
+  // navigate to CheckInFlow, which handles the Firestore write
+  // (writeStandardFlowSession) inside its terminal useEffect. The
+  // dashboard's brainStateCheckIn state updates via the next refetch
+  // after the user returns from the flow.
+  //
+  // Engagement tracking ('brainStateCheckInsCompleted') for the
+  // chip-tap path no longer fires from this hook. If/when telemetry
+  // for completed flows is wired (Phase 5 / Phase 6), the natural
+  // home is CheckInFlowScreen's onComplete handler.
 
   const handleMarkProtocolCompleted = useCallback(async () => {
     if (!user?.uid) return;
@@ -496,7 +491,17 @@ export function useDashboard() {
 
   const todaysProtocol = useMemo(() => {
     if (!brainStateCheckIn) return null;
-    return getProtocolForState(brainStateCheckIn.brainState);
+    // Sub-step 2.5 migration: read the protocolId off the legacy
+    // brainStateCheckIns doc (saveBrainStateCheckIn writes it via
+    // selectProtocol now) and resolve it to a Protocol via
+    // getProtocolById. normalizeProtocolId handles legacy v1 IDs
+    // ('extended-exhale' → 'extended-exhale-2', etc.) for existing
+    // TestFlight users whose docs predate Phase 1's id-suffix scheme.
+    const rawId = (brainStateCheckIn as { protocolId?: string }).protocolId;
+    if (!rawId) return null;
+    const normalized = normalizeProtocolId(rawId);
+    if (!normalized) return null;
+    return getProtocolById(normalized);
   }, [brainStateCheckIn]);
 
   // Dashboard phase: pre-checkin or checked-in
@@ -734,8 +739,6 @@ export function useDashboard() {
 
     // Dashboard V2
     brainStateCheckIn,
-    brainStateCheckInLoading,
-    handleBrainStateCheckIn,
     handleMarkProtocolCompleted,
     todaysProtocol,
 

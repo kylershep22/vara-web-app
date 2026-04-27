@@ -1,8 +1,14 @@
 /**
  * Onboarding V2 - Check-In Screen
  * Screen 2 of 3: Single-tap brain state selection.
- * Reuses BrainStateCheckin from Dashboard V2.
  * Auto-advances to protocol screen after selection.
+ *
+ * Sub-step 2.5 — onboarding stays on the v1-style two-screen pattern
+ * (CheckIn → Protocol) for educational reasons; the new multi-step
+ * CheckInFlow would over-complicate the first-time user experience.
+ * Renders BRAIN_STATES + BrainStateOptionRow directly rather than
+ * re-using the dashboard's BrainStateCheckin (which now navigates
+ * to CheckInFlow on tap).
  */
 
 import React, { useState, useRef } from 'react';
@@ -10,11 +16,12 @@ import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { BrainStateCheckin } from '../../components/dashboard/BrainStateCheckin';
+import { BRAIN_STATES } from '../../components/dashboard/brainStateCheckin/brainStateOptions';
+import { BrainStateOptionRow } from '../../components/dashboard/brainStateCheckin/BrainStateOptionRow';
 import { useAuth } from '../../context/AuthContext';
 import { saveBrainStateCheckIn } from '../../services/firebase';
-import { getProtocolForState } from '../../constants/brainStateProtocols';
-import { Colors, Spacing, Typography } from '../../constants';
+import { selectProtocol } from '../../services/protocolSelector.service';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { BrainState } from '../../types';
 import { logger } from '../../utils/logger';
 
@@ -34,7 +41,13 @@ const OnboardingV2CheckInScreen: React.FC<OnboardingV2CheckInScreenProps> = ({
     setLoading(true);
     try {
       const checkIn = await saveBrainStateCheckIn(user.uid, state);
-      const protocol = getProtocolForState(state);
+      // Sub-step 2.5 — getProtocolForState was deleted. Onboarding's
+      // single-tap pattern doesn't capture a time-window, so default
+      // to the 5-min "meaningful shift" tier per Core Loop v2 step 2.
+      // Onboarding stays on the v1-style two-screen pattern (CheckIn →
+      // Protocol) for educational reasons; full CheckInFlow mounting
+      // would over-complicate the first-time user experience.
+      const protocol = selectProtocol({ state, timeWindow: 5 });
 
       // Wait for the "Captured." animation (2 seconds), then navigate
       setTimeout(() => {
@@ -69,12 +82,21 @@ const OnboardingV2CheckInScreen: React.FC<OnboardingV2CheckInScreenProps> = ({
         <Text style={styles.headline}>How's your brain feeling right now?</Text>
         <Text style={styles.subtext}>This is what you'll do each day. Just one tap.</Text>
 
-        {/* Reuse BrainStateCheckin — always expanded (no currentCheckIn) */}
-        <BrainStateCheckin
-          currentCheckIn={null}
-          onSelect={handleSelect}
-          loading={loading}
-        />
+        {/* Direct chip rows — onboarding doesn't use the dashboard's
+            BrainStateCheckin because that component now navigates to
+            CheckInFlow on tap (sub-step 2.5 migration). Onboarding
+            wants a simpler educational two-screen pattern. */}
+        <View style={styles.chipsContainer}>
+          {BRAIN_STATES.map((option, index) => (
+            <BrainStateOptionRow
+              key={option.state}
+              option={option}
+              onPress={handleSelect}
+              disabled={loading}
+              isLast={index === BRAIN_STATES.length - 1}
+            />
+          ))}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -105,6 +127,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: Typography.fontSize.sm,
     marginBottom: Spacing.xl,
+  },
+  chipsContainer: {
+    backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.lg,
   },
 });
 

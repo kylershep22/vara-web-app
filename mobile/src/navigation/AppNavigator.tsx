@@ -109,6 +109,9 @@ import { CheckInFlowTestScreen } from '../screens/_dev/CheckInFlowTestScreen';
 import { PracticesIndexScreen } from '../screens/practices/PracticesIndexScreen';
 import { PracticeRunScreen } from '../screens/practices/PracticeRunScreen';
 
+// Phase 2 sub-step 2.5 — production CheckInFlow screen wrapper.
+import { CheckInFlowScreen } from '../screens/checkin/CheckInFlowScreen';
+
 // Create navigators
 const AuthStack = createNativeStackNavigator();
 const AppStack = createNativeStackNavigator();
@@ -718,6 +721,18 @@ const MainNavigator = () => {
           component={NotificationOptInScreen}
           options={{
             presentation: 'modal',
+            animation: 'slide_from_bottom',
+            headerShown: false,
+          }}
+        />
+        {/* Phase 2 sub-step 2.5 — production CheckInFlow screen.
+            Mounted full-screen with a slide-from-bottom presentation
+            so the multi-step check-in feels like a focused modal,
+            not a permanent navigation destination. */}
+        <AppStack.Screen
+          name="CheckInFlow"
+          component={CheckInFlowScreen}
+          options={{
             animation: 'slide_from_bottom',
             headerShown: false,
           }}

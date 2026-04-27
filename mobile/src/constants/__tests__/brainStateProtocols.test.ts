@@ -2,7 +2,6 @@ import {
   BRAIN_STATE_PROTOCOLS,
   getAllProtocols,
   getProtocolById,
-  getProtocolForState,
   getProtocolsForState,
 } from '../brainStateProtocols';
 import type {
@@ -178,24 +177,17 @@ describe('BRAIN_STATE_PROTOCOLS — Phase 1 launch library', () => {
     });
   });
 
-  describe('state coverage (Phase 1 transitional getProtocolForState)', () => {
+  describe('state coverage', () => {
     it.each(ALL_BRAIN_STATES)('every state has at least one protocol — %s', (state) => {
       const matches = getProtocolsForState(state);
       expect(matches.length).toBeGreaterThan(0);
     });
 
-    it.each(ALL_BRAIN_STATES)(
-      'getProtocolForState does not throw for %s',
-      (state) => {
-        expect(() => getProtocolForState(state)).not.toThrow();
-      }
-    );
-
-    it('throws on unknown state passed via cast (defensive)', () => {
-      expect(() =>
-        getProtocolForState('joyful' as unknown as BrainState)
-      ).toThrow(/no protocol in library suits state/);
-    });
+    // The Phase 1 transitional `getProtocolForState` was deleted in
+    // sub-step 2.5 alongside the four caller migrations. The remaining
+    // state-coverage assertion above is sufficient — the new
+    // `selectProtocol` helper has its own exhaustive matrix tests
+    // in services/__tests__/protocolSelector.service.test.ts.
   });
 
   describe('getProtocolById', () => {
