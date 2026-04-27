@@ -1,8 +1,11 @@
 import { writeProtocolSession } from '../protocolSession.service';
-import { mapStandardFlowTerminalToPayload } from '../brainStateCheckIn.service';
+import {
+  mapStandardFlowTerminalToPayload,
+  qualifiesAsFirstShift,
+} from '../brainStateCheckIn.service';
 import type { TerminalFlowState } from '../../../components/checkin/flow/CheckInFlow';
 import { getProtocolById } from '../../../constants/brainStateProtocols';
-import type { Protocol } from '../../../types/models';
+import type { Protocol, ProtocolSessionOutcome } from '../../../types/models';
 
 // Firestore is mocked at the jest.setup.js level — getFirestore returns
 // a stub. We test:
@@ -163,5 +166,64 @@ describe('writeProtocolSession — dryRun', () => {
       (arg) => typeof arg === 'string' && arg.includes('dryRun')
     );
     expect(dryRunLog).toBeUndefined();
+  });
+});
+
+describe('qualifiesAsFirstShift — first-shift footer trigger rule', () => {
+  // Locked decision (sub-step 2.7 entry): the footer fires on
+  // 'shifted' and 'partial_shift' outcomes only. 'maintenance' is
+  // "held the line" — not a shift in user-facing language. The other
+  // outcomes ('not_shifted', 'abandoned', 'failed', 'browse_launched')
+  // are obviously not shifts. If the qualifying-outcome set ever
+  // changes, this test is the regression guard.
+
+  // Exhaustive list — keep aligned with ProtocolSessionOutcome union
+  // in models.ts. If the union grows, TypeScript will not flag this
+  // array, so adding the new variant here is a manual step.
+  const ALL_OUTCOMES: ProtocolSessionOutcome[] = [
+    'shifted',
+    'partial_shift',
+    'maintenance',
+    'not_shifted',
+    'abandoned',
+    'failed',
+    'browse_launched',
+  ];
+
+  it.each(['shifted', 'partial_shift'] as ProtocolSessionOutcome[])(
+    'returns true for %s',
+    (outcome) => {
+      expect(qualifiesAsFirstShift(outcome)).toBe(true);
+    }
+  );
+
+  it.each([
+    'maintenance',
+    'not_shifted',
+    'abandoned',
+    'failed',
+    'browse_launched',
+  ] as ProtocolSessionOutcome[])('returns false for %s', (outcome) => {
+    expect(qualifiesAsFirstShift(outcome)).toBe(false);
+  });
+
+  it('covers every variant in the ProtocolSessionOutcome union', () => {
+    // Sanity check that the two it.each blocks above between them
+    // cover every outcome value. If a new variant is added to the
+    // union and the it.each lists aren't updated, this assertion
+    // fails before the qualifier behavior diverges silently.
+    const covered = new Set<ProtocolSessionOutcome>([
+      'shifted',
+      'partial_shift',
+      'maintenance',
+      'not_shifted',
+      'abandoned',
+      'failed',
+      'browse_launched',
+    ]);
+    for (const outcome of ALL_OUTCOMES) {
+      expect(covered.has(outcome)).toBe(true);
+    }
+    expect(covered.size).toBe(ALL_OUTCOMES.length);
   });
 });

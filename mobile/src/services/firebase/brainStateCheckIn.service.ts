@@ -29,7 +29,11 @@ import {
   serializeBrainState,
 } from '../../utils/brainStateNormalizer';
 import type { TerminalFlowState } from '../../components/checkin/flow/CheckInFlow';
-import type { IntentPath } from '../../types/models';
+import type {
+  IntentPath,
+  ProtocolSessionOutcome,
+  UserProfile,
+} from '../../types/models';
 import {
   writeProtocolSession,
   type ProtocolSessionWritePayload,
@@ -230,6 +234,70 @@ export function mapStandardFlowTerminalToPayload(
 }
 
 /**
+ * Returns true if the outcome qualifies as a "shift" for the
+ * first-shift footer trigger.
+ *
+ * Locked decision (sub-step 2.7): includes 'shifted' and
+ * 'partial_shift' (the only transition that classifies as
+ * partial_shift is wired→foggy — a genuine state transition the user
+ * felt). Excludes 'maintenance' — that's "held the line," not a shift
+ * in user-facing language. The footer copy uses the word "shift"
+ * verbatim; calling maintenance a shift would confuse a user whose
+ * re-check showed the same state they started in.
+ */
+export function qualifiesAsFirstShift(
+  outcome: ProtocolSessionOutcome
+): boolean {
+  return outcome === 'shifted' || outcome === 'partial_shift';
+}
+
+/**
+ * Sets `firstShiftAt` on the user profile if (a) the outcome qualifies
+ * AND (b) the field is currently null/missing. Idempotent — once set,
+ * subsequent qualifying sessions no-op.
+ *
+ * Race acknowledged: two concurrent terminal writes could both observe
+ * firstShiftAt as null and both set it. Functionally impossible (one
+ * user can't have two active CheckInFlow instances simultaneously) and
+ * the cost of a Firestore transaction here outweighs the bug risk.
+ * Revisit if a user reports an incorrect first-shift timestamp.
+ *
+ * Failure is non-fatal — logged and swallowed. The protocolSessions
+ * write is the source of truth for whether the shift happened; the
+ * footer is a UX affordance whose absence is recoverable on the next
+ * qualifying session.
+ */
+async function setFirstShiftAtIfNeeded(
+  userId: string,
+  outcome: ProtocolSessionOutcome
+): Promise<void> {
+  if (!qualifiesAsFirstShift(outcome)) return;
+  if (!db) return;
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    const currentFirstShiftAt = userSnap.exists()
+      ? (userSnap.data() as UserProfile).firstShiftAt
+      : null;
+    if (currentFirstShiftAt == null) {
+      await setDoc(
+        userRef,
+        {
+          firstShiftAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+  } catch (error) {
+    logger.error(
+      '[writeStandardFlowSession] firstShiftAt write failed:',
+      error
+    );
+  }
+}
+
+/**
  * Writes both the new `protocolSessions` doc (authoritative) AND
  * updates the legacy `brainStateCheckIns/{userId}_{date}` doc
  * (backward compat for v1 read paths still on Today / Patterns /
@@ -238,16 +306,19 @@ export function mapStandardFlowTerminalToPayload(
  * BrowseRunFlow does NOT use this — Case 4 sessions skip the legacy
  * write because browse-launched sessions didn't exist in v1; there's
  * no backward-compat data dependency. BrowseRunFlow calls
- * `writeProtocolSession` directly.
+ * `writeProtocolSession` directly. (Browse-launched sessions also
+ * never qualify as a first shift — they have no stateBefore — so the
+ * footer trigger naturally lives here, not in writeProtocolSession.)
  *
  * Fire-and-forget at the call site (UX shouldn't block on Firestore).
  *
- * Idempotent at both layers: legacy doc is keyed by date (one per
- * day, updates on subsequent calls); protocolSessions doc is keyed by
- * `${userId}_${sessionStartedAt}` (one per session, no-op on retry).
+ * Idempotent at all layers: legacy doc is keyed by date (one per day,
+ * updates on subsequent calls); protocolSessions doc is keyed by
+ * `${userId}_${sessionStartedAt}` (one per session, no-op on retry);
+ * firstShiftAt is read-then-conditionally-written (no-op once set).
  *
- * `dryRun` skips ALL writes (both new and legacy) — keeps both
- * collections clean of dev-harness pollution.
+ * `dryRun` skips ALL writes (new + legacy + firstShiftAt) — keeps
+ * Firestore clean of dev-harness pollution.
  */
 export async function writeStandardFlowSession(
   userId: string,
@@ -255,16 +326,14 @@ export async function writeStandardFlowSession(
   intentPath: IntentPath,
   options: WriteProtocolSessionOptions = {}
 ): Promise<void> {
+  const payload = mapStandardFlowTerminalToPayload(terminal, intentPath);
+
   // New authoritative write.
-  await writeProtocolSession(
-    userId,
-    mapStandardFlowTerminalToPayload(terminal, intentPath),
-    options
-  );
+  await writeProtocolSession(userId, payload, options);
 
   if (options.dryRun) {
     logger.log(
-      '[writeStandardFlowSession] dryRun — would also update legacy brainStateCheckIns'
+      '[writeStandardFlowSession] dryRun — would also update legacy brainStateCheckIns + maybe firstShiftAt'
     );
     return;
   }
@@ -290,6 +359,11 @@ export async function writeStandardFlowSession(
       error
     );
   }
+
+  // First-shift footer trigger. Independent failure mode from the
+  // legacy write — a profile write hiccup shouldn't affect Patterns
+  // data integrity, and vice versa.
+  await setFirstShiftAtIfNeeded(userId, payload.outcome);
 }
 
 /**

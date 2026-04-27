@@ -56,6 +56,13 @@ export interface UserProfile {
   // Missing field on existing profile docs is treated as 'default' by readers.
   intentPath?: IntentPath;
 
+  // Set by writeStandardFlowSession the first time a CheckInFlow
+  // session produces an outcome of 'shifted' or 'partial_shift'
+  // (qualifiesAsFirstShift). Drives the one-time "Your first shift is
+  // logged in Patterns" footer on Today (sub-step 2.7). Null/undefined
+  // means the user has not yet had a qualifying shift.
+  firstShiftAt?: Timestamp | null;
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

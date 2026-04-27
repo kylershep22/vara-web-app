@@ -128,6 +128,15 @@ no one finds out unless the user happens to be tethered to a Mac.
 - Decide which warnings warrant remote vs. local-only (recovery
   rejections probably want remote; routine debug noise local-only).
 
+**Higher-stakes caller surfaced sub-step 2.7 entry:**
+`writeStandardFlowSession`'s `.catch` handler in `CheckInFlow.tsx` (sub-
+step 2.5 follow-up `02ab01a`) logs "session NOT persisted to
+protocolSessions" via `logger.error`. The fire-and-forget pattern means
+this is the only signal that data integrity broke; in release builds
+the message is invisible. Wire remote logging before TestFlight grows
+past the founder's internal testing — otherwise write failures
+silently lose state-transition data that Patterns depends on.
+
 ---
 
 ## FlowInit discriminated union — refactor watch
