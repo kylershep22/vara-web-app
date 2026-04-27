@@ -130,6 +130,35 @@ no one finds out unless the user happens to be tethered to a Mac.
 
 ---
 
+## FlowInit discriminated union — refactor watch
+
+After sub-step 2.5, `FlowInit` has three discriminated variants:
+- `{ entrySource: 'standard' }`
+- `{ entrySource: 'overwhelm_safety_card'; protocol; nowMs }`
+- `{ entrySource: 'state_preselected'; stateBefore }`
+
+If a fourth variant lands (Phase 3 might add `'time_preselected'`
+for notification entry, or similar), consider refactoring to a
+single config object with optional fields:
+
+```typescript
+interface FlowInit {
+  entrySource: FlowEntrySource;
+  stateBefore?: BrainState;
+  protocol?: Protocol;
+  nowMs?: number;
+}
+```
+
+Trade-off: loses type-level enforcement that overwhelm entries
+must have a protocol. Gains: easier to extend; less union
+proliferation.
+
+Don't refactor preemptively. Wait until a fourth variant actually
+appears or the union grows past 4 variants.
+
+---
+
 ## Banned-language regex-guard test across all copy tables
 
 `mobile/src/components/checkin/flow/__tests__/notShiftedCopy.test.ts`

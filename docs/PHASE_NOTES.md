@@ -362,43 +362,147 @@ late-night NSDR swap as a thin Phase-2-stub-extension wrapper.
   the 2.2 placeholder (and from Core Loop v2 spec). The user gets a
   decision to make; we don't take it for them.
 
-### Sub-step 2.5 deliverables
+### Sub-step 2.5 entry — locked decisions
 
-Caller migration + first ProtocolSession writes. The scope is broader
-than just "swap call sites" — measurement coverage is the real
-deliverable.
+Caller migration + first ProtocolSession writes + Case 4 mini-flow.
+The largest remaining sub-step in Phase 2 (13–18h estimated). Scope
+is broader than "swap call sites" — measurement coverage is the
+real deliverable.
 
-- **Firestore rules deploy** — run `firebase deploy --only firestore:rules`
-  before any code path writes its first `ProtocolSession` doc. The
-  rules block has been pending deploy since Phase 0.
-- **`protocolSession.service.ts`** — new service module wrapping the
-  `addDoc()`-based write to `protocolSessions/{sessionId}`. Consumers
-  pass the full record assembled from `FlowCompleteStep` /
-  `AbandonedStep` payloads.
-- **CheckInFlow `onComplete` callers** — replace the placeholder
-  `logger.log` in CheckInFlow's terminal-state useEffect with a real
-  Firestore write driven through `protocolSession.service`.
-- **Caller migration** — `BrainStateCheckin.tsx`, `useDashboard.ts`,
-  `OnboardingV2CheckInScreen.tsx`, `OnboardingV2ProtocolScreen.tsx`
-  (per the Phase 1 sub-step 2 list) move from the legacy single-tap
-  pattern to launching `CheckInFlow` with the appropriate
-  `FlowInit`. Surface the entry from the dashboard, onboarding, and
-  any deep-link / notification handler.
-- **Browse-launched sessions write ProtocolSession records via Case 4
-  flow.** Per Core Loop v2 §Case 4 (Practices browse view): state is
-  pre-known from the caller's selection, time-window is pre-known
-  from the picked protocol's `timeWindow` field, recommendation is
-  skipped, but the run → re-check → response loop still runs. The
-  re-check is the measurement (Build Guide §1, atomic unit of value)
-  — a browse-launched session that exits without re-check produces
-  no state transition, defeating the entire data model. Replace
-  `PracticeRunScreen`'s `GuidedSessionPlayer.onExit → goBack()` with
-  a CheckInFlow-style mini flow (or factor a shared running →
-  re_check → response sub-machine and reuse it).
+**Test baseline going in:** 43 suites / 738 tests / 181 TS errors.
+This number is unambiguous — verified directly that no tests were
+disabled or skipped during 2.4. Drift detected on a future entry
+should be investigated, not normalized.
+
+**Locked decisions:**
+
+- **Firestore rules deploy** — manual step at the start of 2.5
+  composition: `firebase deploy --only firestore:rules`. The rules
+  block has been pending deploy since Phase 0; no `protocolSessions`
+  write succeeds until this lands.
+- **Doc ID format:** `${userId}_${sessionStartedAt}` where
+  `sessionStartedAt` is the millisecond integer (Date.now() shape),
+  not an ISO string. Idempotent under network retries / accidental
+  double-fires of `onComplete` (setDoc with merge is a no-op for
+  identical payloads). Deviation from the Phase 0 doc-ID-convention
+  note ("auto-generated IDs") — the rationale (multiple sessions per
+  user per day) is met by sub-millisecond `sessionStartedAt` values.
+- **`writeProtocolSession` shape:** single function, accepts
+  `(userId, payload, options?)` where options has `dryRun?: boolean`.
+  - Production callers omit `options` (defaults to `dryRun: false`,
+    real Firestore write).
+  - Dev harness passes `dryRun: true` — skips `setDoc`, logs the
+    payload via `logger.log`. Keeps production schema clean of
+    harness pollution.
+  - The mapper from terminal `FlowState` to write payload is a
+    separate pure function in the same file, unit-testable without
+    mocking Firestore.
+- **`writeStandardFlowSession` helper** — extends
+  `brainStateCheckIn.service.ts` per the Implementation Plan's
+  parallel-write directive. Calls `writeProtocolSession` AND writes
+  the legacy `brainStateCheckIns/{userId}_{date}` doc so v1 read
+  paths keep working. CheckInFlow uses this; BrowseRunFlow uses
+  `writeProtocolSession` directly (Case 4 doesn't need the legacy
+  write — it didn't exist in v1, no backward-compat data dependency).
+- **CheckInFlow ownership of writes.** CheckInFlow's terminal-state
+  useEffect calls `writeStandardFlowSession` directly (fire-and-
+  forget — UX shouldn't block on Firestore). CheckInFlow gets two
+  new props: `userId: string` (required) and
+  `writeMode?: 'production' | 'dev_dry_run'` (defaults to
+  `'production'`). All existing CheckInFlow tests get updated to
+  pass `userId='test-user'` + `writeMode='dev_dry_run'`.
+- **Schema additions** (models.ts, landing in this commit):
+  - `ProtocolSession.stateBefore: BrainState | null` — was required.
+    Browse-launched sessions need null. Migration is a no-op
+    (existing reads still work). Q3 grep confirmed no Firestore
+    queries filter on stateBefore equality.
+  - `ProtocolSession.outcome` enum gains `'browse_launched'` (7th
+    value). Explicit semantic; faster Patterns queries than
+    null-checking stateBefore.
+  - `ProtocolNextStep` gains `'auto_dismissed'` (4th value) — back-
+    fill from the 2.4 ResponseStepView/ShiftedResponse implementation.
+- **`state_preselected` FlowInit variant** — third discriminated
+  variant: `{ entrySource: 'state_preselected'; stateBefore }`. The
+  reducer initializes at `TimePickStep` with `stateBefore` already
+  captured. Used by the dashboard's BrainStateCheckin migration
+  (tap a chip → mount CheckInFlow with state already chosen,
+  preserves single-tap entry feel).
+- **`getProtocolForState()` deletion** — same commit as the last
+  caller migration. Don't leave `@deprecated`; that's how dead code
+  accumulates. If a future phase reveals an unmigrated caller, it
+  surfaces as a TS error and gets fixed immediately.
+- **navBranch tag canonical set** — production callers fire the
+  same four tags as the dev harness:
+    `late_night_nsdr_override` / `no_override_practices_index` /
+    `no_navigation_non_try_longer` / `no_navigation_abandoned`.
+  Lock the set here so device verification on the harness transfers
+  to production. If a fifth scenario emerges, add in one place; both
+  consumers pick it up.
+
+**Case 4 mini-flow (BrowseRunFlow):**
+
+- Separate component (`mobile/src/components/checkin/flow/BrowseRunFlow.tsx`),
+  not a CheckInFlow extension. Three-step state machine:
+  `running → re_check → flow_complete | abandoned`. Reuses
+  `ReCheckStepView` from sub-step 2.2 — same UI, no design
+  divergence. The user sees identical re-check screens regardless
+  of entry source.
+- **No response screen.** Skip the shifted/maintenance/etc.
+  classification; route directly back to Practices index after
+  re-check completes. (See SPEC_CONSISTENCY_BACKLOG "Case 4 routing"
+  for the override rationale — the spec says Today; we route to
+  Practices to preserve the user's exploration context.)
+- **Write payload:** `stateBefore: null`, `outcome: 'browse_launched'`,
+  `userChosenNextStep: null`, `timeWindowSelected` pulled from
+  `protocol.timeWindow` (not user-selected, but informationally
+  useful for queries).
+- **Abandoned browse-launched sessions** (player ended_early
+  before re_check): `outcome: 'abandoned'` (existing value). The
+  only differentiator from standard-flow abandoned is
+  `stateBefore: null`.
+- **Idempotent writes** — same `${userId}_${sessionStartedAt}` ID
+  pattern.
 
 If Case 4 is forgotten, 2.5 looks complete (caller migration done,
 sessions writing) while ~30% of the launch-window's session sources
-silently produce zero state transitions. Track explicitly.
+silently produce zero state transitions. The BrowseRunFlow component
++ PracticeRunScreen migration is the load-bearing piece; track
+explicitly.
+
+**Out of scope (deferred):**
+- Force-quit recovery for re_check abandonment — failure mode named
+  in 2.7's entry below; flow-level marker work.
+- Telemetry surface for navBranch tags — Phase 5 / Phase 6.
+- Migration of legacy `brainStateCheckIns` readers to
+  `protocolSessions` — Phase 5+ (a parallel-write window during
+  2.5 keeps both collections in sync).
+
+### Sub-step 2.7 entry — known failure modes to address
+
+Sub-step 2.7 is "first-shift footer + polish + integration + device
+verify." Polish-tier sub-step. The known failure modes that should
+be on its docket before composition:
+
+- **Re_check force-quit recovery.** If the user kills the app
+  between player exit (player completes successfully) and re-check
+  completion, the session has a `stateBefore` but no `stateAfter`,
+  no outcome, and no `protocolSessions` doc gets written. On next
+  launch, the force-quit recovery marker (Phase 1's AsyncStorage
+  pattern) currently only knows about player-level recovery, not
+  flow-level. Solving this properly means the flow itself owns a
+  marker distinct from the player's marker — written on entry to
+  `re_check`, cleared when the user selects a state. On recovery,
+  re-mount at the re_check step with the captured running data.
+  Real 2.7 work; not a 2.5 addition.
+- **First-shift footer** ("Your first shift is logged in Patterns")
+  — the small one-time celebration on Today after the user's first
+  positive shift. Per Core Loop v2 line 238 — "brand-appropriate
+  celebration, no confetti, no badge, just quiet acknowledgment."
+- **Device verification.** Full happy path on physical iPhone (and
+  Android if available): standard flow + Overwhelm flow + browse
+  flow + late-night NSDR override. Verify navBranch tags fire
+  correctly in production callers (the dev harness validated them
+  in 2.4).
 
 ---
 

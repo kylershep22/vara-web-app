@@ -164,6 +164,37 @@ simpler default; revisit only if data shows it.
   steady→alive, clear→alive) classify as 'shifted'. Same-state and
   downward green-zone shifts classify as 'maintenance'."
 
+## Case 4 routing target after re-check
+
+**Codebase resolution:** Sub-step 2.5's BrowseRunFlow routes the
+user back to the Practices index after the re-check completes,
+NOT to Today as Core Loop v2 §Case 4 (lines 309-310) specifies.
+
+**Why:**
+- The user came from Practices (exploratory mode). Auto-routing to
+  Today breaks the exploration loop and removes a navigation choice
+  they didn't ask for.
+- The standard flow's response screen has `'rest_later'` that
+  explicitly routes to Today. The browse flow has no response
+  screen and no opportunity for the user to express "I'm done now."
+  Auto-routing to Today makes that choice for them.
+- Today is the right destination after a goal-directed check-in
+  completes. Practices is the right destination after browsing —
+  the user is still in exploration mode.
+
+**Phase 5 escape hatch:** if Patterns analysis surfaces evidence
+that browse-launched users actually want to land on Today after a
+re-check (e.g., "users who route back to Practices then leave the
+app within 30s"), revisit. Trivial code change — single
+`navigation.navigate(...)` call in BrowseRunFlow's onComplete
+handler.
+
+**Doc to update:**
+- `docs/Vara_Core_Loop_v2.md` §Case 4 line 309-310 — currently
+  reads "...capture the data, route to Today." Update to "...
+  capture the data, route back to Practices index" (or the
+  user's pre-flow location).
+
 ---
 
 ## Notes for the docs-only commit

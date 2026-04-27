@@ -993,13 +993,25 @@ export type ProtocolSessionOutcome =
   | 'maintenance'
   | 'not_shifted'
   | 'abandoned'
-  | 'failed';
+  | 'failed'
+  // Sub-step 2.5 — browse-launched sessions (Case 4 per Core Loop v2).
+  // Browse-launched sessions: stateBefore is null because no state was
+  // captured pre-protocol; outcome is 'browse_launched' (not null) so
+  // Patterns queries can filter without null-check JOINs on stateBefore.
+  | 'browse_launched';
 
-// User-chosen next step after a not-shifted re-check.
+// User-chosen next step after the response screen.
+//   try_longer     — user tapped "Try something longer" (not_shifted).
+//   rest_later     — user tapped "Rest and come back later" (not_shifted).
+//   dismissed      — user tapped Continue (positive paths).
+//   auto_dismissed — 4-second timer fired without interaction
+//                    (positive paths only). Phase 5 Patterns may care
+//                    about the user-tap vs auto-timer distinction.
 export type ProtocolNextStep =
   | 'try_longer'
   | 'rest_later'
-  | 'dismissed';
+  | 'dismissed'
+  | 'auto_dismissed';
 
 // Why a session ended without natural completion.
 //   user_exit   — explicit "End early" affordance.
@@ -1056,7 +1068,12 @@ export interface ProtocolSessionSummary {
 export interface ProtocolSession {
   userId: string;
   protocolId: string;
-  stateBefore: BrainState;
+  // Browse-launched sessions (Case 4) have stateBefore=null because no
+  // pre-protocol check-in was captured. Standard-flow sessions always
+  // have a value here. Schema asymmetry with `outcome`: browse-launched
+  // sessions also have outcome='browse_launched' so queries don't need
+  // null-checks on stateBefore to identify them.
+  stateBefore: BrainState | null;
   stateAfter: BrainState | null; // null until re-check completes
   timeWindowSelected: ProtocolTimeWindow;
   durationActualSeconds: number;
