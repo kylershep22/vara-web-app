@@ -43,9 +43,28 @@ jest.mock('../../../protocol/GuidedSessionPlayer', () => {
   };
 });
 
+// Mock the Firestore write helper so we can assert the call shape
+// without exercising real Firestore. The dryRun-mode tests above
+// don't directly cover "CheckInFlow actually calls write at terminal"
+// — the writer's payload-mapper unit tests cover data-shape
+// correctness, but the wiring from terminal-state useEffect to the
+// write call is an integration concern. This mock fills the gap.
+jest.mock('../../../../services/firebase/brainStateCheckIn.service', () => {
+  const actual = jest.requireActual(
+    '../../../../services/firebase/brainStateCheckIn.service'
+  );
+  return {
+    ...actual,
+    writeStandardFlowSession: jest.fn().mockResolvedValue(undefined),
+  };
+});
+
+import { writeStandardFlowSession as writeStandardFlowSessionMock } from '../../../../services/firebase/brainStateCheckIn.service';
+
 beforeEach(() => {
   lastOnExit = null;
   mockProtocolId = null;
+  (writeStandardFlowSessionMock as jest.Mock).mockClear();
 });
 
 // ────────────────────────────────────────────────────────────
@@ -343,6 +362,87 @@ describe('CheckInFlow — late-night NSDR override prop pass-through (sub-step 2
 
     const tryLonger = await findByTestId('not-shifted-response-try-longer');
     expect(tryLonger.props.accessibilityLabel).toBe('Try something longer');
+  });
+});
+
+describe('CheckInFlow — Firestore write contract', () => {
+  // The dev_dry_run mode tests above don't directly cover the
+  // wiring from terminal-state useEffect to writeStandardFlowSession.
+  // The writer's payload-mapper unit tests cover data-shape
+  // correctness; this test catches "we forgot to wire the write at
+  // terminal" without writing to Firestore. The writer is mocked at
+  // the module boundary above (jest.mock at file top).
+
+  it('calls writeStandardFlowSession exactly once on terminal with the correct args', async () => {
+    const onComplete = jest.fn();
+    const { findByTestId, getByLabelText } = render(
+      <CheckInFlow
+        init={buildOverwhelmInit()}
+        {...TEST_PROPS}
+        onComplete={onComplete}
+      />
+    );
+
+    // Sanity: writer not called at mount (only on terminal).
+    expect(writeStandardFlowSessionMock).not.toHaveBeenCalled();
+
+    // Drive the flow: player completes → re-check mounts → user picks
+    // a state → flow_complete terminal.
+    act(() => {
+      lastOnExit!(summary({ completed: true, protocolId: 'cyclic-sighing-2' }));
+    });
+    expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
+    fireEvent.press(getByLabelText('Steady'));
+    fireEvent.press(getByLabelText('Continue'));
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    // The integration assertion: writer fired exactly once with the
+    // expected (userId, terminal, intentPath, options) shape.
+    expect(writeStandardFlowSessionMock).toHaveBeenCalledTimes(1);
+    const [userIdArg, terminalArg, intentPathArg, optionsArg] = (
+      writeStandardFlowSessionMock as jest.Mock
+    ).mock.calls[0];
+
+    expect(userIdArg).toBe('test-user-id');
+    expect(intentPathArg).toBe('default');
+    expect(optionsArg).toEqual({ dryRun: true });
+    expect(terminalArg).toEqual(
+      expect.objectContaining({
+        step: 'flow_complete',
+        entrySource: 'overwhelm_safety_card',
+        stateBefore: 'wired',
+        timeWindow: 2,
+        stateAfter: 'steady',
+        outcome: 'shifted',
+        userChosenNextStep: 'dismissed',
+      })
+    );
+  });
+
+  it('still calls writeStandardFlowSession on the abandoned terminal path', async () => {
+    const onComplete = jest.fn();
+    render(
+      <CheckInFlow
+        init={buildOverwhelmInit()}
+        {...TEST_PROPS}
+        onComplete={onComplete}
+      />
+    );
+
+    act(() => {
+      lastOnExit!(summary({ completed: false, protocolId: 'cyclic-sighing-2' }));
+    });
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    expect(writeStandardFlowSessionMock).toHaveBeenCalledTimes(1);
+    const [, terminalArg] = (writeStandardFlowSessionMock as jest.Mock).mock.calls[0];
+    expect(terminalArg.step).toBe('abandoned');
   });
 });
 
