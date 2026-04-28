@@ -52,12 +52,15 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
   // gone (sub-step 2.5 migration); the new flow's response screen
   // owns the post-check-in celebration.
   useEffect(() => {
-    if (currentCheckIn && phase === 'expanded') {
-      setPhase('collapsed');
-    }
     if (!currentCheckIn && phase === 'collapsed') {
       setPhase('expanded');
     }
+    // Removed: forced-collapse when currentCheckIn becomes truthy.
+    // The V1 invariant ('currentCheckIn truthy → must be collapsed')
+    // predated the Change affordance added in sub-step 2.5. With
+    // Change present, the user's setPhase('expanded') call MUST win
+    // over auto-collapse, which means the auto-collapse branch is
+    // actively harmful.
   }, [currentCheckIn, phase]);
 
   const handleSelect = (state: BrainState) => {

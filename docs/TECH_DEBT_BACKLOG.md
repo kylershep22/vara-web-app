@@ -485,3 +485,50 @@ delivery behavior, not a Phase 2 regression.
 Phase 6 polish — UX hygiene, not a code fix. Copy hardening is part
 of the work, since current copy partially covers spam but not
 Resend.
+
+---
+
+## BrainStateCheckin.tsx — internal phase state duplicates dashboard control flow
+
+`mobile/src/components/dashboard/BrainStateCheckin.tsx` maintains an
+internal `'expanded' | 'collapsed'` phase state that duplicates control
+flow already managed by `DashboardScreen` (the `showCheckInOverAnchor`
+state at the call site, lines 322-336) and `DashboardAnchor` (which
+owns its own collapsed-summary view via scroll-driven and manual
+toggle states).
+
+After sub-step 2.5's caller migration removed the 'captured' phase and
+reduced `BrainStateCheckin`'s role to "chip picker that navigates to
+CheckInFlow on selection," the phase machinery is structural overhead
+with no remaining purpose:
+
+- The `phase` state's only meaningful value transition is `expanded` ↔
+  `collapsed` driven by user taps on the in-component Change button.
+- That Change button only exists in collapsed view, which only renders
+  when `currentCheckIn` is truthy, which only happens in the
+  post-checkin dashboard phase, which is exactly when DashboardScreen
+  has already swapped to a different surface (DashboardAnchor) — and
+  only swaps back to BrainStateCheckin when the parent's
+  `showCheckInOverAnchor` is set true.
+- The two layers of "should this be expanded or collapsed" answer the
+  same question with two sources of truth, which is how the
+  Observation 4 dead-end bug emerged in the first place
+  (V1 useEffect actively fighting the Change handler).
+
+**Refactor candidate:** eliminate `phase` state from
+`BrainStateCheckin`. Let `DashboardScreen` own the
+expanded-vs-collapsed decision (via `showCheckInOverAnchor` and any
+related state). `BrainStateCheckin` becomes a stateless chip picker
+that always renders the expanded chip rows when mounted; the parent
+decides whether to mount it at all.
+
+`handleChangePress` and `BrainStateCollapsedView`'s collapsed-view
+codepath move out of `BrainStateCheckin` (or `BrainStateCollapsedView`
+becomes a separate dashboard component owned directly by
+`DashboardScreen`).
+
+**Why not now:** mid-device-verification with two other open Phase 2
+bugs; discipline calls for narrow fixes between rebuilds. The
+Observation 4 minimum patch closes the dead-end without touching
+architecture. Phase 6 polish — or whenever the next substantive
+dashboard work happens — is the right window.
