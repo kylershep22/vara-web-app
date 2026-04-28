@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/iOS Icon 2 - 1024x1024.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "scheme": "vara",
     "splash": {
       "image": "./assets/Splash Icon 1 - 512x512.png",
