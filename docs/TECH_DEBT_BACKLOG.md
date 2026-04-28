@@ -415,3 +415,73 @@ real regressions.
   use real timers + waitFor, which is a known race source).
 - If the leak is fundamentally Reanimated/Expo SDK 54 related, file
   upstream or document the workaround.
+
+---
+
+## Email verification screen — visible re-renders ("jumping") every few seconds
+
+Observed during sub-step 2.7 device smoke pass: the email verification
+screen exhibits visible re-renders / flicker every few seconds while
+the user is waiting on the verification email. Functionally harmless
+(verification works, navigation transitions correctly when
+`emailVerified` flips), but visually jarring.
+
+**Where:** `mobile/src/screens/auth/EmailVerificationScreen.tsx`
+lines 45-68. The screen runs `setInterval(checkVerification, 2000)`
+(line 55) which calls `refreshUser()` from AuthContext every 2
+seconds — `auth.currentUser.reload()` plus a `refreshCounter` bump.
+Cadence chosen for "faster detection" per the inline comment. An
+AppState `change` listener (lines 58-62) fires the same check on
+foreground returns. Each tick triggers a render at minimum on the
+context consumers.
+
+**Why it's not a Phase 2 issue:** the polling pattern predates this
+branch's redesign; no Phase 2 commit touched this file. Pre-existing
+behavior surfaced by the smoke pass.
+
+**Phase 6 paths to consider:**
+- Drop the polling cadence (5s or 10s instead of 2s) — slower
+  detection, less flicker.
+- Replace the interval with an AppState-only check; users who verify
+  in-app without backgrounding are rare (Mail link typically
+  backgrounds the app).
+- Memoize the rendered tree so refreshes that don't change
+  `emailVerified` don't re-render visible text.
+- Investigate whether `AuthContext.refreshUser` mutates state on
+  no-op refreshes (a refresh that finds no change shouldn't bump
+  `refreshCounter`).
+
+Phase 6 polish.
+
+---
+
+## Firebase verification email occasionally fails to deliver on first send
+
+Observed during sub-step 2.7 device smoke pass: the initial verification
+email did not arrive; tapping Resend on `EmailVerificationScreen`
+delivered the email successfully. Pre-existing Firebase Auth email
+delivery behavior, not a Phase 2 regression.
+
+**Current copy state** (`EmailVerificationScreen.tsx`):
+- Instruction card (lines 187-191): "Tap the link in the email to
+  verify your account. It may take a moment to arrive." Soft —
+  doesn't tell the user what to do if it doesn't.
+- Bottom help (lines 232-238): "Didn't receive anything? Check your
+  spam folder or try a different email." Covers spam; omits Resend
+  as an explicit path even though the Resend button is on-screen.
+- Resend button is visible (lines 204-223) but no copy points users
+  at it as the first remediation.
+
+**Phase 6 paths to consider:**
+- Copy hardening: extend the bottom help to three paths — "Check
+  your spam folder, tap Resend if it's been more than 30 seconds,
+  or try a different email." Names the on-screen Resend explicitly.
+- Surface a "Send again" prompt automatically at 30s if the user
+  hasn't yet acted.
+- Investigate whether Firebase Auth's email delivery has a known
+  flake rate worth absorbing into copy, or whether it's a project-
+  level config issue (SPF / DKIM / sender domain alignment).
+
+Phase 6 polish — UX hygiene, not a code fix. Copy hardening is part
+of the work, since current copy partially covers spam but not
+Resend.
