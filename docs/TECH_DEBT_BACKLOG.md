@@ -139,6 +139,42 @@ silently lose state-transition data that Patterns depends on.
 
 ---
 
+## Sentry was a dead dependency on this branch through Phase 2
+
+State observed at the time of removal: `sentry-expo@7.0.1` was installed
+in `mobile/package.json` but never initialized. The `Sentry.init` call
+in `mobile/src/services/crashReporting.service.ts` is commented out
+(lines 28-59), and the file's "ACTIVATION STEPS" docstring (lines
+6-13) documents the migration path that was never executed.
+`AuthContext.tsx` imports no-op stubs from the file
+(`setUserId`, `setUserAttributes`, `clearUser`) — they early-return
+on the file's permanently-false `isInitialized` flag.
+
+The dep removal surfaced as a build blocker at Phase 2 → Phase 3
+transition: `sentry-expo@7.0.1` pins `@sentry/react-native@5.5.0`,
+which has an RCT-Folly resolution incompatible with React Native
+0.81. Removing the dep unblocked the EAS build; the retrospective
+state (Sentry installed but not wired) is captured here so the
+forward path is clear.
+
+Resolution shape when wiring the logger remote-sink (see existing
+"Observability — `logger` is `console.*` in production" entry above):
+follow the activation steps in `crashReporting.service.ts`. Install
+`@sentry/react-native` at the current stable, add the
+`@sentry/react-native/expo` config plugin to `app.json`, uncomment
+and update the `Sentry.init` call, configure DSN via env var. The
+scaffolding in `crashReporting.service.ts` is intact and ready —
+the file structure, the no-op stubs called from `AuthContext`, and
+the activation-steps docstring all assume this future wiring path.
+
+Cross-reference: this entry is retrospective (what was installed but
+never used through Phase 2). The logger remote-sink entry is
+forward-looking (the wiring work needed before TestFlight grows
+past internal testing). When that wiring lands, both entries can be
+closed together.
+
+---
+
 ## FlowInit discriminated union — refactor warranted (escalated 2.7)
 
 **Sub-step 2.7 update — fourth variant landed.** `FlowInit` now has
