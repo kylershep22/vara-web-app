@@ -27,7 +27,8 @@
 //   logs the payload via logger.log — used by the dev harness.
 
 import React, { useEffect, useReducer, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors } from '../../../constants';
 import { logger } from '../../../utils/logger';
@@ -211,10 +212,18 @@ export function CheckInFlow({
     prevStepRef.current = state.step;
   }, [state, intentPath, writeMode]);
 
+  // Top-edge SafeAreaView per Observation 5 (sub-step 2.7 round 2).
+  // Bottom edge intentionally unhandled — step views render their own
+  // bottom-anchored controls (PlayerTransport, response CTAs) which
+  // already account for home-indicator inset via their own padding.
   return (
-    <View style={styles.container} testID="checkin-flow">
+    <SafeAreaView
+      style={styles.container}
+      edges={['top']}
+      testID="checkin-flow"
+    >
       {renderStep(state, dispatch, onClose, onSeeOtherOptions)}
-    </View>
+    </SafeAreaView>
   );
 }
 

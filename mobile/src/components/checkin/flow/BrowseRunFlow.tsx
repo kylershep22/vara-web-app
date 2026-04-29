@@ -24,7 +24,8 @@
 // production vs dev_dry_run identically to CheckInFlow.
 
 import React, { useEffect, useReducer } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors } from '../../../constants';
 import { logger } from '../../../utils/logger';
@@ -102,10 +103,18 @@ export function BrowseRunFlow({
     }
   }, [state, onComplete, userId, intentPath, writeMode]);
 
+  // Top-edge SafeAreaView per Observation 5 (sub-step 2.7 round 2).
+  // Mirrors CheckInFlow's wrapper — same modal presentation, same
+  // status-bar overlap risk. Bottom edge intentionally unhandled —
+  // step views render their own bottom-anchored controls.
   return (
-    <View style={styles.container} testID="browse-run-flow">
+    <SafeAreaView
+      style={styles.container}
+      edges={['top']}
+      testID="browse-run-flow"
+    >
       {renderStep(state, dispatch, stateBefore)}
-    </View>
+    </SafeAreaView>
   );
 }
 
