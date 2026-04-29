@@ -26,6 +26,16 @@ jest.mock('firebase/firestore', () => ({
 
 jest.mock('expo-secure-store');
 
+// Mock expo-keep-awake — pulls in expo-modules-core's EventEmitter
+// at module load, which fails to initialize under Jest's
+// react-native preset. The hook is a no-op in tests; production
+// usage activates the screen-wake on visual protocols.
+jest.mock('expo-keep-awake', () => ({
+  useKeepAwake: jest.fn(),
+  activateKeepAwakeAsync: jest.fn(() => Promise.resolve()),
+  deactivateKeepAwake: jest.fn(),
+}));
+
 // Mock expo vector icons
 jest.mock('@expo/vector-icons', () => ({
   MaterialCommunityIcons: 'MockedMaterialCommunityIcons',
