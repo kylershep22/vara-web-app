@@ -532,3 +532,37 @@ bugs; discipline calls for narrow fixes between rebuilds. The
 Observation 4 minimum patch closes the dead-end without touching
 architecture. Phase 6 polish — or whenever the next substantive
 dashboard work happens — is the right window.
+
+---
+
+## BrainStateCheckin.tsx — no test file (paired with the cleanup entry above)
+
+`mobile/src/components/dashboard/BrainStateCheckin.tsx` has no test
+file. Surfaced during the Observation 4 fix verification: the search
+for tests asserting on the auto-collapse behavior turned up zero
+results because the component has no test coverage at all. Shipped
+through sub-step 2.5's substantial rewrite (the caller migration
+that reshaped the component into a CheckInFlow navigator) and
+sub-step 2.7's Change-button fix without coverage either time.
+
+The gap is paired with the cleanup entry directly above. Adding tests
+to the current component would have negative ROI — the component is
+queued for architectural cleanup that eliminates the phase state
+entirely, which means any tests written against the current shape
+would be deleted by the refactor.
+
+**Resolution shape (paired with the cleanup work):** when the
+"eliminate phase state" refactor lands, the resulting stateless chip
+picker ships with tests covering at minimum:
+
+- Chip tap dispatches `navigation.navigate('CheckInFlow', ...)` with
+  the correct `state_preselected` payload.
+- The Change-from-collapsed behavior reaches the expanded picker
+  state without reverting (the regression guard for the Observation
+  4 bug class).
+- Props reactivity to `currentCheckIn` changes — both the truthy →
+  truthy state-change case and the truthy → null reset case.
+
+Tracking the gap separately from the cleanup so the test work is
+visible as a deliverable of the refactor, not an optional add-on
+that gets deferred again.
