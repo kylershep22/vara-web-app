@@ -57,9 +57,18 @@ export function useCompletionSound(): UseCompletionSoundReturn {
 
     const loadSound = async () => {
       try {
+        // staysActiveInBackground matches the global App.tsx setting
+        // (true) per sub-step 2.7 round 2 — Observation 7. Previously
+        // false (intentional: completion sounds are short, don't
+        // need background), but setAudioModeAsync is GLOBAL state;
+        // setting it false here would clobber the global config and
+        // cause subsequent NSDR audio to stop on screen lock.
+        // Completion sounds being staysActiveInBackground=true is
+        // harmless — the sounds are short and the user is
+        // foregrounded when they fire.
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
-          staysActiveInBackground: false,
+          staysActiveInBackground: true,
           shouldDuckAndroid: true,
           playThroughEarpieceAndroid: false,
         });
