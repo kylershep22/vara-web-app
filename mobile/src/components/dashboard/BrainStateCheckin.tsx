@@ -13,10 +13,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { BrainState } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -76,6 +77,17 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
     setPhase('expanded');
   };
 
+  const handleCancelChange = () => {
+    // Sub-step 2.7 round 2 — Observation 9: dismiss the expanded
+    // picker without committing to a state change. Visible only
+    // when currentCheckIn is truthy (i.e., the expansion came from
+    // the Change button on the collapsed view, not from the
+    // pre-checkin initial state). No Firestore write — the user's
+    // existing brainStateCheckIn doc is untouched.
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPhase('collapsed');
+  };
+
   const handleSeeWeekPress = () => {
     navigation.navigate('Insights' as never);
   };
@@ -98,8 +110,23 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.prompt}>How are you feeling right now?</Text>
-      <Text style={styles.subtext}>Just one tap. No wrong answers.</Text>
+      <View style={styles.headerRow}>
+        <View style={styles.headerText}>
+          <Text style={styles.prompt}>How are you feeling right now?</Text>
+          <Text style={styles.subtext}>Just one tap. No wrong answers.</Text>
+        </View>
+        {currentCheckIn ? (
+          <TouchableOpacity
+            onPress={handleCancelChange}
+            style={styles.cancelButton}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel state change"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Icon name="close" size={24} color={Colors.softCharcoal} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
       {BRAIN_STATES.map((option, index) => (
         <BrainStateOptionRow
           key={option.state}
@@ -130,5 +157,17 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     color: Colors.textSecondary,
     marginBottom: Spacing.md,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  headerText: {
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  cancelButton: {
+    paddingTop: Spacing.xs,
   },
 });
