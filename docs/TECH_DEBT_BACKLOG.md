@@ -535,26 +535,47 @@ dashboard work happens — is the right window.
 
 ---
 
-## BrainStateCheckin.tsx — no test file (paired with the cleanup entry above)
+## Untested components touched by sub-step 2.7 fixes
 
-`mobile/src/components/dashboard/BrainStateCheckin.tsx` has no test
-file. Surfaced during the Observation 4 fix verification: the search
-for tests asserting on the auto-collapse behavior turned up zero
-results because the component has no test coverage at all. Shipped
-through sub-step 2.5's substantial rewrite (the caller migration
-that reshaped the component into a CheckInFlow navigator) and
-sub-step 2.7's Change-button fix without coverage either time.
+Four components were modified across the sub-step 2.7 device
+verification fixes (commits `30d16de`, `808d0d5`) without test
+coverage. The gaps surfaced during fix verification — searches for
+tests asserting on the broken behavior consistently returned zero
+results because none of these components have test files at all:
 
-The gap is paired with the cleanup entry directly above. Adding tests
-to the current component would have negative ROI — the component is
-queued for architectural cleanup that eliminates the phase state
-entirely, which means any tests written against the current shape
-would be deleted by the refactor.
+- **`mobile/src/components/dashboard/BrainStateCheckin.tsx`** —
+  shipped through sub-step 2.5's caller migration and sub-step 2.7's
+  Change-button fix (Observation 4) without coverage either time.
+- **`mobile/src/screens/onboarding/OnboardingV2ProtocolScreen.tsx`** —
+  rewritten in sub-step 2.7 (Observation 3) from the V1 self-attest
+  pattern (TodaysProtocolCard mount) to mounting CheckInFlow with
+  `state_preselected` entry. The handleComplete handler that ignores
+  `userChosenNextStep` and unconditionally calls completeOnboarding
+  is the contract that wants test coverage.
+- **`mobile/src/components/dashboard/TodaysProtocolCard.tsx`** —
+  stripped to informational-only in sub-step 2.7 (Observation 3).
+  Removed `completed` / `onMarkCompleted` / `startExpanded` props.
+  Now stateless; the testable surface is "renders header, description,
+  completion check given a Protocol."
+- **`mobile/src/hooks/useDashboard.ts`** — `handleMarkProtocolCompleted`
+  removed in sub-step 2.7 (Observation 3). The remaining hook surface
+  is large and would benefit from testing irrespective of this fix —
+  flagged here as "touched without coverage" for completeness, not as
+  a sub-step 2.7 specific gap.
 
-**Resolution shape (paired with the cleanup work):** when the
-"eliminate phase state" refactor lands, the resulting stateless chip
-picker ships with tests covering at minimum:
+Adding tests to most of these now has negative ROI — `BrainStateCheckin`
+is queued for the architectural cleanup that eliminates its phase
+state (see "BrainStateCheckin.tsx — internal phase state duplicates
+dashboard control flow" entry above), and the resulting stateless
+component would discard any tests written against the current shape.
+`TodaysProtocolCard` is now small enough that its surface is
+essentially the type signature; minimal test value. `useDashboard` is
+a separate untested-large-hook concern.
 
+**Resolution shape:**
+
+The architectural cleanup work for `BrainStateCheckin` should ship
+with tests covering:
 - Chip tap dispatches `navigation.navigate('CheckInFlow', ...)` with
   the correct `state_preselected` payload.
 - The Change-from-collapsed behavior reaches the expanded picker
@@ -563,9 +584,21 @@ picker ships with tests covering at minimum:
 - Props reactivity to `currentCheckIn` changes — both the truthy →
   truthy state-change case and the truthy → null reset case.
 
-Tracking the gap separately from the cleanup so the test work is
-visible as a deliverable of the refactor, not an optional add-on
-that gets deferred again.
+`OnboardingV2ProtocolScreen` should ship with at minimum:
+- handleComplete fires completeOnboarding for both terminal variants
+  (`abandoned` and `flow_complete`).
+- handleComplete fires completeOnboarding regardless of
+  userChosenNextStep (the regression guard for the Observation 3 bug
+  class — onboarding doesn't fork on the response screen's button).
+- The notification permission request precedes completeOnboarding
+  and the await resolves on both Allow and Deny.
+
+`TodaysProtocolCard` and `useDashboard` are each separate hygiene
+concerns better addressed in their own focused passes.
+
+Tracking these gaps so post-refactor / hygiene-pass work makes the
+test coverage explicit deliverables, not optional add-ons that get
+deferred again.
 
 ---
 
