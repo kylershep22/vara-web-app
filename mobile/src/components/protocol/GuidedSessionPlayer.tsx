@@ -48,6 +48,7 @@ import {
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useKeepAwake } from 'expo-keep-awake';
 
 import { Colors, Spacing, Typography } from '../../constants';
 import { STEP_TRANSITION_DURATION_MS } from '../../constants/motion';
@@ -140,6 +141,17 @@ export function GuidedSessionPlayer({
   // mount; cache the totalSteps so the marker write doesn't re-read
   // the protocol object on every interval tick.
   const totalSteps = protocol.steps.length;
+
+  // Sub-step 2.7 round 2 — Observation 6: keep screen awake during
+  // visual protocols (BreathPacer, Timer steps). Audio-only protocols
+  // (NSDR) intentionally let the screen sleep; audio continues
+  // playing in the background per Observation 7's audio config.
+  // The KeepAwakeWhenVisual subcomponent calls useKeepAwake
+  // unconditionally; conditional rendering of the subcomponent is
+  // how we gate the activation without violating Rules of Hooks.
+  const isVisualProtocol = protocol.steps.some(
+    (s) => s.kind === 'breath' || s.kind === 'timer'
+  );
 
   // ----- recovery effect (mount-only, ref-driven) -----
 
@@ -468,6 +480,7 @@ export function GuidedSessionPlayer({
 
   return (
     <View style={styles.container} testID="guided-session-player">
+      {isVisualProtocol ? <KeepAwakeWhenVisual /> : null}
       <Header
         protocolName={protocol.name}
         currentStepIndex={currentStepIndex}
@@ -514,6 +527,15 @@ export function GuidedSessionPlayer({
 }
 
 // ---------- internal subcomponents ----------
+
+// Mounts useKeepAwake unconditionally; the parent's conditional
+// render gates whether this subcomponent mounts at all. Hook's
+// activate-on-mount / deactivate-on-unmount lifecycle does the
+// gating cleanly — no imperative activate/deactivate calls needed.
+function KeepAwakeWhenVisual() {
+  useKeepAwake('guided-session-player');
+  return null;
+}
 
 interface HeaderProps {
   protocolName: string;
