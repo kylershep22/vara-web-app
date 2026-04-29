@@ -566,3 +566,99 @@ picker ships with tests covering at minimum:
 Tracking the gap separately from the cleanup so the test work is
 visible as a deliverable of the refactor, not an optional add-on
 that gets deferred again.
+
+---
+
+## Onboarding crosses V1→V2 mid-flow after sub-step 2.7 fix
+
+The Observation 3 fix migrates `OnboardingV2ProtocolScreen` to mount
+`CheckInFlow` (the V2 multi-step pattern) but preserves
+`OnboardingV2CheckInScreen`'s direct-`saveBrainStateCheckIn` shape
+(the V1 single-tap pattern). Different reasons:
+
+- **Protocol screen migrated by necessity** — the V1 self-attest UI
+  was data-corrupting (no protocolSessions write, no re-check, no
+  state transition captured). Migration restores Build Guide §1
+  measurement.
+- **Check-in screen preserved by intent** — the V2 multi-step
+  CheckInFlow with state_pick → time_pick → recommendation would
+  over-complicate the first-time user experience. The decision is
+  documented inline in `OnboardingV2CheckInScreen.tsx` lines 6-12.
+
+Net result: onboarding's first protocol experience now crosses the
+V1→V2 boundary mid-flow. The user does V1 single-tap state-pick on
+one screen, then drops into the multi-step CheckInFlow with
+time_pick → recommendation → player → re_check → response on the
+next.
+
+**Watch during device verification** for whether the transition feels
+jarring. Specific cues:
+
+- Visual continuity: the V1 chip-row screen has a different layout
+  than the V2 time_pick screen.
+- Pacing: V1 has the 2.2s "Captured." beat before navigating; V2's
+  time_pick mounts immediately after CheckInFlow's reducer initializes.
+- User mental model: "I just picked my state, now there's MORE
+  picking?" might feel like a regression.
+
+If the founder reports the boundary feels jarring during the next
+device verification:
+
+**Phase 3 candidate** — migrate `OnboardingV2CheckInScreen` to use
+`CheckInFlow`'s standard entry (state_pick is the first step), passing
+brainState via the flow's normal state_selected dispatch instead of
+pre-populating it. Eliminates the dual-screen onboarding entirely;
+onboarding becomes "drop the user into CheckInFlow with a brief intro
+modal first." Significant UX shift — needs design review, not just an
+implementation flip.
+
+If the boundary feels seamless: leave both screens as they are. The
+hybrid is intentional and the device test result confirms it works.
+
+---
+
+## ONBOARDING_V2 flag + V1 onboarding screens that would re-introduce data-integrity issues
+
+`ONBOARDING_V2` flag in `mobile/src/constants/dashboardConfig.ts:7`
+is currently `true`. The `false` branch in `AppNavigator.tsx`
+(lines 144-152) renders 11 V1 onboarding screens:
+
+`OnboardingWelcomeScreen`, `OnboardingCheckInScreen`,
+`OnboardingInsightScreen`, `OnboardingActivityScreen`,
+`OnboardingValuesScreen`, `OnboardingPersonalizedEntryScreen`,
+`OnboardingConfirmationScreen`, `OnboardingFirstWinScreen`,
+`OnboardingFocusScreen`, `OnboardingQuickStartScreen`,
+`OnboardingTourScreen`.
+
+Several of these still use V1 patterns directly
+(`saveBrainStateCheckIn` direct calls, V1 self-attest UIs that don't
+mount the player). If the flag flipped to `false`, the same
+data-integrity issues that Observation 3 surfaced would re-emerge —
+no protocolSessions writes from onboarding, legacy `protocolCompleted`
+flag set without the user having actually run a protocol, no
+state-transition measurement.
+
+**Two paths:**
+
+(a) **Commit to V2.** Remove the flag. Delete the 11 V1 screens.
+    Simplify `AppNavigator.tsx` to render `OnboardingNavigator`'s
+    V2-only screen list unconditionally. Lower long-term maintenance
+    cost; closes the rollback escape hatch.
+
+(b) **Formalize as emergency-rollback-only.** Document the flag's
+    contract explicitly (in `dashboardConfig.ts` or a dedicated doc):
+    when it's flipped, what known V1 issues re-surface, what the
+    rollback procedure is. Add a regression test that the V1 branch
+    mounts correctly should it ever be flipped (so the rollback
+    actually works when needed).
+
+**Also flagged in the same audit:** `MorningCheckIn.tsx` is exported
+from `components/dashboard/index.ts` but has zero JSX usages anywhere
+in the tree. The only referent is `NextBestActionCard`'s
+`onMorningCheckIn` prop name, which `DashboardScreen.tsx:451` passes
+as `() => {}` (no-op). Pure dead code, candidate for removal in the
+same cleanup pass.
+
+Phase 6 polish or whenever onboarding work happens next. The decision
+between (a) and (b) needs a product call (is the rollback escape hatch
+worth keeping?), not just an engineering preference.

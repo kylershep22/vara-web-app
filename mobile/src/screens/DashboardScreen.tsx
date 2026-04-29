@@ -100,7 +100,6 @@ const DashboardScreen: React.FC = () => {
     handleNotifDismiss,
     handleRefresh,
     brainStateCheckIn,
-    handleMarkProtocolCompleted,
     todaysProtocol,
     showDailyReflection,
     handleDailyReflection,
@@ -181,13 +180,17 @@ const DashboardScreen: React.FC = () => {
   const renderCard = (cardId: string) => {
     switch (cardId) {
       case 'protocol':
-        return brainStateCheckIn && todaysProtocol ? (
-          <TodaysProtocolCard
-            key="protocol"
-            protocol={todaysProtocol}
-            completed={brainStateCheckIn.protocolCompleted}
-            onMarkCompleted={handleMarkProtocolCompleted}
-          />
+        // Sub-step 2.7 fix (Observation 3): TodaysProtocolCard is
+        // informational-only after the V1 self-attest UI removal. The
+        // mount is guarded on protocolCompleted=true; the pre-completion
+        // case (e.g. user abandoned a CheckInFlow) hides the card
+        // rather than rendering the now-removed Begin/Done UX. Users
+        // re-engage via the chip-tap surface (BrainStateCheckin) or
+        // via Change on the DashboardAnchor's collapsed view.
+        return brainStateCheckIn &&
+          todaysProtocol &&
+          brainStateCheckIn.protocolCompleted ? (
+          <TodaysProtocolCard key="protocol" protocol={todaysProtocol} />
         ) : null;
       case 'notifOptIn':
         // Skip in pre-checkin; it's rendered above the muted wrapper in

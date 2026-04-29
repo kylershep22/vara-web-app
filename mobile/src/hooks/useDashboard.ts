@@ -38,7 +38,6 @@ import { getProtocolById } from '../constants/brainStateProtocols';
 import { normalizeProtocolId } from '../utils/protocolIdNormalizer';
 import {
   getTodayBrainStateCheckIn,
-  markProtocolCompleted,
   getTodayDailyReflection,
   saveDailyReflection,
 } from '../services/firebase';
@@ -477,18 +476,13 @@ export function useDashboard() {
   // for completed flows is wired (Phase 5 / Phase 6), the natural
   // home is CheckInFlowScreen's onComplete handler.
 
-  const handleMarkProtocolCompleted = useCallback(async () => {
-    if (!user?.uid) return;
-    try {
-      await markProtocolCompleted(user.uid);
-      setBrainStateCheckIn((prev) =>
-        prev ? { ...prev, protocolCompleted: true } : null
-      );
-    } catch (error) {
-      logger.error('Error marking protocol completed:', error);
-    }
-  }, [user]);
-
+  // Sub-step 2.7 fix (Observation 3): handleMarkProtocolCompleted
+  // removed alongside TodaysProtocolCard's V1 self-attest UI. Protocol
+  // completion now happens through CheckInFlow's terminal write
+  // (writeStandardFlowSession), which calls markProtocolCompleted on
+  // flow_complete via the legacy parallel write. The dashboard's
+  // brainStateCheckIn state updates via the next refetch after the
+  // user returns from the flow.
   const todaysProtocol = useMemo(() => {
     if (!brainStateCheckIn) return null;
     // Sub-step 2.5 migration: read the protocolId off the legacy
@@ -739,7 +733,6 @@ export function useDashboard() {
 
     // Dashboard V2
     brainStateCheckIn,
-    handleMarkProtocolCompleted,
     todaysProtocol,
 
     // Daily Reflection
