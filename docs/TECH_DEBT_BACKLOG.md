@@ -695,3 +695,69 @@ same cleanup pass.
 Phase 6 polish or whenever onboarding work happens next. The decision
 between (a) and (b) needs a product call (is the rollback escape hatch
 worth keeping?), not just an engineering preference.
+
+---
+
+## protocolSessions doc captures stateAfter correctly but userChosenNextStep records auto_dismissed not the user's actual response choice
+
+Surfaced during sub-step 2.7 round-2 device verification of
+Observation 8 (founder Firestore Console check). The
+`protocolSessions` doc for a verified end-to-end CheckInFlow run had:
+
+- `stateBefore: "wired"` ✓ (initial chip-tap selection)
+- `stateAfter: "steady"` ✓ (re-check selection)
+- `outcome: "shifted"` ✓ (correctly classified per upward-green rule)
+- `durationActualSeconds: 184` ✓ (user ended Box Breathing 5min early)
+- `protocolId: "box-breathing-2"` ✓
+- `intentPath: "default"` ✓ (Phase 3 not shipped)
+- `userChosenNextStep: "auto_dismissed"` ✗ — should reflect the
+  user's tap on the response screen (try_longer, rest_later, or a
+  dismissed variant), not the auto-dismissed default
+
+Root cause (hypothesized — not investigated end-to-end yet):
+`CheckInFlow.tsx:120-144` writes the session in a useEffect that
+fires on terminal-state entry. The flow's terminal state
+(`flow_complete` or `abandoned`) is reached via the reducer's
+`next_step_chosen` action — which fires from the response screen's
+button taps. The terminal write captures the state at terminal-entry
+time. Whatever `userChosenNextStep` value the reducer sets at that
+moment is what gets written.
+
+The "auto_dismissed" default suggests one of:
+
+- The reducer initializes `userChosenNextStep` to `"auto_dismissed"`
+  on the response screen's mount, and the terminal write fires
+  before the user's tap updates it. The user's tap then transitions
+  to `flow_complete` with the correct value, but the write has
+  already fired. (Most likely.)
+- Or the response screen's button taps don't actually update
+  `userChosenNextStep` in the path that leads to terminal — there's
+  a wiring gap between `next_step_chosen` action and the terminal
+  state's payload.
+
+**Why this is non-blocking for Phase 2:**
+
+State transition data (`stateBefore` / `stateAfter` / `outcome`) is
+captured correctly. That's the load-bearing measurement per Build
+Guide §1 — the atomic unit of value. Patterns reads
+`outcome` and the state pair to compute first-shift, transition
+counts, etc. None of those consumers read `userChosenNextStep`.
+`userChosenNextStep` is informational (used by
+`CheckInFlowScreen`'s post-flow navigation routing — but that
+routing happens BEFORE the write, in `handleComplete`, so it reads
+the live `terminal.userChosenNextStep` not the persisted value).
+
+**Phase 5 is the right window to fix this.** Phase 5 owns response
+capture (per Vara_Implementation_Plan.md) — the response screen's
+copy, button semantics, and downstream consumers (e.g., engagement
+tracking, intent-path-aware copy) are Phase 5 work. Whoever lands
+that work needs to verify the write captures the user's actual
+choice, not the auto-dismissed default. If the reducer init is the
+cause, the fix shape is delaying the terminal write until the
+user's tap settles — or moving the write into the
+`next_step_chosen` action's reducer transition rather than the
+useEffect's terminal observer.
+
+Track for Phase 5 entry; don't fix in Phase 2. Round-2 founder
+verification confirmed the write infrastructure works end-to-end,
+which is what Phase 2 needed to prove.
