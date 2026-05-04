@@ -761,3 +761,202 @@ useEffect's terminal observer.
 Track for Phase 5 entry; don't fix in Phase 2. Round-2 founder
 verification confirmed the write infrastructure works end-to-end,
 which is what Phase 2 needed to prove.
+
+---
+
+## useDashboard.ts: brainStateCheckIn read pattern is one-shot, not a real-time listener
+
+Surfaced during sub-step 2.7 round 4 device verification of
+Observation 11 (dashboard reverts to chip picker after re-check).
+The round 3 fix (commit `89c88a9`) swapped the brain-state read
+from a mount-only `useEffect` to a `useFocusEffect`, and the round
+4 fix (Obs 11 — `CheckInFlow.tsx`) added a `Promise.all([write,
+setTimeout(1500)])` await before `onComplete` to close the
+write-not-flushed-before-read race window.
+
+The `useFocusEffect` + 1500ms floor combination is sufficient for
+Phase 2 close, but the underlying read pattern remains a one-shot
+`getTodayBrainStateCheckIn` call (`hooks/useDashboard.ts:300-315`)
+rather than a real-time `onSnapshot` listener. This is the same
+shape that produced the original race; future writes that feed the
+dashboard (Phase 3 onboarding, Phase 5 patterns surfaces) could
+re-introduce a similar race if the timing assumptions change.
+
+The codebase already uses `onSnapshot` for the user's
+`firstShiftAt` field in `DashboardScreen.tsx` — same screen, same
+collection-shape. Migrating `brainStateCheckIn` to the same pattern
+would:
+
+- Eliminate the focus-tied refetch entirely (real-time updates
+  push state changes to the dashboard the moment they land).
+- Remove the need for the 1500ms minimum-display floor (it would
+  still be welcome as UX, but not load-bearing for correctness).
+- Avoid future re-introduction of similar races as the dashboard
+  read graph grows.
+
+**Phase 4 or 5 work.** Not blocking 2.7 closure.
+
+---
+
+## Light Movement: optional Flow / guided-yoga modality
+
+Sub-step 2.7 round 4 (Obs 10) shipped a two-option modality picker
+for the brief-movement family — Walk and Stretch. A third option
+("Flow" / guided yoga) was intentionally excluded. Reasoning: we
+don't currently provide the guidance content, so we don't surface
+the option. Offering an unguided "Flow" pick would reproduce the
+exact "thrust into unguided activity" problem the picker was
+introduced to solve.
+
+Adding Flow is a Phase 4+ consideration that requires:
+
+- Script content (a 5-minute and 10-minute guided flow sequence
+  matching the catalog's existing variant durations).
+- Player support for guided cue playback during a movement step
+  (audio overlay, timed prompts, or both — depends on whether the
+  guidance is voice-driven or text-on-screen).
+- Voice/tone calibration for movement cues (the existing
+  Vara_NSDR_Audio_Scripts.md pattern is a starting reference for
+  format, not content).
+- A decision on whether the picker becomes 3-option (Walk / Stretch
+  / Flow) or whether Flow surfaces as a separate protocol family
+  with its own catalog entries.
+
+Track for Phase 4 entry. Until then, Walk and Stretch are the
+shipping options.
+
+---
+
+## Selector logic — closest-match deterministic sort (Layer 1 of round 3)
+
+Round 3 Layer 1 replaced the alphabetical-id tie-break in
+`mobile/src/services/protocolSelector.service.ts` with an ascending
+`|p.timeWindow - chosenWindow|` sort, alphabetical id as the
+tie-break. The change fixes the time-budget mismatch surfaced
+during testing (Foggy + 20 min was returning a 10-min protocol
+because `m` < `n`).
+
+**This is a one-dimensional heuristic, not a scoring function.** It
+prefers protocols whose `timeWindow` is closest to the user's
+chosen window, with no awareness of:
+
+- Evidence tier (an unproven 20-min protocol beats a Tier 1
+  10-min one even though the 10-min has stronger evidence).
+- Recency (no fatigue avoidance — same protocol can be
+  recommended repeatedly).
+- User preference / history (no personalization).
+- State-specificity weighting (a generic protocol that lists 5
+  states ties with a state-specific one).
+- Closest-under vs closest-over symmetry (the `<= chosenWindow`
+  filter means no over-shoot is possible, but the heuristic
+  treats all under-shoots as linearly worse — a 5-min for a
+  20-min budget might be a better fit than a 4-min for a 5-min
+  budget if the user actually has 20 minutes free).
+
+**Phase 4 owns the real recommender.** When that work lands, the
+closest-match sort gets replaced by a multi-feature scoring
+function. Possible feature set:
+
+```ts
+score(protocol, request) =
+  evidenceWeight(protocol.evidenceTier) +
+  recencyPenalty(protocol.id, request.userId) +
+  stateSpecificityWeight(protocol, request.state) +
+  durationFitScore(protocol.timeWindow, request.timeWindow) +
+  preferenceWeight(protocol, request.userPreferences)
+```
+
+**Why Layer 1 lands now and not at Phase 4:** the alphabetical
+tie-break produces user-visible mismatches in the round-3 testing
+window (recommended duration ≠ stated budget). Closest-match is
+a strict improvement over alphabetical without preempting the
+Phase 4 scoring system — Phase 4 will replace the entire sort
+function regardless of what the tie-break currently does.
+
+**Test coverage:**
+`mobile/src/services/__tests__/protocolSelector.service.test.ts`
+adds three regression tests for the closest-match behavior plus
+two existing-case updates (Steady+5 → coherence-breathing-5;
+Clear+45 → focused-work-45 — both shifts are intentional and
+correct under the new sort).
+
+**Doc cross-reference:**
+`docs/SPEC_CONSISTENCY_BACKLOG.md` "protocolSelector tie-break uses
+alphabetical ID sort" entry has been updated to note Layer 1's
+partial fix.
+
+---
+
+## React Navigation default back button on Practices screen — root cause unidentified
+
+**Reported:** Founder device verification on build #1.0.83
+(`PracticesIndexScreen` registered at `AppNavigator.tsx:744-754`
+with `headerShown: true`, `standardHeaderOptions`, `animation:
+'slide_from_right'`). Tapping the system-default header back button
+did nothing — the screen did not pop, no visual feedback fired.
+
+**Diagnostic results (rounds 1–3):**
+
+- `canGoBack()` returned `true` on both mount and focus → navigate /
+  push semantics are not the problem; the back target exists.
+- A custom `TouchableOpacity` `headerLeft` override added in the
+  working tree fired its `onPress` correctly in the dev build and
+  popped the stack. Visual feedback (opacity dim) worked.
+- Round 3 added `headerLeft RENDER` and root `onTouchStart` traces;
+  all fired as expected in dev.
+
+**Outcome A confirmed in dev: the override works.** The shipped fix
+(round-3 production fix on `PracticesIndexScreen.tsx`) keeps the
+custom override with a chevron icon and design-system styling.
+
+**What we did NOT learn:** why the SYSTEM-DEFAULT React Navigation
+back button failed in #1.0.83. The dev verification ran with our
+override compiled in, so it proved the override works — it did not
+isolate the original root cause. We routed around the bug; we did
+not diagnose it.
+
+**Hypotheses to investigate (in priority order):**
+
+1. **Stack-header chrome interaction with `slide_from_right`
+   animation.** The Practices screen ships with `animation:
+   'slide_from_right'`. Other screens in the same stack with
+   different animations (`slide_from_bottom`) may not exhibit the
+   issue. Worth grepping for stack screens with
+   `slide_from_right` + `headerShown: true` and probing each.
+2. **`headerShadowVisible: false` + `standardHeaderOptions`
+   interaction.** The Practices screen also sets
+   `headerShadowVisible: false`. Combined with the
+   `Colors.mistWhite` header background and zero shadow, the
+   header may be visually present but have a hit region issue
+   (transparent bg + RN's default header touch handling).
+3. **iOS-specific React Navigation native-stack issue.** Tested
+   only on iOS (founder's primary device). The default chevron's
+   hit region on `@react-navigation/native-stack` 7.8.6 may have
+   a known quirk under specific style combinations.
+4. **Stale-build artifact.** Less likely but possible: the user
+   was on a build whose JS bundle had drifted from native shell
+   in some way, and the issue was a one-off install rather than
+   a true bug. Hard to falsify retroactively.
+
+**Investigation when this comes up next:**
+
+- Check whether other stack screens with `slide_from_right` +
+  `headerShown: true` (e.g. `HabitDetailScreen` at line 700,
+  `DevBreathPacer` test harness, etc.) reproduce the same bug
+  on a fresh #1.0.83-equivalent build.
+- If the bug is reproducible elsewhere, the override pattern from
+  `PracticesIndexScreen` should be lifted to a shared helper or —
+  preferably — the root cause should be fixed via header style
+  adjustment rather than per-screen overrides.
+- File a minimal repro upstream to `@react-navigation/native-stack`
+  if the bug is verifiable in a stripped-down example.
+
+**Why this matters:** the Practices override is currently a
+per-screen workaround. If the same issue affects other stack
+screens, every affected screen needs its own override (drift risk
++ duplicated touch handling code). Root cause identification lets
+us fix it once.
+
+**Doc cross-reference:** `docs/PHASE_NOTES.md` "Sub-step 2.7 round
+5 — Task 3 (Obs 12b)" describes the override; this entry is the
+companion that names the unfixed underlying issue.

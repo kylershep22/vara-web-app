@@ -234,3 +234,142 @@ handler.
   against the doc updates).
 - Build Guide stays the source of truth for "11 protocols." It
   currently says 11 — no change needed there.
+
+---
+
+## Focused Work shares the "thrust into unguided activity" shape
+
+Sub-step 2.7 round 4 (Obs 10) shipped a pre-timer modality picker
+for the brief-movement family (Walk / Stretch). A catalog-wide
+scope check during that round identified `focused-work-45` and
+`focused-work-90` as the only other protocols with the same shape
+— a timer plus a single instruction string covering multiple
+possible activities ("Single task. No tab-switching. Notifications
+silenced."). The user has to self-specify the work content; the app
+provides a clock and a vague constraint, nothing more.
+
+The picker pattern from Light Movement is NOT directly portable.
+Light Movement's domain is movement-modality (Walk vs Stretch vs
+Flow); Focused Work's domain is task-content (Creative vs Analytical
+vs Administrative — or a free-text field). A shared abstraction
+would force the two domains into a single component shape and
+weaken both. Two domain-specific pickers, sharing a UX pattern but
+not code, is the more honest approach.
+
+**Phase 4+ evaluation.** Don't generalize the modality picker
+abstraction yet. When Focused Work's picker is designed, decide
+then whether the underlying card-grid component is worth lifting
+into a shared primitive.
+
+**Doc impact:** None until the picker ships. Implementation Plan
+Phase 4 entry should reference this item.
+
+---
+
+## protocolSelector tie-break uses alphabetical ID sort, produces time-budget mismatches
+
+`services/protocolSelector.service.ts:48-51` filters eligible
+protocols by `(state, timeWindow)` and breaks ties by sorting by
+ID alphabetically:
+
+```ts
+const eligible = getAllProtocols()
+  .filter((p) => p.suitableForStates.includes(input.state))
+  .filter((p) => p.timeWindow <= input.timeWindow)
+  .sort((a, b) => a.id.localeCompare(b.id));
+```
+
+The `timeWindow <= input.timeWindow` filter is correct (a 20-min
+budget should let the user accept any 20-or-shorter protocol), but
+the alphabetical tie-break means a Foggy + 20-min budget gets
+`mindful-walking-10` recommended (`m` < `n`) instead of
+`mindful-walking-20`, even though the longer variant matches the
+budget exactly. The user asked for 20 minutes; the system gives
+them 10.
+
+**Phase 4 territory.** Phase 4's real recommender replaces this
+stub. When that work lands, prefer protocols closest to the user's
+stated time budget over alphabetical ID. Possible rules:
+
+- Prefer the largest `timeWindow` that fits the budget.
+- Within a timeWindow tier, fall back to the existing alphabetical
+  tie-break (or replace with a deterministic recency-aware order).
+
+Until Phase 4, the tie-break behavior is observable in the
+`mindful-walking` and `bright-light` families (both have `-10` and
+`-20` variants eligible for the same states). The "see other
+options" surface compensates partially — the user sees the longer
+variant and can pick it manually — but the default recommendation
+is wrong for users who explicitly chose the larger budget.
+
+**Update (round 3, Layer 1):** Partial fix landed. The sort is now
+ascending `|p.timeWindow - chosenWindow|` with alphabetical id
+tie-break, so the recommender picks the closest-match duration
+instead of the alphabetically-first one. Foggy + 20 now returns
+a 20-min protocol (e.g. `bright-light-20`) rather than a 10-min
+one. Phase 4's real ranking system still replaces this — closest-
+match is a one-dimensional heuristic, not a scoring function.
+
+**Doc impact:** None until Phase 4 ships. Listed here so the Phase
+4 author has the signal already captured.
+
+---
+
+## Protocol library coverage gaps — 7 state×time cells with no exact match
+
+After round-3 Layer 1's closest-match sort lands, exact-match
+coverage by state × time chip (16-variant library) is:
+
+| State | 2 min | 5 min | 10 min | 20 min | 45+ |
+|-------|-------|-------|--------|--------|-----|
+| Wired (5 protocols) | 4 | 1 | 0 | 0 | 0 |
+| Foggy (9) | 0 | 2 | 4 | 3 | 0 |
+| Alive (2) | 0 | 1 | 1 | 0 | 0 |
+| Steady (4) | 1 | 1 | 1 | 1 | 0 |
+| Clear (3) | 0 | 1 | 0 | 0 | 2 |
+
+7 of 25 cells have no exact match. The closest-match selector
+falls back to the next-shorter protocol in those cells, so the
+user always gets *something*, but the recommended duration may be
+shorter than they asked for.
+
+**Strategic priority (Phase 4 content review): Wired @ 10/20/45.**
+Highest-stress users with the most time available currently get
+only short resets. Wired + 45-min budget recommends a 5-min Cold
+Water Reset — functional but a clear gap. Phase 4 should add at
+least one mid-length Wired protocol (10–20 min) and one long-form
+Wired protocol (45 min, e.g. extended NSDR or a guided
+parasympathetic practice).
+
+**Lower-priority gaps:** Foggy @ 2/45, Alive @ 2/20/45, Clear @
+2/10/20. These are less frequent state×time combinations and the
+fallback is acceptable for v1.
+
+**Doc impact:** Phase 4 author should reference this matrix when
+scoping content additions.
+
+---
+
+## 20-min chip framing "Full reset" overpromises after Layer 1
+
+`mobile/src/components/checkin/TimeWindowSelector.tsx` chip copy
+labels the 20-min option "Full reset". After round-3 Layer 1 ships,
+some state + 20-min combinations (e.g. Wired + 20) return a 5-min
+protocol because no 20-min variant exists. The chip framing
+implies a 20-min experience; the recommendation delivers 5 min and
+a "You'll have time left in your window" gap-acknowledgment line.
+
+**Why this is currently acceptable:** The gap-acknowledgment line
+is honest about the mismatch. The user is told upfront that the
+recommended protocol is shorter than their stated budget. But
+the chip-level framing creates expectation friction that the
+gap line can only partially relieve.
+
+**Phase 4 evaluation:** Either (a) add longer-form Wired protocols
+so the chip's promise is fulfilled (preferred — addresses the
+content gap above), or (b) reframe the 20-min chip to something
+duration-agnostic ("A real reset", "Settle in"). Option (a) is
+strictly better.
+
+**Doc impact:** Update `Vara_Build_Guide.md` chip framings only
+if option (b) is chosen.

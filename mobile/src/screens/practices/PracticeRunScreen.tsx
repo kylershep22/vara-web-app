@@ -52,6 +52,13 @@ export function PracticeRunScreen() {
     navigation.goBack();
   }, [navigation]);
 
+  // Sub-step 2.7 round 4 (Obs 10) — fires when the Light Movement
+  // pre-timer modality picker is cancelled. No session was started,
+  // so no write fires; we just route back to Practices.
+  const handleCancel = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
   if (!protocol) {
     return (
       <View style={styles.errorContainer} testID="practice-run-error">
@@ -77,6 +84,7 @@ export function PracticeRunScreen() {
       stateBefore={stateBefore}
       userId={user.uid}
       onComplete={handleComplete}
+      onCancel={handleCancel}
     />
   );
 }

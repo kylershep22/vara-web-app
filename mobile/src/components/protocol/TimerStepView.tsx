@@ -1,11 +1,15 @@
 // Timer step renderer.
 //
-// Used for Brief Movement, Mindful Walking, Focused Work Window,
-// Bright Light Exposure, and Cold Water Reset's contact phase. The
-// user is doing the work somewhere else (a sink, a sidewalk, a desk
-// task); the app just runs the clock. Display is the inverse of
-// InstructionStepView — countdown dominates, label and hint are
-// supporting copy.
+// Used for Light Movement, Mindful Walk / Walking Meditation,
+// Focused Work Window, Bright Light Exposure, and Cold Water
+// Reset's contact phase. The user is doing the work somewhere
+// else (a sink, a sidewalk, a desk task); the app just runs the
+// clock. Display is the inverse of InstructionStepView —
+// countdown dominates, label and hint are supporting copy.
+//
+// Light Movement protocols receive a runtime `hint` override from
+// LightMovementProtocolFlow based on the user's pre-timer modality
+// pick (Walk vs Stretch); the catalog's static hint is a fallback.
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';

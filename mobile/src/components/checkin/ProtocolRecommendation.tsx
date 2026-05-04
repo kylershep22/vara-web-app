@@ -14,6 +14,13 @@
 // Per-state lead copy is the default-path variant. Phase 5 adds
 // per-intent-path variants (e.g. softer language for the
 // down-regulation path).
+//
+// Round 3 (Layer 3) — gap-acknowledgment line: when the recommender
+// returns a protocol shorter than the user's chosen time window
+// (the residual case after the closest-match sort lands in Layer 1
+// — e.g. Wired+20 has no exact match because Wired protocols cap at
+// 5 min), render a calm one-liner under the duration row. Honest,
+// non-apologetic framing per Vara voice rules.
 
 import React from 'react';
 import {
@@ -37,6 +44,7 @@ import {
 } from '../../utils/protocolDisplay';
 
 const MIN_TOUCH_TARGET = 48;
+const TIME_LEFT_LINE = "You'll have time left in your window.";
 
 export interface ProtocolRecommendationProps {
   protocol: Protocol;
@@ -79,6 +87,7 @@ export function ProtocolRecommendation({
   const lead = recommendationLeadCopy(brainState, timeWindow);
   const durationLabel = formatProtocolDuration(protocol);
   const evidenceLabel = evidenceChipLabel(protocol.evidenceTier);
+  const showTimeLeftLine = protocol.timeWindow < timeWindow;
 
   return (
     <View style={styles.container} testID="protocol-recommendation">
@@ -133,6 +142,14 @@ export function ProtocolRecommendation({
             <Text style={styles.metaSeparator}>·</Text>
             <Text style={styles.evidence}>{evidenceLabel}</Text>
           </View>
+          {showTimeLeftLine ? (
+            <Text
+              style={styles.timeLeftLine}
+              testID="protocol-recommendation-time-left"
+            >
+              {TIME_LEFT_LINE}
+            </Text>
+          ) : null}
           <Text
             style={styles.description}
             testID="protocol-recommendation-description"
@@ -232,6 +249,11 @@ const styles = StyleSheet.create({
   evidence: {
     fontSize: Typography.fontSize.sm,
     color: Colors.mutedSageGray,
+  },
+  timeLeftLine: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginBottom: Spacing.sm,
   },
   description: {
     fontSize: Typography.fontSize.base,

@@ -779,6 +779,261 @@ Phase 3 to keep specs in sync with shipped code:
   Sighing or" alternative — Implementation Plan line 294)
 - Case 4 routing target after re-check = Practices, not Today
 
+### Sub-step 2.7 round 4 — locked decisions
+
+Round 4 of device verification surfaced three observations beyond
+the round 3 batch. The decisions below are locked in code; document
+updates land alongside the next docs-only commit.
+
+#### Obs 11 — terminal-write race against dashboard refetch
+
+**Problem:** Dashboard reverts to the chip picker after a re-check
+completion. Round 3's commit `89c88a9` swapped the brain-state
+check-in load to `useFocusEffect`, closing the stale-cache class.
+The remaining race: `CheckInFlow.tsx`'s terminal useEffect was
+fire-and-forget — `writeStandardFlowSession(...).catch(...)` and
+then immediate `onComplete(state)`. The dashboard's focus-effect
+read `getTodayBrainStateCheckIn` could fire before the legacy
+`brainStateCheckIns` write resolved, so the predicate
+(`brainStateCheckIn ? checked-in : pre-checkin`) saw stale null and
+flipped back to the picker.
+
+**Fix:** Replace fire-and-forget with `await Promise.all([write,
+setTimeout(1500)])`, then `onComplete`. The 1500ms floor doubles as
+a deliberate display window for the "moving from one state to the
+next" transition message — feels intentional, not laggy. Errors are
+caught and logged but do NOT block navigation; a write failure must
+not strand the user on the message screen.
+
+**Tests:** Suites that mount a terminal-state useEffect cycle now
+pass `{ timeout: 3000 }` to `waitFor(...)` (real timers) or
+explicitly advance fake timers past 1500ms before asserting
+`onComplete` fired. Helper constants
+`TERMINAL_ON_COMPLETE_TIMEOUT_MS` and
+`TERMINAL_DELAY_FAKE_TIMER_ADVANCE_MS` live in `CheckInFlow.test.tsx`.
+
+#### Obs 12 — Mindful Walking display-name collision
+
+The 10-min and 20-min `mindful-walking` variants previously shared
+the display name "Mindful Walking", so the catalog list under
+"see other options" surfaced two identically-labeled entries.
+
+**Decision:** Rename per duration to make the practices honestly
+distinguishable in copy:
+
+- `mindful-walking-10` → display name **"Mindful Walk"** (10-min)
+- `mindful-walking-20` → display name **"Walking Meditation"**
+  (20-min — leans into the deeper-attentional-settling framing
+  already in the entry's `howItWorks` and step hint)
+
+Protocol IDs and `family` keys remain unchanged. The
+`brainStateProtocols.test.ts` "variants in the same family share
+the same name" invariant is exempted for `mindful-walking`; all
+other multi-variant families still share a name. See
+SPEC_CONSISTENCY_BACKLOG for the related `protocolSelector`
+tie-break observation (alphabetical sort produces time-budget
+mismatches — Phase 4 territory).
+
+#### Obs 10 — Light Movement rename + pre-timer modality picker
+
+**Rename** (display-only): `Brief Movement` → `Light Movement`.
+Both `brief-movement-5` and `brief-movement-10`. IDs / family /
+schema unchanged. The previous timer hint ("Walking, light cardio,
+stretching, or a flow — whatever fits your space and energy.")
+shipped users into an unguided activity with no scaffolding. The
+new pre-timer picker collapses that into two honest choices.
+
+**`selectedModality` schema field — locked decision:**
+
+`ProtocolSessionWritePayload.selectedModality` is an **optional**
+`'walk' | 'stretch' | null` field, persisted to the
+`protocolSessions` Firestore doc only when present. Forward-only
+schema change — historical session docs lack the field; Patterns
+queries should null-check before grouping by modality. Omitted
+entirely (not written as `null`) for non-Light-Movement sessions so
+the historical doc shape stays unchanged for the rest of the
+catalog.
+
+The wrapper component `LightMovementProtocolFlow` lives in
+`components/protocol/`, sits between the parent flow
+(`CheckInFlow` / `BrowseRunFlow`) and `GuidedSessionPlayer`, and
+applies a runtime hint override to the timer step based on the
+chosen modality:
+
+- Walk: "Walk at a comfortable pace."
+- Stretch: "Stretch gently — neck, shoulders, back, legs."
+
+Label stays "Light movement" (set in the catalog) so the visual
+hierarchy matches between modalities. Modality is stored in a
+`useRef` on each parent flow rather than reducer state. The value
+is captured before `running` and only consumed at the terminal
+write; lifting it into reducer state would force the field onto
+every variant of `RunningStep` / `ReCheckStep` / `ResponseStep` /
+`AbandonedStep` / `FlowCompleteStep` for a single-protocol concern,
+and the reducer types are already flagged as Phase 3 refactor
+territory ("FlowInit discriminated union — refactor watch" in
+TECH_DEBT_BACKLOG). The ref keeps the union surface narrow until
+that refactor lands. Future contributors: do NOT lift this into
+state without first consolidating the reducer type union.
+
+**Cancel/X pattern** mirrors commit `ee73ca0`'s Brain-state Cancel:
+24px MaterialCommunityIcons "close", `softCharcoal`, 12px hitSlop,
+light haptic. Picker Cancel routes through:
+
+- CheckInFlow → existing `onClose` prop (which CheckInFlowScreen
+  wires to `navigation.goBack()`).
+- BrowseRunFlow → new `onCancel` prop (PracticeRunScreen wires to
+  `navigation.goBack()`).
+
+No session is written from a Cancel — the modality picker is
+pre-protocol; nothing has started.
+
+**Scope decision:** Picker is implemented for Light Movement only
+in this round. Focused Work (`focused-work-45`, `focused-work-90`)
+shares the same "thrust into unguided activity" shape but a
+different content domain (task selection vs movement modality);
+flagged in SPEC_CONSISTENCY_BACKLOG for a Phase 4+ evaluation. A
+shared picker abstraction would be premature.
+
+---
+
+### Sub-step 2.7 round 5 — locked decisions
+
+Round 5 of device verification (internally tracked as
+"stress-recovery-redesign round 3" in the working tree) addresses
+a time-window mismatch the founder surfaced while testing
+protocols (Foggy + 20 min returned `brief-movement-10` instead of
+a closer-fitting 20-min protocol) and a related cluster of duration
+UX gaps. Layers 1–4 ship together with Task 3 (Obs 12b back-button
+fix).
+
+#### Layer 1 — selector closest-match sort (pulled forward from Phase 4)
+
+`mobile/src/services/protocolSelector.service.ts`'s tie-break is
+now ascending `|p.timeWindow - chosenWindow|` with alphabetical id
+as the secondary sort. The previous alphabetical-only sort
+produced user-visible mismatches: Foggy + 20 min returned a 10-min
+protocol because `mindful-walking-10` (`m`) sorted before
+`mindful-walking-20` (`m...20` < `n...`); Wired + 20 min returned
+`cold-water-reset-5` instead of a closer-under variant.
+
+**Why this does NOT violate the "Phase 4 owns the real algorithm"
+lock:** Closest-match is a one-dimensional heuristic on a single
+field (`timeWindow`), not a scoring function. Phase 4's real
+recommender will replace the entire sort with a multi-feature
+score (evidence tier, recency, state-specificity, duration fit,
+user preference). The Layer 1 sort is a strict improvement over
+alphabetical and gets fully replaced when Phase 4 ships — no work
+is wasted, no decisions are pre-committed.
+
+**What Layer 1 explicitly does NOT do:** evidence-aware ranking,
+recency / fatigue avoidance, personalization, or asymmetric
+under-vs-over duration scoring. Those are Phase 4 territory and
+the entry in TECH_DEBT_BACKLOG.md ("Selector logic — closest-match
+deterministic sort") names them as the gap.
+
+#### Duration UX rules — locked across all recommendation surfaces
+
+Every surface that recommends a protocol must show its duration
+adjacent to the protocol name. Specifically:
+
+- **`ProtocolRecommendation`** (the standard CheckInFlow
+  recommendation card): already showed duration via
+  `formatProtocolDuration(protocol)`. No change needed.
+- **`LightMovementModalityPicker`** (the pre-timer picker for
+  `brief-movement-5` / `brief-movement-10`): now renders
+  `{name} · {formatProtocolDuration(protocol)}` ("Light Movement
+  · 10 min") above the title. Duration is required because the
+  picker sits between protocol selection and the timer — without
+  it, the user is asked to commit to a modality without knowing
+  how long the practice will take.
+- **Practices index cards** (`PracticesIndexScreen`): already
+  show duration in the card's meta row. No change needed.
+
+**Rationale:** A user choosing a time window is making a duration
+commitment. The recommendation surfaces must honor that commitment
+visibly — it's the contract the time-window chip set up.
+
+#### Gap-acknowledgment line — conditional on `protocol.timeWindow < timeWindowSelected`
+
+When the recommended protocol's `timeWindow` is shorter than the
+user's chosen window, recommendation surfaces render the line:
+
+> "You'll have time left in your window."
+
+(Muted Sage Gray, `Typography.fontSize.xs`, sits below the
+duration row.)
+
+The line ships on:
+- **`ProtocolRecommendation`** — receives `state.timeWindow` from
+  `CheckInFlow` via the existing reducer wiring.
+- **`LightMovementModalityPicker`** — receives an optional
+  `timeWindowSelected: ProtocolTimeWindow | null` prop.
+  `CheckInFlow` passes `state.timeWindow`. `BrowseRunFlow` omits
+  the prop (browse path silently hides the line because the user
+  already saw the duration on the Practices card and chose
+  intentionally — the gap is not news to them).
+
+**Why conditional, not always-on:** the line is informational, not
+an apology. When the recommendation matches the chosen window
+exactly, the line is noise.
+
+**Why this surfaces on the picker too, not just the
+recommendation:** the picker is the next surface after
+recommendation in the standard flow. If the user was told "20 min"
+on recommendation and then the picker says "Light Movement · 10
+min" with no acknowledgment, it reads as a contradiction. The
+picker carries the same line for continuity.
+
+#### Layer 4 — `TimeWindowSelector` subtitle reframe
+
+The chip-picker subtitle changed from "We'll match you to
+something that fits." → "We'll suggest something that fits."
+
+**Why:** "match" implies an exact-fit guarantee that the closest-
+match selector cannot honor in 7 of 25 state×time cells (see
+SPEC_CONSISTENCY_BACKLOG "Protocol library coverage gaps"). The
+subtitle should set the right expectation: a thoughtful suggestion,
+not a guaranteed exact match.
+
+The 2-min through 45-min chip framings ("A quick reset" through
+"Focused work or deep rest") are deliberately unchanged in this
+round. The "20-min Full reset" framing is flagged in
+SPEC_CONSISTENCY_BACKLOG as an overpromise risk for Wired + 20-min
+budgets and is a Phase 4 content decision (add longer-form Wired
+protocols — preferred — or reframe the chip).
+
+#### Task 3 (Obs 12b) — `PracticesIndexScreen` back button
+
+The system-default React Navigation back button on
+`PracticesIndexScreen` was reported unresponsive in #1.0.83.
+Diagnostic rounds 1–3 confirmed `canGoBack()` returned true and
+the screen mounted correctly; the issue surfaced only in the
+shipped build, never in the dev build (the diagnostic round 3 dev
+test showed the custom override firing correctly).
+
+**Fix:** custom `headerLeft` override on `PracticesIndexScreen`
+using a `MaterialCommunityIcons` chevron-left at size 24,
+`Colors.evergreenTeal`, with `hitSlop: 12` and proper accessibility
+attributes. Defensive — guarantees the tap handler binds regardless
+of any stack-header chrome quirks that produced the original
+report. Pattern matches the in-screen back-button pattern used in
+`MessagesScreen`, `MutedAccountsScreen`, and other community
+screens. All `[DIAG-OBS12B]` traces removed.
+
+**No other screen needs this treatment** — the override is
+specifically for the screen that produced the original report.
+Adding it project-wide would be premature.
+
+**Underlying root cause unidentified.** The dev verification
+proved the override works; it did not isolate why the
+system-default header back button failed in #1.0.83. See
+`docs/TECH_DEBT_BACKLOG.md` "React Navigation default back button
+on Practices screen — root cause unidentified" for hypotheses to
+investigate when this comes up next, and the rationale for not
+lifting the override pattern project-wide until the root cause is
+known.
+
 ---
 
 ## Phase 3

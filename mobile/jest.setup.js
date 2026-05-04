@@ -36,6 +36,23 @@ jest.mock('expo-keep-awake', () => ({
   deactivateKeepAwake: jest.fn(),
 }));
 
+// Mock expo-haptics — same EventEmitter init failure as
+// expo-keep-awake. Test suites that mount a component touching
+// haptics (modality pickers, brain-state cancel, etc.) would
+// otherwise crash on import. Per-suite mocks remain optional for
+// asserting impactAsync call counts.
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(() => Promise.resolve()),
+  notificationAsync: jest.fn(() => Promise.resolve()),
+  selectionAsync: jest.fn(() => Promise.resolve()),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
+  NotificationFeedbackType: {
+    Success: 'success',
+    Warning: 'warning',
+    Error: 'error',
+  },
+}));
+
 // Mock expo vector icons
 jest.mock('@expo/vector-icons', () => ({
   MaterialCommunityIcons: 'MockedMaterialCommunityIcons',

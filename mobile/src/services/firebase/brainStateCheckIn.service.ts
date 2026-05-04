@@ -31,6 +31,7 @@ import {
 import type { TerminalFlowState } from '../../components/checkin/flow/CheckInFlow';
 import type {
   IntentPath,
+  MovementModality,
   ProtocolSessionOutcome,
   UserProfile,
 } from '../../types/models';
@@ -320,13 +321,26 @@ async function setFirstShiftAtIfNeeded(
  * `dryRun` skips ALL writes (new + legacy + firstShiftAt) — keeps
  * Firestore clean of dev-harness pollution.
  */
+// Caller may attach a `selectedModality` to be persisted on the
+// session doc. Used by the brief-movement family to record the
+// user's pre-timer Walk vs Stretch choice. Optional — protocols
+// without a modality picker omit it; the writer skips the field
+// entirely when null/undefined.
+export interface WriteStandardFlowSessionOptions
+  extends WriteProtocolSessionOptions {
+  selectedModality?: MovementModality | null;
+}
+
 export async function writeStandardFlowSession(
   userId: string,
   terminal: TerminalFlowState,
   intentPath: IntentPath,
-  options: WriteProtocolSessionOptions = {}
+  options: WriteStandardFlowSessionOptions = {}
 ): Promise<void> {
   const payload = mapStandardFlowTerminalToPayload(terminal, intentPath);
+  if (options.selectedModality != null) {
+    payload.selectedModality = options.selectedModality;
+  }
 
   // New authoritative write.
   await writeProtocolSession(userId, payload, options);

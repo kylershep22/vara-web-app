@@ -156,7 +156,19 @@ describe('BRAIN_STATE_PROTOCOLS — Phase 1 launch library', () => {
   });
 
   describe('variant family consistency', () => {
-    it('variants in the same family share the same name and modality', () => {
+    // Sub-step 2.7 round 4 (Obs 12) — `mindful-walking` is exempted
+    // from the same-name rule. The 10-min and 20-min variants ship
+    // with intentionally different display names ("Mindful Walk" /
+    // "Walking Meditation") so the catalog UI doesn't surface two
+    // identically-labeled list entries. The two variants share copy
+    // structure but the 20-min framing leans into deeper attentional
+    // settling — naming reinforces that distinction. All other
+    // multi-variant families still share a name.
+    const NAME_DIVERGENCE_EXEMPT_FAMILIES: ProtocolFamily[] = [
+      'mindful-walking',
+    ];
+
+    it('variants in the same family share the same modality (and name, except exempt families)', () => {
       const byFamily = new Map<ProtocolFamily, Protocol[]>();
       for (const p of getAllProtocols()) {
         const arr = byFamily.get(p.family) ?? [];
@@ -165,10 +177,12 @@ describe('BRAIN_STATE_PROTOCOLS — Phase 1 launch library', () => {
       }
       for (const [family, variants] of byFamily) {
         if (variants.length < 2) continue;
-        const names = new Set(variants.map((v) => v.name));
         const modalities = new Set(variants.map((v) => v.modality));
-        expect(names.size).toBe(1);
         expect(modalities.size).toBe(1);
+        if (!NAME_DIVERGENCE_EXEMPT_FAMILIES.includes(family)) {
+          const names = new Set(variants.map((v) => v.name));
+          expect(names.size).toBe(1);
+        }
         // family field matches the family key
         for (const v of variants) {
           expect(v.family).toBe(family);

@@ -24,6 +24,7 @@ import { db } from '../../config/firebase';
 import { logger } from '../../utils/logger';
 import type { BrainState, IntentPath } from '../../types/models';
 import type {
+  MovementModality,
   ProtocolNextStep,
   ProtocolSessionOutcome,
   ProtocolTimeWindow,
@@ -51,6 +52,12 @@ export interface ProtocolSessionWritePayload {
   intentPath: IntentPath;
   // ms since epoch — used to build the doc ID.
   sessionStartedAt: number;
+  // Optional. Present only for protocols that surface a pre-timer
+  // modality picker (currently the brief-movement family — see
+  // LightMovementProtocolFlow). Forward-only: existing session docs
+  // predate this feature and lack the field. Patterns queries should
+  // null-check before grouping by modality.
+  selectedModality?: MovementModality | null;
 }
 
 export interface WriteProtocolSessionOptions {
@@ -114,6 +121,13 @@ export async function writeProtocolSession(
         outcome: payload.outcome,
         userChosenNextStep: payload.userChosenNextStep,
         intentPath: payload.intentPath,
+        // Optional field — only included when the caller supplied a
+        // value. Omitted entirely (not written as null) for protocols
+        // without a modality picker so historical doc shape stays
+        // unchanged for non-light-movement sessions.
+        ...(payload.selectedModality != null
+          ? { selectedModality: payload.selectedModality }
+          : {}),
         // Server-side timestamps so multi-device clocks don't skew
         // ordering. sessionStartedAt is the device-local moment the
         // session began; createdAt is when the doc landed in Firestore.

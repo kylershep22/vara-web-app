@@ -11,7 +11,7 @@ describe('TimeWindowSelector', () => {
       'How much time do you have?'
     );
     expect(
-      getByText("We'll match you to something that fits.")
+      getByText("We'll suggest something that fits.")
     ).toBeTruthy();
     for (const value of [2, 5, 10, 20, 45] as const) {
       expect(getByTestId(`time-window-chip-${value}`)).toBeTruthy();

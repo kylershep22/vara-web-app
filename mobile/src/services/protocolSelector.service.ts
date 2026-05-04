@@ -10,9 +10,14 @@
 //   2. Filter by `protocol.timeWindow <= timeWindow` (the time the
 //      user picked is a hard filter; longer windows include shorter
 //      protocols per Core Loop v2 line 144).
-//   3. Sort by `protocol.id` ascending. Alphabetical sort is
-//      deterministic across runs and across machines — important so
-//      tests don't flake on hashmap iteration order.
+//   3. Sort by closest match to the chosen time window
+//      (`|protocol.timeWindow - chosenWindow|` ascending), with
+//      alphabetical id as a deterministic tie-break. Pulled forward
+//      from Phase 4 because the prior alphabetical-only sort produced
+//      misleading recommendations in 18 of 25 state×time cells (e.g.
+//      Foggy+20 returned brief-movement-10 instead of the available
+//      20-min protocols). Still deterministic, still first-match —
+//      Phase 4 still owns the real scoring algorithm.
 //   4. Return the first.
 //   5. No-match handling:
 //      - In `__DEV__`: throw with a descriptive error so schema bugs
@@ -48,7 +53,12 @@ export function selectProtocol(input: ProtocolSelectionInput): Protocol {
   const eligible = getAllProtocols()
     .filter((p) => p.suitableForStates.includes(input.state))
     .filter((p) => p.timeWindow <= input.timeWindow)
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .sort((a, b) => {
+      const distA = Math.abs(a.timeWindow - input.timeWindow);
+      const distB = Math.abs(b.timeWindow - input.timeWindow);
+      if (distA !== distB) return distA - distB;
+      return a.id.localeCompare(b.id);
+    });
 
   if (eligible.length > 0) {
     return eligible[0];

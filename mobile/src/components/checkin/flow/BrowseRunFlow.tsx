@@ -23,7 +23,7 @@
 // writeProtocolSession (fire-and-forget). writeMode controls
 // production vs dev_dry_run identically to CheckInFlow.
 
-import React, { useEffect, useReducer } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -32,11 +32,14 @@ import { logger } from '../../../utils/logger';
 import type {
   BrainState,
   IntentPath,
+  MovementModality,
   Protocol,
+  ProtocolSessionSummary,
 } from '../../../types/models';
 import { writeProtocolSession } from '../../../services/firebase/protocolSession.service';
 
 import { GuidedSessionPlayer } from '../../protocol/GuidedSessionPlayer';
+import { LightMovementProtocolFlow } from '../../protocol/LightMovementProtocolFlow';
 import { ReCheckStepView } from './ReCheckStepView';
 import {
   browseRunReducer,
@@ -66,6 +69,12 @@ export interface BrowseRunFlowProps {
   intentPath?: IntentPath;
   // Optional — defaults to 'production'. Dev harness uses 'dev_dry_run'.
   writeMode?: BrowseRunFlowWriteMode;
+  // Sub-step 2.7 round 4 (Obs 10) — fired when the Light Movement
+  // pre-timer modality picker's Cancel/X is tapped. Parent navigates
+  // back to the launching surface (typically Practices index). No
+  // session has started, so no terminal write fires for this path.
+  // Optional — non-Light-Movement protocols never invoke this.
+  onCancel?: () => void;
 }
 
 export function BrowseRunFlow({
@@ -75,6 +84,7 @@ export function BrowseRunFlow({
   onComplete,
   intentPath = 'default',
   writeMode = 'production',
+  onCancel,
 }: BrowseRunFlowProps) {
   const [state, dispatch] = useReducer(
     browseRunReducer,
@@ -82,14 +92,21 @@ export function BrowseRunFlow({
     initBrowseRunFlow
   );
 
+  // Sub-step 2.7 round 4 (Obs 10) — selected modality for the
+  // brief-movement family's pre-timer picker. Stored in a ref so it
+  // can be appended to the terminal write payload without inflating
+  // the BrowseRunFlowState union for a single-protocol concern.
+  const selectedModalityRef = useRef<MovementModality | null>(null);
+
   useEffect(() => {
     if (state.step === 'abandoned' || state.step === 'flow_complete') {
       const dryRun = writeMode === 'dev_dry_run';
-      writeProtocolSession(
-        userId,
-        mapBrowseTerminalToPayload(state, intentPath),
-        { dryRun }
-      ).catch((error) => {
+      const payload = mapBrowseTerminalToPayload(state, intentPath);
+      const selectedModality = selectedModalityRef.current;
+      if (selectedModality != null) {
+        payload.selectedModality = selectedModality;
+      }
+      writeProtocolSession(userId, payload, { dryRun }).catch((error) => {
         // Silent-failure visibility: BrowseRunFlow has NO legacy
         // parallel write to fall back on (Case 4 sessions skip
         // brainStateCheckIns). A failure here means zero data lands
@@ -113,7 +130,15 @@ export function BrowseRunFlow({
       edges={['top']}
       testID="browse-run-flow"
     >
-      {renderStep(state, dispatch, stateBefore)}
+      {renderStep(
+        state,
+        dispatch,
+        stateBefore,
+        (modality) => {
+          selectedModalityRef.current = modality;
+        },
+        onCancel
+      )}
     </SafeAreaView>
   );
 }
@@ -121,23 +146,41 @@ export function BrowseRunFlow({
 function renderStep(
   state: BrowseRunFlowState,
   dispatch: React.Dispatch<Parameters<typeof browseRunReducer>[1]>,
-  stateBefore: BrainState
+  stateBefore: BrainState,
+  onModalitySelected?: (modality: MovementModality) => void,
+  onCancel?: () => void
 ): React.ReactNode {
   switch (state.step) {
-    case 'running':
+    case 'running': {
+      const handlePlayerExit = (summary: ProtocolSessionSummary) => {
+        dispatch({
+          type: 'player_exit',
+          reason: summary.completed ? 'completed' : 'ended_early',
+          nowMs: Date.now(),
+        });
+      };
+      // Sub-step 2.7 round 4 (Obs 10) — Light Movement uses a
+      // pre-timer modality picker. All other protocols mount the
+      // player directly with no behavior change.
+      if (state.protocol.family === 'brief-movement') {
+        return (
+          <LightMovementProtocolFlow
+            protocol={state.protocol}
+            stateBefore={stateBefore}
+            onExit={handlePlayerExit}
+            onModalitySelected={onModalitySelected}
+            onCancel={onCancel ?? (() => {})}
+          />
+        );
+      }
       return (
         <GuidedSessionPlayer
           protocol={state.protocol}
           stateBefore={stateBefore}
-          onExit={(summary) => {
-            dispatch({
-              type: 'player_exit',
-              reason: summary.completed ? 'completed' : 'ended_early',
-              nowMs: Date.now(),
-            });
-          }}
+          onExit={handlePlayerExit}
         />
       );
+    }
     case 're_check':
       return (
         <ReCheckStepView

@@ -1042,6 +1042,15 @@ export type ProtocolAbandonReason =
   | 'force_quit'
   | 'audio_error';
 
+// Movement modality for protocols whose timer covers multiple
+// possible activities. Sub-step 2.7 round 4 (Obs 10) introduced this
+// for Light Movement (the brief-movement family) — the user picks
+// Walk or Stretch in a pre-timer step so the timer's instruction
+// copy reflects the chosen activity. Persisted on the session doc as
+// `selectedModality` (optional — only present for protocols that
+// surface the picker). See PHASE_NOTES "selectedModality schema".
+export type MovementModality = 'walk' | 'stretch';
+
 /**
  * ProtocolSessionSummary
  * Output of the GuidedSessionPlayer on exit (natural completion or

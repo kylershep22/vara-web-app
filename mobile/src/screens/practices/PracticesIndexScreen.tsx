@@ -18,7 +18,7 @@
 // + response per Core Loop v2 §Case 4). For sub-step 2.2 the tap is
 // a navigation-only handoff.
 
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo } from 'react';
 import {
   FlatList,
   StyleSheet,
@@ -28,6 +28,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Colors, Spacing, Typography } from '../../constants';
@@ -75,6 +76,27 @@ export function PracticesIndexScreen() {
   const route = useRoute<RouteParams>();
   const navigation = useNavigation<NavigationProp>();
   const { state, timeWindow } = route.params;
+
+  // Custom headerLeft override for Obs 12b: the system-default back
+  // button on this screen was reported unresponsive in #1.0.83. An
+  // explicit TouchableOpacity with hitSlop guarantees taps reach the
+  // handler regardless of stack-header chrome quirks.
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={styles.backButton}
+          testID="practices-back-button"
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
+          <Icon name="chevron-left" size={24} color={Colors.evergreenTeal} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   // Eligibility filter mirrors the Phase 2 stub recommender's filter
   // exactly (protocolSelector.service.ts) so "See other options"
@@ -163,6 +185,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.default,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
+  },
+  backButton: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
   },
   title: {
     fontSize: Typography.fontSize.xl,

@@ -123,6 +123,15 @@ const TEST_PROPS = {
   writeMode: 'dev_dry_run' as const,
 };
 
+// Sub-step 2.7 round 4 (Obs 11 fix) — CheckInFlow's terminal effect
+// awaits Promise.all([write, setTimeout(1500)]) before firing
+// onComplete. Tests using real timers need a waitFor timeout above
+// 1500ms; tests using fake timers must advance past 1500ms before
+// asserting onComplete fired. 3000ms gives a comfortable margin
+// without slowing the suite materially.
+const TERMINAL_ON_COMPLETE_TIMEOUT_MS = 3000;
+const TERMINAL_DELAY_FAKE_TIMER_ADVANCE_MS = 1600;
+
 // ────────────────────────────────────────────────────────────
 // Tests
 // ────────────────────────────────────────────────────────────
@@ -193,9 +202,12 @@ describe('CheckInFlow — player exit branching', () => {
       lastOnExit!(summary({ completed: false, protocolId: 'cyclic-sighing-2' }));
     });
 
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(
+      () => {
+        expect(onComplete).toHaveBeenCalledTimes(1);
+      },
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
     const terminal: TerminalFlowState = onComplete.mock.calls[0][0];
     expect(terminal.step).toBe('abandoned');
     expect(terminal.entrySource).toBe('overwhelm_safety_card');
@@ -253,11 +265,19 @@ describe('CheckInFlow — re-check → response with auto-dismiss', () => {
       jest.advanceTimersByTime(4000);
     });
 
-    // Now we're at flow_complete; onComplete fires once with
-    // userChosenNextStep === 'auto_dismissed'.
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
+    // Now we're at flow_complete. Sub-step 2.7 round 4 (Obs 11)
+    // added an awaited Promise.all([write, setTimeout(1500)]) before
+    // onComplete fires; advance fake timers past the 1500ms floor.
+    await act(async () => {
+      jest.advanceTimersByTime(TERMINAL_DELAY_FAKE_TIMER_ADVANCE_MS);
     });
+
+    await waitFor(
+      () => {
+        expect(onComplete).toHaveBeenCalledTimes(1);
+      },
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
     const terminal: TerminalFlowState = onComplete.mock.calls[0][0];
     expect(terminal.step).toBe('flow_complete');
     if (terminal.step === 'flow_complete') {
@@ -299,9 +319,17 @@ describe('CheckInFlow — re-check → response with auto-dismiss', () => {
     // User taps "Rest and come back later".
     fireEvent.press(getByLabelText('Rest and come back later'));
 
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
+    // Advance past the 1500ms terminal-effect delay (Obs 11 fix).
+    await act(async () => {
+      jest.advanceTimersByTime(TERMINAL_DELAY_FAKE_TIMER_ADVANCE_MS);
     });
+
+    await waitFor(
+      () => {
+        expect(onComplete).toHaveBeenCalledTimes(1);
+      },
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
     const terminal: TerminalFlowState = onComplete.mock.calls[0][0];
     if (terminal.step === 'flow_complete') {
       expect(terminal.outcome).toBe('not_shifted');
@@ -405,9 +433,12 @@ describe('CheckInFlow — Firestore write contract', () => {
     fireEvent.press(getByLabelText('Steady'));
     fireEvent.press(getByLabelText('Continue'));
 
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(
+      () => {
+        expect(onComplete).toHaveBeenCalledTimes(1);
+      },
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
 
     // The integration assertion: writer fired exactly once with the
     // expected (userId, terminal, intentPath, options) shape.
@@ -446,9 +477,12 @@ describe('CheckInFlow — Firestore write contract', () => {
       lastOnExit!(summary({ completed: false, protocolId: 'cyclic-sighing-2' }));
     });
 
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(
+      () => {
+        expect(onComplete).toHaveBeenCalledTimes(1);
+      },
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
 
     expect(writeStandardFlowSessionMock).toHaveBeenCalledTimes(1);
     const [, terminalArg] = (writeStandardFlowSessionMock as jest.Mock).mock.calls[0];
@@ -467,9 +501,12 @@ describe('CheckInFlow — terminal-state useEffect contract', () => {
       lastOnExit!(summary({ completed: false, protocolId: 'cyclic-sighing-2' }));
     });
 
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(
+      () => {
+        expect(onComplete).toHaveBeenCalledTimes(1);
+      },
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
     const terminal: TerminalFlowState = onComplete.mock.calls[0][0];
     // AbandonedStep payload — sub-step 2.5's Firestore write reads
     // these exact field names. If this contract drifts, the write
@@ -614,9 +651,12 @@ describe('CheckInFlow — recovery_confirm "Yes, check in" → re_check', () => 
     // Continue button completes the response → flow_complete.
     fireEvent.press(getByLabelText('Continue'));
 
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(
+      () => {
+        expect(onComplete).toHaveBeenCalledTimes(1);
+      },
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
     const terminal: TerminalFlowState = onComplete.mock.calls[0][0];
     if (terminal.step === 'flow_complete') {
       expect(terminal.stateBefore).toBe('wired');
@@ -651,9 +691,12 @@ describe('CheckInFlow — recovery_confirm "Yes, check in" → re_check', () => 
     fireEvent.press(getByLabelText('Steady'));
     fireEvent.press(getByLabelText('Continue'));
 
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(
+      () => {
+        expect(onComplete).toHaveBeenCalledTimes(1);
+      },
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
     const terminal: TerminalFlowState = onComplete.mock.calls[0][0];
     expect(terminal.entrySource).toBe('overwhelm_safety_card');
   });

@@ -35,10 +35,13 @@ import { logger } from '../../../utils/logger';
 import type {
   BrainState,
   IntentPath,
+  MovementModality,
+  ProtocolSessionSummary,
   ProtocolTimeWindow,
 } from '../../../types/models';
 
 import { GuidedSessionPlayer } from '../../protocol/GuidedSessionPlayer';
+import { LightMovementProtocolFlow } from '../../protocol/LightMovementProtocolFlow';
 import { ProtocolRecommendation } from '../ProtocolRecommendation';
 import { TimeWindowSelector } from '../TimeWindowSelector';
 import { writeStandardFlowSession } from '../../../services/firebase/brainStateCheckIn.service';
@@ -114,31 +117,78 @@ export function CheckInFlow({
     initFlow
   );
 
-  // Terminal-state observer. Fires the Firestore writes
-  // (fire-and-forget, errors logged inside the writer) and surfaces
-  // the terminal to the parent for navigation. The parent's
-  // onComplete runs immediately — UX doesn't block on Firestore.
+  // Sub-step 2.7 round 4 (Obs 10) — selected modality for the
+  // brief-movement family's pre-timer picker. Stored in a ref rather
+  // than reducer state so the change doesn't ripple through the
+  // FlowState union (this value is captured before `running` and
+  // only consumed at the terminal write — adding it to the reducer
+  // would inflate every step variant for a single-protocol concern).
+  // Read by the terminal-write effect below.
+  const selectedModalityRef = useRef<MovementModality | null>(null);
+
+  // Terminal-state observer. Awaits the Firestore write AND a
+  // 1500ms minimum display window for the "moving from one state to
+  // the next" transition message before surfacing the terminal to
+  // the parent for navigation.
+  //
+  // Why await (Obs 11 fix): the prior fire-and-forget pattern raced
+  // the dashboard's useFocusEffect refetch. If the legacy
+  // brainStateCheckIns write was still in flight when the dashboard
+  // re-read on focus, the predicate (`brainStateCheckIn ? checked-in
+  // : pre-checkin`) saw stale null and flipped back to the chip
+  // picker. Awaiting the write here closes the window. See
+  // PHASE_NOTES "Sub-step 2.7 round 4 — Obs 11 fix".
+  //
+  // Why the 1500ms floor: the transition message is meaningful UX,
+  // not a loading spinner. If the write resolves in 200ms (typical),
+  // the user still gets ~1300ms on the affirming message — feels
+  // intentional, not laggy. If the write takes longer than 1500ms
+  // (rare), navigation waits — preferable to navigating with stale
+  // state.
+  //
+  // Error handling: write failures are caught + logged (preserving
+  // the prior "session NOT persisted" wording for log scanners) but
+  // do NOT block navigation. A failed write must not strand the user
+  // on the message screen — the legacy parallel write may still
+  // succeed, and the user can re-engage on their next session.
   useEffect(() => {
-    if (state.step === 'abandoned' || state.step === 'flow_complete') {
-      const dryRun = writeMode === 'dev_dry_run';
-      writeStandardFlowSession(userId, state, intentPath, { dryRun }).catch(
-        (error) => {
-          // The writer logs internally; this catch keeps the
-          // unhandled rejection from bubbling. Production callers'
-          // onComplete still fires; navigation continues. The
-          // explicit "session NOT persisted" wording matters: the
-          // legacy brainStateCheckIns write may still have succeeded
-          // (or vice versa), but the message that a TestFlight
-          // tester / on-call sees needs to make the data-loss
-          // consequence visible — silent-failure mode is the risk.
-          logger.error(
-            '[CheckInFlow] writeStandardFlowSession failed (session NOT persisted to protocolSessions):',
-            error
-          );
-        }
-      );
-      onComplete(state);
+    if (state.step !== 'abandoned' && state.step !== 'flow_complete') return;
+
+    const dryRun = writeMode === 'dev_dry_run';
+    let cancelled = false;
+
+    const selectedModality = selectedModalityRef.current;
+    const writeOptions: Parameters<typeof writeStandardFlowSession>[3] = { dryRun };
+    if (selectedModality != null) {
+      writeOptions.selectedModality = selectedModality;
     }
+
+    (async () => {
+      try {
+        await Promise.all([
+          writeStandardFlowSession(userId, state, intentPath, writeOptions),
+          new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+        ]);
+      } catch (error) {
+        // The writer logs internally; this catch keeps the
+        // unhandled rejection from bubbling. The explicit "session
+        // NOT persisted" wording matters: the legacy
+        // brainStateCheckIns write may still have succeeded (or
+        // vice versa), but the message that a TestFlight tester /
+        // on-call sees needs to make the data-loss consequence
+        // visible — silent-failure mode is the risk.
+        logger.error(
+          '[CheckInFlow] writeStandardFlowSession failed (session NOT persisted to protocolSessions):',
+          error
+        );
+      }
+      if (cancelled) return;
+      onComplete(state);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
     // Intentionally narrow: re-run only when the step changes. State
     // mutations within a non-terminal step (none currently exist;
     // every transition produces a new step) wouldn't fire this.
@@ -222,7 +272,15 @@ export function CheckInFlow({
       edges={['top']}
       testID="checkin-flow"
     >
-      {renderStep(state, dispatch, onClose, onSeeOtherOptions)}
+      {renderStep(
+        state,
+        dispatch,
+        onClose,
+        onSeeOtherOptions,
+        (modality) => {
+          selectedModalityRef.current = modality;
+        }
+      )}
     </SafeAreaView>
   );
 }
@@ -237,7 +295,10 @@ function renderStep(
   onSeeOtherOptions?: (
     state: BrainState,
     timeWindow: ProtocolTimeWindow
-  ) => void
+  ) => void,
+  // Sub-step 2.7 round 4 (Obs 10) — only fired by Light Movement's
+  // pre-timer picker; other protocols never invoke this.
+  onModalitySelected?: (modality: MovementModality) => void
 ): React.ReactNode {
   switch (state.step) {
     case 'recovery_confirm':
@@ -293,20 +354,43 @@ function renderStep(
         />
       );
 
-    case 'running':
+    case 'running': {
+      const handlePlayerExit = (summary: ProtocolSessionSummary) => {
+        dispatch({
+          type: 'player_exit',
+          reason: summary.completed ? 'completed' : 'ended_early',
+          nowMs: Date.now(),
+        });
+      };
+      // Sub-step 2.7 round 4 (Obs 10) — Light Movement uses a
+      // pre-timer modality picker (Walk vs Stretch). All other
+      // protocols mount the player directly with no behavior change.
+      // `onClose` doubles as the picker's Cancel target — Cancel on
+      // the picker should exit the entire CheckInFlow back to the
+      // launching surface (typically Dashboard), which is what
+      // onClose already does for state_pick / time_pick /
+      // recommendation. If onClose is not provided (rare — only the
+      // overwhelm entry omits it), Cancel becomes a no-op.
+      if (state.protocol.family === 'brief-movement') {
+        return (
+          <LightMovementProtocolFlow
+            protocol={state.protocol}
+            stateBefore={state.stateBefore}
+            onExit={handlePlayerExit}
+            onModalitySelected={onModalitySelected}
+            onCancel={onClose ?? (() => {})}
+            timeWindowSelected={state.timeWindow}
+          />
+        );
+      }
       return (
         <GuidedSessionPlayer
           protocol={state.protocol}
           stateBefore={state.stateBefore}
-          onExit={(summary) => {
-            dispatch({
-              type: 'player_exit',
-              reason: summary.completed ? 'completed' : 'ended_early',
-              nowMs: Date.now(),
-            });
-          }}
+          onExit={handlePlayerExit}
         />
       );
+    }
 
     case 're_check':
       return (

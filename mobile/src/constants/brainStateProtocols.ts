@@ -72,7 +72,7 @@ export const BRAIN_STATE_PROTOCOLS = {
   'brief-movement-5': {
     id: 'brief-movement-5',
     family: 'brief-movement',
-    name: 'Brief Movement',
+    name: 'Light Movement',
     description:
       'A short bout of movement to wake up cognition or channel energy.',
     whatItIs:
@@ -106,13 +106,16 @@ export const BRAIN_STATE_PROTOCOLS = {
       'midday',
       'early_afternoon',
     ],
+    // The timer step's `hint` is overridden at runtime by the
+    // pre-step modality picker (Walk vs Stretch). The static value
+    // here is the fallback shown only if the picker is bypassed.
     steps: [
       {
         kind: 'timer',
         id: 'move',
         durationSeconds: 300,
-        label: 'Move your body',
-        hint: 'Walking, light cardio, stretching, or a flow — whatever fits your space and energy.',
+        label: 'Light movement',
+        hint: 'Move at a comfortable pace.',
       },
     ],
   },
@@ -120,7 +123,7 @@ export const BRAIN_STATE_PROTOCOLS = {
   'brief-movement-10': {
     id: 'brief-movement-10',
     family: 'brief-movement',
-    name: 'Brief Movement',
+    name: 'Light Movement',
     description:
       'A short bout of movement to wake up cognition or channel energy.',
     whatItIs:
@@ -154,13 +157,16 @@ export const BRAIN_STATE_PROTOCOLS = {
       'midday',
       'early_afternoon',
     ],
+    // The timer step's `hint` is overridden at runtime by the
+    // pre-step modality picker (Walk vs Stretch). The static value
+    // here is the fallback shown only if the picker is bypassed.
     steps: [
       {
         kind: 'timer',
         id: 'move',
         durationSeconds: 600,
-        label: 'Move your body',
-        hint: 'Walking, light cardio, stretching, or a flow — whatever fits your space and energy.',
+        label: 'Light movement',
+        hint: 'Move at a comfortable pace.',
       },
     ],
   },
@@ -505,7 +511,7 @@ export const BRAIN_STATE_PROTOCOLS = {
   'mindful-walking-10': {
     id: 'mindful-walking-10',
     family: 'mindful-walking',
-    name: 'Mindful Walking',
+    name: 'Mindful Walk',
     description:
       'Walking with attention on sensations — feet, breath, surroundings. Not exercise-walking. Attention-walking.',
     whatItIs:
@@ -545,7 +551,7 @@ export const BRAIN_STATE_PROTOCOLS = {
   'mindful-walking-20': {
     id: 'mindful-walking-20',
     family: 'mindful-walking',
-    name: 'Mindful Walking',
+    name: 'Walking Meditation',
     description:
       'Twenty minutes of attention-walking. Cardiovascular activation plus attentional training.',
     whatItIs:

@@ -89,7 +89,7 @@ export function TimeWindowSelector({
           How much time do you have?
         </Text>
         <Text style={styles.subtitle}>
-          We'll match you to something that fits.
+          We'll suggest something that fits.
         </Text>
 
         <View style={styles.chips}>

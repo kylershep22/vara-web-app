@@ -167,4 +167,32 @@ describe('ProtocolRecommendation', () => {
     expect(onBack).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  describe('gap-acknowledgment line (Layer 3)', () => {
+    it('renders the line when protocol.timeWindow < timeWindowSelected', () => {
+      // sampleProtocol.timeWindow = 2; user picked a 10-min budget.
+      // Shorter-than-chosen → line should render.
+      const { getByTestId } = render(
+        <ProtocolRecommendation
+          {...baseProps}
+          timeWindow={10 as ProtocolTimeWindow}
+        />
+      );
+      expect(getByTestId('protocol-recommendation-time-left').props.children).toBe(
+        "You'll have time left in your window."
+      );
+    });
+
+    it('does NOT render the line when durations match', () => {
+      // sampleProtocol.timeWindow = 2; user picked a 2-min budget.
+      // Exact match → line should be absent.
+      const { queryByTestId } = render(
+        <ProtocolRecommendation
+          {...baseProps}
+          timeWindow={2 as ProtocolTimeWindow}
+        />
+      );
+      expect(queryByTestId('protocol-recommendation-time-left')).toBeNull();
+    });
+  });
 });
