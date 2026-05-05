@@ -26,7 +26,11 @@ import {
   type TerminalFlowState,
 } from '../../components/checkin/flow/CheckInFlow';
 import type { FlowInit } from '../../components/checkin/flow/types';
-import type { BrainState, ProtocolTimeWindow } from '../../types/models';
+import type {
+  BrainState,
+  IntentPath,
+  ProtocolTimeWindow,
+} from '../../types/models';
 import { getLateNightNSDRSwap } from '../../services/lateNightNSDRSwap';
 import {
   clearMarker as clearFlowMarker,
@@ -51,10 +55,22 @@ type RouteParams = RouteProp<
 >;
 
 type Nav = NativeStackNavigationProp<{
-  Practices: { state: BrainState; timeWindow: ProtocolTimeWindow };
+  Practices: {
+    state: BrainState;
+    timeWindow: ProtocolTimeWindow;
+    fromCheckInFlow?: boolean;
+    intentPath?: IntentPath;
+  };
   PracticeRun: { protocolId: string; stateBefore: BrainState };
   Main: undefined;
 }>;
+
+// Sub-step 2.7 round 5 (Bug B fix) — until Phase 3 wires real intent
+// paths through, both CheckInFlow.intentPath and the params passed
+// to Practices default to 'default'. When Phase 3 lands, replace
+// this constant with whatever resolution logic resolves the user's
+// intent path at flow time.
+const CHECKIN_FLOW_INTENT_PATH: IntentPath = 'default';
 
 export function CheckInFlowScreen() {
   const route = useRoute<RouteParams>();
@@ -127,7 +143,18 @@ export function CheckInFlowScreen() {
 
   const handleSeeOtherOptions = useCallback(
     (state: BrainState, timeWindow: ProtocolTimeWindow) => {
-      navigation.navigate('Practices', { state, timeWindow });
+      // Bug B fix (round 5): plumb fromCheckInFlow + intentPath so
+      // PracticesIndexScreen can forward to PracticeRunScreen, which
+      // builds the BrowseRunFlow checkInFlowContext that drives both
+      // (a) standard outcome classification on the session write and
+      // (b) post-completion routing back to dashboard rather than
+      // Practices. See PHASE_NOTES round 5 locked decision.
+      navigation.navigate('Practices', {
+        state,
+        timeWindow,
+        fromCheckInFlow: true,
+        intentPath: CHECKIN_FLOW_INTENT_PATH,
+      });
     },
     [navigation]
   );
@@ -158,9 +185,18 @@ export function CheckInFlowScreen() {
             });
           } else {
             // no_override_practices_index
+            // Bug B fix (round 5) — same fromCheckInFlow + intentPath
+            // plumbing as handleSeeOtherOptions above. Path 2 ("Try
+            // something longer" on not-shifted response) is also a
+            // CheckInFlow continuation: the user did a check-in, did
+            // a protocol, and wants to do another one. Their session
+            // should classify with the original stateBefore, and
+            // post-completion they should land on dashboard.
             navigation.navigate('Practices', {
               state: terminal.stateBefore,
               timeWindow: terminal.timeWindow,
+              fromCheckInFlow: true,
+              intentPath: CHECKIN_FLOW_INTENT_PATH,
             });
           }
           return;

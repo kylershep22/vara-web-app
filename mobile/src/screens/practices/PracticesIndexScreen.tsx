@@ -39,6 +39,7 @@ import {
 } from '../../utils/protocolDisplay';
 import type {
   BrainState,
+  IntentPath,
   Protocol,
   ProtocolTimeWindow,
 } from '../../types/models';
@@ -61,6 +62,14 @@ function timeWindowLabel(tw: ProtocolTimeWindow): string {
 export interface PracticesIndexRouteParams {
   state: BrainState;
   timeWindow: ProtocolTimeWindow;
+  // Sub-step 2.7 round 5 (Bug B fix) — when this screen is reached
+  // from CheckInFlow ("See other options" or "Try something longer"),
+  // CheckInFlowScreen passes fromCheckInFlow=true plus the intentPath
+  // it was running. PracticesIndexScreen forwards both to
+  // PracticeRunScreen so the BrowseRunFlow can branch on context.
+  // Absent for true browse entries (no production entry today).
+  fromCheckInFlow?: boolean;
+  intentPath?: IntentPath;
 }
 
 type RouteParams = RouteProp<
@@ -69,13 +78,19 @@ type RouteParams = RouteProp<
 >;
 
 type NavigationProp = NativeStackNavigationProp<{
-  PracticeRun: { protocolId: string; stateBefore: BrainState };
+  PracticeRun: {
+    protocolId: string;
+    stateBefore: BrainState;
+    fromCheckInFlow?: boolean;
+    intentPath?: IntentPath;
+    timeWindow?: ProtocolTimeWindow;
+  };
 }>;
 
 export function PracticesIndexScreen() {
   const route = useRoute<RouteParams>();
   const navigation = useNavigation<NavigationProp>();
-  const { state, timeWindow } = route.params;
+  const { state, timeWindow, fromCheckInFlow, intentPath } = route.params;
 
   // Custom headerLeft override for Obs 12b: the system-default back
   // button on this screen was reported unresponsive in #1.0.83. An
@@ -136,6 +151,9 @@ export function PracticesIndexScreen() {
                 navigation.navigate('PracticeRun', {
                   protocolId: item.id,
                   stateBefore: state,
+                  fromCheckInFlow,
+                  intentPath,
+                  timeWindow,
                 })
               }
             />

@@ -170,15 +170,27 @@ export function ProtocolRecommendation({
           <Text style={styles.beginButtonText}>Begin</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.alternatesButton}
-          onPress={onSeeOtherOptions}
-          accessibilityRole="button"
-          accessibilityLabel="See other options"
-          testID="protocol-recommendation-alternates"
-        >
-          <Text style={styles.alternatesButtonText}>See other options</Text>
-        </TouchableOpacity>
+        {/* Sub-step 2.7 round 5 (Bug B sibling fix) — "See other
+            options" is now a tertiary text button per Mobile UI
+            Standards §7.1: smaller font, no full-width tap region,
+            secondary visual weight. Round 4 device verification
+            showed founders inadvertently tapping this affordance
+            instead of Begin because the prior 48px full-width
+            styling read as an equal-weight CTA. Begin is the
+            unambiguous primary action; alternates is an opt-in
+            escape hatch. */}
+        <View style={styles.alternatesRow}>
+          <TouchableOpacity
+            style={styles.alternatesButton}
+            onPress={onSeeOtherOptions}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="See other options"
+            testID="protocol-recommendation-alternates"
+          >
+            <Text style={styles.alternatesButtonText}>See other options</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -280,14 +292,17 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.white,
   },
-  alternatesButton: {
-    minHeight: MIN_TOUCH_TARGET,
+  alternatesRow: {
     alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: Spacing.md,
+  },
+  alternatesButton: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   alternatesButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.evergreenTeal,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.mutedSageGray,
   },
 });

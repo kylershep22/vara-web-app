@@ -373,3 +373,37 @@ strictly better.
 
 **Doc impact:** Update `Vara_Build_Guide.md` chip framings only
 if option (b) is chosen.
+
+---
+
+## Light Movement modality picker — duration label visual hierarchy
+
+`mobile/src/components/protocol/LightMovementModalityPicker.tsx`
+renders the duration label ("Light Movement · 10 min") above the
+title ("Pick what fits right now") per round 3 Layer 2. The
+duration is styled as informational supporting text per design
+system spec — small font, muted color.
+
+**Round 5 founder feedback:** the duration text feels small
+relative to the title. Spec is technically correct (duration is
+informational supporting text, not header), but proportions could
+be tweaked to improve the hierarchy.
+
+**Phase 6 design polish:** revisit the supporting-text → header
+ratio on this specific surface. Possible shapes:
+
+- Slightly larger duration font (sm → base, or base with a
+  different weight).
+- Higher-contrast color while still subordinate to title
+  (mutedSageGray → softCharcoal at lower opacity).
+- Both, calibrated so the duration is unmistakably visible
+  without competing with the title.
+
+**Why this isn't urgent:** the duration IS rendered, the user
+CAN see it, and the contract that "duration is visible on every
+recommendation surface" (round 3 Layer 2 locked decision) is
+preserved. The friction is mild — the founder's feedback was
+about polish, not blockers. Land alongside other design polish
+work in Phase 6.
+
+**Doc impact:** None until Phase 6 lands.

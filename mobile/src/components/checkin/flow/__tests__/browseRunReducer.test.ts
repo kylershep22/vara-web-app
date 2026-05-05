@@ -26,6 +26,7 @@ function runningState(sessionStartedAt = 1_000_000): BrowseRunningStep {
     step: 'running',
     protocol: NSDR_20,
     sessionStartedAt,
+    checkInFlowContext: null,
   };
 }
 
@@ -36,6 +37,7 @@ function reCheckState(): BrowseReCheckStep {
     sessionStartedAt: 1_000_000,
     sessionEndedAt: 1_000_000 + 20 * 60 * 1000,
     durationActualSeconds: 20 * 60,
+    checkInFlowContext: null,
   };
 }
 
@@ -46,6 +48,7 @@ describe('initBrowseRunFlow', () => {
       step: 'running',
       protocol: NSDR_20,
       sessionStartedAt: 5_000_000,
+      checkInFlowContext: null,
     });
   });
 });
@@ -134,6 +137,7 @@ describe('browseRunReducer — terminal absorbing-state behavior', () => {
     sessionStartedAt: 1_000_000,
     sessionEndedAt: 1_030_000,
     durationActualSeconds: 30,
+    checkInFlowContext: null,
   };
 
   const flowComplete: BrowseFlowCompleteStep = {
@@ -143,6 +147,7 @@ describe('browseRunReducer — terminal absorbing-state behavior', () => {
     sessionEndedAt: 1_000_000 + 1_200_000,
     durationActualSeconds: 1200,
     stateAfter: 'clear',
+    checkInFlowContext: null,
   };
 
   it('any action on abandoned returns the same state', () => {
@@ -214,7 +219,7 @@ describe('browseRunReducer — full happy path', () => {
   });
 });
 
-describe('mapBrowseTerminalToPayload — Case 4 schema mapping', () => {
+describe('mapBrowseTerminalToPayload — Case 4 schema mapping (no context)', () => {
   it('flow_complete → outcome="browse_launched", stateBefore=null, stateAfter=captured', () => {
     const terminal: BrowseFlowCompleteStep = {
       step: 'flow_complete',
@@ -223,6 +228,7 @@ describe('mapBrowseTerminalToPayload — Case 4 schema mapping', () => {
       sessionEndedAt: 1_000_000 + 1_200_000,
       durationActualSeconds: 1200,
       stateAfter: 'clear',
+      checkInFlowContext: null,
     };
     const payload = mapBrowseTerminalToPayload(terminal, 'default');
     expect(payload).toEqual({
@@ -245,6 +251,7 @@ describe('mapBrowseTerminalToPayload — Case 4 schema mapping', () => {
       sessionStartedAt: 1_000_000,
       sessionEndedAt: 1_030_000,
       durationActualSeconds: 30,
+      checkInFlowContext: null,
     };
     const payload = mapBrowseTerminalToPayload(terminal, 'default');
     expect(payload.outcome).toBe('abandoned');
@@ -261,8 +268,184 @@ describe('mapBrowseTerminalToPayload — Case 4 schema mapping', () => {
       sessionEndedAt: 1_000_000 + 1_200_000,
       durationActualSeconds: 1200,
       stateAfter: 'clear',
+      checkInFlowContext: null,
     };
     const payload = mapBrowseTerminalToPayload(terminal, 'sleep');
     expect(payload.intentPath).toBe('sleep');
+  });
+});
+
+// Sub-step 2.7 round 5 (Bug B fix) — context-present mapping. When a
+// BrowseRunFlow session originates from CheckInFlow, the terminal
+// payload must use the standard outcome classifier (not browse_launched)
+// and reflect the captured stateBefore + chosen timeWindow.
+describe('mapBrowseTerminalToPayload — context-present (Bug B fix)', () => {
+  const ctxFoggy10: NonNullable<BrowseFlowCompleteStep['checkInFlowContext']> =
+    {
+      state: 'foggy',
+      timeWindow: 10,
+      intentPath: 'default',
+    };
+
+  const ctxWired20: NonNullable<BrowseFlowCompleteStep['checkInFlowContext']> =
+    {
+      state: 'wired',
+      timeWindow: 20,
+      intentPath: 'down_regulation',
+    };
+
+  function flowCompleteWith(
+    stateAfter: 'wired' | 'foggy' | 'steady' | 'clear' | 'alive',
+    ctx: NonNullable<BrowseFlowCompleteStep['checkInFlowContext']>
+  ): BrowseFlowCompleteStep {
+    return {
+      step: 'flow_complete',
+      protocol: NSDR_20,
+      sessionStartedAt: 1_000_000,
+      sessionEndedAt: 1_000_000 + 1_200_000,
+      durationActualSeconds: 1200,
+      stateAfter,
+      checkInFlowContext: ctx,
+    };
+  }
+
+  it('foggy→steady classifies as "shifted" (negative→green)', () => {
+    const payload = mapBrowseTerminalToPayload(
+      flowCompleteWith('steady', ctxFoggy10),
+      'default'
+    );
+    expect(payload.outcome).toBe('shifted');
+    expect(payload.stateBefore).toBe('foggy');
+    expect(payload.stateAfter).toBe('steady');
+    expect(payload.timeWindowSelected).toBe(10);
+  });
+
+  it('foggy→clear classifies as "shifted"', () => {
+    const payload = mapBrowseTerminalToPayload(
+      flowCompleteWith('clear', ctxFoggy10),
+      'default'
+    );
+    expect(payload.outcome).toBe('shifted');
+  });
+
+  it('wired→foggy classifies as "partial_shift" (special-case cluster 1)', () => {
+    const payload = mapBrowseTerminalToPayload(
+      flowCompleteWith('foggy', ctxWired20),
+      'default'
+    );
+    expect(payload.outcome).toBe('partial_shift');
+    expect(payload.stateBefore).toBe('wired');
+    expect(payload.timeWindowSelected).toBe(20);
+  });
+
+  it('wired→wired classifies as "not_shifted"', () => {
+    const payload = mapBrowseTerminalToPayload(
+      flowCompleteWith('wired', ctxWired20),
+      'default'
+    );
+    expect(payload.outcome).toBe('not_shifted');
+  });
+
+  it('steady→steady classifies as "maintenance" (green stay-or-down)', () => {
+    const ctx: NonNullable<BrowseFlowCompleteStep['checkInFlowContext']> = {
+      state: 'steady',
+      timeWindow: 5,
+      intentPath: 'default',
+    };
+    const payload = mapBrowseTerminalToPayload(
+      flowCompleteWith('steady', ctx),
+      'default'
+    );
+    expect(payload.outcome).toBe('maintenance');
+  });
+
+  it('steady→clear classifies as "shifted" (upward green-to-green)', () => {
+    const ctx: NonNullable<BrowseFlowCompleteStep['checkInFlowContext']> = {
+      state: 'steady',
+      timeWindow: 5,
+      intentPath: 'default',
+    };
+    const payload = mapBrowseTerminalToPayload(
+      flowCompleteWith('clear', ctx),
+      'default'
+    );
+    expect(payload.outcome).toBe('shifted');
+  });
+
+  it('intentPath comes from context, not the BrowseRunFlow caller default', () => {
+    const payload = mapBrowseTerminalToPayload(
+      flowCompleteWith('steady', ctxWired20),
+      'default'
+    );
+    expect(payload.intentPath).toBe('down_regulation');
+  });
+
+  it('abandoned with context preserves stateBefore from context, outcome stays "abandoned"', () => {
+    const terminal: BrowseAbandonedStep = {
+      step: 'abandoned',
+      protocol: NSDR_20,
+      sessionStartedAt: 1_000_000,
+      sessionEndedAt: 1_030_000,
+      durationActualSeconds: 30,
+      checkInFlowContext: ctxFoggy10,
+    };
+    const payload = mapBrowseTerminalToPayload(terminal, 'default');
+    expect(payload.outcome).toBe('abandoned');
+    expect(payload.stateBefore).toBe('foggy');
+    expect(payload.stateAfter).toBeNull();
+    expect(payload.timeWindowSelected).toBe(10);
+  });
+
+  it('userChosenNextStep is null even with context (BrowseRunFlow has no response screen)', () => {
+    const payload = mapBrowseTerminalToPayload(
+      flowCompleteWith('steady', ctxFoggy10),
+      'default'
+    );
+    expect(payload.userChosenNextStep).toBeNull();
+  });
+});
+
+describe('initBrowseRunFlow — context plumbing (Bug B fix)', () => {
+  it('persists checkInFlowContext when provided', () => {
+    const ctx = {
+      state: 'foggy' as const,
+      timeWindow: 10 as const,
+      intentPath: 'default' as const,
+    };
+    const state = initBrowseRunFlow({
+      protocol: NSDR_20,
+      nowMs: 5_000_000,
+      checkInFlowContext: ctx,
+    });
+    expect(state.checkInFlowContext).toEqual(ctx);
+  });
+
+  it('defaults checkInFlowContext to null when omitted', () => {
+    const state = initBrowseRunFlow({ protocol: NSDR_20, nowMs: 5_000_000 });
+    expect(state.checkInFlowContext).toBeNull();
+  });
+
+  it('context propagates through running → re_check → flow_complete', () => {
+    const ctx = {
+      state: 'foggy' as const,
+      timeWindow: 10 as const,
+      intentPath: 'default' as const,
+    };
+    let state: BrowseRunFlowState = initBrowseRunFlow({
+      protocol: NSDR_20,
+      nowMs: 1_000_000,
+      checkInFlowContext: ctx,
+    });
+    state = browseRunReducer(state, {
+      type: 'player_exit',
+      reason: 'completed',
+      nowMs: 1_000_000 + 1_200_000,
+    });
+    expect(state.checkInFlowContext).toEqual(ctx);
+    state = browseRunReducer(state, {
+      type: 'state_after_selected',
+      stateAfter: 'steady',
+    });
+    expect(state.checkInFlowContext).toEqual(ctx);
   });
 });

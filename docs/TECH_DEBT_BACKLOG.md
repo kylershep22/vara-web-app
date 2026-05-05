@@ -453,6 +453,12 @@ behavior surfaced by the smoke pass.
 
 Phase 6 polish.
 
+**Round 5 device verification (May 2026):** confirmed the visual
+jumpy/refresh behavior is still present and user-visible during
+onboarding. No regression — the polling cadence pre-dates this
+branch. Founder noted it as friction during round 5 testing;
+keeping the entry as-is, no escalation needed.
+
 ---
 
 ## Firebase verification email occasionally fails to deliver on first send
@@ -960,3 +966,157 @@ us fix it once.
 **Doc cross-reference:** `docs/PHASE_NOTES.md` "Sub-step 2.7 round
 5 — Task 3 (Obs 12b)" describes the override; this entry is the
 companion that names the unfixed underlying issue.
+
+---
+
+## Dashboard stale-state symptom — round 5 investigation
+
+Reported in round 4 device verification (new test user, Foggy → 10
+→ Light Movement → Walk → check-in → dashboard showed chip picker
+instead of the post-re-check summary). Round 5 investigation
+attributed the symptom to Bug A (cold-start race between
+`writeStandardFlowSession` and the dashboard's `useFocusEffect`
+refetch beyond the 1500ms floor).
+
+**Round 5 instrumentation pass on the standard CheckInFlow path
+did NOT reproduce the symptom.** Cold-start dashboard read latencies
+measured during the diagnostic:
+
+- 267ms — returning visit, `result= present` ✓
+- 516ms — first dashboard load, new user
+- 1202ms — first dashboard load, new user (different session)
+- 1256ms — first dashboard load, new user (different session)
+
+The standard path's terminal `Promise.all([writeStandardFlowSession,
+setTimeout(1500)])` floor is empirically sufficient against
+observed read timing. Original symptom was likely a misattribution
+to Bug B (BrowseRunFlow path via "See other options"), which
+produces the same "wrong destination after check-in" surface
+description — the founder's first round-4 test went through the
+"See other options" affordance, not the recommendation card
+directly.
+
+**Discipline rule for future regressions:** if a similar
+dashboard-stale symptom is reported again, **capture
+`[DIAG-OBSA]`-style timing data on the standard CheckInFlow path
+first** before sizing any fix. Do NOT bump the 1500ms floor
+preemptively without timing evidence — defensive bumps without
+empirical justification trade real friction at the median for a
+hypothetical edge case.
+
+**Diagnostic instrumentation cost (when re-needed):** ~30 lines
+across `CheckInFlow.tsx` (`writeStandardFlowSession` START/END
+logs around the Promise.all), `BrowseRunFlow.tsx` (matching
+START/END for the BrowseRunFlow path), and `useDashboard.ts`
+(`useFocusEffect` FIRED + `dashboardRead` START/END/result
+logs). Tag with `[DIAG-OBSA]` for grep-and-remove. See git
+history for commit immediately preceding this entry — the
+instrumentation block was added then removed across a single
+investigation cycle and the diff is the template.
+
+**No fix landed.** Bug A is closed as not-reproducible.
+
+---
+
+## Brain state selection latency on dashboard chip picker
+
+Round 5 device verification (May 2026): multi-second delay between
+the user tapping a brain-state chip and the selection registering
+visually/functionally. The dashboard chip picker is the user's
+first interaction at every daily check-in; latency at this surface
+is high-friction at a high-frequency moment.
+
+**Hypothesis (not investigated):** the chip-tap handler may be
+performing a synchronous Firestore write (or awaiting one) before
+firing the navigation transition to CheckInFlow. The visual
+feedback the user expects ("the chip I tapped lights up
+immediately") happens after the write resolves rather than on
+the tap event.
+
+**Investigation path:**
+
+- Trace the chip onPress handler in
+  `mobile/src/components/dashboard/BrainStateCheckin.tsx` (or its
+  current equivalent — verify path).
+- Identify whether `saveBrainStateCheckIn` (or the new
+  `writeStandardFlowSession` pre-write) fires synchronously
+  before the navigation.
+- If so, restructure: fire navigation immediately on tap, defer
+  the write to background. The CheckInFlow itself owns the
+  authoritative write at terminal — a pre-tap write is redundant
+  and adds latency for no correctness benefit.
+
+**UX shape of the fix:**
+
+- Tap fires a haptic + visual confirmation (chip selected state)
+  in the same render frame as the press event.
+- Navigation transition kicks off in parallel.
+- Any "register the tap" data write (analytics, partial-state
+  capture) happens fire-and-forget in background.
+
+**Phase 6 candidate**, or sooner if device testing surfaces this
+as blocking. Not a correctness bug — UX polish only.
+
+---
+
+## Recovery system architectural gap
+
+Round 5 device verification (May 2026): founder force-quit during
+a running cyclic-sighing timer and expected a recovery prompt on
+next app open within the 30-minute window. No prompt fired.
+
+**Investigation finding (round 5, see Bug D):** the recovery
+mechanism is structurally correct per the current spec but the
+spec's implicit contract diverges from user expectation. The
+marker is written to AsyncStorage **only on entry to the re_check
+step** (i.e., after the protocol's timer completes naturally and
+before the user picks state-after). Force-quits during three
+common interruption points produce no recoverable marker:
+
+| Force-quit point | Marker written? | Recovery fires? |
+|---|---|---|
+| Modality picker (pre-timer) | No | No (correct — nothing started) |
+| **Running timer** (user's case) | **No** | **No** (counter to expectation) |
+| `re_check` (timer done, before state pick) | Yes | Yes |
+
+The locked decision on the round-1 fix (sub-step 2.7) was to
+write the marker on `re_check` entry to preserve the captured
+data integrity (sessionStartedAt, sessionEndedAt, and the
+inferred `stateBefore` are all known at that moment). Writing
+earlier would either require pre-emptive Firestore session-start
+writes or a more complex marker schema that handles
+"unfinished-running" state as a first-class case.
+
+**Phase 4 design considerations:**
+
+- **When to write the marker.** Options: protocol-start (first
+  step mounts), first step completes, post-session-doc-write,
+  re_check entry (current). Earlier writes give better recovery
+  coverage but more chance of stale markers from intentional
+  quits. Later writes give cleaner intent signal but miss the
+  most common interruption point.
+- **One-shot guard logic for multiple potential trigger points.**
+  Currently `recoveryOfferedAt` is a single field. If the marker
+  is written at multiple points, the guard may need to track
+  which surface the recovery was offered from.
+- **False-positive risk.** Users who *intentionally* force-quit
+  don't want forced resumption. Recovery should be offered, not
+  imposed. The current "Yes, check in" / "No, dismiss" prompt
+  shape is right; the issue is just *when it can fire*.
+- **UX shape.** "You have an unfinished session from X minutes
+  ago — resume or skip?" The 30-minute window already prevents
+  stale prompts. Surface treatment matters: don't hijack
+  navigation, don't block the dashboard.
+- **Coverage matrix for Phase 4.** Once the design lands, run
+  the marker-write logic against each of the four force-quit
+  points (modality picker, running timer, re_check, response)
+  and confirm the expected behavior for each.
+
+**Defer to Phase 4 design phase.** Round 5 does not expand
+recovery scope. The current behavior (re_check-only marker) is
+captured as a known limitation, not a bug.
+
+**Doc cross-reference:** The recovery_confirm step in
+`mobile/src/components/checkin/flow/reducer.ts` and the marker
+writer in `mobile/src/utils/flowSessionMarker.ts:166-191` are the
+key sites Phase 4 will refactor.

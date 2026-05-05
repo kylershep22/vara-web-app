@@ -13,24 +13,40 @@
 // (the spec says Today; we route to Practices to preserve the
 // user's exploration context).
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Colors, Spacing, Typography } from '../../constants';
 import { getProtocolById } from '../../constants/brainStateProtocols';
 import { useAuth } from '../../context/AuthContext';
 import { BrowseRunFlow } from '../../components/checkin/flow/BrowseRunFlow';
-import type { BrainState } from '../../types/models';
+import type { CheckInFlowContext } from '../../components/checkin/flow/browseRunTypes';
+import type {
+  BrainState,
+  IntentPath,
+  ProtocolTimeWindow,
+} from '../../types/models';
 
 export interface PracticeRunRouteParams {
   protocolId: string;
   // The state the user filtered on at Practices index. Forwarded to
   // GuidedSessionPlayer (which requires a stateBefore for its
-  // recovery summary). NOT written to the ProtocolSession record —
-  // Case 4 sessions persist stateBefore=null.
+  // recovery summary). When this run came from CheckInFlow (Bug B
+  // fix, round 5), it doubles as the captured stateBefore on the
+  // ProtocolSession record.
   stateBefore: BrainState;
+  // Sub-step 2.7 round 5 (Bug B fix) — when present and true, this
+  // PracticeRun was launched from CheckInFlow (via "See other
+  // options" or "Try something longer"). Combined with intentPath
+  // and timeWindow, builds the BrowseRunFlow's checkInFlowContext.
+  // When absent or false, the legacy true-browse behavior applies
+  // (outcome='browse_launched', stateBefore=null, route to Practices).
+  fromCheckInFlow?: boolean;
+  intentPath?: IntentPath;
+  timeWindow?: ProtocolTimeWindow;
 }
 
 type RouteParams = RouteProp<
@@ -38,26 +54,65 @@ type RouteParams = RouteProp<
   'PracticeRun'
 >;
 
+// Native-stack supports popToTop which unwinds the entire stack to
+// the root screen (Dashboard). Used by Bug B fix to return home
+// after a CheckInFlow-launched browse session completes.
+type NavigationProp = NativeStackNavigationProp<Record<string, object | undefined>>;
+
 export function PracticeRunScreen() {
   const route = useRoute<RouteParams>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
-  const { protocolId, stateBefore } = route.params;
+  const { protocolId, stateBefore, fromCheckInFlow, intentPath, timeWindow } =
+    route.params;
   const protocol = getProtocolById(protocolId);
 
+  // Sub-step 2.7 round 5 (Bug B fix) — build the CheckInFlowContext
+  // when the route was reached from CheckInFlow. Both Path 1 ("See
+  // other options") and Path 2 ("Try something longer") flow through
+  // PracticesIndexScreen which forwards fromCheckInFlow + intentPath
+  // + timeWindow. timeWindow is required for context construction;
+  // if it's absent we treat the run as true-browse (defensive — the
+  // missing param implies the navigation didn't originate from a
+  // CheckInFlow path).
+  const checkInFlowContext = useMemo<CheckInFlowContext | undefined>(() => {
+    if (!fromCheckInFlow || timeWindow == null) return undefined;
+    return {
+      state: stateBefore,
+      timeWindow,
+      intentPath: intentPath ?? 'default',
+    };
+  }, [fromCheckInFlow, timeWindow, stateBefore, intentPath]);
+
   const handleComplete = useCallback(() => {
-    // Both terminal variants (abandoned, flow_complete) route back
-    // to Practices. The session write happens inside BrowseRunFlow's
-    // terminal useEffect.
+    // Bug B fix (round 5): when CheckInFlow context is present, route
+    // to dashboard. The user originated in CheckInFlow; their mental
+    // model is "I checked in, I ran a protocol, take me home." Stack
+    // shape on this path: Dashboard → CheckInFlow → Practices →
+    // PracticeRun. popToTop unwinds back to Dashboard in one move.
+    //
+    // When context is absent (true browse — no production entry as of
+    // round 5), preserve the legacy locked decision and goBack to
+    // Practices.
+    if (checkInFlowContext) {
+      navigation.popToTop();
+      return;
+    }
     navigation.goBack();
-  }, [navigation]);
+  }, [navigation, checkInFlowContext]);
 
   // Sub-step 2.7 round 4 (Obs 10) — fires when the Light Movement
   // pre-timer modality picker is cancelled. No session was started,
-  // so no write fires; we just route back to Practices.
+  // so no write fires; we just route back. Cancel routes match the
+  // completion routing — dashboard when from CheckInFlow, Practices
+  // otherwise.
   const handleCancel = useCallback(() => {
+    if (checkInFlowContext) {
+      navigation.popToTop();
+      return;
+    }
     navigation.goBack();
-  }, [navigation]);
+  }, [navigation, checkInFlowContext]);
 
   if (!protocol) {
     return (
@@ -85,6 +140,8 @@ export function PracticeRunScreen() {
       userId={user.uid}
       onComplete={handleComplete}
       onCancel={handleCancel}
+      checkInFlowContext={checkInFlowContext}
+      intentPath={checkInFlowContext?.intentPath}
     />
   );
 }

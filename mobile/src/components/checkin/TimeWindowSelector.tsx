@@ -11,7 +11,7 @@
 // pre-selected" — but a previously-selected chip on back-nav can
 // carry a subtle teal outline to remind the user of their prior pick.
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -22,7 +22,8 @@ import {
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Spacing, Typography } from '../../constants';
-import type { ProtocolTimeWindow } from '../../types/models';
+import { getAllProtocols } from '../../constants/brainStateProtocols';
+import type { BrainState, ProtocolTimeWindow } from '../../types/models';
 
 const MIN_TOUCH_TARGET = 48;
 
@@ -31,6 +32,15 @@ export interface TimeWindowSelectorProps {
   onSelect: (value: ProtocolTimeWindow) => void;
   onBack?: () => void;
   onClose?: () => void;
+  // Sub-step 2.7 round 5 (Bug E fix, option E2): when present, the
+  // chip set is filtered to time windows that have at least one
+  // eligible protocol for the given state. Prevents the user from
+  // picking a (state, time) combo that has zero matches in the
+  // catalog (e.g. clear+2, which previously crashed the recommender
+  // via `protocolSelector: no protocol matched`). Optional —
+  // omitted on the legacy / dev-harness call paths that don't have
+  // a brain state captured.
+  brainState?: BrainState;
 }
 
 interface TimeWindowChipData {
@@ -47,12 +57,48 @@ const TIME_WINDOWS: TimeWindowChipData[] = [
   { value: 45, label: '45+ minutes', framing: 'Focused work or deep rest' },
 ];
 
+// Eligible time windows for a given state. A window is eligible if
+// at least one protocol exists with that timeWindow AND lists the
+// state in its suitableForStates. Mirrors the recommender's
+// eligibility-set logic so a chip the user can tap will always
+// resolve to ≥1 protocol downstream.
+//
+// Note: this uses *exact* timeWindow match, not "≤ user's window."
+// Reason: the recommender's `<= chosenWindow` filter combined with
+// the closest-match sort means a 5-min protocol will satisfy a
+// 10-min-budget tap. So the chip set should hide ONLY the windows
+// where literally nothing eligible exists for that state at any
+// duration ≤ that window. For clear@2: no clear-suitable protocol
+// exists at duration ≤ 2 (the smallest clear-suitable protocol is
+// 5-min coherence-breathing-5), so the 2-min chip is hidden.
+export function eligibleTimeWindowsFor(
+  state: BrainState
+): ReadonlyArray<ProtocolTimeWindow> {
+  const allProtocols = getAllProtocols();
+  const eligible = (window: ProtocolTimeWindow): boolean =>
+    allProtocols.some(
+      (p) => p.suitableForStates.includes(state) && p.timeWindow <= window
+    );
+  return TIME_WINDOWS.map((w) => w.value).filter(eligible);
+}
+
 export function TimeWindowSelector({
   initialValue = null,
   onSelect,
   onBack,
   onClose,
+  brainState,
 }: TimeWindowSelectorProps) {
+  // Bug E fix (round 5, option E2): when brainState is present,
+  // filter chips to eligible windows only. When absent (legacy /
+  // dev-harness callers), show all chips — preserves prior behavior
+  // until those callers are updated.
+  const visibleChips = useMemo(() => {
+    if (brainState == null) return TIME_WINDOWS;
+    const eligibleSet = new Set(eligibleTimeWindowsFor(brainState));
+    return TIME_WINDOWS.filter((c) => eligibleSet.has(c.value));
+  }, [brainState]);
+
   return (
     <View style={styles.container} testID="time-window-selector">
       <View style={styles.header}>
@@ -93,7 +139,7 @@ export function TimeWindowSelector({
         </Text>
 
         <View style={styles.chips}>
-          {TIME_WINDOWS.map((chip) => {
+          {visibleChips.map((chip) => {
             const isPreviouslySelected = chip.value === initialValue;
             return (
               <TouchableOpacity

@@ -9,6 +9,7 @@
 
 import type { IntentPath } from '../../../types/models';
 import type { ProtocolSessionWritePayload } from '../../../services/firebase/protocolSession.service';
+import { classifyOutcome } from '../../../services/outcomeClassifier';
 import type {
   BrowseRunFlowAction,
   BrowseRunFlowInit,
@@ -27,6 +28,7 @@ export function initBrowseRunFlow(
     step: 'running',
     protocol: init.protocol,
     sessionStartedAt: init.nowMs,
+    checkInFlowContext: init.checkInFlowContext ?? null,
   };
 }
 
@@ -67,6 +69,7 @@ function reduceRunning(
         sessionStartedAt: state.sessionStartedAt,
         sessionEndedAt,
         durationActualSeconds,
+        checkInFlowContext: state.checkInFlowContext,
       };
     }
     return {
@@ -75,6 +78,7 @@ function reduceRunning(
       sessionStartedAt: state.sessionStartedAt,
       sessionEndedAt,
       durationActualSeconds,
+      checkInFlowContext: state.checkInFlowContext,
     };
   }
   return state;
@@ -92,6 +96,7 @@ function reduceReCheck(
       sessionEndedAt: state.sessionEndedAt,
       durationActualSeconds: state.durationActualSeconds,
       stateAfter: action.stateAfter,
+      checkInFlowContext: state.checkInFlowContext,
     };
   }
   return state;
@@ -104,27 +109,39 @@ function reduceReCheck(
 // reducer tests can import it without pulling in React Native /
 // expo-haptics via the component tree.
 //
-// Case 4 schema mapping:
-//   - stateBefore is ALWAYS null (no pre-protocol check-in captured).
-//   - outcome is 'browse_launched' on flow_complete, 'abandoned' on
-//     abandoned. (Distinct from standard-flow abandons only by
-//     stateBefore=null.)
-//   - userChosenNextStep is null (no response screen, no choice).
-//   - timeWindowSelected is the protocol's intrinsic timeWindow —
-//     informationally useful for queries even though the user
-//     didn't pick a window.
+// Schema mapping branches on checkInFlowContext (Bug B fix, round 5):
+//
+//   - context PRESENT (Path 1: "See other options"; Path 2: "Try
+//     something longer") — the session is structurally a CheckInFlow
+//     session that exited to BrowseRunFlow. stateBefore is taken from
+//     the captured context. On flow_complete, outcome is computed
+//     via classifyOutcome(context.state, stateAfter) — same
+//     classifier the standard CheckInFlow uses. timeWindowSelected
+//     reflects the user's original chip pick (context.timeWindow),
+//     not the protocol's intrinsic timeWindow.
+//
+//   - context ABSENT (true browse — no production entry as of round
+//     5; reachable only from dev harnesses) — preserves the original
+//     Case 4 mapping: stateBefore=null, outcome='browse_launched',
+//     timeWindowSelected=protocol.timeWindow.
+//
+//   - userChosenNextStep is null in both branches — BrowseRunFlow
+//     has no response screen.
 
 export function mapBrowseTerminalToPayload(
   terminal: BrowseTerminalFlowState,
   intentPath: IntentPath
 ): ProtocolSessionWritePayload {
+  const ctx = terminal.checkInFlowContext;
   const base = {
     protocolId: terminal.protocol.id,
-    stateBefore: null,
-    timeWindowSelected: terminal.protocol.timeWindow,
+    stateBefore: ctx ? ctx.state : null,
+    timeWindowSelected: ctx ? ctx.timeWindow : terminal.protocol.timeWindow,
     durationActualSeconds: terminal.durationActualSeconds,
     userChosenNextStep: null,
-    intentPath,
+    // Prefer the context's intentPath (the user's CheckInFlow
+    // session inherited it) over the BrowseRunFlow caller's default.
+    intentPath: ctx ? ctx.intentPath : intentPath,
     sessionStartedAt: terminal.sessionStartedAt,
   } as const;
 
@@ -136,6 +153,13 @@ export function mapBrowseTerminalToPayload(
     };
   }
   // step === 'flow_complete'
+  if (ctx) {
+    return {
+      ...base,
+      stateAfter: terminal.stateAfter,
+      outcome: classifyOutcome(ctx.state, terminal.stateAfter),
+    };
+  }
   return {
     ...base,
     stateAfter: terminal.stateAfter,

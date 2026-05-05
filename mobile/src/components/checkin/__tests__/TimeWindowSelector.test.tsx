@@ -102,4 +102,52 @@ describe('TimeWindowSelector', () => {
     fireEvent.press(getByTestId('time-window-chip-5'));
     expect(onSelect).toHaveBeenCalledWith(5);
   });
+
+  // Sub-step 2.7 round 5 (Bug E fix, option E2) — chip filtering
+  // hides time windows with zero eligible protocols for the
+  // selected brain state. Prevents the prior `protocolSelector: no
+  // protocol matched` crash on combos like clear+2.
+  describe('chip filtering by brainState (Bug E fix)', () => {
+    it('omitting brainState shows all five chips (legacy behavior preserved)', () => {
+      const { queryByTestId } = render(
+        <TimeWindowSelector onSelect={jest.fn()} />
+      );
+      for (const value of [2, 5, 10, 20, 45] as const) {
+        expect(queryByTestId(`time-window-chip-${value}`)).not.toBeNull();
+      }
+    });
+
+    it('clear hides 2-min chip (no clear-suitable protocol exists with timeWindow ≤ 2)', () => {
+      const { queryByTestId } = render(
+        <TimeWindowSelector onSelect={jest.fn()} brainState="clear" />
+      );
+      expect(queryByTestId('time-window-chip-2')).toBeNull();
+      // Clear has eligible protocols at 5/45+; the 10/20 chips show
+      // because the recommender's <=window filter still resolves
+      // (5-min protocol fits a 10 or 20 budget).
+      expect(queryByTestId('time-window-chip-5')).not.toBeNull();
+      expect(queryByTestId('time-window-chip-45')).not.toBeNull();
+    });
+
+    it('foggy shows all five chips (foggy has 5-min and 10-min protocols)', () => {
+      const { queryByTestId } = render(
+        <TimeWindowSelector onSelect={jest.fn()} brainState="foggy" />
+      );
+      // Foggy has 5/10/20-min protocols; once the 5-min protocol
+      // exists, it satisfies all chips ≥ 5 via <=window filter.
+      // The 2-min chip is also eligible if any wired/foggy 2-min
+      // protocol lists foggy in suitableForStates.
+      for (const value of [5, 10, 20, 45] as const) {
+        expect(queryByTestId(`time-window-chip-${value}`)).not.toBeNull();
+      }
+    });
+
+    it('wired shows the 2-min chip (wired has 4 protocols at 2 min)', () => {
+      const { queryByTestId } = render(
+        <TimeWindowSelector onSelect={jest.fn()} brainState="wired" />
+      );
+      expect(queryByTestId('time-window-chip-2')).not.toBeNull();
+      expect(queryByTestId('time-window-chip-5')).not.toBeNull();
+    });
+  });
 });

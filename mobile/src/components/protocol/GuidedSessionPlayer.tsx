@@ -143,14 +143,27 @@ export function GuidedSessionPlayer({
   const totalSteps = protocol.steps.length;
 
   // Sub-step 2.7 round 2 — Observation 6: keep screen awake during
-  // visual protocols (BreathPacer, Timer steps). Audio-only protocols
-  // (NSDR) intentionally let the screen sleep; audio continues
-  // playing in the background per Observation 7's audio config.
-  // The KeepAwakeWhenVisual subcomponent calls useKeepAwake
+  // visual protocols (BreathPacer, Timer, Instruction steps). Audio-
+  // only protocols (NSDR) intentionally let the screen sleep; audio
+  // continues playing in the background per Observation 7's audio
+  // config. The KeepAwakeWhenVisual subcomponent calls useKeepAwake
   // unconditionally; conditional rendering of the subcomponent is
   // how we gate the activation without violating Rules of Hooks.
+  //
+  // Round 5 (Bug C fix): added 'instruction' to the predicate.
+  // sensory-reset-2 ships as a sequence of timed instruction steps
+  // (durationSeconds > 0), and the timer countdown UI is on screen
+  // for each step — no audio. The previous predicate excluded
+  // instruction kinds, so the screen slept during sensory reset
+  // even though the user was meant to be reading and following the
+  // on-screen prompt. Adding instruction matches the user-visible
+  // behavior: any non-audio step renders a visual the user is
+  // expected to attend to. All InstructionSteps have positive
+  // durationSeconds via BaseProtocolStep, so no per-step guard
+  // is needed.
   const isVisualProtocol = protocol.steps.some(
-    (s) => s.kind === 'breath' || s.kind === 'timer'
+    (s) =>
+      s.kind === 'breath' || s.kind === 'timer' || s.kind === 'instruction'
   );
 
   // ----- recovery effect (mount-only, ref-driven) -----

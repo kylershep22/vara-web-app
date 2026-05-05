@@ -18,7 +18,36 @@
 //     (already extracted in 2.2). Visual parallelism preserved.
 //   - Easier to test the Case 4 happy path in isolation.
 
-import type { BrainState, Protocol } from '../../../types/models';
+import type {
+  BrainState,
+  IntentPath,
+  Protocol,
+  ProtocolTimeWindow,
+} from '../../../types/models';
+
+// Context plumbed through when BrowseRunFlow is launched FROM
+// CheckInFlow (either via "See other options" on the recommendation
+// screen, or via "Try something longer" on the not-shifted response
+// screen). When present, the terminal write uses the standard
+// outcome classifier (shifted/maintenance/partial_shift/not_shifted/
+// abandoned) with the captured stateBefore, and post-completion
+// routing returns to the dashboard rather than the Practices index.
+//
+// When absent (true browse — user started from Practices index with
+// no prior CheckInFlow session), the legacy behavior is preserved:
+// outcome='browse_launched', stateBefore=null, route back to
+// Practices.
+//
+// As of round 5: there is no production entry to Practices outside
+// CheckInFlow, so the absent branch is reachable only from dev
+// harnesses. It is preserved as a defensive default and as the
+// surface Phase 4+ would hook into if a standalone Practices entry
+// is ever added.
+export interface CheckInFlowContext {
+  state: BrainState;
+  timeWindow: ProtocolTimeWindow;
+  intentPath: IntentPath;
+}
 
 // ────────────────────────────────────────────────────────────
 // Player exit reason (mirrors the standard flow's type)
@@ -41,6 +70,7 @@ export interface BrowseRunningStep {
   step: 'running';
   protocol: Protocol;
   sessionStartedAt: number;
+  checkInFlowContext: CheckInFlowContext | null;
 }
 
 // Reached only when the player exits with reason='completed'.
@@ -52,27 +82,35 @@ export interface BrowseReCheckStep {
   sessionStartedAt: number;
   sessionEndedAt: number;
   durationActualSeconds: number;
+  checkInFlowContext: CheckInFlowContext | null;
 }
 
 // Terminal — abandoned short-circuit. Reached only via
 // player_exit { reason: 'ended_early' } from the running step.
 // stateAfter is unset (re-check never ran). Parent observes
 // step === 'abandoned', writes ProtocolSession with
-// outcome='abandoned' + stateBefore=null + stateAfter=null,
-// navigates back to the Practices index.
+// outcome='abandoned' + stateAfter=null. stateBefore is taken
+// from checkInFlowContext when present, otherwise null.
+// Routing: dashboard when checkInFlowContext present, Practices
+// index when absent.
 export interface BrowseAbandonedStep {
   step: 'abandoned';
   protocol: Protocol;
   sessionStartedAt: number;
   sessionEndedAt: number;
   durationActualSeconds: number;
+  checkInFlowContext: CheckInFlowContext | null;
 }
 
 // Terminal — re-check completed. Carries the captured stateAfter.
-// Parent observes step === 'flow_complete', writes ProtocolSession
-// with outcome='browse_launched' + stateBefore=null +
-// stateAfter=captured, navigates back to the Practices index per
-// SPEC_CONSISTENCY_BACKLOG "Case 4 routing target after re-check".
+// Parent observes step === 'flow_complete' and writes a
+// ProtocolSession; the outcome and stateBefore depend on
+// checkInFlowContext:
+//   - context present: outcome via classifyOutcome(context.state,
+//     stateAfter); stateBefore=context.state. Routing: dashboard.
+//   - context absent: outcome='browse_launched'; stateBefore=null.
+//     Routing: Practices index per SPEC_CONSISTENCY_BACKLOG
+//     "Case 4 routing target after re-check".
 export interface BrowseFlowCompleteStep {
   step: 'flow_complete';
   protocol: Protocol;
@@ -80,6 +118,7 @@ export interface BrowseFlowCompleteStep {
   sessionEndedAt: number;
   durationActualSeconds: number;
   stateAfter: BrainState;
+  checkInFlowContext: CheckInFlowContext | null;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -98,6 +137,11 @@ export type BrowseRunFlowAction =
 export interface BrowseRunFlowInit {
   protocol: Protocol;
   nowMs: number; // sessionStartedAt for the running step
+  // Optional. Present when BrowseRunFlow is launched from
+  // CheckInFlow (Path 1: "See other options"; Path 2: "Try
+  // something longer"). Absent for true browse entries (dev
+  // harnesses today; future standalone Practices entry).
+  checkInFlowContext?: CheckInFlowContext;
 }
 
 // Public alias of the two terminal variants. Same convenience pattern

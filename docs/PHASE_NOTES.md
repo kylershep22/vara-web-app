@@ -1036,6 +1036,170 @@ known.
 
 ---
 
+### Sub-step 2.7 round 6 — locked decisions
+
+Round 6 of device verification (against build #1.0.84) surfaced
+four bugs (A, B, C, D) plus one bug (E) that emerged during the
+Bug A diagnostic test. After investigation:
+
+- **Bug A** closed as not reproducible. See TECH_DEBT_BACKLOG
+  "Dashboard stale-state symptom — round 5 investigation" for the
+  full investigation summary and the discipline rule against
+  defensive floor bumps without timing evidence.
+- **Bug B** fixed (see below).
+- **Bug C** fixed (see below).
+- **Bug D** confirmed correct-per-spec; design gap captured in
+  TECH_DEBT_BACKLOG "Recovery system architectural gap" for Phase
+  4 review.
+- **Bug E** fixed (see below).
+
+#### Bug B — CheckInFlow → BrowseRunFlow context plumbing
+
+**Locked decision (supersedes "Case 4 routing target after
+re-check" override from sub-step 2.5):**
+
+> **Case 4 routing — `outcome: 'browse_launched'` and Practices-
+> index post-completion routing apply ONLY when `checkInFlowContext`
+> is absent. CheckInFlow-launched browse sessions (both via "See
+> other options" on the recommendation screen AND via "Try
+> something longer" on the not-shifted response screen) produce
+> standard outcomes via `classifyOutcome` and route to dashboard
+> after re-check.**
+
+**Why this update:** Round 5 audit confirmed there is NO
+production entry to `PracticesIndexScreen` outside CheckInFlow.
+Every user who reaches Practices got there via:
+- Path 1: Recommendation → "See other options" (`CheckInFlowScreen.tsx:130`).
+- Path 2: Response (not-shifted) → "Try something longer"
+  (`CheckInFlowScreen.tsx:161` — `no_override_practices_index`).
+
+Both paths originate from CheckInFlow. The original locked
+decision (route to Practices, write `browse_launched`) was
+designed for a "true browse" scenario that doesn't exist in
+production. Founder device testing reproduced the symptom on
+both paths.
+
+**Implementation shape:**
+
+- `CheckInFlowContext` (`browseRunTypes.ts`) — new optional type
+  carried through `BrowseRunFlowState` (running → re_check →
+  flow_complete | abandoned). Contains `state`, `timeWindow`,
+  `intentPath`. Plumbed via:
+  - `CheckInFlowScreen.tsx:130, 161` — both nav call sites pass
+    `fromCheckInFlow: true` + `intentPath` in the `Practices`
+    route params.
+  - `PracticesIndexScreen.tsx` — forwards `fromCheckInFlow` +
+    `intentPath` + `timeWindow` in the `PracticeRun` route params
+    when the user picks a protocol.
+  - `PracticeRunScreen.tsx` — reads route params, builds the
+    `CheckInFlowContext` via `useMemo`, passes to BrowseRunFlow.
+- `mapBrowseTerminalToPayload` (`browseRunReducer.ts`) — branches
+  on `terminal.checkInFlowContext`:
+  - **Context present**: outcome via `classifyOutcome(ctx.state,
+    stateAfter)`, `stateBefore` from context, `timeWindowSelected`
+    from context, `intentPath` from context.
+  - **Context absent**: legacy mapping preserved
+    (`browse_launched`, `stateBefore: null`).
+- `PracticeRunScreen.tsx` `handleComplete` and `handleCancel` —
+  branch on context presence:
+  - **Context present**: `navigation.popToTop()` unwinds the
+    stack to Dashboard.
+  - **Context absent**: `navigation.goBack()` returns to
+    Practices index (legacy behavior).
+
+**True-browse context-absent branch is reserved for the future.**
+As of round 6 there is no production entry. The branch is
+preserved so dev harnesses (`CheckInFlowTestScreen`) keep working
+and so a future standalone Practices entry surface (Phase 6+) has
+a clean integration point.
+
+**`intentPath` plumbing.** Until Phase 3 wires real intent paths
+through the system, `CheckInFlowScreen.tsx` uses a constant
+`CHECKIN_FLOW_INTENT_PATH: IntentPath = 'default'`. Phase 3 will
+replace this constant with the resolved-at-flow-time value. The
+constant is a deliberate single-point-of-replacement marker so the
+Phase 3 author has a clear find-and-replace target.
+
+**UI hierarchy adjustment shipped alongside.**
+`ProtocolRecommendation.tsx` "See other options" button restyled
+from full-width 48px equal-weight CTA → tertiary text button per
+Mobile UI Standards §7.1. Smaller font (`Typography.fontSize.sm`),
+`Typography.fontWeight.regular`, `Colors.mutedSageGray`, no
+full-width region. Begin remains the unambiguous primary action.
+Round 5 device verification showed founders inadvertently tapping
+the prior styling as if it were a primary CTA — the new hierarchy
+makes the affordance an opt-in escape hatch rather than a
+co-equal choice.
+
+**Tests:** 12 new tests in `browseRunReducer.test.ts` covering
+the classifier branches (shifted / partial_shift / not_shifted /
+maintenance / shifted-upward) with context, the `browse_launched`
+preservation when context is absent, and context propagation
+through every reducer transition.
+
+#### Bug C — `isVisualProtocol` predicate extension
+
+`mobile/src/components/protocol/GuidedSessionPlayer.tsx:152` —
+extended the `isVisualProtocol` predicate to include
+`'instruction'` step kinds:
+
+```ts
+const isVisualProtocol = protocol.steps.some(
+  (s) => s.kind === 'breath' || s.kind === 'timer' || s.kind === 'instruction'
+);
+```
+
+**Why:** `sensory-reset-2` ships as a sequence of 5 timed
+instruction steps (each 20–30 seconds, durationSeconds field via
+BaseProtocolStep). Round 5 device verification confirmed the
+screen slept during these steps even though the user is meant to
+be reading and following the on-screen 5-4-3-2-1 prompt. The
+prior predicate excluded `instruction` kinds, leaving the
+overwhelm-safety-card flow without keep-awake.
+
+**Audio-only protocols (NSDR) preserved.** `'audio'` step kind
+remains excluded — Obs 7's contract that audio paths allow screen
+lock is intact. NSDR continues to play in the background while
+the screen sleeps, as designed.
+
+#### Bug E — Time-window chip filtering by brain state (option E2)
+
+`mobile/src/components/checkin/TimeWindowSelector.tsx` — added
+optional `brainState?: BrainState` prop. When present, chips are
+filtered to time windows where ≥1 protocol exists with
+`suitableForStates.includes(brainState) && timeWindow <= chipValue`
+(matching the recommender's eligibility filter). When absent
+(legacy / dev-harness callers), all five chips render — preserves
+prior behavior.
+
+**Why:** `clear + 2-min` previously crashed with
+`protocolSelector: no protocol matched` because zero
+`clear`-suitable protocols exist at `timeWindow <= 2`. Round 5
+device verification reproduced the crash. The chip picker now
+hides combinations with no eligible protocol so the user can't
+land in an empty eligibility set.
+
+**Why option E2 (chip filtering) over E1 (selector graceful
+fallback) or E3 (both):** founder explicitly chose E2 with the
+intent to "add more protocols to fill the gaps." Adding an E1
+graceful-null fallback would preempt that — the recommender
+should still throw on misconfiguration so missing-content gaps
+surface loudly during catalog edits. The chip filter is the user-
+facing fix; content additions close the underlying coverage gaps.
+
+**Logic helper exported.** `eligibleTimeWindowsFor(state):
+ProtocolTimeWindow[]` is exported from `TimeWindowSelector.tsx`
+for reuse in tests and future surfaces (e.g. if Phase 4 adds a
+state-aware preview of available time windows on the chip
+picker).
+
+**Tests:** 4 new tests in `TimeWindowSelector.test.tsx` covering
+the unfiltered (no brainState) case, clear-state filtering
+(2-min hidden), foggy-state filtering (full coverage), and
+wired-state filtering (2-min visible).
+
+---
+
 ## Phase 3
 
 ### Phase 3 entry checklist — skeleton

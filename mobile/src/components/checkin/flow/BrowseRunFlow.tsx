@@ -49,6 +49,7 @@ import {
 import type {
   BrowseRunFlowState,
   BrowseTerminalFlowState,
+  CheckInFlowContext,
 } from './browseRunTypes';
 
 export type BrowseRunFlowWriteMode = 'production' | 'dev_dry_run';
@@ -75,6 +76,15 @@ export interface BrowseRunFlowProps {
   // session has started, so no terminal write fires for this path.
   // Optional — non-Light-Movement protocols never invoke this.
   onCancel?: () => void;
+  // Sub-step 2.7 round 5 (Bug B fix) — present when this BrowseRunFlow
+  // was launched from CheckInFlow (Path 1: "See other options"; Path
+  // 2: "Try something longer"). When present, the terminal write
+  // produces a standard outcome via classifyOutcome, captures
+  // stateBefore from context, and the parent routes to dashboard
+  // rather than Practices. Absent for true browse entries (no
+  // production entry today; reserved for future standalone Practices
+  // entry surfaces).
+  checkInFlowContext?: CheckInFlowContext;
 }
 
 export function BrowseRunFlow({
@@ -85,10 +95,11 @@ export function BrowseRunFlow({
   intentPath = 'default',
   writeMode = 'production',
   onCancel,
+  checkInFlowContext,
 }: BrowseRunFlowProps) {
   const [state, dispatch] = useReducer(
     browseRunReducer,
-    { protocol, nowMs: Date.now() },
+    { protocol, nowMs: Date.now(), checkInFlowContext },
     initBrowseRunFlow
   );
 

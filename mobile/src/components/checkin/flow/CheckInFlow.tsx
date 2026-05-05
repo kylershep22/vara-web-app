@@ -323,6 +323,7 @@ function renderStep(
     case 'time_pick':
       return (
         <TimeWindowSelector
+          brainState={state.stateBefore}
           onSelect={(timeWindow) =>
             dispatch({ type: 'time_selected', timeWindow })
           }
