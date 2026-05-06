@@ -37,6 +37,7 @@ import type {
   ProtocolSessionSummary,
 } from '../../../types/models';
 import { writeProtocolSession } from '../../../services/firebase/protocolSession.service';
+import { writeBrainStateCheckInLegacyEffects } from '../../../services/firebase/brainStateCheckIn.service';
 
 import { GuidedSessionPlayer } from '../../protocol/GuidedSessionPlayer';
 import { LightMovementProtocolFlow } from '../../protocol/LightMovementProtocolFlow';
@@ -109,26 +110,70 @@ export function BrowseRunFlow({
   // the BrowseRunFlowState union for a single-protocol concern.
   const selectedModalityRef = useRef<MovementModality | null>(null);
 
+  // Round 7 (Bug A v2 / Bug B follow-up): when CheckInFlowContext is
+  // present, the BrowseRunFlow session is structurally a CheckInFlow
+  // session that exited to BrowseRunFlow. The dashboard reads the
+  // legacy `brainStateCheckIns` collection (NOT `protocolSessions`)
+  // to decide "show chip picker vs show summary." Without the legacy
+  // write, the dashboard sees null after BrowseRunFlow returns and
+  // flips back to the chip picker — the same dashboard-stale symptom
+  // originally reported in round 4.
+  //
+  // Mirror CheckInFlow's terminal pattern:
+  //   1. Authoritative protocolSessions write.
+  //   2. When context present: legacy + first-shift via shared helper.
+  //   3. Promise.all wraps both alongside a 1500ms minimum display
+  //      window. onComplete fires only after Promise.all resolves —
+  //      same race-prevention shape that closed the original Obs 11.
   useEffect(() => {
-    if (state.step === 'abandoned' || state.step === 'flow_complete') {
-      const dryRun = writeMode === 'dev_dry_run';
-      const payload = mapBrowseTerminalToPayload(state, intentPath);
-      const selectedModality = selectedModalityRef.current;
-      if (selectedModality != null) {
-        payload.selectedModality = selectedModality;
-      }
-      writeProtocolSession(userId, payload, { dryRun }).catch((error) => {
-        // Silent-failure visibility: BrowseRunFlow has NO legacy
-        // parallel write to fall back on (Case 4 sessions skip
-        // brainStateCheckIns). A failure here means zero data lands
-        // for this session.
+    if (state.step !== 'abandoned' && state.step !== 'flow_complete') return;
+
+    const dryRun = writeMode === 'dev_dry_run';
+    const payload = mapBrowseTerminalToPayload(state, intentPath);
+    const selectedModality = selectedModalityRef.current;
+    if (selectedModality != null) {
+      payload.selectedModality = selectedModality;
+    }
+    const ctx = state.checkInFlowContext;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const writes: Promise<unknown>[] = [
+          writeProtocolSession(userId, payload, { dryRun }),
+        ];
+        if (ctx) {
+          writes.push(
+            writeBrainStateCheckInLegacyEffects(
+              userId,
+              ctx.state,
+              state.step === 'flow_complete',
+              payload.outcome,
+              { dryRun }
+            )
+          );
+        }
+        await Promise.all([
+          ...writes,
+          new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+        ]);
+      } catch (error) {
+        // Silent-failure visibility: BrowseRunFlow's authoritative
+        // write failure means zero data lands for this session.
+        // (Legacy + first-shift errors are swallowed inside the
+        // helper; only the protocolSessions write can throw here.)
         logger.error(
-          '[BrowseRunFlow] writeProtocolSession failed (session NOT persisted, no legacy fallback):',
+          '[BrowseRunFlow] writeProtocolSession failed (session NOT persisted):',
           error
         );
-      });
+      }
+      if (cancelled) return;
       onComplete(state);
-    }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [state, onComplete, userId, intentPath, writeMode]);
 
   // Top-edge SafeAreaView per Observation 5 (sub-step 2.7 round 2).

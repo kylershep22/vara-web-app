@@ -1200,6 +1200,144 @@ wired-state filtering (2-min visible).
 
 ---
 
+### Sub-step 2.7 round 7 — locked decisions
+
+Round 7 of device verification (against build #1.0.85, post-Bug B
+fix) reproduced the original Bug A symptom on a path that round 5
+hadn't tested: BrowseRunFlow with `CheckInFlowContext` routed to
+dashboard but the dashboard didn't see the check-in. Investigation
+identified a write-coverage gap (BrowseRunFlow wrote only to
+`protocolSessions`; dashboard reads `brainStateCheckIns`).
+
+#### Locked decision — BrowseRunFlow write-path parity
+
+> **BrowseRunFlow's terminal effect MUST invoke
+> `writeBrainStateCheckInLegacyEffects` when `CheckInFlowContext` is
+> present, applying the same `Promise.all` + 1500ms timing pattern
+> as `writeStandardFlowSession`. Without this, the BrowseRunFlow
+> path produces orphan `protocolSessions` docs that are invisible
+> to the dashboard's `brainStateCheckIns` read, and the dashboard
+> flips back to the chip picker after re-check completion.**
+
+The locked decision applies whenever `CheckInFlowContext` is
+present (Path 1: "See other options"; Path 2: "Try something
+longer"). When context is absent (true browse — no production
+entry today), the helper is NOT called and the legacy isolated
+browse-path semantics are preserved.
+
+#### Implementation shape
+
+- **Service-layer extraction.** `writeBrainStateCheckInLegacyEffects`
+  exported from `brainStateCheckIn.service.ts`. Wraps the existing
+  `saveBrainStateCheckIn` + conditional `markProtocolCompleted` +
+  `setFirstShiftAtIfNeeded` orchestration in the same try-catch
+  shape `writeStandardFlowSession` already used. Errors logged but
+  not surfaced — backward-compat writes for dashboard reads must
+  not strand the user post-completion.
+- **`writeStandardFlowSession` rewrite.** Now delegates the
+  legacy + first-shift orchestration to the helper. Single source
+  of truth for the legacy-write contract.
+- **BrowseRunFlow terminal restructure.**
+  - `Promise.all([writeProtocolSession, writeLegacyEffects?,
+    setTimeout(1500)])` — same race-prevention shape as
+    CheckInFlow's terminal.
+  - `onComplete(state)` fires AFTER `Promise.all` resolves
+    (cancellable via the cleanup ref to avoid a fire-after-unmount).
+  - Legacy helper is included in the `Promise.all` only when
+    `terminal.checkInFlowContext` is present.
+
+#### Error-handling discipline
+
+The helper's internal try-catch wraps the legacy
+`brainStateCheckIns` writes (steps 1 + 2 — `saveBrainStateCheckIn`
+and `markProtocolCompleted`). The `setFirstShiftAtIfNeeded` call
+has its own internal try-catch inside that function. The
+`writeProtocolSession` authoritative write at the call site is
+NOT wrapped — its failure surfaces to the BrowseRunFlow
+component's logger (matching the prior fire-and-forget contract).
+
+User reaches the dashboard regardless of legacy-write success.
+The protocolSessions write is authoritative; legacy writes are
+backward-compat for dashboard reads. This pattern is identical
+to the round-3 `writeStandardFlowSession` shape — the helper
+extraction did not change the failure contract.
+
+#### Tests
+
+8 new tests in a new `BrowseRunFlow.test.tsx`:
+- Both-collection write per classifier branch with context
+  (foggy→steady→shifted, foggy→clear→shifted, wired→foggy→
+  partial_shift, wired→wired→not_shifted, steady→steady→
+  maintenance).
+- Abandoned with context: legacy helper called with
+  `isFlowComplete=false`, outcome='abandoned', stateBefore from
+  context.
+- Without context: legacy helper NOT called; protocolSessions
+  written with outcome='browse_launched' and stateBefore=null.
+- `onComplete` timing parity: does NOT fire before the 1500ms
+  floor, fires immediately after `Promise.all` resolves.
+
+#### Round 5 over-generalization correction
+
+The "Bug A not reproducible" conclusion in round 5 was over-
+generalized. Round 5 tested the standard CheckInFlow path only;
+at that time BrowseRunFlow returned to Practices (round 5's
+locked Case 4 decision), so the symptom couldn't surface there
+even though the underlying gap existed. Round 6's Bug B routing
+change exposed the gap by routing BrowseRunFlow with context to
+dashboard. Round 7 reproduced and fixed.
+
+The TECH_DEBT_BACKLOG entry "Dashboard stale-state symptom —
+round 5 investigation" has been amended to reflect the corrected
+understanding (now titled "round 5 → round 7 investigation arc").
+The instrumentation diff template (~30 lines across CheckInFlow,
+BrowseRunFlow, useDashboard) is preserved in that entry for
+re-use if a similar dashboard-stale symptom recurs on a different
+path.
+
+---
+
+## Sub-step 2.7 — META-process notes
+
+### "Not reproducible on path X" ≠ "not reproducible"
+
+Round 5 / round 7 investigation arc surfaced this rule. When a
+reported symptom is investigated on a single path and doesn't
+reproduce, that conclusion only covers the tested path — not the
+hypothesis space.
+
+**Rule:** the hypothesis space includes the path where the symptom
+was originally reported. If a symptom is reported on a path that
+has since been changed (routing fix, write logic change, etc.),
+re-test the original path post-change rather than concluding from
+a different path's behavior.
+
+**Concrete failure mode (round 5):** Bug A reported on the
+BrowseRunFlow path (round 4). Round 5 investigation tested the
+standard CheckInFlow path because the original BrowseRunFlow path
+had been routed away from dashboard between rounds — the symptom
+couldn't surface there. Round 5 closed the bug. Round 6's Bug B
+fix routed BrowseRunFlow back to dashboard. Round 7 reproduced
+the symptom.
+
+**What to do differently:**
+
+1. When closing a bug as "not reproducible," document **which
+   path** was tested.
+2. When a routing / write-path / invariant changes between
+   investigation and a follow-up verification, re-open any
+   "not reproducible" bugs that were tied to the changed path.
+3. When choosing a reproduction path, prefer the originally-
+   reported path even if other paths produce the same symptom
+   class. Different paths often have different causes that look
+   identical at the symptom layer.
+
+This sits in PHASE_NOTES rather than the TECH_DEBT entry because
+it's a process rule, not a code fix. Future investigations
+should reference it.
+
+---
+
 ## Phase 3
 
 ### Phase 3 entry checklist — skeleton

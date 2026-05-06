@@ -299,24 +299,100 @@ async function setFirstShiftAtIfNeeded(
 }
 
 /**
+ * Legacy + first-shift orchestration shared between CheckInFlow's
+ * `writeStandardFlowSession` and BrowseRunFlow's terminal effect
+ * (when `CheckInFlowContext` is present — round 7 Bug B follow-up).
+ *
+ * Three side effects, in order:
+ *   1. `saveBrainStateCheckIn(userId, stateBefore)` — updates the
+ *      legacy `brainStateCheckIns/{userId}_{date}` doc that the
+ *      dashboard's `useDashboard.ts` reads on focus to decide
+ *      "show chip picker vs show summary."
+ *   2. `markProtocolCompleted(userId)` — only when `isFlowComplete`,
+ *      flips the legacy doc's `protocolCompleted` flag for v1 read
+ *      paths.
+ *   3. `setFirstShiftAtIfNeeded(userId, outcome)` — sets the user
+ *      profile's `firstShiftAt` field if the outcome qualifies
+ *      (`shifted` or `partial_shift`) and the field is currently null.
+ *      Drives the dashboard's first-shift footer.
+ *
+ * Error handling: legacy-write errors (steps 1 + 2) are caught and
+ * logged but NOT surfaced. Both writes are backward-compat for
+ * dashboard reads; their failure must not strand the user post-
+ * completion. The first-shift call has its own internal try-catch
+ * inside `setFirstShiftAtIfNeeded`. The protocolSessions write
+ * (handled by the caller) is the authoritative source — Patterns
+ * reads from there going forward.
+ *
+ * `dryRun` skips ALL three side effects.
+ *
+ * Idempotent at all layers: legacy doc is keyed by date (one per
+ * day, updates on subsequent calls); firstShiftAt is read-then-
+ * conditionally-written (no-op once set).
+ */
+export async function writeBrainStateCheckInLegacyEffects(
+  userId: string,
+  stateBefore: BrainState,
+  isFlowComplete: boolean,
+  outcome: ProtocolSessionOutcome,
+  options: { dryRun?: boolean } = {}
+): Promise<void> {
+  if (options.dryRun) {
+    logger.log(
+      '[writeBrainStateCheckInLegacyEffects] dryRun — would update legacy brainStateCheckIns + maybe firstShiftAt'
+    );
+    return;
+  }
+
+  try {
+    await saveBrainStateCheckIn(userId, stateBefore);
+    if (isFlowComplete) {
+      // Only naturally-completed sessions mark the legacy
+      // protocolCompleted flag. Abandoned sessions update the
+      // brainState but leave protocolCompleted=false (or unchanged
+      // from a previous same-day successful completion — setDoc
+      // semantics in saveBrainStateCheckIn handle that).
+      await markProtocolCompleted(userId);
+    }
+  } catch (error) {
+    // Legacy write failure shouldn't block the new write succeeding.
+    // Log + swallow — Patterns reads from protocolSessions going
+    // forward; the legacy doc is for v1 surfaces only.
+    logger.error(
+      '[writeBrainStateCheckInLegacyEffects] legacy brainStateCheckIns write failed:',
+      error
+    );
+  }
+
+  // First-shift footer trigger. Independent failure mode from the
+  // legacy write — a profile write hiccup shouldn't affect Patterns
+  // data integrity, and vice versa. setFirstShiftAtIfNeeded handles
+  // its own try-catch internally and gates on
+  // qualifiesAsFirstShift(outcome) — passing 'maintenance' /
+  // 'browse_launched' / 'abandoned' is a safe no-op.
+  await setFirstShiftAtIfNeeded(userId, outcome);
+}
+
+/**
  * Writes both the new `protocolSessions` doc (authoritative) AND
- * updates the legacy `brainStateCheckIns/{userId}_{date}` doc
- * (backward compat for v1 read paths still on Today / Patterns /
- * Dashboard surfaces). Call from CheckInFlow's terminal useEffect.
+ * triggers the legacy + first-shift side effects via
+ * `writeBrainStateCheckInLegacyEffects`. Call from CheckInFlow's
+ * terminal useEffect.
  *
- * BrowseRunFlow does NOT use this — Case 4 sessions skip the legacy
- * write because browse-launched sessions didn't exist in v1; there's
- * no backward-compat data dependency. BrowseRunFlow calls
- * `writeProtocolSession` directly. (Browse-launched sessions also
- * never qualify as a first shift — they have no stateBefore — so the
- * footer trigger naturally lives here, not in writeProtocolSession.)
+ * Round 7 update: BrowseRunFlow's terminal now ALSO calls
+ * `writeBrainStateCheckInLegacyEffects` when its `CheckInFlowContext`
+ * is present (Bug A v2 fix — BrowseRunFlow with context routes to
+ * dashboard, which reads the legacy collection). BrowseRunFlow does
+ * NOT call this `writeStandardFlowSession` helper because the
+ * standard CheckInFlow's terminal type (`TerminalFlowState`)
+ * requires fields BrowseRunFlow's terminal lacks (`entrySource`,
+ * `playerExitReason`, `userChosenNextStep`). Sharing the legacy
+ * orchestration via the helper avoids constructing a synthetic
+ * `TerminalFlowState`.
  *
- * Fire-and-forget at the call site (UX shouldn't block on Firestore).
- *
- * Idempotent at all layers: legacy doc is keyed by date (one per day,
- * updates on subsequent calls); protocolSessions doc is keyed by
+ * Idempotent at all layers: protocolSessions doc is keyed by
  * `${userId}_${sessionStartedAt}` (one per session, no-op on retry);
- * firstShiftAt is read-then-conditionally-written (no-op once set).
+ * legacy and first-shift idempotency described in the helper above.
  *
  * `dryRun` skips ALL writes (new + legacy + firstShiftAt) — keeps
  * Firestore clean of dev-harness pollution.
@@ -345,39 +421,15 @@ export async function writeStandardFlowSession(
   // New authoritative write.
   await writeProtocolSession(userId, payload, options);
 
-  if (options.dryRun) {
-    logger.log(
-      '[writeStandardFlowSession] dryRun — would also update legacy brainStateCheckIns + maybe firstShiftAt'
-    );
-    return;
-  }
-
-  // Legacy parallel writes. Only standard-flow has a stateBefore;
-  // BrowseRunFlow never reaches this helper.
-  try {
-    await saveBrainStateCheckIn(userId, terminal.stateBefore);
-    if (terminal.step === 'flow_complete') {
-      // Only naturally-completed sessions mark the legacy
-      // protocolCompleted flag. Abandoned sessions update the
-      // brainState but leave protocolCompleted=false (or unchanged
-      // from a previous same-day successful completion — setDoc
-      // semantics in saveBrainStateCheckIn handle that).
-      await markProtocolCompleted(userId);
-    }
-  } catch (error) {
-    // Legacy write failure shouldn't block the new write succeeding.
-    // Log + swallow — Patterns reads from protocolSessions going
-    // forward; the legacy doc is for v1 surfaces only.
-    logger.error(
-      '[writeStandardFlowSession] legacy brainStateCheckIns write failed:',
-      error
-    );
-  }
-
-  // First-shift footer trigger. Independent failure mode from the
-  // legacy write — a profile write hiccup shouldn't affect Patterns
-  // data integrity, and vice versa.
-  await setFirstShiftAtIfNeeded(userId, payload.outcome);
+  // Legacy + first-shift orchestration. dryRun is forwarded so the
+  // helper is a single source of truth for the bypass.
+  await writeBrainStateCheckInLegacyEffects(
+    userId,
+    terminal.stateBefore,
+    terminal.step === 'flow_complete',
+    payload.outcome,
+    { dryRun: options.dryRun }
+  );
 }
 
 /**

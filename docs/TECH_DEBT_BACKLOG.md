@@ -969,52 +969,92 @@ companion that names the unfixed underlying issue.
 
 ---
 
-## Dashboard stale-state symptom — round 5 investigation
+## Dashboard stale-state symptom — round 5 → round 7 investigation arc
 
-Reported in round 4 device verification (new test user, Foggy → 10
-→ Light Movement → Walk → check-in → dashboard showed chip picker
-instead of the post-re-check summary). Round 5 investigation
-attributed the symptom to Bug A (cold-start race between
+**Status: RESOLVED in round 7 commit.** Originally closed as "not
+reproducible" in round 5; the conclusion was over-generalized.
+Round 7 device verification (against build #1.0.85, post-Bug B fix)
+re-surfaced the symptom on the BrowseRunFlow path. Investigation
+identified a write-coverage gap and the fix shipped in the same
+round-7 commit.
+
+### Original report (round 4)
+
+New test user, Foggy → 10 → Light Movement → Walk → re-check →
+dashboard showed chip picker instead of the post-re-check summary.
+
+### Round 5 investigation (instrumentation pass)
+
+Hypothesized Bug A as a cold-start race between
 `writeStandardFlowSession` and the dashboard's `useFocusEffect`
-refetch beyond the 1500ms floor).
-
-**Round 5 instrumentation pass on the standard CheckInFlow path
-did NOT reproduce the symptom.** Cold-start dashboard read latencies
-measured during the diagnostic:
+refetch beyond the 1500ms floor. Cold-start dashboard read
+latencies measured:
 
 - 267ms — returning visit, `result= present` ✓
-- 516ms — first dashboard load, new user
-- 1202ms — first dashboard load, new user (different session)
-- 1256ms — first dashboard load, new user (different session)
+- 516ms / 1202ms / 1256ms — first dashboard load, new user
 
-The standard path's terminal `Promise.all([writeStandardFlowSession,
-setTimeout(1500)])` floor is empirically sufficient against
-observed read timing. Original symptom was likely a misattribution
-to Bug B (BrowseRunFlow path via "See other options"), which
-produces the same "wrong destination after check-in" surface
-description — the founder's first round-4 test went through the
-"See other options" affordance, not the recommendation card
-directly.
+**Round 5 mistake — over-generalization.** The instrumentation pass
+exercised the standard CheckInFlow path only. At that time
+BrowseRunFlow returned to Practices (round 5's locked Case 4
+decision), so even if the legacy-write gap existed there, the
+symptom couldn't surface — the user wasn't ON the dashboard after
+BrowseRunFlow completion. We over-generalized "not reproducible
+on the standard path" to "not reproducible anywhere" and closed
+the bug.
 
-**Discipline rule for future regressions:** if a similar
-dashboard-stale symptom is reported again, **capture
-`[DIAG-OBSA]`-style timing data on the standard CheckInFlow path
-first** before sizing any fix. Do NOT bump the 1500ms floor
-preemptively without timing evidence — defensive bumps without
-empirical justification trade real friction at the median for a
-hypothetical edge case.
+### Round 7 device verification (post-Bug B routing change)
 
-**Diagnostic instrumentation cost (when re-needed):** ~30 lines
-across `CheckInFlow.tsx` (`writeStandardFlowSession` START/END
-logs around the Promise.all), `BrowseRunFlow.tsx` (matching
-START/END for the BrowseRunFlow path), and `useDashboard.ts`
-(`useFocusEffect` FIRED + `dashboardRead` START/END/result
-logs). Tag with `[DIAG-OBSA]` for grep-and-remove. See git
-history for commit immediately preceding this entry — the
-instrumentation block was added then removed across a single
-investigation cycle and the diff is the template.
+Round 6's Bug B fix routed BrowseRunFlow with `CheckInFlowContext`
+to dashboard via `popToTop()`. Round 7 verification reproduced the
+original Bug A symptom on this newly-reachable path.
 
-**No fix landed.** Bug A is closed as not-reproducible.
+**Actual root cause (identified round 7):** BrowseRunFlow's
+terminal effect called `writeProtocolSession` only — it did NOT
+write to the legacy `brainStateCheckIns` collection that the
+dashboard reads via `useDashboard.ts:305 → getTodayBrainStateCheckIn`.
+The dashboard saw null after BrowseRunFlow returned and flipped
+back to the chip picker.
+
+### Round 7 fix
+
+`writeStandardFlowSession`'s post-`writeProtocolSession`
+orchestration (legacy `saveBrainStateCheckIn` + conditional
+`markProtocolCompleted` + `setFirstShiftAtIfNeeded`) extracted
+into a new exported helper:
+`writeBrainStateCheckInLegacyEffects(userId, stateBefore,
+isFlowComplete, outcome, options)`. BrowseRunFlow's terminal
+calls this helper when `CheckInFlowContext` is present, wrapped
+in a `Promise.all` with a 1500ms display floor — the same race-
+prevention shape that closed the original Obs 11.
+
+When context is absent (true browse — no production entry today),
+the helper is NOT called. Preserves the isolated browse-path
+semantics for any future standalone Practices entry.
+
+### Discipline lesson — "not reproducible on path X" ≠ "not reproducible"
+
+When investigating a reported symptom, the hypothesis space MUST
+include the path where the symptom was originally reported.
+Round 5 tested the standard CheckInFlow path and concluded "not
+reproducible" — but the original report came from a path that has
+since been changed by an unrelated fix (Bug B routing change).
+
+**Rule for future investigations:** if a symptom is reported on a
+path that has since been changed (routing, write logic, etc.),
+re-test that specific path post-change rather than concluding from
+a different path's behavior. The change may have moved the symptom
+into reach (round 7's case) or fixed it incidentally — either way,
+the original-path re-test is the load-bearing data point.
+
+### Diagnostic instrumentation cost (when re-needed)
+
+~30 lines across `CheckInFlow.tsx` (`writeStandardFlowSession`
+START/END logs around the Promise.all), `BrowseRunFlow.tsx`
+(matching START/END for the BrowseRunFlow path), and
+`useDashboard.ts` (`useFocusEffect` FIRED + `dashboardRead`
+START/END/result logs). Tag with `[DIAG-OBSA]` for grep-and-remove.
+Round 5's diagnostic added → removed across a single investigation
+cycle; check git history for the diff template.
 
 ---
 
