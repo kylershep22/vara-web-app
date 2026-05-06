@@ -94,26 +94,45 @@ export const getTodayBrainStateCheckIn = async (
 
 /**
  * Save (or update) today's brain state check-in.
- * Automatically maps the brain state to the corresponding protocol.
+ *
+ * Round 8 (Bug F fix): the optional `protocolId` parameter overrides
+ * the default-recommended protocolId computed via `selectProtocol`.
+ *
+ * **V1 vestige WARNING.** The `selectProtocol` fallback exists ONLY
+ * to support `OnboardingV2CheckInScreen`'s pre-completion legacy-doc
+ * write (chip tap → save check-in → navigate to recommendation
+ * screen). In that pre-completion context the legacy doc's
+ * `protocolId` field legitimately carries "what we're about to
+ * recommend the user run."
+ *
+ * **Any post-completion call site MUST pass the actual completed
+ * protocol's id.** Relying on the fallback in a post-completion
+ * context produces the round-8 Bug F symptom: the legacy doc
+ * carries a default recommendation that mismatches the user's
+ * actually-run protocol, and the dashboard's "[name] — Completed"
+ * card displays the wrong name. The bug was latent on the standard
+ * CheckInFlow path (hidden because users typically accept the
+ * recommendation, so the default-computed id matched the run id);
+ * round-7's Bug B routing change exposed it on the BrowseRunFlow-
+ * with-context path where the user picked a different protocol.
+ * See PHASE_NOTES "Sub-step 2.7 round 8 — Bug F" for the full
+ * analysis.
+ *
+ * Phase 5 migrations remove this legacy `protocolId` field entirely;
+ * until then this is the contract.
  */
 export const saveBrainStateCheckIn = async (
   userId: string,
-  brainState: BrainState
+  brainState: BrainState,
+  protocolId?: string
 ): Promise<BrainStateCheckIn> => {
   if (!db) throw new Error('Firestore is not initialized');
   try {
     const todayDate = getTodayDate();
     const checkInId = `${userId}_${todayDate}`;
     const docRef = doc(db, COLLECTION, checkInId);
-    // Sub-step 2.5 — getProtocolForState was deleted; the legacy doc
-    // continues to carry a protocolId field for v1 read paths
-    // (Dashboard's TodaysProtocolCard). Use the new recommender with
-    // a 5-min default time window — the legacy single-tap pattern
-    // didn't capture a window, and 5min is the spec's "meaningful
-    // shift" tier (Core Loop v2 step 2). Phase 5 migrations remove
-    // this legacy doc field entirely; until then this protocolId is
-    // display-only.
-    const protocol = selectProtocol({ state: brainState, timeWindow: 5 });
+    const resolvedProtocolId =
+      protocolId ?? selectProtocol({ state: brainState, timeWindow: 5 }).id;
 
     const existingDoc = await getDoc(docRef);
     const existingData = existingDoc.exists() ? existingDoc.data() : null;
@@ -133,7 +152,7 @@ export const saveBrainStateCheckIn = async (
       const stateChanged = existingBrainState !== brainState;
       await updateDoc(docRef, {
         brainState: serializedState,
-        protocolId: protocol.id,
+        protocolId: resolvedProtocolId,
         // Only reset protocol completion if brain state actually changed
         ...(stateChanged && { protocolCompleted: false }),
         updatedAt: serverTimestamp(),
@@ -142,7 +161,7 @@ export const saveBrainStateCheckIn = async (
         id: checkInId,
         ...existingData,
         brainState,
-        protocolId: protocol.id,
+        protocolId: resolvedProtocolId,
         ...(stateChanged && { protocolCompleted: false }),
       } as BrainStateCheckIn;
     } else {
@@ -150,7 +169,7 @@ export const saveBrainStateCheckIn = async (
         userId,
         date: todayDate,
         brainState: serializedState,
-        protocolId: protocol.id,
+        protocolId: resolvedProtocolId,
         protocolCompleted: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -160,7 +179,7 @@ export const saveBrainStateCheckIn = async (
         userId,
         date: todayDate,
         brainState,
-        protocolId: protocol.id,
+        protocolId: resolvedProtocolId,
         protocolCompleted: false,
       } as BrainStateCheckIn;
     }
@@ -335,6 +354,13 @@ export async function writeBrainStateCheckInLegacyEffects(
   stateBefore: BrainState,
   isFlowComplete: boolean,
   outcome: ProtocolSessionOutcome,
+  // Round 8 (Bug F fix): the actually-completed protocol's id.
+  // Forwarded to saveBrainStateCheckIn so the legacy doc's
+  // protocolId field reflects what the user ran, not a default-
+  // recommended fallback. Required at every post-completion call
+  // site — see saveBrainStateCheckIn's V1 vestige warning for the
+  // bug class this prevents.
+  protocolId: string,
   options: { dryRun?: boolean } = {}
 ): Promise<void> {
   if (options.dryRun) {
@@ -345,7 +371,7 @@ export async function writeBrainStateCheckInLegacyEffects(
   }
 
   try {
-    await saveBrainStateCheckIn(userId, stateBefore);
+    await saveBrainStateCheckIn(userId, stateBefore, protocolId);
     if (isFlowComplete) {
       // Only naturally-completed sessions mark the legacy
       // protocolCompleted flag. Abandoned sessions update the
@@ -422,12 +448,16 @@ export async function writeStandardFlowSession(
   await writeProtocolSession(userId, payload, options);
 
   // Legacy + first-shift orchestration. dryRun is forwarded so the
-  // helper is a single source of truth for the bypass.
+  // helper is a single source of truth for the bypass. terminal.protocol.id
+  // is the user's actually-completed protocol — passing it explicitly
+  // prevents the round-8 Bug F latent symptom (legacy doc carrying a
+  // default-recommended id instead of the run id).
   await writeBrainStateCheckInLegacyEffects(
     userId,
     terminal.stateBefore,
     terminal.step === 'flow_complete',
     payload.outcome,
+    terminal.protocol.id,
     { dryRun: options.dryRun }
   );
 }

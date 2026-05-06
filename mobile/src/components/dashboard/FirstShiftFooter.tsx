@@ -1,16 +1,22 @@
 // FirstShiftFooter — one-time quiet acknowledgment on Today.
 //
-// Sub-step 2.7. Shown exactly once per device, on the first
+// Sub-step 2.7. Shown exactly once per (device, user), on the first
 // DashboardScreen render after the user's `firstShiftAt` is set on
 // their UserProfile. Surfaces below the brain-state check-in card
 // (locked decision: anchored to the action that produced the first
 // shift, not a separate "achievement" surface).
 //
+// Round 8: marker is now scoped by userId (was device-global).
+// Multi-account / account-switch / reinstall scenarios now each get
+// their own once-per-account display. See firstShiftFooterMarker.ts
+// for the migration note.
+//
 // Source-of-truth split:
 //   - `firstShiftAt` prop (server) — was a qualifying shift recorded
 //     on this user? Drives WHETHER to ever render.
-//   - `firstShiftFooterMarker` (local AsyncStorage) — has the footer
-//     been shown on this device? Drives WHETHER to render now.
+//   - `firstShiftFooterMarker:{userId}` (local AsyncStorage) — has
+//     the footer been shown on this device for THIS user? Drives
+//     WHETHER to render now.
 //
 // UX (locked decisions):
 //   - Auto-dismiss on first render. The render that shows the footer
@@ -50,41 +56,47 @@ export interface FirstShiftFooterProps {
   // means the user has not yet had a qualifying shift — the footer
   // never renders.
   firstShiftAt: Timestamp | null | undefined;
+  // Round 8: required for marker scoping. The marker is keyed per
+  // user so multi-account / reinstall / shared-device scenarios each
+  // get their own once-per-account display. Null/undefined means
+  // unauthenticated — the footer never renders.
+  userId: string | null | undefined;
 }
 
 export const FirstShiftFooter: React.FC<FirstShiftFooterProps> = ({
   firstShiftAt,
+  userId,
 }) => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    // No qualifying shift yet — never show.
-    if (firstShiftAt == null) {
+    // No qualifying shift yet OR no authenticated user — never show.
+    if (firstShiftAt == null || !userId) {
       setVisible(false);
       return;
     }
 
     const decide = async () => {
-      const marker = await readMarker();
+      const marker = await readMarker(userId);
       if (cancelled) return;
       if (marker !== null) {
-        // Already shown on this device — don't render again.
+        // Already shown on this device for this user — don't render again.
         setVisible(false);
         return;
       }
-      // First-time render on this device. Set visible AND write the
-      // marker so subsequent mounts see it.
+      // First-time render on this device for this user. Set visible AND
+      // write the marker so subsequent mounts see it.
       setVisible(true);
-      await writeMarker(Date.now());
+      await writeMarker(userId, Date.now());
     };
     decide();
 
     return () => {
       cancelled = true;
     };
-  }, [firstShiftAt]);
+  }, [firstShiftAt, userId]);
 
   if (!visible) return null;
 

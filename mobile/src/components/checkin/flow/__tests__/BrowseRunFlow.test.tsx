@@ -195,13 +195,45 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
     );
 
     // Legacy + first-shift helper fired exactly once with the right args.
+    // Round 8 (Bug F fix): signature is (userId, stateBefore, isFlowComplete,
+    // outcome, protocolId, options) — protocolId added at index 4 so the
+    // legacy doc reflects the actually-completed protocol, not a default.
     expect(writeLegacyMock).toHaveBeenCalledTimes(1);
     const legacyCall = (writeLegacyMock as jest.Mock).mock.calls[0];
     expect(legacyCall[0]).toBe(TEST_USER_ID);
     expect(legacyCall[1]).toBe('foggy'); // stateBefore from context
     expect(legacyCall[2]).toBe(true); // isFlowComplete
     expect(legacyCall[3]).toBe('shifted'); // outcome
-    expect(legacyCall[4]).toEqual({ dryRun: true });
+    expect(legacyCall[4]).toBe('nsdr-20'); // actually-completed protocolId
+    expect(legacyCall[5]).toEqual({ dryRun: true });
+  });
+
+  it('Bug F regression: protocolId arg matches the actually-completed protocol, not a default', async () => {
+    // The whole point of round 8: BrowseRunFlow's terminal must pass
+    // the user's actually-completed protocol id (state.protocol.id),
+    // not let saveBrainStateCheckIn fall back to selectProtocol's
+    // default for the state. Reproducer: Foggy + 5 → "See other
+    // options" → user picks NSDR-20 (NOT the default Foggy 5-min
+    // recommendation). The legacy helper's protocolId arg must be
+    // 'nsdr-20'.
+    render(
+      <BrowseRunFlow
+        protocol={NSDR_20}
+        {...TEST_PROPS}
+        checkInFlowContext={FOGGY_10_CONTEXT}
+        onComplete={jest.fn()}
+      />
+    );
+    act(() => {
+      lastOnExit!(summary({ completed: false, protocolId: 'nsdr-20' }));
+    });
+    await waitFor(
+      () => expect(writeLegacyMock).toHaveBeenCalled(),
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
+    const [, , , , protocolIdArg] = (writeLegacyMock as jest.Mock).mock
+      .calls[0];
+    expect(protocolIdArg).toBe('nsdr-20');
   });
 
   it('classifier branches: foggy→clear writes outcome="shifted" via legacy helper', async () => {

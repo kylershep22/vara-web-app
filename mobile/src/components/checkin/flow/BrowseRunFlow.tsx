@@ -149,6 +149,12 @@ export function BrowseRunFlow({
               ctx.state,
               state.step === 'flow_complete',
               payload.outcome,
+              // Round 8 (Bug F fix): pass the actually-completed protocol's
+              // id so the legacy doc reflects what the user ran, not the
+              // default-recommended fallback (which produced the
+              // "Light Movement — Completed" mislabel when the user
+              // actually ran Cold Water Reset, etc.).
+              state.protocol.id,
               { dryRun }
             )
           );

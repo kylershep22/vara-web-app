@@ -355,7 +355,10 @@ const DashboardScreen: React.FC = () => {
                 "achievement" surface. Hidden when firstShiftAt is null
                 (no qualifying shift yet) or when the AsyncStorage
                 marker is set (already shown on this device). */}
-            <FirstShiftFooter firstShiftAt={firstShiftAt} />
+            <FirstShiftFooter
+              firstShiftAt={firstShiftAt}
+              userId={user?.uid}
+            />
 
             {/* Overwhelm Safety Card — sub-step 2.6. Always visible
                 (no surfacing-trigger logic in v1; Phase 5 layers

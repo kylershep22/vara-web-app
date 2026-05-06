@@ -1338,6 +1338,158 @@ should reference it.
 
 ---
 
+### Sub-step 2.7 round 8 — locked decisions
+
+Round 8 device verification (against build #1.0.86) surfaced two
+distinct bugs:
+- **Bug F**: dashboard's "completed protocol" card displayed the
+  wrong protocol name on Path 1 (BrowseRunFlow with context).
+- **AsyncStorage marker leak**: first-shift footer silently no-op'd
+  for fresh test users on a device after an earlier test had
+  already shown the footer.
+
+Both fixed in this round. Both are real production correctness
+issues, not just test artifacts.
+
+#### Bug F — `saveBrainStateCheckIn` protocolId override
+
+**Locked decision:**
+
+> **`saveBrainStateCheckIn` accepts an optional `protocolId`
+> parameter. Any post-completion call site MUST pass the actual
+> completed protocol's id. The `selectProtocol` fallback is
+> retained ONLY for `OnboardingV2CheckInScreen`'s pre-completion
+> V1 single-tap call site, where the legacy doc legitimately
+> carries "what we're about to recommend the user run" rather
+> than "what the user just ran."**
+
+**Why:** Round 7 device verification reproduced "Light Movement —
+Completed" on the dashboard after the user had actually run Cold
+Water Reset (and similar mismatches in other reproducers). The
+Firestore `protocolSessions` doc had the correct id; the bug was
+in the legacy `brainStateCheckIns` write path. `saveBrainStateCheckIn`
+was computing a default-recommended protocolId via
+`selectProtocol({state, timeWindow: 5})` regardless of what the
+user actually ran. The dashboard reads the legacy doc's
+`protocolId` field for the "Today's protocol — Completed" card.
+
+**Latent bug class.** This bug existed on the **standard CheckInFlow
+path too** before round 8 — but was hidden because users typically
+accept the recommendation, so the default-computed id matched the
+run id by coincidence. Round-7's Bug B routing change exposed it
+on Path 1 by making it possible for the user to pick a different
+protocol via "See other options" while still landing on the
+dashboard. Round-8's fix closes both paths.
+
+**Implementation shape:**
+
+- `saveBrainStateCheckIn(userId, brainState, protocolId?)` — third
+  optional parameter. When provided, it overrides the
+  `selectProtocol` fallback. The function's docstring carries an
+  explicit V1 vestige WARNING for any future caller.
+- `writeBrainStateCheckInLegacyEffects(userId, stateBefore,
+  isFlowComplete, outcome, protocolId, options)` — new required
+  parameter at index 4. Both caller sites updated:
+  - `writeStandardFlowSession` passes `terminal.protocol.id`.
+  - `BrowseRunFlow.tsx` terminal passes `state.protocol.id`.
+- `OnboardingV2CheckInScreen` continues to call
+  `saveBrainStateCheckIn(userId, state)` without protocolId; the
+  pre-completion legacy-doc write hits the `selectProtocol`
+  fallback as designed.
+
+**Tests:**
+- 3 new tests in `brainStateCheckIn.service.test.ts` covering:
+  caller-supplied protocolId is used; updates an existing doc;
+  fallback when protocolId omitted (V1 path).
+- 1 new regression test in `BrowseRunFlow.test.tsx` (`Bug F
+  regression: protocolId arg matches the actually-completed
+  protocol`). The existing arg-shape assertion in the "BOTH
+  collections" test was extended to assert the new index 4
+  protocolId arg is `state.protocol.id`.
+
+#### AsyncStorage marker scoping — userId-keyed `firstShiftFooterMarker`
+
+**Locked decision:**
+
+> **The first-shift footer's AsyncStorage marker is keyed by
+> userId, not device-globally. Key shape:
+> `@vara/firstShiftFooterShownAt:{userId}`. Each (device, user)
+> pair gets its own once-per-account display.**
+
+**Why:** Round 8 device verification reproduced a footer-not-rendering
+symptom on a fresh test user (Wired → Extended Exhale → Steady,
+which classifies as 'shifted'). Founder check confirmed
+`firstShiftAt` IS set on the user profile in Firestore — the
+write path is correct. Root cause: an earlier test on the same
+device had set the device-global marker, which then silently
+suppressed the footer for every subsequent fresh user.
+
+This is **not** a test-only artifact. It affects production:
+- Multi-account users on the same device (household sharing,
+  switching between personal / work).
+- Users who reinstall the app and re-onboard (AsyncStorage
+  doesn't survive reinstall, so this case may self-heal — but
+  the multi-account case absolutely does not).
+- Any future "switch user" flow.
+
+**Migration:** markers stored under the old global key
+(`@vara/firstShiftFooterShownAt`) are **abandoned**, not migrated.
+On first dashboard mount after upgrade, users who already saw
+the footer will see it ONE more time per account if their
+`firstShiftAt` is set on the user profile. Acceptable trade-off —
+strictly better than the current state where some users may
+have missed the footer entirely due to the marker leak. Migrating
+would require knowing which user-id to assign the orphaned key
+to, and any heuristic (current logged-in user wins) silently
+makes the footer non-deterministic across accounts.
+
+**Implementation shape:**
+- `readMarker(userId): Promise<number | null>` and
+  `writeMarker(userId, timestampMs): Promise<void>` — userId
+  becomes the first parameter.
+- `FirstShiftFooter` props gain a required `userId: string | null
+  | undefined`. Null/undefined means unauthenticated; the footer
+  never renders.
+- `DashboardScreen.tsx` passes `user?.uid` from `useAuth`.
+- Storage key prefix exported as
+  `_FIRST_SHIFT_FOOTER_MARKER_KEY_PREFIX`; helper
+  `_firstShiftFooterMarkerKeyFor(userId)` for tests asserting key
+  shape.
+
+**Tests:**
+- 6 updated/new tests in `firstShiftFooterMarker.test.ts`:
+  userId-scoped key shape, two different userIds produce
+  different keys, round-trip per-user, isolation across users.
+- All 10 `FirstShiftFooter` component tests updated to pass
+  `userId={TEST_USER_ID}` to the rendered component. The
+  marker-write contract test asserts the userId arg is passed
+  correctly.
+
+#### Test infrastructure addition — Firestore SDK-level integration test
+
+Round 8 also adds `brainStateCheckIn.service.test.ts` (new file)
+which mocks `firebase/firestore` at the SDK level rather than
+mocking `writeBrainStateCheckInLegacyEffects` at the module
+boundary. This closes a coverage gap that would have caught the
+round-7 firstShiftAt path silently regressing if it had — none
+of the existing CheckInFlow / BrowseRunFlow integration tests
+exercise the helper's INTERNAL `setFirstShiftAtIfNeeded`
+invocation because they all mock the helper itself.
+
+The new test file covers:
+- protocolId forwarding (Bug F fix).
+- `setFirstShiftAtIfNeeded`'s setDoc-on-user-profile fires for
+  'shifted' and 'partial_shift' outcomes when `firstShiftAt` is
+  null.
+- Does NOT fire for 'maintenance' outcome.
+- Does NOT overwrite when `firstShiftAt` is already set.
+- `dryRun` skips all writes.
+
+This is the integration-level safety net the round-5 / round-7
+investigation arc revealed was missing.
+
+---
+
 ## Phase 3
 
 ### Phase 3 entry checklist — skeleton
