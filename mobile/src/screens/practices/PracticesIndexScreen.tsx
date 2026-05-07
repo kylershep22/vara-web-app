@@ -61,7 +61,13 @@ function timeWindowLabel(tw: ProtocolTimeWindow): string {
 // Route params shape. Registered in AppNavigator.
 export interface PracticesIndexRouteParams {
   state: BrainState;
-  timeWindow: ProtocolTimeWindow;
+  // Round 10: timeWindow is optional. The "See other options" path on
+  // the recommendation screen passes the user's original budget so
+  // alternates respect the time commitment. The "Try something longer"
+  // path on the not-shifted response omits it — the button's promise
+  // ("something longer") contradicts a same-budget filter, so we show
+  // the full set of state-eligible protocols across all time windows.
+  timeWindow?: ProtocolTimeWindow;
   // Sub-step 2.7 round 5 (Bug B fix) — when this screen is reached
   // from CheckInFlow ("See other options" or "Try something longer"),
   // CheckInFlowScreen passes fromCheckInFlow=true plus the intentPath
@@ -113,15 +119,21 @@ export function PracticesIndexScreen() {
     });
   }, [navigation]);
 
-  // Eligibility filter mirrors the Phase 2 stub recommender's filter
-  // exactly (protocolSelector.service.ts) so "See other options"
-  // never surfaces a protocol the recommender wouldn't have picked
-  // from. Phase 4 layers ranking on top of the same eligibility set.
+  // Eligibility filter:
+  //   - When timeWindow is provided ("See other options" path): mirror
+  //     the recommender's filter (`<= timeWindow`) so alternates
+  //     respect the user's stated budget.
+  //   - When timeWindow is omitted ("Try something longer" path,
+  //     round 10 Finding 3): drop the budget filter entirely. The
+  //     button's promise is "show me something longer than what I
+  //     just ran"; same-budget filtering would contradict that.
+  //
+  // Phase 4 layers ranking on top of the same eligibility set.
   const eligible = useMemo<Protocol[]>(
     () =>
       getAllProtocols()
         .filter((p) => p.suitableForStates.includes(state))
-        .filter((p) => p.timeWindow <= timeWindow)
+        .filter((p) => timeWindow == null || p.timeWindow <= timeWindow)
         .sort((a, b) => a.id.localeCompare(b.id)),
     [state, timeWindow]
   );
@@ -129,7 +141,9 @@ export function PracticesIndexScreen() {
   return (
     <View style={styles.container} testID="practices-index">
       <Text style={styles.title} testID="practices-index-title">
-        Other options for {STATE_LABEL[state]} · {timeWindowLabel(timeWindow)}
+        {timeWindow == null
+          ? `More options for ${STATE_LABEL[state]}`
+          : `Other options for ${STATE_LABEL[state]} · ${timeWindowLabel(timeWindow)}`}
       </Text>
 
       {eligible.length === 0 ? (

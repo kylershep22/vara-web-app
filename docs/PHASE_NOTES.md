@@ -1336,6 +1336,173 @@ This sits in PHASE_NOTES rather than the TECH_DEBT entry because
 it's a process rule, not a code fix. Future investigations
 should reference it.
 
+### Same-day-second-check-in path is a distinct test class
+
+Round 10 surfaced three findings (1 fixed, 1 fixed, 1 mental-
+model) on the same-day-second-check-in path — specifically the
+dashboard's "Change" affordance and a second not-shifted
+re-check loop. Through rounds 1–9 the verification plans
+focused almost exclusively on fresh-user-first-day flows, which
+exercise cold-start cases. Same-day-second flows exercise a
+different write/read sequence (legacy doc already exists, focus
+events on a still-mounted dashboard, sticky local UI state from
+prior interactions) with different timing and Firestore-doc-
+state characteristics.
+
+**Rule for Phase 4+ verification scopes:** Verification scopes
+for any feature touching `brainStateCheckIns` or the daily
+check-in flow MUST include same-day-repeat scenarios. First-of-
+day flows alone hide same-day-second-write bug classes.
+Concrete scenarios to cover:
+
+- Same-day repeat check-ins via the dashboard's Change button.
+- Same-day repeat check-ins via re-opening the app
+  (background → foreground transitions).
+- Multi-day usage (Day 1 check-in → Day 2 check-in; the legacy
+  doc id is `{uid}_{YYYY-MM-DD}` so day boundaries produce a
+  fresh doc, exercising the new-doc setDoc branch on the second
+  same-week call).
+- Edge: user starts a check-in shortly before local midnight
+  and completes after the date boundary crosses (the doc id
+  shifts mid-flow).
+
+### Response screens — `not_shifted` vs `maintenance` distinction
+
+Round 10 Finding 2 was a founder-side mental-model mismatch:
+same-state-on-re-check (Steady → Steady) was reported as missing
+the "Try something longer" button. The button is correctly
+absent — green-zone same-state classifies as `maintenance`, a
+positive outcome that delegates to `ShiftedResponse` (gentle
+acknowledgment, no retry path).
+
+**Rule:** Verification scopes touching the response screen MUST
+specify the expected outcome class, not just the state pair.
+Same-state-on-re-check produces different response components
+depending on the zone:
+
+| Re-check pair | Outcome | Component | Try-longer button? |
+|---|---|---|---|
+| Wired → Wired | `not_shifted` | NotShiftedResponse | Yes |
+| Foggy → Foggy | `not_shifted` | NotShiftedResponse | Yes |
+| Steady → Steady | `maintenance` | ShiftedResponse | No |
+| Clear → Clear | `maintenance` | ShiftedResponse | No |
+| Alive → Alive | `maintenance` | ShiftedResponse | No |
+
+The classifier rule (`outcomeClassifier.ts` clusters 4 + 6):
+green-zone same-state or downward = `maintenance`; negative-zone
+same-state = `not_shifted`. Test plans should write expected
+outcomes alongside the state pairs to avoid this misread.
+
+---
+
+### Sub-step 2.7 round 10 — locked decisions
+
+Round 10 device verification (against build #1.0.87) confirmed
+rounds 7+8 fixes working. Three new findings on the same-day-
+second-check-in path closed in round 10:
+
+- **Finding 1**: chip picker re-emerged on the dashboard after a
+  successful "Change" → CheckInFlow → completion round-trip.
+  Fixed.
+- **Finding 2**: founder-side mental-model mismatch. Dropped, no
+  bug. (`classifyOutcome('steady', 'steady')` = `'maintenance'`,
+  which renders ShiftedResponse — a positive-outcome surface
+  with no "Try something longer" button by design. The
+  classifier rule: same-state in negative zone = `not_shifted`
+  → offers retry; same-state in green zone = `maintenance` →
+  gentle acknowledgment, no retry.)
+- **Finding 3**: "Try something longer" navigation re-applied
+  the user's original time-budget filter, contradicting the
+  button's promise. Fixed.
+
+#### Finding 1 — `showCheckInOverAnchor` focus-reset
+
+**Locked decision:**
+
+> **`DashboardScreen`'s `showCheckInOverAnchor` local state resets
+> to `false` on every dashboard focus event via `useFocusEffect`.
+> The "Change" chip's `onChangeStatePress` is the only caller that
+> sets it to `true`; any return to the dashboard (from a completed
+> CheckInFlow modal, a cancelled flow, a backgrounded-and-resumed
+> app, or any other navigation event) implies the user is no
+> longer in the transient "I'm redoing my check-in" mode.**
+
+**Why:** Pre-fix, `setShowCheckInOverAnchor(true)` was the only
+mutator. After Change → CheckInFlow → completion, the dashboard
+correctly refetched `brainStateCheckIn` (data is fresh) but
+`showCheckInOverAnchor === true` kept the expanded picker
+visible — the user saw "chip picker as if no check-in happened"
+even though the new check-in DID succeed and was visible
+underneath.
+
+**Cancel-mid-flow consideration:** if a user taps Change, picks
+a state to enter the flow, then taps Cancel/X to abort, they
+return to the dashboard with `showCheckInOverAnchor` reset to
+false (back to summary view of the still-valid original
+check-in). Correct behavior — they cancelled, so the original
+state is intact.
+
+**Sibling audit:** `DashboardScreen` has only two `useState`
+calls. `firstShiftAt` is a subscribed value via `onSnapshot` (not
+a "set true never reset" pattern). No other siblings with the
+broken pattern.
+
+#### Finding 3 — `try_longer` navigation drops `timeWindow`
+
+**Locked decision:**
+
+> **The "Try something longer" not-shifted-response affordance
+> navigates to the Practices index WITHOUT a `timeWindow`
+> parameter. PracticesIndexScreen renders all protocols suitable
+> for the user's state across all time budgets. Aligns with the
+> button's promise to the user.**
+>
+> **Do NOT re-add the `timeWindow` filter on this path. A code
+> comment at `CheckInFlowScreen.tsx` `try_longer` case explicitly
+> warns against it.**
+
+**Why:** Pre-fix, the `try_longer` case passed
+`timeWindow: terminal.timeWindow` (the user's original budget)
+to the Practices nav params. The Practices index's eligibility
+filter is `<= timeWindow`, so the destination would re-show
+options at or under the original budget — including potentially
+the same protocol the user just ran. The button label promised
+"longer." The implementation contradicted it.
+
+**Type changes:**
+- `CheckInFlowContext.timeWindow` becomes optional. The "See
+  other options" path still provides it; the "Try something
+  longer" path omits it.
+- `PracticesIndexScreen.PracticesIndexRouteParams.timeWindow`
+  becomes optional. Eligibility filter conditions on
+  `timeWindow == null || p.timeWindow <= timeWindow`.
+- `mapBrowseTerminalToPayload` falls back to
+  `terminal.protocol.timeWindow` when `ctx.timeWindow` is null,
+  so the session's `timeWindowSelected` field still records a
+  valid value (the protocol's intrinsic duration).
+- `PracticeRunScreen` builds `CheckInFlowContext` whenever
+  `fromCheckInFlow === true`, regardless of timeWindow presence.
+  Bug B routing/classification preserved on the try_longer path.
+
+**Title copy:** PracticesIndexScreen's title varies by presence:
+- With timeWindow: "Other options for {state} · {N} minutes"
+  (preserves prior copy on the See-other-options path).
+- Without timeWindow: "More options for {state}" (try_longer
+  path).
+
+**Tests:**
+- `browseRunReducer.test.ts` adds 2 tests: ctx without
+  timeWindow falls back to protocol.timeWindow; ctx WITH
+  timeWindow uses the explicit value (regression guard).
+- `PracticesIndexScreen.test.tsx` (new file) — 3 tests:
+  no-budget renders all eligible; budget filters correctly;
+  no-budget produces strictly more cards than a same-state
+  5-min budget.
+- `CheckInFlowScreen.test.tsx` (new file) — 3 tests: try_longer
+  nav params do NOT include timeWindow; full param-shape
+  regression guard; late-night NSDR override path correctly
+  bypasses Practices entirely (for `PracticeRun` direct nav).
+
 ---
 
 ### Sub-step 2.7 round 8 — locked decisions

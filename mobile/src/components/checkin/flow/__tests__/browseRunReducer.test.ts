@@ -403,6 +403,48 @@ describe('mapBrowseTerminalToPayload — context-present (Bug B fix)', () => {
     );
     expect(payload.userChosenNextStep).toBeNull();
   });
+
+  // Round 10 (Finding 3) — "Try something longer" omits timeWindow
+  // from the context. The mapper must fall back to the protocol's
+  // intrinsic timeWindow so the session doc still records a valid
+  // value for `timeWindowSelected`.
+  it('ctx without timeWindow falls back to protocol.timeWindow for timeWindowSelected', () => {
+    const ctxNoBudget: NonNullable<
+      BrowseFlowCompleteStep['checkInFlowContext']
+    > = {
+      state: 'foggy',
+      // timeWindow intentionally omitted (try_longer path)
+      intentPath: 'default',
+    };
+    const payload = mapBrowseTerminalToPayload(
+      flowCompleteWith('clear', ctxNoBudget),
+      'default'
+    );
+    // NSDR_20.timeWindow is 20 — falls back to that.
+    expect(payload.timeWindowSelected).toBe(NSDR_20.timeWindow);
+    // stateBefore + outcome still derived from context — only the
+    // timeWindow falls back. Bug B routing/classification preserved.
+    expect(payload.stateBefore).toBe('foggy');
+    expect(payload.outcome).toBe('shifted'); // foggy→clear
+  });
+
+  it('ctx with explicit timeWindow uses the context value (not the fallback)', () => {
+    // Regression guard: when ctx.timeWindow IS provided, the mapper
+    // must use it, NOT fall through to protocol.timeWindow. This is
+    // the "See other options" path's contract.
+    const ctxWithBudget: NonNullable<
+      BrowseFlowCompleteStep['checkInFlowContext']
+    > = {
+      state: 'foggy',
+      timeWindow: 5, // user picked 5-min budget; ran a 20-min protocol
+      intentPath: 'default',
+    };
+    const payload = mapBrowseTerminalToPayload(
+      flowCompleteWith('clear', ctxWithBudget),
+      'default'
+    );
+    expect(payload.timeWindowSelected).toBe(5);
+  });
 });
 
 describe('initBrowseRunFlow — context plumbing (Bug B fix)', () => {

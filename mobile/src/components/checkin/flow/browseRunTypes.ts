@@ -43,9 +43,15 @@ import type {
 // harnesses. It is preserved as a defensive default and as the
 // surface Phase 4+ would hook into if a standalone Practices entry
 // is ever added.
+//
+// Round 10 (Finding 3): timeWindow is optional. The "Try something
+// longer" path omits it — the user's promise to themselves is
+// "longer than what I just ran," not a fresh budget pick. When
+// absent, the session's timeWindowSelected falls back to the
+// protocol's intrinsic timeWindow at write time.
 export interface CheckInFlowContext {
   state: BrainState;
-  timeWindow: ProtocolTimeWindow;
+  timeWindow?: ProtocolTimeWindow;
   intentPath: IntentPath;
 }
 

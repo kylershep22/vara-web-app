@@ -57,7 +57,12 @@ type RouteParams = RouteProp<
 type Nav = NativeStackNavigationProp<{
   Practices: {
     state: BrainState;
-    timeWindow: ProtocolTimeWindow;
+    // Round 10: timeWindow is now optional. Standard "See other
+    // options" path on the recommendation screen still passes it
+    // (the user's original budget). The "Try something longer"
+    // path omits it so PracticesIndexScreen surfaces all eligible
+    // protocols for the state across all time budgets.
+    timeWindow?: ProtocolTimeWindow;
     fromCheckInFlow?: boolean;
     intentPath?: IntentPath;
   };
@@ -192,9 +197,20 @@ export function CheckInFlowScreen() {
             // a protocol, and wants to do another one. Their session
             // should classify with the original stateBefore, and
             // post-completion they should land on dashboard.
+            //
+            // Round 10 (Finding 3): timeWindow is intentionally
+            // OMITTED from these nav params. The button's promise is
+            // "show me something longer than what I just ran." Passing
+            // the original timeWindow filter would re-show the same-
+            // budget options (potentially the same protocols, since
+            // the eligibility filter is `<= timeWindow`), contradicting
+            // the affordance the user just tapped. With timeWindow
+            // omitted, PracticesIndexScreen renders the full set of
+            // protocols suitable for the user's state across all time
+            // budgets. Do not "fix" this by re-adding the filter —
+            // see PHASE_NOTES round 10 locked decisions.
             navigation.navigate('Practices', {
               state: terminal.stateBefore,
-              timeWindow: terminal.timeWindow,
               fromCheckInFlow: true,
               intentPath: CHECKIN_FLOW_INTENT_PATH,
             });

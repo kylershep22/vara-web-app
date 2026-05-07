@@ -136,7 +136,14 @@ export function mapBrowseTerminalToPayload(
   const base = {
     protocolId: terminal.protocol.id,
     stateBefore: ctx ? ctx.state : null,
-    timeWindowSelected: ctx ? ctx.timeWindow : terminal.protocol.timeWindow,
+    // Round 10: ctx.timeWindow may be undefined when the session
+    // came from the "Try something longer" path (which intentionally
+    // drops the budget filter). Fall back to the protocol's
+    // intrinsic timeWindow in that case — it's the most honest value
+    // for "what duration did the user actually commit to" since they
+    // didn't pick a fresh budget chip.
+    timeWindowSelected:
+      ctx?.timeWindow ?? terminal.protocol.timeWindow,
     durationActualSeconds: terminal.durationActualSeconds,
     userChosenNextStep: null,
     // Prefer the context's intentPath (the user's CheckInFlow

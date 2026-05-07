@@ -71,12 +71,17 @@ export function PracticeRunScreen() {
   // when the route was reached from CheckInFlow. Both Path 1 ("See
   // other options") and Path 2 ("Try something longer") flow through
   // PracticesIndexScreen which forwards fromCheckInFlow + intentPath
-  // + timeWindow. timeWindow is required for context construction;
-  // if it's absent we treat the run as true-browse (defensive — the
-  // missing param implies the navigation didn't originate from a
-  // CheckInFlow path).
+  // (+ timeWindow on the Path 1 / "See other options" surface).
+  //
+  // Round 10 (Finding 3): timeWindow is now OPTIONAL on the context.
+  // The "Try something longer" path omits it because the affordance's
+  // intent contradicts a fresh budget pick. The context is still
+  // built in that case — fromCheckInFlow alone is sufficient to
+  // identify a CheckInFlow continuation. mapBrowseTerminalToPayload
+  // falls back to the protocol's intrinsic timeWindow when
+  // ctx.timeWindow is null.
   const checkInFlowContext = useMemo<CheckInFlowContext | undefined>(() => {
-    if (!fromCheckInFlow || timeWindow == null) return undefined;
+    if (!fromCheckInFlow) return undefined;
     return {
       state: stateBefore,
       timeWindow,

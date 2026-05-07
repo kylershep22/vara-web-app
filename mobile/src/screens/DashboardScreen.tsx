@@ -4,7 +4,8 @@
  * Thin UI shell that delegates state/handlers to useDashboard.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, StyleSheet, RefreshControl, TouchableOpacity, Text } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -128,6 +129,27 @@ const DashboardScreen: React.FC = () => {
   const weekInsight = correlations ? selectWeekInsight(correlations) : null;
 
   const [showCheckInOverAnchor, setShowCheckInOverAnchor] = useState(false);
+
+  // Round 10 (Finding 1 fix) — reset showCheckInOverAnchor whenever
+  // the dashboard regains focus. The Change-button flow sets this to
+  // true to swap DashboardAnchor → BrainStateCheckin (expanded
+  // picker), but only the user's tap sets it; nothing reset it back
+  // to false. After a successful Change → CheckInFlow → return,
+  // brainStateCheckIn was correctly refetched but showCheckInOverAnchor
+  // stayed sticky-true, leaving the expanded picker visible as if
+  // the new check-in hadn't happened.
+  //
+  // Resetting on focus honors the intent: the expanded picker is a
+  // transient mode the user enters by explicit tap. Any return to
+  // the dashboard from elsewhere — completed flow, cancelled flow,
+  // backgrounded app — implies the user is no longer in that mode.
+  // The Cancel-mid-flow path benefits too: the user lands back on
+  // the summary view of their original (still-valid) check-in.
+  useFocusEffect(
+    useCallback(() => {
+      setShowCheckInOverAnchor(false);
+    }, [])
+  );
 
   // Sub-step 2.7 — subscribe to the user's firstShiftAt for the
   // FirstShiftFooter render decision. Real-time so a shift completed
