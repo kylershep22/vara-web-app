@@ -93,6 +93,14 @@ export interface CheckInFlowProps {
     state: BrainState,
     timeWindow: ProtocolTimeWindow
   ) => void;
+  // Round 12 (Finding G fix) — when true, the recommendation
+  // screen's "See other options" affordance is hidden. Defaults
+  // to false (existing daily check-in behavior preserved).
+  // Onboarding (`OnboardingV2ProtocolScreen`) passes true because
+  // the Practices index is unreachable from the onboarding stack.
+  // See ProtocolRecommendation's `showSeeOtherOptions` prop for
+  // the design rationale per Build Guide §4 / §6.
+  hideSeeOtherOptions?: boolean;
 }
 
 // Public alias of the two terminal variants. Convenient for parents
@@ -110,6 +118,7 @@ export function CheckInFlow({
   writeMode = 'production',
   onClose,
   onSeeOtherOptions,
+  hideSeeOtherOptions = false,
 }: CheckInFlowProps) {
   const [state, dispatch] = useReducer(
     flowReducer,
@@ -279,7 +288,8 @@ export function CheckInFlow({
         onSeeOtherOptions,
         (modality) => {
           selectedModalityRef.current = modality;
-        }
+        },
+        hideSeeOtherOptions
       )}
     </SafeAreaView>
   );
@@ -298,7 +308,11 @@ function renderStep(
   ) => void,
   // Sub-step 2.7 round 4 (Obs 10) — only fired by Light Movement's
   // pre-timer picker; other protocols never invoke this.
-  onModalitySelected?: (modality: MovementModality) => void
+  onModalitySelected?: (modality: MovementModality) => void,
+  // Round 12 (Finding G fix) — passed through to ProtocolRecommendation
+  // as the negation of `showSeeOtherOptions`. Onboarding mounts pass
+  // true; daily check-in mounts use the default (false).
+  hideSeeOtherOptions: boolean = false
 ): React.ReactNode {
   switch (state.step) {
     case 'recovery_confirm':
@@ -350,6 +364,7 @@ function renderStep(
               );
             }
           }}
+          showSeeOtherOptions={!hideSeeOtherOptions}
           onBack={() => dispatch({ type: 'back' })}
           onClose={onClose}
         />

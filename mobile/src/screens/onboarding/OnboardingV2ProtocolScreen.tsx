@@ -84,14 +84,27 @@ const OnboardingV2ProtocolScreen: React.FC<OnboardingV2ProtocolScreenProps> = ({
 
   if (!user?.uid) return null;
 
-  // onSeeOtherOptions intentionally omitted — the recommendation
-  // step's "See other options" affordance navigates to the Practices
-  // index in production (CheckInFlowScreen). Surfacing Practices
-  // mid-onboarding would jump the user out of the flow into the
-  // dashboard's library; silently no-op'ing the button is the
-  // narrower minimum-patch behavior. CheckInFlow logs a warn if
-  // tapped without a handler. Phase 6 / next onboarding work can
-  // decide whether to hide the button when the handler is absent.
+  // Round 12 (Finding G fix) — `hideSeeOtherOptions` hides the
+  // recommendation step's "See other options" affordance during
+  // onboarding. Reasoning: the Practices index is unreachable from
+  // the onboarding stack, so the affordance would tap-through to a
+  // no-op handler (CheckInFlow's wrapper logged a warn but the
+  // user saw nothing happen). Surfacing the affordance with no
+  // destination violates Build Guide §6 (clarity over cleverness)
+  // and the first-protocol experience already introduces the
+  // brain state model, time windows, the protocol concept, and
+  // the check-in/protocol/re-check loop simultaneously — adding a
+  // browse-alternative decision point at this moment also
+  // contradicts §4 (calm over stimulation). The button becomes
+  // available on the second daily check-in onward when the user
+  // has baseline context. This is a UX gate, not an architectural
+  // limitation — the navigation chain to Practices from the
+  // onboarding stack remains unreachable by design.
+  //
+  // onSeeOtherOptions stays omitted because the affordance won't
+  // render; if a future onboarding redesign wires Practices into
+  // the onboarding stack, both this prop and the handler can be
+  // wired up together.
   return (
     <View style={styles.container}>
       <CheckInFlow
@@ -102,6 +115,7 @@ const OnboardingV2ProtocolScreen: React.FC<OnboardingV2ProtocolScreenProps> = ({
         userId={user.uid}
         onComplete={handleComplete}
         onClose={handleClose}
+        hideSeeOtherOptions
       />
     </View>
   );

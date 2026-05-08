@@ -168,6 +168,50 @@ describe('ProtocolRecommendation', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  describe('showSeeOtherOptions prop (Round 12 — Finding G fix)', () => {
+    // The "See other options" affordance is the opt-in escape hatch
+    // from the recommendation screen. It must render by default
+    // (daily check-in path) and hide when explicitly disabled
+    // (onboarding path — Practices index unreachable from the
+    // onboarding stack).
+
+    it('renders the "See other options" affordance by default', () => {
+      const { queryByTestId } = render(
+        <ProtocolRecommendation {...baseProps} />
+      );
+      expect(queryByTestId('protocol-recommendation-alternates')).not.toBeNull();
+    });
+
+    it('renders the affordance when showSeeOtherOptions is explicitly true', () => {
+      const { queryByTestId } = render(
+        <ProtocolRecommendation {...baseProps} showSeeOtherOptions />
+      );
+      expect(queryByTestId('protocol-recommendation-alternates')).not.toBeNull();
+    });
+
+    it('hides the affordance when showSeeOtherOptions is false', () => {
+      const { queryByTestId } = render(
+        <ProtocolRecommendation
+          {...baseProps}
+          showSeeOtherOptions={false}
+        />
+      );
+      expect(queryByTestId('protocol-recommendation-alternates')).toBeNull();
+    });
+
+    it('does not invoke onSeeOtherOptions when the affordance is hidden', () => {
+      // Defensive — without a render target there's nothing to tap,
+      // but the prop still being passed shouldn't fire spuriously.
+      render(
+        <ProtocolRecommendation
+          {...baseProps}
+          showSeeOtherOptions={false}
+        />
+      );
+      expect(baseProps.onSeeOtherOptions).not.toHaveBeenCalled();
+    });
+  });
+
   describe('gap-acknowledgment line (Layer 3)', () => {
     it('renders the line when protocol.timeWindow < timeWindowSelected', () => {
       // sampleProtocol.timeWindow = 2; user picked a 10-min budget.

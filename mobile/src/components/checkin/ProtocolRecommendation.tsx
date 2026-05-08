@@ -54,6 +54,20 @@ export interface ProtocolRecommendationProps {
   onSeeOtherOptions: () => void;
   onBack?: () => void;
   onClose?: () => void;
+  // Round 12 (Finding G fix): when false, the "See other options"
+  // affordance is not rendered. Defaults to true so the daily
+  // check-in path keeps the existing surface. Onboarding passes
+  // false because the Practices index is unreachable from the
+  // onboarding stack — surfacing the affordance there would tap-
+  // through to a no-op handler. The hide is a UX decision per
+  // Build Guide §4 (calm over stimulation) and §6 (clarity over
+  // cleverness): the first protocol experience already introduces
+  // the brain state model, time windows, the protocol concept, and
+  // the check-in/protocol/re-check loop simultaneously. Adding a
+  // browse-alternative decision point at this moment contradicts
+  // the brand. The button becomes available on the second daily
+  // check-in onward when the user has baseline context.
+  showSeeOtherOptions?: boolean;
 }
 
 // Default-path lead copy. Per-intent-path variants are Phase 5.
@@ -83,6 +97,7 @@ export function ProtocolRecommendation({
   onSeeOtherOptions,
   onBack,
   onClose,
+  showSeeOtherOptions = true,
 }: ProtocolRecommendationProps) {
   const lead = recommendationLeadCopy(brainState, timeWindow);
   const durationLabel = formatProtocolDuration(protocol);
@@ -171,26 +186,35 @@ export function ProtocolRecommendation({
         </TouchableOpacity>
 
         {/* Sub-step 2.7 round 5 (Bug B sibling fix) — "See other
-            options" is now a tertiary text button per Mobile UI
+            options" is a tertiary text button per Mobile UI
             Standards §7.1: smaller font, no full-width tap region,
             secondary visual weight. Round 4 device verification
             showed founders inadvertently tapping this affordance
             instead of Begin because the prior 48px full-width
             styling read as an equal-weight CTA. Begin is the
             unambiguous primary action; alternates is an opt-in
-            escape hatch. */}
-        <View style={styles.alternatesRow}>
-          <TouchableOpacity
-            style={styles.alternatesButton}
-            onPress={onSeeOtherOptions}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityRole="button"
-            accessibilityLabel="See other options"
-            testID="protocol-recommendation-alternates"
-          >
-            <Text style={styles.alternatesButtonText}>See other options</Text>
-          </TouchableOpacity>
-        </View>
+            escape hatch.
+
+            Round 12 (Finding G fix) — render the affordance only
+            when showSeeOtherOptions is true. Onboarding passes
+            false: the Practices index is unreachable from the
+            onboarding stack, so the button would tap-through to a
+            no-op handler. Hiding it entirely matches the
+            navigation reality the user actually has. */}
+        {showSeeOtherOptions ? (
+          <View style={styles.alternatesRow}>
+            <TouchableOpacity
+              style={styles.alternatesButton}
+              onPress={onSeeOtherOptions}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="See other options"
+              testID="protocol-recommendation-alternates"
+            >
+              <Text style={styles.alternatesButtonText}>See other options</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
     </View>
   );

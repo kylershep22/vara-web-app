@@ -42,6 +42,7 @@ import { writeBrainStateCheckInLegacyEffects } from '../../../services/firebase/
 import { GuidedSessionPlayer } from '../../protocol/GuidedSessionPlayer';
 import { LightMovementProtocolFlow } from '../../protocol/LightMovementProtocolFlow';
 import { ReCheckStepView } from './ReCheckStepView';
+import { ResponseStepView } from './ResponseStepView';
 import {
   browseRunReducer,
   initBrowseRunFlow,
@@ -249,6 +250,25 @@ function renderStep(
           protocol={state.protocol}
           onSelect={(stateAfter) =>
             dispatch({ type: 'state_after_selected', stateAfter })
+          }
+        />
+      );
+    case 'response':
+      // Round 12 (Finding H fix) — response step renders only when
+      // checkInFlowContext is present (the round-6 Bug B continuation
+      // paths). All inputs come from the captured context + the
+      // re_check transition. ResponseStepView is the same component
+      // CheckInFlow uses, so Path 1/2 users get the same emotional
+      // resolution as standard CheckInFlow users.
+      return (
+        <ResponseStepView
+          stateBefore={state.checkInFlowContext.state}
+          stateAfter={state.stateAfter}
+          outcome={state.outcome}
+          durationActualSeconds={state.durationActualSeconds}
+          intentPath={state.checkInFlowContext.intentPath}
+          onChoose={(choice) =>
+            dispatch({ type: 'next_step_chosen', choice })
           }
         />
       );

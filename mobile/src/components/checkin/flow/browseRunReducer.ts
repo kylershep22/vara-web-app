@@ -45,6 +45,8 @@ export function browseRunReducer(
       return reduceRunning(state, action);
     case 're_check':
       return reduceReCheck(state, action);
+    case 'response':
+      return reduceResponse(state, action);
     case 'abandoned':
     case 'flow_complete':
       // Terminal — absorbing.
@@ -89,6 +91,26 @@ function reduceReCheck(
   action: BrowseRunFlowAction
 ): BrowseRunFlowState {
   if (action.type === 'state_after_selected') {
+    const ctx = state.checkInFlowContext;
+    // Round 12 (Finding H fix) — when ctx is present, the session is
+    // a CheckInFlow continuation and gets the standard response
+    // acknowledgment screen. When ctx is absent (true browse — no
+    // production entry today, reserved for future standalone
+    // Practices), preserve the sub-step 2.5 short-circuit straight
+    // to flow_complete (Case 4 spec: capture data and route, no
+    // further user choice).
+    if (ctx) {
+      return {
+        step: 'response',
+        protocol: state.protocol,
+        sessionStartedAt: state.sessionStartedAt,
+        sessionEndedAt: state.sessionEndedAt,
+        durationActualSeconds: state.durationActualSeconds,
+        stateAfter: action.stateAfter,
+        outcome: classifyOutcome(ctx.state, action.stateAfter),
+        checkInFlowContext: ctx,
+      };
+    }
     return {
       step: 'flow_complete',
       protocol: state.protocol,
@@ -96,7 +118,27 @@ function reduceReCheck(
       sessionEndedAt: state.sessionEndedAt,
       durationActualSeconds: state.durationActualSeconds,
       stateAfter: action.stateAfter,
+      checkInFlowContext: null,
+      userChosenNextStep: null,
+    };
+  }
+  return state;
+}
+
+function reduceResponse(
+  state: Extract<BrowseRunFlowState, { step: 'response' }>,
+  action: BrowseRunFlowAction
+): BrowseRunFlowState {
+  if (action.type === 'next_step_chosen') {
+    return {
+      step: 'flow_complete',
+      protocol: state.protocol,
+      sessionStartedAt: state.sessionStartedAt,
+      sessionEndedAt: state.sessionEndedAt,
+      durationActualSeconds: state.durationActualSeconds,
+      stateAfter: state.stateAfter,
       checkInFlowContext: state.checkInFlowContext,
+      userChosenNextStep: action.choice,
     };
   }
   return state;
@@ -109,30 +151,34 @@ function reduceReCheck(
 // reducer tests can import it without pulling in React Native /
 // expo-haptics via the component tree.
 //
-// Schema mapping branches on checkInFlowContext (Bug B fix, round 5):
+// Schema mapping branches on checkInFlowContext (Bug B fix, round 6):
 //
 //   - context PRESENT (Path 1: "See other options"; Path 2: "Try
 //     something longer") — the session is structurally a CheckInFlow
 //     session that exited to BrowseRunFlow. stateBefore is taken from
 //     the captured context. On flow_complete, outcome is computed
-//     via classifyOutcome(context.state, stateAfter) — same
-//     classifier the standard CheckInFlow uses. timeWindowSelected
-//     reflects the user's original chip pick (context.timeWindow),
-//     not the protocol's intrinsic timeWindow.
+//     via classifyOutcome(context.state, stateAfter). Round 12 fix
+//     (Finding H): userChosenNextStep is now the user's actual
+//     response-screen choice (try_longer / rest_later / dismissed),
+//     captured at the new `response` step. Replaces the prior always-
+//     null write that produced the round-2 'auto_dismissed' fragility.
 //
 //   - context ABSENT (true browse — no production entry as of round
-//     5; reachable only from dev harnesses) — preserves the original
+//     6; reachable only from dev harnesses) — preserves the original
 //     Case 4 mapping: stateBefore=null, outcome='browse_launched',
-//     timeWindowSelected=protocol.timeWindow.
-//
-//   - userChosenNextStep is null in both branches — BrowseRunFlow
-//     has no response screen.
+//     userChosenNextStep=null (no response step renders without ctx).
 
 export function mapBrowseTerminalToPayload(
   terminal: BrowseTerminalFlowState,
   intentPath: IntentPath
 ): ProtocolSessionWritePayload {
   const ctx = terminal.checkInFlowContext;
+  // Round 12: userChosenNextStep is captured on flow_complete (the
+  // response step's `next_step_chosen` action sets it). For abandoned
+  // (no response step ever runs) and ctx-absent flow_complete (true-
+  // browse short-circuit), it stays null.
+  const userChosenNextStep =
+    terminal.step === 'flow_complete' ? terminal.userChosenNextStep : null;
   const base = {
     protocolId: terminal.protocol.id,
     stateBefore: ctx ? ctx.state : null,
@@ -145,7 +191,7 @@ export function mapBrowseTerminalToPayload(
     timeWindowSelected:
       ctx?.timeWindow ?? terminal.protocol.timeWindow,
     durationActualSeconds: terminal.durationActualSeconds,
-    userChosenNextStep: null,
+    userChosenNextStep,
     // Prefer the context's intentPath (the user's CheckInFlow
     // session inherited it) over the BrowseRunFlow caller's default.
     intentPath: ctx ? ctx.intentPath : intentPath,

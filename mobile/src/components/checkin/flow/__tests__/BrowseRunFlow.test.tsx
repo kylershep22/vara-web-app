@@ -145,6 +145,34 @@ const FOGGY_10_CONTEXT: CheckInFlowContext = {
   intentPath: 'default',
 };
 
+// Round 12 (Finding H): when ctx is present, BrowseRunFlow now
+// renders a response step between re_check and flow_complete. The
+// response component depends on outcome class:
+//   - shifted / partial_shift / maintenance → ShiftedResponse
+//     (testID 'shifted-response', continue button
+//     'shifted-response-continue', dispatches 'dismissed').
+//   - not_shifted → NotShiftedResponse (testIDs
+//     'not-shifted-response-try-longer' / 'rest-later').
+// Helper finds whichever response screen rendered and presses its
+// dismiss-style button so flow_complete fires and onComplete runs.
+async function pressResponseDismiss(
+  findByTestId: (id: string) => Promise<unknown>,
+  queryByTestId: (id: string) => unknown
+): Promise<void> {
+  // Race the two possible response surfaces. ShiftedResponse mounts
+  // for positive outcomes; NotShiftedResponse for not_shifted.
+  await findByTestId(
+    queryByTestId('shifted-response') !== null
+      ? 'shifted-response'
+      : 'not-shifted-response'
+  );
+  const continueId =
+    queryByTestId('shifted-response-continue') !== null
+      ? 'shifted-response-continue'
+      : 'not-shifted-response-rest-later';
+  fireEvent.press((await findByTestId(continueId)) as never);
+}
+
 // ────────────────────────────────────────────────────────────
 // Tests
 // ────────────────────────────────────────────────────────────
@@ -152,7 +180,7 @@ const FOGGY_10_CONTEXT: CheckInFlowContext = {
 describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix)', () => {
   it('flow_complete with context invokes BOTH writeProtocolSession AND writeBrainStateCheckInLegacyEffects', async () => {
     const onComplete = jest.fn();
-    const { findByTestId, getByLabelText } = render(
+    const { findByTestId, queryByTestId, getByLabelText } = render(
       <BrowseRunFlow
         protocol={NSDR_20}
         {...TEST_PROPS}
@@ -165,12 +193,14 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
     expect(writeProtocolSessionMock).not.toHaveBeenCalled();
     expect(writeLegacyMock).not.toHaveBeenCalled();
 
-    // Drive: player completes → re-check renders → user picks state.
+    // Drive: player completes → re-check renders → user picks state →
+    // response screen renders → user dismisses → flow_complete fires.
     act(() => {
       lastOnExit!(summary({ completed: true, protocolId: 'nsdr-20' }));
     });
     expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
     fireEvent.press(getByLabelText('Steady'));
+    await pressResponseDismiss(findByTestId, queryByTestId);
 
     await waitFor(
       () => {
@@ -237,7 +267,7 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
   });
 
   it('classifier branches: foggy→clear writes outcome="shifted" via legacy helper', async () => {
-    const { findByTestId, getByLabelText } = render(
+    const { findByTestId, queryByTestId, getByLabelText } = render(
       <BrowseRunFlow
         protocol={NSDR_20}
         {...TEST_PROPS}
@@ -250,6 +280,7 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
     });
     expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
     fireEvent.press(getByLabelText('Clear'));
+    await pressResponseDismiss(findByTestId, queryByTestId);
     await waitFor(
       () => expect(writeLegacyMock).toHaveBeenCalled(),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
@@ -264,7 +295,7 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
       timeWindow: 5,
       intentPath: 'default',
     };
-    const { findByTestId, getByLabelText } = render(
+    const { findByTestId, queryByTestId, getByLabelText } = render(
       <BrowseRunFlow
         protocol={NSDR_20}
         {...TEST_PROPS}
@@ -278,6 +309,7 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
     });
     expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
     fireEvent.press(getByLabelText('Foggy'));
+    await pressResponseDismiss(findByTestId, queryByTestId);
     await waitFor(
       () => expect(writeLegacyMock).toHaveBeenCalled(),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
@@ -294,7 +326,7 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
       timeWindow: 5,
       intentPath: 'default',
     };
-    const { findByTestId, getByLabelText } = render(
+    const { findByTestId, queryByTestId, getByLabelText } = render(
       <BrowseRunFlow
         protocol={NSDR_20}
         {...TEST_PROPS}
@@ -308,6 +340,7 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
     });
     expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
     fireEvent.press(getByLabelText('Wired'));
+    await pressResponseDismiss(findByTestId, queryByTestId);
     await waitFor(
       () => expect(writeLegacyMock).toHaveBeenCalled(),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
@@ -322,7 +355,7 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
       timeWindow: 5,
       intentPath: 'default',
     };
-    const { findByTestId, getByLabelText } = render(
+    const { findByTestId, queryByTestId, getByLabelText } = render(
       <BrowseRunFlow
         protocol={NSDR_20}
         {...TEST_PROPS}
@@ -336,6 +369,7 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
     });
     expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
     fireEvent.press(getByLabelText('Steady'));
+    await pressResponseDismiss(findByTestId, queryByTestId);
     await waitFor(
       () => expect(writeLegacyMock).toHaveBeenCalled(),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
@@ -401,6 +435,121 @@ describe('BrowseRunFlow — terminal write WITHOUT context (true-browse legacy b
 
     // Legacy helper NOT called (preserves isolated browse semantics).
     expect(writeLegacyMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('BrowseRunFlow — response step (round 12 Finding H fix)', () => {
+  // The response step renders ONLY when checkInFlowContext is present.
+  // These tests assert (a) the screen mounts at the right moment in
+  // the state machine, (b) tapping the response button captures the
+  // user's actual choice (replacing the prior auto_dismissed
+  // fragility flagged in earlier rounds), and (c) ctx-absent flows
+  // still skip the response step (true-browse preserved).
+
+  it('renders response screen between re_check and flow_complete when ctx present', async () => {
+    const { findByTestId, getByLabelText } = render(
+      <BrowseRunFlow
+        protocol={NSDR_20}
+        {...TEST_PROPS}
+        checkInFlowContext={FOGGY_10_CONTEXT}
+        onComplete={jest.fn()}
+      />
+    );
+    act(() => {
+      lastOnExit!(summary({ completed: true, protocolId: 'nsdr-20' }));
+    });
+    expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
+    fireEvent.press(getByLabelText('Steady'));
+    // foggy→steady classifies as 'shifted' → ShiftedResponse renders.
+    expect(await findByTestId('shifted-response')).toBeTruthy();
+  });
+
+  it('captured userChosenNextStep="dismissed" flows through to the legacy helper outcome arg position', async () => {
+    // Round 8 helper-args index check: when the user actually presses
+    // Continue (dismissed), the BrowseRunFlow terminal write must
+    // capture that choice — NOT auto_dismissed (which was the
+    // fragility flagged in earlier rounds).
+    const { findByTestId, queryByTestId, getByLabelText } = render(
+      <BrowseRunFlow
+        protocol={NSDR_20}
+        {...TEST_PROPS}
+        checkInFlowContext={FOGGY_10_CONTEXT}
+        onComplete={jest.fn()}
+      />
+    );
+    act(() => {
+      lastOnExit!(summary({ completed: true, protocolId: 'nsdr-20' }));
+    });
+    expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
+    fireEvent.press(getByLabelText('Steady'));
+    // shifted-response-continue dispatches 'dismissed' (not auto-).
+    fireEvent.press(await findByTestId('shifted-response-continue'));
+    void queryByTestId; // keep destructure shape consistent
+
+    await waitFor(
+      () => expect(writeProtocolSessionMock).toHaveBeenCalled(),
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
+    const [, payload] = (writeProtocolSessionMock as jest.Mock).mock.calls[0];
+    expect(payload.userChosenNextStep).toBe('dismissed');
+  });
+
+  it('captured userChosenNextStep="rest_later" on not_shifted path', async () => {
+    const wiredCtx: CheckInFlowContext = {
+      state: 'wired',
+      timeWindow: 5,
+      intentPath: 'default',
+    };
+    const { findByTestId, getByLabelText } = render(
+      <BrowseRunFlow
+        protocol={NSDR_20}
+        {...TEST_PROPS}
+        stateBefore="wired"
+        checkInFlowContext={wiredCtx}
+        onComplete={jest.fn()}
+      />
+    );
+    act(() => {
+      lastOnExit!(summary({ completed: true, protocolId: 'nsdr-20' }));
+    });
+    expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
+    fireEvent.press(getByLabelText('Wired'));
+    fireEvent.press(await findByTestId('not-shifted-response-rest-later'));
+
+    await waitFor(
+      () => expect(writeProtocolSessionMock).toHaveBeenCalled(),
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
+    const [, payload] = (writeProtocolSessionMock as jest.Mock).mock.calls[0];
+    expect(payload.userChosenNextStep).toBe('rest_later');
+    expect(payload.outcome).toBe('not_shifted');
+  });
+
+  it('ctx absent: state_after_selected goes straight to flow_complete (no response step rendered)', async () => {
+    const { findByTestId, queryByTestId, getByLabelText } = render(
+      <BrowseRunFlow
+        protocol={NSDR_20}
+        {...TEST_PROPS}
+        // checkInFlowContext intentionally omitted
+        onComplete={jest.fn()}
+      />
+    );
+    act(() => {
+      lastOnExit!(summary({ completed: true, protocolId: 'nsdr-20' }));
+    });
+    expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
+    fireEvent.press(getByLabelText('Clear'));
+
+    await waitFor(
+      () => expect(writeProtocolSessionMock).toHaveBeenCalled(),
+      { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
+    );
+    // No response screen ever rendered — true-browse short-circuit.
+    expect(queryByTestId('shifted-response')).toBeNull();
+    expect(queryByTestId('not-shifted-response')).toBeNull();
+    // Payload still has userChosenNextStep null (no choice captured).
+    const [, payload] = (writeProtocolSessionMock as jest.Mock).mock.calls[0];
+    expect(payload.userChosenNextStep).toBeNull();
   });
 });
 

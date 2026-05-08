@@ -23,7 +23,11 @@ import { Colors, Spacing, Typography } from '../../constants';
 import { getProtocolById } from '../../constants/brainStateProtocols';
 import { useAuth } from '../../context/AuthContext';
 import { BrowseRunFlow } from '../../components/checkin/flow/BrowseRunFlow';
-import type { CheckInFlowContext } from '../../components/checkin/flow/browseRunTypes';
+import type {
+  BrowseTerminalFlowState,
+  CheckInFlowContext,
+} from '../../components/checkin/flow/browseRunTypes';
+import { getLateNightNSDRSwap } from '../../services/lateNightNSDRSwap';
 import type {
   BrainState,
   IntentPath,
@@ -89,22 +93,78 @@ export function PracticeRunScreen() {
     };
   }, [fromCheckInFlow, timeWindow, stateBefore, intentPath]);
 
-  const handleComplete = useCallback(() => {
-    // Bug B fix (round 5): when CheckInFlow context is present, route
-    // to dashboard. The user originated in CheckInFlow; their mental
-    // model is "I checked in, I ran a protocol, take me home." Stack
-    // shape on this path: Dashboard → CheckInFlow → Practices →
-    // PracticeRun. popToTop unwinds back to Dashboard in one move.
-    //
-    // When context is absent (true browse — no production entry as of
-    // round 5), preserve the legacy locked decision and goBack to
-    // Practices.
-    if (checkInFlowContext) {
-      navigation.popToTop();
-      return;
-    }
-    navigation.goBack();
-  }, [navigation, checkInFlowContext]);
+  const handleComplete = useCallback(
+    (terminal: BrowseTerminalFlowState) => {
+      // Bug B fix (round 6): when CheckInFlow context is present, the
+      // session is a CheckInFlow continuation; routing branches on
+      // the user's response-screen choice (round 12 Finding H added
+      // the response step in BrowseRunFlow). Mirrors
+      // CheckInFlowScreen.handleComplete's switch.
+      //
+      // When context is absent (true browse — no production entry),
+      // preserve the legacy locked decision: goBack to Practices.
+
+      // Abandoned terminal — never reached the response step.
+      // Dashboard or Practices depending on context.
+      if (terminal.step === 'abandoned') {
+        if (checkInFlowContext) {
+          navigation.popToTop();
+        } else {
+          navigation.goBack();
+        }
+        return;
+      }
+
+      // step === 'flow_complete'
+      if (!checkInFlowContext) {
+        // True browse — preserve legacy goBack-to-Practices.
+        navigation.goBack();
+        return;
+      }
+
+      // CheckInFlow continuation — route by the response-screen
+      // choice. Stack shape: Dashboard → CheckInFlow → Practices
+      // → PracticeRun. popToTop unwinds back to Dashboard in one
+      // move; navigate('Practices', ...) for try_longer pushes a
+      // new Practices on top (the round-12 try_longer-omits-
+      // timeWindow contract continues to apply).
+      switch (terminal.userChosenNextStep) {
+        case 'try_longer': {
+          const override = getLateNightNSDRSwap(
+            checkInFlowContext.state,
+            new Date().getHours()
+          );
+          if (override !== null) {
+            navigation.navigate('PracticeRun', {
+              protocolId: override.protocolId,
+              stateBefore: checkInFlowContext.state,
+              fromCheckInFlow: true,
+              intentPath: checkInFlowContext.intentPath,
+            });
+          } else {
+            // Round 10 (Finding 3): timeWindow OMITTED — the button's
+            // promise is "longer," and a budget filter contradicts
+            // that.
+            navigation.navigate('Practices', {
+              state: checkInFlowContext.state,
+              fromCheckInFlow: true,
+              intentPath: checkInFlowContext.intentPath,
+            });
+          }
+          return;
+        }
+        case 'rest_later':
+        case 'dismissed':
+        case 'auto_dismissed':
+        case null:
+          // All routes to Dashboard. null is defensive (shouldn't
+          // occur on flow_complete with ctx, but the type allows it).
+          navigation.popToTop();
+          return;
+      }
+    },
+    [navigation, checkInFlowContext]
+  );
 
   // Sub-step 2.7 round 4 (Obs 10) — fires when the Light Movement
   // pre-timer modality picker is cancelled. No session was started,

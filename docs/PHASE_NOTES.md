@@ -1366,6 +1366,58 @@ Concrete scenarios to cover:
   and completes after the date boundary crosses (the doc id
   shifts mid-flow).
 
+### "See other options" filter shows protocols ≤ chosen window
+
+Round 11 marked "See other options" as a fail because it returned
+both 2-min options and 5-min options when the user selected a
+5-min budget. After founder review (round 12), this is correct
+per spec: the filter is `timeWindow <= chosenWindow`. The user has
+stated their available time as a CEILING; "other options" means
+"other protocols that still fit in that window," not "other
+protocols at the same exact duration."
+
+Some users may expect "other options" to mean "protocols at the
+same exact duration." That's a different feature than what shipped
+and is not the design intent.
+
+**Rule for verification scopes:** scenarios for the see-other-
+options surface must specify expected eligibility logic
+explicitly (the `<= chosenWindow` ceiling) to avoid this
+mental-model mismatch in future rounds. Test plans should also
+state which protocols at which durations should appear, not
+just "the right options."
+
+### Tests for navigation chains must exercise the actual transport
+
+Round 11 surfaced Finding G — "See other options" navigation
+broke between rounds 10 and 11 despite round 10's regression test
+suite passing. Investigation showed the test gap: round 10 added
+`PracticesIndexScreen.test.tsx` (mocks `useRoute` directly with
+various param shapes) and `CheckInFlowScreen.test.tsx` (mocks
+`CheckInFlow` component, asserts terminal-state nav params on
+the `try_longer` path). Both pass round 11's regression set, but
+neither exercises the runtime navigation chain
+`ProtocolRecommendation.onPress → CheckInFlow.onSeeOtherOptions
+→ CheckInFlowScreen.handleSeeOtherOptions → navigation.navigate →
+PracticesIndexScreen mount`.
+
+**Rule:** tests for navigation chains MUST exercise the actual
+transport, not just the boundary mocks. If the bug is between
+two unit-tested boundaries, unit tests with module-boundary
+mocks cannot catch it. For navigation flows, mock at the
+`AppStack` boundary (the navigator's screen registration) — not
+at component prop boundaries. Render the actual stack with all
+relevant screens registered, fire the user-facing trigger, assert
+both the navigate call AND the destination screen mount.
+
+This applies to:
+- Recommendation → Practices ("See other options" button).
+- Recommendation → CheckInFlow (chip taps from dashboard).
+- Response screen → Practices ("Try something longer" button).
+- Response screen → Dashboard (rest_later / dismissed buttons).
+- Practices → PracticeRun (protocol card tap).
+- PracticeRun → Dashboard (CheckInFlow context completion).
+
 ### Response screens — `not_shifted` vs `maintenance` distinction
 
 Round 10 Finding 2 was a founder-side mental-model mismatch:
@@ -1392,6 +1444,201 @@ The classifier rule (`outcomeClassifier.ts` clusters 4 + 6):
 green-zone same-state or downward = `maintenance`; negative-zone
 same-state = `not_shifted`. Test plans should write expected
 outcomes alongside the state pairs to avoid this misread.
+
+---
+
+### Sub-step 2.7 round 12 — locked decisions
+
+Round 11 device verification (against build #1.0.88) confirmed
+round-10 fixes for Findings 1 + 3. Round 12 closes both new findings
+surfaced by round 11:
+
+- **Finding G** — "See other options" silent no-op during
+  onboarding. Pre-existing bug since `state_preselected` entry
+  landed in 2.7; round 11's verification scope was the first to
+  exercise the fresh-user-onboarding path that exposed it. FIXED
+  in round 12 via Option A (founder-approved): hide the affordance
+  during onboarding rather than wire navigation to a destination
+  that doesn't exist in the onboarding stack.
+- **Finding H** — Path 1/2 BrowseRunFlow sessions skipped the
+  response screen between re-check and dashboard. Real UX gap
+  (not an intentional design decision). FIXED in round 12.
+- **2.3 clarification** — confirmed spec-vs-mental-model. Drop;
+  see META section.
+
+#### Finding G — "See other options" hidden during onboarding
+
+**Locked decision:**
+
+> **Onboarding flow's protocol recommendation step intentionally
+> hides "See other options" to reduce cognitive load during the
+> first experience. Per Vara's design principles (Mobile UI
+> Standards section 1.2 'Calm Over Stimulation' and 'Clarity Over
+> Cleverness'), onboarding is the highest-risk surface for
+> cognitive overload. Users are introduced to brain state model,
+> time windows, the protocol concept, and the check-in/protocol/
+> re-check loop simultaneously. Adding a 'browse alternative
+> protocols' decision point at this moment contradicts the brand.
+> 'See other options' becomes available on the second daily
+> check-in onward when users have baseline context. This is a UX
+> gate, not an architectural limitation — the navigation chain to
+> Practices from the onboarding stack remains unreachable by
+> design.**
+
+**Why:** Round 11 device verification on a fresh-user account
+reproduced "tap fires visible feedback but does not navigate."
+Investigation traced the cause to `OnboardingV2ProtocolScreen`
+mounting CheckInFlow without `onSeeOtherOptions` — pre-existing
+behavior since sub-step 2.7's `state_preselected` entry source
+landed (well before round 10). CheckInFlow's wrapper logged a
+warn but the button was already silently no-op in onboarding.
+Round 11's verification scenarios were the first to exercise the
+fresh-user-onboarding path, surfacing the silent no-op as a
+user-visible regression.
+
+**NOT a round-10 regression** despite the founder's initial
+framing. The bug pre-dates round 10 by several rounds; verification
+scope expansion (not code change) made it visible.
+
+**Implementation shape (Option A — founder-approved):**
+
+- `ProtocolRecommendation` gains `showSeeOtherOptions?: boolean`
+  prop, defaulting to `true`. When `false`, the alternates row +
+  TouchableOpacity are not rendered at all (not styled-hidden —
+  fully omitted from the tree).
+- `CheckInFlow` gains `hideSeeOtherOptions?: boolean` prop,
+  defaulting to `false`. Passes `showSeeOtherOptions={!hideSeeOtherOptions}`
+  to ProtocolRecommendation. The negated naming at the CheckInFlow
+  boundary is intentional: production callers omit the prop and
+  get the existing behavior; only the onboarding caller has to
+  opt in to the suppression.
+- `OnboardingV2ProtocolScreen` mounts CheckInFlow with
+  `hideSeeOtherOptions` set. The existing inline comment block
+  (which previously documented the `onSeeOtherOptions`-omission
+  no-op rationale) is rewritten to document the round-12
+  hide-via-prop contract.
+- Daily check-in mount of CheckInFlow (`CheckInFlowScreen.tsx`)
+  is unchanged — no new prop passed → default behavior preserved.
+
+**Tests added:**
+
+- `ProtocolRecommendation.test.tsx` (+4 tests):
+  - Default render: affordance visible.
+  - Explicit `showSeeOtherOptions={true}`: affordance visible.
+  - `showSeeOtherOptions={false}`: affordance NOT in tree.
+  - `onSeeOtherOptions` not invoked when affordance is hidden
+    (defensive — no render target, no spurious fire).
+- New file:
+  `mobile/src/screens/checkin/__tests__/CheckInFlowScreen.seeOtherOptions.integration.test.tsx`
+  (+2 tests). AppStack-boundary integration test per the round-11
+  META rule "Tests for navigation chains must exercise the actual
+  transport." Real `NavigationContainer` + `createNativeStackNavigator`,
+  real `CheckInFlowScreen` + `PracticesIndexScreen` registered.
+  Drives state-pick → time-pick → recommendation, taps "See other
+  options," asserts the destination screen mounted with the
+  expected route params (state + timeWindow encoded in the title
+  copy). This is the test that would have caught Finding G if the
+  onboarding path had been registered through the same pattern;
+  it closes the round-11 META gap for the daily check-in path.
+
+**Why prop-driven hide (vs absent-handler hide) — implementation
+choice clarification:** The handoff doc described an alternative
+"absent handler hides the button" shape. The shipped implementation
+uses an explicit prop because (a) the prop name documents intent
+at the call site (`hideSeeOtherOptions` at OnboardingV2ProtocolScreen
+is self-explanatory; an absent handler is silent), (b) the
+existing CheckInFlow callers can carry the handler-warn pattern
+unchanged, (c) future onboarding redesigns that wire Practices
+into the onboarding stack can flip the flag without removing the
+handler.
+
+#### Finding H — BrowseRunFlow response step when ctx is present
+
+**Locked decision:**
+
+> **Sub-step 2.5's original Case 4 'no response screen' design
+> assumed true-browse sessions (Practices-launched, no CheckInFlow
+> context). After Bug B (round 6) plumbed CheckInFlowContext through
+> Path 1 ('See other options') and Path 2 ('Try something longer'),
+> all production BrowseRunFlow sessions are CheckInFlow continuations.
+> Response screen rendering applies whenever CheckInFlowContext is
+> present — preserving the true-browse skip for any future standalone-
+> Practices entry. Fixes UX asymmetry where CheckInFlow continuation
+> sessions previously skipped the acknowledgment step that gives
+> users emotional resolution after a protocol.**
+
+**Why:** Pre-fix, Path 1/2 users completed the protocol → re-check →
+INSTANT navigation to dashboard with no acknowledgment of the
+outcome. Standard CheckInFlow users got the response screen
+(ShiftedResponse / NotShiftedResponse / MaintenanceResponse) with
+appropriate copy + buttons before hitting the dashboard. The Bug B
+premise was that Path 1/2 sessions are equivalent to standard
+CheckInFlow sessions emotionally — same outcome class, same
+classification, same routing target. Skipping the response screen
+broke that equivalence claim.
+
+**Implementation shape:**
+
+- New `BrowseResponseStep` variant in `BrowseRunFlowState`. Carries
+  `outcome` (already classified) and `checkInFlowContext`
+  (narrowed to non-null since the response step exists ONLY when
+  ctx is present).
+- `state_after_selected` branches on ctx:
+  - **ctx present** → `response` (with the classified outcome).
+  - **ctx absent** → `flow_complete` direct (preserves true-browse
+    short-circuit for any future standalone-Practices entry).
+- New `next_step_chosen` action transitions `response` →
+  `flow_complete`, capturing the user's `userChosenNextStep`
+  choice. Reused from CheckInFlow's reducer pattern.
+- `BrowseFlowCompleteStep` gains `userChosenNextStep`
+  (`UserChosenNextStep | null`). Null on the ctx-absent path
+  (no response step renders); populated on ctx-present
+  flow_complete.
+- `mapBrowseTerminalToPayload` writes the captured
+  `userChosenNextStep` (replaces the prior always-null write).
+  This also resolves the `userChosenNextStep = 'auto_dismissed'`
+  fragility flagged in earlier rounds — the captured value now
+  reflects the user's actual choice (`try_longer` /
+  `rest_later` / `dismissed` / `auto_dismissed` from the
+  response screen's auto-timer).
+- `BrowseRunFlow.tsx` render switch adds a `case 'response':`
+  that mounts the existing `ResponseStepView` with all required
+  inputs from the captured context + classifier outcome.
+- `PracticeRunScreen.handleComplete` switches on
+  `terminal.userChosenNextStep` when ctx is present, mirroring
+  `CheckInFlowScreen.handleComplete`'s pattern:
+  - `try_longer` → late-night NSDR override or
+    `navigate('Practices', ...)` without `timeWindow`
+    (round-10 Finding 3 contract preserved).
+  - `rest_later` / `dismissed` / `auto_dismissed` /
+    `null` → `popToTop()` to dashboard.
+  - **abandoned** terminal (no response step ran) → routes
+    based on ctx presence (dashboard if present, Practices if
+    absent).
+
+**Tests added:**
+
+- `browseRunReducer.test.ts` (+8 tests):
+  - Reducer transitions: re_check → response (ctx) vs re_check →
+    flow_complete (no ctx).
+  - response → flow_complete via `next_step_chosen` (try_longer,
+    rest_later, dismissed, auto_dismissed each captured).
+  - response no-ops on player_exit / state_after_selected actions.
+  - Full ctx-present happy path: init → completed → re_check →
+    response → flow_complete with `try_longer` captured.
+- `BrowseRunFlow.test.tsx` (+4 tests):
+  - Response screen mounts at the right state-machine moment.
+  - `userChosenNextStep='dismissed'` flows through to the
+    payload (anti-`auto_dismissed`-fragility regression guard).
+  - `userChosenNextStep='rest_later'` on the not_shifted path.
+  - ctx absent: response screen does NOT render (true-browse
+    preserved); userChosenNextStep stays null.
+- The existing classifier-branch tests (foggy→steady, foggy→
+  clear, wired→foggy, wired→wired, steady→steady) updated to
+  press the response continue button before asserting the legacy
+  helper fired. The helper `pressResponseDismiss` finds whichever
+  response surface rendered (ShiftedResponse vs NotShiftedResponse)
+  and presses its primary dismiss-style button.
 
 ---
 
