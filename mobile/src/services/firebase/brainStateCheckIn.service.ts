@@ -318,42 +318,37 @@ async function setFirstShiftAtIfNeeded(
 }
 
 /**
- * Legacy + first-shift orchestration shared between CheckInFlow's
- * `writeStandardFlowSession` and BrowseRunFlow's terminal effect
- * (when `CheckInFlowContext` is present — round 7 Bug B follow-up).
+ * Round 14 split (was step 1 + 2 of writeBrainStateCheckInLegacyEffects).
+ * Writes the legacy `brainStateCheckIns/{userId}_{date}` doc — the
+ * dashboard's "user-attested state for today" record. Updates
+ * brainState + protocolId, and on natural completion flips
+ * protocolCompleted via markProtocolCompleted.
  *
- * Three side effects, in order:
- *   1. `saveBrainStateCheckIn(userId, stateBefore)` — updates the
- *      legacy `brainStateCheckIns/{userId}_{date}` doc that the
- *      dashboard's `useDashboard.ts` reads on focus to decide
- *      "show chip picker vs show summary."
- *   2. `markProtocolCompleted(userId)` — only when `isFlowComplete`,
- *      flips the legacy doc's `protocolCompleted` flag for v1 read
- *      paths.
- *   3. `setFirstShiftAtIfNeeded(userId, outcome)` — sets the user
- *      profile's `firstShiftAt` field if the outcome qualifies
- *      (`shifted` or `partial_shift`) and the field is currently null.
- *      Drives the dashboard's first-shift footer.
+ * Why split: the previous combined helper conflated two semantically
+ * distinct concerns. Round 14 surfaced that the overwhelm path's
+ * stateBefore is a system guess ('wired' hardcoded in initFlow),
+ * not a user attestation — writing it to this collection clobbered
+ * the user's actual most-recent check-in. The fix needs to skip
+ * the doc write for overwhelm sessions while still triggering the
+ * first-shift marker (which tracks state transitions in
+ * protocolSessions data, not attestations). That's two different
+ * gating conditions on what was previously one orchestration step,
+ * so we split into two named helpers.
  *
- * Error handling: legacy-write errors (steps 1 + 2) are caught and
- * logged but NOT surfaced. Both writes are backward-compat for
- * dashboard reads; their failure must not strand the user post-
- * completion. The first-shift call has its own internal try-catch
- * inside `setFirstShiftAtIfNeeded`. The protocolSessions write
- * (handled by the caller) is the authoritative source — Patterns
- * reads from there going forward.
+ * Error handling: write errors are caught and logged but NOT
+ * surfaced. The legacy doc is for v1 dashboard reads only; failure
+ * must not strand the user post-completion. The protocolSessions
+ * write (the caller's responsibility) is the authoritative source.
  *
- * `dryRun` skips ALL three side effects.
+ * `dryRun` skips both writes.
  *
- * Idempotent at all layers: legacy doc is keyed by date (one per
- * day, updates on subsequent calls); firstShiftAt is read-then-
- * conditionally-written (no-op once set).
+ * Idempotent: legacy doc is keyed by date (one per day; updates on
+ * subsequent calls).
  */
-export async function writeBrainStateCheckInLegacyEffects(
+export async function writeBrainStateCheckInDoc(
   userId: string,
   stateBefore: BrainState,
   isFlowComplete: boolean,
-  outcome: ProtocolSessionOutcome,
   // Round 8 (Bug F fix): the actually-completed protocol's id.
   // Forwarded to saveBrainStateCheckIn so the legacy doc's
   // protocolId field reflects what the user ran, not a default-
@@ -365,7 +360,7 @@ export async function writeBrainStateCheckInLegacyEffects(
 ): Promise<void> {
   if (options.dryRun) {
     logger.log(
-      '[writeBrainStateCheckInLegacyEffects] dryRun — would update legacy brainStateCheckIns + maybe firstShiftAt'
+      '[writeBrainStateCheckInDoc] dryRun — would update legacy brainStateCheckIns'
     );
     return;
   }
@@ -385,17 +380,43 @@ export async function writeBrainStateCheckInLegacyEffects(
     // Log + swallow — Patterns reads from protocolSessions going
     // forward; the legacy doc is for v1 surfaces only.
     logger.error(
-      '[writeBrainStateCheckInLegacyEffects] legacy brainStateCheckIns write failed:',
+      '[writeBrainStateCheckInDoc] legacy brainStateCheckIns write failed:',
       error
     );
   }
+}
 
-  // First-shift footer trigger. Independent failure mode from the
-  // legacy write — a profile write hiccup shouldn't affect Patterns
-  // data integrity, and vice versa. setFirstShiftAtIfNeeded handles
-  // its own try-catch internally and gates on
-  // qualifiesAsFirstShift(outcome) — passing 'maintenance' /
-  // 'browse_launched' / 'abandoned' is a safe no-op.
+/**
+ * Round 14 split (was step 3 of writeBrainStateCheckInLegacyEffects).
+ * Sets the user profile's firstShiftAt field if the outcome
+ * qualifies (shifted / partial_shift) AND the field is currently
+ * null. Drives the dashboard's first-shift footer.
+ *
+ * Independent of writeBrainStateCheckInDoc: the first-shift marker
+ * tracks state transitions in protocolSessions data (a real
+ * measured shift), not user attestations. Overwhelm sessions that
+ * produce qualifying outcomes still mark — even though their
+ * stateBefore is a system guess, the resulting transition is real
+ * and recorded in protocolSessions.
+ *
+ * Internal try-catch inside setFirstShiftAtIfNeeded handles its own
+ * failure mode (logs + swallows). qualifiesAsFirstShift gates the
+ * profile read so non-qualifying outcomes ('maintenance' /
+ * 'browse_launched' / 'abandoned') are safe no-ops.
+ *
+ * `dryRun` skips the call entirely.
+ */
+export async function maybeMarkFirstShift(
+  userId: string,
+  outcome: ProtocolSessionOutcome,
+  options: { dryRun?: boolean } = {}
+): Promise<void> {
+  if (options.dryRun) {
+    logger.log(
+      '[maybeMarkFirstShift] dryRun — would conditionally set firstShiftAt'
+    );
+    return;
+  }
   await setFirstShiftAtIfNeeded(userId, outcome);
 }
 
@@ -447,19 +468,39 @@ export async function writeStandardFlowSession(
   // New authoritative write.
   await writeProtocolSession(userId, payload, options);
 
-  // Legacy + first-shift orchestration. dryRun is forwarded so the
-  // helper is a single source of truth for the bypass. terminal.protocol.id
-  // is the user's actually-completed protocol — passing it explicitly
-  // prevents the round-8 Bug F latent symptom (legacy doc carrying a
-  // default-recommended id instead of the run id).
-  await writeBrainStateCheckInLegacyEffects(
-    userId,
-    terminal.stateBefore,
-    terminal.step === 'flow_complete',
-    payload.outcome,
-    terminal.protocol.id,
-    { dryRun: options.dryRun }
-  );
+  // Round 14 (sensory reset cancel state-revert fix): the overwhelm
+  // path's stateBefore is a system guess ('wired' hardcoded in
+  // initFlow at reducer.ts:76-84), not a user attestation. Writing
+  // it to the legacy brainStateCheckIns collection clobbered the
+  // user's actual most-recent check-in for the day (and reset
+  // protocolCompleted to false because saveBrainStateCheckIn's
+  // stateChanged branch fires when the guessed 'wired' differs from
+  // the user's prior attested state). The protocolSessions write
+  // above is the authoritative source — Patterns reads from there.
+  //
+  // First-shift marker stays for both paths because it tracks state
+  // transitions in protocolSessions data, not user attestations.
+  // An overwhelm session that produces a qualifying outcome
+  // (e.g. wired→steady = shifted) is a real measured shift even if
+  // the start state was guessed.
+  //
+  // See PHASE_NOTES round 14 + TECH_DEBT entry on Option C
+  // (replacing the hardcoded stateBefore with a re-check capture
+  // pattern that lets overwhelm sessions write a user-attested
+  // stateBefore — the longer-term direction that makes this
+  // special-case branch deletable).
+  if (terminal.entrySource !== 'overwhelm_safety_card') {
+    await writeBrainStateCheckInDoc(
+      userId,
+      terminal.stateBefore,
+      terminal.step === 'flow_complete',
+      terminal.protocol.id,
+      { dryRun: options.dryRun }
+    );
+  }
+  await maybeMarkFirstShift(userId, payload.outcome, {
+    dryRun: options.dryRun,
+  });
 }
 
 /**

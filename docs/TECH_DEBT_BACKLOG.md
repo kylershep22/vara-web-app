@@ -5,6 +5,79 @@ Phase 6 polish sweep is the working list.
 
 ---
 
+## Overwhelm path: replace hardcoded `stateBefore: 'wired'` with post-protocol re-check capture
+
+**Where:** `mobile/src/components/checkin/flow/reducer.ts:76-84` —
+`initFlow` for `entrySource: 'overwhelm_safety_card'` hardcodes
+`stateBefore: 'wired'`. The user never attests to Wired; it's a
+system assumption embedded at flow init.
+
+**Why this is debt:** The hardcoded value is a known-incorrect proxy
+for any user whose actual pre-overwhelm state isn't Wired. It
+compromises:
+
+1. **`classifyOutcome` correctness.** The classifier produces the
+   protocolSession's `outcome` based on `(stateBefore, stateAfter)`.
+   For an overwhelm session where the user was actually Foggy and
+   the re-check returns Steady, the system writes
+   `wired→steady = 'shifted'` when the truth is `foggy→steady = 'shifted'`.
+   Both classify the same in this case, but the cell-by-cell
+   matrix has divergent classifications elsewhere — e.g. a user who
+   was actually Steady runs overwhelm and re-checks Foggy: the
+   system writes `wired→foggy = 'partial_shift'` (a positive
+   transition) when the truth is `steady→foggy = 'not_shifted'` (a
+   regression). False-positive shift counts in Patterns.
+
+2. **Round 14 sensory reset cancel state-revert** — necessitated the
+   special-case branch in `writeStandardFlowSession` that skips
+   `writeBrainStateCheckInDoc` for `entrySource === 'overwhelm_safety_card'`.
+   The branch is a workaround, not a fix at the root cause: the
+   root cause is that the system has no captured stateBefore for
+   overwhelm sessions, so it shouldn't be writing one to the
+   attestation collection.
+
+**Direction (Option C from round 14 investigation):** Replace the
+hardcoded `stateBefore: 'wired'` with a post-protocol capture
+pattern. Sketch:
+
+- Overwhelm flow's terminal write payload sets `stateBefore: null`
+  (similar to BrowseRunFlow's true-browse path which writes
+  `stateBefore: null` on its `outcome: 'browse_launched'` sessions).
+- `mapStandardFlowTerminalToPayload`'s schema invariant
+  ("standard flow's TerminalFlowState always has a non-null
+  stateBefore") relaxes for overwhelm. Either widen the type
+  (`BrainState | null`) for overwhelm variants only, or introduce
+  a separate terminal type for overwhelm.
+- `classifyOutcome` either (a) accepts null stateBefore and returns
+  a dedicated outcome (`'overwhelm_completed'`?) for the null case,
+  or (b) overwhelm sessions skip classification entirely and write
+  a hardcoded outcome.
+- Re-check captures `stateAfter` as today; the user's pre-protocol
+  state is simply not asserted by the system.
+
+**Acceptance criteria:**
+- Overwhelm sessions write a user-attested or null `stateBefore` to
+  `protocolSessions` — never the system-guessed `'wired'`.
+- The round-14 `entrySource !== 'overwhelm_safety_card'` branch in
+  `writeStandardFlowSession` becomes deletable (the legacy doc write
+  guard is no longer needed because there's no incorrect stateBefore
+  to write).
+- `classifyOutcome` correctness restored for the overwhelm path:
+  no false-positive `'shifted'` / `'partial_shift'` outcomes for
+  users whose actual pre-overwhelm state isn't Wired.
+
+**Touches:** `reducer.ts` initFlow, `types.ts` FlowState union,
+`mapStandardFlowTerminalToPayload`, possibly `outcomeClassifier.ts`,
+all overwhelm-flow tests. Non-trivial — schema-level change.
+
+**Why not now:** Sub-step 2.7 sensory reset cancel symptom is
+fixed by the round-14 special-case branch. Schema-level redesign
+is Phase 4+ scope, alongside the broader recommender / classifier
+work that overwhelm shares with the standard flow. The round-14
+branch is the bridge.
+
+---
+
 ## Pre-existing TypeScript errors (181 total as of Phase 1 sub-step 1)
 
 `npx tsc --noEmit` reports 181 errors across roughly 60 files. None are

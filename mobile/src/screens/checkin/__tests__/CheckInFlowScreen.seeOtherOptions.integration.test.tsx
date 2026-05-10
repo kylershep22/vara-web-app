@@ -59,7 +59,9 @@ jest.mock('../../../services/firebase/brainStateCheckIn.service', () => {
   return {
     ...actual,
     writeStandardFlowSession: jest.fn().mockResolvedValue(undefined),
-    writeBrainStateCheckInLegacyEffects: jest.fn().mockResolvedValue(undefined),
+    // Round 14 split — was writeBrainStateCheckInLegacyEffects.
+    writeBrainStateCheckInDoc: jest.fn().mockResolvedValue(undefined),
+    maybeMarkFirstShift: jest.fn().mockResolvedValue(undefined),
   };
 });
 

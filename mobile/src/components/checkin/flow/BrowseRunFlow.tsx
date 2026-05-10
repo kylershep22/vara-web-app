@@ -37,7 +37,10 @@ import type {
   ProtocolSessionSummary,
 } from '../../../types/models';
 import { writeProtocolSession } from '../../../services/firebase/protocolSession.service';
-import { writeBrainStateCheckInLegacyEffects } from '../../../services/firebase/brainStateCheckIn.service';
+import {
+  writeBrainStateCheckInDoc,
+  maybeMarkFirstShift,
+} from '../../../services/firebase/brainStateCheckIn.service';
 
 import { GuidedSessionPlayer } from '../../protocol/GuidedSessionPlayer';
 import { LightMovementProtocolFlow } from '../../protocol/LightMovementProtocolFlow';
@@ -144,20 +147,34 @@ export function BrowseRunFlow({
           writeProtocolSession(userId, payload, { dryRun }),
         ];
         if (ctx) {
+          // Round 14 split — was a single
+          // writeBrainStateCheckInLegacyEffects call. Now two
+          // independent helpers run in sequence inside an async
+          // wrapper so the Promise.all timing is unchanged.
+          // BrowseRunFlow's ctx-present sessions are CheckInFlow
+          // continuations with a user-attested stateBefore (from
+          // ctx.state), so both writes fire — overwhelm-style
+          // skipping doesn't apply here (overwhelm enters via
+          // CheckInFlow, never BrowseRunFlow).
           writes.push(
-            writeBrainStateCheckInLegacyEffects(
-              userId,
-              ctx.state,
-              state.step === 'flow_complete',
-              payload.outcome,
-              // Round 8 (Bug F fix): pass the actually-completed protocol's
-              // id so the legacy doc reflects what the user ran, not the
-              // default-recommended fallback (which produced the
-              // "Light Movement — Completed" mislabel when the user
-              // actually ran Cold Water Reset, etc.).
-              state.protocol.id,
-              { dryRun }
-            )
+            (async () => {
+              await writeBrainStateCheckInDoc(
+                userId,
+                ctx.state,
+                state.step === 'flow_complete',
+                // Round 8 (Bug F fix): pass the actually-completed
+                // protocol's id so the legacy doc reflects what the
+                // user ran, not the default-recommended fallback
+                // (which produced the "Light Movement — Completed"
+                // mislabel when the user actually ran Cold Water
+                // Reset, etc.).
+                state.protocol.id,
+                { dryRun }
+              );
+              await maybeMarkFirstShift(userId, payload.outcome, {
+                dryRun,
+              });
+            })()
           );
         }
         await Promise.all([
@@ -168,7 +185,7 @@ export function BrowseRunFlow({
         // Silent-failure visibility: BrowseRunFlow's authoritative
         // write failure means zero data lands for this session.
         // (Legacy + first-shift errors are swallowed inside the
-        // helper; only the protocolSessions write can throw here.)
+        // helpers; only the protocolSessions write can throw here.)
         logger.error(
           '[BrowseRunFlow] writeProtocolSession failed (session NOT persisted):',
           error

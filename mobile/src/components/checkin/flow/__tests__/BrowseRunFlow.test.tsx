@@ -84,19 +84,26 @@ jest.mock('../../../../services/firebase/brainStateCheckIn.service', () => {
   );
   return {
     ...actual,
-    writeBrainStateCheckInLegacyEffects: jest
-      .fn()
-      .mockResolvedValue(undefined),
+    // Round 14 split — was a single writeBrainStateCheckInLegacyEffects
+    // mock. The two independent helpers replaced it; tests assert on
+    // writeBrainStateCheckInDoc (the legacy doc write) for outcome /
+    // protocolId / stateBefore arguments.
+    writeBrainStateCheckInDoc: jest.fn().mockResolvedValue(undefined),
+    maybeMarkFirstShift: jest.fn().mockResolvedValue(undefined),
   };
 });
 
 import { writeProtocolSession as writeProtocolSessionMock } from '../../../../services/firebase/protocolSession.service';
-import { writeBrainStateCheckInLegacyEffects as writeLegacyMock } from '../../../../services/firebase/brainStateCheckIn.service';
+import {
+  writeBrainStateCheckInDoc as writeLegacyMock,
+  maybeMarkFirstShift as maybeMarkFirstShiftMock,
+} from '../../../../services/firebase/brainStateCheckIn.service';
 
 beforeEach(() => {
   lastOnExit = null;
   (writeProtocolSessionMock as jest.Mock).mockClear();
   (writeLegacyMock as jest.Mock).mockClear();
+  (maybeMarkFirstShiftMock as jest.Mock).mockClear();
 });
 
 // ────────────────────────────────────────────────────────────
@@ -224,18 +231,28 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
       })
     );
 
-    // Legacy + first-shift helper fired exactly once with the right args.
-    // Round 8 (Bug F fix): signature is (userId, stateBefore, isFlowComplete,
-    // outcome, protocolId, options) — protocolId added at index 4 so the
-    // legacy doc reflects the actually-completed protocol, not a default.
+    // Round 14 split — was a single writeBrainStateCheckInLegacyEffects
+    // call. Now writeBrainStateCheckInDoc (the legacy doc write) and
+    // maybeMarkFirstShift (the first-shift marker) fire independently.
+    // writeLegacyMock now refers to writeBrainStateCheckInDoc with
+    // signature (userId, stateBefore, isFlowComplete, protocolId,
+    // options) — outcome moved to maybeMarkFirstShift's index 1.
     expect(writeLegacyMock).toHaveBeenCalledTimes(1);
     const legacyCall = (writeLegacyMock as jest.Mock).mock.calls[0];
     expect(legacyCall[0]).toBe(TEST_USER_ID);
     expect(legacyCall[1]).toBe('foggy'); // stateBefore from context
     expect(legacyCall[2]).toBe(true); // isFlowComplete
-    expect(legacyCall[3]).toBe('shifted'); // outcome
-    expect(legacyCall[4]).toBe('nsdr-20'); // actually-completed protocolId
-    expect(legacyCall[5]).toEqual({ dryRun: true });
+    expect(legacyCall[3]).toBe('nsdr-20'); // actually-completed protocolId
+    expect(legacyCall[4]).toEqual({ dryRun: true });
+
+    // Round 14 — first-shift marker fires alongside the legacy write
+    // for ctx-present sessions (BrowseRunFlow ctx-present is a
+    // CheckInFlow continuation; first-shift behavior preserved).
+    expect(maybeMarkFirstShiftMock).toHaveBeenCalledTimes(1);
+    const firstShiftCall = (maybeMarkFirstShiftMock as jest.Mock).mock.calls[0];
+    expect(firstShiftCall[0]).toBe(TEST_USER_ID);
+    expect(firstShiftCall[1]).toBe('shifted'); // outcome
+    expect(firstShiftCall[2]).toEqual({ dryRun: true });
   });
 
   it('Bug F regression: protocolId arg matches the actually-completed protocol, not a default', async () => {
@@ -261,12 +278,14 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
       () => expect(writeLegacyMock).toHaveBeenCalled(),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
     );
-    const [, , , , protocolIdArg] = (writeLegacyMock as jest.Mock).mock
+    // Round 14 — protocolId moved from index 4 to index 3 with the
+    // helper split (outcome dropped from this signature).
+    const [, , , protocolIdArg] = (writeLegacyMock as jest.Mock).mock
       .calls[0];
     expect(protocolIdArg).toBe('nsdr-20');
   });
 
-  it('classifier branches: foggy→clear writes outcome="shifted" via legacy helper', async () => {
+  it('classifier branches: foggy→clear writes outcome="shifted" via maybeMarkFirstShift', async () => {
     const { findByTestId, queryByTestId, getByLabelText } = render(
       <BrowseRunFlow
         protocol={NSDR_20}
@@ -282,14 +301,16 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
     fireEvent.press(getByLabelText('Clear'));
     await pressResponseDismiss(findByTestId, queryByTestId);
     await waitFor(
-      () => expect(writeLegacyMock).toHaveBeenCalled(),
+      () => expect(maybeMarkFirstShiftMock).toHaveBeenCalled(),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
     );
-    const [, , , outcome] = (writeLegacyMock as jest.Mock).mock.calls[0];
+    // Round 14 — outcome moved from writeBrainStateCheckInLegacyEffects
+    // index 3 to maybeMarkFirstShift index 1.
+    const [, outcome] = (maybeMarkFirstShiftMock as jest.Mock).mock.calls[0];
     expect(outcome).toBe('shifted');
   });
 
-  it('classifier branches: wired→foggy writes outcome="partial_shift" via legacy helper', async () => {
+  it('classifier branches: wired→foggy writes outcome="partial_shift" via maybeMarkFirstShift', async () => {
     const wiredCtx: CheckInFlowContext = {
       state: 'wired',
       timeWindow: 5,
@@ -314,9 +335,12 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
       () => expect(writeLegacyMock).toHaveBeenCalled(),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
     );
-    const [, stateBefore, , outcome] = (writeLegacyMock as jest.Mock).mock
-      .calls[0];
+    // Round 14 — stateBefore stays at writeBrainStateCheckInDoc
+    // index 1; outcome moved to maybeMarkFirstShift index 1.
+    const [, stateBefore] = (writeLegacyMock as jest.Mock).mock.calls[0];
     expect(stateBefore).toBe('wired');
+    expect(maybeMarkFirstShiftMock).toHaveBeenCalled();
+    const [, outcome] = (maybeMarkFirstShiftMock as jest.Mock).mock.calls[0];
     expect(outcome).toBe('partial_shift');
   });
 
@@ -342,10 +366,11 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
     fireEvent.press(getByLabelText('Wired'));
     await pressResponseDismiss(findByTestId, queryByTestId);
     await waitFor(
-      () => expect(writeLegacyMock).toHaveBeenCalled(),
+      () => expect(maybeMarkFirstShiftMock).toHaveBeenCalled(),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
     );
-    const [, , , outcome] = (writeLegacyMock as jest.Mock).mock.calls[0];
+    // Round 14 — outcome lives on maybeMarkFirstShift now.
+    const [, outcome] = (maybeMarkFirstShiftMock as jest.Mock).mock.calls[0];
     expect(outcome).toBe('not_shifted');
   });
 
@@ -371,14 +396,14 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
     fireEvent.press(getByLabelText('Steady'));
     await pressResponseDismiss(findByTestId, queryByTestId);
     await waitFor(
-      () => expect(writeLegacyMock).toHaveBeenCalled(),
+      () => expect(maybeMarkFirstShiftMock).toHaveBeenCalled(),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
     );
-    const [, , , outcome] = (writeLegacyMock as jest.Mock).mock.calls[0];
+    const [, outcome] = (maybeMarkFirstShiftMock as jest.Mock).mock.calls[0];
     expect(outcome).toBe('maintenance');
   });
 
-  it('abandoned with context still invokes legacy helper, isFlowComplete=false, outcome="abandoned"', async () => {
+  it('abandoned with context still invokes both helpers; isFlowComplete=false, outcome="abandoned"', async () => {
     const onComplete = jest.fn();
     render(
       <BrowseRunFlow
@@ -396,17 +421,19 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
     );
     expect(writeLegacyMock).toHaveBeenCalledTimes(1);
-    const [, stateBefore, isFlowComplete, outcome] = (
+    const [, stateBefore, isFlowComplete] = (
       writeLegacyMock as jest.Mock
     ).mock.calls[0];
     expect(stateBefore).toBe('foggy');
     expect(isFlowComplete).toBe(false);
+    expect(maybeMarkFirstShiftMock).toHaveBeenCalledTimes(1);
+    const [, outcome] = (maybeMarkFirstShiftMock as jest.Mock).mock.calls[0];
     expect(outcome).toBe('abandoned');
   });
 });
 
 describe('BrowseRunFlow — terminal write WITHOUT context (true-browse legacy behavior)', () => {
-  it('does NOT invoke writeBrainStateCheckInLegacyEffects when context is absent', async () => {
+  it('does NOT invoke writeBrainStateCheckInDoc or maybeMarkFirstShift when context is absent', async () => {
     const onComplete = jest.fn();
     const { findByTestId, getByLabelText } = render(
       <BrowseRunFlow
@@ -433,8 +460,11 @@ describe('BrowseRunFlow — terminal write WITHOUT context (true-browse legacy b
     expect(payload.outcome).toBe('browse_launched');
     expect(payload.stateBefore).toBeNull();
 
-    // Legacy helper NOT called (preserves isolated browse semantics).
+    // Legacy helpers NOT called (preserves isolated browse semantics).
+    // Round 14 — both writeBrainStateCheckInDoc and maybeMarkFirstShift
+    // are gated on ctx presence; absence skips both.
     expect(writeLegacyMock).not.toHaveBeenCalled();
+    expect(maybeMarkFirstShiftMock).not.toHaveBeenCalled();
   });
 });
 
