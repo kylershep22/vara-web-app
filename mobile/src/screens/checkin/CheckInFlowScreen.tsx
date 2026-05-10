@@ -182,9 +182,22 @@ export function CheckInFlowScreen() {
             terminal.stateBefore,
             new Date().getHours()
           );
+          // Round 14 (try_longer back-button fix) — both branches use
+          // navigation.replace instead of navigation.navigate. CheckInFlow
+          // is in flow_complete terminal state at this moment; its render
+          // returns null. If we push the next screen on top via navigate,
+          // the user's back button (header back on Practices, or system
+          // back gesture out of PracticeRun) lands on this dead
+          // CheckInFlow frame — visible as a blank white screen with
+          // only the FAB rendered. replace removes CheckInFlow from the
+          // stack so back from Practices/PracticeRun lands on the
+          // launching surface (typically Dashboard). The post-completion
+          // popToTop pattern (PracticeRunScreen.handleComplete for ctx-
+          // present sessions) handles the AFTER-completion case; this
+          // handles the BEFORE-second-protocol case.
           if (override !== null) {
             // late_night_nsdr_override
-            navigation.navigate('PracticeRun', {
+            navigation.replace('PracticeRun', {
               protocolId: override.protocolId,
               stateBefore: terminal.stateBefore,
             });
@@ -209,7 +222,7 @@ export function CheckInFlowScreen() {
             // protocols suitable for the user's state across all time
             // budgets. Do not "fix" this by re-adding the filter —
             // see PHASE_NOTES round 10 locked decisions.
-            navigation.navigate('Practices', {
+            navigation.replace('Practices', {
               state: terminal.stateBefore,
               fromCheckInFlow: true,
               intentPath: CHECKIN_FLOW_INTENT_PATH,

@@ -15,6 +15,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 const mockNavigate = jest.fn();
+const mockReplace = jest.fn();
 const mockGoBack = jest.fn();
 const mockSetOptions = jest.fn();
 const mockRouteParams: { params: { entrySource: 'standard' } } = {
@@ -24,6 +25,7 @@ const mockRouteParams: { params: { entrySource: 'standard' } } = {
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: mockNavigate,
+    replace: mockReplace,
     goBack: mockGoBack,
     setOptions: mockSetOptions,
   }),
@@ -74,6 +76,7 @@ import { CheckInFlowScreen } from '../CheckInFlowScreen';
 
 beforeEach(() => {
   mockNavigate.mockClear();
+  mockReplace.mockClear();
   mockGoBack.mockClear();
   mockSetOptions.mockClear();
   mockGetLateNightNSDRSwap.mockReset();
@@ -104,8 +107,18 @@ function tryLongerTerminal(opts: {
   };
 }
 
-describe('CheckInFlowScreen — try_longer nav routing (Finding 3)', () => {
-  it('navigates to Practices WITHOUT timeWindow when no late-night override', async () => {
+describe('CheckInFlowScreen — try_longer nav routing (Finding 3 + Round 14 back-button fix)', () => {
+  // Round 14: try_longer now uses navigation.replace (not navigate) so
+  // CheckInFlow is removed from the stack at the moment of transition.
+  // CheckInFlow is in flow_complete state at this moment; its render
+  // returns null. Pushing the next screen on top via navigate left a
+  // dead "blank screen with FAB" frame underneath, visible when the
+  // user pressed back from the new top of stack. Tests below assert
+  // the replace contract; the AppStack-boundary integration test in
+  // CheckInFlowScreen.tryLongerBackButton.integration.test.tsx
+  // verifies the actual back-button behavior end-to-end.
+
+  it('replaces (does not navigate to) Practices WITHOUT timeWindow when no late-night override', async () => {
     mockGetLateNightNSDRSwap.mockReturnValue(null);
     const { findByTestId } = render(<CheckInFlowScreen />);
     await findByTestId('mock-checkin-flow');
@@ -113,8 +126,8 @@ describe('CheckInFlowScreen — try_longer nav routing (Finding 3)', () => {
 
     lastOnComplete!(tryLongerTerminal({ stateBefore: 'wired', timeWindow: 2 }));
 
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
-    expect(mockNavigate).toHaveBeenCalledWith(
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledTimes(1));
+    expect(mockReplace).toHaveBeenCalledWith(
       'Practices',
       expect.objectContaining({
         state: 'wired',
@@ -122,12 +135,15 @@ describe('CheckInFlowScreen — try_longer nav routing (Finding 3)', () => {
         intentPath: 'default',
       })
     );
+    // navigate must NOT fire — using both would leave CheckInFlow in
+    // the stack and reproduce the round-14 blank-screen bug.
+    expect(mockNavigate).not.toHaveBeenCalled();
 
-    // Round 10 contract: timeWindow MUST NOT be in the params.
-    const navCall = mockNavigate.mock.calls[0];
-    const navParams = navCall[1] as Record<string, unknown>;
-    expect(navParams.timeWindow).toBeUndefined();
-    expect('timeWindow' in navParams).toBe(false);
+    // Round 10 contract preserved: timeWindow MUST NOT be in the params.
+    const replaceCall = mockReplace.mock.calls[0];
+    const replaceParams = replaceCall[1] as Record<string, unknown>;
+    expect(replaceParams.timeWindow).toBeUndefined();
+    expect('timeWindow' in replaceParams).toBe(false);
   });
 
   it('regression guard — try_longer params shape stays minimal', async () => {
@@ -136,35 +152,39 @@ describe('CheckInFlowScreen — try_longer nav routing (Finding 3)', () => {
 
     lastOnComplete!(tryLongerTerminal({ stateBefore: 'foggy', timeWindow: 10 }));
 
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
-    const navParams = mockNavigate.mock.calls[0][1] as Record<string, unknown>;
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledTimes(1));
+    const replaceParams = mockReplace.mock.calls[0][1] as Record<string, unknown>;
     // Exactly three keys: state, fromCheckInFlow, intentPath. Anyone
     // adding a key here should re-evaluate whether it propagates the
     // original budget by accident (e.g. timeWindow).
-    expect(Object.keys(navParams).sort()).toEqual([
+    expect(Object.keys(replaceParams).sort()).toEqual([
       'fromCheckInFlow',
       'intentPath',
       'state',
     ]);
   });
 
-  it('late-night NSDR override path bypasses Practices entirely (PracticeRun nav)', async () => {
+  it('late-night NSDR override path replaces with PracticeRun (not navigate)', async () => {
     // When the override fires, navigation goes to PracticeRun with
     // the override protocol, NOT to Practices. The timeWindow-omission
     // contract only applies to the no_override_practices_index branch.
+    // Round 14: this branch ALSO uses replace — back from PracticeRun
+    // (after run completes or the user cancels) must land on Dashboard,
+    // not on a blank CheckInFlow frame.
     mockGetLateNightNSDRSwap.mockReturnValue({ protocolId: 'nsdr-20' });
     const { findByTestId } = render(<CheckInFlowScreen />);
     await findByTestId('mock-checkin-flow');
 
     lastOnComplete!(tryLongerTerminal({ stateBefore: 'wired', timeWindow: 2 }));
 
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
-    expect(mockNavigate).toHaveBeenCalledWith(
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledTimes(1));
+    expect(mockReplace).toHaveBeenCalledWith(
       'PracticeRun',
       expect.objectContaining({
         protocolId: 'nsdr-20',
         stateBefore: 'wired',
       })
     );
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });
