@@ -125,9 +125,15 @@ export function PracticeRunScreen() {
       // CheckInFlow continuation — route by the response-screen
       // choice. Stack shape: Dashboard → CheckInFlow → Practices
       // → PracticeRun. popToTop unwinds back to Dashboard in one
-      // move; navigate('Practices', ...) for try_longer pushes a
-      // new Practices on top (the round-12 try_longer-omits-
-      // timeWindow contract continues to apply).
+      // move; the try_longer branches use replace (round 14
+      // sibling-of-CheckInFlow-fix) so the current PracticeRun is
+      // removed from the stack at the moment of transition. Without
+      // replace, PracticeRun (in BrowseRunFlow's flow_complete
+      // terminal state, render=null) sits underneath the new
+      // Practices/PracticeRun screen as a blank white frame; back
+      // from the new top of stack would surface the dead frame
+      // instead of landing on Dashboard. Same architectural
+      // pattern as CheckInFlowScreen.handleComplete try_longer.
       switch (terminal.userChosenNextStep) {
         case 'try_longer': {
           const override = getLateNightNSDRSwap(
@@ -135,7 +141,7 @@ export function PracticeRunScreen() {
             new Date().getHours()
           );
           if (override !== null) {
-            navigation.navigate('PracticeRun', {
+            navigation.replace('PracticeRun', {
               protocolId: override.protocolId,
               stateBefore: checkInFlowContext.state,
               fromCheckInFlow: true,
@@ -145,7 +151,7 @@ export function PracticeRunScreen() {
             // Round 10 (Finding 3): timeWindow OMITTED — the button's
             // promise is "longer," and a budget filter contradicts
             // that.
-            navigation.navigate('Practices', {
+            navigation.replace('Practices', {
               state: checkInFlowContext.state,
               fromCheckInFlow: true,
               intentPath: checkInFlowContext.intentPath,
