@@ -235,12 +235,18 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
     // call. Now writeBrainStateCheckInDoc (the legacy doc write) and
     // maybeMarkFirstShift (the first-shift marker) fire independently.
     // writeLegacyMock now refers to writeBrainStateCheckInDoc with
-    // signature (userId, stateBefore, isFlowComplete, protocolId,
-    // options) — outcome moved to maybeMarkFirstShift's index 1.
+    // signature (userId, state, isFlowComplete, protocolId, options).
+    //
+    // Round 15 fix: the `state` arg at index 1 is now the user's
+    // most-recent attestation. For flow_complete with re-check
+    // 'steady', that's 'steady' (NOT the ctx.state 'foggy' that
+    // pre-fix tests asserted on). The dashboard summary card and
+    // AI prompt context both render this field — they should reflect
+    // the post-protocol state, not the pre-protocol state.
     expect(writeLegacyMock).toHaveBeenCalledTimes(1);
     const legacyCall = (writeLegacyMock as jest.Mock).mock.calls[0];
     expect(legacyCall[0]).toBe(TEST_USER_ID);
-    expect(legacyCall[1]).toBe('foggy'); // stateBefore from context
+    expect(legacyCall[1]).toBe('steady'); // stateAfter (post-re-check)
     expect(legacyCall[2]).toBe(true); // isFlowComplete
     expect(legacyCall[3]).toBe('nsdr-20'); // actually-completed protocolId
     expect(legacyCall[4]).toEqual({ dryRun: true });
@@ -335,10 +341,14 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
       () => expect(writeLegacyMock).toHaveBeenCalled(),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
     );
-    // Round 14 — stateBefore stays at writeBrainStateCheckInDoc
-    // index 1; outcome moved to maybeMarkFirstShift index 1.
-    const [, stateBefore] = (writeLegacyMock as jest.Mock).mock.calls[0];
-    expect(stateBefore).toBe('wired');
+    // Round 15 — writeBrainStateCheckInDoc index 1 is now the user's
+    // most-recent attestation. For flow_complete with re-check 'foggy',
+    // that's 'foggy' (NOT the ctx.state 'wired' that pre-round-15
+    // tests asserted on). Outcome stays on maybeMarkFirstShift index 1
+    // (computed by classifyOutcome from the (stateBefore, stateAfter)
+    // pair — 'wired' → 'foggy' = 'partial_shift').
+    const [, stateForLegacyDoc] = (writeLegacyMock as jest.Mock).mock.calls[0];
+    expect(stateForLegacyDoc).toBe('foggy');
     expect(maybeMarkFirstShiftMock).toHaveBeenCalled();
     const [, outcome] = (maybeMarkFirstShiftMock as jest.Mock).mock.calls[0];
     expect(outcome).toBe('partial_shift');
@@ -421,10 +431,14 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
     );
     expect(writeLegacyMock).toHaveBeenCalledTimes(1);
-    const [, stateBefore, isFlowComplete] = (
+    const [, stateForLegacyDoc, isFlowComplete] = (
       writeLegacyMock as jest.Mock
     ).mock.calls[0];
-    expect(stateBefore).toBe('foggy');
+    // Round 15: abandoned terminals still pass ctx.state (the
+    // pre-protocol state). Re-check never ran, so there's no
+    // stateAfter to use — ctx.state IS the most recent attestation
+    // available. The fix only changes the value for flow_complete.
+    expect(stateForLegacyDoc).toBe('foggy');
     expect(isFlowComplete).toBe(false);
     expect(maybeMarkFirstShiftMock).toHaveBeenCalledTimes(1);
     const [, outcome] = (maybeMarkFirstShiftMock as jest.Mock).mock.calls[0];

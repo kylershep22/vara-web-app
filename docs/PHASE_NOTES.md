@@ -1445,6 +1445,51 @@ green-zone same-state or downward = `maintenance`; negative-zone
 same-state = `not_shifted`. Test plans should write expected
 outcomes alongside the state pairs to avoid this misread.
 
+### Value assertions in write helpers must check semantic correctness
+
+Round 15 surfaced a 33-day-old bug
+(`writeStandardFlowSession` writing `terminal.stateBefore` to the
+legacy `brainStateCheckIns` doc instead of `terminal.stateAfter`)
+that persisted behind a green test suite from sub-step 2.5
+through round 14. Round 14's helper-split tests asserted the legacy
+write fired and that specific arguments were passed (`legacyCall[1]`
+matched `'foggy'`), but did not assert that `'foggy'` was the
+SEMANTICALLY CORRECT value for the operation. Several tests
+explicitly asserted the buggy value as the contract — making the
+test suite an active accomplice in the bug's persistence.
+
+**Rule:** value assertions in write helpers must check semantic
+correctness, not just that some value was passed. Asserting
+`expect(mock).toHaveBeenCalledWith(userId, 'foggy', ...)` confirms
+the mock received `'foggy'` but doesn't confirm `'foggy'` is what
+the helper SHOULD have received. Particularly important when the
+helper accepts a state value from a discriminated union with
+multiple state fields — the test author must reason about which
+field's value is correct for the operation, not just which field
+the implementation happens to read from.
+
+**Concrete pattern:** when writing a test for a write helper,
+include a short comment that justifies the asserted value in
+terms of the operation's semantic intent. E.g.:
+
+```typescript
+// Round 15: legacy doc represents user's CURRENT state for
+// today (dashboard renders this). For flow_complete after
+// Wired→Steady re-check, current state is 'steady' (NOT 'wired').
+expect(legacyCall[1]).toBe('steady');
+```
+
+When the comment can't be written without revealing a semantic
+ambiguity (e.g., "the helper writes stateBefore but I'm not sure
+why"), that's a signal to investigate the helper's intended
+contract before locking in the assertion.
+
+**This rule applies retroactively** — any pre-existing assertion
+in the test suite that doesn't include a semantic justification
+should be treated as suspect during code review. The brainState =
+stateBefore bug is the canonical example of what slips through
+without this discipline.
+
 ---
 
 ### Sub-step 2.7 round 12 — locked decisions

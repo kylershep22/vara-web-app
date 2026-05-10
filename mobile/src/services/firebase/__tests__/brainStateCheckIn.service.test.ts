@@ -376,6 +376,20 @@ function standardCompleteTerminal(): TerminalFlowState {
   } as TerminalFlowState;
 }
 
+function standardAbandonedTerminal(): TerminalFlowState {
+  return {
+    step: 'abandoned',
+    entrySource: 'standard',
+    stateBefore: 'wired',
+    timeWindow: 2,
+    protocol: STANDARD_PROTOCOL,
+    sessionStartedAt: 1_000_000,
+    sessionEndedAt: 1_060_000,
+    durationActualSeconds: 60,
+    // AbandonedStep type omits stateAfter — re-check never ran.
+  } as TerminalFlowState;
+}
+
 describe('writeStandardFlowSession — overwhelm-branching (round 14 sensory reset cancel fix)', () => {
   it('overwhelm cancel: skips legacy doc write entirely (preserves any prior brainStateCheckIns doc)', async () => {
     // No mock for getDoc means saveBrainStateCheckIn would crash if
@@ -486,5 +500,118 @@ describe('writeStandardFlowSession — overwhelm-branching (round 14 sensory res
         (call[1] as { firstShiftAt?: unknown }).firstShiftAt !== undefined
     );
     expect(firstShiftWrite).toBeDefined();
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// writeStandardFlowSession — Round 15 contract-locking tests for
+// stateBefore-vs-stateAfter selection.
+//
+// Pre-round-15, writeStandardFlowSession passed terminal.stateBefore
+// to writeBrainStateCheckInDoc — for both abandoned and flow_complete
+// terminals. The legacy doc held the user's PRE-protocol state even
+// after a successful re-check, so the dashboard summary card showed
+// the start state instead of the post-protocol state.
+//
+// Round 15 fix: pass terminal.stateAfter for flow_complete (the
+// captured re-check value), terminal.stateBefore for abandoned (the
+// only state available; re-check never ran).
+//
+// These tests assert the exact value selection — the contract that
+// was missing in the round-14 split tests (those asserted the write
+// fired but not WHICH state value, allowing the bug to persist
+// through a green test suite). Per the round-15 META process note:
+// value assertions in write helpers must check semantic correctness,
+// not just that some value was passed.
+// ────────────────────────────────────────────────────────────
+describe('writeStandardFlowSession — round 15 stateBefore-vs-stateAfter contract', () => {
+  it('flow_complete: writes terminal.stateAfter to legacy doc (NOT stateBefore)', async () => {
+    // standardCompleteTerminal() returns stateBefore='wired',
+    // stateAfter='steady'. Pre-round-15 the legacy doc would receive
+    // 'wired'; under the fix it receives 'steady'.
+    mockGetDoc
+      .mockResolvedValueOnce({ exists: () => false, data: () => null }) // legacy doc
+      .mockResolvedValueOnce({ exists: () => true, data: () => ({}) }); // user profile
+
+    await writeStandardFlowSession(
+      TEST_USER_ID,
+      standardCompleteTerminal(),
+      'default'
+    );
+
+    // Find the legacy-collection setDoc call (carries protocolId).
+    const legacyWrite = mockSetDoc.mock.calls.find(
+      (call) => (call[1] as { protocolId?: string }).protocolId !== undefined
+    );
+    expect(legacyWrite).toBeDefined();
+    // The legacy doc's brainState field MUST be 'steady'
+    // (post-re-check), NOT 'wired' (pre-protocol). serializeBrainState
+    // is identity for canonical states ('steady' → 'steady').
+    expect(
+      (legacyWrite![1] as { brainState: string }).brainState
+    ).toBe('steady');
+    expect(
+      (legacyWrite![1] as { brainState: string }).brainState
+    ).not.toBe('wired');
+  });
+
+  it('abandoned: writes terminal.stateBefore to legacy doc (only state available — re-check never ran)', async () => {
+    // standardAbandonedTerminal() returns stateBefore='wired' and
+    // omits stateAfter (AbandonedStep type doesn't include it). The
+    // step-based conditional must select stateBefore for this
+    // variant. Note this isn't a "fix" of the abandoned path — it's
+    // a regression guard against future changes that try to access
+    // a stateAfter on the abandoned variant.
+    mockGetDoc.mockResolvedValueOnce({ exists: () => false, data: () => null });
+
+    await writeStandardFlowSession(
+      TEST_USER_ID,
+      standardAbandonedTerminal(),
+      'default'
+    );
+
+    const legacyWrite = mockSetDoc.mock.calls.find(
+      (call) => (call[1] as { protocolId?: string }).protocolId !== undefined
+    );
+    expect(legacyWrite).toBeDefined();
+    expect(
+      (legacyWrite![1] as { brainState: string }).brainState
+    ).toBe('wired');
+  });
+
+  it('flow_complete with downward shift: writes the downward state (stateAfter), even when worse than stateBefore', async () => {
+    // Defensive — confirms the fix doesn't accidentally favor a
+    // "better" state. Steady → Wired (worse re-check) → legacy
+    // doc holds 'wired' because that's what the user just attested
+    // to, not 'steady' (the pre-protocol state). The dashboard
+    // should reflect the user's current state honestly.
+    mockGetDoc
+      .mockResolvedValueOnce({ exists: () => false, data: () => null })
+      .mockResolvedValueOnce({ exists: () => true, data: () => ({}) });
+
+    const downwardTerminal: TerminalFlowState = {
+      step: 'flow_complete',
+      entrySource: 'standard',
+      stateBefore: 'steady',
+      timeWindow: 5,
+      protocol: STANDARD_PROTOCOL,
+      sessionStartedAt: 1_000_000,
+      sessionEndedAt: 1_300_000,
+      durationActualSeconds: 300,
+      playerExitReason: 'completed',
+      stateAfter: 'wired',
+      outcome: 'not_shifted',
+      userChosenNextStep: 'rest_later',
+    } as TerminalFlowState;
+
+    await writeStandardFlowSession(TEST_USER_ID, downwardTerminal, 'default');
+
+    const legacyWrite = mockSetDoc.mock.calls.find(
+      (call) => (call[1] as { protocolId?: string }).protocolId !== undefined
+    );
+    expect(legacyWrite).toBeDefined();
+    expect(
+      (legacyWrite![1] as { brainState: string }).brainState
+    ).toBe('wired'); // stateAfter, even though it's "worse"
   });
 });

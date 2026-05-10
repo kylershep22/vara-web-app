@@ -156,11 +156,24 @@ export function BrowseRunFlow({
           // ctx.state), so both writes fire — overwhelm-style
           // skipping doesn't apply here (overwhelm enters via
           // CheckInFlow, never BrowseRunFlow).
+          //
+          // Round 15 (dashboard summary card stateBefore-vs-
+          // stateAfter fix): same step-based conditional applied
+          // here as in writeStandardFlowSession. For flow_complete,
+          // pass state.stateAfter (the user's post-protocol
+          // attestation captured by BrowseRunFlow's own re_check).
+          // For abandoned, fall back to ctx.state (the only
+          // attestation available — re-check never ran in a
+          // BrowseRunFlow session that abandoned, and the original
+          // CheckInFlow context's state is the most recent
+          // attestation we have for the user).
+          const stateForLegacyDoc =
+            state.step === 'flow_complete' ? state.stateAfter : ctx.state;
           writes.push(
             (async () => {
               await writeBrainStateCheckInDoc(
                 userId,
-                ctx.state,
+                stateForLegacyDoc,
                 state.step === 'flow_complete',
                 // Round 8 (Bug F fix): pass the actually-completed
                 // protocol's id so the legacy doc reflects what the

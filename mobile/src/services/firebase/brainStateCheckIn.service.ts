@@ -335,6 +335,13 @@ async function setFirstShiftAtIfNeeded(
  * gating conditions on what was previously one orchestration step,
  * so we split into two named helpers.
  *
+ * Round 15 parameter rename: was `stateBefore`, now `state`. The
+ * helper writes whatever brain-state value the caller passes; it is
+ * NOT specifically the pre-protocol state. Round 15's bug fix made
+ * callers pass the most-recent attestation (stateAfter for completed
+ * sessions, stateBefore for abandoned), so the parameter name needed
+ * to stop encoding the pre-protocol assumption.
+ *
  * Error handling: write errors are caught and logged but NOT
  * surfaced. The legacy doc is for v1 dashboard reads only; failure
  * must not strand the user post-completion. The protocolSessions
@@ -347,7 +354,7 @@ async function setFirstShiftAtIfNeeded(
  */
 export async function writeBrainStateCheckInDoc(
   userId: string,
-  stateBefore: BrainState,
+  state: BrainState,
   isFlowComplete: boolean,
   // Round 8 (Bug F fix): the actually-completed protocol's id.
   // Forwarded to saveBrainStateCheckIn so the legacy doc's
@@ -366,7 +373,7 @@ export async function writeBrainStateCheckInDoc(
   }
 
   try {
-    await saveBrainStateCheckIn(userId, stateBefore, protocolId);
+    await saveBrainStateCheckIn(userId, state, protocolId);
     if (isFlowComplete) {
       // Only naturally-completed sessions mark the legacy
       // protocolCompleted flag. Abandoned sessions update the
@@ -490,9 +497,32 @@ export async function writeStandardFlowSession(
   // stateBefore — the longer-term direction that makes this
   // special-case branch deletable).
   if (terminal.entrySource !== 'overwhelm_safety_card') {
+    // Round 15 (dashboard summary card stateBefore-vs-stateAfter fix):
+    // the legacy doc represents the user's CURRENT state for today —
+    // what the dashboard summary card and the AI prompt both render
+    // as "the user's brain state right now." Pre-fix, this helper
+    // received terminal.stateBefore, so the doc held the user's
+    // pre-protocol state even after a successful re-check. Dashboard
+    // showed the start state instead of the post-protocol state.
+    //
+    // Fix: pass the user's most-recent attestation. For
+    // flow_complete, that's stateAfter (captured at re-check). For
+    // abandoned, only stateBefore is available (re-check never ran).
+    //
+    // Why step-based conditional (not `terminal.stateAfter ??
+    // terminal.stateBefore`): the AbandonedStep type omits stateAfter
+    // entirely (types.ts:190-204 — "stateAfter is unset because we
+    // never asked"). Accessing terminal.stateAfter without
+    // discriminant narrowing fails strict-mode TS because the
+    // property is absent from one variant of the union. The
+    // step-based form gets clean narrowing for free.
+    const stateForLegacyDoc =
+      terminal.step === 'flow_complete'
+        ? terminal.stateAfter
+        : terminal.stateBefore;
     await writeBrainStateCheckInDoc(
       userId,
-      terminal.stateBefore,
+      stateForLegacyDoc,
       terminal.step === 'flow_complete',
       terminal.protocol.id,
       { dryRun: options.dryRun }

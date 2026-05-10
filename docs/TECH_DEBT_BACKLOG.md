@@ -5,6 +5,99 @@ Phase 6 polish sweep is the working list.
 
 ---
 
+## Analytics semantics for `brainState` consumers (round 15 audit)
+
+`useWeeklyCorrelations` (`mobile/src/hooks/useWeeklyCorrelations.ts:85-201`)
+and `useBrainStateWeekTrend` (`mobile/src/hooks/useBrainStateWeekTrend.ts`)
+read each day's `brainStateCheckIns/{uid}_{date}.brainState` field as
+the day's "brain state" for analytics. After round 15's fix
+(`writeStandardFlowSession` now writes the user's most-recent
+attestation: stateAfter for V2-completed days, stateBefore for V1
+or abandoned days), these consumers see mixed semantics across days:
+
+- V2-completed days: post-protocol attestation (the round-15 contract).
+- V2-abandoned days: pre-protocol attestation (only state available).
+- V1 days: pre-protocol attestation (chip pick).
+
+**Why this is debt:** the analytic intent is ambiguous. Two valid
+interpretations:
+
+1. **Most-current-state (the round-15 fix delivers this).** Per-day
+   "brain state" = what state the user was ultimately in that day.
+   Post-protocol attestations reflect the user's interventions.
+   Aligns with dashboard intent. Aligns with Vara's brand premise
+   that protocols change state.
+
+2. **Pre-protocol baseline.** Per-day "brain state" = what state
+   the user arrived in. Useful for detecting environmental triggers
+   (sleep quality, day-of-week patterns, time-of-day effects)
+   independent of interventions.
+
+**Direction:** if a future analytic use case requires pre-protocol
+baseline, that should be served by a richer schema — multiple
+attestations per day with timestamps — not by reviving an
+`initialBrainState` field on `brainStateCheckIns`. The single-
+brainState-per-day shape conflates concerns; multiple-attestation
+data is the principled fix.
+
+**Phase 5+** alongside Patterns migration off the legacy
+collection. Phase 5's recommender and analytics work has the right
+scope to pick the data shape; round 15's fix preserves the
+dashboard-correct semantics until then.
+
+**Acceptance:** decide whether useWeeklyCorrelations +
+useBrainStateWeekTrend should keep reading `brainState` (most-recent
+attestation, current behavior post-round-15) or migrate to a
+separate per-attestation history shape. If migration: the legacy
+`brainStateCheckIns` collection retires alongside Patterns moving
+to read from `protocolSessions` directly (see "useDashboard.ts:
+brainStateCheckIn read pattern is one-shot, not a real-time
+listener" entry below for the related dashboard-side migration).
+
+---
+
+## `saveBrainStateCheckIn` V1-era stateChanged → protocolCompleted reset (round 15 audit)
+
+`saveBrainStateCheckIn` at `mobile/src/services/firebase/brainStateCheckIn.service.ts:152-159`
+resets `protocolCompleted: false` whenever the incoming `brainState`
+differs from the doc's existing `brainState` value. The logic was
+designed for V1: user manually changes their state on the chip
+picker → reset protocolCompleted because the prior protocol no
+longer applies to the new state.
+
+**In V2 with re-check, brainState change is the EXPECTED outcome
+of running a protocol** — the user's pre-protocol state (Wired)
+becomes their post-protocol state (Steady). Round 15's fix made
+the legacy doc's `brainState` reflect the post-re-check value,
+which means `saveBrainStateCheckIn` now sees stateChanged=true on
+every successful flow_complete write. The reset to `false` is
+incorrect for this case — but it's currently masked because
+`writeBrainStateCheckInDoc` calls `markProtocolCompleted`
+immediately after `saveBrainStateCheckIn`, re-setting
+`protocolCompleted: true`.
+
+**Net result:** correct end state. `protocolCompleted` is true
+after both calls.
+
+**Brief race window:** if a dashboard read fires between
+`saveBrainStateCheckIn`'s `updateDoc` and
+`markProtocolCompleted`'s `updateDoc`, the dashboard sees
+`protocolCompleted: false`. Microseconds; not user-observable in
+practice. Acceptable.
+
+**Why this is debt anyway:** the V1-era logic doesn't match V2
+semantics. The reset is dead-code-via-immediate-overwrite, which
+is a bad pattern — a future refactor could split the helpers in a
+way that breaks the immediate overwrite, exposing the latent bug.
+
+**Direction:** address in Phase 5+ legacy-collection retirement.
+When `brainStateCheckIns` retires (dashboard reads from
+`protocolSessions` directly), the stateChanged logic deletes
+naturally. Until then, the immediate-overwrite masking is the
+acceptable bridge.
+
+---
+
 ## Overwhelm path: replace hardcoded `stateBefore: 'wired'` with post-protocol re-check capture
 
 **Where:** `mobile/src/components/checkin/flow/reducer.ts:76-84` —
