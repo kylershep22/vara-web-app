@@ -1490,6 +1490,53 @@ should be treated as suspect during code review. The brainState =
 stateBefore bug is the canonical example of what slips through
 without this discipline.
 
+### New write paths require end-to-end verification, not just call-site tests
+
+Any new collection or new write path requires explicit
+end-to-end verification that writes actually land in the target
+store before being considered shipped. Code-level tests confirm
+the write CALL fires; they do not confirm the destination accepted
+it. The `protocolSessions` rules-not-deployed condition silently
+no-op'd writes for ~33 days while the legacy `brainStateCheckIns`
+collection continued working, masking the failure entirely at the
+UX layer — the user saw no breakage because the dashboard's
+legacy reads still resolved, but Patterns would have rendered
+empty had a consumer been wired up to read `protocolSessions`
+during that window.
+
+**Verification gate for future write paths:**
+
+(a) **Code test confirms the write call fires.** Standard unit /
+    integration coverage — assert that the helper invokes the SDK
+    method with the expected arguments. Necessary but insufficient.
+
+(b) **Device run confirms a doc actually appears in Firebase
+    console with the expected fields.** Founder (or whoever owns
+    the verification gate) opens the Firestore console after a
+    live device run and inspects the new doc. Confirms (i) the
+    write reached Firestore, (ii) security rules permitted it,
+    (iii) the payload shape matches the writer's contract. This
+    is the step that catches rules-not-deployed and field-name
+    drift.
+
+(c) **Consumer code path is exercised against the real written
+    data.** A real read of the real doc renders the real UI
+    surface. Confirms the consumer's read assumptions match the
+    writer's actual output. Catches schema-mismatch class bugs
+    that (a) and (b) miss because they only validate the writer.
+
+**All three before declaring a write path complete.** A green
+test suite + a clean device smoke pass that doesn't open
+Firestore console is not enough — that's exactly the shape that
+let `protocolSessions` rules-not-deployed persist through
+Phase 2's entire device-verification cycle.
+
+**Application to Phase 2.8+ work:** any new Firestore collection,
+any new field on an existing collection, any new write path
+should explicitly call out (b) and (c) in its sub-step exit
+checklist. The code work isn't done until the data is verifiably
+landing where consumers expect it.
+
 ---
 
 ### Sub-step 2.7 round 12 — locked decisions
