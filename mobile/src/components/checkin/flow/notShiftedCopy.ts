@@ -16,6 +16,12 @@ import type { IntentPath } from '../../../types/models';
 export interface NotShiftedCopy {
   title: string;
   body: string;
+  // Phase 2.8.2 — Section 5 Highlight Card. Dew Sage background with
+  // teal left accent; validates the user's just-completed protocol
+  // before offering paths forward.
+  highlightText: string;
+  // Phase 2.8.2 — section label above the two path cards.
+  keepGoingLabel: string;
   tryLongerLabel: string;
   tryLongerHint: string;
   restLaterLabel: string;
@@ -43,11 +49,14 @@ export type NotShiftedCopyTable = Partial<Record<IntentPath, NotShiftedCopy>> & 
 // time-window, so generalized to "A short protocol."
 const DEFAULT: NotShiftedCopy = {
   title: 'Some states take more time.',
-  body: "That's normal. Nothing's wrong. A short protocol can't reach everything. Some moments need more than a reset.",
+  body: "A short protocol can't reach everything. That's normal — not a sign anything's wrong.",
+  highlightText:
+    "What you just did still counts. Your nervous system noticed the input, even if the shift didn't land yet.",
+  keepGoingLabel: "If you'd like to keep going",
   tryLongerLabel: 'Try something longer',
-  tryLongerHint: 'When you have 10+ minutes',
+  tryLongerHint: '10+ minute protocol — for states that need more time',
   restLaterLabel: 'Rest and come back later',
-  restLaterHint: 'The next check-in will still be here',
+  restLaterHint: 'Your next check-in will still be here',
   lateNightTryLongerLabel: "Try NSDR when you're ready",
   lateNightTryLongerHint: 'About 20 minutes of guided rest',
 };

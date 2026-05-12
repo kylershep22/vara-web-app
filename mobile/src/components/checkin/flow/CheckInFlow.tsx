@@ -424,6 +424,7 @@ function renderStep(
           stateBefore={state.stateBefore}
           stateAfter={state.stateAfter}
           outcome={state.outcome}
+          protocol={state.protocol}
           durationActualSeconds={state.durationActualSeconds}
           // entrySource threaded for Phase 5's Overwhelm not-shifted
           // copy variant. Unused in 2.6.

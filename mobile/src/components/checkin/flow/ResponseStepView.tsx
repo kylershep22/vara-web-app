@@ -22,9 +22,10 @@
 
 import React from 'react';
 
-import type { BrainState, IntentPath } from '../../../types/models';
+import type { BrainState, IntentPath, Protocol } from '../../../types/models';
 import type { ClassifierOutcome } from '../../../services/outcomeClassifier';
 import { getLateNightNSDRSwap } from '../../../services/lateNightNSDRSwap';
+import { formatProtocolDuration } from '../../../utils/protocolDisplay';
 import type { FlowEntrySource, UserChosenNextStep } from './types';
 import { ShiftedResponse } from './ShiftedResponse';
 import { NotShiftedResponse } from './NotShiftedResponse';
@@ -33,6 +34,11 @@ export interface ResponseStepViewProps {
   stateBefore: BrainState;
   stateAfter: BrainState;
   outcome: ClassifierOutcome;
+  // The protocol the user just completed. Used by NotShiftedResponse
+  // (Phase 2.8.2) to render the "Box Breathing · 2 min" pill at the
+  // top of Section 5. ShiftedResponse currently does not consume it,
+  // but threading the prop here makes both branches symmetric.
+  protocol: Protocol;
   durationActualSeconds: number;
   // Optional — Phase 3 wires the user's resolved intent path into
   // the flow. Until then, defaults to 'default' (the only path 2.3
@@ -50,6 +56,7 @@ export function ResponseStepView({
   stateBefore,
   stateAfter,
   outcome,
+  protocol,
   durationActualSeconds,
   intentPath = 'default',
   entrySource,
@@ -80,6 +87,8 @@ export function ResponseStepView({
 
   return (
     <NotShiftedResponse
+      protocolName={protocol.name}
+      protocolDurationLabel={formatProtocolDuration(protocol)}
       intentPath={intentPath}
       entrySource={entrySource}
       lateNightOverride={lateNightOverride}
