@@ -2031,6 +2031,159 @@ investigation arc revealed was missing.
 
 ---
 
+## Sub-step 2.8.1 — FAB visibility rule (Phase 2.8 entry)
+
+Phase 2.8 is the UI launch-blocker batch on top of merged-2.7
+(PR #14, merge commit `fd429d5`). Sub-step 2.8.1 centralizes the
+global AI-Assistant FAB's visibility rule. Audit pre-implementation
+found the existing rule was `activeTab !== 'Community'` — a
+tab-level default-to-show that let nested screens (CheckInFlow,
+PracticeRun, NotShiftedResponse, ReCheckStepView, GuidedSessionPlayer)
+silently inherit FAB visibility on top of their own CTAs.
+
+### Pattern
+
+Per-screen `<Stack.Screen options={{ ..., showFAB: true }}>`
+(or `<BottomTabs.Screen options={{ ..., showFAB: true }}>`).
+A new `FABHost` component, mounted once alongside the App stack
+inside `NavigationContainer`, reads
+`navigationRef.getCurrentOptions().showFAB` and re-renders on
+`'state'` and `'options'` events.
+
+`@react-navigation/native-stack` and `@react-navigation/bottom-tabs`
+export their option types as `type` aliases, not interfaces, so
+`declare module` augmentation can't merge a new field in. Instead,
+`mobile/src/navigation/types.ts` exports `stackOpts` and `tabOpts`
+helpers that take `Options & { showFAB?: boolean }` and return
+`Options`. Existing AppNavigator screens wrap their options through
+these — the runtime object still carries `showFAB` to the descriptor,
+and `getCurrentOptions()` returns it.
+
+For subflows inside a destination (e.g., the focused brain-state
+check-in inside Dashboard), the screen calls
+`navigation.setOptions({ showFAB: false } as any)` based on
+internal state. `useEffect` deps drive the toggle; the override
+sticks for the screen's lifetime in the tab stack.
+
+### META — default direction for cross-cutting visibility rules
+
+> **New screens must declare FAB visibility (and any future
+> cross-cutting overlay's visibility) explicitly via
+> `<Stack.Screen options={{ showFAB: true }}>` on the navigator.
+> Default is HIDE. Destinations opt in. Guided/single-focus
+> screens stay silent and inherit the safe default. Reference
+> Phase 2.8.1.**
+
+**Why:** the original `activeTab !== 'Community'` rule was a
+default-to-show pattern at the tab-evaluation level. The fix is
+not just to change the evaluation level — it's to invert the
+default direction. A missing destination declaration produces a
+missing FAB on a destination screen: noisy, easy to spot, easy to
+fix. A missing guided-sequence declaration in a default-to-show
+pattern produces the exact bug class this rule eliminates: CTAs
+overlapping with the FAB on a focused single-action screen.
+
+Generalizes beyond FABs: feature-flagged UI defaults off; debug
+overlays default off; AI suggestions suppressed during focused
+entry flows by default; notification badges suppressed during
+immersive sessions by default. When you add a new cross-cutting
+visibility rule, pick the default whose forgotten-declaration
+outcome is noisy and harmless, not silent and harmful.
+
+### Tests
+
+`mobile/src/navigation/__tests__/FABHost.test.tsx` covers seven
+representative cases:
+
+1. Default HIDE — screen with no `showFAB` declaration → no FAB.
+2. Explicit show — `showFAB: true` → FAB.
+3. Explicit hide — `showFAB: false` → no FAB.
+4. Navigation transition — destination → guided-sequence screen
+   correctly toggles FAB off.
+5. Nested navigator — leaf route's option wins through a
+   parent → child stack composition.
+6. Nested navigator default — leaf with no declaration → no FAB.
+7. Subflow override + revert-on-unmount — Dashboard with
+   `showFAB: true` declared, a focused `useFocusEffect +
+   setOptions({ showFAB: false })` subflow component mounts →
+   FAB hidden; subflow unmounts → cleanup fires
+   `setOptions({ showFAB: true })` → FAB visible again.
+
+Test 7 is the load-bearing one: it catches the bug class where
+`setOptions` doesn't propagate or revert correctly, which is the
+mechanism Dashboard's pre-checkin subflow relies on.
+
+### Destination audit (commit deliverable)
+
+The bug we're solving is forgetting a destination → silently no
+FAB on a screen where it should appear. This list is the
+spot-check.
+
+**Bucket 1 — Destinations with explicit `showFAB: true`:**
+
+`BottomTabs` (tabs are destinations):
+- `Home` → `BottomTabs.Screen` at `AppNavigator.tsx`
+- `Rhythms`
+- `Community`
+- `Wellness`
+
+`CommunityStack`:
+- `CommunityMain`, `Groups`, `GroupDetail`, `Challenges`,
+  `ChallengeDetail`, `People`, `Conversations`, `Chat`,
+  `UserProfile`.
+
+`DiscoverStack`:
+- `DiscoverMain`, `Breathwork`, `BreathworkDetail`, `Sleep`,
+  `SleepDetail`, `Movement`, `MovementDetail`, `Masterclass`,
+  `MasterclassDetail`, `PodcastEpisode`.
+
+`ProfileStack`:
+- `ProfileMain`, `Settings`, `NotificationSettings`,
+  `MutedAccounts`.
+
+`AppStack` root (destinations reachable from Wellness menu and
+elsewhere):
+- `Insights`, `FocusTimer`, `Journal`, `Breathwork`,
+  `BreathworkDetail`, `Sleep`, `SleepDetail`, `Movement`,
+  `MovementDetail`, `Masterclass`, `MasterclassDetail`,
+  `PodcastEpisode`, `HelpSupport`, `WearableIntegration`,
+  `HabitDetail`, `Practices`.
+
+**Bucket 2 — Guided-sequence / single-focus screens with no
+declaration (default HIDE applies):**
+
+`AppStack`:
+- `CheckInFlow` — multi-step daily check-in entry flow.
+- `PracticeRun` — single-protocol player.
+- `NotificationOptIn` — single-focus modal.
+- Dev screens (`DevBreathPacer`, `DevAudioLoader`,
+  `DevGuidedSessionPlayer`, `DevCheckInFlow`) — not user-facing
+  in release builds (`__DEV__`-gated).
+
+`OnboardingStack`, `PaywallStack`, `AuthStack`,
+`VerificationNavigator`:
+- All screens silent. These navigators render OUTSIDE
+  `MainNavigator`, so `FABHost` is not mounted alongside them at
+  all — defense-in-depth, the default-HIDE rule still applies if
+  they ever get reorganized.
+
+`CommunityStack`:
+- `ReportReason`, `ReportDetail`, `ReportConfirmation` — short
+  single-focus action flow for reporting abuse.
+
+**Bucket 3 — Subflows handled via internal `setOptions` (parent
+declares true, override flips false during the subflow):**
+
+- `DashboardScreen.tsx` — parent route `Home` declares
+  `showFAB: true`. A `useEffect` on `dashboardPhase` calls
+  `navigation.setOptions({ showFAB: dashboardPhase ===
+  'checked-in' } as any)`. During `'pre-checkin'`, the focused
+  brain-state check-in entry flow runs and the FAB hides.
+  When the user completes (or skips) the check-in and
+  `dashboardPhase` flips to `'checked-in'`, the FAB returns.
+
+---
+
 ## Phase 3
 
 ### Phase 3 entry checklist — skeleton

@@ -189,6 +189,19 @@ const DashboardScreen: React.FC = () => {
     );
   }, [dashboardPhase]);
 
+  // Phase 2.8.1 — hide the global FAB during the focused brain-state
+  // check-in entry flow (dashboardPhase === 'pre-checkin'). When the
+  // user completes (or skips) the check-in and the phase transitions
+  // to 'checked-in', the FAB returns. Dashboard's Stack.Screen
+  // declares showFAB: true; this override applies for the screen's
+  // lifetime in the tab stack. Cast bypasses the excess-property
+  // check on the navigator's options type (see navigation/types.ts).
+  useEffect(() => {
+    navigation.setOptions(
+      { showFAB: dashboardPhase === 'checked-in' } as any
+    );
+  }, [navigation, dashboardPhase]);
+
   const cardWrapperStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
   }));

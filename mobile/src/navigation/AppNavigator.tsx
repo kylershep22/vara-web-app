@@ -11,7 +11,8 @@ import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { Colors } from '../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { AIAssistantFAB } from '../components/ai/AIAssistantFAB';
+import { stackOpts, tabOpts } from './types';
+import { FABHost } from './FABHost';
 import { OfflineIndicator } from '../components/shared/OfflineIndicator';
 import { useHabits } from '../hooks/useHabits';
 import { useSubscription } from '../hooks/useSubscription';
@@ -210,65 +211,74 @@ const CommunityNavigator = () => {
       <CommunityStack.Screen
         name="CommunityMain"
         component={CommunityScreen}
-        options={{
+        options={stackOpts({
           headerShown: false, // Community has custom header
-        }}
+          showFAB: true,
+        })}
       />
       <CommunityStack.Screen
         name="Groups"
         component={GroupsScreen}
-        options={{
+        options={stackOpts({
           headerShown: false, // GroupsScreen has custom header
-        }}
+          showFAB: true,
+        })}
       />
       <CommunityStack.Screen
         name="GroupDetail"
         component={GroupDetailScreen}
-        options={{
+        options={stackOpts({
           headerShown: false, // GroupDetailScreen has custom header
-        }}
+          showFAB: true,
+        })}
       />
       <CommunityStack.Screen
         name="Challenges"
         component={ChallengesScreen}
-        options={{
+        options={stackOpts({
           headerShown: false, // ChallengesScreen has custom header
-        }}
+          showFAB: true,
+        })}
       />
       <CommunityStack.Screen
         name="ChallengeDetail"
         component={ChallengeDetailScreen}
-        options={{
+        options={stackOpts({
           headerShown: false, // ChallengeDetailScreen has custom header
-        }}
+          showFAB: true,
+        })}
       />
       <CommunityStack.Screen
         name="People"
         component={PeopleScreen}
-        options={{
+        options={stackOpts({
           headerShown: false, // PeopleScreen has custom header
-        }}
+          showFAB: true,
+        })}
       />
       <CommunityStack.Screen
         name="Conversations"
         component={ConversationsScreen}
-        options={{
+        options={stackOpts({
           headerShown: false, // MessagesScreen has custom header
-        }}
+          showFAB: true,
+        })}
       />
       <CommunityStack.Screen
         name="Chat"
         component={ChatScreen}
-        options={{
+        options={stackOpts({
           headerShown: true,
-        }}
+          showFAB: true,
+        })}
       />
       <CommunityStack.Screen
         name="UserProfile"
         component={UserProfileScreen}
-        options={{
+        options={stackOpts({
           headerShown: false, // UserProfileScreen has custom header
-        }}
+          showFAB: true,
+        })}
       />
       <CommunityStack.Screen
         name="ReportReason"
@@ -305,58 +315,60 @@ const DiscoverNavigator = () => {
       <DiscoverStack.Screen
         name="DiscoverMain"
         component={DiscoverScreen}
-        options={{
+        options={stackOpts({
           headerShown: false, // Custom header in component
-        }}
+          showFAB: true,
+        })}
       />
       <DiscoverStack.Screen
         name="Breathwork"
         component={BreathworkScreen}
-        options={{ title: 'Breathwork' }}
+        options={stackOpts({ title: 'Breathwork', showFAB: true })}
       />
       <DiscoverStack.Screen
         name="BreathworkDetail"
         component={BreathworkDetailScreen}
-        options={{ title: 'Session Details' }}
+        options={stackOpts({ title: 'Session Details', showFAB: true })}
       />
       <DiscoverStack.Screen
         name="Sleep"
         component={SleepScreen}
-        options={{ title: 'Sleep Library' }}
+        options={stackOpts({ title: 'Sleep Library', showFAB: true })}
       />
       <DiscoverStack.Screen
         name="SleepDetail"
         component={SleepDetailScreen}
-        options={{ title: 'Sleep Content' }}
+        options={stackOpts({ title: 'Sleep Content', showFAB: true })}
       />
       <DiscoverStack.Screen
         name="Movement"
         component={MovementScreen}
-        options={{ title: 'Movement Library' }}
+        options={stackOpts({ title: 'Movement Library', showFAB: true })}
       />
       <DiscoverStack.Screen
         name="MovementDetail"
         component={MovementDetailScreen}
-        options={{ title: 'Workout Details' }}
+        options={stackOpts({ title: 'Workout Details', showFAB: true })}
       />
       <DiscoverStack.Screen
         name="Masterclass"
         component={MasterclassScreen}
-        options={{ title: 'Masterclasses' }}
+        options={stackOpts({ title: 'Masterclasses', showFAB: true })}
       />
       <DiscoverStack.Screen
         name="MasterclassDetail"
         component={MasterclassDetailScreen}
-        options={{ title: 'Class Details' }}
+        options={stackOpts({ title: 'Class Details', showFAB: true })}
       />
       <DiscoverStack.Screen
         name="PodcastEpisode"
         component={PodcastEpisodeScreen}
-        options={{
+        options={stackOpts({
           ...standardHeaderOptions,
           title: 'Episode',
           headerShadowVisible: false,
-        }}
+          showFAB: true,
+        })}
       />
     </DiscoverStack.Navigator>
   );
@@ -377,38 +389,42 @@ const ProfileNavigator = () => {
       <ProfileStack.Screen
         name="ProfileMain"
         component={ProfileScreen}
-        options={{
+        options={stackOpts({
           title: 'Profile',
           ...standardHeaderOptions,
           headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
-        }}
+          showFAB: true,
+        })}
       />
       <ProfileStack.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{
+        options={stackOpts({
           title: 'Settings',
           ...standardHeaderOptions,
           headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
-        }}
+          showFAB: true,
+        })}
       />
       <ProfileStack.Screen
         name="NotificationSettings"
         component={NotificationSettingsScreen}
-        options={{
+        options={stackOpts({
           headerShown: false, // NotificationSettingsScreen has its own header
-        }}
+          showFAB: true,
+        })}
       />
       <ProfileStack.Screen
         name="MutedAccounts"
         component={MutedAccountsScreen}
-        options={{
+        options={stackOpts({
           headerShown: false,
-        }}
+          showFAB: true,
+        })}
       />
     </ProfileStack.Navigator>
   );
@@ -442,42 +458,46 @@ const BottomTabsNavigator = () => {
       <BottomTabs.Screen
         name="Home"
         component={DashboardScreen}
-        options={{
+        options={tabOpts({
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }) => (
             <Icon name="view-dashboard" size={size} color={color} />
           ),
-        }}
+          showFAB: true,
+        })}
       />
       <BottomTabs.Screen
         name="Rhythms"
         component={PlanScreen}
-        options={{
+        options={tabOpts({
           tabBarLabel: 'Rhythms',
           tabBarIcon: ({ color, size }) => (
             <Icon name="clipboard-check" size={size} color={color} />
           ),
-        }}
+          showFAB: true,
+        })}
       />
       <BottomTabs.Screen
         name="Community"
         component={CommunityNavigator}
-        options={{
+        options={tabOpts({
           tabBarLabel: 'Community',
           tabBarIcon: ({ color, size }) => (
             <Icon name="account-group" size={size} color={color} />
           ),
-        }}
+          showFAB: true,
+        })}
       />
       <BottomTabs.Screen
         name="Wellness"
         component={MoreMenuScreen}
-        options={{
+        options={tabOpts({
           tabBarLabel: 'Wellness',
           tabBarIcon: ({ color, size }) => (
             <Icon name="leaf" size={size} color={color} />
           ),
-        }}
+          showFAB: true,
+        })}
       />
     </BottomTabs.Navigator>
   );
@@ -492,14 +512,8 @@ const MainNavigator = () => {
   // Provide safe defaults if data isn't available yet
   const habitsData = useHabits();
 
-  // Track current active tab to conditionally show/hide AI FAB
-  const [activeTab, setActiveTab] = React.useState<string>('Home');
-
   // Safely extract data with fallbacks
   const habits = habitsData?.habits || [];
-
-  // Hide AI FAB on Community tab (community screens have their own action buttons)
-  const showAIFab = activeTab !== 'Community';
 
   return (
     <>
@@ -507,23 +521,6 @@ const MainNavigator = () => {
       <AppStack.Navigator
         screenOptions={{
           headerShown: false,
-        }}
-        screenListeners={{
-          state: (e) => {
-            // Track active bottom tab for FAB visibility
-            const routes = e.data.state?.routes;
-            if (routes && routes.length > 0) {
-              const topRoute = routes[routes.length - 1];
-              // If on Main (BottomTabs), check which tab is active
-              if (topRoute.name === 'Main' && topRoute.state) {
-                const tabRoutes = topRoute.state.routes;
-                const tabIndex = topRoute.state.index ?? 0;
-                if (tabRoutes && tabRoutes[tabIndex]) {
-                  setActiveTab(tabRoutes[tabIndex].name);
-                }
-              }
-            }
-          },
         }}
       >
         <AppStack.Screen name="Main" component={BottomTabsNavigator} />
@@ -539,164 +536,178 @@ const MainNavigator = () => {
         <AppStack.Screen
           name="Insights"
           component={InsightsScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Your week',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         {/* Focus Timer - Accessible from Wellness menu */}
         <AppStack.Screen
           name="FocusTimer"
           component={FocusScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Focus',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         {/* Journal - Accessible from Wellness menu */}
         <AppStack.Screen
           name="Journal"
           component={JournalScreen}
-          options={{
+          options={stackOpts({
             animation: 'slide_from_right',
             headerShown: false,
-          }}
+            showFAB: true,
+          })}
         />
         {/* Breathwork - Accessible from Wellness menu */}
         <AppStack.Screen
           name="Breathwork"
           component={BreathworkScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Breathwork',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         <AppStack.Screen
           name="BreathworkDetail"
           component={BreathworkDetailScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Session Details',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         {/* Sleep - Accessible from Wellness menu */}
         <AppStack.Screen
           name="Sleep"
           component={SleepScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Sleep Library',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         <AppStack.Screen
           name="SleepDetail"
           component={SleepDetailScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Sleep Content',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         {/* Movement - Accessible from Wellness menu */}
         <AppStack.Screen
           name="Movement"
           component={MovementScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Movement Library',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         <AppStack.Screen
           name="MovementDetail"
           component={MovementDetailScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Workout Details',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         {/* Masterclass - Accessible from Wellness menu */}
         <AppStack.Screen
           name="Masterclass"
           component={MasterclassScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Masterclasses',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         <AppStack.Screen
           name="MasterclassDetail"
           component={MasterclassDetailScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Class Details',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         <AppStack.Screen
           name="PodcastEpisode"
           component={PodcastEpisodeScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Episode',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         {/* Help & Support - Accessible from Wellness menu */}
         <AppStack.Screen
           name="HelpSupport"
           component={HelpSupportScreen}
-          options={{
+          options={stackOpts({
             animation: 'slide_from_right',
             headerShown: false,
-          }}
+            showFAB: true,
+          })}
         />
         {/* Connected Apps */}
         <AppStack.Screen
           name="WearableIntegration"
           component={WearableIntegrationScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Connected Apps',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         {/* Habit Detail - Accessible from Plan/Track screen */}
         <AppStack.Screen
           name="HabitDetail"
           component={HabitDetailScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
@@ -704,7 +715,8 @@ const MainNavigator = () => {
             headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
             headerTintColor: '#fff',
             headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
-          }}
+            showFAB: true,
+          })}
         />
         {/* Profile screens accessible from anywhere */}
         <AppStack.Screen
@@ -744,13 +756,14 @@ const MainNavigator = () => {
         <AppStack.Screen
           name="Practices"
           component={PracticesIndexScreen}
-          options={{
+          options={stackOpts({
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Other options',
             headerShadowVisible: false,
-          }}
+            showFAB: true,
+          })}
         />
         <AppStack.Screen
           name="PracticeRun"
@@ -813,15 +826,15 @@ const MainNavigator = () => {
         )}
       </AppStack.Navigator>
 
-      {/* Global AI Assistant FAB - Hidden on screens with their own FAB */}
-      {showAIFab && (
-        <AIAssistantFAB
-          context={{
-            screen: 'global',
-            userHabits: habits,
-          }}
-        />
-      )}
+      {/* Phase 2.8.1 — Global FAB visibility is driven by each
+          <Stack.Screen options.showFAB> declaration. Default is HIDE.
+          Destinations explicitly opt in; guided-sequence screens stay
+          silent and inherit the safe default. See navigation/types.ts
+          and PHASE_NOTES.md. */}
+      <FABHost
+        navigationRef={navigationRef}
+        context={{ screen: 'global', userHabits: habits }}
+      />
     </>
   );
 };
