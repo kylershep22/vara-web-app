@@ -4,6 +4,7 @@ import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'fireb
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { getHabitCompletions } from '../services/firebase/habits.service';
+import { normalizeBrainState } from '../utils/brainStateNormalizer';
 import {
   computeCorrelations,
   computePeriodScore,
@@ -100,10 +101,10 @@ export function useWeeklyCorrelations(days: number = 7): {
           const habitRate = habits.get(date);
 
           const brainStateToMood: Record<string, number> = {
-            wired: 3, foggy: 2, okay: 3, clear: 4, energized: 5,
+            wired: 3, foggy: 2, steady: 3, clear: 4, alive: 5,
           };
           const brainStateToEnergy: Record<string, number> = {
-            wired: 4, foggy: 2, okay: 3, clear: 4, energized: 5,
+            wired: 4, foggy: 2, steady: 3, clear: 4, alive: 5,
           };
           const bState = brainCheck?.brainState;
 
@@ -190,7 +191,11 @@ async function fetchBrainStateCheckIns(
       const snap = await getDoc(docRef);
       if (snap.exists()) {
         const data = snap.data();
-        map.set(date, { brainState: data.brainState });
+        try {
+          map.set(date, { brainState: normalizeBrainState(data.brainState) });
+        } catch {
+          // Skip docs with missing or unrecognized brainState values
+        }
       }
     } catch {
       // Skip this date

@@ -1,12 +1,12 @@
 import { BRAIN_STATE_BRIEFS, getBrainStateBrief } from '../brainStateBriefs';
 import type { BrainState } from '../../../../types';
 
-const ALL_STATES: BrainState[] = ['wired', 'foggy', 'okay', 'clear', 'energized'];
+const ALL_STATES: BrainState[] = ['wired', 'foggy', 'steady', 'clear', 'alive'];
 
 describe('BRAIN_STATE_BRIEFS', () => {
   it('has exactly five entries covering all brain states', () => {
     const keys = Object.keys(BRAIN_STATE_BRIEFS).sort();
-    expect(keys).toEqual(['clear', 'energized', 'foggy', 'okay', 'wired']);
+    expect(keys).toEqual(['alive', 'clear', 'foggy', 'steady', 'wired']);
   });
 
   it('each state has exactly three variants', () => {

@@ -114,6 +114,49 @@ const YOUR_TOOLS_ITEMS: MenuItem[] = [
   },
 ];
 
+// Phase 1 dev harnesses — only rendered when __DEV__ is true. Soft Coral
+// icon color makes the section visually distinct from production tools.
+// Remove this array, the import, and the Section render below before
+// TestFlight/release.
+const DEV_ITEMS: MenuItem[] = [
+  {
+    id: 'dev-breath-pacer',
+    title: 'Dev: BreathPacer',
+    subtitle: 'Visual pacer + Reduce Motion fallback',
+    icon: 'flask-outline',
+    iconColor: Colors.softCoral,
+    gradientColors: [Colors.softCoral + '15', Colors.softCoral + '25'] as [string, string],
+    route: 'DevBreathPacer',
+  },
+  {
+    id: 'dev-audio-loader',
+    title: 'Dev: Audio Loader',
+    subtitle: 'NSDR prefetch + cache verification',
+    icon: 'flask-outline',
+    iconColor: Colors.softCoral,
+    gradientColors: [Colors.softCoral + '15', Colors.softCoral + '25'] as [string, string],
+    route: 'DevAudioLoader',
+  },
+  {
+    id: 'dev-guided-session-player',
+    title: 'Dev: Guided Session Player',
+    subtitle: 'Full session + force-quit recovery harness',
+    icon: 'flask-outline',
+    iconColor: Colors.softCoral,
+    gradientColors: [Colors.softCoral + '15', Colors.softCoral + '25'] as [string, string],
+    route: 'DevGuidedSessionPlayer',
+  },
+  {
+    id: 'dev-checkin-flow',
+    title: 'Dev: Check-In Flow',
+    subtitle: 'Multi-step state→time→protocol→re-check→response',
+    icon: 'flask-outline',
+    iconColor: Colors.softCoral,
+    gradientColors: [Colors.softCoral + '15', Colors.softCoral + '25'] as [string, string],
+    route: 'DevCheckInFlow',
+  },
+];
+
 const ACCOUNT_ITEMS: MenuItem[] = [
   {
     id: 'settings',
@@ -329,8 +372,13 @@ export default function MoreMenuScreen() {
     [movementContent]
   );
 
-  // Animation setup
-  const totalItems = YOUR_TOOLS_ITEMS.length + ACCOUNT_ITEMS.length + 2; // +2 for hero and insight
+  // Animation setup. Dev section is included only in development builds
+  // so the array length matches the rendered item count exactly.
+  const totalItems =
+    YOUR_TOOLS_ITEMS.length +
+    ACCOUNT_ITEMS.length +
+    2 + // hero + insight
+    (__DEV__ ? DEV_ITEMS.length : 0);
   const animations = useRef(
     Array.from({ length: totalItems }, () => new Animated.Value(0))
   ).current;
@@ -445,6 +493,17 @@ export default function MoreMenuScreen() {
           startIndex={2 + YOUR_TOOLS_ITEMS.length}
           animations={animations}
         />
+
+        {/* Dev Tools Section — visible only in development builds. */}
+        {__DEV__ && (
+          <Section
+            label="DEV TOOLS"
+            items={DEV_ITEMS}
+            onItemPress={handleItemPress}
+            startIndex={2 + YOUR_TOOLS_ITEMS.length + ACCOUNT_ITEMS.length}
+            animations={animations}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );

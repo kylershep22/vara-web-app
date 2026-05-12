@@ -16,7 +16,7 @@ describe('DashboardAnchorExpanded', () => {
   });
 
   it('renders the icon by testID', () => {
-    const { getByTestId } = render(<DashboardAnchorExpanded brainState="energized" />);
+    const { getByTestId } = render(<DashboardAnchorExpanded brainState="alive" />);
     expect(getByTestId('dashboard-anchor-expanded-icon')).toBeTruthy();
   });
 });

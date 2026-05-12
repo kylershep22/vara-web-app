@@ -79,6 +79,18 @@ service firebase.storage {
                       && isAudioType() && underAudioSizeLimit();
     }
 
+    /* -------- Protocol Audio (Phase 1) --------
+       NSDR and other guided-protocol audio used by GuidedSessionPlayer.
+       Clients may read (stream) when signed in. Only admins may upload
+       or overwrite — production audio lands via Firebase Console / CLI,
+       not from the client SDK.
+       Phase 1 launch set: protocolAudio/nsdr/*.mp3 */
+    match /protocolAudio/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin()
+                      && isAudioType() && underAudioSizeLimit();
+    }
+
     /* -------- Default deny -------- */
     match /{allPaths=**} {
       allow read, write: if false;

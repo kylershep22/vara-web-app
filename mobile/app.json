@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/iOS Icon 2 - 1024x1024.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "scheme": "vara",
     "splash": {
       "image": "./assets/Splash Icon 1 - 512x512.png",
@@ -27,7 +27,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Vara needs access to your camera to upload profile pictures and content.",
         "NSPhotoLibraryUsageDescription": "Vara needs access to your photo library to upload images.",
-        "NSPhotoLibraryAddUsageDescription": "Vara needs access to save images to your photo library."
+        "NSPhotoLibraryAddUsageDescription": "Vara needs access to save images to your photo library.",
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {

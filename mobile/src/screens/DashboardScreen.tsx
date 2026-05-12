@@ -4,7 +4,8 @@
  * Thin UI shell that delegates state/handlers to useDashboard.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, StyleSheet, RefreshControl, TouchableOpacity, Text } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -36,6 +37,8 @@ import WeekInsightCard from '../components/dashboard/WeekInsightCard';
 import RoutinesCard from '../components/dashboard/RoutinesCard';
 import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
 import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
+import { OverwhelmSafetyCard } from '../components/dashboard/OverwhelmSafetyCard';
+import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
 import NudgeCard from '../components/dashboard/NudgeCard';
@@ -49,11 +52,15 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
 import { selectWeekInsight } from '../constants/weekInsightTemplates';
 import { useAIConsent } from '../context/AIConsentContext';
+import { useAuth } from '../context/AuthContext';
+import { db } from '../config/firebase';
+import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 const DashboardScreen: React.FC = () => {
   const { requireConsent } = useAIConsent();
+  const { user } = useAuth();
   const {
     navigation,
     dataLoading,
@@ -94,9 +101,6 @@ const DashboardScreen: React.FC = () => {
     handleNotifDismiss,
     handleRefresh,
     brainStateCheckIn,
-    brainStateCheckInLoading,
-    handleBrainStateCheckIn,
-    handleMarkProtocolCompleted,
     todaysProtocol,
     showDailyReflection,
     handleDailyReflection,
@@ -125,6 +129,46 @@ const DashboardScreen: React.FC = () => {
   const weekInsight = correlations ? selectWeekInsight(correlations) : null;
 
   const [showCheckInOverAnchor, setShowCheckInOverAnchor] = useState(false);
+
+  // Round 10 (Finding 1 fix) — reset showCheckInOverAnchor whenever
+  // the dashboard regains focus. The Change-button flow sets this to
+  // true to swap DashboardAnchor → BrainStateCheckin (expanded
+  // picker), but only the user's tap sets it; nothing reset it back
+  // to false. After a successful Change → CheckInFlow → return,
+  // brainStateCheckIn was correctly refetched but showCheckInOverAnchor
+  // stayed sticky-true, leaving the expanded picker visible as if
+  // the new check-in hadn't happened.
+  //
+  // Resetting on focus honors the intent: the expanded picker is a
+  // transient mode the user enters by explicit tap. Any return to
+  // the dashboard from elsewhere — completed flow, cancelled flow,
+  // backgrounded app — implies the user is no longer in that mode.
+  // The Cancel-mid-flow path benefits too: the user lands back on
+  // the summary view of their original (still-valid) check-in.
+  useFocusEffect(
+    useCallback(() => {
+      setShowCheckInOverAnchor(false);
+    }, [])
+  );
+
+  // Sub-step 2.7 — subscribe to the user's firstShiftAt for the
+  // FirstShiftFooter render decision. Real-time so a shift completed
+  // in CheckInFlow surfaces the footer immediately on dashboard
+  // remount or focus, regardless of whether DashboardScreen unmounts
+  // during navigation. Single field, narrow scope; Phase 3 may
+  // refactor into a shared useUserProfile hook when intentPath also
+  // needs subscribing.
+  const [firstShiftAt, setFirstShiftAt] = useState<Timestamp | null>(null);
+  useEffect(() => {
+    if (!user?.uid || !db) return;
+    const userRef = doc(db, 'users', user.uid);
+    const unsubscribe = onSnapshot(userRef, (snap) => {
+      const data = snap.data();
+      const value = (data?.firstShiftAt as Timestamp | undefined) ?? null;
+      setFirstShiftAt(value);
+    });
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   const cardOpacity = useSharedValue(dashboardPhase === 'pre-checkin' ? 0.35 : 1);
   const blurIntensity = useSharedValue(dashboardPhase === 'pre-checkin' ? 15 : 0);
@@ -158,13 +202,17 @@ const DashboardScreen: React.FC = () => {
   const renderCard = (cardId: string) => {
     switch (cardId) {
       case 'protocol':
-        return brainStateCheckIn && todaysProtocol ? (
-          <TodaysProtocolCard
-            key="protocol"
-            protocol={todaysProtocol}
-            completed={brainStateCheckIn.protocolCompleted}
-            onMarkCompleted={handleMarkProtocolCompleted}
-          />
+        // Sub-step 2.7 fix (Observation 3): TodaysProtocolCard is
+        // informational-only after the V1 self-attest UI removal. The
+        // mount is guarded on protocolCompleted=true; the pre-completion
+        // case (e.g. user abandoned a CheckInFlow) hides the card
+        // rather than rendering the now-removed Begin/Done UX. Users
+        // re-engage via the chip-tap surface (BrainStateCheckin) or
+        // via Change on the DashboardAnchor's collapsed view.
+        return brainStateCheckIn &&
+          todaysProtocol &&
+          brainStateCheckIn.protocolCompleted ? (
+          <TodaysProtocolCard key="protocol" protocol={todaysProtocol} />
         ) : null;
       case 'notifOptIn':
         // Skip in pre-checkin; it's rendered above the muted wrapper in
@@ -300,11 +348,6 @@ const DashboardScreen: React.FC = () => {
               showCheckInOverAnchor ? (
                 <BrainStateCheckin
                   currentCheckIn={brainStateCheckIn}
-                  onSelect={(state) => {
-                    handleBrainStateCheckIn(state);
-                    setShowCheckInOverAnchor(false);
-                  }}
-                  loading={brainStateCheckInLoading}
                 />
               ) : (
                 <DashboardAnchor
@@ -317,14 +360,35 @@ const DashboardScreen: React.FC = () => {
               )
             )}
 
-            {/* Brain State Check-In (only visible in pre-checkin phase) */}
+            {/* Brain State Check-In (only visible in pre-checkin phase).
+                Sub-step 2.5 — chip tap navigates to CheckInFlow; the
+                save no longer happens here in the dashboard. */}
             {dashboardPhase === 'pre-checkin' && (
               <BrainStateCheckin
                 currentCheckIn={brainStateCheckIn}
-                onSelect={handleBrainStateCheckIn}
-                loading={brainStateCheckInLoading}
               />
             )}
+
+            {/* First-shift footer — sub-step 2.7. Renders the one-time
+                "Your first shift is logged in Patterns" acknowledgment
+                directly below whichever check-in card variant is
+                active in the current dashboardPhase. Anchored to the
+                action that produced the first shift, not a separate
+                "achievement" surface. Hidden when firstShiftAt is null
+                (no qualifying shift yet) or when the AsyncStorage
+                marker is set (already shown on this device). */}
+            <FirstShiftFooter
+              firstShiftAt={firstShiftAt}
+              userId={user?.uid}
+            />
+
+            {/* Overwhelm Safety Card — sub-step 2.6. Always visible
+                (no surfacing-trigger logic in v1; Phase 5 layers
+                in path-specific thresholds). Below the brain-state
+                check-in card per the locked decision; 2.7 device-
+                verification screenshots iPhone 12/SE/15 confirm
+                this stays above the fold without scrolling. */}
+            <OverwhelmSafetyCard />
 
             {/* Notification opt-in: treated as a setting, accessible in every
                 phase. In post-checkin / returning it renders inside cardOrder

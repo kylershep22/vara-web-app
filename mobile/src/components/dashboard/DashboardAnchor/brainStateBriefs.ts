@@ -49,21 +49,21 @@ export const BRAIN_STATE_BRIEFS: Record<BrainState, BrainStateBrief[]> = {
       message: "Today's a lower-bandwidth day. A brief breathwork session can shift things. No need to force the rest.",
     },
   ],
-  okay: [
+  steady: [
     {
-      label: 'Okay',
+      label: 'Steady',
       icon: 'minus-circle-outline',
       accentColor: Colors.mutedSageGray,
       message: "A steady baseline is its own kind of good day. Reflection and small, consistent steps tend to land well from here.",
     },
     {
-      label: 'Okay',
+      label: 'Steady',
       icon: 'minus-circle-outline',
       accentColor: Colors.mutedSageGray,
       message: "Nothing dramatic in either direction today. A good opportunity to check in with your journal or add to a habit you're building.",
     },
     {
-      label: 'Okay',
+      label: 'Steady',
       icon: 'minus-circle-outline',
       accentColor: Colors.mutedSageGray,
       message: "Neutral days build the base that harder days rest on. No need to push, steady is the work.",
@@ -89,21 +89,21 @@ export const BRAIN_STATE_BRIEFS: Record<BrainState, BrainStateBrief[]> = {
       message: "A clear headspace is one of the conditions habits stick in. Use it where it counts.",
     },
   ],
-  energized: [
+  alive: [
     {
-      label: 'Energized',
+      label: 'Alive',
       icon: 'flash-outline',
       accentColor: Colors.freshMoss,
       message: "High-capacity day. Today's a good one for focus work.",
     },
     {
-      label: 'Energized',
+      label: 'Alive',
       icon: 'flash-outline',
       accentColor: Colors.freshMoss,
-      message: "Energized days are rarer than we think. A good day to protect the time for what matters most.",
+      message: "Days like this one are rarer than we think. A good day to protect the time for what matters most.",
     },
     {
-      label: 'Energized',
+      label: 'Alive',
       icon: 'flash-outline',
       accentColor: Colors.freshMoss,
       message: "When energy is this available, the brain can hold more. Pick the one thing worth that capacity.",

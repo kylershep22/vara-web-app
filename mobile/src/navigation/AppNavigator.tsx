@@ -97,6 +97,21 @@ import {
 } from '../screens/discover';
 import PodcastEpisodeScreen from '../screens/discover/PodcastEpisodeScreen';
 
+// Phase 1 dev test harnesses — registered only when __DEV__ is true.
+// Reachable from Wellness tab > "DEV TOOLS" section. Remove the imports,
+// the routes below, and the menu section before TestFlight/release.
+import { BreathPacerTestScreen } from '../screens/_dev/BreathPacerTestScreen';
+import { ProtocolAudioLoaderTestScreen } from '../screens/_dev/ProtocolAudioLoaderTestScreen';
+import { GuidedSessionPlayerTestScreen } from '../screens/_dev/GuidedSessionPlayerTestScreen';
+import { CheckInFlowTestScreen } from '../screens/_dev/CheckInFlowTestScreen';
+
+// Phase 2 sub-step 2.2 — Practices index + single-protocol runner.
+import { PracticesIndexScreen } from '../screens/practices/PracticesIndexScreen';
+import { PracticeRunScreen } from '../screens/practices/PracticeRunScreen';
+
+// Phase 2 sub-step 2.5 — production CheckInFlow screen wrapper.
+import { CheckInFlowScreen } from '../screens/checkin/CheckInFlowScreen';
+
 // Create navigators
 const AuthStack = createNativeStackNavigator();
 const AppStack = createNativeStackNavigator();
@@ -710,6 +725,92 @@ const MainNavigator = () => {
             headerShown: false,
           }}
         />
+        {/* Phase 2 sub-step 2.5 — production CheckInFlow screen.
+            Mounted full-screen with a slide-from-bottom presentation
+            so the multi-step check-in feels like a focused modal,
+            not a permanent navigation destination. */}
+        <AppStack.Screen
+          name="CheckInFlow"
+          component={CheckInFlowScreen}
+          options={{
+            animation: 'slide_from_bottom',
+            headerShown: false,
+          }}
+        />
+        {/* Phase 2 sub-step 2.2 — Practices index + single-protocol
+            runner. Reachable from the recommendation screen's "See
+            other options" affordance and (sub-step 2.4 onward) from
+            the not-shifted response's "Try something longer". */}
+        <AppStack.Screen
+          name="Practices"
+          component={PracticesIndexScreen}
+          options={{
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: 'Other options',
+            headerShadowVisible: false,
+          }}
+        />
+        <AppStack.Screen
+          name="PracticeRun"
+          component={PracticeRunScreen}
+          options={{
+            animation: 'slide_from_bottom',
+            headerShown: false,
+          }}
+        />
+        {/* Phase 1 dev test harnesses — gated by __DEV__ so the routes
+            (and the underlying components, via Metro tree-shaking) are
+            never reachable in release builds. */}
+        {__DEV__ && (
+          <>
+            <AppStack.Screen
+              name="DevBreathPacer"
+              component={BreathPacerTestScreen}
+              options={{
+                ...standardHeaderOptions,
+                animation: 'slide_from_right',
+                headerShown: true,
+                title: 'Dev: BreathPacer',
+                headerShadowVisible: false,
+              }}
+            />
+            <AppStack.Screen
+              name="DevAudioLoader"
+              component={ProtocolAudioLoaderTestScreen}
+              options={{
+                ...standardHeaderOptions,
+                animation: 'slide_from_right',
+                headerShown: true,
+                title: 'Dev: Audio Loader',
+                headerShadowVisible: false,
+              }}
+            />
+            <AppStack.Screen
+              name="DevGuidedSessionPlayer"
+              component={GuidedSessionPlayerTestScreen}
+              options={{
+                ...standardHeaderOptions,
+                animation: 'slide_from_right',
+                headerShown: true,
+                title: 'Dev: Guided Session Player',
+                headerShadowVisible: false,
+              }}
+            />
+            <AppStack.Screen
+              name="DevCheckInFlow"
+              component={CheckInFlowTestScreen}
+              options={{
+                ...standardHeaderOptions,
+                animation: 'slide_from_right',
+                headerShown: true,
+                title: 'Dev: Check-In Flow',
+                headerShadowVisible: false,
+              }}
+            />
+          </>
+        )}
       </AppStack.Navigator>
 
       {/* Global AI Assistant FAB - Hidden on screens with their own FAB */}

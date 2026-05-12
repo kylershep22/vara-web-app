@@ -4,7 +4,8 @@
  * using the nudge priority map from getNudgeSuggestion.
  */
 
-import { PRIORITY_MAP, type BrainState, type Feature } from './getNudgeSuggestion';
+import { PRIORITY_MAP, type Feature } from './getNudgeSuggestion';
+import type { BrainState } from '../types/models';
 
 /**
  * Dashboard card identifiers.

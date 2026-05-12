@@ -42,7 +42,7 @@ describe('computeSummary', () => {
       makeSlot('foggy'),
       makeSlot('foggy'),
       makeSlot('clear'),
-      makeSlot('energized'),
+      makeSlot('alive'),
       makeSlot(null),
       makeSlot(null),
       makeSlot(null),
@@ -53,7 +53,7 @@ describe('computeSummary', () => {
 
   it('returns trending foggier when later days rank lower', () => {
     const days = [
-      makeSlot('energized'),
+      makeSlot('alive'),
       makeSlot('clear'),
       makeSlot('foggy'),
       makeSlot('foggy'),
@@ -69,7 +69,7 @@ describe('computeSummary', () => {
     const days = [
       makeSlot('foggy'),
       makeSlot('clear'),
-      makeSlot('okay'),
+      makeSlot('steady'),
       makeSlot('wired'),
       makeSlot(null),
       makeSlot(null),

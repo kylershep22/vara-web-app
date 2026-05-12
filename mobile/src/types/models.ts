@@ -52,9 +52,24 @@ export interface UserProfile {
   // Group memberships (for suggested connections)
   groupIds?: string[];
 
+  // Intent path captured during onboarding (wired during Phase 3).
+  // Missing field on existing profile docs is treated as 'default' by readers.
+  intentPath?: IntentPath;
+
+  // Set by writeStandardFlowSession the first time a CheckInFlow
+  // session produces an outcome of 'shifted' or 'partial_shift'
+  // (qualifiesAsFirstShift). Drives the one-time "Your first shift is
+  // logged in Patterns" footer on Today (sub-step 2.7). Null/undefined
+  // means the user has not yet had a qualifying shift.
+  firstShiftAt?: Timestamp | null;
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+// User intent path, drives first-week recommendations and copy tone.
+// See Vara_Intent_Paths.md for full spec.
+export type IntentPath = 'down_regulation' | 'sleep' | 'activation' | 'default';
 
 // ==========================================
 // BRAIN HEALTH MODELS
@@ -768,7 +783,7 @@ export interface MorningCheckIn {
 // BRAIN STATE CHECK-IN (Dashboard V2)
 // ==========================================
 
-export type BrainState = 'wired' | 'foggy' | 'okay' | 'clear' | 'energized';
+export type BrainState = 'wired' | 'foggy' | 'steady' | 'clear' | 'alive';
 
 /**
  * Brain State Check-In
@@ -784,6 +799,305 @@ export interface BrainStateCheckIn {
   protocolCompleted: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+// ==========================================
+// PROTOCOL CATALOG (Phase 1 schema lock)
+//
+// Type contract for the static protocol library that GuidedSessionPlayer
+// consumes. Protocol *data* lives in constants/brainStateProtocols.ts and
+// is populated against this shape in sub-step 2. The session record below
+// (ProtocolSession) references protocols by id but does not depend on the
+// catalog types directly, so a missing/retired protocolId on a historical
+// session doc does not break reads — call sites use protocolIdNormalizer
+// to resolve legacy ids.
+// ==========================================
+
+// Plain-language signal of how strong the research base is for a protocol.
+// Stored numerically for algorithm sorting; the chip label/color shown in
+// UI is derived in a presentation helper, not stored on the protocol.
+export type EvidenceTier = 1 | 2 | 3 | 4;
+
+// Time-of-day bucket used by the recommender (Phase 4) and by the user's
+// onboarding answers (Phase 3). Empty `suitableForTimesOfDay` array means
+// the protocol is appropriate any time.
+export type TimeOfDay =
+  | 'early_morning'
+  | 'mid_morning'
+  | 'midday'
+  | 'early_afternoon'
+  | 'late_afternoon'
+  | 'evening'
+  | 'late_night';
+
+// Delivery modality. Drives icon, framing, and which step kinds the
+// protocol uses. Aligned with the modality column in the v2.2 protocol
+// table (split "sensory/cognitive" into separate values because Focused
+// Work Window is purely cognitive while Sensory Reset is sensory).
+export type ProtocolModality =
+  | 'breath'
+  | 'movement'
+  | 'audio'
+  | 'sensory'
+  | 'cold'
+  | 'cognitive'
+  | 'environmental';
+
+// The 11 protocol families shipping at launch. Variants (e.g. nsdr-10 vs
+// nsdr-20) share a family so the algorithm can dedupe by family in the
+// recency penalty. Bellows Breath is excluded at v1 — re-evaluate when
+// the user-profile contraindication-flag system exists.
+export type ProtocolFamily =
+  | 'cyclic-sighing'
+  | 'sensory-reset'
+  | 'extended-exhale'
+  | 'box-breathing'
+  | 'coherence-breathing'
+  | 'brief-movement'
+  | 'nsdr'
+  | 'cold-water-reset'
+  | 'mindful-walking'
+  | 'focused-work'
+  | 'bright-light';
+
+// One phase of a paced breath cycle. Sequenced into BreathStep.phases and
+// repeated until the step's durationSeconds elapses. `label` is what the
+// pacer renders alongside the visual ("Inhale", "Hold", "Exhale").
+export interface BreathPhase {
+  kind: 'inhale' | 'exhale' | 'hold';
+  seconds: number;
+  label?: string;
+}
+
+// Common shape for every step. Step kinds extend this with kind-specific
+// fields under a discriminator.
+interface BaseProtocolStep {
+  id: string; // stable within the protocol; used for player keys
+  durationSeconds: number;
+}
+
+// Paced breathwork. Renders the BreathPacer visual (Phase 1 sub-step 3).
+// `phases` repeats in order; cycle count is derived from durationSeconds
+// divided by the sum of phase seconds.
+export interface BreathStep extends BaseProtocolStep {
+  kind: 'breath';
+  phases: BreathPhase[];
+  guidance?: string;
+}
+
+// Audio-driven step. The audio file *is* the protocol for its duration —
+// no overlaid pacer or instruction text. Used for NSDR.
+// `audioPath` is relative to the `protocolAudio/` root in Firebase
+// Storage. Versioned filenames (e.g. nsdr_10min_v1.mp3) let us re-record
+// without invalidating existing client data.
+export interface AudioStep extends BaseProtocolStep {
+  kind: 'audio';
+  audioPath: string;
+}
+
+// Plain-text prompt shown for durationSeconds before auto-advancing.
+// Used for Sensory Reset's 5-4-3-2-1 sequence.
+export interface InstructionStep extends BaseProtocolStep {
+  kind: 'instruction';
+  text: string;
+}
+
+// Free-form timer where the user does the work elsewhere (walking,
+// focused work) and the app just runs the clock. `label` names the
+// activity; `hint` is optional supportive copy.
+export interface TimerStep extends BaseProtocolStep {
+  kind: 'timer';
+  label: string;
+  hint?: string;
+}
+
+// Discriminated union of all step kinds. Player uses `kind` to dispatch
+// to the right renderer. Add new kinds here, then handle them at every
+// switch site (the player's switch should be exhaustive via assertNever).
+export type ProtocolStep =
+  | BreathStep
+  | AudioStep
+  | InstructionStep
+  | TimerStep;
+
+// Full protocol definition. Each launch protocol — including each
+// duration variant — is a single Protocol object keyed by `id`.
+export interface Protocol {
+  // Identity
+  id: string; // unique per variant, matches the dict key in BRAIN_STATE_PROTOCOLS
+  family: ProtocolFamily; // shared across variants of the same protocol
+  name: string;
+  description: string; // one-liner shown on cards
+
+  // Detail screen content (long-form)
+  whatItIs: string;
+  whatYoullNeed: string;
+  howItWorks: string;
+  whenItFits: string;
+  contraindications?: string;
+
+  // First-time orientation (condensed three-section copy)
+  firstTimeOrientation: {
+    whatYoullDo: string;
+    whatYoullNeed: string;
+    whyItWorks: string;
+  };
+
+  // Evidence
+  evidenceTier: EvidenceTier;
+  evidenceCitation?: string; // single one-line citation; full lists stay out of v1 UI
+
+  // Algorithm metadata (consumed in Phase 4)
+  durationSeconds: number; // total expected; matches sum of step durations
+  timeWindow: ProtocolTimeWindow;
+  modality: ProtocolModality;
+  suitableForStates: BrainState[];
+  suitableForTimesOfDay: TimeOfDay[]; // empty array means any time
+
+  // Execution
+  steps: ProtocolStep[];
+}
+
+// ==========================================
+// PROTOCOL SESSION (Phase 0 scaffolding — unused until Phase 2)
+// ==========================================
+
+// Time window (in minutes) a user has available when selecting a protocol.
+export type ProtocolTimeWindow = 2 | 5 | 10 | 20 | 45;
+
+// Outcome of a protocol session. Computed at Firestore write time
+// from the state transition (stateBefore → stateAfter), the completion
+// flag, and the abandon reason if any.
+//
+//   shifted       — session completed; state moved toward regulation.
+//                   Wired/Foggy → Steady/Clear/Alive, or any "green
+//                   zone" transition.
+//   partial_shift — session completed; specifically Wired → Foggy.
+//                   "The edge is off, fatigue is surfacing" per Core
+//                   Loop v2. The classifier rule is strict to this
+//                   transition only at v1; Phase 5 Patterns analysis
+//                   can expand the rule set if data warrants.
+//   maintenance   — session completed; user started in Steady/Clear/
+//                   Alive and held the same state. Counts as success
+//                   per Core Loop v2 line 209.
+//   not_shifted   — session completed; user stayed in the same
+//                   negative state (Wired → Wired, Foggy → Foggy) or
+//                   moved further from regulation.
+//   abandoned     — session ended by user choice. abandonReason is
+//                   'user_exit' or 'force_quit'.
+//   failed        — session ended due to a technical failure (the
+//                   user didn't choose to leave a working session;
+//                   something prevented completion). abandonReason
+//                   is 'audio_error'.
+//
+// Analytics note: abandon-rate metrics should typically filter to
+// `outcome === 'abandoned' && abandonReason === 'user_exit'`.
+// `force_quit` is an analyst judgment call. `failed` is product
+// failure, not user behavior, and should always be excluded.
+export type ProtocolSessionOutcome =
+  | 'shifted'
+  | 'partial_shift'
+  | 'maintenance'
+  | 'not_shifted'
+  | 'abandoned'
+  | 'failed'
+  // Sub-step 2.5 — browse-launched sessions (Case 4 per Core Loop v2).
+  // Browse-launched sessions: stateBefore is null because no state was
+  // captured pre-protocol; outcome is 'browse_launched' (not null) so
+  // Patterns queries can filter without null-check JOINs on stateBefore.
+  | 'browse_launched';
+
+// User-chosen next step after the response screen.
+//   try_longer     — user tapped "Try something longer" (not_shifted).
+//   rest_later     — user tapped "Rest and come back later" (not_shifted).
+//   dismissed      — user tapped Continue (positive paths).
+//   auto_dismissed — 4-second timer fired without interaction
+//                    (positive paths only). Phase 5 Patterns may care
+//                    about the user-tap vs auto-timer distinction.
+export type ProtocolNextStep =
+  | 'try_longer'
+  | 'rest_later'
+  | 'dismissed'
+  | 'auto_dismissed';
+
+// Why a session ended without natural completion.
+//   user_exit   — explicit "End early" affordance.
+//   force_quit  — recovered from an AsyncStorage marker on the next
+//                 player mount (user hard-killed the app or OS
+//                 terminated it mid-session).
+//   audio_error — mid-playback audio failure or repeated load failure
+//                 the user chose to end on. Pre-playback load failures
+//                 are retryable via the transport bar; this reason
+//                 only fires when the user taps End early from the
+//                 audio-error transport state.
+//   null on the summary means the session completed normally.
+//
+// Analytics note: abandon-rate metrics should typically filter to
+// `user_exit` only — `force_quit` is an analyst judgment call (could
+// be a stressed user, could be an OS kill while their phone was idle),
+// and `audio_error` should always be excluded since it's a product
+// failure rather than a user choice.
+export type ProtocolAbandonReason =
+  | 'user_exit'
+  | 'force_quit'
+  | 'audio_error';
+
+// Movement modality for protocols whose timer covers multiple
+// possible activities. Sub-step 2.7 round 4 (Obs 10) introduced this
+// for Light Movement (the brief-movement family) — the user picks
+// Walk or Stretch in a pre-timer step so the timer's instruction
+// copy reflects the chosen activity. Persisted on the session doc as
+// `selectedModality` (optional — only present for protocols that
+// surface the picker). See PHASE_NOTES "selectedModality schema".
+export type MovementModality = 'walk' | 'stretch';
+
+/**
+ * ProtocolSessionSummary
+ * Output of the GuidedSessionPlayer on exit (natural completion or
+ * abandonment). Captures everything the player can observe; Phase 2
+ * enriches with userId, stateAfter (post-recheck), timeWindowSelected,
+ * intentPath, etc. to construct the full `ProtocolSession` Firestore
+ * record below.
+ *
+ * Timestamps are ms-since-epoch (Date.now() shape). Phase 2 converts
+ * to Firestore Timestamp at write time.
+ */
+export interface ProtocolSessionSummary {
+  protocolId: string;
+  stateBefore: BrainState;
+  completed: boolean;
+  durationActualSeconds: number;
+  stepsCompleted: number;
+  totalSteps: number;
+  abandonReason: ProtocolAbandonReason | null;
+  startedAt: number;
+  endedAt: number;
+}
+
+/**
+ * Protocol Session
+ * Full session record capturing state-in, state-out, time window, duration,
+ * and outcome. The authoritative data source for the Patterns algorithm
+ * starting in Phase 2.
+ * Stored in the `protocolSessions` collection.
+ */
+export interface ProtocolSession {
+  userId: string;
+  protocolId: string;
+  // Browse-launched sessions (Case 4) have stateBefore=null because no
+  // pre-protocol check-in was captured. Standard-flow sessions always
+  // have a value here. Schema asymmetry with `outcome`: browse-launched
+  // sessions also have outcome='browse_launched' so queries don't need
+  // null-checks on stateBefore to identify them.
+  stateBefore: BrainState | null;
+  stateAfter: BrainState | null; // null until re-check completes
+  timeWindowSelected: ProtocolTimeWindow;
+  durationActualSeconds: number;
+  outcome: ProtocolSessionOutcome;
+  userChosenNextStep: ProtocolNextStep | null;
+  intentPath: IntentPath;
+  createdAt: Timestamp;
+  completedAt: Timestamp | null;
 }
 
 // ==========================================

@@ -47,7 +47,7 @@ export const Colors = {
   surface: '#FFFFFF',
   error: '#D97A6E',            // Soft Coral - brand compliant (never use red)
   success: '#1B5E57',          // Use primary teal for success states
-  freshMoss: '#4A9B7E',        // Brighter green for "energized" state, distinct from evergreenTeal
+  freshMoss: '#4A9B7E',        // Brighter green for "alive" state, distinct from evergreenTeal
   warning: '#F5B971',          // Golden Apricot for warnings
   info: '#1B5E57',             // Use primary for info states
 

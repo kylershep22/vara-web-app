@@ -32,3 +32,9 @@ yarn-debug.log*
 yarn-error.log*
 serviceAccountKey.json
 service-account-key.json
+
+# Claude Code per-machine settings — the .local suffix marks this
+# as a local override; tracking it in the repo conflicts with that
+# convention. Permission allowlists, env vars, etc. belong to the
+# machine, not the project.
+.claude/settings.local.json

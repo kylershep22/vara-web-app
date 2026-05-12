@@ -68,6 +68,31 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Sub-step 2.7 round 2 — Observation 7: global audio mode for
+  // protocol audio (NSDR) and the wellness library audio player.
+  // setAudioModeAsync is global state; setting it once at app boot
+  // covers every Audio.Sound created downstream
+  // (AudioStepView in GuidedSessionPlayer, AudioPlayerContext,
+  // useAmbientSound). Pairs with ios.infoPlist.UIBackgroundModes
+  // = ["audio"] in app.json — both are required for audio to
+  // continue through screen lock.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { Audio } = await import('expo-av');
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+        });
+      } catch (e) {
+        console.warn(
+          'Failed to set global audio mode (non-critical, audio may pause on screen lock):',
+          e
+        );
+      }
+    })();
+  }, []);
+
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.container}>
