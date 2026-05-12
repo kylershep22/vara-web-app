@@ -1537,6 +1537,41 @@ should explicitly call out (b) and (c) in its sub-step exit
 checklist. The code work isn't done until the data is verifiably
 landing where consumers expect it.
 
+### Credentials never appear in chat transcripts
+
+Credentials (PATs, API keys, signing keys, service-account JSON)
+must never appear in chat transcripts. Use stdin-piping
+(`--with-token`, `< secret-file`) where the tool supports it; for
+tools without stdin paths, write secrets to transient files CC
+reads but never echoes back.
+
+**Reference:** round 15 closure PAT-in-transcript incident — a
+token pasted into chat to facilitate `gh auth setup` ended up
+permanently in the conversation transcript, requiring revocation
++ rotation. Cost: ~10 minutes. Prevention is cheaper than
+rotation.
+
+**How to apply going forward:**
+
+- `gh auth login --with-token` accepts the token via stdin. CC
+  pipes it through without ever printing it back. The token lives
+  in `~/.config/gh/hosts.yml` (gh's encrypted-at-rest keyring),
+  not in transcript.
+- `firebase login:ci` and `firebase use` for CI tokens — same
+  stdin-or-file pattern.
+- For multi-line credentials (service-account JSONs, signing
+  certs), have CC read the file directly via the `Read` tool;
+  the contents stay in tool-result memory but never get echoed
+  to user-visible response text.
+- If a tool ONLY supports interactive prompting (no stdin, no
+  file flag), the user runs that tool in their own terminal
+  outside the `!` runner. CC then reads from the persistent
+  credential store the tool wrote to.
+
+**Red flag:** any time CC asks for a credential to be pasted
+into chat, that's the wrong path. Pause and find the
+stdin-or-file alternative first.
+
 ---
 
 ### Sub-step 2.7 round 12 — locked decisions
