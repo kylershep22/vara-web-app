@@ -75,12 +75,25 @@ service cloud.firestore {
       // Privacy filtering is handled at the application layer
       allow read: if isAuthenticated();
 
-      // Users can only create their own profile
-      allow create: if request.auth.uid == userId;
-      // Owner can update own doc; admins can update role + moderation fields only
+      // Users can only create their own profile.
+      // Subscription state is owned by the onUserCreate Cloud Function trigger —
+      // clients must not include subscription/eventData/subscriptionType/hasActiveSubscription
+      // on the initial doc create either.
+      allow create: if request.auth.uid == userId
+            && !request.resource.data.keys().hasAny([
+                  'subscription', 'eventData',
+                  'subscriptionType', 'hasActiveSubscription'
+                ]);
+      // Owner can update own doc; admins can update role + moderation fields only.
+      // Subscription state (subscription, eventData, subscriptionType, hasActiveSubscription)
+      // is gated by Cloud Functions only — Admin SDK writes bypass these rules.
       allow update: if (request.auth.uid == userId
             && !request.resource.data.diff(resource.data).affectedKeys()
-                .hasAny(['role', 'moderationStatus', 'suspendedUntil']))
+                .hasAny([
+                  'role', 'moderationStatus', 'suspendedUntil',
+                  'subscription', 'eventData',
+                  'subscriptionType', 'hasActiveSubscription'
+                ]))
         || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['role', 'moderationStatus', 'suspendedUntil', 'updatedAt']));
 

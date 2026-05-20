@@ -25,10 +25,21 @@ const validateEventCode = onCall(
       const db = admin.firestore();
 
       const userDoc = await db.collection("users").doc(uid).get();
-      if (userDoc.exists && userDoc.data().eventData) {
+      const userData = userDoc.exists ? userDoc.data() : null;
+
+      if (userData?.eventData) {
         throw new HttpsError(
             "already-exists",
             "You've already joined an event",
+        );
+      }
+
+      // Most-privileged-wins: don't downgrade an active paid or lifetime tier.
+      const currentType = userData?.subscription?.type;
+      if (currentType === "premium" || currentType === "coaching") {
+        throw new HttpsError(
+            "already-subscribed",
+            "You already have an active Vara subscription — event access isn't needed.",
         );
       }
 

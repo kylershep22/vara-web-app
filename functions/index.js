@@ -40,6 +40,10 @@ exports.updateModerationBlocklist = adminFunctions.updateModerationBlocklist;
 const eventFunctions = require("./src/events");
 exports.validateEventCode = eventFunctions.validateEventCode;
 
+// Auth Triggers
+const authFunctions = require("./src/auth");
+exports.onUserCreate = authFunctions.onUserCreate;
+
 // Secret defined via: firebase functions:secrets:set OPENAI_API_KEY
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
@@ -425,7 +429,7 @@ exports.journalPrompt = onRequest(
  * Create or update a wellnessLibrary doc whenever a file is uploaded/overwritten
  * under sleep-audio/.
  */
-exports.ingestSleepAudio = onObjectFinalized(async (event) => {
+exports.ingestSleepAudio = onObjectFinalized({bucket: "vara-4a99f.firebasestorage.app"}, async (event) => {
   const path = event.data.name || ""; // e.g., "sleep-audio/DeltaWaves.mp3"
   if (!path.startsWith("sleep-audio/")) return;
 
@@ -476,7 +480,7 @@ exports.ingestSleepAudio = onObjectFinalized(async (event) => {
 /**
  * Remove the wellnessLibrary doc if a file under sleep-audio/ is deleted.
  */
-exports.pruneSleepAudioDoc = onObjectDeleted(async (event) => {
+exports.pruneSleepAudioDoc = onObjectDeleted({bucket: "vara-4a99f.firebasestorage.app"}, async (event) => {
   const path = event.data.name || "";
   if (!path.startsWith("sleep-audio/")) return;
 
