@@ -13,14 +13,12 @@ import {
   AccessibilityInfo,
 } from 'react-native';
 import { Colors, Spacing, Typography } from '../../constants';
+import { config } from '../../config/env';
 
-// Pricing pulled from env config with defaults
-const MONTHLY_PRICE = process.env.EXPO_PUBLIC_MONTHLY_PRICE || '9.99';
-const ANNUAL_PRICE = process.env.EXPO_PUBLIC_ANNUAL_PRICE || '79.99';
-const ANNUAL_MONTHLY_EQUIVALENT = process.env.EXPO_PUBLIC_ANNUAL_MONTHLY_EQUIVALENT || '6.67';
-const CURRENCY = process.env.EXPO_PUBLIC_CURRENCY || 'USD';
-
-const currencySymbol = CURRENCY === 'USD' ? '$' : CURRENCY;
+const MONTHLY_PRICE = config.monthlyPrice;
+const ANNUAL_PRICE = config.annualPrice;
+const ANNUAL_MONTHLY_EQUIVALENT = config.annualMonthlyEquivalent;
+const currencySymbol = config.currency === 'USD' ? '$' : config.currency;
 
 interface PricingSelectorProps {
   selectedPlan: 'monthly' | 'annual';

@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../constants';
+import { config } from '../config/env';
 import { useSubscription } from '../hooks/useSubscription';
 import PricingSelector from '../components/paywall/PricingSelector';
 import {
@@ -23,9 +24,8 @@ import {
   restorePurchase,
 } from '../services/subscription.service';
 
-// Pricing defaults (read from env at build time)
-const MONTHLY_PRICE = process.env.EXPO_PUBLIC_MONTHLY_PRICE || '9.99';
-const ANNUAL_PRICE = process.env.EXPO_PUBLIC_ANNUAL_PRICE || '79.99';
+const MONTHLY_PRICE = config.monthlyPrice;
+const ANNUAL_PRICE = config.annualPrice;
 
 // Feature list (max 4 items)
 const FEATURES = [

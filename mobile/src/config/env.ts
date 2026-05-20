@@ -114,7 +114,7 @@ export const config: EnvConfig = {
   trialDurationDays: parseInt(process.env.EXPO_PUBLIC_TRIAL_DURATION_DAYS || '7', 10),
 
   // Pricing Configuration
-  monthlyPrice: process.env.EXPO_PUBLIC_MONTHLY_PRICE || '9.99',
+  monthlyPrice: process.env.EXPO_PUBLIC_MONTHLY_PRICE || '8.99',
   annualPrice: process.env.EXPO_PUBLIC_ANNUAL_PRICE || '79.99',
   annualMonthlyEquivalent: process.env.EXPO_PUBLIC_ANNUAL_MONTHLY_EQUIVALENT || '6.67',
   currency: process.env.EXPO_PUBLIC_CURRENCY || 'USD',

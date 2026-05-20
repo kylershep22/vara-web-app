@@ -24,7 +24,7 @@ eas secret:create --scope project --name EXPO_PUBLIC_FIREBASE_IOS_APP_ID --value
 eas secret:create --scope project --name EXPO_PUBLIC_API_URL --value "https://[your-cloud-functions-url]"
 
 # Subscription pricing (optional -- defaults exist in code)
-eas secret:create --scope project --name EXPO_PUBLIC_MONTHLY_PRICE --value "9.99"
+eas secret:create --scope project --name EXPO_PUBLIC_MONTHLY_PRICE --value "8.99"
 eas secret:create --scope project --name EXPO_PUBLIC_ANNUAL_PRICE --value "79.99"
 ```
 
