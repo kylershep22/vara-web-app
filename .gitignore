@@ -33,6 +33,17 @@ yarn-error.log*
 serviceAccountKey.json
 service-account-key.json
 
+# Firebase emulator debug logs
+firestore-debug.log
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log
+storage-debug.log
+auth-debug.log
+functions-debug.log
+
 # Claude Code per-machine settings — the .local suffix marks this
 # as a local override; tracking it in the repo conflicts with that
 # convention. Permission allowlists, env vars, etc. belong to the
