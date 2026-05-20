@@ -16,7 +16,7 @@ import {
 } from 'firebase/auth';
 import { AppState } from 'react-native';
 import { auth, db } from '../config/firebase';
-import { doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import * as SecureStore from 'expo-secure-store';
 import { setUserId as setCrashReportingUserId, setUserAttributes, clearUser as clearCrashReportingUser } from '../services/crashReporting.service';
 import { setUserId as setAnalyticsUserId, setUserProperties, trackLogin, trackSignup } from '../services/analytics.service';
@@ -175,9 +175,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Update profile with display name
       await updateProfile(userCredential.user, { displayName });
 
-      // Create user profile document in Firestore with trial subscription
+      // Create user profile document in Firestore.
+      // Subscription state is owned by the onUserCreate Cloud Function trigger
+      // (functions/src/auth/onUserCreate.js) — never written from the client.
+      // Use merge:true so we don't race-overwrite that trigger's subscription write.
       const userRef = doc(db, 'users', userCredential.user.uid);
-      const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
 
       await setDoc(userRef, {
         uid: userCredential.user.uid,
@@ -186,16 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasCompletedOnboarding: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-
-        // Subscription: Start with 7-day free trial
-        subscription: {
-          type: 'trial',
-          trialStartedAt: serverTimestamp(),
-          trialExpiresAt: Timestamp.fromDate(trialExpiresAt),
-        },
-        hasActiveSubscription: true,
-        subscriptionType: 'trial',
-      });
+      }, { merge: true });
 
       // Send email verification
       await sendEmailVerification(userCredential.user);
