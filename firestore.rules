@@ -14,39 +14,12 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Check if user can read a profile based on privacy settings.
-    // Privacy model: "public" (default) or "private" (owner-only).
-    // Legacy "connections" values are treated as "private".
-    function canReadProfile(userId) {
-      let profile = get(/databases/$(database)/documents/users/$(userId));
-      let privacy = profile.data.privacy;
-
-      // Owner can always read their own profile
-      return request.auth.uid == userId
-        // Default to public if privacy is not set
-        || privacy == null
-        || privacy == 'public';
-      // "private" and "connections" (legacy) → only owner can read
-    }
-
-    // Check if user is a member of a group
-    function isGroupMember(groupId) {
-      let group = get(/databases/$(database)/documents/groups/$(groupId));
-      return request.auth.uid in group.data.members;
-    }
-
     // Check if user is the group owner
     function isGroupOwner(groupId) {
       let group = get(/databases/$(database)/documents/groups/$(groupId));
       return request.auth.uid == group.data.ownerId
         || request.auth.uid == group.data.createdBy
         || request.auth.uid == group.data.creatorId;
-    }
-
-    // Check if group is public
-    function isPublicGroup(groupId) {
-      let group = get(/databases/$(database)/documents/groups/$(groupId));
-      return group.data.visibility == 'public' || group.data.type == 'public';
     }
 
     // Check if user has admin role
