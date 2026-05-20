@@ -33,6 +33,10 @@ yarn-error.log*
 serviceAccountKey.json
 service-account-key.json
 
+# Firebase Console-downloaded service account keys (auto-named pattern)
+*firebase-adminsdk*.json
+*adminsdk*.json
+
 # Firebase emulator debug logs
 firestore-debug.log
 firebase-debug.log
