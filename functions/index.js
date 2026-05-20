@@ -44,6 +44,10 @@ exports.validateEventCode = eventFunctions.validateEventCode;
 const authFunctions = require("./src/auth");
 exports.onUserCreate = authFunctions.onUserCreate;
 
+// Webhooks (server-to-server)
+const webhookFunctions = require("./src/webhooks");
+exports.revenueCatWebhook = webhookFunctions.revenueCatWebhook;
+
 // Secret defined via: firebase functions:secrets:set OPENAI_API_KEY
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
