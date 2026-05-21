@@ -20,6 +20,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import * as SecureStore from 'expo-secure-store';
 import { setUserId as setCrashReportingUserId, setUserAttributes, clearUser as clearCrashReportingUser } from '../services/crashReporting.service';
 import { setUserId as setAnalyticsUserId, setUserProperties, trackLogin, trackSignup } from '../services/analytics.service';
+import { identifyPurchaser, clearPurchaser } from '../services/purchases.service';
 import { logger } from '../utils/logger';
 
 // Types
@@ -102,6 +103,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserProperties({
           email_verified: user.emailVerified ? 'true' : 'false',
         });
+
+        // Bind RevenueCat to this Firebase UID so webhook events carry
+        // app_user_id === uid (the webhook routes on this to update Firestore
+        // subscription state). Fire-and-forget; failures are non-fatal.
+        void identifyPurchaser(user.uid);
       } else {
         try {
           await SecureStore.deleteItemAsync('userId');
@@ -112,6 +118,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Clear user from crash reporting and Analytics on logout
         clearCrashReportingUser();
         setAnalyticsUserId('');
+
+        // Clear RevenueCat identity on sign-out.
+        void clearPurchaser();
       }
     });
 

@@ -37,6 +37,11 @@ interface EnvConfig {
   androidProductAnnual: string;
   trialDurationDays: number;
 
+  // RevenueCat
+  revenueCatApiKeyIos: string;
+  revenueCatApiKeyAndroid: string;
+  revenueCatEntitlementId: string;
+
   // Pricing (displayed on paywall)
   monthlyPrice: string;
   annualPrice: string;
@@ -107,11 +112,16 @@ export const config: EnvConfig = {
   debug: (process.env.EXPO_PUBLIC_DEBUG || 'true') === 'true',
 
   // Subscription Configuration
-  iosProductMonthly: process.env.EXPO_PUBLIC_IOS_PRODUCT_MONTHLY || 'com.vara.monthly',
-  iosProductAnnual: process.env.EXPO_PUBLIC_IOS_PRODUCT_ANNUAL || 'com.vara.annual',
-  androidProductMonthly: process.env.EXPO_PUBLIC_ANDROID_PRODUCT_MONTHLY || 'vara_monthly',
-  androidProductAnnual: process.env.EXPO_PUBLIC_ANDROID_PRODUCT_ANNUAL || 'vara_annual',
+  iosProductMonthly: process.env.EXPO_PUBLIC_IOS_PRODUCT_MONTHLY || 'com.vara.wellness.monthly',
+  iosProductAnnual: process.env.EXPO_PUBLIC_IOS_PRODUCT_ANNUAL || 'com.vara.wellness.annual',
+  androidProductMonthly: process.env.EXPO_PUBLIC_ANDROID_PRODUCT_MONTHLY || 'vara_wellness_monthly',
+  androidProductAnnual: process.env.EXPO_PUBLIC_ANDROID_PRODUCT_ANNUAL || 'vara_wellness_annual',
   trialDurationDays: parseInt(process.env.EXPO_PUBLIC_TRIAL_DURATION_DAYS || '7', 10),
+
+  // RevenueCat (iOS key is a publishable client key — safe to ship in app bundle)
+  revenueCatApiKeyIos: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS || '',
+  revenueCatApiKeyAndroid: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID || '',
+  revenueCatEntitlementId: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID || 'premium',
 
   // Pricing Configuration
   monthlyPrice: process.env.EXPO_PUBLIC_MONTHLY_PRICE || '8.99',

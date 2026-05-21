@@ -68,6 +68,21 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Initialize RevenueCat SDK once at boot. configurePurchases() is platform-aware
+  // and no-ops gracefully on missing API key. AuthContext later calls
+  // identifyPurchaser(uid) / clearPurchaser() as auth state changes — those calls
+  // await the same internal gate this configure resolves, so ordering is safe.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { configurePurchases } = await import('./src/services/purchases.service');
+        configurePurchases();
+      } catch (e) {
+        console.warn('RevenueCat init skipped (non-fatal):', e);
+      }
+    })();
+  }, []);
+
   // Sub-step 2.7 round 2 — Observation 7: global audio mode for
   // protocol audio (NSDR) and the wellness library audio player.
   // setAudioModeAsync is global state; setting it once at app boot

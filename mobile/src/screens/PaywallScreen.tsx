@@ -2,9 +2,12 @@
  * Paywall Screen
  * Shown to users when their subscription has expired or to present pricing.
  * Displays the Vara value proposition, pricing options, and trial CTA.
+ *
+ * Prices render from RevenueCat offerings (StoreKit-localized) — env values
+ * are only a fallback for the static legal copy when offerings haven't loaded.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import type { PurchasesPackage } from 'react-native-purchases';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { config } from '../config/env';
 import { useSubscription } from '../hooks/useSubscription';
@@ -22,10 +26,15 @@ import PricingSelector from '../components/paywall/PricingSelector';
 import {
   initiatePurchase,
   restorePurchase,
+  getCurrentOfferingPackages,
 } from '../services/subscription.service';
 
-const MONTHLY_PRICE = config.monthlyPrice;
-const ANNUAL_PRICE = config.annualPrice;
+// Fallback strings used only if offerings fail to load. The env's currency
+// symbol is approximate; once RC offerings load, localized priceString wins.
+const FALLBACK_CURRENCY = config.currency === 'USD' ? '$' : config.currency;
+const FALLBACK_MONTHLY = `${FALLBACK_CURRENCY}${config.monthlyPrice}`;
+const FALLBACK_ANNUAL = `${FALLBACK_CURRENCY}${config.annualPrice}`;
+const FALLBACK_ANNUAL_EQUIVALENT = `${FALLBACK_CURRENCY}${config.annualMonthlyEquivalent}`;
 
 // Feature list (max 4 items)
 const FEATURES = [
@@ -39,16 +48,42 @@ const PaywallScreen: React.FC = () => {
   const { status } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
   const [purchasing, setPurchasing] = useState(false);
+  const [monthlyPkg, setMonthlyPkg] = useState<PurchasesPackage | null>(null);
+  const [annualPkg, setAnnualPkg] = useState<PurchasesPackage | null>(null);
 
   const isExpired = status?.type === 'expired';
+
+  // Load RC offerings on mount. Prices come from StoreKit-localized
+  // priceString; fallback env values render only if this fails.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { monthly, annual } = await getCurrentOfferingPackages();
+      if (cancelled) return;
+      setMonthlyPkg(monthly);
+      setAnnualPkg(annual);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const monthlyPrice = monthlyPkg?.product?.priceString ?? FALLBACK_MONTHLY;
+  const annualPrice = annualPkg?.product?.priceString ?? FALLBACK_ANNUAL;
 
   const handleSubscribe = async () => {
     setPurchasing(true);
     try {
       const result = await initiatePurchase(selectedPlan);
+      // userCancelled: user dismissed Apple's purchase sheet — silent, not an error.
+      if (result.userCancelled) {
+        return;
+      }
       if (!result.success && result.error) {
         Alert.alert('Not Available', result.error);
       }
+      // On success: webhook fires server-side and useSubscription's onSnapshot
+      // updates `status` to 'premium'. No client-side Firestore write here.
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
@@ -63,17 +98,19 @@ const PaywallScreen: React.FC = () => {
         Alert.alert('Restore', result.error);
       } else if (result.restored) {
         Alert.alert('Restored', 'Your subscription has been restored.');
+      } else if (result.success && !result.restored) {
+        Alert.alert('Nothing to restore', 'No prior purchases were found for this account.');
       }
     } catch (error) {
       Alert.alert('Error', 'Could not restore purchase. Please try again.');
     }
   };
 
-  // Determine price text for legal copy
+  // Legal copy uses the same localized price string the cards render.
   const priceText =
     selectedPlan === 'monthly'
-      ? `$${MONTHLY_PRICE}/month`
-      : `$${ANNUAL_PRICE}/year`;
+      ? `${monthlyPrice}/month`
+      : `${annualPrice}/year`;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -116,6 +153,9 @@ const PaywallScreen: React.FC = () => {
           <PricingSelector
             selectedPlan={selectedPlan}
             onSelectPlan={setSelectedPlan}
+            monthlyPrice={monthlyPrice}
+            annualPrice={annualPrice}
+            annualMonthlyEquivalent={annualPkg ? undefined : FALLBACK_ANNUAL_EQUIVALENT}
           />
         </View>
 

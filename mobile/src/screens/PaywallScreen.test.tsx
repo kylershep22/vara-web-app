@@ -19,10 +19,13 @@ jest.mock('../hooks/useSubscription', () => ({
 
 const mockInitiatePurchase = jest.fn();
 const mockRestorePurchase = jest.fn();
+const mockGetCurrentOfferingPackages = jest.fn();
 
 jest.mock('../services/subscription.service', () => ({
   initiatePurchase: (...args: any[]) => mockInitiatePurchase(...args),
   restorePurchase: (...args: any[]) => mockRestorePurchase(...args),
+  getCurrentOfferingPackages: (...args: any[]) =>
+    mockGetCurrentOfferingPackages(...args),
 }));
 
 jest.mock('../components/paywall/PricingSelector', () => {
@@ -53,6 +56,7 @@ const { useSubscription } = require('../hooks/useSubscription');
 describe('PaywallScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetCurrentOfferingPackages.mockResolvedValue({ monthly: null, annual: null });
   });
 
   describe('Trial active state', () => {
