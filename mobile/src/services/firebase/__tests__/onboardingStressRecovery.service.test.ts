@@ -1,10 +1,10 @@
-const mockUpdateDoc = jest.fn().mockResolvedValue(undefined);
-const mockDoc = jest.fn(() => ({ __ref: true }));
+const mockUpdateDoc = jest.fn((..._a: any[]) => Promise.resolve(undefined));
+const mockDoc = jest.fn((..._a: any[]) => ({ __ref: true }));
 const mockServerTimestamp = jest.fn(() => '__ts__');
 
 jest.mock('firebase/firestore', () => ({
-  doc: (...a: unknown[]) => mockDoc(...a),
-  updateDoc: (...a: unknown[]) => mockUpdateDoc(...a),
+  doc: (...a: any[]) => mockDoc(...a),
+  updateDoc: (...a: any[]) => mockUpdateDoc(...a),
   serverTimestamp: () => mockServerTimestamp(),
 }));
 jest.mock('../../../config/firebase', () => ({ db: { __db: true } }));

@@ -15,14 +15,19 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Purchases, { INTRO_ELIGIBILITY_STATUS } from 'react-native-purchases';
 import type { PurchasesPackage } from 'react-native-purchases';
 import { Colors, Spacing, Typography, Layout } from '../constants';
+import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../constants/legal';
 import { config } from '../config/env';
 import { useSubscription } from '../hooks/useSubscription';
+import { useAccountActions } from '../hooks/useAccountActions';
 import PricingSelector from '../components/paywall/PricingSelector';
+import TrialTimeline from '../components/paywall/TrialTimeline';
 import {
   initiatePurchase,
   restorePurchase,
@@ -46,12 +51,22 @@ const FEATURES = [
 
 const PaywallScreen: React.FC = () => {
   const { status } = useSubscription();
+  const { deleting, confirmLogout, confirmDeleteAccount } = useAccountActions();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
   const [purchasing, setPurchasing] = useState(false);
   const [monthlyPkg, setMonthlyPkg] = useState<PurchasesPackage | null>(null);
   const [annualPkg, setAnnualPkg] = useState<PurchasesPackage | null>(null);
+  // Per-Apple-ID intro-offer eligibility. 'unknown' until resolved AND on any
+  // failure — we fail SAFE to the no-trial state so we never promise a free
+  // trial Apple won't grant (a reinstall / prior-trial user would be charged on
+  // tap — 3.1.2 + refund risk). `introPrice` is a product attribute and is NOT
+  // a valid per-user signal, so it is deliberately not used here.
+  const [trialEligibility, setTrialEligibility] = useState<'eligible' | 'ineligible' | 'unknown'>(
+    'unknown'
+  );
 
   const isExpired = status?.type === 'expired';
+  const showTrial = trialEligibility === 'eligible';
 
   // Load RC offerings on mount. Prices come from StoreKit-localized
   // priceString; fallback env values render only if this fails.
@@ -68,6 +83,33 @@ const PaywallScreen: React.FC = () => {
     };
   }, []);
 
+  // Resolve per-Apple-ID trial eligibility for the SELECTED plan's product.
+  // Fail safe: any missing product / API rejection leaves the no-trial state.
+  useEffect(() => {
+    let cancelled = false;
+    const pkg = selectedPlan === 'monthly' ? monthlyPkg : annualPkg;
+    const productId = pkg?.product?.identifier;
+    if (!productId) {
+      setTrialEligibility('unknown');
+      return;
+    }
+    (async () => {
+      try {
+        const map = await Purchases.checkTrialOrIntroductoryPriceEligibility([productId]);
+        if (cancelled) return;
+        const eligible =
+          map[productId]?.status ===
+          INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE;
+        setTrialEligibility(eligible ? 'eligible' : 'ineligible');
+      } catch {
+        if (!cancelled) setTrialEligibility('unknown');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPlan, monthlyPkg, annualPkg]);
+
   const monthlyPrice = monthlyPkg?.product?.priceString ?? FALLBACK_MONTHLY;
   const annualPrice = annualPkg?.product?.priceString ?? FALLBACK_ANNUAL;
 
@@ -82,8 +124,11 @@ const PaywallScreen: React.FC = () => {
       if (!result.success && result.error) {
         Alert.alert('Not Available', result.error);
       }
-      // On success: webhook fires server-side and useSubscription's onSnapshot
-      // updates `status` to 'premium'. No client-side Firestore write here.
+      // On success: initiatePurchase already reconciled the RevenueCat
+      // entitlement signal from the returned CustomerInfo, so canAccessApp flips
+      // immediately and the route guard swaps the paywall for the app — no wait
+      // on the webhook. The webhook still writes Firestore (the durable record)
+      // and useSubscription's onSnapshot reflects it. No client-side write here.
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
@@ -106,6 +151,21 @@ const PaywallScreen: React.FC = () => {
     }
   };
 
+  const openUrl = (url: string) => {
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Unavailable', 'Could not open the link. Please try again later.');
+    });
+  };
+
+  // Mirrors HelpSupportScreen's email-support action (which lives behind the
+  // gate), so a gated user can still reach support — e.g. about a billing issue
+  // keeping them out — without entering the app.
+  const handleContactSupport = () => {
+    Linking.openURL('mailto:support@varawellness.co?subject=Vara App Support').catch(() => {
+      Alert.alert('Unavailable', 'Could not open your mail app. Please email support@varawellness.co.');
+    });
+  };
+
   // Legal copy uses the same localized price string the cards render.
   const priceText =
     selectedPlan === 'monthly'
@@ -126,15 +186,22 @@ const PaywallScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Heading */}
+        {/* Heading — dual audience: new user finishing onboarding (trial-eligible)
+            vs returning gated user. */}
         <Text style={styles.heading}>
-          {isExpired ? 'Your free trial has ended' : 'The full Vara experience'}
+          {isExpired
+            ? 'Your free trial has ended'
+            : showTrial
+            ? 'Your 14-day plan'
+            : 'The full Vara experience'}
         </Text>
 
         {/* Body */}
         <Text style={styles.body}>
           {isExpired
             ? 'We hope Vara has been useful. To continue, choose a subscription below.'
+            : showTrial
+            ? 'Starting with a daily reset, built around how your brain actually works.'
             : 'Everything Vara offers, designed around how your brain actually works.'}
         </Text>
 
@@ -159,6 +226,10 @@ const PaywallScreen: React.FC = () => {
           />
         </View>
 
+        {/* Trial timeline — only when an intro trial is actually available to
+            this Apple ID. Calm transparency: today → reminder → billing. */}
+        {showTrial && <TrialTimeline />}
+
         {/* Primary CTA */}
         <TouchableOpacity
           style={[styles.ctaButton, purchasing && styles.ctaButtonDisabled]}
@@ -166,20 +237,41 @@ const PaywallScreen: React.FC = () => {
           activeOpacity={0.8}
           disabled={purchasing}
           accessibilityRole="button"
-          accessibilityLabel={
-            isExpired ? 'Continue with Vara' : 'Start your 7-day free trial'
-          }
+          accessibilityLabel={showTrial ? 'Start your 14-day free trial' : 'Subscribe'}
         >
           <Text style={styles.ctaButtonText}>
-            {isExpired ? 'Continue with Vara' : 'Start your 7-day free trial'}
+            {showTrial ? 'Start your 14-day free trial' : 'Subscribe'}
           </Text>
         </TouchableOpacity>
 
-        {/* Legal Text */}
+        {/* Legal Text — matches the actual offer. Trial language only when an
+            intro trial is available to this Apple ID (Edge Case 2); otherwise
+            honest direct-subscription copy. */}
         <Text style={styles.legalText}>
-          Free for 7 days, then {priceText}. Cancel anytime. Billed automatically
-          unless cancelled before trial ends.
+          {showTrial
+            ? `Free for 14 days, then ${priceText}. Cancel anytime. Billed automatically unless cancelled before trial ends.`
+            : `${priceText}. Cancel anytime.`}
         </Text>
+
+        {/* Terms of Use (EULA) + Privacy Policy — required on the purchase screen
+            per App Store Review Guideline 3.1.2. */}
+        <View style={styles.legalLinks}>
+          <TouchableOpacity
+            onPress={() => openUrl(TERMS_OF_USE_URL)}
+            accessibilityRole="link"
+            accessibilityLabel="Terms of Use"
+          >
+            <Text style={styles.legalLinkText}>Terms of Use</Text>
+          </TouchableOpacity>
+          <Text style={styles.legalLinkSeparator}>·</Text>
+          <TouchableOpacity
+            onPress={() => openUrl(PRIVACY_POLICY_URL)}
+            accessibilityRole="link"
+            accessibilityLabel="Privacy Policy"
+          >
+            <Text style={styles.legalLinkText}>Privacy Policy</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Restore Purchase */}
         <TouchableOpacity
@@ -190,6 +282,43 @@ const PaywallScreen: React.FC = () => {
           accessibilityLabel="Restore previous purchase"
         >
           <Text style={styles.restoreButtonText}>Restore previous purchase</Text>
+        </TouchableOpacity>
+
+        {/* Account actions — escape hatch so a gated user can still sign out or
+            delete their account (Apple Guideline 5.1.1(v)). These trigger the
+            shared confirmation dialogs and end the user at the auth screen;
+            neither opens a path into gated app content. */}
+        <View style={styles.accountActions}>
+          <TouchableOpacity
+            onPress={confirmLogout}
+            disabled={deleting}
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
+          >
+            <Text style={styles.accountActionText}>Log out</Text>
+          </TouchableOpacity>
+          <Text style={styles.accountActionSeparator}>·</Text>
+          <TouchableOpacity
+            onPress={confirmDeleteAccount}
+            disabled={deleting}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+          >
+            <Text style={styles.accountActionText}>
+              {deleting ? 'Deleting account…' : 'Delete account'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Contact support — surfaces the existing email-support action so it's
+            reachable from behind the gate. */}
+        <TouchableOpacity
+          style={styles.contactSupportButton}
+          onPress={handleContactSupport}
+          accessibilityRole="button"
+          accessibilityLabel="Contact support"
+        >
+          <Text style={styles.accountActionText}>Contact support</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -280,7 +409,24 @@ const styles = StyleSheet.create({
     color: Colors.mutedSageGray,
     textAlign: 'center',
     lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: Spacing.lg,
+  },
+  legalLinkText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    textDecorationLine: 'underline',
+    paddingVertical: Spacing.xs,
+  },
+  legalLinkSeparator: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginHorizontal: Spacing.sm,
   },
   restoreButton: {
     alignItems: 'center',
@@ -292,6 +438,28 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     color: Colors.mutedSageGray,
     textDecorationLine: 'underline',
+  },
+  accountActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+  },
+  accountActionText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    textDecorationLine: 'underline',
+    paddingVertical: Spacing.xs,
+  },
+  accountActionSeparator: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginHorizontal: Spacing.sm,
+  },
+  contactSupportButton: {
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+    paddingVertical: Spacing.xs,
   },
 });
 
