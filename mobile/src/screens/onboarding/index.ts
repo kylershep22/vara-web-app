@@ -35,4 +35,4 @@ export { default as OnboardingReflectScreen } from './OnboardingReflectScreen';
 export { default as OnboardingProtocolScreen } from './OnboardingProtocolScreen';
 export { default as OnboardingRecheckScreen } from './OnboardingRecheckScreen';
 export { default as OnboardingBridgeScreen } from './OnboardingBridgeScreen';
-// OnboardingAnchorScreen (screen 9) is added in Task 3.
+export { default as OnboardingAnchorScreen } from './OnboardingAnchorScreen';
