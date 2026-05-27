@@ -28,6 +28,7 @@ import { useSubscription } from '../hooks/useSubscription';
 import { useAccountActions } from '../hooks/useAccountActions';
 import PricingSelector from '../components/paywall/PricingSelector';
 import TrialTimeline from '../components/paywall/TrialTimeline';
+import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import {
   initiatePurchase,
   restorePurchase,
@@ -64,6 +65,7 @@ const PaywallScreen: React.FC = () => {
   const [trialEligibility, setTrialEligibility] = useState<'eligible' | 'ineligible' | 'unknown'>(
     'unknown'
   );
+  const [codeSheetVisible, setCodeSheetVisible] = useState(false);
 
   const isExpired = status?.type === 'expired';
   const showTrial = trialEligibility === 'eligible';
@@ -273,6 +275,19 @@ const PaywallScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
+        {/* Have a code? — quiet entry to the existing event-code redemption
+            (beta access + future events; generic "code" label). On success the
+            validateEventCode grant satisfies canAccessApp via the Firestore-first
+            OR-merge, so the gate falls away automatically — no extra wiring. */}
+        <TouchableOpacity
+          style={styles.haveCodeButton}
+          onPress={() => setCodeSheetVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Have a code?"
+        >
+          <Text style={styles.haveCodeText}>Have a code?</Text>
+        </TouchableOpacity>
+
         {/* Restore Purchase */}
         <TouchableOpacity
           style={styles.restoreButton}
@@ -321,6 +336,13 @@ const PaywallScreen: React.FC = () => {
           <Text style={styles.accountActionText}>Contact support</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Existing event-code redemption modal, mounted as-is. */}
+      <EventCodeSheet
+        visible={codeSheetVisible}
+        onDismiss={() => setCodeSheetVisible(false)}
+        onSuccess={() => setCodeSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -427,6 +449,17 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     color: Colors.mutedSageGray,
     marginHorizontal: Spacing.sm,
+  },
+  haveCodeButton: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  haveCodeText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    textDecorationLine: 'underline',
   },
   restoreButton: {
     alignItems: 'center',
