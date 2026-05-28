@@ -72,7 +72,9 @@ function sameAccess(a: SubscriptionStatus | null, b: SubscriptionStatus): boolea
  * When Firestore denies (or is absent) but RevenueCat affirmatively shows an
  * active entitlement, grant access as premium. Otherwise deny.
  */
-function combineStatus(
+// Exported for characterization tests — this is the OR-merge that makes
+// charge-then-lockout impossible (RC grant must override a stale Firestore deny).
+export function combineStatus(
   fsStatus: SubscriptionStatus | null,
   rcAccess: boolean | null
 ): SubscriptionStatus | null {

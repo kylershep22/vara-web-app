@@ -1,4 +1,19 @@
-import { getSubscriptionStatus } from '../subscription';
+import { getSubscriptionStatus, type SubscriptionStatus } from '../subscription';
+import { combineStatus } from '../../hooks/useSubscription';
+
+// combineStatus lives in hooks/useSubscription.ts (NOT utils/subscription.ts).
+// Importing that module pulls in its native-dep chain (config/firebase,
+// AuthContext → react-native-purchases, rcEntitlement) at load time. combineStatus
+// itself is pure, so these mocks only prevent import-time crashes — they are never
+// exercised by the tests below.
+jest.mock('../../config/firebase', () => ({ db: null, firebaseError: null }));
+jest.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
+jest.mock('../../services/rcEntitlement', () => ({
+  getRcAccess: () => null,
+  subscribeRcEntitlement: () => () => {},
+  refreshRcEntitlement: async () => {},
+}));
+jest.mock('firebase/firestore', () => ({ doc: jest.fn(), onSnapshot: jest.fn() }));
 
 // Firestore Timestamp-like stubs (getSubscriptionStatus uses .toMillis()).
 const future = { toMillis: () => Date.now() + 86_400_000 } as any;
@@ -57,5 +72,40 @@ describe('getSubscriptionStatus — access derivation (app-side trial removed, M
   test("never-subscribed ('none') and expired ('expired') are distinguishable states", () => {
     expect(getSubscriptionStatus({}).type).toBe('none');
     expect(getSubscriptionStatus({ subscription: { type: 'expired' } }).type).toBe('expired');
+  });
+});
+
+describe('combineStatus — OR-merge safety', () => {
+  const fsGrant: SubscriptionStatus = { type: 'premium', isActive: true, canAccessApp: true };
+  const fsDeny: SubscriptionStatus = { type: 'none', isActive: false, canAccessApp: false };
+
+  test('Firestore grant is respected when RC is silent', () => {
+    const result = combineStatus(fsGrant, undefined as any);
+    expect(result).toBe(fsGrant);
+    expect(result?.canAccessApp).toBe(true);
+  });
+
+  test('RC entitlement overrides Firestore deny — prevents charge-then-lockout', () => {
+    const result = combineStatus(fsDeny, true);
+    expect(result?.canAccessApp).toBe(true);
+    expect(result?.type).toBe('premium');
+    expect(result?.isActive).toBe(true);
+  });
+
+  test('RC entitlement with no Firestore record grants access', () => {
+    const result = combineStatus(null, true);
+    expect(result).toEqual({ type: 'premium', isActive: true, canAccessApp: true });
+  });
+
+  test('Both sources denying produces no access', () => {
+    const result = combineStatus(fsDeny, false);
+    expect(result?.canAccessApp).toBe(false);
+    expect(result?.type).toBe('none'); // no type mutation on deny
+  });
+
+  test('RC pending or unknown is treated as deny — Firestore still controls', () => {
+    const result = combineStatus(fsDeny, undefined as any);
+    expect(result?.canAccessApp).toBe(false);
+    expect(result).toBe(fsDeny);
   });
 });
