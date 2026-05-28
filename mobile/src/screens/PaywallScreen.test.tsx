@@ -167,7 +167,7 @@ describe('PaywallScreen', () => {
     });
   });
 
-  describe('Trial expired (returning gated user, ineligible)', () => {
+  describe('Returning gated user, intro-ineligible (copy no longer driven by status.type)', () => {
     beforeEach(() => {
       setEligibility(INELIGIBLE);
       useSubscription.mockReturnValue({
@@ -177,9 +177,10 @@ describe('PaywallScreen', () => {
       });
     });
 
-    it('renders the expired heading', async () => {
+    it('renders the non-trial heading — NOT the old "free trial has ended" copy', async () => {
       render(<PaywallScreen />);
-      expect(await screen.findByText('Your free trial has ended')).toBeTruthy();
+      expect(await screen.findByText('The full Vara experience')).toBeTruthy();
+      expect(screen.queryByText('Your free trial has ended')).toBeNull();
     });
 
     it('shows the Subscribe CTA (no trial available)', async () => {

@@ -24,7 +24,6 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../constants/legal';
 import { config } from '../config/env';
-import { useSubscription } from '../hooks/useSubscription';
 import { useAccountActions } from '../hooks/useAccountActions';
 import PricingSelector from '../components/paywall/PricingSelector';
 import TrialTimeline from '../components/paywall/TrialTimeline';
@@ -51,7 +50,6 @@ const FEATURES = [
 ];
 
 const PaywallScreen: React.FC = () => {
-  const { status } = useSubscription();
   const { deleting, confirmLogout, confirmDeleteAccount } = useAccountActions();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
   const [purchasing, setPurchasing] = useState(false);
@@ -67,7 +65,6 @@ const PaywallScreen: React.FC = () => {
   );
   const [codeSheetVisible, setCodeSheetVisible] = useState(false);
 
-  const isExpired = status?.type === 'expired';
   const showTrial = trialEligibility === 'eligible';
 
   // Load RC offerings on mount. Prices come from StoreKit-localized
@@ -188,21 +185,15 @@ const PaywallScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Heading — dual audience: new user finishing onboarding (trial-eligible)
-            vs returning gated user. */}
+        {/* Heading — driven entirely by trial eligibility (three-state via
+            showTrial). Unknown/failed eligibility collapses to the non-trial copy. */}
         <Text style={styles.heading}>
-          {isExpired
-            ? 'Your free trial has ended'
-            : showTrial
-            ? 'Your 14-day plan'
-            : 'The full Vara experience'}
+          {showTrial ? 'Your 14-day plan' : 'The full Vara experience'}
         </Text>
 
         {/* Body */}
         <Text style={styles.body}>
-          {isExpired
-            ? 'We hope Vara has been useful. To continue, choose a subscription below.'
-            : showTrial
+          {showTrial
             ? 'Starting with a daily reset, built around how your brain actually works.'
             : 'Everything Vara offers, designed around how your brain actually works.'}
         </Text>
