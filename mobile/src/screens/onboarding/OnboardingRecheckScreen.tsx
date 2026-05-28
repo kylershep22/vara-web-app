@@ -16,40 +16,8 @@ import { ONBOARDING_PROTOCOL_TIME_WINDOW } from '../../constants/onboardingStres
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep, saveRecheckShift } from '../../services/firebase/onboardingStressRecovery.service';
 import { writeProtocolSession } from '../../services/firebase/protocolSession.service';
-import type { BrainState, ProtocolSessionOutcome } from '../../types/models';
-
-const STATE_LABELS: Record<BrainState, string> = BRAIN_STATES.reduce(
-  (acc, o) => ({ ...acc, [o.state]: o.label }),
-  {} as Record<BrainState, string>
-);
-
-// Ordinal toward regulation; used only to phrase the shift, never to gate.
-const RANK: Record<BrainState, number> = { wired: 0, foggy: 1, steady: 2, clear: 3, alive: 4 };
-
-export type Shift = 'improved' | 'flat' | 'worse';
-
-export function computeShift(before: BrainState, after: BrainState): Shift {
-  if (RANK[after] > RANK[before]) return 'improved';
-  if (RANK[after] < RANK[before]) return 'worse';
-  return 'flat';
-}
-
-function shiftOutcome(shift: Shift): ProtocolSessionOutcome {
-  if (shift === 'improved') return 'shifted';
-  if (shift === 'flat') return 'maintenance';
-  return 'not_shifted';
-}
-
-export function shiftLine(before: BrainState, after: BrainState, shift: Shift): string {
-  if (shift === 'improved') {
-    return `You moved from ${STATE_LABELS[before]} to ${STATE_LABELS[after]} in five minutes.`;
-  }
-  // flat or worse — compassionate, never shaming.
-  return "Recovery isn't linear — some days the shift is quiet. Showing up is the part that compounds.";
-}
-
-const BRAIN_LINE =
-  'Small recovery moments like this, repeated, are how your brain learns to handle stress better over time.';
+import { computeShift, shiftLine, shiftOutcome, BRAIN_LINE } from './onboardingShift';
+import type { BrainState } from '../../types/models';
 
 const OnboardingRecheckScreen: React.FC = () => {
   const navigation = useNavigation<any>();

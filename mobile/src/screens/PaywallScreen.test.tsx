@@ -77,6 +77,15 @@ jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
 }));
 
+// Probe for the event-code sheet: render a marker only when visible, so we can
+// assert the "Have a code?" link toggles it open.
+jest.mock('../components/events/EventCodeSheet', () => ({
+  EventCodeSheet: ({ visible }: any) => {
+    const { Text } = require('react-native');
+    return visible ? <Text>EVENT_CODE_SHEET_OPEN</Text> : null;
+  },
+}));
+
 const { useSubscription } = require('../hooks/useSubscription');
 
 const ELIGIBLE = 2;
@@ -188,6 +197,13 @@ describe('PaywallScreen', () => {
     it('renders pricing selector', () => {
       render(<PaywallScreen />);
       expect(screen.getByTestId('pricing-selector')).toBeTruthy();
+    });
+
+    it('"Have a code?" opens the EventCodeSheet', () => {
+      render(<PaywallScreen />);
+      expect(screen.queryByText('EVENT_CODE_SHEET_OPEN')).toBeNull();
+      fireEvent.press(screen.getByRole('button', { name: 'Have a code?' }));
+      expect(screen.getByText('EVENT_CODE_SHEET_OPEN')).toBeTruthy();
     });
   });
 

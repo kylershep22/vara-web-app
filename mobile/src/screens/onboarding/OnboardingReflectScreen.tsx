@@ -8,33 +8,11 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
-import { BRAIN_STATES } from '../../components/dashboard/brainStateCheckin/brainStateOptions';
-import { PEAK_WINDOW_OPTIONS, type PeakWindow } from '../../constants/onboardingStressRecovery';
+import { type PeakWindow } from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep } from '../../services/firebase/onboardingStressRecovery.service';
+import { buildReflectLine } from './onboardingShift';
 import type { BrainState } from '../../types/models';
-
-const STATE_LABELS: Record<BrainState, string> = BRAIN_STATES.reduce(
-  (acc, o) => ({ ...acc, [o.state]: o.label }),
-  {} as Record<BrainState, string>
-);
-const PEAK_LABELS: Record<PeakWindow, string> = PEAK_WINDOW_OPTIONS.reduce(
-  (acc, o) => ({ ...acc, [o.id]: o.label }),
-  {} as Record<PeakWindow, string>
-);
-
-const GENERIC_LINE = "Here's a five-minute reset to help your system downshift.";
-
-export function buildReflectLine(
-  state: BrainState | null,
-  stressorLabels: string[],
-  peak: PeakWindow | null
-): string {
-  if (!state) return GENERIC_LINE;
-  const stressorClause = stressorLabels.length ? `, with ${stressorLabels[0].toLowerCase()}` : '';
-  const peakClause = peak ? ` in the ${PEAK_LABELS[peak].toLowerCase()}` : '';
-  return `You're arriving ${STATE_LABELS[state]}${stressorClause}${peakClause}. ${GENERIC_LINE}`;
-}
 
 interface Resolved {
   state: BrainState | null;
