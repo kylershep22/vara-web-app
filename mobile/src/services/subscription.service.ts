@@ -12,8 +12,9 @@
  */
 
 import Purchases, { PURCHASES_ERROR_CODE } from 'react-native-purchases';
-import type { PurchasesPackage, PurchasesOffering } from 'react-native-purchases';
+import type { PurchasesPackage, PurchasesOffering, CustomerInfo } from 'react-native-purchases';
 import { purchasesReady } from './purchases.service';
+import { applyCustomerInfo } from './rcEntitlement';
 import { logger } from '../utils/logger';
 
 export interface SubscriptionStatusResult {
@@ -29,6 +30,8 @@ export interface PurchaseResult {
   userCancelled?: boolean;
   /** Set on real failures (network, store rejection, etc.). */
   error?: string;
+  /** CustomerInfo returned by purchasePackage on success — lets callers reconcile entitlement immediately. */
+  customerInfo?: CustomerInfo;
 }
 
 export interface RestoreResult {
@@ -107,9 +110,14 @@ export async function initiatePurchase(plan: 'monthly' | 'annual'): Promise<Purc
       };
     }
 
-    await Purchases.purchasePackage(pkg);
+    // purchasePackage invocation is unchanged; we only READ its return value.
+    // The returned CustomerInfo lets us grant access immediately — closing the
+    // multi-second dead window before the webhook writes Firestore and the
+    // useSubscription onSnapshot fires. Firestore stays the durable record.
+    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    applyCustomerInfo(customerInfo);
     logger.log('RevenueCat: purchasePackage success', { plan });
-    return { success: true };
+    return { success: true, customerInfo };
   } catch (err: any) {
     // userCancelled: user dismissed Apple's purchase sheet. Not an error.
     const code = err?.code;

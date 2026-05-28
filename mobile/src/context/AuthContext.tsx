@@ -21,6 +21,7 @@ import * as SecureStore from 'expo-secure-store';
 import { setUserId as setCrashReportingUserId, setUserAttributes, clearUser as clearCrashReportingUser } from '../services/crashReporting.service';
 import { setUserId as setAnalyticsUserId, setUserProperties, trackLogin, trackSignup } from '../services/analytics.service';
 import { identifyPurchaser, clearPurchaser } from '../services/purchases.service';
+import { clearRcEntitlement } from '../services/rcEntitlement';
 import { logger } from '../utils/logger';
 
 // Types
@@ -121,6 +122,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Clear RevenueCat identity on sign-out.
         void clearPurchaser();
+        // Reset the local entitlement signal so the next session never inherits
+        // a stale grant from the previous user (fail-closed).
+        clearRcEntitlement();
       }
     });
 

@@ -1037,13 +1037,13 @@ const AppNavigator: React.FC = () => {
       ) : hasCompletedOnboarding === false ? (
         // User is verified but hasn't completed onboarding -> Show onboarding
         <OnboardingNavigator />
-      // BETA: Paywall disabled during TestFlight testing
-      // TODO: Re-enable when ready to launch
-      // ) : subscriptionStatus?.canAccessApp === false ? (
-      //   // User cannot access app (expired trial or subscription) -> Show paywall
-      //   <PaywallNavigator />
+      ) : !subscriptionStatus?.canAccessApp ? (
+        // No source affirmatively grants access (expired trial / no subscription)
+        // -> Show paywall as a full-screen replacement. Fail-closed: undefined or
+        // false access both route here; only an affirmative grant reaches the app.
+        <PaywallNavigator />
       ) : (
-        // User is logged in, verified, onboarded, and has active subscription -> Show main app
+        // User is logged in, verified, onboarded, and has active access -> main app
         <MainNavigator />
       )}
     </NavigationContainer>
