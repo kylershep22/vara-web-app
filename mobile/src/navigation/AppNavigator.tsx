@@ -70,19 +70,31 @@ import {
   ReportConfirmationScreen,
 } from '../screens/community';
 
-// Onboarding screens (new streamlined flow)
+// Onboarding screens.
+// Legacy V1 flow (used only when ONBOARDING_V2 is false) + the stress-recovery
+// arc (Model A, screens 1–9) that replaces the V2 trio. The OnboardingV2*
+// screens stay exported from the barrel but are no longer mounted here, which
+// orphans their notification-permission prompt — the anchor screen (screen 9)
+// is now the only place onboarding requests permission.
 import {
   OnboardingWelcomeScreen,
   OnboardingCheckInScreen,
   OnboardingInsightScreen,
   OnboardingActivityScreen,
-  OnboardingConfirmationScreen,
   OnboardingValuesScreen,
   OnboardingPersonalizedEntryScreen,
-  OnboardingV2WelcomeScreen,
-  OnboardingV2CheckInScreen,
-  OnboardingV2ProtocolScreen,
+  OnboardingProblemScreen,
+  OnboardingStateCheckInScreen,
+  OnboardingStressorScreen,
+  OnboardingPeakWindowScreen,
+  OnboardingReflectScreen,
+  OnboardingProtocolScreen,
+  OnboardingRecheckScreen,
+  OnboardingBridgeScreen,
+  OnboardingAnchorScreen,
 } from '../screens/onboarding';
+import { resolveInitialStep } from '../services/firebase/onboardingStressRecovery.service';
+import type { OnboardingSrStep } from '../constants/onboardingStressRecovery';
 
 // Discover screens
 import {
@@ -128,9 +140,12 @@ const PaywallStack = createNativeStackNavigator();
  * Streamlined 6-screen onboarding flow for new users
  * Flow: Welcome → Check-in → Insight (aha!) → Activity → Values → Personalized Entry → Home
  */
-const OnboardingNavigator = () => {
+const OnboardingNavigator = ({ initialStep }: { initialStep?: OnboardingSrStep }) => {
   return (
     <OnboardingStack.Navigator
+      // Resume mid-flow (Edge Case 4): start on the persisted step. Legacy V1
+      // flow keeps its default first route.
+      initialRouteName={ONBOARDING_V2 ? initialStep ?? 'OnboardingProblem' : undefined}
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
@@ -138,9 +153,15 @@ const OnboardingNavigator = () => {
     >
       {ONBOARDING_V2 ? (
         <>
-          <OnboardingStack.Screen name="OnboardingV2Welcome" component={OnboardingV2WelcomeScreen} />
-          <OnboardingStack.Screen name="OnboardingV2CheckIn" component={OnboardingV2CheckInScreen} />
-          <OnboardingStack.Screen name="OnboardingV2Protocol" component={OnboardingV2ProtocolScreen} />
+          <OnboardingStack.Screen name="OnboardingProblem" component={OnboardingProblemScreen} />
+          <OnboardingStack.Screen name="OnboardingStateCheckIn" component={OnboardingStateCheckInScreen} />
+          <OnboardingStack.Screen name="OnboardingStressor" component={OnboardingStressorScreen} />
+          <OnboardingStack.Screen name="OnboardingPeakWindow" component={OnboardingPeakWindowScreen} />
+          <OnboardingStack.Screen name="OnboardingReflect" component={OnboardingReflectScreen} />
+          <OnboardingStack.Screen name="OnboardingProtocol" component={OnboardingProtocolScreen} />
+          <OnboardingStack.Screen name="OnboardingRecheck" component={OnboardingRecheckScreen} />
+          <OnboardingStack.Screen name="OnboardingBridge" component={OnboardingBridgeScreen} />
+          <OnboardingStack.Screen name="OnboardingAnchor" component={OnboardingAnchorScreen} />
         </>
       ) : (
         <>
@@ -863,6 +884,7 @@ const AppNavigator: React.FC = () => {
   const { user, isAuthReady, refreshCounter } = useAuth();
   const { status: subscriptionStatus, loading: subscriptionLoading } = useSubscription();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = React.useState<boolean | null>(null);
+  const [onboardingStep, setOnboardingStep] = React.useState<OnboardingSrStep | undefined>(undefined);
   const [checkingOnboarding, setCheckingOnboarding] = React.useState(true);
 
   // Check if user has completed onboarding with real-time listener
@@ -904,6 +926,9 @@ const AppNavigator: React.FC = () => {
               // as having completed onboarding.
               // Only users explicitly set to false (new signups) see onboarding.
               const completed = userData.hasCompletedOnboarding !== false;
+
+              // Resume mid-flow: remember which onboarding step the user is on.
+              setOnboardingStep(resolveInitialStep(userData));
 
               // Only update state if value actually changed to prevent re-render loops
               setHasCompletedOnboarding((prev) => {
@@ -1035,8 +1060,10 @@ const AppNavigator: React.FC = () => {
         // User is logged in but email not verified -> Show verification screen
         <VerificationNavigator />
       ) : hasCompletedOnboarding === false ? (
-        // User is verified but hasn't completed onboarding -> Show onboarding
-        <OnboardingNavigator />
+        // User is verified but hasn't completed onboarding -> Show onboarding.
+        // Onboarding-in-progress users are NOT subject to the paywall gate; the
+        // gate (canAccessApp) only applies once onboarding is complete.
+        <OnboardingNavigator initialStep={onboardingStep} />
       ) : !subscriptionStatus?.canAccessApp ? (
         // No source affirmatively grants access (expired trial / no subscription)
         // -> Show paywall as a full-screen replacement. Fail-closed: undefined or
