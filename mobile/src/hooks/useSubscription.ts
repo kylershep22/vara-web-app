@@ -44,9 +44,14 @@ interface UseSubscriptionResult {
   refresh: () => void;
 }
 
-/** Fail-closed status: no source affirmatively grants access. */
+/**
+ * Fail-closed sentinel: no subscription to display (missing doc, Firestore
+ * error/timeout, uninitialized SDK). type:'none' — we have nothing to show,
+ * distinct from type:'expired' (a real subscription that expired). Referenced
+ * by the error, timeout, and no-db paths below.
+ */
 const NO_ACCESS: SubscriptionStatus = {
-  type: 'expired',
+  type: 'none',
   isActive: false,
   canAccessApp: false,
 };

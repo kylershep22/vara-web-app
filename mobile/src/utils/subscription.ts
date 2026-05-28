@@ -5,7 +5,7 @@
 
 import { Timestamp } from 'firebase/firestore';
 
-export type SubscriptionType = 'trial' | 'premium' | 'coaching' | 'event' | 'expired';
+export type SubscriptionType = 'trial' | 'premium' | 'coaching' | 'event' | 'expired' | 'none';
 
 export interface SubscriptionStatus {
   type: SubscriptionType;
@@ -105,9 +105,13 @@ export function getSubscriptionStatus(userDoc: { subscription?: SubscriptionData
   // (Model A): access requires an active entitlement — Firestore premium/event/
   // coaching (webhook/code grant) or an active RevenueCat entitlement (merged in
   // useSubscription). Fail closed; never default access to true here.
+  //
+  // type:'none' (never-subscribed), distinct from type:'expired' (webhook-
+  // produced expiration of a real subscription) — both deny, but they are not
+  // the same state.
   if (!sub || !sub.type) {
     return {
-      type: 'expired',
+      type: 'none',
       isActive: false,
       canAccessApp: false,
     };
@@ -235,6 +239,8 @@ export function formatSubscriptionType(type: SubscriptionType): string {
       return 'Event Access';
     case 'expired':
       return 'Expired';
+    case 'none':
+      return 'None';
     default:
       return 'Unknown';
   }
@@ -270,6 +276,9 @@ export function getSubscriptionDescription(status: SubscriptionStatus): string {
       if (status.dataRetentionDaysRemaining) {
         return `Data kept for ${status.dataRetentionDaysRemaining} more days`;
       }
+      return 'Subscribe to continue your wellness journey';
+
+    case 'none':
       return 'Subscribe to continue your wellness journey';
 
     default:

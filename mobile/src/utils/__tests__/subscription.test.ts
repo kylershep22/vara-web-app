@@ -5,12 +5,16 @@ const future = { toMillis: () => Date.now() + 86_400_000 } as any;
 const past = { toMillis: () => Date.now() - 86_400_000 } as any;
 
 describe('getSubscriptionStatus — access derivation (app-side trial removed, Model A)', () => {
-  test('no subscription field → DENIED (fail closed; was the beta grant)', () => {
-    expect(getSubscriptionStatus({}).canAccessApp).toBe(false);
+  test("no subscription field → DENIED, classified type:'none' (never-subscribed, not 'expired')", () => {
+    const s = getSubscriptionStatus({});
+    expect(s.canAccessApp).toBe(false);
+    expect(s.type).toBe('none');
   });
 
-  test('subscription without a type → DENIED (fail closed)', () => {
-    expect(getSubscriptionStatus({ subscription: {} }).canAccessApp).toBe(false);
+  test("subscription without a type → DENIED, classified type:'none'", () => {
+    const s = getSubscriptionStatus({ subscription: {} });
+    expect(s.canAccessApp).toBe(false);
+    expect(s.type).toBe('none');
   });
 
   test("type:'trial' (legacy app-side trial) → DENIED even if not expired", () => {
@@ -44,7 +48,14 @@ describe('getSubscriptionStatus — access derivation (app-side trial removed, M
     expect(getSubscriptionStatus({ subscription: { type: 'coaching' } }).canAccessApp).toBe(true);
   });
 
-  test("type:'expired' → DENIED", () => {
-    expect(getSubscriptionStatus({ subscription: { type: 'expired' } }).canAccessApp).toBe(false);
+  test("type:'expired' (webhook-produced expiration) → DENIED and stays 'expired' — distinct from 'none'", () => {
+    const s = getSubscriptionStatus({ subscription: { type: 'expired' } });
+    expect(s.canAccessApp).toBe(false);
+    expect(s.type).toBe('expired');
+  });
+
+  test("never-subscribed ('none') and expired ('expired') are distinguishable states", () => {
+    expect(getSubscriptionStatus({}).type).toBe('none');
+    expect(getSubscriptionStatus({ subscription: { type: 'expired' } }).type).toBe('expired');
   });
 });
