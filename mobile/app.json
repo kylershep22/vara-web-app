@@ -82,8 +82,7 @@
       ],
       "expo-video",
       "expo-asset",
-      "@react-native-community/datetimepicker",
-      "react-native-purchases"
+      "@react-native-community/datetimepicker"
     ],
     "owner": "kylershep",
     "extra": {
