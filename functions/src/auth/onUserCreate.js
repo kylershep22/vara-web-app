@@ -1,7 +1,9 @@
 /**
  * onUserCreate Cloud Function
  * Triggered when a new Firebase Auth account is created (any provider).
- * Owns trial-subscription bootstrap so the client never writes subscription state.
+ * Bootstraps the never-subscribed (type:'none') state so the client never
+ * writes subscription state. Under Model A there is no app-side trial — the
+ * real trial is the StoreKit intro offer, recorded by the RC webhook.
  *
  * Idempotent: if users/{uid}.subscription.type is already set, this trigger
  * logs and exits without overwriting. This protects any future server-side
@@ -12,8 +14,6 @@
 const functionsV1 = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
-
-const TRIAL_DURATION_DAYS = 7;
 
 const onUserCreate = functionsV1
     .region("us-central1")
@@ -33,24 +33,21 @@ const onUserCreate = functionsV1
       }
 
       const now = admin.firestore.FieldValue.serverTimestamp();
-      const trialExpiresAt = admin.firestore.Timestamp.fromMillis(
-          Date.now() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000,
-      );
 
       await userRef.set(
           {
             subscription: {
-              type: "trial",
+              type: "none",
+              // Retained for analytics cohort use (see admin/analytics.js).
+              // Effectively a signup timestamp post-Model-A.
               trialStartedAt: now,
-              trialExpiresAt,
             },
-            hasActiveSubscription: true,
-            subscriptionType: "trial",
+            subscriptionType: "none",
           },
           {merge: true},
       );
 
-      logger.info("Trial subscription bootstrapped", {uid});
+      logger.info("Subscription state bootstrapped", {uid});
     });
 
 module.exports = {onUserCreate};
