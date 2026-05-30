@@ -28,7 +28,7 @@ const OnboardingBridgeScreen: React.FC = () => {
     >
       <View style={styles.card}>
         <Text style={styles.cardText}>
-          What you felt was a single reset. The change comes from repetition — give it two
+          What you felt was a single reset. The change comes from repetition. Give it two
           weeks and you'll feel the difference between a one-off and a pattern.
         </Text>
       </View>

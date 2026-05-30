@@ -135,7 +135,7 @@ const OnboardingAnchorScreen: React.FC = () => {
   return (
     <OnboardingScaffold
       title="Want a daily moment to reset?"
-      subtitle="Pick a time that fits your day. It's an invitation, not an obligation — you can change or turn it off anytime."
+      subtitle="Pick a time that fits your day. It's an invitation, not an obligation. You can change or turn it off anytime."
       primaryLabel="Start free trial"
       primaryDisabled={busy}
       onPrimary={handleStartTrial}

@@ -41,7 +41,7 @@ const OnboardingPeakWindowScreen: React.FC = () => {
   return (
     <OnboardingScaffold
       title="When does it peak?"
-      subtitle="This helps us suggest a daily moment — skip if you're not sure."
+      subtitle="This helps us suggest a daily moment. Skip if you're not sure."
       primaryLabel="Continue"
       primaryDisabled={!selected}
       onPrimary={() => advance(selected)}

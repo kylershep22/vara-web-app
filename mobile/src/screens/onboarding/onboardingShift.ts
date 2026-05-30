@@ -56,5 +56,5 @@ export function shiftLine(before: BrainState, after: BrainState, shift: Shift): 
   if (shift === 'improved') {
     return `You moved from ${STATE_LABELS[before]} to ${STATE_LABELS[after]} in five minutes.`;
   }
-  return "Recovery isn't linear — some days the shift is quiet. Showing up is the part that compounds.";
+  return "Recovery isn't linear. Some days the shift is quiet. Showing up is the part that compounds.";
 }

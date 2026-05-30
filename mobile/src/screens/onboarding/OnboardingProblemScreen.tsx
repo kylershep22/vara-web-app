@@ -20,7 +20,7 @@ const OnboardingProblemScreen: React.FC = () => {
   return (
     <OnboardingScaffold
       title="When your system is running hot, focus and follow-through get harder."
-      subtitle="That's your nervous system — not a lack of discipline. Vara helps you downshift in a few quiet minutes."
+      subtitle="That's your nervous system, not a lack of discipline. Vara helps you downshift in a few quiet minutes."
       primaryLabel="Begin"
       onPrimary={() => navigation.navigate('OnboardingStateCheckIn')}
     />

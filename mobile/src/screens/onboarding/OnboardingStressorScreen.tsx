@@ -45,7 +45,7 @@ const OnboardingStressorScreen: React.FC = () => {
   return (
     <OnboardingScaffold
       title="What's driving it?"
-      subtitle="Pick what fits — or skip."
+      subtitle="Pick what fits, or skip."
       primaryLabel="Continue"
       onPrimary={() => advance(selected)}
       onSkip={() => advance([])}

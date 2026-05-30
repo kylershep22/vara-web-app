@@ -398,7 +398,7 @@ export const BRAIN_STATE_PROTOCOLS = {
     whatItIs:
       'Brief cold exposure to the inner wrists or face. Run cold water over your inner wrists for about a minute, or apply a cold compress to your face. Both trigger the same physiological response. No submersion required.',
     whatYoullNeed:
-      "A sink or cold water source. A washcloth or cold pack can be useful but isn't required. Cool tap water is enough — it doesn't need to be ice-cold.",
+      "A sink or cold water source. A washcloth or cold pack can be useful but isn't required. Cool tap water is enough. It doesn't need to be ice-cold.",
     howItWorks:
       'Cold exposure to the face or wrists triggers the mammalian dive reflex — a rapid, involuntary parasympathetic response that slows your heart rate within seconds. It also releases norepinephrine, which improves alertness. The same intervention calms you when Wired and activates you when Foggy.',
     whenItFits:
@@ -425,7 +425,7 @@ export const BRAIN_STATE_PROTOCOLS = {
         kind: 'instruction',
         id: 'prep',
         durationSeconds: 90,
-        text: "Get to a sink with cold water. Cool tap water is enough — it doesn't need to be ice-cold.",
+        text: "Get to a sink with cold water. Cool tap water is enough. It doesn't need to be ice-cold.",
       },
       {
         kind: 'timer',
