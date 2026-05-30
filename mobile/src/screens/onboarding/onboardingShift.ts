@@ -12,6 +12,13 @@ export const STATE_LABELS: Record<BrainState, string> = BRAIN_STATES.reduce(
   {} as Record<BrainState, string>
 );
 
+// Same per-state colors the selection cards use (BrainStateOptionRow dot), so
+// the re-check transition visual matches the swatches above it.
+export const STATE_COLORS: Record<BrainState, string> = BRAIN_STATES.reduce(
+  (acc, o) => ({ ...acc, [o.state]: o.color }),
+  {} as Record<BrainState, string>
+);
+
 export const PEAK_LABELS: Record<PeakWindow, string> = PEAK_WINDOW_OPTIONS.reduce(
   (acc, o) => ({ ...acc, [o.id]: o.label }),
   {} as Record<PeakWindow, string>
