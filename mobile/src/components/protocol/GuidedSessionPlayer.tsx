@@ -45,6 +45,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -492,7 +493,10 @@ export function GuidedSessionPlayer({
   const stepActive = isActive(state.status);
 
   return (
-    <View style={styles.container} testID="guided-session-player">
+    // edges=['top'] so the header clears the status bar / notch on real
+    // devices. Bottom inset is intentionally left to PlayerTransport, which
+    // manages its own safe-area padding.
+    <SafeAreaView style={styles.container} edges={['top']} testID="guided-session-player">
       {isVisualProtocol ? <KeepAwakeWhenVisual /> : null}
       <Header
         protocolName={protocol.name}
@@ -535,7 +539,7 @@ export function GuidedSessionPlayer({
         onCancel={handleHeaderExitCancel}
         onConfirm={handleHeaderExitConfirm}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
