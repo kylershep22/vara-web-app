@@ -26,6 +26,8 @@ import {
   DEFAULT_ANCHOR_HOUR,
   PEAK_WINDOW_OPTIONS,
   type PeakWindow,
+  ONBOARDING_SR_TOTAL_STEPS,
+  onboardingStepNumber,
 } from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep } from '../../services/firebase/onboardingStressRecovery.service';
@@ -134,6 +136,8 @@ const OnboardingAnchorScreen: React.FC = () => {
 
   return (
     <OnboardingScaffold
+      currentStep={onboardingStepNumber('OnboardingAnchor')}
+      totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       title="Want a daily moment to reset?"
       subtitle="Pick a time that fits your day. It's an invitation, not an obligation. You can change or turn it off anytime."
       primaryLabel="Start free trial"

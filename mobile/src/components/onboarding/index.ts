@@ -5,6 +5,7 @@
 
 export { default as DotScaleSelector } from './DotScaleSelector';
 export { default as OnboardingProgressDots } from './OnboardingProgressDots';
+export { StepIndicator } from './StepIndicator';
 export { default as InsightCard } from './InsightCard';
 export { default as FocusRecommendationCard } from './FocusRecommendationCard';
 export { default as FocusAreaBottomSheet } from './FocusAreaBottomSheet';

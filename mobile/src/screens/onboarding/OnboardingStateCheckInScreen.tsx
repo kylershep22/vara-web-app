@@ -9,6 +9,10 @@ import { useNavigation } from '@react-navigation/native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
 import { BRAIN_STATES } from '../../components/dashboard/brainStateCheckin/brainStateOptions';
 import { BrainStateOptionRow } from '../../components/dashboard/brainStateCheckin/BrainStateOptionRow';
+import {
+  ONBOARDING_SR_TOTAL_STEPS,
+  onboardingStepNumber,
+} from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import {
   saveInitialState,
@@ -38,6 +42,8 @@ const OnboardingStateCheckInScreen: React.FC = () => {
 
   return (
     <OnboardingScaffold
+      currentStep={onboardingStepNumber('OnboardingStateCheckIn')}
+      totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       title="How are you arriving right now?"
       primaryLabel="Continue"
       primaryDisabled={!selected}

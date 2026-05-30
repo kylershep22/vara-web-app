@@ -10,6 +10,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { StepIndicator } from './StepIndicator';
 
 interface OnboardingScaffoldProps {
   title: string;
@@ -19,6 +20,10 @@ interface OnboardingScaffoldProps {
   primaryDisabled?: boolean;
   onSkip?: () => void; // present => render "Skip for now"
   children?: React.ReactNode;
+  // When both are provided, render the thin step-position progress bar above
+  // the headline. The protocol (Cold Water Reset) screen omits these.
+  currentStep?: number;
+  totalSteps?: number;
 }
 
 export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
@@ -29,6 +34,8 @@ export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
   primaryDisabled,
   onSkip,
   children,
+  currentStep,
+  totalSteps,
 }) => {
   const reduceMotion = useReducedMotion();
   const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
@@ -45,6 +52,11 @@ export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Animated.View style={[styles.flex, { opacity }]}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {currentStep != null && totalSteps != null && (
+            <View style={styles.stepIndicator}>
+              <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
+            </View>
+          )}
           <Text style={styles.title} accessibilityRole="header">
             {title}
           </Text>
@@ -94,6 +106,7 @@ const styles = StyleSheet.create({
     lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
     marginBottom: Spacing.lg,
   },
+  stepIndicator: { marginBottom: Spacing.md },
   body: { marginTop: Spacing.base },
   footer: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
   cta: {

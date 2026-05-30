@@ -6,6 +6,10 @@
 import React, { useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
+import {
+  ONBOARDING_SR_TOTAL_STEPS,
+  onboardingStepNumber,
+} from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep } from '../../services/firebase/onboardingStressRecovery.service';
 
@@ -19,6 +23,8 @@ const OnboardingProblemScreen: React.FC = () => {
 
   return (
     <OnboardingScaffold
+      currentStep={onboardingStepNumber('OnboardingProblem')}
+      totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       title="When your system is running hot, focus and follow-through get harder."
       subtitle="That's your nervous system, not a lack of discipline. Vara helps you downshift in a few quiet minutes."
       primaryLabel="Begin"

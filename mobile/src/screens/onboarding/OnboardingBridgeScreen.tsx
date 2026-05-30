@@ -9,6 +9,10 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import {
+  ONBOARDING_SR_TOTAL_STEPS,
+  onboardingStepNumber,
+} from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep } from '../../services/firebase/onboardingStressRecovery.service';
 
@@ -22,6 +26,8 @@ const OnboardingBridgeScreen: React.FC = () => {
 
   return (
     <OnboardingScaffold
+      currentStep={onboardingStepNumber('OnboardingBridge')}
+      totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       title="One reset is a start. The change is in the repetition."
       primaryLabel="Continue"
       onPrimary={() => navigation.navigate('OnboardingAnchor')}

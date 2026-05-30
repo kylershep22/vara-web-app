@@ -12,7 +12,11 @@ import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffo
 import { BRAIN_STATES } from '../../components/dashboard/brainStateCheckin/brainStateOptions';
 import { BrainStateOptionRow } from '../../components/dashboard/brainStateCheckin/BrainStateOptionRow';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
-import { ONBOARDING_PROTOCOL_TIME_WINDOW } from '../../constants/onboardingStressRecovery';
+import {
+  ONBOARDING_PROTOCOL_TIME_WINDOW,
+  ONBOARDING_SR_TOTAL_STEPS,
+  onboardingStepNumber,
+} from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep, saveRecheckShift } from '../../services/firebase/onboardingStressRecovery.service';
 import { writeProtocolSession } from '../../services/firebase/protocolSession.service';
@@ -62,6 +66,8 @@ const OnboardingRecheckScreen: React.FC = () => {
 
   return (
     <OnboardingScaffold
+      currentStep={onboardingStepNumber('OnboardingRecheck')}
+      totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       title="How are you arriving now?"
       primaryLabel="Continue"
       primaryDisabled={!after}

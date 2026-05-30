@@ -8,7 +8,11 @@ import { View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
 import { SelectChip } from '../../components/onboarding/SelectChip';
-import { STRESSOR_OPTIONS } from '../../constants/onboardingStressRecovery';
+import {
+  STRESSOR_OPTIONS,
+  ONBOARDING_SR_TOTAL_STEPS,
+  onboardingStepNumber,
+} from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import {
   saveStressors,
@@ -44,6 +48,8 @@ const OnboardingStressorScreen: React.FC = () => {
 
   return (
     <OnboardingScaffold
+      currentStep={onboardingStepNumber('OnboardingStressor')}
+      totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       title="What's driving it?"
       subtitle="Pick what fits, or skip."
       primaryLabel="Continue"

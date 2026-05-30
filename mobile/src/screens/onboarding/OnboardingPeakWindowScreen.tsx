@@ -7,7 +7,12 @@ import { View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
 import { SelectChip } from '../../components/onboarding/SelectChip';
-import { PEAK_WINDOW_OPTIONS, type PeakWindow } from '../../constants/onboardingStressRecovery';
+import {
+  PEAK_WINDOW_OPTIONS,
+  type PeakWindow,
+  ONBOARDING_SR_TOTAL_STEPS,
+  onboardingStepNumber,
+} from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import {
   savePeakWindow,
@@ -40,6 +45,8 @@ const OnboardingPeakWindowScreen: React.FC = () => {
 
   return (
     <OnboardingScaffold
+      currentStep={onboardingStepNumber('OnboardingPeakWindow')}
+      totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       title="When does it peak?"
       subtitle="This helps us suggest a daily moment. Skip if you're not sure."
       primaryLabel="Continue"

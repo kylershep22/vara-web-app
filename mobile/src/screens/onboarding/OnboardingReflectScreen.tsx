@@ -8,7 +8,11 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
-import { type PeakWindow } from '../../constants/onboardingStressRecovery';
+import {
+  type PeakWindow,
+  ONBOARDING_SR_TOTAL_STEPS,
+  onboardingStepNumber,
+} from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep } from '../../services/firebase/onboardingStressRecovery.service';
 import { buildReflectLine } from './onboardingShift';
@@ -76,6 +80,8 @@ const OnboardingReflectScreen: React.FC = () => {
 
   return (
     <OnboardingScaffold
+      currentStep={onboardingStepNumber('OnboardingReflect')}
+      totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       title="Here's where you're starting."
       subtitle={line}
       primaryLabel="Start the reset"

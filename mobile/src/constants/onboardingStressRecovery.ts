@@ -22,6 +22,19 @@ export const ONBOARDING_SR_STEPS = [
 
 export type OnboardingSrStep = (typeof ONBOARDING_SR_STEPS)[number];
 
+/**
+ * Total steps in the arc, used as the denominator for the onboarding step
+ * indicator. The protocol (Cold Water Reset) screen does not render the bar
+ * but still occupies its true position, so positions intentionally skip it
+ * (e.g. Reflect = 5, Recheck = 7).
+ */
+export const ONBOARDING_SR_TOTAL_STEPS = ONBOARDING_SR_STEPS.length;
+
+/** 1-based position of a step within the arc, for the step indicator. */
+export function onboardingStepNumber(step: OnboardingSrStep): number {
+  return ONBOARDING_SR_STEPS.indexOf(step) + 1;
+}
+
 export type PeakWindow = 'morning' | 'midday' | 'evening';
 
 /** Screen 3 — "what's driving it" (skippable). Stress-framed, plain language. */
