@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Wind, Briefcase, CloudFog, Moon, Flame, type LucideIcon } from 'lucide-react-native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
 import { SelectChip } from '../../components/onboarding/SelectChip';
 import {
@@ -19,6 +20,15 @@ import {
   saveOnboardingStep,
 } from '../../services/firebase/onboardingStressRecovery.service';
 import type { BrainState } from '../../types/models';
+
+// Line icon per stressor option (keyed by stable id, not label).
+const STRESSOR_ICONS: Record<string, LucideIcon> = {
+  racing_mind: Wind,
+  cant_switch_off: Briefcase,
+  foggy_scattered: CloudFog,
+  cant_wind_down: Moon,
+  feeling_reactive: Flame,
+};
 
 const OnboardingStressorScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -61,6 +71,7 @@ const OnboardingStressorScreen: React.FC = () => {
           <SelectChip
             key={opt.id}
             label={opt.label}
+            icon={STRESSOR_ICONS[opt.id]}
             selected={selected.includes(opt.id)}
             onPress={() => toggle(opt.id)}
           />

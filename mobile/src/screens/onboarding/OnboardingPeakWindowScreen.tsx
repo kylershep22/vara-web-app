@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Sunrise, Sun, Sunset, type LucideIcon } from 'lucide-react-native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
 import { SelectChip } from '../../components/onboarding/SelectChip';
 import {
@@ -19,6 +20,13 @@ import {
   saveOnboardingStep,
 } from '../../services/firebase/onboardingStressRecovery.service';
 import type { BrainState } from '../../types/models';
+
+// Line icon per peak-window option (keyed by stable id).
+const PEAK_ICONS: Record<PeakWindow, LucideIcon> = {
+  morning: Sunrise,
+  midday: Sun,
+  evening: Sunset,
+};
 
 const OnboardingPeakWindowScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -59,6 +67,7 @@ const OnboardingPeakWindowScreen: React.FC = () => {
           <SelectChip
             key={opt.id}
             label={opt.label}
+            icon={PEAK_ICONS[opt.id]}
             selected={selected === opt.id}
             onPress={() => setSelected(opt.id)}
           />
