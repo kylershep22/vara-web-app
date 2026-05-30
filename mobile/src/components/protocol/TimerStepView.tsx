@@ -16,7 +16,13 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '../../constants';
 import { useStepCountdown } from '../../hooks/useStepCountdown';
+import { TimerRing } from '../../screens/Focus/components/TimerRing';
 import type { TimerStepViewProps } from './stepViewProps';
+
+// Ring large enough to comfortably contain the countdown numerals. Track is
+// Silver Sage (Colors.divider), fill is Evergreen Teal — see TimerRing.
+const RING_DIAMETER = 170;
+const RING_STROKE = 3.5;
 
 function formatCountdown(remainingMs: number): string {
   const totalSec = Math.ceil(remainingMs / 1000);
@@ -33,12 +39,15 @@ export function TimerStepView({
   isActive,
   onComplete,
 }: TimerStepViewProps) {
-  const { remainingMs } = useStepCountdown({
-    durationMs: step.durationSeconds * 1000,
+  const durationMs = step.durationSeconds * 1000;
+  const { remainingMs, elapsedMs } = useStepCountdown({
+    durationMs,
     isActive,
     onComplete,
   });
   const display = formatCountdown(remainingMs);
+  // Fraction elapsed — ring fills from the top (12 o'clock) as time passes.
+  const progress = durationMs > 0 ? Math.min(1, Math.max(0, elapsedMs / durationMs)) : 0;
 
   return (
     <View style={styles.container} testID="timer-step">
@@ -50,9 +59,19 @@ export function TimerStepView({
           {step.hint}
         </Text>
       ) : null}
-      <Text style={styles.countdown} testID="timer-step-countdown">
-        {display}
-      </Text>
+      <View style={styles.ringWrap}>
+        <TimerRing
+          diameter={RING_DIAMETER}
+          strokeWidth={RING_STROKE}
+          progress={progress}
+          fillColor={Colors.evergreenTeal}
+          trackColor={Colors.divider}
+        >
+          <Text style={styles.countdown} testID="timer-step-countdown">
+            {display}
+          </Text>
+        </TimerRing>
+      </View>
     </View>
   );
 }
@@ -77,8 +96,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  countdown: {
+  ringWrap: {
     marginTop: Spacing.xl,
+  },
+  countdown: {
     fontSize: 64,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.evergreenTeal,

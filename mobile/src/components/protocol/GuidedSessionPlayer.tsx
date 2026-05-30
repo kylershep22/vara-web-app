@@ -77,6 +77,7 @@ import {
   type SessionMarker,
 } from '../../utils/sessionMarker';
 import { logger } from '../../utils/logger';
+import OnboardingProgressDots from '../onboarding/OnboardingProgressDots';
 import { AudioStepView } from './AudioStepView';
 import { BreathPacer } from './BreathPacer';
 import { EndEarlyConfirmModal } from './EndEarlyConfirmModal';
@@ -575,9 +576,14 @@ function Header({
         <Text style={styles.headerName} testID="player-header-protocol-name">
           {protocolName}
         </Text>
-        <Text style={styles.headerSteps} testID="player-header-steps">
-          {`Step ${currentStepIndex + 1} of ${totalSteps}`}
-        </Text>
+        {/* Step position as dots (was "Step N of M" text). Filled = completed +
+            current; muted = upcoming. Keeps the "Step N of M" a11y label. */}
+        <View style={styles.headerDots} testID="player-header-steps">
+          <OnboardingProgressDots
+            currentStep={currentStepIndex + 1}
+            totalSteps={totalSteps}
+          />
+        </View>
       </View>
       {showCloseButton ? (
         <TouchableOpacity
@@ -689,10 +695,8 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
   },
-  headerSteps: {
-    marginTop: 2,
-    fontSize: Typography.fontSize.xs,
-    color: Colors.mutedSageGray,
+  headerDots: {
+    alignItems: 'center',
   },
   headerClose: {
     position: 'absolute',
