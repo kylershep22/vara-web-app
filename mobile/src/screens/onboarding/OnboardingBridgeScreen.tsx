@@ -7,6 +7,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Repeat } from 'lucide-react-native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import {
@@ -28,6 +29,7 @@ const OnboardingBridgeScreen: React.FC = () => {
     <OnboardingScaffold
       currentStep={onboardingStepNumber('OnboardingBridge')}
       totalSteps={ONBOARDING_SR_TOTAL_STEPS}
+      decorativeIcon={Repeat}
       title="One reset is a start. The change is in the repetition."
       primaryLabel="Continue"
       onPrimary={() => navigation.navigate('OnboardingAnchor')}

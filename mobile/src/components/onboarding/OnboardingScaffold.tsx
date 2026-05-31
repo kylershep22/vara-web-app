@@ -5,12 +5,22 @@
  * absolute px, so it's derived from tokens (fontSize × lineHeight multiplier),
  * since Typography.lineHeight.normal is 1.5.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, type ComponentType } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { StepIndicator } from './StepIndicator';
+
+// Minimal shape of a Lucide icon component. Kept local so the scaffold doesn't
+// hard-depend on lucide-react-native's types.
+type IconComponent = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+
+// Fixed decorative-icon spec (Commit 4): light Silver Sage, thin 1.2 stroke to
+// read as decorative (vs the 1.5 functional selection icons). Centralized here
+// so every text-only transition screen renders an identical accent.
+const DECORATIVE_ICON_SIZE = 56;
+const DECORATIVE_ICON_STROKE = 1.2;
 
 interface OnboardingScaffoldProps {
   title: string;
@@ -24,6 +34,9 @@ interface OnboardingScaffoldProps {
   // the headline. The protocol (Cold Water Reset) screen omits these.
   currentStep?: number;
   totalSteps?: number;
+  // Optional decorative line icon centered above the headline. Used to balance
+  // text-only transition screens; rendered with the fixed decorative spec.
+  decorativeIcon?: IconComponent;
 }
 
 export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
@@ -36,6 +49,7 @@ export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
   children,
   currentStep,
   totalSteps,
+  decorativeIcon: DecorativeIcon,
 }) => {
   const reduceMotion = useReducedMotion();
   const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
@@ -55,6 +69,15 @@ export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
           {currentStep != null && totalSteps != null && (
             <View style={styles.stepIndicator}>
               <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
+            </View>
+          )}
+          {DecorativeIcon && (
+            <View style={styles.decorativeIcon}>
+              <DecorativeIcon
+                size={DECORATIVE_ICON_SIZE}
+                strokeWidth={DECORATIVE_ICON_STROKE}
+                color={Colors.silverSage}
+              />
             </View>
           )}
           <Text style={styles.title} accessibilityRole="header">
@@ -107,6 +130,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   stepIndicator: { marginBottom: Spacing.md },
+  // Centered ~spacing.lg above the headline; balances text-only screens.
+  decorativeIcon: { alignItems: 'center', marginTop: Spacing.sm, marginBottom: Spacing.lg },
   body: { marginTop: Spacing.base },
   footer: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
   cta: {

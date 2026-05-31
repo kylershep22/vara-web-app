@@ -5,6 +5,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Sparkles } from 'lucide-react-native';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
@@ -82,6 +83,7 @@ const OnboardingReflectScreen: React.FC = () => {
     <OnboardingScaffold
       currentStep={onboardingStepNumber('OnboardingReflect')}
       totalSteps={ONBOARDING_SR_TOTAL_STEPS}
+      decorativeIcon={Sparkles}
       title="Here's where you're starting."
       subtitle={line}
       primaryLabel="Start the reset"
