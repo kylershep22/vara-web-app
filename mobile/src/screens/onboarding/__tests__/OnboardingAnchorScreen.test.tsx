@@ -8,6 +8,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react-nativ
 
 const mockNavigate = jest.fn();
 const mockSaveOnboardingStep = jest.fn().mockResolvedValue(undefined);
+const mockPersistRecheck = jest.fn().mockResolvedValue(undefined);
 const mockCompleteOnboarding = jest.fn().mockResolvedValue(undefined);
 const mockRegisterForPush = jest.fn().mockResolvedValue('token');
 const mockGetPermissions = jest.fn();
@@ -26,6 +27,7 @@ jest.mock('firebase/firestore', () => ({
 jest.mock('../../../config/firebase', () => ({ db: { __db: true } }));
 jest.mock('../../../services/firebase/onboardingStressRecovery.service', () => ({
   saveOnboardingStep: (...a: any[]) => mockSaveOnboardingStep(...a),
+  persistRecheckAsDailyCheckIn: (...a: any[]) => mockPersistRecheck(...a),
 }));
 jest.mock('../../../services/firebase/onboarding.service', () => ({
   completeOnboarding: (...a: any[]) => mockCompleteOnboarding(...a),
@@ -87,6 +89,21 @@ describe('OnboardingAnchorScreen — anchor + contextual permission', () => {
     fireEvent.press(screen.getByLabelText('Skip for now'));
     await waitFor(() => expect(mockCompleteOnboarding).toHaveBeenCalledWith('u1'));
     expect(mockScheduleDailyRhythm).not.toHaveBeenCalled();
+  });
+
+  test('carries the re-check brain state into the daily check-in on finish', async () => {
+    mockGetPermissions.mockResolvedValue({ status: 'granted' });
+    render(<OnboardingAnchorScreen />);
+    fireEvent.press(screen.getByLabelText('Start free trial'));
+    await waitFor(() => expect(mockPersistRecheck).toHaveBeenCalledWith('u1'));
+    await waitFor(() => expect(mockCompleteOnboarding).toHaveBeenCalledWith('u1'));
+  });
+
+  test('"Skip for now" still carries the re-check into the daily check-in', async () => {
+    render(<OnboardingAnchorScreen />);
+    fireEvent.press(screen.getByLabelText('Skip for now'));
+    await waitFor(() => expect(mockPersistRecheck).toHaveBeenCalledWith('u1'));
+    await waitFor(() => expect(mockCompleteOnboarding).toHaveBeenCalledWith('u1'));
   });
 
   test('records the current step on mount (resume)', () => {

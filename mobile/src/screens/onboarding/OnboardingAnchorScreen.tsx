@@ -30,7 +30,10 @@ import {
   onboardingStepNumber,
 } from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
-import { saveOnboardingStep } from '../../services/firebase/onboardingStressRecovery.service';
+import {
+  saveOnboardingStep,
+  persistRecheckAsDailyCheckIn,
+} from '../../services/firebase/onboardingStressRecovery.service';
 import { completeOnboarding } from '../../services/firebase/onboarding.service';
 import {
   registerForPushNotifications,
@@ -85,6 +88,11 @@ const OnboardingAnchorScreen: React.FC = () => {
 
   const finish = async () => {
     if (user?.uid) {
+      // Carry the re-check brain state into today's daily check-in BEFORE
+      // flipping hasCompletedOnboarding — once that flips, the navigator
+      // routes onward and the dashboard reads the check-in log. No-ops if the
+      // user skipped re-check.
+      await persistRecheckAsDailyCheckIn(user.uid);
       try {
         await completeOnboarding(user.uid);
       } catch {

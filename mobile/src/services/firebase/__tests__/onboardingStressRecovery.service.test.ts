@@ -1,13 +1,20 @@
 const mockUpdateDoc = jest.fn((..._a: any[]) => Promise.resolve(undefined));
 const mockDoc = jest.fn((..._a: any[]) => ({ __ref: true }));
 const mockServerTimestamp = jest.fn(() => '__ts__');
+const mockGetDoc = jest.fn((..._a: any[]): any => undefined);
+const mockSaveRecheckCheckIn = jest.fn((..._a: any[]) => Promise.resolve(undefined));
 
 jest.mock('firebase/firestore', () => ({
   doc: (...a: any[]) => mockDoc(...a),
+  getDoc: (...a: any[]) => mockGetDoc(...a),
   updateDoc: (...a: any[]) => mockUpdateDoc(...a),
   serverTimestamp: () => mockServerTimestamp(),
 }));
 jest.mock('../../../config/firebase', () => ({ db: { __db: true } }));
+// Isolate from the brainStateCheckIn writer (and its catalog/selector deps).
+jest.mock('../brainStateCheckIn.service', () => ({
+  saveOnboardingRecheckCheckIn: (...a: any[]) => mockSaveRecheckCheckIn(...a),
+}));
 
 import {
   saveInitialState,
@@ -16,6 +23,7 @@ import {
   saveRecheckShift,
   saveOnboardingStep,
   resolveInitialStep,
+  persistRecheckAsDailyCheckIn,
 } from '../onboardingStressRecovery.service';
 
 describe('onboardingStressRecovery.service', () => {
@@ -66,6 +74,37 @@ describe('onboardingStressRecovery.service', () => {
       { __ref: true },
       { onboardingStep: 'OnboardingProtocol', updatedAt: '__ts__' }
     );
+  });
+
+  describe('persistRecheckAsDailyCheckIn', () => {
+    beforeEach(() => {
+      mockGetDoc.mockReset();
+      mockSaveRecheckCheckIn.mockClear();
+    });
+
+    test('writes the re-check state as a daily check-in when present', async () => {
+      mockGetDoc.mockResolvedValue({
+        exists: () => true,
+        data: () => ({ onboardingStressRecovery: { recheckStateAfter: 'steady' } }),
+      });
+      await persistRecheckAsDailyCheckIn('u1');
+      expect(mockSaveRecheckCheckIn).toHaveBeenCalledWith('u1', 'steady');
+    });
+
+    test('no-op when the re-check state is absent (skipped / not reached)', async () => {
+      mockGetDoc.mockResolvedValue({
+        exists: () => true,
+        data: () => ({ onboardingStressRecovery: {} }),
+      });
+      await persistRecheckAsDailyCheckIn('u1');
+      expect(mockSaveRecheckCheckIn).not.toHaveBeenCalled();
+    });
+
+    test('no-op when the user doc does not exist', async () => {
+      mockGetDoc.mockResolvedValue({ exists: () => false });
+      await persistRecheckAsDailyCheckIn('u1');
+      expect(mockSaveRecheckCheckIn).not.toHaveBeenCalled();
+    });
   });
 
   describe('resolveInitialStep', () => {

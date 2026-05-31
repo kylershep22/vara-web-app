@@ -190,6 +190,58 @@ export const saveBrainStateCheckIn = async (
 };
 
 /**
+ * Onboarding bridge: persist the onboarding re-check brain state as today's
+ * first daily check-in, so the dashboard's gated-until-check-in logic doesn't
+ * immediately re-ask a user who just attested their state in the re-check step.
+ *
+ * Writes the standard brainStateCheckIns shape plus a `source` tag for
+ * analytics differentiation. Create-if-absent: never clobbers an existing
+ * same-day check-in (a brand-new completer has none, but this stays safe on
+ * resume). Errors are logged and swallowed — a failed write must not strand the
+ * user on the terminal onboarding screen.
+ *
+ * The caller is responsible for the skip guard: if the user skipped / never
+ * reached re-check (no persisted state), this is simply not called.
+ */
+export const saveOnboardingRecheckCheckIn = async (
+  userId: string,
+  brainState: BrainState
+): Promise<void> => {
+  if (!db) return;
+  try {
+    const todayDate = getTodayDate();
+    const checkInId = `${userId}_${todayDate}`;
+    const docRef = doc(db, COLLECTION, checkInId);
+
+    const existing = await getDoc(docRef);
+    if (existing.exists()) return; // don't overwrite a real check-in
+
+    // protocolId mirrors a standard fresh check-in: the recommended protocol
+    // for the attested state (not a completed run). Defensive fallback keeps
+    // the write resilient if selectProtocol ever throws in __DEV__.
+    let protocolId = 'cyclic-sighing-2';
+    try {
+      protocolId = selectProtocol({ state: brainState, timeWindow: 5 }).id;
+    } catch {
+      // keep the fallback
+    }
+
+    await setDoc(docRef, {
+      userId,
+      date: todayDate,
+      brainState: serializeBrainState(brainState),
+      protocolId,
+      protocolCompleted: false,
+      source: 'onboarding_recheck',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    logger.error('Error writing onboarding-recheck check-in:', error);
+  }
+};
+
+/**
  * Mark today's protocol as completed.
  */
 export const markProtocolCompleted = async (userId: string): Promise<void> => {

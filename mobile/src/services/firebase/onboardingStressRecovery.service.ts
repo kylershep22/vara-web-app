@@ -9,10 +9,11 @@
  * so a crash mid-flow resumes onto the step the user is ON, not the one they
  * just completed.
  */
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import type { BrainState } from '../../types/models';
 import { ONBOARDING_SR_STEPS, type OnboardingSrStep, type PeakWindow } from '../../constants/onboardingStressRecovery';
+import { saveOnboardingRecheckCheckIn } from './brainStateCheckIn.service';
 
 const USERS_COLLECTION = 'users';
 
@@ -52,6 +53,27 @@ export async function saveRecheckShift(
     'onboardingStressRecovery.recheckShift': shift,
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * On onboarding completion: if the user completed the re-check step, persist
+ * that brain state as today's first daily check-in (source-tagged) so the
+ * dashboard's gated-until-check-in logic doesn't immediately re-ask. A skipped
+ * / never-reached re-check leaves `recheckStateAfter` unset → no write, and the
+ * dashboard gates normally. Non-blocking: never trap the user on the terminal
+ * screen.
+ */
+export async function persistRecheckAsDailyCheckIn(userId: string): Promise<void> {
+  try {
+    const snap = await getDoc(userRef(userId));
+    if (!snap.exists()) return;
+    const after = (snap.data()?.onboardingStressRecovery?.recheckStateAfter ??
+      null) as BrainState | null;
+    if (!after) return; // re-check skipped or not reached → gate normally
+    await saveOnboardingRecheckCheckIn(userId, after);
+  } catch {
+    // Swallow — analytics/UX convenience, must not block completion.
+  }
 }
 
 /**
