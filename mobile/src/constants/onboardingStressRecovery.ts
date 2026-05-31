@@ -66,3 +66,18 @@ export const DEFAULT_ANCHOR_HOUR = 20;
 export const DEFAULT_ONBOARDING_STATE: BrainState = 'wired';
 export const DEFAULT_ONBOARDING_PROTOCOL_ID = 'cyclic-sighing-2';
 export const ONBOARDING_PROTOCOL_TIME_WINDOW = 5; // minutes (ProtocolTimeWindow)
+
+/**
+ * Onboarding-only entry-protocol overrides. The signup-moment demo must be
+ * completable phone-only, anywhere, in a few minutes — so Wired is routed to
+ * breathwork (cyclic sighing / physiological sigh) instead of the generic
+ * selector's pick of Cold Water Reset, which requires cold running water.
+ *
+ * Scope is the onboarding moment ONLY: the catalog and production
+ * `selectProtocol` are untouched, so Cold Water Reset stays available to Wired
+ * users in the post-onboarding library. Non-overridden states fall through to
+ * `selectProtocol`.
+ */
+export const ONBOARDING_ENTRY_PROTOCOL_OVERRIDES: Partial<Record<BrainState, string>> = {
+  wired: 'cyclic-sighing-2',
+};
