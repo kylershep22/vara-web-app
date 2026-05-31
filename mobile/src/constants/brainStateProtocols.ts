@@ -422,10 +422,14 @@ export const BRAIN_STATE_PROTOCOLS = {
     suitableForTimesOfDay: [],
     steps: [
       {
-        kind: 'instruction',
+        // Reclassified instruction -> timer so all three Cold Water Reset
+        // steps render through TimerStepView (ring + m:ss). The prep
+        // instruction text moves into label/hint.
+        kind: 'timer',
         id: 'prep',
         durationSeconds: 90,
-        text: "Get to a sink with cold water. Cool tap water is enough. It doesn't need to be ice-cold.",
+        label: 'Get to a sink',
+        hint: "Cool tap water is enough. It doesn't need to be ice-cold.",
       },
       {
         kind: 'timer',
@@ -435,10 +439,12 @@ export const BRAIN_STATE_PROTOCOLS = {
         hint: 'Cold water on inner wrists, or a cold cloth to your face. Switch sides at 60 seconds. Do not submerge your face or hold your breath.',
       },
       {
-        kind: 'instruction',
+        // Reclassified instruction -> timer (see prep above).
+        kind: 'timer',
         id: 'recovery',
         durationSeconds: 90,
-        text: 'Dry off. Notice your heart rate, your alertness, your breath.',
+        label: 'Dry off and notice',
+        hint: 'Notice your heart rate, your alertness, your breath.',
       },
     ],
   },
