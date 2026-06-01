@@ -141,7 +141,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaDisabled: { opacity: 0.5 },
+  // Design-system disabled state: primary teal at 40% opacity, no interaction.
+  ctaDisabled: { opacity: 0.4 },
   ctaText: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,

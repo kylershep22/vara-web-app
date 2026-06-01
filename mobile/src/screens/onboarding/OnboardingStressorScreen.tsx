@@ -64,7 +64,6 @@ const OnboardingStressorScreen: React.FC = () => {
       subtitle="Pick any that fit, or skip."
       primaryLabel="Continue"
       onPrimary={() => advance(selected)}
-      onSkip={() => advance([])}
     >
       <View>
         {STRESSOR_OPTIONS.map((opt) => (

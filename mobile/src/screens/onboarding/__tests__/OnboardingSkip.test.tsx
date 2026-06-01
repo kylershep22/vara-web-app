@@ -1,6 +1,8 @@
 /**
- * Skippable personalization steps (screens 3 & 4). "Skip for now" must persist a
- * sensible empty/default value (no penalty) and advance the flow.
+ * Optional personalization steps (screens 3 & 4). These no longer render a
+ * separate "Skip for now" button — Continue is always active and treats an empty
+ * selection as skip, persisting a sensible empty/default value (no penalty) and
+ * advancing the flow.
  */
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
@@ -38,9 +40,10 @@ import OnboardingPeakWindowScreen from '../OnboardingPeakWindowScreen';
 describe('Onboarding skip behavior', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  test('screen 3 (Stressor) "Skip for now" persists [] and advances to PeakWindow', async () => {
+  test('screen 3 (Stressor) Continue with no selection persists [] and advances to PeakWindow', async () => {
     render(<OnboardingStressorScreen />);
-    fireEvent.press(screen.getByLabelText('Skip for now'));
+    expect(screen.queryByLabelText('Skip for now')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Continue'));
     await waitFor(() => expect(mockSaveStressors).toHaveBeenCalledWith('u1', []));
     expect(mockNavigate).toHaveBeenCalledWith(
       'OnboardingPeakWindow',
@@ -48,9 +51,10 @@ describe('Onboarding skip behavior', () => {
     );
   });
 
-  test('screen 4 (PeakWindow) "Skip for now" persists null and advances to Reflect', async () => {
+  test('screen 4 (PeakWindow) Continue with no selection persists null and advances to Reflect', async () => {
     render(<OnboardingPeakWindowScreen />);
-    fireEvent.press(screen.getByLabelText('Skip for now'));
+    expect(screen.queryByLabelText('Skip for now')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Continue'));
     await waitFor(() => expect(mockSavePeakWindow).toHaveBeenCalledWith('u1', null));
     expect(mockNavigate).toHaveBeenCalledWith(
       'OnboardingReflect',

@@ -135,8 +135,9 @@ const styles = StyleSheet.create({
   destructiveButtonText: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,
-    // Soft Coral signals destructive intent (Build Guide #D97A6E,
-    // never red).
-    color: Colors.softCoral,
+    // Muted Sage Gray: ending early is a benign, allowed exit, not a warning.
+    // Visual hierarchy stays intact via the filled-teal "Keep going" primary;
+    // coral stays reserved for genuine error states per the design system.
+    color: Colors.mutedSageGray,
   },
 });

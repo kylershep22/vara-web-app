@@ -58,9 +58,7 @@ const OnboardingPeakWindowScreen: React.FC = () => {
       title="When does it peak?"
       subtitle="This helps us suggest a daily moment. Skip if you're not sure."
       primaryLabel="Continue"
-      primaryDisabled={!selected}
       onPrimary={() => advance(selected)}
-      onSkip={() => advance(null)}
     >
       <View>
         {PEAK_WINDOW_OPTIONS.map((opt) => (

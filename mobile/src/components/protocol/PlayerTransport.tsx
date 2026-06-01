@@ -166,7 +166,9 @@ function TransportButton({
   testID,
   accessibilityLabel,
 }: TransportButtonProps) {
-  const tint = destructive ? Colors.softCoral : Colors.softCharcoal;
+  // "End early" is a benign, allowed exit — Muted Sage Gray, not coral. Coral
+  // stays reserved for genuine error states per the design system.
+  const tint = destructive ? Colors.mutedSageGray : Colors.softCharcoal;
   return (
     <TouchableOpacity
       style={styles.button}
