@@ -8,6 +8,7 @@
 import React, { useEffect, useRef, type ComponentType } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChevronLeft } from 'lucide-react-native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { StepIndicator } from './StepIndicator';
@@ -29,6 +30,9 @@ interface OnboardingScaffoldProps {
   onPrimary: () => void;
   primaryDisabled?: boolean;
   onSkip?: () => void; // present => render "Skip for now"
+  // Present => render a top-left back chevron (pre-protocol screens only). Sits
+  // to the left of the step indicator; callers pass a guarded navigation.goBack.
+  onBack?: () => void;
   children?: React.ReactNode;
   // When both are provided, render the thin step-position progress bar above
   // the headline. The protocol (Cold Water Reset) screen omits these.
@@ -46,6 +50,7 @@ export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
   onPrimary,
   primaryDisabled,
   onSkip,
+  onBack,
   children,
   currentStep,
   totalSteps,
@@ -66,9 +71,24 @@ export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Animated.View style={[styles.flex, { opacity }]}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {currentStep != null && totalSteps != null && (
-            <View style={styles.stepIndicator}>
-              <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
+          {(onBack || (currentStep != null && totalSteps != null)) && (
+            <View style={styles.topRow}>
+              {onBack && (
+                <TouchableOpacity
+                  onPress={onBack}
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.backButton}
+                >
+                  <ChevronLeft size={24} color={Colors.evergreenTeal} />
+                </TouchableOpacity>
+              )}
+              {currentStep != null && totalSteps != null && (
+                <View style={styles.stepIndicatorFlex}>
+                  <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
+                </View>
+              )}
             </View>
           )}
           {DecorativeIcon && (
@@ -129,7 +149,16 @@ const styles = StyleSheet.create({
     lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
     marginBottom: Spacing.lg,
   },
-  stepIndicator: { marginBottom: Spacing.md },
+  // Back chevron + 12px gap + step indicator bar (flex 1). The 24px chevron
+  // sits left of the bar; the bar takes the remaining width.
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  backButton: { alignItems: 'flex-start', justifyContent: 'center' },
+  stepIndicatorFlex: { flex: 1 },
   // Centered ~spacing.lg above the headline; balances text-only screens.
   decorativeIcon: { alignItems: 'center', marginTop: Spacing.sm, marginBottom: Spacing.lg },
   body: { marginTop: Spacing.base },

@@ -88,6 +88,7 @@ const OnboardingReflectScreen: React.FC = () => {
       subtitle={line}
       primaryLabel="Start the reset"
       onPrimary={() => navigation.navigate('OnboardingProtocol', { state: resolved.state })}
+      onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
     />
   );
 };

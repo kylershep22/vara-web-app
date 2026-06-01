@@ -48,6 +48,7 @@ const OnboardingStateCheckInScreen: React.FC = () => {
       primaryLabel="Continue"
       primaryDisabled={!selected}
       onPrimary={onPrimary}
+      onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
     >
       <View>
         {BRAIN_STATES.map((opt, i) => (

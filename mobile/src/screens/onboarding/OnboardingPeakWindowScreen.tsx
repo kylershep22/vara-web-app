@@ -59,6 +59,7 @@ const OnboardingPeakWindowScreen: React.FC = () => {
       subtitle="This helps us suggest a daily moment. Skip if you're not sure."
       primaryLabel="Continue"
       onPrimary={() => advance(selected)}
+      onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
     >
       <View>
         {PEAK_WINDOW_OPTIONS.map((opt) => (

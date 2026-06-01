@@ -13,7 +13,7 @@ const mockSavePeakWindow = jest.fn().mockResolvedValue(undefined);
 const mockSaveOnboardingStep = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate }),
+  useNavigation: () => ({ navigate: mockNavigate, goBack: jest.fn(), canGoBack: () => false }),
   useRoute: () => ({ params: { state: 'wired' } }),
 }));
 
