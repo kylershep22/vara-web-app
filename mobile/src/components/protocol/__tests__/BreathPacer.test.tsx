@@ -22,6 +22,7 @@ jest.mock('../../../hooks/useReducedMotion', () => ({
 }));
 
 import React from 'react';
+import { AccessibilityInfo, Platform } from 'react-native';
 import { act, render } from '@testing-library/react-native';
 import { BreathPacer } from '../BreathPacer';
 import type { BreathStep } from '../../../types/models';
@@ -103,6 +104,43 @@ describe('BreathPacer — pause via isActive prop', () => {
     const label = getByTestId('breath-pacer-phase-label');
     expect(label.props.accessibilityLiveRegion).toBe('polite');
     expect(label.props.accessibilityLabel).toBe('Inhale');
+  });
+
+  it('announces each phase transition to VoiceOver on iOS (matching the phase sequence)', () => {
+    Platform.OS = 'ios';
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+    render(<BreathPacer step={fastStep} />);
+
+    // First phase announced synchronously on mount, then one per boundary.
+    // fastStep cycles Inhale → Exhale.
+    expect(announce).toHaveBeenNthCalledWith(1, 'Inhale');
+
+    act(() => {
+      jest.advanceTimersByTime(1_100);
+    });
+    expect(announce).toHaveBeenNthCalledWith(2, 'Exhale');
+
+    act(() => {
+      jest.advanceTimersByTime(1_100);
+    });
+    expect(announce).toHaveBeenNthCalledWith(3, 'Inhale');
+
+    announce.mockRestore();
+  });
+
+  it('does NOT announce on Android (live region handles it there)', () => {
+    Platform.OS = 'android';
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+    render(<BreathPacer step={fastStep} />);
+    act(() => {
+      jest.advanceTimersByTime(1_100);
+    });
+
+    expect(announce).not.toHaveBeenCalled();
+    announce.mockRestore();
+    Platform.OS = 'ios';
   });
 
   it('flipping isActive false → true → false controls the schedule', () => {

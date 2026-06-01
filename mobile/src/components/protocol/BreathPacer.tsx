@@ -18,7 +18,7 @@
 // Accessibility > Motion > Reduce Motion).
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -154,6 +154,13 @@ export function BreathPacer({
 
     const phase = step.phases[entry.phaseIndex];
     onPhaseChangeRef.current?.(entry);
+
+    // VoiceOver: announce the new phase. accessibilityLiveRegion (on the phase
+    // label) covers Android; iOS ignores live regions, so announce explicitly
+    // there. Guarded on Platform.OS to avoid double-announcing on Android.
+    if (Platform.OS === 'ios') {
+      AccessibilityInfo.announceForAccessibility(phaseLabel(phase));
+    }
 
     // Visual: animate scale to target over the phase duration.
     if (!reduceMotion) {
