@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { BrainState } from '../../../types';
 import { BrainStateOption } from './brainStateOptions';
@@ -14,6 +13,11 @@ interface BrainStateOptionRowProps {
   isLast?: boolean;
 }
 
+// Single-select selection card. Neutral white default with a 10px state-identity
+// dot at left; selecting applies a teal border + 45% Dew Sage wash and reveals a
+// filled radio control at right (semantically correct for single-select — see
+// the Selection Layer rebuild). Descriptors use Soft Charcoal so AA contrast
+// holds on both the white default and the Dew Sage wash.
 export const BrainStateOptionRow: React.FC<BrainStateOptionRowProps> = ({
   option,
   onPress,
@@ -21,19 +25,17 @@ export const BrainStateOptionRow: React.FC<BrainStateOptionRowProps> = ({
   disabled = false,
   isLast = false,
 }) => {
-  const backgroundColor = withAlpha(option.color, 0.12);
-  const borderColor = withAlpha(option.color, selected ? 0.6 : 0.3);
-
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={option.label}
       accessibilityHint={option.description}
+      accessibilityState={{ selected, disabled }}
       onPress={() => !disabled && onPress(option.state)}
       disabled={disabled}
       style={({ pressed }) => [
         styles.row,
-        { backgroundColor, borderColor },
+        selected ? styles.rowSelected : styles.rowDefault,
         !isLast && styles.rowSpacing,
         disabled && styles.rowDisabled,
         pressed && !disabled && styles.rowPressed,
@@ -48,13 +50,9 @@ export const BrainStateOptionRow: React.FC<BrainStateOptionRowProps> = ({
         <Text style={styles.description}>{option.description}</Text>
       </View>
       {selected && (
-        <MaterialCommunityIcons
-          testID={`brain-state-check-${option.state}`}
-          name="check-circle"
-          size={22}
-          color={option.color}
-          style={styles.check}
-        />
+        <View testID={`brain-state-radio-${option.state}`} style={styles.radioOuter}>
+          <View style={styles.radioInner} />
+        </View>
       )}
     </Pressable>
   );
@@ -65,9 +63,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: Layout.borderRadius.md,
-    borderWidth: 1,
     paddingVertical: Spacing.base,
     paddingHorizontal: Spacing.lg,
+  },
+  rowDefault: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.silverSage,
+  },
+  rowSelected: {
+    backgroundColor: withAlpha(Colors.dewSage, 0.45),
+    borderWidth: 1.5,
+    borderColor: Colors.evergreenTeal,
   },
   rowSpacing: {
     marginBottom: Spacing.sm,
@@ -79,9 +86,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     marginRight: Spacing.base,
   },
   textColumn: {
@@ -90,14 +97,27 @@ const styles = StyleSheet.create({
   label: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
-    color: Colors.textPrimary,
+    color: Colors.softCharcoal,
   },
   description: {
     fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
+    color: Colors.softCharcoal,
     marginTop: 2,
   },
-  check: {
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: Colors.evergreenTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginLeft: Spacing.sm,
+  },
+  radioInner: {
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+    backgroundColor: Colors.evergreenTeal,
   },
 });

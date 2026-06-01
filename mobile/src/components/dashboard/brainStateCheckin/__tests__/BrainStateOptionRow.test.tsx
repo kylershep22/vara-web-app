@@ -39,17 +39,17 @@ describe('BrainStateOptionRow', () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
-  it('shows a checkmark when selected', () => {
+  it('shows a radio control when selected', () => {
     const { getByTestId } = render(
       <BrainStateOptionRow option={wired} onPress={jest.fn()} selected />
     );
-    expect(getByTestId('brain-state-check-wired')).toBeTruthy();
+    expect(getByTestId('brain-state-radio-wired')).toBeTruthy();
   });
 
-  it('does not show a checkmark when not selected', () => {
+  it('does not show a radio control when not selected', () => {
     const { queryByTestId } = render(
       <BrainStateOptionRow option={wired} onPress={jest.fn()} />
     );
-    expect(queryByTestId('brain-state-check-wired')).toBeNull();
+    expect(queryByTestId('brain-state-radio-wired')).toBeNull();
   });
 });

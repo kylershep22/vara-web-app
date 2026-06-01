@@ -16,7 +16,7 @@ export interface WeekTrend {
 }
 
 const STATE_COLORS: Record<BrainState, string> = {
-  wired: Colors.softCoral,
+  wired: Colors.wiredTerracotta,
   foggy: Colors.sunriseAmber,
   steady: Colors.mutedSageGray,
   clear: Colors.evergreenTeal,

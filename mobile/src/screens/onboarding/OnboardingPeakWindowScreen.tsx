@@ -7,7 +7,7 @@ import { View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Sunrise, Sun, Sunset, type LucideIcon } from 'lucide-react-native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
-import { SelectChip } from '../../components/onboarding/SelectChip';
+import { SelectionRow } from '../../components/onboarding/SelectionRow';
 import {
   PEAK_WINDOW_OPTIONS,
   type PeakWindow,
@@ -64,10 +64,11 @@ const OnboardingPeakWindowScreen: React.FC = () => {
     >
       <View>
         {PEAK_WINDOW_OPTIONS.map((opt) => (
-          <SelectChip
+          <SelectionRow
             key={opt.id}
             label={opt.label}
             icon={PEAK_ICONS[opt.id]}
+            selectionMode="single"
             selected={selected === opt.id}
             onPress={() => setSelected(opt.id)}
           />

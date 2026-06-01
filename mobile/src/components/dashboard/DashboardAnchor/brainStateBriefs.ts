@@ -13,19 +13,19 @@ export const BRAIN_STATE_BRIEFS: Record<BrainState, BrainStateBrief[]> = {
     {
       label: 'Wired',
       icon: 'lightning-bolt',
-      accentColor: Colors.softCoral,
+      accentColor: Colors.wiredTerracotta,
       message: "Activation is elevated today. A short breathwork session first can help your system settle before you take on anything else.",
     },
     {
       label: 'Wired',
       icon: 'lightning-bolt',
-      accentColor: Colors.softCoral,
+      accentColor: Colors.wiredTerracotta,
       message: "Your nervous system is working hard right now. Today's a good day to start with regulation before habits or focus work.",
     },
     {
       label: 'Wired',
       icon: 'lightning-bolt',
-      accentColor: Colors.softCoral,
+      accentColor: Colors.wiredTerracotta,
       message: "When activation is high, the brain's harder to direct. A calming protocol first creates the conditions for everything else.",
     },
   ],

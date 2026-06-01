@@ -8,7 +8,7 @@ import { View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Wind, Briefcase, CloudFog, Moon, Flame, type LucideIcon } from 'lucide-react-native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
-import { SelectChip } from '../../components/onboarding/SelectChip';
+import { SelectionRow } from '../../components/onboarding/SelectionRow';
 import {
   STRESSOR_OPTIONS,
   ONBOARDING_SR_TOTAL_STEPS,
@@ -61,17 +61,18 @@ const OnboardingStressorScreen: React.FC = () => {
       currentStep={onboardingStepNumber('OnboardingStressor')}
       totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       title="What's driving it?"
-      subtitle="Pick what fits, or skip."
+      subtitle="Pick any that fit, or skip."
       primaryLabel="Continue"
       onPrimary={() => advance(selected)}
       onSkip={() => advance([])}
     >
       <View>
         {STRESSOR_OPTIONS.map((opt) => (
-          <SelectChip
+          <SelectionRow
             key={opt.id}
             label={opt.label}
             icon={STRESSOR_ICONS[opt.id]}
+            selectionMode="multi"
             selected={selected.includes(opt.id)}
             onPress={() => toggle(opt.id)}
           />
