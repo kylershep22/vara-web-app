@@ -231,7 +231,18 @@ export function BreathPacer({
         )}
       </View>
       {currentPhase && (
-        <Text style={styles.phaseLabel} testID="breath-pacer-phase-label">
+        <Text
+          style={styles.phaseLabel}
+          testID="breath-pacer-phase-label"
+          accessible
+          accessibilityRole="text"
+          // Announce each inhale/hold/exhale transition so a VoiceOver user can
+          // follow the protocol without seeing the circle (UI Standards §13.4:
+          // animation must never be the only channel). accessibilityLabel keys
+          // off the phase so the live region re-reads it as it changes.
+          accessibilityLiveRegion="polite"
+          accessibilityLabel={phaseLabel(currentPhase)}
+        >
           {phaseLabel(currentPhase)}
         </Text>
       )}

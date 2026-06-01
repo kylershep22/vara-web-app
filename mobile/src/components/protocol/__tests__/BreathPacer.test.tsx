@@ -98,6 +98,13 @@ describe('BreathPacer — pause via isActive prop', () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
+  it('exposes the phase label as a polite live region with a phase accessibilityLabel', () => {
+    const { getByTestId } = render(<BreathPacer step={fastStep} />);
+    const label = getByTestId('breath-pacer-phase-label');
+    expect(label.props.accessibilityLiveRegion).toBe('polite');
+    expect(label.props.accessibilityLabel).toBe('Inhale');
+  });
+
   it('flipping isActive false → true → false controls the schedule', () => {
     const onPhaseChange = jest.fn();
     const onComplete = jest.fn();
