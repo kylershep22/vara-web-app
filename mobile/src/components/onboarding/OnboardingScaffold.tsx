@@ -41,6 +41,13 @@ interface OnboardingScaffoldProps {
   // Optional decorative line icon centered above the headline. Used to balance
   // text-only transition screens; rendered with the fixed decorative spec.
   decorativeIcon?: IconComponent;
+  // Override the decorative icon size (default 56). Used by single-focus screens
+  // (e.g. the intro) that want a larger hero accent.
+  decorativeIconSize?: number;
+  // Vertically center the content block (icon + heading + subtitle + body)
+  // between the top progress bar and the sticky CTA. For single-focus screens
+  // without a scrolling option list; leave false for list screens.
+  centerContent?: boolean;
 }
 
 export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
@@ -55,6 +62,8 @@ export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
   currentStep,
   totalSteps,
   decorativeIcon: DecorativeIcon,
+  decorativeIconSize,
+  centerContent,
 }) => {
   const reduceMotion = useReducedMotion();
   const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
@@ -67,10 +76,32 @@ export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
     Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
   }, [opacity, reduceMotion]);
 
+  const contentBlock = (
+    <>
+      {DecorativeIcon && (
+        <View style={styles.decorativeIcon}>
+          <DecorativeIcon
+            size={decorativeIconSize ?? DECORATIVE_ICON_SIZE}
+            strokeWidth={DECORATIVE_ICON_STROKE}
+            color={Colors.silverSage}
+          />
+        </View>
+      )}
+      <Text style={styles.title} accessibilityRole="header">
+        {title}
+      </Text>
+      {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+      <View style={styles.body}>{children}</View>
+    </>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Animated.View style={[styles.flex, { opacity }]}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[styles.content, centerContent && styles.contentCentered]}
+          showsVerticalScrollIndicator={false}
+        >
           {(onBack || (currentStep != null && totalSteps != null)) && (
             <View style={styles.topRow}>
               {onBack && (
@@ -91,20 +122,11 @@ export const OnboardingScaffold: React.FC<OnboardingScaffoldProps> = ({
               )}
             </View>
           )}
-          {DecorativeIcon && (
-            <View style={styles.decorativeIcon}>
-              <DecorativeIcon
-                size={DECORATIVE_ICON_SIZE}
-                strokeWidth={DECORATIVE_ICON_STROKE}
-                color={Colors.silverSage}
-              />
-            </View>
+          {centerContent ? (
+            <View style={styles.centeredBlock}>{contentBlock}</View>
+          ) : (
+            contentBlock
           )}
-          <Text style={styles.title} accessibilityRole="header">
-            {title}
-          </Text>
-          {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-          <View style={styles.body}>{children}</View>
         </ScrollView>
         <View style={styles.footer}>
           <TouchableOpacity
@@ -137,6 +159,10 @@ const styles = StyleSheet.create({
     paddingTop: Spacing['2xl'],
     paddingBottom: Spacing.lg,
   },
+  // Lets the centered block grow to fill the space between the top row and the
+  // sticky CTA; content taller than the viewport still scrolls.
+  contentCentered: { flexGrow: 1 },
+  centeredBlock: { flex: 1, justifyContent: 'center' },
   title: {
     fontSize: Typography.fontSize['2xl'],
     fontWeight: Typography.fontWeight.bold,
