@@ -430,20 +430,27 @@ export function GuidedSessionPlayer({
           state.status.breathScheduleIndex !== undefined
             ? state.status.breathScheduleIndex
             : 0;
+        // Center the breath cluster (circle + phase label + non-motion cues) as
+        // one group between the header dots and the bottom transport. BreathPacer
+        // is content-sized (so it stays valid inside the scrolling dev harness),
+        // so the player owns the vertical centering. Timer/instruction step views
+        // already self-center via their own flex:1 containers.
         return (
-          <BreathPacer
-            key={`breath-${currentStepIndex}`}
-            step={currentStep}
-            startAtScheduleIndex={startIndex}
-            isActive={stepActive}
-            onPhaseChange={(entry) => {
-              const idx =
-                entry.cycleIndex * currentStep.phases.length +
-                entry.phaseIndex;
-              dispatch({ type: 'UPDATE_BREATH_INDEX', index: idx });
-            }}
-            onComplete={handleStepComplete}
-          />
+          <View style={styles.breathCenter}>
+            <BreathPacer
+              key={`breath-${currentStepIndex}`}
+              step={currentStep}
+              startAtScheduleIndex={startIndex}
+              isActive={stepActive}
+              onPhaseChange={(entry) => {
+                const idx =
+                  entry.cycleIndex * currentStep.phases.length +
+                  entry.phaseIndex;
+                dispatch({ type: 'UPDATE_BREATH_INDEX', index: idx });
+              }}
+              onComplete={handleStepComplete}
+            />
+          </View>
         );
       }
       case 'audio':
@@ -712,6 +719,11 @@ const styles = StyleSheet.create({
   },
   stepWrap: {
     flex: 1,
+  },
+  // Centers the content-sized breath cluster vertically in the player body.
+  breathCenter: {
+    flex: 1,
+    justifyContent: 'center',
   },
   idle: {
     flex: 1,

@@ -30,6 +30,7 @@ const OnboardingBridgeScreen: React.FC = () => {
       currentStep={onboardingStepNumber('OnboardingBridge')}
       totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       decorativeIcon={Repeat}
+      centerContent
       title="One reset is a start. The change is in the repetition."
       primaryLabel="Continue"
       onPrimary={() => navigation.navigate('OnboardingAnchor')}
