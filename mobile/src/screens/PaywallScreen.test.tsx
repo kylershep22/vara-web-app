@@ -117,9 +117,10 @@ describe('PaywallScreen', () => {
   });
 
   describe('Trial-eligible (new user)', () => {
-    it('renders the 14-day plan heading', async () => {
+    it('names the offer in the heading (offer, not trial mechanic)', async () => {
       render(<PaywallScreen />);
-      expect(await screen.findByText('Your 14-day plan')).toBeTruthy();
+      expect(await screen.findByText('The full Vara experience')).toBeTruthy();
+      expect(screen.queryByText('Your 14-day plan')).toBeNull();
     });
 
     it('shows "Start your 14-day free trial" CTA', async () => {
@@ -141,6 +142,9 @@ describe('PaywallScreen', () => {
       render(<PaywallScreen />);
       expect(screen.getByText('AI-powered brain health guidance')).toBeTruthy();
       expect(screen.getByText('Full audio and content library')).toBeTruthy();
+      expect(
+        screen.getByText('Brain-aligned guidance that adapts to how you arrive each day')
+      ).toBeTruthy();
     });
   });
 

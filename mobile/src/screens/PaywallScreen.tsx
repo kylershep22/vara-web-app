@@ -41,12 +41,13 @@ const FALLBACK_MONTHLY = `${FALLBACK_CURRENCY}${config.monthlyPrice}`;
 const FALLBACK_ANNUAL = `${FALLBACK_CURRENCY}${config.annualPrice}`;
 const FALLBACK_ANNUAL_EQUIVALENT = `${FALLBACK_CURRENCY}${config.annualMonthlyEquivalent}`;
 
-// Feature list (max 4 items)
+// Feature list
 const FEATURES = [
   'AI-powered brain health guidance',
   'Full audio and content library',
   'Unlimited habits, routines, and reflections',
   'Detailed insights and progress patterns',
+  'Brain-aligned guidance that adapts to how you arrive each day',
 ];
 
 const PaywallScreen: React.FC = () => {
@@ -185,17 +186,14 @@ const PaywallScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Heading — driven entirely by trial eligibility (three-state via
-            showTrial). Unknown/failed eligibility collapses to the non-trial copy. */}
-        <Text style={styles.heading}>
-          {showTrial ? 'Your 14-day plan' : 'The full Vara experience'}
-        </Text>
+        {/* Heading + blurb name the offer, not the trial mechanic — consistent
+            regardless of trial eligibility. The 14-day framing lives in the CTA,
+            timeline, and legal copy below (shown only when a trial is available). */}
+        <Text style={styles.heading}>The full Vara experience</Text>
 
         {/* Body */}
         <Text style={styles.body}>
-          {showTrial
-            ? 'Starting with a daily reset, built around how your brain actually works.'
-            : 'Everything Vara offers, designed around how your brain actually works.'}
+          Everything Vara offers, built around how your brain actually works.
         </Text>
 
         {/* Feature List */}
