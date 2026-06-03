@@ -59,9 +59,24 @@ export const BRAIN_STATE_PROTOCOLS = {
         id: 'cycle',
         durationSeconds: 120,
         phases: [
-          { kind: 'inhale', seconds: 1.5, label: 'Inhale' },
-          { kind: 'inhale', seconds: 1, label: 'Top up' },
-          { kind: 'exhale', seconds: 5, label: 'Exhale' },
+          {
+            kind: 'inhale',
+            seconds: 1.5,
+            label: 'Inhale',
+            guidance: 'Short inhale through your nose',
+          },
+          {
+            kind: 'inhale',
+            seconds: 1,
+            label: 'Top up',
+            guidance: 'Another short inhale, fill the lungs',
+          },
+          {
+            kind: 'exhale',
+            seconds: 5,
+            label: 'Exhale',
+            guidance: 'Long exhale through your mouth',
+          },
         ],
         guidance:
           'Two short inhales through the nose, then one long exhale through the mouth.',

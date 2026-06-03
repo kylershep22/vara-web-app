@@ -11,11 +11,12 @@
 // the pacer's state machine simple and lets the player serialize the
 // position into the session record without coupling.
 //
-// Reduce Motion: when `useReducedMotion()` returns true, the animated
-// circle is replaced with a static circle plus a numeric phase
-// countdown. The protocol still functions — only the animation is
-// suppressed. Tested via the dev test screen (toggle iOS Settings >
-// Accessibility > Motion > Reduce Motion).
+// Reduce Motion: when `useReducedMotion()` returns true, the scaling
+// animation is suppressed (static core), but the in-core phase label +
+// countdown, the cycle segments, and the phase guidance all still render —
+// none of them depend on motion. The protocol still functions identically.
+// Tested via the dev test screen (toggle iOS Settings > Accessibility >
+// Motion > Reduce Motion).
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, StyleSheet, Text, View } from 'react-native';
@@ -27,6 +28,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Colors, Spacing, Typography } from '../../constants';
+import { withAlpha } from '../dashboard/brainStateCheckin/colorUtils';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import type { BreathPhase, BreathStep } from '../../types/models';
 import {
@@ -162,26 +164,25 @@ export function BreathPacer({
       AccessibilityInfo.announceForAccessibility(phaseLabel(phase));
     }
 
-    // Visual: animate scale to target over the phase duration.
+    // Visual: animate scale to target over the phase duration (skipped under
+    // Reduce Motion — the static circle holds while the countdown still ticks).
     if (!reduceMotion) {
       const target = targetScaleFor(phase, scale.value);
       scale.value = withTiming(target, {
         duration: entry.durationSeconds * 1000,
         easing: Easing.inOut(Easing.ease),
       });
-    } else {
-      // Reduce motion: static circle, just update the countdown.
-      setSecondsLeftInPhase(Math.ceil(entry.durationSeconds));
-      const phaseStart = Date.now();
-      intervalRef.current = setInterval(() => {
-        const elapsed = (Date.now() - phaseStart) / 1000;
-        const remaining = Math.max(
-          0,
-          Math.ceil(entry.durationSeconds - elapsed)
-        );
-        setSecondsLeftInPhase(remaining);
-      }, 250);
     }
+
+    // Per-phase countdown — shown inside the core in BOTH modes (the number is
+    // non-motion-dependent). Reuses the existing interval machinery; no new
+    // timer is introduced.
+    setSecondsLeftInPhase(Math.ceil(entry.durationSeconds));
+    const phaseStart = Date.now();
+    intervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - phaseStart) / 1000;
+      setSecondsLeftInPhase(Math.max(0, Math.ceil(entry.durationSeconds - elapsed)));
+    }, 250);
 
     // Schedule transition to next entry (or completion).
     timeoutRef.current = setTimeout(() => {
@@ -220,39 +221,62 @@ export function BreathPacer({
     <View style={styles.container} testID="breath-pacer">
       <View style={styles.outerRing}>
         {reduceMotion ? (
-          <View
-            style={[styles.circle, styles.staticCircle]}
-            testID="breath-pacer-static-circle"
-          >
-            {currentPhase && (
-              <Text style={styles.countdown} testID="breath-pacer-countdown">
-                {secondsLeftInPhase}
-              </Text>
-            )}
-          </View>
+          <View style={styles.circle} testID="breath-pacer-static-circle" />
         ) : (
           <Animated.View
             style={[styles.circle, animatedCircleStyle]}
             testID="breath-pacer-animated-circle"
           />
         )}
+        {/* Phase label + countdown live in a fixed-size overlay centered on the
+            core, so they read identically whether or not the circle is scaling
+            (and stay legible under Reduce Motion). */}
+        {currentPhase && (
+          <View style={styles.coreText} pointerEvents="none">
+            <Text
+              style={styles.phaseLabel}
+              testID="breath-pacer-phase-label"
+              accessible
+              accessibilityRole="text"
+              // Announce each inhale/hold/exhale transition so a VoiceOver user
+              // can follow the protocol without seeing the circle (UI Standards
+              // §13.4). accessibilityLabel keys off the phase so the live region
+              // re-reads it as it changes.
+              accessibilityLiveRegion="polite"
+              accessibilityLabel={phaseLabel(currentPhase)}
+            >
+              {phaseLabel(currentPhase)}
+            </Text>
+            <Text style={styles.countdown} testID="breath-pacer-countdown">
+              {secondsLeftInPhase}
+            </Text>
+          </View>
+        )}
       </View>
-      {currentPhase && (
-        <Text
-          style={styles.phaseLabel}
-          testID="breath-pacer-phase-label"
-          accessible
-          accessibilityRole="text"
-          // Announce each inhale/hold/exhale transition so a VoiceOver user can
-          // follow the protocol without seeing the circle (UI Standards §13.4:
-          // animation must never be the only channel). accessibilityLabel keys
-          // off the phase so the live region re-reads it as it changes.
-          accessibilityLiveRegion="polite"
-          accessibilityLabel={phaseLabel(currentPhase)}
-        >
-          {phaseLabel(currentPhase)}
-        </Text>
+
+      {/* Cycle segments — one per phase in a single cycle; filled up to and
+          including the current phase. Non-motion-dependent pacing cue. */}
+      {currentEntry && (
+        <View style={styles.segments} testID="breath-pacer-segments">
+          {step.phases.map((_, i) => (
+            <View
+              key={i}
+              testID={`breath-pacer-segment-${i}`}
+              style={[
+                styles.segment,
+                i <= currentEntry.phaseIndex ? styles.segmentActive : styles.segmentTrack,
+              ]}
+            />
+          ))}
+        </View>
       )}
+
+      {/* Per-phase guidance copy (when the protocol defines it). */}
+      {currentPhase?.guidance ? (
+        <Text style={styles.guidance} testID="breath-pacer-guidance">
+          {currentPhase.guidance}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -279,18 +303,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  staticCircle: {
-    backgroundColor: Colors.silverSage,
-  },
-  countdown: {
-    fontSize: 56,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.evergreenTeal,
+  // Fixed-size overlay centered on the core; sits above the (scaling) circle.
+  coreText: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   phaseLabel: {
-    marginTop: Spacing.lg,
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.softCharcoal,
+    fontSize: Typography.fontSize.lg, // 18px
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+  },
+  countdown: {
+    marginTop: 2,
+    fontSize: 34,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.white,
+    fontVariant: ['tabular-nums'],
+  },
+  segments: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 18,
+  },
+  segment: {
+    width: 30,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  segmentTrack: {
+    backgroundColor: withAlpha(Colors.silverSage, 0.55),
+  },
+  segmentActive: {
+    backgroundColor: Colors.evergreenTeal,
+  },
+  guidance: {
+    marginTop: Spacing.sm, // 8px
+    fontSize: Typography.fontSize.sm, // 14px
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
   },
 });

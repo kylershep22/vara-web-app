@@ -867,6 +867,10 @@ export interface BreathPhase {
   kind: 'inhale' | 'exhale' | 'hold';
   seconds: number;
   label?: string;
+  // Short instructional copy shown below the pacer for this phase (e.g. "Long
+  // exhale through your mouth"). Optional — the pacer omits the guidance line
+  // when absent.
+  guidance?: string;
 }
 
 // Common shape for every step. Step kinds extend this with kind-specific
