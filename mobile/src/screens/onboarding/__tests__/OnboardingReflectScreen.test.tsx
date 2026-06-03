@@ -92,11 +92,27 @@ describe('OnboardingReflectScreen snapshot card', () => {
     expect(flat.backgroundColor).toBe(STATE_COLORS.wired);
   });
 
-  it('shows the five-minute reset lead-in below the card', () => {
+  it('names the actual duration when the protocol resolves to 2 minutes (Wired → Cyclic Sighing)', () => {
     mockParams = { state: 'wired', stressorLabels: [], peak: null };
     const { getByText } = render(<OnboardingReflectScreen />);
     expect(
+      getByText("Here's a two-minute reset to help your system downshift.")
+    ).toBeTruthy();
+  });
+
+  it('names the actual duration when the protocol resolves to 5 minutes (Steady → Coherence Breathing)', () => {
+    mockParams = { state: 'steady', stressorLabels: [], peak: null };
+    const { getByText } = render(<OnboardingReflectScreen />);
+    expect(
       getByText("Here's a five-minute reset to help your system downshift.")
+    ).toBeTruthy();
+  });
+
+  it('falls back to a generic phrase when the state (and thus duration) is unresolved', () => {
+    mockParams = {}; // no state carried in; resume fallback is stubbed (db: null)
+    const { getByText } = render(<OnboardingReflectScreen />);
+    expect(
+      getByText("Here's a short reset to help your system downshift.")
     ).toBeTruthy();
   });
 });

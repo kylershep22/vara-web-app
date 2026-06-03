@@ -13,13 +13,10 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { GuidedSessionPlayer } from '../../components/protocol/GuidedSessionPlayer';
-import { selectProtocol } from '../../services/protocolSelector.service';
-import { getProtocolById } from '../../constants/brainStateProtocols';
+import { resolveOnboardingProtocol } from './resolveOnboardingProtocol';
 import {
   DEFAULT_ONBOARDING_STATE,
   DEFAULT_ONBOARDING_PROTOCOL_ID,
-  ONBOARDING_PROTOCOL_TIME_WINDOW,
-  ONBOARDING_ENTRY_PROTOCOL_OVERRIDES,
 } from '../../constants/onboardingStressRecovery';
 import { Colors, Spacing, Typography } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
@@ -36,23 +33,8 @@ const OnboardingProtocolScreen: React.FC = () => {
     if (user?.uid) void saveOnboardingStep(user.uid, 'OnboardingProtocol');
   }, [user?.uid]);
 
-  const protocol = useMemo<Protocol | null>(() => {
-    // Onboarding-only override: some states route to a phone-only protocol for
-    // the signup-moment demo (Wired -> breathwork instead of Cold Water Reset,
-    // which needs cold running water). Non-overridden states use the generic
-    // selector. The catalog/selectProtocol are untouched, so Cold Water Reset
-    // stays available to Wired users in the post-onboarding library.
-    const overrideId = ONBOARDING_ENTRY_PROTOCOL_OVERRIDES[state];
-    if (overrideId) {
-      const overridden = getProtocolById(overrideId);
-      if (overridden) return overridden;
-    }
-    try {
-      return selectProtocol({ state, timeWindow: ONBOARDING_PROTOCOL_TIME_WINDOW });
-    } catch {
-      return getProtocolById(DEFAULT_ONBOARDING_PROTOCOL_ID);
-    }
-  }, [state]);
+  // Shared with the Reflect screen so the duration it names matches what plays.
+  const protocol = useMemo<Protocol | null>(() => resolveOnboardingProtocol(state), [state]);
 
   const goToRecheck = (summary?: ProtocolSessionSummary) => {
     navigation.navigate('OnboardingRecheck', {

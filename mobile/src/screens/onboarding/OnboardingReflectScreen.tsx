@@ -20,6 +20,7 @@ import {
 } from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep } from '../../services/firebase/onboardingStressRecovery.service';
+import { onboardingResetLine } from './resolveOnboardingProtocol';
 import { STATE_LABELS, STATE_COLORS } from './onboardingShift';
 import type { BrainState } from '../../types/models';
 
@@ -141,6 +142,11 @@ const OnboardingReflectScreen: React.FC = () => {
     [resolved.peak]
   );
 
+  // Sized to the protocol this state actually resolves to (Wired = 2 min Cyclic
+  // Sighing; others vary), so the copy never promises a duration the user
+  // doesn't get. Falls back to a generic phrase when state is unresolved.
+  const resetLine = useMemo(() => onboardingResetLine(resolved.state), [resolved.state]);
+
   return (
     <OnboardingScaffold
       currentStep={onboardingStepNumber('OnboardingReflect')}
@@ -156,9 +162,7 @@ const OnboardingReflectScreen: React.FC = () => {
         driverLabels={resolved.stressorLabels}
         peakLabel={peakLabel}
       />
-      <Text style={styles.leadIn}>
-        Here's a five-minute reset to help your system downshift.
-      </Text>
+      <Text style={styles.leadIn}>{resetLine}</Text>
     </OnboardingScaffold>
   );
 };
