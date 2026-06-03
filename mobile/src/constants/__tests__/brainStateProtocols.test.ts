@@ -140,6 +140,24 @@ describe('BRAIN_STATE_PROTOCOLS — Phase 1 launch library', () => {
     );
   });
 
+  describe('onboarding-reachable breath protocols expose per-phase guidance', () => {
+    // Wired -> Cyclic Sighing, Steady/Clear -> Coherence Breathing. Both render
+    // the BreathPacer cluster, which shows the per-phase guidance line.
+    it.each([['cyclic-sighing-2'], ['coherence-breathing-5']])(
+      '%s — every breath phase has a non-empty guidance string',
+      (id) => {
+        const p = getProtocolById(id);
+        expect(p).not.toBeNull();
+        for (const step of p!.steps) {
+          if (step.kind !== 'breath') continue;
+          for (const phase of step.phases) {
+            expect(phase.guidance).toBeTruthy();
+          }
+        }
+      }
+    );
+  });
+
   describe('audio steps reference Firebase Storage paths', () => {
     const audioProtocols = getAllProtocols().filter((p) =>
       p.steps.some((s) => s.kind === 'audio')

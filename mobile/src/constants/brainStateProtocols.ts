@@ -314,8 +314,21 @@ export const BRAIN_STATE_PROTOCOLS = {
         id: 'cycle',
         durationSeconds: 300,
         phases: [
-          { kind: 'inhale', seconds: 5, label: 'Inhale' },
-          { kind: 'exhale', seconds: 5, label: 'Exhale' },
+          {
+            kind: 'inhale',
+            seconds: 5,
+            label: 'Inhale',
+            guidance: 'Inhale through your nose, slow and full',
+          },
+          {
+            kind: 'exhale',
+            seconds: 5,
+            label: 'Exhale',
+            // Coherence breathing is deliberately even (5 in / 5 out), so the
+            // exhale guidance mirrors the inhale rather than asking for a longer
+            // exhale (which would be Cyclic Sighing's pattern, not this one).
+            guidance: 'Exhale through your mouth, slow and even',
+          },
         ],
         guidance: 'Five in, five out. Steady and even.',
       },
