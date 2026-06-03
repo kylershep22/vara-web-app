@@ -584,8 +584,11 @@ const MainNavigator = () => {
           name="Journal"
           component={JournalScreen}
           options={stackOpts({
+            ...standardHeaderOptions,
             animation: 'slide_from_right',
-            headerShown: false,
+            headerShown: true,
+            title: 'Journal',
+            headerShadowVisible: false,
             showFAB: true,
           })}
         />

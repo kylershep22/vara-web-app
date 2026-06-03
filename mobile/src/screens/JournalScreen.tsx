@@ -3,7 +3,7 @@
  * Personal journaling with AI prompts and mood tracking
  */
 
-import React, { useState, useMemo, useEffect, useCallback, memo, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback, memo, useRef } from 'react';
 import { View, Text, StyleSheet, SectionList, TouchableOpacity, Alert, TextInput as RNTextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -16,7 +16,7 @@ import {
   RelativeDateHeader,
   groupEntriesByRelativeDate,
   AIWeeklySummaryCard,
-  GentleEncouragementCard,
+  JournalEmptyState,
   MoodGradientDot,
 } from '../components';
 import { Colors, Spacing, Typography, Layout } from '../constants';
@@ -371,6 +371,9 @@ const JournalScreen: React.FC = () => {
   // Journal stats for filter chips
   const journalStats = useJournalStats(entries || []);
 
+  // Search and filters only make sense once there is something to search.
+  const hasEntries = (entries?.length ?? 0) > 0;
+
   // AI weekly summary — only fetched when the user has granted AI consent.
   const {
     summary: weeklySummary,
@@ -422,6 +425,25 @@ const JournalScreen: React.FC = () => {
     setEditingEntry(null);
     setModalVisible(true);
   }, []);
+
+  // Persistent new-entry affordance in the native header (top-right),
+  // matching iOS content-creation conventions and the wellness-tab
+  // header pattern used by Focus and Sleep Library.
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={handleCreateEntry}
+          style={styles.headerAddButton}
+          accessibilityLabel="Create new journal entry"
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="add" size={24} color={Colors.evergreenTeal} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, handleCreateEntry]);
 
   const handleEditEntry = useCallback((entry: JournalEntry) => {
     setEditingEntry(entry);
@@ -529,73 +551,48 @@ const JournalScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header with back button and + Reflect button */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-        >
-          <Ionicons name="chevron-back" size={28} color={Colors.evergreenTeal} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.screenTitle}>
-            Journal
-          </Text>
-          <Text style={styles.subtitle}>
-            Reflect on your wellness journey
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={handleCreateEntry}
-          style={styles.reflectButton}
-          accessibilityLabel="Create new journal entry"
-          accessibilityRole="button"
-        >
-          <Ionicons name="add" size={20} color={Colors.textOnPrimary} />
-          <Text style={styles.reflectButtonText}>Reflect</Text>
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      {/* Highlight Card intro — matches the Sleep Library pattern */}
+      <View style={styles.highlightCard}>
+        <Text style={styles.highlightText}>
+          Reflection is how your brain makes sense of experience. A few notes
+          here add up to real self-knowledge over time.
+        </Text>
       </View>
 
-      {/* Collapsible Search Bar and Filter Chips */}
-      <View style={styles.toolbarContainer}>
-        <CollapsibleSearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onClear={handleClearSearch}
-          placeholder="Search entries..."
-        />
-      </View>
+      {/* Search and filters only appear once entries exist */}
+      {hasEntries && (
+        <>
+          <View style={styles.toolbarContainer}>
+            <CollapsibleSearchBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onClear={handleClearSearch}
+              placeholder="Search entries..."
+            />
+          </View>
 
-      {/* Filter Chips */}
-      <FilterChipBar
-        tags={journalStats.topTags}
-        selectedTag={selectedTagFilter}
-        onSelectTag={setSelectedTagFilter}
-      />
+          <FilterChipBar
+            tags={journalStats.topTags}
+            selectedTag={selectedTagFilter}
+            onSelectTag={setSelectedTagFilter}
+          />
+        </>
+      )}
 
       {/* Entries List */}
       {filteredEntries.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          {/* Show encouragement card if no entries this week, otherwise show empty state */}
-          {!journalStats.hasEntriesThisWeek && !searchQuery && !selectedTagFilter ? (
-            <GentleEncouragementCard visible={true} />
-          ) : (
-            <>
-              <Text style={styles.emptyIcon}>📔</Text>
-              <Text style={styles.emptyTitle}>
-                {searchQuery || selectedTagFilter ? 'No entries found' : 'No journal entries yet'}
-              </Text>
-              <Text style={styles.emptyText}>
-                {searchQuery || selectedTagFilter
-                  ? 'Try a different search or filter'
-                  : 'Start journaling to track your thoughts and feelings'}
-              </Text>
-            </>
-          )}
-        </View>
+        !searchQuery && !selectedTagFilter ? (
+          <JournalEmptyState onStartReflection={handleCreateEntry} />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📔</Text>
+            <Text style={styles.emptyTitle}>No entries found</Text>
+            <Text style={styles.emptyText}>
+              Try a different search or filter
+            </Text>
+          </View>
+        )
       ) : (
         <SectionList
           sections={groupedEntries}
@@ -764,45 +761,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background.default,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.base,
+  headerAddButton: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xs,
   },
-  backButton: {
-    width: 48,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
+  // Highlight Card intro — Dew Sage background, 4px teal left accent
+  // border per the Highlight Card spec; mirrors the Sleep Library intro.
+  highlightCard: {
+    backgroundColor: 'rgba(213,227,209,0.38)',
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.evergreenTeal,
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.base,
+    marginBottom: Spacing.sm,
   },
-  headerCenter: {
-    flex: 1,
-    paddingHorizontal: Spacing.sm,
-  },
-  screenTitle: {
-    color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.bold,
-  },
-  subtitle: {
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-  },
-  reflectButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.evergreenTeal,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.base,
-    borderRadius: Layout.borderRadius.full,
-    gap: Spacing.xs,
-    minHeight: 48,
-  },
-  reflectButtonText: {
-    color: Colors.textOnPrimary,
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
+  highlightText: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: Colors.softCharcoal,
+    lineHeight: 14 * 1.55,
   },
   toolbarContainer: {
     paddingHorizontal: Spacing.lg,

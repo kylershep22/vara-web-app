@@ -123,6 +123,7 @@ export type { DateGroup } from './journal/RelativeDateHeader';
 export { CollapsibleSearchBar } from './journal/CollapsibleSearchBar';
 export { FilterChipBar } from './journal/FilterChipBar';
 export { GentleEncouragementCard } from './journal/GentleEncouragementCard';
+export { JournalEmptyState } from './journal/JournalEmptyState';
 export { AIWeeklySummaryCard } from './journal/AIWeeklySummaryCard';
 
 // Onboarding components
