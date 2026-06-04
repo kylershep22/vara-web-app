@@ -61,7 +61,7 @@ describe('OnboardingAnchorScreen — anchor + contextual permission', () => {
   test('permission granted → saves dailyRhythm enabled, schedules, completes onboarding', async () => {
     mockGetPermissions.mockResolvedValue({ status: 'granted' });
     render(<OnboardingAnchorScreen />);
-    fireEvent.press(screen.getByLabelText('Start free trial'));
+    fireEvent.press(screen.getByLabelText('Continue'));
 
     await waitFor(() => expect(mockScheduleDailyRhythm).toHaveBeenCalledWith('u1'));
     expect(mockUpdatePrefs).toHaveBeenCalledWith(
@@ -77,7 +77,7 @@ describe('OnboardingAnchorScreen — anchor + contextual permission', () => {
   test('permission denied → saves anchor, does NOT schedule, no error, still completes', async () => {
     mockGetPermissions.mockResolvedValue({ status: 'denied' });
     render(<OnboardingAnchorScreen />);
-    fireEvent.press(screen.getByLabelText('Start free trial'));
+    fireEvent.press(screen.getByLabelText('Continue'));
 
     await waitFor(() => expect(mockCompleteOnboarding).toHaveBeenCalledWith('u1'));
     expect(mockUpdatePrefs).toHaveBeenCalled();
@@ -94,7 +94,7 @@ describe('OnboardingAnchorScreen — anchor + contextual permission', () => {
   test('carries the re-check brain state into the daily check-in on finish', async () => {
     mockGetPermissions.mockResolvedValue({ status: 'granted' });
     render(<OnboardingAnchorScreen />);
-    fireEvent.press(screen.getByLabelText('Start free trial'));
+    fireEvent.press(screen.getByLabelText('Continue'));
     await waitFor(() => expect(mockPersistRecheck).toHaveBeenCalledWith('u1'));
     await waitFor(() => expect(mockCompleteOnboarding).toHaveBeenCalledWith('u1'));
   });
