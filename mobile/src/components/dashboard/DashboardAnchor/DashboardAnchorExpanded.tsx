@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Typography } from '../../../constants';
 import { BrainState } from '../../../types';
@@ -7,23 +7,45 @@ import { getBrainStateBrief } from './brainStateBriefs';
 
 interface DashboardAnchorExpandedProps {
   brainState: BrainState;
+  /** When provided, renders a "Change" affordance that re-opens the
+   *  brain-state check-in picker. Optional so the card can also be used
+   *  in read-only contexts. */
+  onChangePress?: () => void;
 }
 
 export const DashboardAnchorExpanded: React.FC<DashboardAnchorExpandedProps> = ({
   brainState,
+  onChangePress,
 }) => {
   const brief = getBrainStateBrief(brainState);
 
   return (
-    <View style={[styles.container, { borderLeftColor: brief.accentColor }]}>
+    <View
+      testID="dashboard-anchor-card"
+      style={[styles.container, { borderLeftColor: brief.accentColor }]}
+    >
       <View style={styles.header}>
-        <Icon
-          testID="dashboard-anchor-expanded-icon"
-          name={brief.icon as any}
-          size={20}
-          color={brief.accentColor}
-        />
-        <Text style={styles.label}>{brief.label}</Text>
+        <View style={styles.headerLeft}>
+          <Icon
+            testID="dashboard-anchor-expanded-icon"
+            name={brief.icon as any}
+            size={20}
+            color={brief.accentColor}
+          />
+          <Text style={styles.label}>{brief.label}</Text>
+        </View>
+        {onChangePress && (
+          <TouchableOpacity
+            onPress={onChangePress}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.changeWrapper}
+            accessibilityRole="button"
+            accessibilityLabel="Change brain state"
+          >
+            <Text style={styles.changeText}>Change</Text>
+            <Icon name="chevron-right" size={16} color={Colors.evergreenTeal} />
+          </TouchableOpacity>
+        )}
       </View>
       <Text style={styles.message}>{brief.message}</Text>
     </View>
@@ -46,13 +68,29 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 8,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   label: {
     fontSize: 15,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.textPrimary,
+  },
+  changeWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingLeft: 8,
+  },
+  changeText: {
+    fontSize: 13,
+    color: Colors.evergreenTeal,
+    fontWeight: Typography.fontWeight.medium,
   },
   message: {
     fontSize: 14,
