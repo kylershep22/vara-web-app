@@ -6,6 +6,7 @@
 import type { BrainState, ProtocolSessionOutcome } from '../../types/models';
 import { BRAIN_STATES } from '../../components/dashboard/brainStateCheckin/brainStateOptions';
 import { PEAK_WINDOW_OPTIONS, type PeakWindow } from '../../constants/onboardingStressRecovery';
+import { resolveOnboardingProtocol, minutesWord } from './resolveOnboardingProtocol';
 
 export const STATE_LABELS: Record<BrainState, string> = BRAIN_STATES.reduce(
   (acc, o) => ({ ...acc, [o.state]: o.label }),
@@ -58,10 +59,35 @@ export function shiftOutcome(shift: Shift): ProtocolSessionOutcome {
   return 'not_shifted';
 }
 
+/**
+ * Improved-shift line, sized to the protocol the user actually completed.
+ * `durationSeconds` of null/0 (state lost, protocol unresolved, Firestore
+ * unreachable) drops the duration claim entirely — "just now" — rather than
+ * risking a wrong duration like the hardcoded "five minutes" did for the Wired
+ * two-minute Cyclic Sighing path. Pure formatter; resolution lives in
+ * `shiftLine`/`resolveOnboardingProtocol`.
+ */
+export function improvedShiftLine(
+  before: BrainState,
+  after: BrainState,
+  durationSeconds: number | null
+): string {
+  const movement = `You moved from ${STATE_LABELS[before]} to ${STATE_LABELS[after]}`;
+  if (!durationSeconds || durationSeconds <= 0) {
+    return `${movement} just now.`;
+  }
+  return `${movement} in ${minutesWord(durationSeconds)} minutes.`;
+}
+
 /** Screen 7 — surface before→after; flat/worse gets a compassionate reframe. */
 export function shiftLine(before: BrainState, after: BrainState, shift: Shift): string {
   if (shift === 'improved') {
-    return `You moved from ${STATE_LABELS[before]} to ${STATE_LABELS[after]} in five minutes.`;
+    // Resolve from the pre-protocol state (`before`) via the SAME helper the
+    // Reflect screen uses, so pre-protocol and post-protocol cards agree on the
+    // duration. Wired -> Cyclic Sighing (120s -> "two"); the other states map to
+    // 5-minute protocols ("five").
+    const protocol = resolveOnboardingProtocol(before);
+    return improvedShiftLine(before, after, protocol?.durationSeconds ?? null);
   }
   return "Recovery isn't linear. Some days the shift is quiet. Showing up is the part that compounds.";
 }

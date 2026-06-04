@@ -3,7 +3,13 @@
  * the brand-critical bits: reflect-back mirrors the user's ACTUAL inputs, and
  * a flat/worse shift gets a compassionate (never shaming) response.
  */
-import { buildReflectLine, computeShift, shiftLine, shiftOutcome } from '../onboardingShift';
+import {
+  buildReflectLine,
+  computeShift,
+  shiftLine,
+  improvedShiftLine,
+  shiftOutcome,
+} from '../onboardingShift';
 
 describe('buildReflectLine — mirrors actual inputs', () => {
   test('reflects state + stressor + peak in plain language', () => {
@@ -39,8 +45,17 @@ describe('computeShift', () => {
 });
 
 describe('shiftLine — compassionate, never shaming', () => {
-  test('improved names the before→after movement', () => {
-    expect(shiftLine('wired', 'steady', 'improved')).toBe('You moved from Wired to Steady in five minutes.');
+  // Duration is sized to the protocol the user actually completed (resolved
+  // via resolveOnboardingProtocol), matching the pre-protocol Reflect copy.
+  test('improved (Wired → Cyclic Sighing, 2 min) says "in two minutes"', () => {
+    expect(shiftLine('wired', 'steady', 'improved')).toBe(
+      'You moved from Wired to Steady in two minutes.'
+    );
+  });
+  test('improved (Foggy → 5-min protocol) says "in five minutes"', () => {
+    expect(shiftLine('foggy', 'clear', 'improved')).toBe(
+      'You moved from Foggy to Clear in five minutes.'
+    );
   });
   test('flat does not imply the user did it wrong', () => {
     const line = shiftLine('steady', 'steady', 'flat');
@@ -50,6 +65,29 @@ describe('shiftLine — compassionate, never shaming', () => {
   test('worse is reassuring, not a penalty', () => {
     const line = shiftLine('clear', 'wired', 'worse');
     expect(line.toLowerCase()).not.toMatch(/wrong|fail|penalty|missed/);
+  });
+});
+
+describe('improvedShiftLine — duration phrasing + graceful fallback', () => {
+  test('120s renders "in two minutes"', () => {
+    expect(improvedShiftLine('wired', 'steady', 120)).toBe(
+      'You moved from Wired to Steady in two minutes.'
+    );
+  });
+  test('300s renders "in five minutes"', () => {
+    expect(improvedShiftLine('foggy', 'clear', 300)).toBe(
+      'You moved from Foggy to Clear in five minutes.'
+    );
+  });
+  test('unresolved duration (null) drops the claim with "just now"', () => {
+    expect(improvedShiftLine('wired', 'steady', null)).toBe(
+      'You moved from Wired to Steady just now.'
+    );
+  });
+  test('zero duration falls back to "just now" rather than "zero minutes"', () => {
+    expect(improvedShiftLine('wired', 'steady', 0)).toBe(
+      'You moved from Wired to Steady just now.'
+    );
   });
 });
 
