@@ -89,7 +89,7 @@ describe('NotShiftedResponse — default mode copy + action shape', () => {
     expect(card.props.accessibilityLabel).toBe('Try something longer');
     expect(getByText('Try something longer')).toBeTruthy();
     expect(
-      getByText('10+ minute protocol — for states that need more time')
+      getByText('10+ minute protocol, for states that need more time')
     ).toBeTruthy();
   });
 

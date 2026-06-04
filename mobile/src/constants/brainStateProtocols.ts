@@ -34,17 +34,17 @@ export const BRAIN_STATE_PROTOCOLS = {
     whatItIs:
       'Two consecutive inhales through your nose, followed by one long exhale through your mouth. Repeated for two minutes. Sometimes called the "physiological sigh."',
     whatYoullNeed:
-      'Nothing. Works seated, standing, or lying down — including in public.',
+      'Nothing. Works seated, standing, or lying down, including in public.',
     howItWorks:
       'Long exhales activate your parasympathetic nervous system through the vagus nerve. The double-inhale reinflates collapsed alveoli and signals your body to down-shift arousal.',
     whenItFits:
-      'Wired — when you need to settle quickly. Two minutes is meaningful; five minutes is the research-validated duration. We ship the two-minute version.',
+      'Wired: when you need to settle quickly. Two minutes is meaningful; five minutes is the research-validated duration. We ship the two-minute version.',
     firstTimeOrientation: {
       whatYoullDo:
         'Two short inhales through your nose, then one long exhale through your mouth. Repeat for two minutes. We pace it visually.',
       whatYoullNeed: 'Nothing. Works in any position.',
       whyItWorks:
-        "Long exhales activate your body's recovery pathway. The strongest brief breathwork evidence in consumer wellness — Stanford 2023.",
+        "Long exhales activate your body's recovery pathway. The strongest brief breathwork evidence in consumer wellness (Stanford 2023).",
     },
     evidenceTier: 1,
     evidenceCitation: 'Balban et al. (2023), Cell Reports Medicine.',
@@ -91,22 +91,22 @@ export const BRAIN_STATE_PROTOCOLS = {
     description:
       'A short bout of movement to wake up cognition or channel energy.',
     whatItIs:
-      'A short bout of structured movement — a brisk walk, jumping jacks, stairs, bodyweight squats, or a simple yoga flow. Pick the movement that fits your space and energy.',
+      'A short bout of structured movement: a brisk walk, jumping jacks, stairs, bodyweight squats, or a simple yoga flow. Pick the movement that fits your space and energy.',
     whatYoullNeed:
-      'Nothing required. If you have access to outside or stairs, even better — but any space where you can move counts.',
+      'Nothing required. If you have access to outside or stairs, even better, but any space where you can move counts.',
     howItWorks:
       "Brief movement increases cerebral blood flow and releases norepinephrine, directly addressing the neurochemistry of cognitive fatigue. Longer sessions also release BDNF, a brain growth factor. When you're Foggy, movement activates. When you're Alive, movement channels the energy you already have.",
     whenItFits:
-      'Foggy — when your brain feels cloudy and you need gentle activation. Alive — when you have energy and want to give it somewhere useful. Also good as a first protocol in the morning to transition out of sleep inertia.',
+      'Foggy: when your brain feels cloudy and you need gentle activation. Alive: when you have energy and want to give it somewhere useful. Also good as a first protocol in the morning to transition out of sleep inertia.',
     contraindications:
       'Adjust for mobility limitations. If you have cardiac or musculoskeletal concerns, keep the intensity and duration moderate, or consult your clinician.',
     firstTimeOrientation: {
       whatYoullDo:
-        'Move your body for a few minutes — walking, light cardio, stretching, or a flow. You pick what works for your space and energy.',
+        'Move your body for a few minutes: walking, light cardio, stretching, or a flow. You pick what works for your space and energy.',
       whatYoullNeed:
         'Nothing required. Outside or stairs if you have access; otherwise any space you can move in.',
       whyItWorks:
-        'Brief movement increases blood flow to your brain and releases norepinephrine — the strongest direct antidote to cognitive fatigue we have.',
+        'Brief movement increases blood flow to your brain and releases norepinephrine, the strongest direct antidote to cognitive fatigue we have.',
     },
     evidenceTier: 1,
     evidenceCitation:
@@ -142,22 +142,22 @@ export const BRAIN_STATE_PROTOCOLS = {
     description:
       'A short bout of movement to wake up cognition or channel energy.',
     whatItIs:
-      'A short bout of structured movement — a brisk walk, jumping jacks, stairs, bodyweight squats, or a simple yoga flow. Pick the movement that fits your space and energy.',
+      'A short bout of structured movement: a brisk walk, jumping jacks, stairs, bodyweight squats, or a simple yoga flow. Pick the movement that fits your space and energy.',
     whatYoullNeed:
-      'Nothing required. If you have access to outside or stairs, even better — but any space where you can move counts.',
+      'Nothing required. If you have access to outside or stairs, even better, but any space where you can move counts.',
     howItWorks:
       "Brief movement increases cerebral blood flow and releases norepinephrine, directly addressing the neurochemistry of cognitive fatigue. Longer sessions also release BDNF, a brain growth factor. When you're Foggy, movement activates. When you're Alive, movement channels the energy you already have.",
     whenItFits:
-      'Foggy — when your brain feels cloudy and you need gentle activation. Alive — when you have energy and want to give it somewhere useful. Also good as a first protocol in the morning to transition out of sleep inertia.',
+      'Foggy: when your brain feels cloudy and you need gentle activation. Alive: when you have energy and want to give it somewhere useful. Also good as a first protocol in the morning to transition out of sleep inertia.',
     contraindications:
       'Adjust for mobility limitations. If you have cardiac or musculoskeletal concerns, keep the intensity and duration moderate, or consult your clinician.',
     firstTimeOrientation: {
       whatYoullDo:
-        'Move your body for ten minutes — walking, light cardio, stretching, or a flow. You pick what works for your space and energy.',
+        'Move your body for ten minutes: walking, light cardio, stretching, or a flow. You pick what works for your space and energy.',
       whatYoullNeed:
         'Nothing required. Outside or stairs if you have access; otherwise any space you can move in.',
       whyItWorks:
-        'Brief movement increases blood flow to your brain and releases norepinephrine — the strongest direct antidote to cognitive fatigue we have.',
+        'Brief movement increases blood flow to your brain and releases norepinephrine, the strongest direct antidote to cognitive fatigue we have.',
     },
     evidenceTier: 1,
     evidenceCitation:
@@ -199,11 +199,11 @@ export const BRAIN_STATE_PROTOCOLS = {
     whatYoullNeed:
       'Nothing. Works seated, standing, even standing in line somewhere.',
     howItWorks:
-      'The four-phase balanced rhythm regulates autonomic tone. The held phases add a mild parasympathetic reset between cycles, which is why this protocol feels more structured than extended-exhale breathwork. Taught in military tactical training and emergency response — it works under pressure.',
+      'The four-phase balanced rhythm regulates autonomic tone. The held phases add a mild parasympathetic reset between cycles, which is why this protocol feels more structured than extended-exhale breathwork. Taught in military tactical training and emergency response. It works under pressure.',
     whenItFits:
-      'Wired — when you need to settle but want something structured to focus on. Steady — when you want to maintain the state and strengthen your capacity over time.',
+      'Wired: when you need to settle but want something structured to focus on. Steady: when you want to maintain the state and strengthen your capacity over time.',
     contraindications:
-      'Users with anxiety disorders sometimes find breath retention triggering. If the holds feel uncomfortable, try Extended Exhale instead — same mechanism without the held phases.',
+      'Users with anxiety disorders sometimes find breath retention triggering. If the holds feel uncomfortable, try Extended Exhale instead, same mechanism without the held phases.',
     firstTimeOrientation: {
       whatYoullDo:
         'Four seconds in, four held, four out, four held. Repeat for two minutes. We pace it visually.',
@@ -248,9 +248,9 @@ export const BRAIN_STATE_PROTOCOLS = {
       'Inhale for four seconds through your nose, exhale for eight seconds through your mouth. No holds. A steady, unhurried pattern you can settle into.',
     whatYoullNeed: 'Nothing. Works anywhere.',
     howItWorks:
-      'The 1:2 inhale-to-exhale ratio drives parasympathetic activation through extended vagal stimulation — the same mechanism as cyclic sighing, in a smoother rhythm.',
+      'The 1:2 inhale-to-exhale ratio drives parasympathetic activation through extended vagal stimulation, the same mechanism as cyclic sighing, in a smoother rhythm.',
     whenItFits:
-      'Wired — when you need to down-regulate and want something gentle and sustained. Also works as a transition into sleep preparation.',
+      'Wired: when you need to down-regulate and want something gentle and sustained. Also works as a transition into sleep preparation.',
     firstTimeOrientation: {
       whatYoullDo:
         'Breathe in for four seconds, out for eight. Repeat. We pace it.',
@@ -285,14 +285,14 @@ export const BRAIN_STATE_PROTOCOLS = {
     family: 'coherence-breathing',
     name: 'Coherence Breathing',
     description:
-      'Five in, five out. Six breaths a minute — the rate that builds long-term flexibility.',
+      'Five in, five out. Six breaths a minute, the rate that builds long-term flexibility.',
     whatItIs:
       "Inhale for five seconds, exhale for five seconds. No holds. About six breaths per minute, slower than most people's default.",
     whatYoullNeed: 'Nothing. Can be done seated, standing, or lying down.',
     howItWorks:
-      "Six breaths per minute is the resonant breathing rate — the pace that maximizes heart rate variability, a key marker of autonomic flexibility. Over time, this strengthens your nervous system's capacity to shift states efficiently.",
+      "Six breaths per minute is the resonant breathing rate, the pace that maximizes heart rate variability, a key marker of autonomic flexibility. Over time, this strengthens your nervous system's capacity to shift states efficiently.",
     whenItFits:
-      "Steady — maintenance practice that strengthens your baseline. Clear — protects and deepens the state you're in. A practice you return to over weeks and months.",
+      "Steady: maintenance practice that strengthens your baseline. Clear: protects and deepens the state you're in. A practice you return to over weeks and months.",
     firstTimeOrientation: {
       whatYoullDo:
         'Breathe in for five seconds, out for five seconds. Keep it even. We pace it for you.',
@@ -342,13 +342,13 @@ export const BRAIN_STATE_PROTOCOLS = {
     description:
       'Non-Sleep Deep Rest. Conscious deep relaxation, guided by audio.',
     whatItIs:
-      'Non-Sleep Deep Rest — a guided practice of deep relaxation while conscious. You lie down, close your eyes, and an audio guide walks your attention through a body scan and breath awareness. You stay conscious but your brain shifts into patterns associated with deep rest.',
+      'Non-Sleep Deep Rest: a guided practice of deep relaxation while conscious. You lie down, close your eyes, and an audio guide walks your attention through a body scan and breath awareness. You stay conscious but your brain shifts into patterns associated with deep rest.',
     whatYoullNeed:
       "A quiet space where you can lie down. Headphones recommended but not required. Somewhere you won't be interrupted.",
     howItWorks:
-      'NSDR produces brainwave patterns similar to deep sleep while you remain conscious. Studies show it reduces cortisol, restores dopamine, and quiets the default-mode network — the mental chatter that makes Foggy states feel heavy. When fog comes from cognitive overwork rather than understimulation, rest is the intervention.',
+      'NSDR produces brainwave patterns similar to deep sleep while you remain conscious. Studies show it reduces cortisol, restores dopamine, and quiets the default-mode network, the mental chatter that makes Foggy states feel heavy. When fog comes from cognitive overwork rather than understimulation, rest is the intervention.',
     whenItFits:
-      "Foggy — specifically when you're cognitively exhausted rather than just low-energy. Afternoon slump after hours of focused work. Evening transitions before sleep. A midday reset when the morning has drained you.",
+      "Foggy: specifically when you're cognitively exhausted rather than just low-energy. Afternoon slump after hours of focused work. Evening transitions before sleep. A midday reset when the morning has drained you.",
     contraindications:
       'Users with recent trauma may find body-focused practices activating rather than calming. Start with shorter sessions and notice how you respond. If lying face-up feels vulnerable, try a seated version.',
     firstTimeOrientation: {
@@ -383,13 +383,13 @@ export const BRAIN_STATE_PROTOCOLS = {
     description:
       'Non-Sleep Deep Rest. Conscious deep relaxation, guided by audio.',
     whatItIs:
-      'Non-Sleep Deep Rest — a guided practice of deep relaxation while conscious. You lie down, close your eyes, and an audio guide walks your attention through a body scan and breath awareness. You stay conscious but your brain shifts into patterns associated with deep rest.',
+      'Non-Sleep Deep Rest: a guided practice of deep relaxation while conscious. You lie down, close your eyes, and an audio guide walks your attention through a body scan and breath awareness. You stay conscious but your brain shifts into patterns associated with deep rest.',
     whatYoullNeed:
       "A quiet space where you can lie down for twenty minutes. Headphones recommended but not required. Somewhere you won't be interrupted.",
     howItWorks:
-      'NSDR produces brainwave patterns similar to deep sleep while you remain conscious. Studies show it reduces cortisol, restores dopamine, and quiets the default-mode network. The longer twenty-minute session is a deeper recovery experience — useful for evening wind-down or deep cognitive fatigue.',
+      'NSDR produces brainwave patterns similar to deep sleep while you remain conscious. Studies show it reduces cortisol, restores dopamine, and quiets the default-mode network. The longer twenty-minute session is a deeper recovery experience, useful for evening wind-down or deep cognitive fatigue.',
     whenItFits:
-      'Foggy — when fog comes from cognitive overwork. Evening transitions before sleep. When you can give yourself the full twenty minutes uninterrupted.',
+      'Foggy: when fog comes from cognitive overwork. Evening transitions before sleep. When you can give yourself the full twenty minutes uninterrupted.',
     contraindications:
       'Users with recent trauma may find body-focused practices activating rather than calming. Start with the ten-minute version and see how you respond before stepping up.',
     firstTimeOrientation: {
@@ -422,15 +422,15 @@ export const BRAIN_STATE_PROTOCOLS = {
     family: 'cold-water-reset',
     name: 'Cold Water Reset',
     description:
-      'Cold water on your inner wrists or face. Triggers the dive reflex — heart rate slows in seconds.',
+      'Cold water on your inner wrists or face. Triggers the dive reflex. Heart rate slows in seconds.',
     whatItIs:
       'Brief cold exposure to the inner wrists or face. Run cold water over your inner wrists for about a minute, or apply a cold compress to your face. Both trigger the same physiological response. No submersion required.',
     whatYoullNeed:
       "A sink or cold water source. A washcloth or cold pack can be useful but isn't required. Cool tap water is enough. It doesn't need to be ice-cold.",
     howItWorks:
-      'Cold exposure to the face or wrists triggers the mammalian dive reflex — a rapid, involuntary parasympathetic response that slows your heart rate within seconds. It also releases norepinephrine, which improves alertness. The same intervention calms you when Wired and activates you when Foggy.',
+      'Cold exposure to the face or wrists triggers the mammalian dive reflex, a rapid, involuntary parasympathetic response that slows your heart rate within seconds. It also releases norepinephrine, which improves alertness. The same intervention calms you when Wired and activates you when Foggy.',
     whenItFits:
-      "Wired — when you need to settle fast and breathwork isn't accessible. Foggy — when you need to clear your head quickly. Either state, when you have a few minutes and access to a sink.",
+      "Wired: when you need to settle fast and breathwork isn't accessible. Foggy: when you need to clear your head quickly. Either state, when you have a few minutes and access to a sink.",
     contraindications:
       "Avoid if you have cardiac conditions, Raynaud's disease, or cold intolerance. If pregnant, consult your clinician. Do not submerge your face or hold your breath.",
     firstTimeOrientation: {
@@ -438,7 +438,7 @@ export const BRAIN_STATE_PROTOCOLS = {
         'Run cold water over your inner wrists for about a minute, or apply a cold cloth to your face. Simple, quick, effective.',
       whatYoullNeed: 'A sink or cold water source. A washcloth if you prefer.',
       whyItWorks:
-        'Triggers the dive reflex — a rapid parasympathetic response. Your heart rate slows within seconds.',
+        'Triggers the dive reflex, a rapid parasympathetic response. Your heart rate slows within seconds.',
     },
     evidenceTier: 2,
     evidenceCitation:
@@ -488,11 +488,11 @@ export const BRAIN_STATE_PROTOCOLS = {
     whatItIs:
       'Name five things you can see, four you can hear, three you can feel, two you can smell, one you can taste. The practice walks your attention systematically through each sense.',
     whatYoullNeed:
-      'Nothing. Works in any environment — even in a meeting, on a train, mid-argument.',
+      'Nothing. Works in any environment, even in a meeting, on a train, mid-argument.',
     howItWorks:
-      "When you're Wired or acutely overwhelmed, attention narrows onto internal threat-scanning. Sensory Reset forcibly redirects attention outward to the sensory reality around you. A different pathway than breathwork — useful when breath practices feel activating or don't land.",
+      "When you're Wired or acutely overwhelmed, attention narrows onto internal threat-scanning. Sensory Reset forcibly redirects attention outward to the sensory reality around you. A different pathway than breathwork, useful when breath practices feel activating or don't land.",
     whenItFits:
-      "Wired — especially acute overwhelm. Any moment when you need something immediate and can't pause to breathe deliberately.",
+      "Wired: especially acute overwhelm. Any moment when you need something immediate and can't pause to breathe deliberately.",
     firstTimeOrientation: {
       whatYoullDo:
         'Name five things you see, four you hear, three you feel, two you smell, one you taste. We walk you through it.',
@@ -525,7 +525,7 @@ export const BRAIN_STATE_PROTOCOLS = {
         kind: 'instruction',
         id: 'feel',
         durationSeconds: 20,
-        text: 'Three things you can feel — texture, temperature, pressure.',
+        text: 'Three things you can feel: texture, temperature, pressure.',
       },
       {
         kind: 'instruction',
@@ -547,15 +547,15 @@ export const BRAIN_STATE_PROTOCOLS = {
     family: 'mindful-walking',
     name: 'Mindful Walk',
     description:
-      'Walking with attention on sensations — feet, breath, surroundings. Not exercise-walking. Attention-walking.',
+      'Walking with attention on sensations: feet, breath, surroundings. Not exercise-walking. Attention-walking.',
     whatItIs:
-      'Walking with attention on sensations — your feet contacting the ground, the rhythm of your breath, the air on your skin, what you see and hear as you move. Not exercise-walking. Not destination-walking. Attention-walking.',
+      'Walking with attention on sensations: your feet contacting the ground, the rhythm of your breath, the air on your skin, what you see and hear as you move. Not exercise-walking. Not destination-walking. Attention-walking.',
     whatYoullNeed:
       'A safe place to walk. Outdoor is ideal because you get light exposure and varied input, but a hallway or large indoor space works if weather or access limits outdoor options.',
     howItWorks:
-      'Combines gentle cardiovascular activation with attentional training. Outdoor walking adds circadian benefits from light exposure. Research shows attention-based walking outperforms walking alone for mood improvement — the attention is doing real work, not just the movement.',
+      'Combines gentle cardiovascular activation with attentional training. Outdoor walking adds circadian benefits from light exposure. Research shows attention-based walking outperforms walking alone for mood improvement. The attention is doing real work, not just the movement.',
     whenItFits:
-      "Steady — maintenance practice that reinforces the state you're in. Foggy — gentle activation plus light exposure to clear the head. Works well as a midday reset or morning start.",
+      "Steady: maintenance practice that reinforces the state you're in. Foggy: gentle activation plus light exposure to clear the head. Works well as a midday reset or morning start.",
     firstTimeOrientation: {
       whatYoullDo:
         'Walk for ten minutes. Pay attention to your feet on the ground, your breath, what you see and hear. Not exercise-walking. Attention-walking.',
@@ -577,7 +577,7 @@ export const BRAIN_STATE_PROTOCOLS = {
         id: 'walk',
         durationSeconds: 600,
         label: 'Walk and notice',
-        hint: 'Feet on the ground, breath, what you see and hear. Not exercise-walking — attention-walking.',
+        hint: 'Feet on the ground, breath, what you see and hear. Not exercise-walking. Attention-walking.',
       },
     ],
   },
@@ -589,13 +589,13 @@ export const BRAIN_STATE_PROTOCOLS = {
     description:
       'Twenty minutes of attention-walking. Cardiovascular activation plus attentional training.',
     whatItIs:
-      'Walking with attention on sensations — your feet contacting the ground, the rhythm of your breath, the air on your skin, what you see and hear as you move. Twenty minutes is long enough for the attention to settle deeply.',
+      'Walking with attention on sensations: your feet contacting the ground, the rhythm of your breath, the air on your skin, what you see and hear as you move. Twenty minutes is long enough for the attention to settle deeply.',
     whatYoullNeed:
       'A safe place to walk. Outdoor is ideal because you get light exposure and varied input, but a hallway or large indoor space works if weather or access limits outdoor options.',
     howItWorks:
       'Combines gentle cardiovascular activation with attentional training. Outdoor walking adds circadian benefits from light exposure. The longer twenty-minute session lets the attention-mode deepen past the initial mind-wandering.',
     whenItFits:
-      "Steady — extended maintenance practice. Foggy — gentle activation plus light exposure. A midday reset when you can spend the full twenty minutes.",
+      "Steady: extended maintenance practice. Foggy: gentle activation plus light exposure. A midday reset when you can spend the full twenty minutes.",
     firstTimeOrientation: {
       whatYoullDo:
         'Walk for twenty minutes. Pay attention to your feet on the ground, your breath, what you see and hear.',
@@ -632,15 +632,15 @@ export const BRAIN_STATE_PROTOCOLS = {
       'A capacity-aware deep-work session. You pick a duration that matches your current capacity, then work on a single task with focus. A timer runs, notifications silence automatically, and at the end you get a brief transition period.',
     whatYoullNeed: 'The task you want to focus on. A space that supports focus.',
     howItWorks:
-      "The brain naturally cycles through approximately 90-minute periods of high focus separated by recovery troughs — ultradian rhythms. The 45-minute window is one half-cycle: long enough for deep work to take hold, short enough to fit in most calendars.\n\nVara doesn't frame this as a productivity hack. This is about using a regulated state well — not extracting output from yourself.",
+      "The brain naturally cycles through approximately 90-minute periods of high focus separated by recovery troughs, the ultradian rhythm. The 45-minute window is one half-cycle: long enough for deep work to take hold, short enough to fit in most calendars.\n\nVara doesn't frame this as a productivity hack. This is about using a regulated state well, not extracting output from yourself.",
     whenItFits:
-      "Clear — when your state genuinely supports focused cognitive work. Not a protocol to use when you're Wired or Foggy. Forcing focus in those states burns capacity without producing results.",
+      "Clear: when your state genuinely supports focused cognitive work. Not a protocol to use when you're Wired or Foggy. Forcing focus in those states burns capacity without producing results.",
     firstTimeOrientation: {
       whatYoullDo:
         'Pick a single task. Focus on just that one thing for 45 minutes. Timer runs in the background; notifications silence.',
       whatYoullNeed: 'The task, and a space where you can focus.',
       whyItWorks:
-        'Your brain has natural focus cycles. A 45-minute window is one half-cycle — long enough for deep work to land.',
+        'Your brain has natural focus cycles. A 45-minute window is one half-cycle, long enough for deep work to land.',
     },
     evidenceTier: 3,
     evidenceCitation:
@@ -668,12 +668,12 @@ export const BRAIN_STATE_PROTOCOLS = {
     description:
       'A 90-minute deep-work session. Full ultradian cycle for deeper work.',
     whatItIs:
-      'A capacity-aware deep-work session at the full ultradian length. You pick a single task and work on it for 90 minutes — one full focus cycle. A timer runs, notifications silence automatically.',
+      'A capacity-aware deep-work session at the full ultradian length. You pick a single task and work on it for 90 minutes, one full focus cycle. A timer runs, notifications silence automatically.',
     whatYoullNeed: 'The task you want to focus on. A space that supports focus.',
     howItWorks:
-      "The brain naturally cycles through approximately 90-minute periods of high focus separated by recovery troughs. The 90-minute window is the full cycle: enough time for deep work that requires sustained loading of context.\n\nVara doesn't frame this as a productivity hack. Use this only when your state genuinely supports it — Clear, well-rested, and with a task that warrants the depth.",
+      "The brain naturally cycles through approximately 90-minute periods of high focus separated by recovery troughs. The 90-minute window is the full cycle: enough time for deep work that requires sustained loading of context.\n\nVara doesn't frame this as a productivity hack. Use this only when your state genuinely supports it: Clear, well-rested, and with a task that warrants the depth.",
     whenItFits:
-      'Clear — and only when you have the capacity. Pick the 45-minute version when you have less.',
+      'Clear, and only when you have the capacity. Pick the 45-minute version when you have less.',
     firstTimeOrientation: {
       whatYoullDo:
         'Pick a single deep task. Focus on just that one thing for 90 minutes. Timer runs in the background; notifications silence.',
@@ -711,13 +711,13 @@ export const BRAIN_STATE_PROTOCOLS = {
     whatItIs:
       'Exposure to natural light. Stand by a window with outdoor view, step outside, or position yourself where sunlight reaches you. Morning and early afternoon are ideal.',
     whatYoullNeed:
-      'A window with outdoor view, or access outside. Not an indoor lamp — natural daylight is significantly brighter than any indoor light and has different spectral properties.',
+      'A window with outdoor view, or access outside. Not an indoor lamp. Natural daylight is significantly brighter than any indoor light and has different spectral properties.',
     howItWorks:
-      'Morning and early-afternoon light exposure regulates circadian rhythms, triggers appropriate cortisol release for alertness, and supports sleep quality later that night. When fog comes from sleep disruption or circadian misalignment, this addresses cause more than symptom.\n\nA note on the research: circadian effects from light exposure are well-established. Application to acute alertness in a single session is more inferential — the main benefit shows up over days and weeks of consistent practice.',
+      'Morning and early-afternoon light exposure regulates circadian rhythms, triggers appropriate cortisol release for alertness, and supports sleep quality later that night. When fog comes from sleep disruption or circadian misalignment, this addresses cause more than symptom.\n\nA note on the research: circadian effects from light exposure are well-established. Application to acute alertness in a single session is more inferential. The main benefit shows up over days and weeks of consistent practice.',
     whenItFits:
-      'Foggy — especially foggy mornings or post-lunch slumps. Best paired with another protocol like Brief Movement. Less effective as a one-off acute intervention; more effective as a daily practice.',
+      'Foggy: especially foggy mornings or post-lunch slumps. Best paired with another protocol like Brief Movement. Less effective as a one-off acute intervention; more effective as a daily practice.',
     contraindications:
-      'If you have bipolar disorder, sudden changes in light exposure can affect mood stability — consult your clinician. If you have a photosensitive condition, check with your doctor about whether this practice is appropriate for you.',
+      'If you have bipolar disorder, sudden changes in light exposure can affect mood stability. Consult your clinician. If you have a photosensitive condition, check with your doctor about whether this practice is appropriate for you.',
     firstTimeOrientation: {
       whatYoullDo:
         'Stand by a window or step outside for ten minutes. Morning or early afternoon.',
@@ -751,13 +751,13 @@ export const BRAIN_STATE_PROTOCOLS = {
     description:
       'Twenty minutes of natural daylight. A more sustained circadian dose.',
     whatItIs:
-      'A longer exposure to natural light — twenty minutes by a window with outdoor view, or outdoors. Best in the morning or early afternoon.',
+      'A longer exposure to natural light: twenty minutes by a window with outdoor view, or outdoors. Best in the morning or early afternoon.',
     whatYoullNeed:
       'A window with outdoor view, or access outside. Natural daylight, not an indoor lamp.',
     howItWorks:
-      'Twenty minutes of natural light delivers a stronger circadian signal than ten — useful when your sleep has been disrupted or your schedule has been indoor-heavy. The mechanism is the same; the dose is larger.',
+      'Twenty minutes of natural light delivers a stronger circadian signal than ten, useful when your sleep has been disrupted or your schedule has been indoor-heavy. The mechanism is the same; the dose is larger.',
     whenItFits:
-      'Foggy — especially after poor sleep or stretches of indoor work. Pair with Mindful Walking outdoors for a stacked intervention.',
+      'Foggy: especially after poor sleep or stretches of indoor work. Pair with Mindful Walking outdoors for a stacked intervention.',
     contraindications:
       'If you have bipolar disorder, consult your clinician before sudden changes in light exposure. If you have a photosensitive condition, check with your doctor first.',
     firstTimeOrientation: {

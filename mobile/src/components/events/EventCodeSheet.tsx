@@ -66,7 +66,7 @@ export const EventCodeSheet: React.FC<EventCodeSheetProps> = ({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       const code = typeof err?.code === 'string' ? err.code.replace(/^functions\//, '') : '';
       const message = code === 'already-subscribed'
-        ? (err?.message || 'You already have an active Vara subscription — event access isn\'t needed.')
+        ? (err?.message || 'You already have an active Vara subscription. Event access isn\'t needed.')
         : (err?.message || 'Something went wrong. Try again.');
       setError(message);
     } finally {

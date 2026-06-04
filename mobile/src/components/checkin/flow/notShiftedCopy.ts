@@ -49,12 +49,12 @@ export type NotShiftedCopyTable = Partial<Record<IntentPath, NotShiftedCopy>> & 
 // time-window, so generalized to "A short protocol."
 const DEFAULT: NotShiftedCopy = {
   title: 'Some states take more time.',
-  body: "A short protocol can't reach everything. That's normal — not a sign anything's wrong.",
+  body: "A short protocol can't reach everything. That's normal, not a sign anything's wrong.",
   highlightText:
     "What you just did still counts. Your nervous system noticed the input, even if the shift didn't land yet.",
   keepGoingLabel: "If you'd like to keep going",
   tryLongerLabel: 'Try something longer',
-  tryLongerHint: '10+ minute protocol — for states that need more time',
+  tryLongerHint: '10+ minute protocol, for states that need more time',
   restLaterLabel: 'Rest and come back later',
   restLaterHint: 'Your next check-in will still be here',
   lateNightTryLongerLabel: "Try NSDR when you're ready",
