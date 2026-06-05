@@ -84,7 +84,7 @@ const DEFAULT_PATH_COPY: Record<TransitionKey, ShiftedResponseCopy> = {
   wired_to_foggy: {
     title: 'Some of the edge came off.',
     body: () =>
-      "Wired down to Foggy. The intensity dropped — fatigue underneath is surfacing. That's normal, and worth noticing.",
+      "Wired down to Foggy. The intensity dropped. Fatigue underneath is surfacing. That's normal, and worth noticing.",
   },
 
   // ── shifted: negative → green ──────────────────────────
@@ -96,7 +96,7 @@ const DEFAULT_PATH_COPY: Record<TransitionKey, ShiftedResponseCopy> = {
   wired_to_clear: {
     title: 'There it is.',
     body: () =>
-      'Wired to Clear. A notable shift — worth noticing how you got there.',
+      'Wired to Clear. A notable shift, worth noticing how you got there.',
   },
   wired_to_alive: {
     title: 'Real ground covered.',
@@ -114,7 +114,7 @@ const DEFAULT_PATH_COPY: Record<TransitionKey, ShiftedResponseCopy> = {
   },
   foggy_to_alive: {
     title: 'Energy returned.',
-    body: () => 'Foggy to Alive. The lift is real — energy and presence, both.',
+    body: () => 'Foggy to Alive. The lift is real. Energy and presence, both.',
   },
 
   // ── shifted: upward green ──────────────────────────────
@@ -146,7 +146,7 @@ const DEFAULT_PATH_COPY: Record<TransitionKey, ShiftedResponseCopy> = {
   alive_to_alive: {
     title: 'Held the energy.',
     body: () =>
-      'Alive at the start, Alive at the end. Many people find this state slips during a longer session — yours didn\'t.',
+      'Alive at the start, Alive at the end. Many people find this state slips during a longer session, but yours didn\'t.',
   },
 
   // ── maintenance: downward green ────────────────────────

@@ -98,7 +98,7 @@ describe('LightMovementProtocolFlow', () => {
     fireEvent.press(getByTestId('modality-picker-stretch'));
 
     expect(getByTestId('mock-player-step-hint').props.children).toBe(
-      'Stretch gently — neck, shoulders, back, legs.'
+      'Stretch gently: neck, shoulders, back, legs.'
     );
   });
 

@@ -39,6 +39,11 @@ export const Colors = {
   dewSage: '#D5E3D1',
   softCoral: '#D97A6E',
 
+  // Wired brain-state identity color (terracotta). Warm, and deliberately
+  // distinct from softCoral (#D97A6E) so the "Wired" state never reads as an
+  // error/red signal. softCoral stays reserved for genuine error states.
+  wiredTerracotta: '#C7794E',
+
   // Functional Colors
   background: {
     default: '#FAFAF6',

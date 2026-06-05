@@ -72,7 +72,7 @@ export interface LightMovementProtocolFlowProps {
 // so the visual hierarchy is consistent between the two modalities.
 const MODALITY_HINTS: Record<MovementModality, string> = {
   walk: 'Walk at a comfortable pace.',
-  stretch: 'Stretch gently — neck, shoulders, back, legs.',
+  stretch: 'Stretch gently: neck, shoulders, back, legs.',
 };
 
 function applyModalityHint(

@@ -74,6 +74,6 @@ function stepToString(step: ProtocolStep): string {
     case 'instruction':
       return step.text;
     case 'timer':
-      return step.hint ? `${step.label} — ${step.hint}` : step.label;
+      return step.hint ? `${step.label}: ${step.hint}` : step.label;
   }
 }

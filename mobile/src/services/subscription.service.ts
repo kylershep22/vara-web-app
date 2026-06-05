@@ -1,8 +1,21 @@
 /**
- * Subscription Service (Stub)
- * Placeholder service for subscription management.
- * Will be replaced with RevenueCat or StoreKit integration.
+ * Subscription Service
+ *
+ * Thin client-side wrappers that initiate StoreKit/Google Play purchases via
+ * RevenueCat. NEVER writes to Firestore subscription state — that is owned
+ * by the RevenueCat webhook → Cloud Function → admin SDK path. After a
+ * successful purchase here, the existing onSnapshot in `useSubscription`
+ * reflects the webhook's write.
+ *
+ * Source of truth for entitlement is Firestore `users/{uid}.subscription`,
+ * not RevenueCat's `customerInfo`. Do not change that here.
  */
+
+import Purchases, { PURCHASES_ERROR_CODE } from 'react-native-purchases';
+import type { PurchasesPackage, PurchasesOffering, CustomerInfo } from 'react-native-purchases';
+import { purchasesReady } from './purchases.service';
+import { applyCustomerInfo } from './rcEntitlement';
+import { logger } from '../utils/logger';
 
 export interface SubscriptionStatusResult {
   status: 'trial' | 'premium' | 'expired';
@@ -13,19 +26,157 @@ export interface SubscriptionStatusResult {
 
 export interface PurchaseResult {
   success: boolean;
+  /** True when the user dismissed Apple's purchase sheet. Not an error. */
+  userCancelled?: boolean;
+  /** Set on real failures (network, store rejection, etc.). */
   error?: string;
+  /** CustomerInfo returned by purchasePackage on success — lets callers reconcile entitlement immediately. */
+  customerInfo?: CustomerInfo;
 }
 
 export interface RestoreResult {
   success: boolean;
+  /** True when at least one prior purchase was associated with this account. */
   restored: boolean;
   error?: string;
 }
 
 /**
- * Get the current subscription status.
- * Returns mock data for beta.
+ * Resolve the RevenueCat package for the requested plan from the current offering.
+ * Looks up the package by `packageType` (MONTHLY / ANNUAL), the standard
+ * RevenueCat convention. The current offering and its `monthly` / `annual`
+ * packages must be configured in the RevenueCat dashboard.
  */
+async function packageForPlan(plan: 'monthly' | 'annual'): Promise<PurchasesPackage | null> {
+  const offerings = await Purchases.getOfferings();
+  const current: PurchasesOffering | null = offerings.current;
+  if (!current) {
+    logger.warn('RevenueCat: no current offering configured in dashboard');
+    return null;
+  }
+  const pkg = plan === 'monthly' ? current.monthly : current.annual;
+  if (!pkg) {
+    logger.warn(`RevenueCat: current offering has no ${plan} package`);
+    return null;
+  }
+  return pkg;
+}
+
+/**
+ * Fetch the current offering's monthly + annual packages so the paywall can
+ * render localized price strings. Returns null packages if the offering is
+ * missing or the SDK isn't configured — callers should handle gracefully
+ * (e.g., fall back to env price strings only as a last resort).
+ */
+export async function getCurrentOfferingPackages(): Promise<{
+  monthly: PurchasesPackage | null;
+  annual: PurchasesPackage | null;
+}> {
+  const ready = await purchasesReady();
+  if (!ready) return { monthly: null, annual: null };
+  try {
+    const offerings = await Purchases.getOfferings();
+    const current = offerings.current;
+    return {
+      monthly: current?.monthly ?? null,
+      annual: current?.annual ?? null,
+    };
+  } catch (err) {
+    logger.warn('RevenueCat: getOfferings failed', err);
+    return { monthly: null, annual: null };
+  }
+}
+
+/**
+ * Initiate a purchase for the requested plan. Returns a result object —
+ * never throws. The caller renders the success/cancel/error states.
+ *
+ * On success, the RevenueCat webhook will fire server-side and the existing
+ * Firestore onSnapshot will update the app's entitlement state. This function
+ * does NOT write to Firestore.
+ */
+export async function initiatePurchase(plan: 'monthly' | 'annual'): Promise<PurchaseResult> {
+  const ready = await purchasesReady();
+  if (!ready) {
+    return { success: false, error: 'Subscriptions are not available right now. Please try again later.' };
+  }
+
+  try {
+    const pkg = await packageForPlan(plan);
+    if (!pkg) {
+      return {
+        success: false,
+        error: 'Subscription options are not available right now. Please try again later.',
+      };
+    }
+
+    // purchasePackage invocation is unchanged; we only READ its return value.
+    // The returned CustomerInfo lets us grant access immediately — closing the
+    // multi-second dead window before the webhook writes Firestore and the
+    // useSubscription onSnapshot fires. Firestore stays the durable record.
+    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    applyCustomerInfo(customerInfo);
+    logger.log('RevenueCat: purchasePackage success', { plan });
+    return { success: true, customerInfo };
+  } catch (err: any) {
+    // userCancelled: user dismissed Apple's purchase sheet. Not an error.
+    const code = err?.code;
+    const isUserCancelled =
+      err?.userCancelled === true ||
+      code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR;
+
+    if (isUserCancelled) {
+      logger.log('RevenueCat: purchase cancelled by user');
+      return { success: false, userCancelled: true };
+    }
+
+    const message =
+      typeof err?.message === 'string'
+        ? err.message
+        : 'Purchase could not be completed. Please try again.';
+    logger.warn('RevenueCat: purchasePackage failed', { plan, code, message });
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Restore prior purchases for this Apple/Google account. Returns whether
+ * any active entitlement was found. The webhook will fire if a restore
+ * surfaces a previously-purchased subscription that needs reconciliation;
+ * the app then reads updated state from Firestore.
+ */
+export async function restorePurchase(): Promise<RestoreResult> {
+  const ready = await purchasesReady();
+  if (!ready) {
+    return {
+      success: false,
+      restored: false,
+      error: 'Restore is not available right now. Please try again later.',
+    };
+  }
+
+  try {
+    const customerInfo = await Purchases.restorePurchases();
+    const hasActive = Object.keys(customerInfo.entitlements?.active ?? {}).length > 0;
+    logger.log('RevenueCat: restorePurchases', { restored: hasActive });
+    return { success: true, restored: hasActive };
+  } catch (err: any) {
+    const message =
+      typeof err?.message === 'string'
+        ? err.message
+        : 'Could not restore purchase. Please try again.';
+    logger.warn('RevenueCat: restorePurchases failed', err);
+    return { success: false, restored: false, error: message };
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Legacy stubs — preserved to avoid breaking the existing test file. Neither
+// is called from production code; the app's entitlement comes from
+// `useSubscription` → `getSubscriptionStatus` in `mobile/src/utils/subscription.ts`,
+// which reads Firestore. Removing these is a separate cleanup task.
+// -----------------------------------------------------------------------------
+
 export async function getSubscriptionStatus(): Promise<SubscriptionStatusResult> {
   const now = new Date();
   const trialStart = new Date(now);
@@ -45,35 +196,6 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatusResult>
   };
 }
 
-/**
- * Initiate a purchase for a given plan.
- * Stub: always returns failure during beta.
- */
-export async function initiatePurchase(
-  plan: 'monthly' | 'annual'
-): Promise<PurchaseResult> {
-  return {
-    success: false,
-    error: 'Purchase not available during beta',
-  };
-}
-
-/**
- * Restore a previous purchase.
- * Stub: always returns failure during beta.
- */
-export async function restorePurchase(): Promise<RestoreResult> {
-  return {
-    success: false,
-    restored: false,
-    error: 'Restore not available during beta',
-  };
-}
-
-/**
- * Verify subscription status with the backend.
- * No-op stub for beta.
- */
 export async function verifySubscriptionStatus(): Promise<void> {
-  // No-op stub - will integrate with backend verification when ready
+  // No-op. Kept for legacy callers.
 }

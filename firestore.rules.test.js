@@ -792,4 +792,160 @@ describe('Notifications', () => {
   });
 });
 
+// ============================================
+// TEST SUITE: SUBSCRIPTION STATE LOCKDOWN
+// Subscription fields are gated by Cloud Functions only.
+// Clients must not be able to grant themselves premium/event access.
+//
+// Trial bootstrap (initial subscription block on signup) is owned by the
+// onUserCreate auth trigger — functions/src/auth/onUserCreate.js — NOT by
+// the client. The CREATE-path tests below verify the client cannot smuggle
+// subscription state into the initial user-doc creation.
+// ============================================
+
+describe('Subscription State Lockdown', () => {
+  async function seedUserWithTrial(uid) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const adminDb = ctx.firestore();
+      await setDoc(doc(adminDb, 'users', uid), {
+        displayName: `User ${uid}`,
+        email: `${uid}@test.com`,
+        privacy: 'public',
+        subscription: {
+          type: 'trial',
+          trialExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+        subscriptionType: 'trial',
+        hasActiveSubscription: true,
+      });
+    });
+  }
+
+  // ---------- CREATE-path tests ----------
+
+  test('client can create their own user doc without subscription fields', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertSucceeds(setDoc(doc(db, 'users', ALICE_UID), {
+      uid: ALICE_UID,
+      email: 'alice@test.com',
+      displayName: 'Alice',
+      hasCompletedOnboarding: false,
+    }));
+  });
+
+  test('client cannot include subscription block on CREATE', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(setDoc(doc(db, 'users', ALICE_UID), {
+      email: 'alice@test.com',
+      displayName: 'Alice',
+      subscription: {
+        type: 'premium',
+        premiumExpiresAt: new Date('2099-01-01'),
+      },
+    }));
+  });
+
+  test('client cannot include eventData on CREATE', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(setDoc(doc(db, 'users', ALICE_UID), {
+      email: 'alice@test.com',
+      displayName: 'Alice',
+      eventData: { eventId: 'fake', eventCode: 'HACK', eventName: 'Hacked' },
+    }));
+  });
+
+  test('client cannot include subscriptionType on CREATE', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(setDoc(doc(db, 'users', ALICE_UID), {
+      email: 'alice@test.com',
+      displayName: 'Alice',
+      subscriptionType: 'premium',
+    }));
+  });
+
+  test('client cannot include hasActiveSubscription on CREATE', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(setDoc(doc(db, 'users', ALICE_UID), {
+      email: 'alice@test.com',
+      displayName: 'Alice',
+      hasActiveSubscription: true,
+    }));
+  });
+
+  // ---------- UPDATE-path tests ----------
+
+  test('client cannot upgrade subscription.type to premium', async () => {
+    await seedUserWithTrial(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), {
+      'subscription.type': 'premium',
+    }));
+  });
+
+  test('client cannot replace the subscription object', async () => {
+    await seedUserWithTrial(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), {
+      subscription: { type: 'premium', premiumExpiresAt: new Date('2099-01-01') },
+    }));
+  });
+
+  test('client cannot extend trialExpiresAt via nested write', async () => {
+    await seedUserWithTrial(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), {
+      'subscription.trialExpiresAt': new Date('2099-01-01'),
+    }));
+  });
+
+  test('client cannot write eventData directly', async () => {
+    await seedUserWithTrial(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), {
+      eventData: { eventId: 'fake', eventCode: 'HACK', eventName: 'Hacked' },
+    }));
+  });
+
+  test('client cannot flip top-level subscriptionType convenience field', async () => {
+    await seedUserWithTrial(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), {
+      subscriptionType: 'premium',
+    }));
+  });
+
+  test('client cannot flip top-level hasActiveSubscription convenience field', async () => {
+    await seedUserWithTrial(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), {
+      hasActiveSubscription: false,
+    }));
+  });
+
+  test('client can still update displayName', async () => {
+    await seedUserWithTrial(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users', ALICE_UID), {
+      displayName: 'Alice Renamed',
+    }));
+  });
+
+  test('client can still update non-subscription fields like hasCompletedOnboarding', async () => {
+    await seedUserWithTrial(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users', ALICE_UID), {
+      hasCompletedOnboarding: true,
+    }));
+  });
+
+  test('client cannot smuggle subscription change inside a multi-field update', async () => {
+    await seedUserWithTrial(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), {
+      displayName: 'Alice',
+      'subscription.type': 'coaching',
+    }));
+  });
+});
+
 console.log('✅ All security rules tests defined. Run with: npm run test:rules');

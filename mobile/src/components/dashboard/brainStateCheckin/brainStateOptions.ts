@@ -9,7 +9,7 @@ export interface BrainStateOption {
 }
 
 export const BRAIN_STATES: BrainStateOption[] = [
-  { state: 'wired', label: 'Wired', description: "Racing thoughts, can't settle", color: Colors.softCoral },
+  { state: 'wired', label: 'Wired', description: "Racing thoughts, can't settle", color: Colors.wiredTerracotta },
   { state: 'foggy', label: 'Foggy', description: 'Low energy, hard to focus', color: Colors.sunriseAmber },
   { state: 'steady', label: 'Steady', description: 'Baseline, functional, fine', color: Colors.mutedSageGray },
   { state: 'clear', label: 'Clear', description: 'Calm, present, ready', color: Colors.evergreenTeal },

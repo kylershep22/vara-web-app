@@ -295,6 +295,7 @@ function renderStep(
           stateBefore={state.checkInFlowContext.state}
           stateAfter={state.stateAfter}
           outcome={state.outcome}
+          protocol={state.protocol}
           durationActualSeconds={state.durationActualSeconds}
           intentPath={state.checkInFlowContext.intentPath}
           onChoose={(choice) =>

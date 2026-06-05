@@ -21,10 +21,12 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useSubscription } from '../hooks/useSubscription';
 import { useFeatureUnlock } from '../hooks/useFeatureUnlock';
 import { FEATURE_METADATA, FeatureId } from '../constants/featureUnlock';
+import Purchases from 'react-native-purchases';
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { useAccountActions } from '../hooks/useAccountActions';
 import { Colors, Spacing, Typography, Layout } from '../constants';
+import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../constants/legal';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 
 interface Settings {
@@ -37,8 +39,15 @@ interface Settings {
   reflectionEnabled: boolean;
 }
 
+// The coach "invite code" channel ('RedeemCode') is only registered in
+// PaywallStack, not in the main app tree where Settings lives — so the row's
+// navigation silently fails. Keep it hidden until that channel is mounted.
+// Flip to true once 'RedeemCode' is reachable from the main navigator.
+const SHOW_REDEEM_INVITE_ROW = false;
+
 const SettingsScreen = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { deleting, confirmLogout, confirmDeleteAccount } = useAccountActions();
   const { hasConsent: aiConsent, setConsent: setAIConsent } = useAIConsent();
   const navigation = useNavigation();
   const { permissionStatus, requestPermissions } = useNotifications();
@@ -175,71 +184,33 @@ const SettingsScreen = () => {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to logout');
-            }
-          },
-        },
-      ]
-    );
+  // Opens the native iOS "manage subscriptions" sheet. Falls back to the
+  // RevenueCat-provided management URL if the SDK call is unavailable (e.g.
+  // pre-iOS 13) or has no sheet to show.
+  const handleManageSubscription = async () => {
+    try {
+      await Purchases.showManageSubscriptions();
+    } catch {
+      try {
+        const info = await Purchases.getCustomerInfo();
+        if (info.managementURL) {
+          await Linking.openURL(info.managementURL);
+          return;
+        }
+      } catch {
+        // fall through to the neutral notice below
+      }
+      Alert.alert(
+        'Manage subscription',
+        'You can manage your subscription from your device Settings, under your Apple ID > Subscriptions.'
+      );
+    }
   };
 
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'This action is permanent and cannot be undone. All your data, including goals, habits, journal entries, and connections, will be permanently deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete My Account',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'Are you sure?',
-              'This cannot be reversed. Your account and all associated data will be permanently removed.',
-              [
-                { text: 'Go Back', style: 'cancel' },
-                {
-                  text: 'Yes, Delete Everything',
-                  style: 'destructive',
-                  onPress: async () => {
-                    setDeleting(true);
-                    try {
-                      const functions = getFunctions();
-                      const deleteAccountFn = httpsCallable(functions, 'deleteAccount');
-                      await deleteAccountFn();
-                      // Sign out locally so auth listener navigates to login,
-                      // not onboarding (the user doc is already deleted).
-                      await logout();
-                    } catch (err: any) {
-                      setDeleting(false);
-                      Alert.alert(
-                        'Deletion Failed',
-                        'Something went wrong. Please try again or contact support@varawellness.co for help.'
-                      );
-                    }
-                  },
-                },
-              ]
-            );
-          },
-        },
-      ]
-    );
+  const openLegalUrl = (url: string) => {
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Unavailable', 'Could not open the link. Please try again later.');
+    });
   };
 
   const handleUnlockAllFeatures = () => {
@@ -654,8 +625,34 @@ const SettingsScreen = () => {
             )}
           </View>
 
-          {/* Show redeem code option for non-coaching users */}
-          {subscriptionStatus?.type !== 'coaching' && (
+          {/* Manage subscription — only for active store subscribers. Trial,
+              coaching, and event access have no App Store subscription to manage. */}
+          {subscriptionStatus?.type === 'premium' && (
+            <>
+              <View style={styles.divider} />
+              <TouchableOpacity
+                style={styles.settingRow}
+                onPress={handleManageSubscription}
+                accessibilityRole="button"
+                accessibilityLabel="Manage subscription"
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingLabel}>Manage subscription</Text>
+                  <Text style={styles.settingDescription}>
+                    Change or cancel your plan
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* Coach "invite code" channel is not yet mounted in the main app tree —
+              the 'RedeemCode' route lives only in PaywallStack, so this tap silently
+              fails. Hide this dead entry point until that channel lands. (Do NOT
+              delete RedeemCodeScreen or its PaywallStack registration.) Users who
+              need a code reach it via the paywall's "Have a code?" affordance. */}
+          {SHOW_REDEEM_INVITE_ROW && subscriptionStatus?.type !== 'coaching' && (
             <>
               <View style={styles.divider} />
 
@@ -676,11 +673,44 @@ const SettingsScreen = () => {
         </View>
       </View>
 
+      {/* Legal Section — Terms of Use (EULA) + Privacy Policy, reliably
+          accessible in-app per App Store Review Guideline 3.1.2. */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Legal</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => openLegalUrl(TERMS_OF_USE_URL)}
+            accessibilityRole="link"
+            accessibilityLabel="Terms of Use"
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Terms of Use</Text>
+            </View>
+            <Ionicons name="open-outline" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => openLegalUrl(PRIVACY_POLICY_URL)}
+            accessibilityRole="link"
+            accessibilityLabel="Privacy Policy"
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Privacy Policy</Text>
+            </View>
+            <Ionicons name="open-outline" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Account Actions Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account Actions</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.settingRow} onPress={handleLogout}>
+          <TouchableOpacity style={styles.settingRow} onPress={confirmLogout}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.settingLabel, { color: Colors.evergreenTeal }]}>Logout</Text>
             </View>
@@ -689,7 +719,7 @@ const SettingsScreen = () => {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.settingRow} onPress={handleDeleteAccount} disabled={deleting}>
+          <TouchableOpacity style={styles.settingRow} onPress={confirmDeleteAccount} disabled={deleting}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.settingLabel, { color: Colors.softCoral }]}>
                 {deleting ? 'Deleting Account...' : 'Delete Account'}

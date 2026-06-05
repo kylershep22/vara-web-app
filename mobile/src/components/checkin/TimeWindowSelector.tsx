@@ -150,7 +150,7 @@ export function TimeWindowSelector({
                 ]}
                 onPress={() => onSelect(chip.value)}
                 accessibilityRole="button"
-                accessibilityLabel={`${chip.label} — ${chip.framing}`}
+                accessibilityLabel={`${chip.label}, ${chip.framing}`}
                 testID={`time-window-chip-${chip.value}`}
               >
                 <Text style={styles.chipLabel}>{chip.label}</Text>

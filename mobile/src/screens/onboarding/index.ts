@@ -18,7 +18,21 @@ export { default as OnboardingQuickStartScreen } from './OnboardingQuickStartScr
 export { default as OnboardingFirstWinScreen } from './OnboardingFirstWinScreen';
 export { default as OnboardingTourScreen } from './OnboardingTourScreen';
 
-// V2 Onboarding Screens (simplified 3-screen flow)
+// V2 Onboarding Screens (simplified 3-screen flow) — superseded by the
+// stress-recovery arc below; kept exported but no longer mounted in the
+// navigator (Task 8). Their permission prompt is thereby orphaned.
 export { default as OnboardingV2WelcomeScreen } from './OnboardingV2WelcomeScreen';
 export { default as OnboardingV2CheckInScreen } from './OnboardingV2CheckInScreen';
 export { default as OnboardingV2ProtocolScreen } from './OnboardingV2ProtocolScreen';
+
+// Stress-recovery onboarding arc (Model A) — screens 1–9; screen 10 is the
+// existing PaywallScreen, reached via the navigator after completeOnboarding.
+export { default as OnboardingProblemScreen } from './OnboardingProblemScreen';
+export { default as OnboardingStateCheckInScreen } from './OnboardingStateCheckInScreen';
+export { default as OnboardingStressorScreen } from './OnboardingStressorScreen';
+export { default as OnboardingPeakWindowScreen } from './OnboardingPeakWindowScreen';
+export { default as OnboardingReflectScreen } from './OnboardingReflectScreen';
+export { default as OnboardingProtocolScreen } from './OnboardingProtocolScreen';
+export { default as OnboardingRecheckScreen } from './OnboardingRecheckScreen';
+export { default as OnboardingBridgeScreen } from './OnboardingBridgeScreen';
+export { default as OnboardingAnchorScreen } from './OnboardingAnchorScreen';

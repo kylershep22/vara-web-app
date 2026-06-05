@@ -1,42 +1,108 @@
-// Render tests for NotShiftedResponse — five focused cases.
+// Render tests for NotShiftedResponse — Phase 2.8.2 layout refactor.
 //
-// 1. Default mode: standard six strings render; both buttons fire
-//    the expected onChoose values.
-// 2. Late-night override mode: the "Try something longer" button
-//    label and hint swap to the NSDR-specific copy.
-// 3. Late-night hint specifically renders the neutral framing.
-// 4. No auto-dismiss: advancing fake timers a long way doesn't fire
-//    onChoose unprompted.
-// 5. The "Rest and come back later" button is unaffected by mode.
+// Section 5 in vara_protocol_mockups.html. Replaces the previous text-link
+// CTAs (jammed against the bottom edge with FAB overlap) with a full-screen
+// vertical layout: completed-protocol pill at top, teal H1, validating body,
+// Dew Sage Highlight Card, "If you'd like to keep going" section label,
+// and two path cards (primary teal-bordered, secondary plain) with icons.
+//
+// FAB hidden via the Phase 2.8.1 default-HIDE rule (CheckInFlow's
+// <Stack.Screen> declares no showFAB, NotShiftedResponse is a child step).
+//
+// Coverage:
+// 1. Pill renders the just-completed protocol name + duration.
+// 2. Headline + validating Highlight Card render with the spec copy.
+// 3. Section label "If you'd like to keep going" renders.
+// 4. Path cards render with the spec copy, icons, and correct testIDs;
+//    onChoose fires the right value on tap.
+// 5. Late-night override swaps the try-longer label + hint; rest-later stays.
+// 6. No auto-dismiss (long fake-timer advance does not trigger onChoose).
 
 import React from 'react';
 import { fireEvent, render, act } from '@testing-library/react-native';
 
 import { NotShiftedResponse } from '../NotShiftedResponse';
 
-describe('NotShiftedResponse — default mode', () => {
-  it('renders the standard try-longer label/hint and rest-later label/hint', () => {
-    const onChoose = jest.fn();
-    const { getByTestId } = render(
-      <NotShiftedResponse lateNightOverride={false} onChoose={onChoose} />
-    );
+const PROTOCOL_NAME = 'Box Breathing';
+const PROTOCOL_DURATION_LABEL = '2 min';
 
+function renderResponse(
+  overrides: Partial<React.ComponentProps<typeof NotShiftedResponse>> = {}
+) {
+  const onChoose = overrides.onChoose ?? jest.fn();
+  return {
+    onChoose,
+    ...render(
+      <NotShiftedResponse
+        protocolName={PROTOCOL_NAME}
+        protocolDurationLabel={PROTOCOL_DURATION_LABEL}
+        lateNightOverride={false}
+        onChoose={onChoose}
+        {...overrides}
+      />
+    ),
+  };
+}
+
+describe('NotShiftedResponse — Section 5 layout', () => {
+  it('renders the completed-protocol pill with name + duration', () => {
+    const { getByText } = renderResponse();
+    // Pill renders the two fragments joined by a separator. Assert each
+    // appears somewhere in the rendered tree.
+    expect(getByText(new RegExp(PROTOCOL_NAME))).toBeTruthy();
+    expect(getByText(new RegExp(PROTOCOL_DURATION_LABEL))).toBeTruthy();
+  });
+
+  it('renders the teal H1 headline with the spec copy', () => {
+    const { getByTestId } = renderResponse();
     expect(getByTestId('not-shifted-response-title').props.children).toBe(
       'Some states take more time.'
     );
+  });
 
-    const tryLonger = getByTestId('not-shifted-response-try-longer');
-    expect(tryLonger.props.accessibilityLabel).toBe('Try something longer');
+  it('renders the validating Highlight Card text', () => {
+    const { getByText } = renderResponse();
+    expect(
+      getByText(/What you just did still counts/)
+    ).toBeTruthy();
+    expect(
+      getByText(/Your nervous system noticed the input/)
+    ).toBeTruthy();
+  });
 
-    const restLater = getByTestId('not-shifted-response-rest-later');
-    expect(restLater.props.accessibilityLabel).toBe('Rest and come back later');
+  it('renders the "If you\'d like to keep going" section label', () => {
+    const { getByText } = renderResponse();
+    expect(getByText("If you'd like to keep going")).toBeTruthy();
+  });
+
+  it('renders both path cards with their testIDs', () => {
+    const { getByTestId } = renderResponse();
+    expect(getByTestId('not-shifted-response-try-longer')).toBeTruthy();
+    expect(getByTestId('not-shifted-response-rest-later')).toBeTruthy();
+  });
+});
+
+describe('NotShiftedResponse — default mode copy + action shape', () => {
+  it('try-longer card shows the spec label + hint', () => {
+    const { getByTestId, getByText } = renderResponse();
+    const card = getByTestId('not-shifted-response-try-longer');
+    expect(card.props.accessibilityLabel).toBe('Try something longer');
+    expect(getByText('Try something longer')).toBeTruthy();
+    expect(
+      getByText('10+ minute protocol, for states that need more time')
+    ).toBeTruthy();
+  });
+
+  it('rest-later card shows the spec label + hint', () => {
+    const { getByTestId, getByText } = renderResponse();
+    const card = getByTestId('not-shifted-response-rest-later');
+    expect(card.props.accessibilityLabel).toBe('Rest and come back later');
+    expect(getByText('Rest and come back later')).toBeTruthy();
+    expect(getByText('Your next check-in will still be here')).toBeTruthy();
   });
 
   it('try-longer tap fires onChoose("try_longer"); rest-later tap fires onChoose("rest_later")', () => {
-    const onChoose = jest.fn();
-    const { getByTestId } = render(
-      <NotShiftedResponse lateNightOverride={false} onChoose={onChoose} />
-    );
+    const { getByTestId, onChoose } = renderResponse();
 
     fireEvent.press(getByTestId('not-shifted-response-try-longer'));
     expect(onChoose).toHaveBeenLastCalledWith('try_longer');
@@ -50,47 +116,31 @@ describe('NotShiftedResponse — default mode', () => {
 
 describe('NotShiftedResponse — late-night override mode', () => {
   it('swaps try-longer label to "Try NSDR when you\'re ready"', () => {
-    const onChoose = jest.fn();
-    const { getByTestId } = render(
-      <NotShiftedResponse lateNightOverride={true} onChoose={onChoose} />
-    );
-
-    const tryLonger = getByTestId('not-shifted-response-try-longer');
-    expect(tryLonger.props.accessibilityLabel).toBe(
+    const { getByTestId } = renderResponse({ lateNightOverride: true });
+    const card = getByTestId('not-shifted-response-try-longer');
+    expect(card.props.accessibilityLabel).toBe(
       "Try NSDR when you're ready"
     );
   });
 
   it('renders the neutral late-night hint (no sleep-specific framing)', () => {
-    const { getByText } = render(
-      <NotShiftedResponse lateNightOverride={true} onChoose={jest.fn()} />
-    );
-
-    // Hint string renders as a separate Text node inside the button;
-    // querying by exact text is more robust than walking children.
+    const { getByText, queryByText } = renderResponse({
+      lateNightOverride: true,
+    });
     expect(getByText('About 20 minutes of guided rest')).toBeTruthy();
-    // Negative regex to catch future drift if someone re-introduces
-    // sleep-specific framing into the default-path late-night hint
-    // (Phase 5 path-specific tables can use sleep framing; default
-    // stays neutral per locked decision).
-    expect(() => getByText(/sleep|bedtime|wind down/i)).toThrow();
+    expect(queryByText(/sleep|bedtime|wind down/i)).toBeNull();
   });
 
-  it('rest-later button remains unchanged in override mode', () => {
-    const { getByTestId } = render(
-      <NotShiftedResponse lateNightOverride={true} onChoose={jest.fn()} />
-    );
-
-    const restLater = getByTestId('not-shifted-response-rest-later');
-    expect(restLater.props.accessibilityLabel).toBe('Rest and come back later');
+  it('rest-later card remains unchanged in override mode', () => {
+    const { getByTestId } = renderResponse({ lateNightOverride: true });
+    const card = getByTestId('not-shifted-response-rest-later');
+    expect(card.props.accessibilityLabel).toBe('Rest and come back later');
   });
 
-  it('try-longer tap still fires onChoose("try_longer") in override mode (action shape unchanged)', () => {
-    const onChoose = jest.fn();
-    const { getByTestId } = render(
-      <NotShiftedResponse lateNightOverride={true} onChoose={onChoose} />
-    );
-
+  it('try-longer tap still fires onChoose("try_longer") in override mode', () => {
+    const { getByTestId, onChoose } = renderResponse({
+      lateNightOverride: true,
+    });
     fireEvent.press(getByTestId('not-shifted-response-try-longer'));
     expect(onChoose).toHaveBeenCalledWith('try_longer');
   });
@@ -107,7 +157,12 @@ describe('NotShiftedResponse — no auto-dismiss', () => {
   it('does not fire onChoose autonomously even after a long delay', () => {
     const onChoose = jest.fn();
     render(
-      <NotShiftedResponse lateNightOverride={false} onChoose={onChoose} />
+      <NotShiftedResponse
+        protocolName={PROTOCOL_NAME}
+        protocolDurationLabel={PROTOCOL_DURATION_LABEL}
+        lateNightOverride={false}
+        onChoose={onChoose}
+      />
     );
 
     // Advance well past the 4s ShiftedResponse auto-dismiss window —

@@ -150,7 +150,7 @@ export function LightMovementModalityPicker({
               style={styles.card}
               onPress={() => handleSelect(option.modality)}
               accessibilityRole="button"
-              accessibilityLabel={`${option.title} — ${option.subtext}`}
+              accessibilityLabel={`${option.title}, ${option.subtext}`}
               testID={option.testID}
             >
               <Text style={styles.cardSubtext}>{option.subtext}</Text>

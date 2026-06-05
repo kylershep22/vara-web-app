@@ -14,23 +14,27 @@ import {
 } from 'react-native';
 import { Colors, Spacing, Typography } from '../../constants';
 
-// Pricing pulled from env config with defaults
-const MONTHLY_PRICE = process.env.EXPO_PUBLIC_MONTHLY_PRICE || '9.99';
-const ANNUAL_PRICE = process.env.EXPO_PUBLIC_ANNUAL_PRICE || '79.99';
-const ANNUAL_MONTHLY_EQUIVALENT = process.env.EXPO_PUBLIC_ANNUAL_MONTHLY_EQUIVALENT || '6.67';
-const CURRENCY = process.env.EXPO_PUBLIC_CURRENCY || 'USD';
-
-const currencySymbol = CURRENCY === 'USD' ? '$' : CURRENCY;
-
 interface PricingSelectorProps {
   selectedPlan: 'monthly' | 'annual';
   onSelectPlan: (plan: 'monthly' | 'annual') => void;
+  /** Localized monthly price string from StoreKit, e.g. "$8.99". Required. */
+  monthlyPrice: string;
+  /** Localized annual price string from StoreKit, e.g. "$79.99". Required. */
+  annualPrice: string;
+  /** Display copy under the annual price, e.g. "Equivalent to $6.67/month". Optional. */
+  annualMonthlyEquivalent?: string;
 }
 
 const PricingSelector: React.FC<PricingSelectorProps> = ({
   selectedPlan,
   onSelectPlan,
+  monthlyPrice,
+  annualPrice,
+  annualMonthlyEquivalent,
 }) => {
+  const MONTHLY_PRICE = monthlyPrice;
+  const ANNUAL_PRICE = annualPrice;
+  const ANNUAL_MONTHLY_EQUIVALENT = annualMonthlyEquivalent;
   return (
     <View style={styles.container}>
       {/* Monthly Card */}
@@ -43,7 +47,7 @@ const PricingSelector: React.FC<PricingSelectorProps> = ({
         activeOpacity={0.7}
         accessibilityRole="radio"
         accessibilityState={{ selected: selectedPlan === 'monthly' }}
-        accessibilityLabel={`Monthly plan, ${currencySymbol}${MONTHLY_PRICE} per month`}
+        accessibilityLabel={`Monthly plan, ${MONTHLY_PRICE} per month`}
       >
         <Text
           style={[
@@ -59,7 +63,7 @@ const PricingSelector: React.FC<PricingSelectorProps> = ({
             selectedPlan === 'monthly' && styles.priceSelected,
           ]}
         >
-          {currencySymbol}{MONTHLY_PRICE}
+          {MONTHLY_PRICE}
           <Text style={styles.period}>/month</Text>
         </Text>
       </TouchableOpacity>
@@ -75,7 +79,11 @@ const PricingSelector: React.FC<PricingSelectorProps> = ({
         activeOpacity={0.7}
         accessibilityRole="radio"
         accessibilityState={{ selected: selectedPlan === 'annual' }}
-        accessibilityLabel={`Annual plan, ${currencySymbol}${ANNUAL_PRICE} per year, equivalent to ${currencySymbol}${ANNUAL_MONTHLY_EQUIVALENT} per month. Best value.`}
+        accessibilityLabel={
+          ANNUAL_MONTHLY_EQUIVALENT
+            ? `Annual plan, ${ANNUAL_PRICE} per year, equivalent to ${ANNUAL_MONTHLY_EQUIVALENT} per month. Best value.`
+            : `Annual plan, ${ANNUAL_PRICE} per year. Best value.`
+        }
       >
         <View style={styles.bestValueTag}>
           <Text style={styles.bestValueText}>Best value</Text>
@@ -94,12 +102,14 @@ const PricingSelector: React.FC<PricingSelectorProps> = ({
             selectedPlan === 'annual' && styles.priceSelected,
           ]}
         >
-          {currencySymbol}{ANNUAL_PRICE}
+          {ANNUAL_PRICE}
           <Text style={styles.period}>/year</Text>
         </Text>
-        <Text style={styles.equivalent}>
-          Equivalent to {currencySymbol}{ANNUAL_MONTHLY_EQUIVALENT}/month
-        </Text>
+        {ANNUAL_MONTHLY_EQUIVALENT && (
+          <Text style={styles.equivalent}>
+            Equivalent to {ANNUAL_MONTHLY_EQUIVALENT}/month
+          </Text>
+        )}
       </TouchableOpacity>
     </View>
   );

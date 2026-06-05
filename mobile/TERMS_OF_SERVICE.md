@@ -200,7 +200,7 @@ You may not:
 
 ### Premium Subscription
 
-- **Plans:** Monthly ($9.99/month) or Annual ($79.99/year)
+- **Plans:** Monthly ($8.99/month) or Annual ($79.99/year)
 - **Billing:** Charged via App Store/Google Play after trial period
 - **Auto-Renewal:** Subscriptions renew automatically unless canceled at least 24 hours before the end of the current period
 - **Cancellation:** Cancel anytime through your App Store or Google Play subscription settings

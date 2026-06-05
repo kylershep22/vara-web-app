@@ -45,6 +45,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -76,6 +77,7 @@ import {
   type SessionMarker,
 } from '../../utils/sessionMarker';
 import { logger } from '../../utils/logger';
+import OnboardingProgressDots from '../onboarding/OnboardingProgressDots';
 import { AudioStepView } from './AudioStepView';
 import { BreathPacer } from './BreathPacer';
 import { EndEarlyConfirmModal } from './EndEarlyConfirmModal';
@@ -428,20 +430,27 @@ export function GuidedSessionPlayer({
           state.status.breathScheduleIndex !== undefined
             ? state.status.breathScheduleIndex
             : 0;
+        // Center the breath cluster (circle + phase label + non-motion cues) as
+        // one group between the header dots and the bottom transport. BreathPacer
+        // is content-sized (so it stays valid inside the scrolling dev harness),
+        // so the player owns the vertical centering. Timer/instruction step views
+        // already self-center via their own flex:1 containers.
         return (
-          <BreathPacer
-            key={`breath-${currentStepIndex}`}
-            step={currentStep}
-            startAtScheduleIndex={startIndex}
-            isActive={stepActive}
-            onPhaseChange={(entry) => {
-              const idx =
-                entry.cycleIndex * currentStep.phases.length +
-                entry.phaseIndex;
-              dispatch({ type: 'UPDATE_BREATH_INDEX', index: idx });
-            }}
-            onComplete={handleStepComplete}
-          />
+          <View style={styles.breathCenter}>
+            <BreathPacer
+              key={`breath-${currentStepIndex}`}
+              step={currentStep}
+              startAtScheduleIndex={startIndex}
+              isActive={stepActive}
+              onPhaseChange={(entry) => {
+                const idx =
+                  entry.cycleIndex * currentStep.phases.length +
+                  entry.phaseIndex;
+                dispatch({ type: 'UPDATE_BREATH_INDEX', index: idx });
+              }}
+              onComplete={handleStepComplete}
+            />
+          </View>
         );
       }
       case 'audio':
@@ -492,7 +501,10 @@ export function GuidedSessionPlayer({
   const stepActive = isActive(state.status);
 
   return (
-    <View style={styles.container} testID="guided-session-player">
+    // edges=['top'] so the header clears the status bar / notch on real
+    // devices. Bottom inset is intentionally left to PlayerTransport, which
+    // manages its own safe-area padding.
+    <SafeAreaView style={styles.container} edges={['top']} testID="guided-session-player">
       {isVisualProtocol ? <KeepAwakeWhenVisual /> : null}
       <Header
         protocolName={protocol.name}
@@ -535,7 +547,7 @@ export function GuidedSessionPlayer({
         onCancel={handleHeaderExitCancel}
         onConfirm={handleHeaderExitConfirm}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -571,9 +583,14 @@ function Header({
         <Text style={styles.headerName} testID="player-header-protocol-name">
           {protocolName}
         </Text>
-        <Text style={styles.headerSteps} testID="player-header-steps">
-          {`Step ${currentStepIndex + 1} of ${totalSteps}`}
-        </Text>
+        {/* Step position as dots (was "Step N of M" text). Filled = completed +
+            current; muted = upcoming. Keeps the "Step N of M" a11y label. */}
+        <View style={styles.headerDots} testID="player-header-steps">
+          <OnboardingProgressDots
+            currentStep={currentStepIndex + 1}
+            totalSteps={totalSteps}
+          />
+        </View>
       </View>
       {showCloseButton ? (
         <TouchableOpacity
@@ -685,10 +702,8 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
   },
-  headerSteps: {
-    marginTop: 2,
-    fontSize: Typography.fontSize.xs,
-    color: Colors.mutedSageGray,
+  headerDots: {
+    alignItems: 'center',
   },
   headerClose: {
     position: 'absolute',
@@ -704,6 +719,11 @@ const styles = StyleSheet.create({
   },
   stepWrap: {
     flex: 1,
+  },
+  // Centers the content-sized breath cluster vertically in the player body.
+  breathCenter: {
+    flex: 1,
+    justifyContent: 'center',
   },
   idle: {
     flex: 1,

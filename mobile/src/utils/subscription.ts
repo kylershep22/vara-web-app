@@ -5,7 +5,7 @@
 
 import { Timestamp } from 'firebase/firestore';
 
-export type SubscriptionType = 'trial' | 'premium' | 'coaching' | 'event' | 'expired';
+export type SubscriptionType = 'trial' | 'premium' | 'coaching' | 'event' | 'expired' | 'none';
 
 export interface SubscriptionStatus {
   type: SubscriptionType;
@@ -101,13 +101,19 @@ function isPast(timestamp: Timestamp | undefined): boolean {
 export function getSubscriptionStatus(userDoc: { subscription?: SubscriptionData; [key: string]: unknown }): SubscriptionStatus {
   const sub: SubscriptionData | undefined = userDoc?.subscription;
 
-  // No subscription data = beta user or legacy user without subscription field
-  // During beta, grant access so the app is usable without subscription setup
+  // No subscription data → no affirmative grant. The app-side trial is removed
+  // (Model A): access requires an active entitlement — Firestore premium/event/
+  // coaching (webhook/code grant) or an active RevenueCat entitlement (merged in
+  // useSubscription). Fail closed; never default access to true here.
+  //
+  // type:'none' (never-subscribed), distinct from type:'expired' (webhook-
+  // produced expiration of a real subscription) — both deny, but they are not
+  // the same state.
   if (!sub || !sub.type) {
     return {
-      type: 'trial',
-      isActive: true,
-      canAccessApp: true,
+      type: 'none',
+      isActive: false,
+      canAccessApp: false,
     };
   }
 
@@ -115,26 +121,14 @@ export function getSubscriptionStatus(userDoc: { subscription?: SubscriptionData
 
   switch (sub.type) {
     case 'trial': {
-      const isExpired = isPast(sub.trialExpiresAt);
-
-      if (isExpired) {
-        // Trial has expired but type hasn't been updated yet
-        // (Cloud Function will update this, but handle gracefully)
-        return {
-          type: 'expired',
-          isActive: false,
-          canAccessApp: false,
-        };
-      }
-
-      const daysRemaining = daysUntil(sub.trialExpiresAt);
-
+      // App-side trial removed (Model A). Legacy 'trial' docs no longer grant
+      // access — the StoreKit free trial arrives as type:'premium'
+      // (periodType TRIAL) via the webhook. trialStartedAt / trialExpiresAt stay
+      // in the schema for product analytics but no longer drive access.
       return {
-        type: 'trial',
-        isActive: true,
-        canAccessApp: true,
-        trialDaysRemaining: daysRemaining,
-        isTrialExpiringSoon: daysRemaining <= 2,
+        type: 'expired',
+        isActive: false,
+        canAccessApp: false,
       };
     }
 
@@ -245,6 +239,8 @@ export function formatSubscriptionType(type: SubscriptionType): string {
       return 'Event Access';
     case 'expired':
       return 'Expired';
+    case 'none':
+      return 'None';
     default:
       return 'Unknown';
   }
@@ -280,6 +276,9 @@ export function getSubscriptionDescription(status: SubscriptionStatus): string {
       if (status.dataRetentionDaysRemaining) {
         return `Data kept for ${status.dataRetentionDaysRemaining} more days`;
       }
+      return 'Subscribe to continue your wellness journey';
+
+    case 'none':
       return 'Subscribe to continue your wellness journey';
 
     default:

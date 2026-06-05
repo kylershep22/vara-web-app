@@ -92,7 +92,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.semibold,
-    color: Colors.softCharcoal,
+    // Phase 2.8.3 — Evergreen Teal per UI Standards §4.2. Was
+    // softCharcoal pre-2.8.3.
+    color: Colors.evergreenTeal,
     marginBottom: Spacing.lg,
   },
   optionsList: {
