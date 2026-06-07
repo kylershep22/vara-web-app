@@ -1,3 +1,5 @@
 # https://www.robotstxt.org/robotstxt.html
+# Web app is gated (coming soon) until web PMF is validated.
+# Disallow all crawling while gated; revert to "Disallow:" at public launch.
 User-agent: *
-Disallow:
+Disallow: /
