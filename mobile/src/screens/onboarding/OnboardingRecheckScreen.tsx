@@ -23,13 +23,14 @@ import { saveOnboardingStep, saveRecheckShift } from '../../services/firebase/on
 import { writeProtocolSession } from '../../services/firebase/protocolSession.service';
 import {
   computeShift,
+  classifyShiftBucket,
   shiftLine,
   shiftOutcome,
-  BRAIN_LINE,
+  brainLine,
   STATE_LABELS,
   STATE_COLORS,
 } from './onboardingShift';
-import type { BrainState } from '../../types/models';
+import type { BrainState, ProtocolAbandonReason } from '../../types/models';
 
 const OnboardingRecheckScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -40,6 +41,10 @@ const OnboardingRecheckScreen: React.FC = () => {
   const protocolId: string = route.params?.protocolId ?? '';
   const sessionStartedAt: number = route.params?.sessionStartedAt ?? Date.now();
   const durationActualSeconds: number = route.params?.durationActualSeconds ?? 0;
+  // Completion telemetry forwarded from the player summary (additive analytics).
+  const completed: boolean = route.params?.completed ?? false;
+  const abandonReason: ProtocolAbandonReason | null = route.params?.abandonReason ?? null;
+  const stepsCompleted: number = route.params?.stepsCompleted ?? 0;
 
   const [after, setAfter] = useState<BrainState | null>(null);
 
@@ -47,7 +52,10 @@ const OnboardingRecheckScreen: React.FC = () => {
     if (user?.uid) void saveOnboardingStep(user.uid, 'OnboardingRecheck');
   }, [user?.uid]);
 
+  // computeShift still drives the (unchanged) protocolSession.outcome field.
   const shift = useMemo(() => (after ? computeShift(before, after) : null), [before, after]);
+  // The shift LINE + before->after arrow branch on the valence transition.
+  const bucket = useMemo(() => (after ? classifyShiftBucket(before, after) : null), [before, after]);
 
   const onContinue = async () => {
     if (!after || !shift) return;
@@ -63,13 +71,18 @@ const OnboardingRecheckScreen: React.FC = () => {
           userChosenNextStep: null,
           intentPath: 'default',
           sessionStartedAt,
+          // Additive completion telemetry — completed-vs-ended-early becomes
+          // queryable without changing the existing outcome field.
+          completed,
+          abandonReason,
+          stepsCompleted,
         });
         await saveRecheckShift(user.uid, after, shift);
       } catch {
         // Non-blocking — analytics write must never block onboarding.
       }
     }
-    navigation.navigate('OnboardingBridge');
+    navigation.navigate('OnboardingBridge', { state: before });
   };
 
   return (
@@ -91,12 +104,13 @@ const OnboardingRecheckScreen: React.FC = () => {
             isLast={i === BRAIN_STATES.length - 1}
           />
         ))}
-        {after && shift && (
+        {after && bucket && (
           <View style={styles.shiftBlock}>
-            {/* Visual before→after transition. Only on an improved shift: the
-                flat/worse prose intentionally avoids stating a transition
-                (compassion contract), so we don't render a forward arrow there. */}
-            {shift === 'improved' && (
+            {/* Visual before→after transition. Only on a "moved" bucket (an
+                upward shift into a positive state): the other prose
+                intentionally avoids stating a transition (compassion contract),
+                so we don't render a forward arrow there. */}
+            {bucket === 'moved' && (
               <View style={styles.transitionRow}>
                 <View style={styles.statePair}>
                   <View style={[styles.stateDot, { backgroundColor: STATE_COLORS[before] }]} />
@@ -109,8 +123,8 @@ const OnboardingRecheckScreen: React.FC = () => {
                 </View>
               </View>
             )}
-            <Text style={styles.shiftLine}>{shiftLine(before, after, shift)}</Text>
-            <Text style={styles.brainLine}>{BRAIN_LINE}</Text>
+            <Text style={styles.shiftLine}>{shiftLine(before, after, durationActualSeconds)}</Text>
+            <Text style={styles.brainLine}>{brainLine(before)}</Text>
           </View>
         )}
       </View>

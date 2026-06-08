@@ -13,6 +13,7 @@ import {
   type PeakWindow,
   ONBOARDING_SR_TOTAL_STEPS,
   onboardingStepNumber,
+  driverValenceForState,
 } from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -35,6 +36,12 @@ const OnboardingPeakWindowScreen: React.FC = () => {
   const state: BrainState | undefined = route.params?.state;
   const stressorLabels: string[] = route.params?.stressorLabels ?? [];
   const [selected, setSelected] = useState<PeakWindow | null>(null);
+  // "When does it peak?" presumes a problem; positive arrivals get a neutral
+  // framing. Single valence source. Unknown → activated.
+  const peakTitle =
+    driverValenceForState(state) === 'positive'
+      ? 'When would a daily moment fit best?'
+      : 'When does it peak?';
 
   useEffect(() => {
     if (user?.uid) void saveOnboardingStep(user.uid, 'OnboardingPeakWindow');
@@ -55,7 +62,7 @@ const OnboardingPeakWindowScreen: React.FC = () => {
     <OnboardingScaffold
       currentStep={onboardingStepNumber('OnboardingPeakWindow')}
       totalSteps={ONBOARDING_SR_TOTAL_STEPS}
-      title="When does it peak?"
+      title={peakTitle}
       subtitle="This helps us suggest a daily moment. Skip if you're not sure."
       primaryLabel="Continue"
       onPrimary={() => advance(selected)}

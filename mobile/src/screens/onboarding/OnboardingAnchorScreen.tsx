@@ -17,7 +17,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useNavigation } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
@@ -28,7 +28,9 @@ import {
   type PeakWindow,
   ONBOARDING_SR_TOTAL_STEPS,
   onboardingStepNumber,
+  driverValenceForState,
 } from '../../constants/onboardingStressRecovery';
+import type { BrainState } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
 import {
   saveOnboardingStep,
@@ -51,8 +53,14 @@ function hourForPeak(peak: PeakWindow | null): number {
 }
 
 const OnboardingAnchorScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { user } = useAuth();
+  const state: BrainState | undefined = route.params?.state;
+  // Positive arrivals reframe "reset" as a neutral "check in". Unknown → activated.
+  const anchorTitle =
+    driverValenceForState(state) === 'positive'
+      ? 'Want a daily moment to check in?'
+      : 'Want a daily moment to reset?';
   const [selectedTime, setSelectedTime] = useState(new Date(2024, 0, 1, DEFAULT_ANCHOR_HOUR, 0));
   const [showPicker, setShowPicker] = useState(Platform.OS === 'ios');
   const [busy, setBusy] = useState(false);
@@ -146,7 +154,7 @@ const OnboardingAnchorScreen: React.FC = () => {
     <OnboardingScaffold
       currentStep={onboardingStepNumber('OnboardingAnchor')}
       totalSteps={ONBOARDING_SR_TOTAL_STEPS}
-      title="Want a daily moment to reset?"
+      title={anchorTitle}
       subtitle="Pick a time that fits your day. It's an invitation, not an obligation. You can change or turn it off anytime."
       primaryLabel="Continue"
       primaryDisabled={busy}
