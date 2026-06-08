@@ -16,6 +16,7 @@ import {
   ONBOARDING_ENTRY_PROTOCOL_OVERRIDES,
   ONBOARDING_PROTOCOL_TIME_WINDOW,
   DEFAULT_ONBOARDING_PROTOCOL_ID,
+  driverValenceForState,
 } from '../../constants/onboardingStressRecovery';
 
 export function resolveOnboardingProtocol(state: BrainState): Protocol | null {
@@ -56,16 +57,24 @@ export function minutesWord(durationSeconds: number): string {
 }
 
 /**
- * The "Here's a {duration} reset…" lead-in on the Reflect screen, sized to the
- * actually-selected protocol. Falls back to a generic phrase when the state or
- * the protocol's duration can't be resolved (rather than rendering a wrong or
+ * The "Here's a {duration} …" lead-in on the Reflect screen, sized to the
+ * actually-selected protocol and branched by state valence (shared helper):
+ *   - Activated (Wired, Foggy) / default: "...reset to help your system downshift."
+ *   - Positive (Steady, Clear, Alive):    "...practice to help you stay with this."
+ * Falls back to a generic phrase (same valence split) when the state or the
+ * protocol's duration can't be resolved (rather than rendering a wrong or
  * "{undefined}-minute" string).
  */
 export function onboardingResetLine(state: BrainState | null): string {
   const protocol = state ? resolveOnboardingProtocol(state) : null;
   const seconds = protocol?.durationSeconds;
+  const positive = driverValenceForState(state) === 'positive';
   if (!seconds || seconds <= 0) {
-    return "Here's a short reset to help your system downshift.";
+    return positive
+      ? "Here's a short practice to help you stay with this."
+      : "Here's a short reset to help your system downshift.";
   }
-  return `Here's a ${minutesWord(seconds)}-minute reset to help your system downshift.`;
+  return positive
+    ? `Here's a ${minutesWord(seconds)}-minute practice to help you stay with this.`
+    : `Here's a ${minutesWord(seconds)}-minute reset to help your system downshift.`;
 }

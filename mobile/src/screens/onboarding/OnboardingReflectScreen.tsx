@@ -17,6 +17,7 @@ import {
   type PeakWindow,
   ONBOARDING_SR_TOTAL_STEPS,
   onboardingStepNumber,
+  driverValenceForState,
 } from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep } from '../../services/firebase/onboardingStressRecovery.service';
@@ -147,13 +148,20 @@ const OnboardingReflectScreen: React.FC = () => {
   // doesn't get. Falls back to a generic phrase when state is unresolved.
   const resetLine = useMemo(() => onboardingResetLine(resolved.state), [resolved.state]);
 
+  // Primary CTA branches with the lead-in: positive states "Begin", activated
+  // (and default) keep "Start the reset". Same valence helper as the lead-in.
+  const primaryLabel = useMemo(
+    () => (driverValenceForState(resolved.state) === 'positive' ? 'Begin' : 'Start the reset'),
+    [resolved.state]
+  );
+
   return (
     <OnboardingScaffold
       currentStep={onboardingStepNumber('OnboardingReflect')}
       totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       centerContent
       title="Here's where you're starting."
-      primaryLabel="Start the reset"
+      primaryLabel={primaryLabel}
       onPrimary={() => navigation.navigate('OnboardingProtocol', { state: resolved.state })}
       onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
     >

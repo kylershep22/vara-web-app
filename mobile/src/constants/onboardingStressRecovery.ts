@@ -74,7 +74,7 @@ const POSITIVE_DRIVER_STATES: readonly BrainState[] = ['steady', 'clear', 'alive
 
 export type DriverValence = 'activated' | 'positive';
 
-export function driverValenceForState(state: BrainState | undefined): DriverValence {
+export function driverValenceForState(state: BrainState | null | undefined): DriverValence {
   return state && POSITIVE_DRIVER_STATES.includes(state) ? 'positive' : 'activated';
 }
 
@@ -95,14 +95,25 @@ export function getDriverQuestion(state: BrainState | undefined): DriverQuestion
 }
 
 /**
- * Union of all driver options across valences. Used ONLY for id -> label
- * resolution (e.g. the Reflect snapshot rebuilt from persisted ids on resume),
- * never for display. Kept under the legacy name so existing id->label callers
- * resolve both valences without change.
+ * Drivers retired from display but kept for id -> label resolution, so retained
+ * accounts that persisted them before removal still render a label on the
+ * Reflect snapshot. NEVER part of a selectable option set.
+ */
+const RETIRED_DRIVER_OPTIONS: DriverOption[] = [
+  { id: 'foggy_scattered', label: 'Foggy and scattered' },
+];
+
+/**
+ * Union of all driver options across valences, plus retired ids. Used ONLY for
+ * id -> label resolution (e.g. the Reflect snapshot rebuilt from persisted ids
+ * on resume), NEVER for display. Display uses the valence-specific lists via
+ * getDriverQuestion. Kept under the legacy name so existing id->label callers
+ * resolve every valence (and retired ids) without change.
  */
 export const STRESSOR_OPTIONS: DriverOption[] = [
   ...ACTIVATED_DRIVER_OPTIONS,
   ...POSITIVE_DRIVER_OPTIONS,
+  ...RETIRED_DRIVER_OPTIONS,
 ];
 
 /** Screen 4 — "when it peaks" (skippable). Feeds the anchor suggestion. */
