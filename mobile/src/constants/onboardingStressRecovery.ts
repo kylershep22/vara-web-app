@@ -37,13 +37,72 @@ export function onboardingStepNumber(step: OnboardingSrStep): number {
 
 export type PeakWindow = 'morning' | 'midday' | 'evening';
 
-/** Screen 3 — "what's driving it" (skippable). Stress-framed, plain language. */
-export const STRESSOR_OPTIONS: { id: string; label: string }[] = [
+/**
+ * Screen 3 — driver selection (skippable, multi-select). The stem and option set
+ * branch on the VALENCE of the brain state picked on screen 2:
+ *   - Activated states (Wired, Foggy): "What's driving it?" — stress drivers.
+ *   - Positive states (Steady, Clear, Alive): "What's behind it?" — supports.
+ * Options are persisted as stable ids (onboardingStressRecovery.stressors:
+ * string[]). Ids are unique across both sets, so the stored shape is unchanged.
+ */
+export interface DriverOption {
+  id: string;
+  label: string;
+}
+
+/** Activated valence (Wired, Foggy). The prior stress list, plus "stretched too thin"; "Foggy and scattered" removed. */
+export const ACTIVATED_DRIVER_OPTIONS: DriverOption[] = [
   { id: 'racing_mind', label: 'A racing mind' },
   { id: 'cant_switch_off', label: "Can't switch off after work" },
-  { id: 'foggy_scattered', label: 'Foggy and scattered' },
+  { id: 'stretched_too_thin', label: 'Stretched too thin' },
   { id: 'cant_wind_down', label: "Can't wind down for sleep" },
   { id: 'feeling_reactive', label: 'Feeling reactive' },
+];
+
+/** Positive valence (Steady, Clear, Alive). What's supporting the good state. */
+export const POSITIVE_DRIVER_OPTIONS: DriverOption[] = [
+  { id: 'good_nights_sleep', label: "A good night's sleep" },
+  { id: 'movement_fresh_air', label: 'Some movement or fresh air' },
+  { id: 'lighter_day', label: 'A lighter day than usual' },
+  { id: 'connection', label: 'Connection with someone' },
+  { id: 'slow_down', label: 'Time to slow down' },
+  { id: 'not_sure', label: 'Not sure, it just feels this way' },
+];
+
+/** Brain states treated as positive valence for the driver question. */
+const POSITIVE_DRIVER_STATES: readonly BrainState[] = ['steady', 'clear', 'alive'];
+
+export type DriverValence = 'activated' | 'positive';
+
+export function driverValenceForState(state: BrainState | undefined): DriverValence {
+  return state && POSITIVE_DRIVER_STATES.includes(state) ? 'positive' : 'activated';
+}
+
+export interface DriverQuestion {
+  stem: string;
+  options: DriverOption[];
+}
+
+/**
+ * Stem + option set for the driver screen, branched by state valence. Unknown or
+ * missing state defaults to the activated set, matching DEFAULT_ONBOARDING_STATE
+ * ('wired') and the prior always-stress behavior on a lost resume param.
+ */
+export function getDriverQuestion(state: BrainState | undefined): DriverQuestion {
+  return driverValenceForState(state) === 'positive'
+    ? { stem: "What's behind it?", options: POSITIVE_DRIVER_OPTIONS }
+    : { stem: "What's driving it?", options: ACTIVATED_DRIVER_OPTIONS };
+}
+
+/**
+ * Union of all driver options across valences. Used ONLY for id -> label
+ * resolution (e.g. the Reflect snapshot rebuilt from persisted ids on resume),
+ * never for display. Kept under the legacy name so existing id->label callers
+ * resolve both valences without change.
+ */
+export const STRESSOR_OPTIONS: DriverOption[] = [
+  ...ACTIVATED_DRIVER_OPTIONS,
+  ...POSITIVE_DRIVER_OPTIONS,
 ];
 
 /** Screen 4 — "when it peaks" (skippable). Feeds the anchor suggestion. */

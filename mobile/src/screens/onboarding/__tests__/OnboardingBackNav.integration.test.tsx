@@ -71,7 +71,10 @@ function renderFlow() {
 const pressLast = (els: any[]) => fireEvent.press(els[els.length - 1]);
 
 const ARRIVAL = 'How are you arriving right now?';
-const DRIVERS = "What's driving it?";
+// These tests select Steady (positive valence), so the driver screen shows the
+// positive stem + options (see getDriverQuestion).
+const DRIVERS = "What's behind it?";
+const POSITIVE_DRIVER = "A good night's sleep";
 const PEAK = 'When does it peak?';
 const REFLECT = "Here's where you're starting.";
 
@@ -122,15 +125,15 @@ describe('Onboarding pre-protocol back navigation', () => {
     pressLast(getAllByLabelText('Continue'));
     await findByText(DRIVERS);
 
-    fireEvent.press(getByLabelText('A racing mind'));
-    expect(getByLabelText('A racing mind').props.accessibilityState.checked).toBe(true);
+    fireEvent.press(getByLabelText(POSITIVE_DRIVER));
+    expect(getByLabelText(POSITIVE_DRIVER).props.accessibilityState.checked).toBe(true);
 
     pressLast(getAllByLabelText('Continue'));
     await findByText(PEAK);
 
     pressLast(getAllByLabelText('Go back'));
     await findByText(DRIVERS);
-    expect(getByLabelText('A racing mind').props.accessibilityState.checked).toBe(true);
+    expect(getByLabelText(POSITIVE_DRIVER).props.accessibilityState.checked).toBe(true);
   });
 
   test('back from the starting-point transition preserves the peak selection', async () => {
