@@ -78,3 +78,16 @@ export function onboardingResetLine(state: BrainState | null): string {
     ? `Here's a ${minutesWord(seconds)}-minute practice to help you stay with this.`
     : `Here's a ${minutesWord(seconds)}-minute reset to help your system downshift.`;
 }
+
+/**
+ * The calm "what to expect" line under the Reflect lead-in. Generic across
+ * protocols (no valence branch) and sized to the SAME duration source the
+ * lead-in uses. Returns null when the duration can't be resolved (state lost),
+ * so the screen simply omits the line rather than render a broken "{n}".
+ */
+export function onboardingWhatToExpectLine(state: BrainState | null): string | null {
+  const protocol = state ? resolveOnboardingProtocol(state) : null;
+  const seconds = protocol?.durationSeconds;
+  if (!seconds || seconds <= 0) return null;
+  return `It's about ${minutesWord(seconds)} minutes, fully guided, so there's nothing to figure out. Just follow along.`;
+}
