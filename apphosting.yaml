@@ -1,0 +1,15 @@
+# Firebase App Hosting configuration
+# https://firebase.google.com/docs/app-hosting/configure
+#
+# Web gate ("coming soon"): keep REACT_APP_WEB_GATED=true here so the gate
+# also activates when the web app is built in the cloud by Firebase App
+# Hosting (gitignored .env.production.local is NOT present in cloud builds).
+# This mirrors the value in .env.production.local used by local static builds.
+#
+# REVERT AT PUBLIC WEB LAUNCH: set value to "false" (or remove this env entry).
+env:
+  - variable: REACT_APP_WEB_GATED
+    value: "true"
+    availability:
+      - BUILD
+      - RUNTIME
