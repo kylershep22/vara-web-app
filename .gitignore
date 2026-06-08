@@ -37,6 +37,9 @@ service-account-key.json
 *firebase-adminsdk*.json
 *adminsdk*.json
 
+# Firebase Hosting deploy cache (auto-generated on every deploy)
+.firebase/
+
 # Firebase emulator debug logs
 firestore-debug.log
 firebase-debug.log
