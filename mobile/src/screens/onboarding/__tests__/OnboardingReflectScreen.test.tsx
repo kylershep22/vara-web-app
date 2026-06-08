@@ -100,11 +100,11 @@ describe('OnboardingReflectScreen snapshot card', () => {
     ).toBeTruthy();
   });
 
-  it('names the actual duration when the protocol resolves to 5 minutes (Steady → Coherence Breathing)', () => {
+  it('names the actual duration with positive-valence copy (Steady → Coherence Breathing, 5 min)', () => {
     mockParams = { state: 'steady', stressorLabels: [], peak: null };
     const { getByText } = render(<OnboardingReflectScreen />);
     expect(
-      getByText("Here's a five-minute reset to help your system downshift.")
+      getByText("Here's a five-minute practice to help you stay with this.")
     ).toBeTruthy();
   });
 
