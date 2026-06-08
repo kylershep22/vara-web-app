@@ -17,7 +17,10 @@ const mockGetPrefs = jest.fn().mockResolvedValue({});
 const mockUpdatePrefs = jest.fn().mockResolvedValue(undefined);
 const mockGetDoc = jest.fn().mockResolvedValue({ exists: () => false });
 
-jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate }),
+  useRoute: () => ({ params: {} }),
+}));
 jest.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
 jest.mock('firebase/firestore', () => ({

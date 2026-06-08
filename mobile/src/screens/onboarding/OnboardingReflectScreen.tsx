@@ -21,7 +21,7 @@ import {
 } from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep } from '../../services/firebase/onboardingStressRecovery.service';
-import { onboardingResetLine } from './resolveOnboardingProtocol';
+import { onboardingResetLine, onboardingWhatToExpectLine } from './resolveOnboardingProtocol';
 import { STATE_LABELS, STATE_COLORS } from './onboardingShift';
 import type { BrainState } from '../../types/models';
 
@@ -148,6 +148,13 @@ const OnboardingReflectScreen: React.FC = () => {
   // doesn't get. Falls back to a generic phrase when state is unresolved.
   const resetLine = useMemo(() => onboardingResetLine(resolved.state), [resolved.state]);
 
+  // Calm "what to expect" line under the lead-in. Generic across protocols,
+  // sized to the same duration source; null (state unresolved) drops the line.
+  const whatToExpect = useMemo(
+    () => onboardingWhatToExpectLine(resolved.state),
+    [resolved.state]
+  );
+
   // Primary CTA branches with the lead-in: positive states "Begin", activated
   // (and default) keep "Start the reset". Same valence helper as the lead-in.
   const primaryLabel = useMemo(
@@ -171,6 +178,7 @@ const OnboardingReflectScreen: React.FC = () => {
         peakLabel={peakLabel}
       />
       <Text style={styles.leadIn}>{resetLine}</Text>
+      {whatToExpect && <Text style={styles.whatToExpect}>{whatToExpect}</Text>}
     </OnboardingScaffold>
   );
 };
@@ -226,6 +234,12 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     color: Colors.softCharcoal,
     lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
+  },
+  whatToExpect: {
+    marginTop: Spacing.sm,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
   },
 });
 

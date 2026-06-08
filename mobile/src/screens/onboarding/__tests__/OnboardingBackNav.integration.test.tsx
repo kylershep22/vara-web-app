@@ -75,7 +75,8 @@ const ARRIVAL = 'How are you arriving right now?';
 // positive stem + options (see getDriverQuestion).
 const DRIVERS = "What's behind it?";
 const POSITIVE_DRIVER = "A good night's sleep";
-const PEAK = 'When does it peak?';
+// Steady is positive valence, so the peak screen shows the neutral title.
+const PEAK = 'When would a daily moment fit best?';
 const REFLECT = "Here's where you're starting.";
 
 describe('Onboarding pre-protocol back navigation', () => {

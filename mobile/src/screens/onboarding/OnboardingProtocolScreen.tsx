@@ -42,6 +42,11 @@ const OnboardingProtocolScreen: React.FC = () => {
       protocolId: protocol?.id ?? DEFAULT_ONBOARDING_PROTOCOL_ID,
       sessionStartedAt: summary?.startedAt ?? Date.now(),
       durationActualSeconds: summary?.durationActualSeconds ?? 0,
+      // Additive completion telemetry — carried to Re-check, which writes the
+      // protocolSession. Defaults cover the no-summary dead-end (missing protocol).
+      completed: summary?.completed ?? false,
+      abandonReason: summary?.abandonReason ?? null,
+      stepsCompleted: summary?.stepsCompleted ?? 0,
     });
   };
 

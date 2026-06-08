@@ -25,6 +25,7 @@ import { logger } from '../../utils/logger';
 import type { BrainState, IntentPath } from '../../types/models';
 import type {
   MovementModality,
+  ProtocolAbandonReason,
   ProtocolNextStep,
   ProtocolSessionOutcome,
   ProtocolTimeWindow,
@@ -58,6 +59,14 @@ export interface ProtocolSessionWritePayload {
   // predate this feature and lack the field. Patterns queries should
   // null-check before grouping by modality.
   selectedModality?: MovementModality | null;
+  // Optional completion telemetry forwarded from the GuidedSessionPlayer
+  // summary (currently the onboarding protocol step). Additive: lets a query
+  // distinguish a fully-played session from an early exit / audio failure
+  // without changing the existing `outcome` field. Callers that don't supply
+  // these omit them, so the doc shape is unchanged for non-onboarding writes.
+  completed?: boolean;
+  abandonReason?: ProtocolAbandonReason | null;
+  stepsCompleted?: number;
 }
 
 export interface WriteProtocolSessionOptions {
@@ -128,6 +137,12 @@ export async function writeProtocolSession(
         ...(payload.selectedModality != null
           ? { selectedModality: payload.selectedModality }
           : {}),
+        // Additive completion telemetry. Written only when the caller supplies
+        // them (`!== undefined`), so `false`/`null` are still recorded for
+        // onboarding while other callers leave the doc shape unchanged.
+        ...(payload.completed !== undefined ? { completed: payload.completed } : {}),
+        ...(payload.abandonReason !== undefined ? { abandonReason: payload.abandonReason } : {}),
+        ...(payload.stepsCompleted !== undefined ? { stepsCompleted: payload.stepsCompleted } : {}),
         // Server-side timestamps so multi-device clocks don't skew
         // ordering. sessionStartedAt is the device-local moment the
         // session began; createdAt is when the doc landed in Firestore.
