@@ -3,8 +3,6 @@
  * Canonical color definitions for the Vara mobile app
  */
 
-import { ColorTokens } from '../tokens/design-tokens';
-
 export const Colors = {
   // Primary Colors
   evergreenTeal: '#1B5E57',
@@ -107,8 +105,5 @@ export const Colors = {
   lavenderMist: '#D5E3D1',    // → dewSage
   warmClay: '#D97A6E',        // → softCoral
 } as const;
-
-// Canonical source - all new code should import ColorTokens directly
-export { ColorTokens };
 
 export type ColorKey = keyof typeof Colors;

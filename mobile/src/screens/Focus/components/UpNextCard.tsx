@@ -21,8 +21,8 @@ import {
   RadiusTokens,
   ShadowTokens,
   SizeTokens,
-  FocusCopy,
-} from '../../../tokens/design-tokens';
+} from '../../../constants/designTokens';
+import { FocusCopy } from '../../../constants/focusContent';
 import { getActivityColor, getActivityColorWithOpacity } from './activityColors';
 
 interface Activity {

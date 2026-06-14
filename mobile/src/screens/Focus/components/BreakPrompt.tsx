@@ -14,8 +14,8 @@ import {
   ColorTokens,
   SpacingTokens,
   SizeTokens,
-  FocusCopy,
-} from '../../../tokens/design-tokens';
+} from '../../../constants/designTokens';
+import { FocusCopy } from '../../../constants/focusContent';
 
 type BreakState = 'session_complete' | 'break_running' | 'break_complete';
 

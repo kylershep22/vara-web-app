@@ -17,9 +17,8 @@ import {
   ColorTokens,
   SpacingTokens,
   RadiusTokens,
-  FocusCopy,
-  FocusTips,
-} from '../../../tokens/design-tokens';
+} from '../../../constants/designTokens';
+import { FocusCopy, FocusTips } from '../../../constants/focusContent';
 
 const TIP_INDEX_KEY = '@focus_tip_index';
 

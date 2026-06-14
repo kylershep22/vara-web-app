@@ -20,7 +20,7 @@ import {
   SpacingTokens,
   RadiusTokens,
   SizeTokens,
-} from '../../../tokens/design-tokens';
+} from '../../../constants/designTokens';
 import { getActivityColor, getActivityColorWithOpacity } from './activityColors';
 
 interface Activity {

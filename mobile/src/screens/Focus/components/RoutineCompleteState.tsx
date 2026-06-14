@@ -21,9 +21,8 @@ import {
   RadiusTokens,
   SizeTokens,
   AnimationTokens,
-  FocusCopy,
-  CompletionMessages,
-} from '../../../tokens/design-tokens';
+} from '../../../constants/designTokens';
+import { FocusCopy, CompletionMessages } from '../../../constants/focusContent';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { useCompletionSound } from '../../../hooks/useCompletionSound';
 
