@@ -12,6 +12,8 @@ import type {
 
 const sampleProtocol: Protocol = {
   id: 'cyclic-sighing-2',
+  pillar: 'energy',
+  regulationDirection: 'settle',
   family: 'cyclic-sighing',
   name: 'Cyclic Sighing',
   description:

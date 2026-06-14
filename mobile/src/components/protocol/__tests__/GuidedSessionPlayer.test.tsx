@@ -157,6 +157,8 @@ const audioStep: AudioStep = {
 function makeProtocol(steps: any[]): Protocol {
   return {
     id: 'test-protocol',
+    pillar: 'energy',
+    regulationDirection: 'settle',
     family: 'cyclic-sighing',
     name: 'Test Protocol',
     description: 'd',

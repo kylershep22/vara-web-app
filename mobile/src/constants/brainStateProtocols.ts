@@ -27,6 +27,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'cyclic-sighing-2': {
     id: 'cyclic-sighing-2',
+    pillar: 'energy',
+    regulationDirection: 'settle',
     family: 'cyclic-sighing',
     name: 'Cyclic Sighing',
     description:
@@ -86,6 +88,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'brief-movement-5': {
     id: 'brief-movement-5',
+    pillar: 'energy',
+    regulationDirection: 'energize',
     family: 'brief-movement',
     name: 'Light Movement',
     description:
@@ -137,6 +141,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'brief-movement-10': {
     id: 'brief-movement-10',
+    pillar: 'energy',
+    regulationDirection: 'energize',
     family: 'brief-movement',
     name: 'Light Movement',
     description:
@@ -190,6 +196,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'box-breathing-2': {
     id: 'box-breathing-2',
+    pillar: 'energy',
+    regulationDirection: 'settle',
     family: 'box-breathing',
     name: 'Box Breathing',
     description:
@@ -240,6 +248,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'extended-exhale-2': {
     id: 'extended-exhale-2',
+    pillar: 'energy',
+    regulationDirection: 'settle',
     family: 'extended-exhale',
     name: 'Extended Exhale',
     description:
@@ -282,6 +292,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'coherence-breathing-5': {
     id: 'coherence-breathing-5',
+    pillar: 'energy',
+    regulationDirection: 'settle',
     family: 'coherence-breathing',
     name: 'Coherence Breathing',
     description:
@@ -337,6 +349,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'nsdr-10': {
     id: 'nsdr-10',
+    pillar: 'energy',
+    regulationDirection: 'settle',
     family: 'nsdr',
     name: 'NSDR',
     description:
@@ -378,6 +392,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'nsdr-20': {
     id: 'nsdr-20',
+    pillar: 'energy',
+    regulationDirection: 'settle',
     family: 'nsdr',
     name: 'NSDR',
     description:
@@ -419,6 +435,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'cold-water-reset-5': {
     id: 'cold-water-reset-5',
+    pillar: 'energy',
+    regulationDirection: 'both',
     family: 'cold-water-reset',
     name: 'Cold Water Reset',
     description:
@@ -481,6 +499,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'sensory-reset-2': {
     id: 'sensory-reset-2',
+    pillar: 'energy',
+    regulationDirection: 'settle',
     family: 'sensory-reset',
     name: 'Sensory Reset',
     description:
@@ -544,6 +564,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'mindful-walking-10': {
     id: 'mindful-walking-10',
+    pillar: 'energy',
+    regulationDirection: 'energize',
     family: 'mindful-walking',
     name: 'Mindful Walk',
     description:
@@ -584,6 +606,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'mindful-walking-20': {
     id: 'mindful-walking-20',
+    pillar: 'energy',
+    regulationDirection: 'energize',
     family: 'mindful-walking',
     name: 'Walking Meditation',
     description:
@@ -624,6 +648,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'focused-work-45': {
     id: 'focused-work-45',
+    pillar: 'focus',
+    regulationDirection: 'neutral',
     family: 'focused-work',
     name: 'Focused Work Window',
     description:
@@ -663,6 +689,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'focused-work-90': {
     id: 'focused-work-90',
+    pillar: 'focus',
+    regulationDirection: 'neutral',
     family: 'focused-work',
     name: 'Focused Work Window',
     description:
@@ -704,6 +732,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'bright-light-10': {
     id: 'bright-light-10',
+    pillar: 'energy',
+    regulationDirection: 'energize',
     family: 'bright-light',
     name: 'Bright Light Exposure',
     description:
@@ -746,6 +776,8 @@ export const BRAIN_STATE_PROTOCOLS = {
 
   'bright-light-20': {
     id: 'bright-light-20',
+    pillar: 'energy',
+    regulationDirection: 'energize',
     family: 'bright-light',
     name: 'Bright Light Exposure',
     description:

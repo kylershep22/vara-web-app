@@ -860,6 +860,22 @@ export type ProtocolFamily =
   | 'focused-work'
   | 'bright-light';
 
+// Outcome pillar a practice serves. The engine fills plan slots by pillar.
+// Most regulation practices are `energy`; focused-work is `focus`. The `time`
+// and `community` pillars are served by other surfaces (routines, community),
+// not the protocol catalog, but the union carries them for slot completeness.
+export type ProtocolPillar = 'focus' | 'energy' | 'time' | 'community';
+
+// Regulation direction used for slot matching: a `settle` slot accepts
+// practices tagged `settle` or `both`; an `energize` slot accepts `energize`
+// or `both`. `neutral` is for non-regulation practices (e.g. a focus-work
+// session that is the goal itself rather than a state shift).
+export type ProtocolRegulationDirection =
+  | 'settle'
+  | 'energize'
+  | 'both'
+  | 'neutral';
+
 // One phase of a paced breath cycle. Sequenced into BreathStep.phases and
 // repeated until the step's durationSeconds elapses. `label` is what the
 // pacer renders alongside the visual ("Inhale", "Hold", "Exhale").
@@ -955,6 +971,12 @@ export interface Protocol {
   durationSeconds: number; // total expected; matches sum of step durations
   timeWindow: ProtocolTimeWindow;
   modality: ProtocolModality;
+  // Engine tagging (Vara_Engine_Contract.md §5). The recommender fills plan
+  // slots by { pillar, regulationDirection, modality→type, timeWindow→length }.
+  pillar: ProtocolPillar;
+  regulationDirection: ProtocolRegulationDirection;
+  // Retained for the Phase 2 selectProtocol stub + Practices index until the
+  // engine replaces them (Vara_Engine_Contract.md §5 marks this "retired").
   suitableForStates: BrainState[];
   suitableForTimesOfDay: TimeOfDay[]; // empty array means any time
 
