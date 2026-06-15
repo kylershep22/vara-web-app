@@ -1,15 +1,16 @@
-// Step 1 of the multi-step check-in flow: brain-state selection.
+// Step 2 of the reworked core loop: the two-tap circumplex state read
+// (Vara_Engine_Contract.md §2). Replaces the prior five-chip BrainState pick.
 //
-// Single tap advances. No confirmation button. Top-left close
-// dismisses the flow with no data saved (per Core Loop v2 line 81).
-// Back from this step is a no-op in the reducer — the parent's close
-// affordance handles flow dismissal.
+//   Tap 1 (arousal): "Where's your energy?"  → Revved up / Running low
+//   Tap 2 (valence): "And how's it feeling?" → Good / Hard
 //
-// Reuses BRAIN_STATES + BrainStateOptionRow from the dashboard
-// surface for visual consistency. Phase 1 of the redesign already
-// renamed the underlying labels (okay→steady, energized→alive).
+// The two taps are one step with an internal sub-state: tapping arousal swaps
+// the question to valence; tapping valence emits the full {arousal, valence}
+// pair upward in a single `state_selected` action (keeps the reducer flat). A
+// back affordance returns from the valence tap to the arousal tap; back from
+// the arousal tap returns to the situation step (parent reducer).
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -20,25 +21,67 @@ import {
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Spacing, Typography } from '../../../constants';
-import type { BrainState } from '../../../types/models';
-import { BRAIN_STATES } from '../../dashboard/brainStateCheckin/brainStateOptions';
-import { BrainStateOptionRow } from '../../dashboard/brainStateCheckin/BrainStateOptionRow';
+import type { Arousal, Valence } from '../../../engine';
 
 const MIN_TOUCH_TARGET = 48;
 
 export interface StatePickStepViewProps {
-  onSelect: (state: BrainState) => void;
+  onSelect: (state: { arousal: Arousal; valence: Valence }) => void;
+  // Returns to the situation step (only meaningful from the arousal tap; the
+  // valence tap's back returns to the arousal tap internally).
+  onBack?: () => void;
   onClose?: () => void;
 }
 
+interface TapOption<T> {
+  value: T;
+  label: string;
+}
+
+const AROUSAL_OPTIONS: TapOption<Arousal>[] = [
+  { value: 'revved', label: 'Revved up' },
+  { value: 'low', label: 'Running low' },
+];
+
+const VALENCE_OPTIONS: TapOption<Valence>[] = [
+  { value: 'good', label: 'Good' },
+  { value: 'hard', label: 'Hard' },
+];
+
 export function StatePickStepView({
   onSelect,
+  onBack,
   onClose,
 }: StatePickStepViewProps) {
+  const [arousal, setArousal] = useState<Arousal | null>(null);
+
+  const onTap = arousal === null ? 'arousal' : 'valence';
+
+  const handleBack = () => {
+    if (arousal !== null) {
+      // Return from the valence tap to the arousal tap.
+      setArousal(null);
+      return;
+    }
+    onBack?.();
+  };
+
   return (
     <View style={styles.container} testID="checkin-flow-state-pick">
       <View style={styles.header}>
-        <View style={styles.headerSpacer} />
+        {onBack || arousal !== null ? (
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            testID="checkin-flow-state-pick-back"
+          >
+            <Icon name="arrow-left" size={24} color={Colors.softCharcoal} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
         {onClose ? (
           <TouchableOpacity
             style={styles.headerButton}
@@ -55,19 +98,47 @@ export function StatePickStepView({
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title} testID="checkin-flow-state-pick-title">
-          How are you right now?
-        </Text>
-        <View style={styles.optionsList}>
-          {BRAIN_STATES.map((option, index) => (
-            <BrainStateOptionRow
-              key={option.state}
-              option={option}
-              onPress={onSelect}
-              isLast={index === BRAIN_STATES.length - 1}
-            />
-          ))}
-        </View>
+        {onTap === 'arousal' ? (
+          <>
+            <Text style={styles.title} testID="checkin-flow-arousal-title">
+              Where's your energy?
+            </Text>
+            <View style={styles.options}>
+              {AROUSAL_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={styles.option}
+                  onPress={() => setArousal(option.value)}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  testID={`checkin-flow-arousal-${option.value}`}
+                >
+                  <Text style={styles.optionLabel}>{option.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.title} testID="checkin-flow-valence-title">
+              And how's it feeling?
+            </Text>
+            <View style={styles.options}>
+              {VALENCE_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={styles.option}
+                  onPress={() => onSelect({ arousal: arousal!, valence: option.value })}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  testID={`checkin-flow-valence-${option.value}`}
+                >
+                  <Text style={styles.optionLabel}>{option.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -107,7 +178,22 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
     marginBottom: Spacing.lg,
   },
-  optionsList: {
-    gap: 0,
+  options: {
+    gap: Spacing.sm,
+  },
+  option: {
+    minHeight: MIN_TOUCH_TARGET + 16,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    backgroundColor: Colors.surface,
+  },
+  optionLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
   },
 });

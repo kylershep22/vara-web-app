@@ -31,7 +31,7 @@ import type {
   IntentPath,
   ProtocolTimeWindow,
 } from '../../types/models';
-import { getLateNightNSDRSwap } from '../../services/lateNightNSDRSwap';
+import type { Slot } from '../../engine';
 import {
   clearMarker as clearFlowMarker,
   readMarkerForRecoveryOffer,
@@ -56,18 +56,17 @@ type RouteParams = RouteProp<
 
 type Nav = NativeStackNavigationProp<{
   Practices: {
+    slot: Slot;
     state: BrainState;
-    // Round 10: timeWindow is now optional. Standard "See other
-    // options" path on the recommendation screen still passes it
-    // (the user's original budget). The "Try something longer"
-    // path omits it so PracticesIndexScreen surfaces all eligible
-    // protocols for the state across all time budgets.
     timeWindow?: ProtocolTimeWindow;
     fromCheckInFlow?: boolean;
     intentPath?: IntentPath;
   };
   PracticeRun: { protocolId: string; stateBefore: BrainState };
-  Main: undefined;
+  // Focus-session pointer hand-off (Pomodoro screen).
+  FocusTimer: undefined;
+  // Plan pointer hand-off targets the Rhythms tab (routines live there).
+  Main: { screen: 'Rhythms' } | undefined;
 }>;
 
 // Sub-step 2.7 round 5 (Bug B fix) — until Phase 3 wires real intent
@@ -147,15 +146,14 @@ export function CheckInFlowScreen() {
   }, [navigation]);
 
   const handleSeeOtherOptions = useCallback(
-    (state: BrainState, timeWindow: ProtocolTimeWindow) => {
-      // Bug B fix (round 5): plumb fromCheckInFlow + intentPath so
-      // PracticesIndexScreen can forward to PracticeRunScreen, which
-      // builds the BrowseRunFlow checkInFlowContext that drives both
-      // (a) standard outcome classification on the session write and
-      // (b) post-completion routing back to dashboard rather than
-      // Practices. See PHASE_NOTES round 5 locked decision.
+    (slot: Slot, timeWindow: ProtocolTimeWindow, stateBefore: BrainState) => {
+      // The engine slot drives PracticesIndexScreen's eligiblePractices filter;
+      // the bridged BrainState rides along for the downstream PracticeRun /
+      // BrowseRunFlow (still five-state). fromCheckInFlow + intentPath plumb the
+      // BrowseRunFlow context (classification + post-completion routing).
       navigation.navigate('Practices', {
-        state,
+        slot,
+        state: stateBefore,
         timeWindow,
         fromCheckInFlow: true,
         intentPath: CHECKIN_FLOW_INTENT_PATH,
@@ -166,81 +164,37 @@ export function CheckInFlowScreen() {
 
   const handleComplete = useCallback(
     (terminal: TerminalFlowState) => {
-      // Parent-side navigation routing per the canonical navBranch
-      // tag set (PHASE_NOTES sub-step 2.4 + 2.5). The dev harness
-      // logs which branch fired; production silently routes.
+      // Abandoned mid-practice — return to wherever the user was.
       if (terminal.step === 'abandoned') {
-        // Abandoned mid-protocol — return to wherever the user was
-        // (typically Dashboard).
         navigation.goBack();
         return;
       }
-      // step === 'flow_complete'
-      switch (terminal.userChosenNextStep) {
-        case 'try_longer': {
-          const override = getLateNightNSDRSwap(
-            terminal.stateBefore,
-            new Date().getHours()
-          );
-          // Round 14 (try_longer back-button fix) — both branches use
-          // navigation.replace instead of navigation.navigate. CheckInFlow
-          // is in flow_complete terminal state at this moment; its render
-          // returns null. If we push the next screen on top via navigate,
-          // the user's back button (header back on Practices, or system
-          // back gesture out of PracticeRun) lands on this dead
-          // CheckInFlow frame — visible as a blank white screen with
-          // only the FAB rendered. replace removes CheckInFlow from the
-          // stack so back from Practices/PracticeRun lands on the
-          // launching surface (typically Dashboard). The post-completion
-          // popToTop pattern (PracticeRunScreen.handleComplete for ctx-
-          // present sessions) handles the AFTER-completion case; this
-          // handles the BEFORE-second-protocol case.
-          if (override !== null) {
-            // late_night_nsdr_override
-            navigation.replace('PracticeRun', {
-              protocolId: override.protocolId,
-              stateBefore: terminal.stateBefore,
-            });
-          } else {
-            // no_override_practices_index
-            // Bug B fix (round 5) — same fromCheckInFlow + intentPath
-            // plumbing as handleSeeOtherOptions above. Path 2 ("Try
-            // something longer" on not-shifted response) is also a
-            // CheckInFlow continuation: the user did a check-in, did
-            // a protocol, and wants to do another one. Their session
-            // should classify with the original stateBefore, and
-            // post-completion they should land on dashboard.
-            //
-            // Round 10 (Finding 3): timeWindow is intentionally
-            // OMITTED from these nav params. The button's promise is
-            // "show me something longer than what I just ran." Passing
-            // the original timeWindow filter would re-show the same-
-            // budget options (potentially the same protocols, since
-            // the eligibility filter is `<= timeWindow`), contradicting
-            // the affordance the user just tapped. With timeWindow
-            // omitted, PracticesIndexScreen renders the full set of
-            // protocols suitable for the user's state across all time
-            // budgets. Do not "fix" this by re-adding the filter —
-            // see PHASE_NOTES round 10 locked decisions.
-            navigation.replace('Practices', {
-              state: terminal.stateBefore,
-              fromCheckInFlow: true,
-              intentPath: CHECKIN_FLOW_INTENT_PATH,
-            });
-          }
-          return;
+
+      // flow_complete. A launched pointer (focus-session / plan) hands off to
+      // Pomodoro / routines; everything else returns to the launching surface.
+      const completion = terminal.completion;
+      const pointer =
+        completion.kind === 'pointer_only'
+          ? completion.pointerLaunched
+          : completion.kind === 'practice'
+            ? completion.pointerLaunched
+            : null;
+
+      if (pointer) {
+        if (pointer.type === 'focus-session') {
+          // replace removes the dead CheckInFlow frame so back from Focus
+          // lands on the launching surface, not a blank check-in.
+          navigation.replace('FocusTimer');
+        } else {
+          // plan pointer → routines on the Rhythms tab. Navigating to Main
+          // (already below CheckInFlow in the stack) pops the flow.
+          navigation.navigate('Main', { screen: 'Rhythms' });
         }
-        case 'rest_later':
-        case 'dismissed':
-        case 'auto_dismissed':
-          // All three route to Today (the dashboard). 'rest_later'
-          // is the explicit "I'm done now" — Today's surface
-          // handles the welcome-back card. The two dismissed paths
-          // (positive outcomes) land on Today as the natural next
-          // home.
-          navigation.goBack();
-          return;
+        return;
       }
+
+      // No pointer (practice with no continuation, zero-slot, declined offer).
+      navigation.goBack();
     },
     [navigation]
   );

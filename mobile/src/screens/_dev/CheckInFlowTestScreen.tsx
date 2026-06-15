@@ -22,9 +22,10 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { BrainState, ProtocolTimeWindow } from '../../types/models';
+import type { Slot } from '../../engine';
 
 type DevCheckInFlowNav = NativeStackNavigationProp<{
-  Practices: { state: BrainState; timeWindow: ProtocolTimeWindow };
+  Practices: { slot: Slot; state: BrainState; timeWindow: ProtocolTimeWindow };
   PracticeRun: { protocolId: string; stateBefore: BrainState };
 }>;
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,7 +37,6 @@ import {
 } from '../../components/checkin/flow/CheckInFlow';
 import type { FlowInit } from '../../components/checkin/flow/types';
 import { getProtocolById } from '../../constants/brainStateProtocols';
-import { getLateNightNSDRSwap } from '../../services/lateNightNSDRSwap';
 
 type Phase = 'setup' | 'playing';
 type EntryChoice = 'standard' | 'overwhelm';
@@ -46,9 +46,9 @@ type EntryChoice = 'standard' | 'overwhelm';
 // reading source. Sub-step 2.4 wires this in the dev harness only —
 // production callers pick up the same swap-then-route logic in 2.5.
 type NavBranchTag =
-  | 'late_night_nsdr_override'
-  | 'no_override_practices_index'
-  | 'no_navigation_non_try_longer'
+  | 'pointer_handoff'
+  | 'no_navigation_practice'
+  | 'no_navigation_acknowledged'
   | 'no_navigation_abandoned';
 
 const OVERWHELM_PROTOCOL_IDS = ['cyclic-sighing-2', 'sensory-reset-2'] as const;
@@ -98,42 +98,31 @@ export function CheckInFlowTestScreen() {
         userId="dev-harness-user"
         writeMode="dev_dry_run"
         onClose={() => setPhase('setup')}
-        onSeeOtherOptions={(state, timeWindow) =>
-          navigation.navigate('Practices', { state, timeWindow })
+        onSeeOtherOptions={(slot, timeWindow, stateBefore) =>
+          navigation.navigate('Practices', { slot, state: stateBefore, timeWindow })
         }
         onComplete={(terminal) => {
-          // Parent-side late-night NSDR swap. Sub-step 2.4 dev harness
-          // is the only place this path fires until 2.5 wires the
-          // production callers. Visible navBranch tag in the log so
-          // device verification can confirm the right branch.
+          // Visible navBranch tag in the log so device verification can
+          // confirm which terminal path fired. The harness logs only —
+          // the pointer hand-off targets (FocusTimer / Rhythms) aren't
+          // registered in this dev stack.
           let navBranch: NavBranchTag;
           let navDetail: string;
           if (terminal.step === 'abandoned') {
             navBranch = 'no_navigation_abandoned';
-            navDetail = 'Flow abandoned mid-protocol — no try-longer routing.';
-          } else if (terminal.userChosenNextStep === 'try_longer') {
-            const override = getLateNightNSDRSwap(
-              terminal.stateBefore,
-              new Date().getHours()
-            );
-            if (override !== null) {
-              navBranch = 'late_night_nsdr_override';
-              navDetail = `Late-night NSDR override: routing to PracticeRun(${override.protocolId})`;
-              navigation.navigate('PracticeRun', {
-                protocolId: override.protocolId,
-                stateBefore: terminal.stateBefore,
-              });
-            } else {
-              navBranch = 'no_override_practices_index';
-              navDetail = `No late-night override: routing to Practices index for (${terminal.stateBefore}, ${terminal.timeWindow})`;
-              navigation.navigate('Practices', {
-                state: terminal.stateBefore,
-                timeWindow: terminal.timeWindow,
-              });
-            }
+            navDetail = 'Flow abandoned mid-practice.';
+          } else if (terminal.completion.kind === 'pointer_only') {
+            navBranch = 'pointer_handoff';
+            navDetail = `Pointer hand-off (no practice ran): ${terminal.completion.pointerLaunched.type}`;
+          } else if (terminal.completion.kind === 'practice') {
+            const pointer = terminal.completion.pointerLaunched;
+            navBranch = pointer ? 'pointer_handoff' : 'no_navigation_practice';
+            navDetail = pointer
+              ? `Practice → pointer hand-off: ${pointer.type} (reflection="${terminal.completion.reflection}")`
+              : `Practice completed, reflection="${terminal.completion.reflection}" — no hand-off.`;
           } else {
-            navBranch = 'no_navigation_non_try_longer';
-            navDetail = `userChosenNextStep="${terminal.userChosenNextStep}" — no parent-side swap fires.`;
+            navBranch = 'no_navigation_acknowledged';
+            navDetail = 'Acknowledged (zero-slot / declined offer) — nothing ran.';
           }
 
           setLog((prev) => [
@@ -226,7 +215,7 @@ export function CheckInFlowTestScreen() {
               <Text
                 style={[
                   styles.logNavBranch,
-                  entry.navBranch === 'late_night_nsdr_override'
+                  entry.navBranch === 'pointer_handoff'
                     ? styles.logNavBranchOverride
                     : null,
                 ]}
@@ -235,16 +224,21 @@ export function CheckInFlowTestScreen() {
               </Text>
               <Text style={styles.logBody}>
                 {JSON.stringify(
-                  {
-                    protocolId: entry.terminal.protocol.id,
-                    stateBefore: entry.terminal.stateBefore,
-                    durationActualSeconds: entry.terminal.durationActualSeconds,
-                    ...(entry.terminal.step === 'flow_complete' && {
-                      stateAfter: entry.terminal.stateAfter,
-                      outcome: entry.terminal.outcome,
-                      userChosenNextStep: entry.terminal.userChosenNextStep,
-                    }),
-                  },
+                  entry.terminal.step === 'abandoned'
+                    ? {
+                        step: 'abandoned',
+                        situation: entry.terminal.situation,
+                        quadrant: entry.terminal.quadrant,
+                        protocolId: entry.terminal.protocol.id,
+                        durationActualSeconds:
+                          entry.terminal.durationActualSeconds,
+                      }
+                    : {
+                        step: 'flow_complete',
+                        situation: entry.terminal.situation,
+                        quadrant: entry.terminal.quadrant,
+                        completion: entry.terminal.completion,
+                      },
                   null,
                   2
                 )}

@@ -3,164 +3,86 @@ import type {
   FlowAction,
   FlowState,
   RecommendationStep,
-  ReCheckStep,
-  RecoveryConfirmStep,
-  ResponseStep,
   RunningStep,
-  StatePickStep,
-  TimePickStep,
+  ReflectionStep,
+  PointerOfferStep,
+  RecoveryConfirmStep,
 } from '../types';
 import { getProtocolById } from '../../../../constants/brainStateProtocols';
 import type { Protocol } from '../../../../types/models';
+import type { Arousal, Situation, Valence } from '../../../../engine';
 
-// Helper — guaranteed-present protocols from the launch library.
+// Deterministic clocks. Engine evening rules key on the local hour; noon keeps
+// every non-evening cell stable, the 21:00 stamp exercises the §8 find_energy
+// evening reframe.
+const NOON = new Date(2026, 0, 15, 12, 0, 0).getTime();
+const EVENING = new Date(2026, 0, 15, 21, 0, 0).getTime();
+
 function getProtocol(id: string): Protocol {
   const p = getProtocolById(id);
-  if (!p) {
-    throw new Error(`test fixture: protocol "${id}" not in library`);
-  }
+  if (!p) throw new Error(`test fixture: protocol "${id}" not in library`);
   return p;
 }
-
 const CYCLIC_SIGHING = getProtocol('cyclic-sighing-2');
 
-// Constructed states (avoids walking the reducer every test). Return
-// the specific variant type so per-step fields are accessible without
-// narrowing in every assertion.
-function statePickState(): StatePickStep {
-  return { step: 'state_pick', entrySource: 'standard' };
-}
-
-function timePickState(): TimePickStep {
-  return {
-    step: 'time_pick',
-    entrySource: 'standard',
-    stateBefore: 'wired',
-  };
-}
-
-function recommendationState(): RecommendationStep {
-  return {
-    step: 'recommendation',
-    entrySource: 'standard',
-    stateBefore: 'wired',
-    timeWindow: 5,
-    protocol: getProtocol('cyclic-sighing-2'),
-  };
-}
-
-function runningState(sessionStartedAt = 1_000_000): RunningStep {
-  return {
-    step: 'running',
-    entrySource: 'standard',
-    stateBefore: 'wired',
-    timeWindow: 5,
-    protocol: getProtocol('cyclic-sighing-2'),
-    sessionStartedAt,
-  };
-}
-
-function reCheckState(): ReCheckStep {
-  return {
-    step: 're_check',
-    entrySource: 'standard',
-    stateBefore: 'wired',
-    timeWindow: 5,
-    protocol: getProtocol('cyclic-sighing-2'),
-    sessionStartedAt: 1_000_000,
-    sessionEndedAt: 1_120_000,
-    durationActualSeconds: 120,
-    playerExitReason: 'completed',
-  };
-}
-
-function responseState(): ResponseStep {
-  return {
-    step: 'response',
-    entrySource: 'standard',
-    stateBefore: 'wired',
-    timeWindow: 5,
-    protocol: getProtocol('cyclic-sighing-2'),
-    sessionStartedAt: 1_000_000,
-    sessionEndedAt: 1_120_000,
-    durationActualSeconds: 120,
-    playerExitReason: 'completed',
-    stateAfter: 'steady',
-    outcome: 'shifted',
-  };
+// Drive the standard flow to the recommendation step (also exercises the
+// resolve() wiring + clock injection).
+function toRecommendation(
+  situation: Situation,
+  arousal: Arousal,
+  valence: Valence,
+  timeWindow: 2 | 5 | 10 | 20 | 45,
+  nowMs = NOON
+): RecommendationStep {
+  let s: FlowState = initFlow({ entrySource: 'standard' });
+  s = flowReducer(s, { type: 'situation_selected', situation });
+  s = flowReducer(s, { type: 'state_selected', arousal, valence });
+  s = flowReducer(s, { type: 'time_selected', timeWindow, nowMs });
+  if (s.step !== 'recommendation') {
+    throw new Error(`expected recommendation, got ${s.step}`);
+  }
+  return s;
 }
 
 describe('initFlow', () => {
-  it('standard entry initializes at state_pick', () => {
-    const state = initFlow({ entrySource: 'standard' });
-    expect(state).toEqual({ step: 'state_pick', entrySource: 'standard' });
+  it('standard entry initializes at situation_pick', () => {
+    expect(initFlow({ entrySource: 'standard' })).toEqual({
+      step: 'situation_pick',
+      entrySource: 'standard',
+    });
   });
 
-  it('overwhelm entry initializes directly at running with wired/2/caller-protocol', () => {
+  it('overwhelm entry initializes directly at running (Tense / just_reset)', () => {
     const state = initFlow({
       entrySource: 'overwhelm_safety_card',
       protocol: CYCLIC_SIGHING,
       nowMs: 5_000_000,
     });
-    expect(state).toEqual({
-      step: 'running',
-      entrySource: 'overwhelm_safety_card',
-      stateBefore: 'wired',
-      timeWindow: 2,
-      protocol: CYCLIC_SIGHING,
-      sessionStartedAt: 5_000_000,
-    });
-  });
-
-  it('state_preselected entry initializes at time_pick with the caller-provided stateBefore', () => {
-    // Sub-step 2.5 entry source — used by the dashboard chip-tap
-    // migration. Skips state_pick; the caller-provided stateBefore
-    // is captured immediately so the user lands on time_pick.
-    const state = initFlow({
-      entrySource: 'state_preselected',
-      stateBefore: 'foggy',
-    });
-    expect(state).toEqual({
-      step: 'time_pick',
-      entrySource: 'state_preselected',
-      stateBefore: 'foggy',
-    });
-  });
-
-  it('recovery entry initializes at recovery_confirm with the recovered payload', () => {
-    // Sub-step 2.7. Caller (CheckInFlowScreen) has already validated
-    // the marker and resolved protocolId → Protocol; initFlow trusts
-    // the payload and lands at recovery_confirm.
-    const state = initFlow({
-      entrySource: 'recovery',
-      recoveredPayload: {
-        protocol: CYCLIC_SIGHING,
-        stateBefore: 'wired',
-        timeWindow: 2,
-        sessionStartedAt: 1_700_000_000_000,
-        sessionEndedAt: 1_700_000_000_000 + 120_000,
-        durationActualSeconds: 120,
-        intentPath: 'default',
-        entrySource: 'standard',
-      },
-    });
-    expect(state.step).toBe('recovery_confirm');
-    if (state.step === 'recovery_confirm') {
-      // Step.entrySource preserves the ORIGINAL session's entrySource
-      // (NOT 'recovery'). Phase 5 not-shifted Overwhelm copy depends
-      // on this propagating downstream into re_check + response.
-      expect(state.entrySource).toBe('standard');
-      expect(state.recoveredPayload.protocol.id).toBe('cyclic-sighing-2');
-      expect(state.recoveredPayload.stateBefore).toBe('wired');
-      expect(state.recoveredPayload.durationActualSeconds).toBe(120);
+    expect(state.step).toBe('running');
+    if (state.step === 'running') {
+      expect(state.entrySource).toBe('overwhelm_safety_card');
+      expect(state.situation).toBe('just_reset');
+      expect(state.quadrant).toBe('Tense');
+      expect(state.timeWindow).toBe(2);
+      expect(state.protocol.id).toBe('cyclic-sighing-2');
+      expect(state.sessionStartedAt).toBe(5_000_000);
     }
   });
 
-  it('recovery entry preserves overwhelm_safety_card as the inherited entrySource', () => {
-    // Forward-compat for Phase 5: a recovered Overwhelm session
-    // should land at re_check with entrySource='overwhelm_safety_card'
-    // (not collapsed to 'standard') so NotShiftedResponse can branch
-    // on it. This test catches the regression.
+  it('state_preselected bridges the BrainState to the circumplex and lands on time_pick', () => {
+    const state = initFlow({
+      entrySource: 'state_preselected',
+      stateBefore: 'foggy', // → low / hard (Depleted)
+    });
+    expect(state.step).toBe('time_pick');
+    if (state.step === 'time_pick') {
+      expect(state.arousal).toBe('low');
+      expect(state.valence).toBe('hard');
+      expect(state.situation).toBe('just_reset');
+    }
+  });
+
+  it('recovery entry initializes at recovery_confirm preserving the original entrySource', () => {
     const state = initFlow({
       entrySource: 'recovery',
       recoveredPayload: {
@@ -174,587 +96,389 @@ describe('initFlow', () => {
         entrySource: 'overwhelm_safety_card',
       },
     });
+    expect(state.step).toBe('recovery_confirm');
     if (state.step === 'recovery_confirm') {
       expect(state.entrySource).toBe('overwhelm_safety_card');
+      expect(state.recoveredPayload.protocol.id).toBe('cyclic-sighing-2');
     }
   });
 });
 
-describe('flowReducer — state_pick → time_pick', () => {
-  it('state_selected advances to time_pick with stateBefore captured', () => {
-    const result = flowReducer(statePickState(), {
+describe('situation_pick → state_pick', () => {
+  it('situation_selected advances to state_pick with the situation captured', () => {
+    const start: FlowState = { step: 'situation_pick', entrySource: 'standard' };
+    const result = flowReducer(start, {
+      type: 'situation_selected',
+      situation: 'quiet_mind',
+    });
+    expect(result).toEqual({
+      step: 'state_pick',
+      entrySource: 'standard',
+      situation: 'quiet_mind',
+    });
+  });
+
+  it('back from situation_pick is a no-op (parent owns dismissal)', () => {
+    const start: FlowState = { step: 'situation_pick', entrySource: 'standard' };
+    expect(flowReducer(start, { type: 'back' })).toBe(start);
+  });
+});
+
+describe('state_pick (two-tap circumplex) → time_pick', () => {
+  const start: FlowState = {
+    step: 'state_pick',
+    entrySource: 'standard',
+    situation: 'get_through_hard',
+  };
+
+  it('state_selected carries the full {arousal, valence} pair to time_pick', () => {
+    const result = flowReducer(start, {
       type: 'state_selected',
-      state: 'foggy',
+      arousal: 'revved',
+      valence: 'hard',
     });
     expect(result).toEqual({
       step: 'time_pick',
       entrySource: 'standard',
-      stateBefore: 'foggy',
+      situation: 'get_through_hard',
+      arousal: 'revved',
+      valence: 'hard',
     });
   });
 
-  it('back from state_pick is a no-op', () => {
-    const start = statePickState();
-    const result = flowReducer(start, { type: 'back' });
-    expect(result).toBe(start);
-  });
-
-  it('unrelated actions are no-ops on state_pick', () => {
-    const start = statePickState();
-    expect(flowReducer(start, { type: 'protocol_begin', nowMs: 1 })).toBe(start);
-    expect(flowReducer(start, { type: 'time_selected', timeWindow: 5 })).toBe(start);
+  it('back from state_pick returns to situation_pick', () => {
+    expect(flowReducer(start, { type: 'back' })).toEqual({
+      step: 'situation_pick',
+      entrySource: 'standard',
+    });
   });
 });
 
-describe('flowReducer — time_pick → recommendation', () => {
-  it('time_selected advances to recommendation with selectProtocol output', () => {
-    const result = flowReducer(timePickState(), {
-      type: 'time_selected',
-      timeWindow: 5,
-    });
-    expect(result.step).toBe('recommendation');
-    if (result.step === 'recommendation') {
-      expect(result.stateBefore).toBe('wired');
-      expect(result.timeWindow).toBe(5);
-      expect(result.protocol).toBeDefined();
-      // Stub recommender is first-match deterministic; wired+5min
-      // includes wired+2min protocols. Just assert the protocol is
-      // suitable for the requested state.
-      expect(result.protocol.suitableForStates).toContain('wired');
-      expect(result.protocol.timeWindow).toBeLessThanOrEqual(5);
-    }
+describe('time_pick → recommendation (resolve() wiring)', () => {
+  it('time_selected resolves a plan with the quadrant from the circumplex', () => {
+    // quiet_mind + Tense (revved/hard) → single mandatory settle practice.
+    const reco = toRecommendation('quiet_mind', 'revved', 'hard', 5);
+    expect(reco.quadrant).toBe('Tense');
+    expect(reco.timeWindow).toBe(5);
+    expect(reco.plan.slots).toHaveLength(1);
+    expect(reco.plan.slots[0].kind).toBe('practice');
   });
 
-  it('back from time_pick returns to state_pick (preserves entrySource)', () => {
-    const result = flowReducer(timePickState(), { type: 'back' });
-    expect(result).toEqual({ step: 'state_pick', entrySource: 'standard' });
+  it('injects the device clock so the §8 find_energy evening reframe fires', () => {
+    // find_energy + Depleted (low/hard): daytime → energize practice; evening →
+    // the nsdr rest reframe.
+    const day = toRecommendation('find_energy', 'low', 'hard', 10, NOON);
+    expect(day.plan.message).toBeUndefined();
+
+    const evening = toRecommendation('find_energy', 'low', 'hard', 10, EVENING);
+    expect(evening.plan.message).toMatch(/rest is the energy move/i);
   });
 
-  it('unrelated actions are no-ops on time_pick', () => {
-    const start = timePickState();
-    expect(flowReducer(start, { type: 'state_selected', state: 'clear' })).toBe(start);
-  });
-
-  it('time_selected with no-match input throws in __DEV__ (selectProtocol contract)', () => {
-    // Foggy + 2 min has no matching protocol; selectProtocol throws
-    // in __DEV__ per sub-step 2.1 fix-forward. The reducer
-    // intentionally does NOT catch — see PURITY NOTE in reducer.ts.
-    const foggy2: FlowState = {
+  it('back from time_pick returns to state_pick preserving the situation', () => {
+    const start: FlowState = {
       step: 'time_pick',
       entrySource: 'standard',
-      stateBefore: 'foggy',
+      situation: 'wind_down',
+      arousal: 'low',
+      valence: 'good',
     };
-    expect(() =>
-      flowReducer(foggy2, { type: 'time_selected', timeWindow: 2 })
-    ).toThrow(/no protocol matched/i);
+    expect(flowReducer(start, { type: 'back' })).toEqual({
+      step: 'state_pick',
+      entrySource: 'standard',
+      situation: 'wind_down',
+    });
   });
 });
 
-describe('flowReducer — recommendation → running', () => {
-  it('protocol_begin advances to running with sessionStartedAt from action', () => {
-    const result = flowReducer(recommendationState(), {
-      type: 'protocol_begin',
-      nowMs: 9_999_999,
-    });
+describe('recommendation → running / flow_complete (plan shapes)', () => {
+  it('single_practice: plan_primary starts running with the slot pillar/direction', () => {
+    const reco = toRecommendation('quiet_mind', 'revved', 'hard', 5);
+    const result = flowReducer(reco, { type: 'plan_primary', nowMs: 1_000 });
     expect(result.step).toBe('running');
     if (result.step === 'running') {
-      expect(result.sessionStartedAt).toBe(9_999_999);
-      expect(result.stateBefore).toBe('wired');
-      expect(result.timeWindow).toBe(5);
+      expect(result.pillar).toBe('energy');
+      expect(result.direction).toBe('settle');
+      expect(result.sessionStartedAt).toBe(1_000);
     }
   });
 
-  it('back from recommendation returns to time_pick (preserves stateBefore)', () => {
-    const result = flowReducer(recommendationState(), { type: 'back' });
-    expect(result).toEqual({
-      step: 'time_pick',
-      entrySource: 'standard',
-      stateBefore: 'wired',
-    });
+  it('zero-slot (find_energy/Activated): plan_primary completes as acknowledged', () => {
+    const reco = toRecommendation('find_energy', 'revved', 'good', 5);
+    expect(reco.plan.slots).toHaveLength(0);
+    const result = flowReducer(reco, { type: 'plan_primary', nowMs: 1_000 });
+    expect(result.step).toBe('flow_complete');
+    if (result.step === 'flow_complete') {
+      expect(result.completion.kind).toBe('acknowledged');
+    }
+  });
+
+  it('single_pointer (get_through_hard/Activated): plan_primary hands off to the focus-session pointer', () => {
+    const reco = toRecommendation('get_through_hard', 'revved', 'good', 5);
+    const result = flowReducer(reco, { type: 'plan_primary', nowMs: 1_000 });
+    expect(result.step).toBe('flow_complete');
+    if (result.step === 'flow_complete' && result.completion.kind === 'pointer_only') {
+      expect(result.completion.pointerLaunched.type).toBe('focus-session');
+    } else {
+      throw new Error('expected pointer_only completion');
+    }
+  });
+
+  it('message_offered (quiet_mind/Calm): primary acknowledges, secondary runs the offered practice', () => {
+    const reco = toRecommendation('quiet_mind', 'low', 'good', 5);
+    const acknowledged = flowReducer(reco, { type: 'plan_primary', nowMs: 1 });
+    expect(acknowledged.step).toBe('flow_complete');
+    if (acknowledged.step === 'flow_complete') {
+      expect(acknowledged.completion.kind).toBe('acknowledged');
+    }
+    const running = flowReducer(reco, { type: 'plan_secondary', nowMs: 2 });
+    expect(running.step).toBe('running');
+  });
+
+  it('offered_practice_then_pointer (get_through_hard/Calm): primary launches pointer, secondary runs the pre-roll', () => {
+    const reco = toRecommendation('get_through_hard', 'low', 'good', 5);
+    const launched = flowReducer(reco, { type: 'plan_primary', nowMs: 1 });
+    expect(launched.step).toBe('flow_complete');
+    if (launched.step === 'flow_complete' && launched.completion.kind === 'pointer_only') {
+      expect(launched.completion.pointerLaunched.type).toBe('focus-session');
+    } else {
+      throw new Error('expected pointer_only');
+    }
+    const preRoll = flowReducer(reco, { type: 'plan_secondary', nowMs: 2 });
+    expect(preRoll.step).toBe('running');
+  });
+
+  it('back from recommendation returns to time_pick', () => {
+    const reco = toRecommendation('quiet_mind', 'revved', 'hard', 5);
+    const result = flowReducer(reco, { type: 'back' });
+    expect(result.step).toBe('time_pick');
   });
 });
 
-describe('flowReducer — running → re_check (completed) or abandoned (ended_early)', () => {
-  it('player_exit { completed } advances to re_check with computed duration', () => {
-    const start = runningState(1_000_000);
-    const result = flowReducer(start, {
+describe('running → reflection / abandoned', () => {
+  function running(): RunningStep {
+    const reco = toRecommendation('quiet_mind', 'revved', 'hard', 5);
+    const r = flowReducer(reco, { type: 'plan_primary', nowMs: 1_000_000 });
+    if (r.step !== 'running') throw new Error('setup');
+    return r;
+  }
+
+  it('player_exit completed advances to reflection with computed duration', () => {
+    const result = flowReducer(running(), {
       type: 'player_exit',
       reason: 'completed',
-      nowMs: 1_125_500, // 125.5 seconds later → rounds to 126
+      nowMs: 1_125_500,
     });
-    expect(result.step).toBe('re_check');
-    if (result.step === 're_check') {
-      expect(result.sessionStartedAt).toBe(1_000_000);
-      expect(result.sessionEndedAt).toBe(1_125_500);
+    expect(result.step).toBe('reflection');
+    if (result.step === 'reflection') {
       expect(result.durationActualSeconds).toBe(126);
-      expect(result.playerExitReason).toBe('completed');
+      expect(result.pillar).toBe('energy');
+      expect(result.direction).toBe('settle');
     }
   });
 
-  it('player_exit { ended_early } short-circuits to abandoned (locked decision C)', () => {
-    const start = runningState(1_000_000);
-    const result = flowReducer(start, {
+  it('player_exit ended_early short-circuits to abandoned (no reflection)', () => {
+    const result = flowReducer(running(), {
       type: 'player_exit',
       reason: 'ended_early',
       nowMs: 1_030_000,
     });
     expect(result.step).toBe('abandoned');
     if (result.step === 'abandoned') {
-      expect(result.sessionStartedAt).toBe(1_000_000);
-      expect(result.sessionEndedAt).toBe(1_030_000);
       expect(result.durationActualSeconds).toBe(30);
-      // No stateAfter on AbandonedStep — parent writes outcome=
-      // 'abandoned' with stateAfter=null.
-      expect('stateAfter' in result).toBe(false);
-    }
-  });
-
-  it('duration is clamped to 0 if endedAt < startedAt (clock weirdness)', () => {
-    const start = runningState(1_000_000);
-    const result = flowReducer(start, {
-      type: 'player_exit',
-      reason: 'completed',
-      nowMs: 999_000,
-    });
-    if (result.step === 're_check') {
-      expect(result.durationActualSeconds).toBe(0);
     }
   });
 
   it('back from running is a no-op (locked decision B)', () => {
-    const start = runningState();
-    const result = flowReducer(start, { type: 'back' });
-    expect(result).toBe(start);
+    const start = running();
+    expect(flowReducer(start, { type: 'back' })).toBe(start);
   });
 });
 
-describe('flowReducer — re_check → response (with classifier)', () => {
-  it('state_after_selected wired→steady classifies as shifted', () => {
-    const result = flowReducer(reCheckState(), {
-      type: 'state_after_selected',
-      stateAfter: 'steady',
+describe('reflection → flow_complete / pointer_offer', () => {
+  function reflectionFor(
+    situation: Situation,
+    arousal: Arousal,
+    valence: Valence
+  ): ReflectionStep {
+    const reco = toRecommendation(situation, arousal, valence, 5);
+    let s: FlowState = flowReducer(reco, { type: 'plan_primary', nowMs: 1_000_000 });
+    s = flowReducer(s, { type: 'player_exit', reason: 'completed', nowMs: 1_120_000 });
+    if (s.step !== 'reflection') throw new Error(`setup: ${s.step}`);
+    return s;
+  }
+
+  it('single_practice reflection completes with the reflection id and no pointer', () => {
+    const result = flowReducer(reflectionFor('quiet_mind', 'revved', 'hard'), {
+      type: 'reflection_selected',
+      reflectionId: 'calmer',
     });
-    expect(result.step).toBe('response');
-    if (result.step === 'response') {
-      expect(result.stateAfter).toBe('steady');
-      expect(result.outcome).toBe('shifted');
+    expect(result.step).toBe('flow_complete');
+    if (result.step === 'flow_complete' && result.completion.kind === 'practice') {
+      expect(result.completion.reflection).toBe('calmer');
+      expect(result.completion.pointerLaunched).toBeNull();
+    } else {
+      throw new Error('expected practice completion');
     }
   });
 
-  it('state_after_selected wired→foggy classifies as partial_shift', () => {
-    const result = flowReducer(reCheckState(), {
-      type: 'state_after_selected',
-      stateAfter: 'foggy',
+  it('practice_then_pointer reflection launches the mandatory pointer', () => {
+    // get_through_hard / Tense → settle-breath → focus-session (mandatory).
+    const result = flowReducer(reflectionFor('get_through_hard', 'revved', 'hard'), {
+      type: 'reflection_selected',
+      reflectionId: 'calmer',
     });
-    if (result.step === 'response') {
-      expect(result.outcome).toBe('partial_shift');
+    expect(result.step).toBe('flow_complete');
+    if (result.step === 'flow_complete' && result.completion.kind === 'practice') {
+      expect(result.completion.pointerLaunched?.type).toBe('focus-session');
+    } else {
+      throw new Error('expected practice completion with pointer');
     }
   });
 
-  it('state_after_selected wired→wired classifies as not_shifted', () => {
-    const result = flowReducer(reCheckState(), {
-      type: 'state_after_selected',
-      stateAfter: 'wired',
+  it('practice_then_offered_pointer reflection presents the offered pointer (never auto-chains)', () => {
+    // quiet_mind / Activated → grounding → focus-session [offer].
+    const result = flowReducer(reflectionFor('quiet_mind', 'revved', 'good'), {
+      type: 'reflection_selected',
+      reflectionId: 'calmer',
     });
-    if (result.step === 'response') {
-      expect(result.outcome).toBe('not_shifted');
+    expect(result.step).toBe('pointer_offer');
+    if (result.step === 'pointer_offer') {
+      expect(result.pointer.type).toBe('focus-session');
+      expect(result.reflection).toBe('calmer');
     }
   });
 
-  it('back from re_check is a no-op (locked decision B)', () => {
-    const start = reCheckState();
-    const result = flowReducer(start, { type: 'back' });
-    expect(result).toBe(start);
+  it('back from reflection is a no-op', () => {
+    const start = reflectionFor('quiet_mind', 'revved', 'hard');
+    expect(flowReducer(start, { type: 'back' })).toBe(start);
+  });
+});
+
+describe('pointer_offer → flow_complete', () => {
+  function pointerOffer(): PointerOfferStep {
+    const reco = toRecommendation('quiet_mind', 'revved', 'good', 5);
+    let s: FlowState = flowReducer(reco, { type: 'plan_primary', nowMs: 1_000_000 });
+    s = flowReducer(s, { type: 'player_exit', reason: 'completed', nowMs: 1_120_000 });
+    s = flowReducer(s, { type: 'reflection_selected', reflectionId: 'calmer' });
+    if (s.step !== 'pointer_offer') throw new Error('setup');
+    return s;
+  }
+
+  it('accept launches the pointer', () => {
+    const result = flowReducer(pointerOffer(), { type: 'pointer_accepted' });
+    if (result.step === 'flow_complete' && result.completion.kind === 'practice') {
+      expect(result.completion.pointerLaunched?.type).toBe('focus-session');
+    } else {
+      throw new Error('expected practice completion with pointer');
+    }
   });
 
-  it('response carries forward the full session record', () => {
-    const start = reCheckState();
-    const result = flowReducer(start, {
-      type: 'state_after_selected',
-      stateAfter: 'clear',
-    });
-    if (result.step === 'response') {
-      expect(result.sessionStartedAt).toBe(start.sessionStartedAt);
-      expect(result.sessionEndedAt).toBe(start.sessionEndedAt);
-      expect(result.durationActualSeconds).toBe(start.durationActualSeconds);
-      expect(result.protocol).toBe(start.protocol);
-      expect(result.timeWindow).toBe(start.timeWindow);
-      expect(result.playerExitReason).toBe('completed');
+  it('decline completes without launching the pointer', () => {
+    const result = flowReducer(pointerOffer(), { type: 'pointer_declined' });
+    if (result.step === 'flow_complete' && result.completion.kind === 'practice') {
+      expect(result.completion.pointerLaunched).toBeNull();
+    } else {
+      throw new Error('expected practice completion without pointer');
     }
   });
 });
 
-describe('flowReducer — response → flow_complete', () => {
-  it.each(['try_longer', 'rest_later', 'dismissed', 'auto_dismissed'] as const)(
-    'next_step_chosen { choice: %s } advances to flow_complete',
-    (choice) => {
-      const result = flowReducer(responseState(), {
-        type: 'next_step_chosen',
-        choice,
-      });
-      expect(result.step).toBe('flow_complete');
-      if (result.step === 'flow_complete') {
-        expect(result.userChosenNextStep).toBe(choice);
-      }
-    }
-  );
+describe('recovery_confirm transitions', () => {
+  function recoveryConfirm(
+    entrySource: RecoveryConfirmStep['entrySource'] = 'standard'
+  ): RecoveryConfirmStep {
+    return {
+      step: 'recovery_confirm',
+      entrySource,
+      recoveredPayload: {
+        protocol: CYCLIC_SIGHING,
+        stateBefore: 'wired',
+        timeWindow: 2,
+        sessionStartedAt: 1_700_000_000_000,
+        sessionEndedAt: 1_700_000_000_000 + 120_000,
+        durationActualSeconds: 120,
+        intentPath: 'default',
+      },
+    };
+  }
 
-  it('flow_complete carries the full session record forward', () => {
-    const start = responseState();
-    const result = flowReducer(start, {
-      type: 'next_step_chosen',
-      choice: 'dismissed',
+  it('recovery_confirmed resumes at reflection with the recovered practice', () => {
+    const result = flowReducer(recoveryConfirm('overwhelm_safety_card'), {
+      type: 'recovery_confirmed',
     });
-    if (result.step === 'flow_complete') {
-      expect(result.stateBefore).toBe(start.stateBefore);
-      expect(result.stateAfter).toBe(start.stateAfter);
-      expect(result.outcome).toBe(start.outcome);
-      expect(result.protocol).toBe(start.protocol);
-      expect(result.durationActualSeconds).toBe(start.durationActualSeconds);
+    expect(result.step).toBe('reflection');
+    if (result.step === 'reflection') {
+      expect(result.entrySource).toBe('overwhelm_safety_card');
+      expect(result.protocol.id).toBe('cyclic-sighing-2');
+      expect(result.durationActualSeconds).toBe(120);
+      expect(result.direction).toBe('settle');
     }
   });
 
-  it('back from response is a no-op (locked decision B)', () => {
-    const start = responseState();
-    const result = flowReducer(start, { type: 'back' });
-    expect(result).toBe(start);
+  it('recovery_declined starts fresh at situation_pick', () => {
+    expect(
+      flowReducer(recoveryConfirm('overwhelm_safety_card'), {
+        type: 'recovery_declined',
+      })
+    ).toEqual({ step: 'situation_pick', entrySource: 'standard' });
+  });
+
+  it('back from recovery_confirm is a no-op', () => {
+    const start = recoveryConfirm();
+    expect(flowReducer(start, { type: 'back' })).toBe(start);
   });
 });
 
-describe('flowReducer — terminal states are absorbing', () => {
-  const abandoned: FlowState = {
-    step: 'abandoned',
-    entrySource: 'standard',
-    stateBefore: 'wired',
-    timeWindow: 5,
-    protocol: CYCLIC_SIGHING,
-    sessionStartedAt: 1_000_000,
-    sessionEndedAt: 1_030_000,
-    durationActualSeconds: 30,
-  };
-
+describe('terminal states are absorbing', () => {
   const flowComplete: FlowState = {
     step: 'flow_complete',
     entrySource: 'standard',
-    stateBefore: 'wired',
+    situation: 'quiet_mind',
+    arousal: 'revved',
+    valence: 'hard',
+    quadrant: 'Tense',
     timeWindow: 5,
-    protocol: CYCLIC_SIGHING,
-    sessionStartedAt: 1_000_000,
-    sessionEndedAt: 1_120_000,
-    durationActualSeconds: 120,
-    playerExitReason: 'completed',
-    stateAfter: 'steady',
-    outcome: 'shifted',
-    userChosenNextStep: 'dismissed',
+    plan: { situation: 'quiet_mind', quadrant: 'Tense', slots: [] },
+    completion: { kind: 'acknowledged' },
   };
-
-  it('any action on abandoned returns the same state (parent unmounts)', () => {
-    expect(flowReducer(abandoned, { type: 'back' })).toBe(abandoned);
-    expect(flowReducer(abandoned, { type: 'state_selected', state: 'clear' })).toBe(abandoned);
-    expect(
-      flowReducer(abandoned, {
-        type: 'next_step_chosen',
-        choice: 'dismissed',
-      })
-    ).toBe(abandoned);
-  });
 
   it('any action on flow_complete returns the same state', () => {
     expect(flowReducer(flowComplete, { type: 'back' })).toBe(flowComplete);
     expect(
-      flowReducer(flowComplete, {
-        type: 'next_step_chosen',
-        choice: 'dismissed',
-      })
+      flowReducer(flowComplete, { type: 'reflection_selected', reflectionId: 'calmer' })
     ).toBe(flowComplete);
   });
 });
 
-describe('flowReducer — overwhelm-entry happy path (full traversal from running)', () => {
-  // Verifies the reducer can drive an Overwhelm-initialized flow
-  // through to flow_complete without any state_pick / time_pick /
-  // recommendation states. Catches accidental coupling of those
-  // steps to the running→re_check→response→flow_complete spine.
-  it('overwhelm entry → completed → wired→steady → dismissed', () => {
-    const init = initFlow({
-      entrySource: 'overwhelm_safety_card',
-      protocol: CYCLIC_SIGHING,
-      nowMs: 1_000_000,
-    });
-    expect(init.step).toBe('running');
-
-    const afterPlayer = flowReducer(init, {
-      type: 'player_exit',
-      reason: 'completed',
-      nowMs: 1_120_000,
-    });
-    expect(afterPlayer.step).toBe('re_check');
-
-    const afterReCheck = flowReducer(afterPlayer, {
-      type: 'state_after_selected',
-      stateAfter: 'steady',
-    });
-    expect(afterReCheck.step).toBe('response');
-    if (afterReCheck.step === 'response') {
-      expect(afterReCheck.outcome).toBe('shifted');
-      expect(afterReCheck.entrySource).toBe('overwhelm_safety_card');
-    }
-
-    const final = flowReducer(afterReCheck, {
-      type: 'next_step_chosen',
-      choice: 'dismissed',
-    });
-    expect(final.step).toBe('flow_complete');
-    if (final.step === 'flow_complete') {
-      expect(final.entrySource).toBe('overwhelm_safety_card');
-      expect(final.timeWindow).toBe(2);
-    }
-  });
-
-  it('overwhelm entry → ended_early → abandoned terminal', () => {
-    const init = initFlow({
-      entrySource: 'overwhelm_safety_card',
-      protocol: CYCLIC_SIGHING,
-      nowMs: 1_000_000,
-    });
-    const result = flowReducer(init, {
-      type: 'player_exit',
-      reason: 'ended_early',
-      nowMs: 1_015_000,
-    });
-    expect(result.step).toBe('abandoned');
-    if (result.step === 'abandoned') {
-      expect(result.entrySource).toBe('overwhelm_safety_card');
-      expect(result.durationActualSeconds).toBe(15);
-    }
-  });
-});
-
-describe('flowReducer — state-preselected-entry happy path', () => {
-  // Verifies state_preselected lands on time_pick and progresses
-  // normally through the rest of the flow. Catches accidental
-  // coupling that would force state_preselected through state_pick
-  // unintentionally.
-  it('state_preselected entry → time_selected → recommendation → ... → flow_complete', () => {
-    let state = initFlow({
-      entrySource: 'state_preselected',
-      stateBefore: 'wired',
-    });
-    expect(state.step).toBe('time_pick');
-    if (state.step !== 'time_pick') return;
-    expect(state.stateBefore).toBe('wired');
-
-    state = flowReducer(state, { type: 'time_selected', timeWindow: 5 });
-    expect(state.step).toBe('recommendation');
-
-    state = flowReducer(state, { type: 'protocol_begin', nowMs: 1_000_000 });
-    expect(state.step).toBe('running');
-
-    state = flowReducer(state, {
-      type: 'player_exit',
-      reason: 'completed',
-      nowMs: 1_120_000,
-    });
-    expect(state.step).toBe('re_check');
-
-    state = flowReducer(state, {
-      type: 'state_after_selected',
-      stateAfter: 'steady',
-    });
-    expect(state.step).toBe('response');
-
-    state = flowReducer(state, {
-      type: 'next_step_chosen',
-      choice: 'dismissed',
-    });
-    expect(state.step).toBe('flow_complete');
-    if (state.step === 'flow_complete') {
-      // Entry source carries through the full flow.
-      expect(state.entrySource).toBe('state_preselected');
-      expect(state.stateBefore).toBe('wired');
-      expect(state.stateAfter).toBe('steady');
-    }
-  });
-
-  it('back from time_pick on state_preselected entry returns to state_pick (intentional fallthrough — user can reconsider)', () => {
-    // Note: the reducer's back handler treats every time_pick the
-    // same way regardless of entry source. From state_preselected,
-    // tapping back DOES land on state_pick — giving the user a way
-    // to reconsider the chip they tapped on the dashboard. This is
-    // intentional: state_preselected is a routing optimization, not
-    // a constraint.
-    const start = initFlow({
-      entrySource: 'state_preselected',
-      stateBefore: 'wired',
-    });
-    const result = flowReducer(start, { type: 'back' });
-    expect(result).toEqual({
-      step: 'state_pick',
-      entrySource: 'state_preselected',
-    });
-  });
-});
-
-describe('flowReducer — standard-entry happy path (full traversal)', () => {
-  it('state→time→reco→running→completed→reCheck→response→flow_complete', () => {
-    let state = initFlow({ entrySource: 'standard' });
-    expect(state.step).toBe('state_pick');
-
-    state = flowReducer(state, { type: 'state_selected', state: 'wired' });
-    expect(state.step).toBe('time_pick');
-
-    state = flowReducer(state, { type: 'time_selected', timeWindow: 5 });
-    expect(state.step).toBe('recommendation');
-
-    state = flowReducer(state, { type: 'protocol_begin', nowMs: 1_000_000 });
-    expect(state.step).toBe('running');
-
-    state = flowReducer(state, {
-      type: 'player_exit',
-      reason: 'completed',
-      nowMs: 1_300_000,
-    });
-    expect(state.step).toBe('re_check');
-    if (state.step === 're_check') {
-      expect(state.durationActualSeconds).toBe(300);
-    }
-
-    state = flowReducer(state, {
-      type: 'state_after_selected',
-      stateAfter: 'clear',
-    });
-    expect(state.step).toBe('response');
-    if (state.step === 'response') {
-      expect(state.outcome).toBe('shifted');
-    }
-
-    state = flowReducer(state, {
-      type: 'next_step_chosen',
-      choice: 'dismissed',
-    });
-    expect(state.step).toBe('flow_complete');
-  });
-});
-
-// ────────────────────────────────────────────────────────────
-// Sub-step 2.7 — recovery_confirm step transitions
-// ────────────────────────────────────────────────────────────
-
-function recoveryConfirmState(
-  overrides: Partial<RecoveryConfirmStep['recoveredPayload']> = {},
-  entrySource: RecoveryConfirmStep['entrySource'] = 'standard'
-): RecoveryConfirmStep {
-  return {
-    step: 'recovery_confirm',
-    entrySource,
-    recoveredPayload: {
-      protocol: CYCLIC_SIGHING,
-      stateBefore: 'wired',
-      timeWindow: 2,
-      sessionStartedAt: 1_700_000_000_000,
-      sessionEndedAt: 1_700_000_000_000 + 120_000,
-      durationActualSeconds: 120,
-      intentPath: 'default',
-      ...overrides,
-    },
-  };
-}
-
-describe('flowReducer — recovery_confirm → re_check (recovery_confirmed)', () => {
-  it('advances to re_check with the recovered payload, preserving entrySource', () => {
-    const start = recoveryConfirmState();
-    const result = flowReducer(start, { type: 'recovery_confirmed' });
-    expect(result.step).toBe('re_check');
-    if (result.step === 're_check') {
-      expect(result.entrySource).toBe('standard');
-      expect(result.stateBefore).toBe('wired');
-      expect(result.timeWindow).toBe(2);
-      expect(result.protocol.id).toBe('cyclic-sighing-2');
-      expect(result.sessionStartedAt).toBe(1_700_000_000_000);
-      expect(result.sessionEndedAt).toBe(1_700_000_000_000 + 120_000);
-      expect(result.durationActualSeconds).toBe(120);
-      expect(result.playerExitReason).toBe('completed');
-    }
-  });
-
-  it('preserves overwhelm_safety_card entrySource through to the recovered re_check', () => {
-    // Phase 5 forward-compat — the recovered Overwhelm session must
-    // land at re_check with entrySource='overwhelm_safety_card', not
-    // collapsed to 'standard'. NotShiftedResponse will read this to
-    // pick softer Overwhelm-specific copy.
-    const start = recoveryConfirmState({}, 'overwhelm_safety_card');
-    const result = flowReducer(start, { type: 'recovery_confirmed' });
-    if (result.step === 're_check') {
-      expect(result.entrySource).toBe('overwhelm_safety_card');
-    }
-  });
-});
-
-describe('flowReducer — recovery_confirm → state_pick (recovery_declined)', () => {
-  it('"Start fresh" resets to state_pick with entrySource standard, discarding the recovered payload', () => {
-    // Locked decision: secondary CTA "resets to standard entry
-    // (FlowInit becomes 'standard', state_pick step)" — even when
-    // the original entrySource was overwhelm_safety_card. Tests
-    // both the standard origin AND the overwhelm origin to make
-    // the override explicit.
-    const fromStandard = recoveryConfirmState({}, 'standard');
-    expect(flowReducer(fromStandard, { type: 'recovery_declined' })).toEqual({
-      step: 'state_pick',
-      entrySource: 'standard',
-    });
-
-    const fromOverwhelm = recoveryConfirmState({}, 'overwhelm_safety_card');
-    expect(flowReducer(fromOverwhelm, { type: 'recovery_declined' })).toEqual({
-      step: 'state_pick',
-      entrySource: 'standard',
-    });
-  });
-});
-
-describe('flowReducer — recovery_confirm no-ops', () => {
-  it('back from recovery_confirm is a no-op (one-shot decision surface)', () => {
-    const start = recoveryConfirmState();
-    expect(flowReducer(start, { type: 'back' })).toBe(start);
-  });
-
-  it('unrelated forward actions are no-ops on recovery_confirm', () => {
-    const start = recoveryConfirmState();
-    expect(flowReducer(start, { type: 'state_selected', state: 'foggy' })).toBe(
-      start
-    );
-    expect(flowReducer(start, { type: 'time_selected', timeWindow: 5 })).toBe(
-      start
-    );
-    expect(
-      flowReducer(start, {
-        type: 'state_after_selected',
-        stateAfter: 'steady',
-      })
-    ).toBe(start);
-  });
-
-  it('recovery actions are no-ops from non-recovery_confirm steps', () => {
-    // Defensive: recovery_confirmed/declined should never arrive
-    // outside recovery_confirm. If they do (race during unmount,
-    // stray dispatch), they're ignored.
-    expect(
-      flowReducer(statePickState(), { type: 'recovery_confirmed' })
-    ).toEqual(statePickState());
-    expect(
-      flowReducer(reCheckState(), { type: 'recovery_declined' })
-    ).toEqual(reCheckState());
+describe('full standard traversal', () => {
+  it('situation → state → time → plan → run → reflect → complete', () => {
+    let s: FlowState = initFlow({ entrySource: 'standard' });
+    expect(s.step).toBe('situation_pick');
+    s = flowReducer(s, { type: 'situation_selected', situation: 'quiet_mind' });
+    expect(s.step).toBe('state_pick');
+    s = flowReducer(s, { type: 'state_selected', arousal: 'revved', valence: 'hard' });
+    expect(s.step).toBe('time_pick');
+    s = flowReducer(s, { type: 'time_selected', timeWindow: 5, nowMs: NOON });
+    expect(s.step).toBe('recommendation');
+    s = flowReducer(s, { type: 'plan_primary', nowMs: 1_000_000 });
+    expect(s.step).toBe('running');
+    s = flowReducer(s, { type: 'player_exit', reason: 'completed', nowMs: 1_300_000 });
+    expect(s.step).toBe('reflection');
+    s = flowReducer(s, { type: 'reflection_selected', reflectionId: 'calmer' });
+    expect(s.step).toBe('flow_complete');
   });
 });
 
 const _TYPECHECK: FlowAction[] = [
-  { type: 'state_selected', state: 'wired' },
-  { type: 'time_selected', timeWindow: 2 },
-  { type: 'protocol_begin', nowMs: 0 },
+  { type: 'situation_selected', situation: 'quiet_mind' },
+  { type: 'state_selected', arousal: 'revved', valence: 'hard' },
+  { type: 'time_selected', timeWindow: 2, nowMs: 0 },
+  { type: 'plan_primary', nowMs: 0 },
+  { type: 'plan_secondary', nowMs: 0 },
   { type: 'player_exit', reason: 'completed', nowMs: 0 },
-  { type: 'player_exit', reason: 'ended_early', nowMs: 0 },
-  { type: 'state_after_selected', stateAfter: 'steady' },
-  { type: 'next_step_chosen', choice: 'dismissed' },
-  { type: 'next_step_chosen', choice: 'auto_dismissed' },
+  { type: 'reflection_selected', reflectionId: 'calmer' },
+  { type: 'pointer_accepted' },
+  { type: 'pointer_declined' },
   { type: 'recovery_confirmed' },
   { type: 'recovery_declined' },
   { type: 'back' },

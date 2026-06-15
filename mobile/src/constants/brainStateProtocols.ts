@@ -646,87 +646,12 @@ export const BRAIN_STATE_PROTOCOLS = {
     ],
   },
 
-  'focused-work-45': {
-    id: 'focused-work-45',
-    pillar: 'focus',
-    regulationDirection: 'neutral',
-    family: 'focused-work',
-    name: 'Focused Work Window',
-    description:
-      'A 45-minute deep-work session. Single task. Notifications silenced.',
-    whatItIs:
-      'A capacity-aware deep-work session. You pick a duration that matches your current capacity, then work on a single task with focus. A timer runs, notifications silence automatically, and at the end you get a brief transition period.',
-    whatYoullNeed: 'The task you want to focus on. A space that supports focus.',
-    howItWorks:
-      "The brain naturally cycles through approximately 90-minute periods of high focus separated by recovery troughs, the ultradian rhythm. The 45-minute window is one half-cycle: long enough for deep work to take hold, short enough to fit in most calendars.\n\nVara doesn't frame this as a productivity hack. This is about using a regulated state well, not extracting output from yourself.",
-    whenItFits:
-      "Clear: when your state genuinely supports focused cognitive work. Not a protocol to use when you're Wired or Foggy. Forcing focus in those states burns capacity without producing results.",
-    firstTimeOrientation: {
-      whatYoullDo:
-        'Pick a single task. Focus on just that one thing for 45 minutes. Timer runs in the background; notifications silence.',
-      whatYoullNeed: 'The task, and a space where you can focus.',
-      whyItWorks:
-        'Your brain has natural focus cycles. A 45-minute window is one half-cycle, long enough for deep work to land.',
-    },
-    evidenceTier: 3,
-    evidenceCitation:
-      'Ultradian rhythm research (Kleitman, Rossi, and others).',
-    durationSeconds: 2700,
-    timeWindow: 45,
-    modality: 'cognitive',
-    suitableForStates: ['clear'],
-    suitableForTimesOfDay: ['mid_morning', 'midday', 'early_afternoon'],
-    steps: [
-      {
-        kind: 'timer',
-        id: 'focus',
-        durationSeconds: 2700,
-        label: 'Focus on one task',
-        hint: 'Single task. No tab-switching. Notifications silenced.',
-      },
-    ],
-  },
-
-  'focused-work-90': {
-    id: 'focused-work-90',
-    pillar: 'focus',
-    regulationDirection: 'neutral',
-    family: 'focused-work',
-    name: 'Focused Work Window',
-    description:
-      'A 90-minute deep-work session. Full ultradian cycle for deeper work.',
-    whatItIs:
-      'A capacity-aware deep-work session at the full ultradian length. You pick a single task and work on it for 90 minutes, one full focus cycle. A timer runs, notifications silence automatically.',
-    whatYoullNeed: 'The task you want to focus on. A space that supports focus.',
-    howItWorks:
-      "The brain naturally cycles through approximately 90-minute periods of high focus separated by recovery troughs. The 90-minute window is the full cycle: enough time for deep work that requires sustained loading of context.\n\nVara doesn't frame this as a productivity hack. Use this only when your state genuinely supports it: Clear, well-rested, and with a task that warrants the depth.",
-    whenItFits:
-      'Clear, and only when you have the capacity. Pick the 45-minute version when you have less.',
-    firstTimeOrientation: {
-      whatYoullDo:
-        'Pick a single deep task. Focus on just that one thing for 90 minutes. Timer runs in the background; notifications silence.',
-      whatYoullNeed: 'The task, a space where you can focus, and the capacity for the full window.',
-      whyItWorks:
-        'A 90-minute focus cycle is the full ultradian rhythm. Long enough to handle work that requires deep context loading.',
-    },
-    evidenceTier: 3,
-    evidenceCitation:
-      'Ultradian rhythm research (Kleitman, Rossi, and others).',
-    durationSeconds: 5400,
-    timeWindow: 45,
-    modality: 'cognitive',
-    suitableForStates: ['clear'],
-    suitableForTimesOfDay: ['mid_morning', 'midday'],
-    steps: [
-      {
-        kind: 'timer',
-        id: 'focus',
-        durationSeconds: 5400,
-        label: 'Focus on one task',
-        hint: 'Single deep task. No tab-switching. Notifications silenced.',
-      },
-    ],
-  },
+  // 'focused-work-45' / 'focused-work-90' retired (engine wiring, Phase B).
+  // The engine serves focus work via a `focus-session` POINTER slot that
+  // launches the Pomodoro flow (FocusTimer screen), never as a catalog
+  // practice — so these entries had no engine consumer. Their only callers
+  // were the retired `selectProtocol` check-in path + its tests. Removed with
+  // the `'focused-work'` family from ProtocolFamily.
 
   // ----- TIER 4 -----
 

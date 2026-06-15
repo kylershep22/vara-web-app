@@ -121,61 +121,42 @@ beforeEach(() => {
   mockUseAuth.mockReturnValue({ user: { uid: 'test-user-id' } });
 });
 
-describe('CheckInFlowScreen — "See other options" navigation chain (Round 12 / Finding G META gap closure)', () => {
-  it('tapping "See other options" navigates to Practices with the expected route params', async () => {
-    const utils = renderAppStack();
-    const { findByTestId, findByLabelText } = utils;
-
-    // CheckInFlowScreen mounts CheckInFlow asynchronously (after
-    // readMarkerForRecoveryOffer resolves). Wait for state-pick.
-    await findByTestId('checkin-flow-state-pick');
-
-    // Drive: pick Wired → time-pick renders.
-    fireEvent.press(await findByLabelText('Wired'));
-
-    // Pick the 5-minute time window. TimeWindowSelector chips carry
-    // testID `time-window-chip-{value}`.
-    fireEvent.press(await findByTestId('time-window-chip-5'));
-
-    // Recommendation screen renders with real ProtocolRecommendation.
-    // The "See other options" affordance must be visible (default
-    // showSeeOtherOptions=true on the daily check-in path).
-    const alternates = await findByTestId('protocol-recommendation-alternates');
-    expect(alternates).toBeTruthy();
-
-    // Tap it. Real navigation.navigate('Practices', ...) should fire
-    // and PracticesIndexScreen mounts with the route params built by
-    // CheckInFlowScreen.handleSeeOtherOptions.
-    fireEvent.press(alternates);
-
-    // Assertion (b) per round-11 META rule: the destination screen
-    // actually mounted. testID 'practices-index' is set on
-    // PracticesIndexScreen's container view.
-    await findByTestId('practices-index');
-
-    // Assertion (a): the route params match the contract. Title copy
-    // is built from (state, timeWindow) on PracticesIndexScreen, so
-    // a title of "Other options for Wired · 5 minutes" implies the
-    // route received state='wired' and timeWindow=5.
-    const title = await findByTestId('practices-index-title');
-    expect(title.props.children).toBe(
-      'Other options for Wired · 5 minutes'
-    );
-  });
-
-  it('regression guard — recommendation screen renders the affordance on the standard daily check-in path', async () => {
-    // Without this assertion, a future change that flips the default
-    // of showSeeOtherOptions to false (or that wires hideSeeOtherOptions
-    // unconditionally) would silently regress the daily check-in
-    // surface. The onboarding-path coverage is in the
-    // ProtocolRecommendation unit tests; this is its complement.
+describe('CheckInFlowScreen — "See other options" navigation chain', () => {
+  it('tapping "See other options" navigates to Practices with the bridged state + budget', async () => {
     const { findByTestId, findByLabelText } = renderAppStack();
 
-    await findByTestId('checkin-flow-state-pick');
-    fireEvent.press(await findByLabelText('Foggy'));
+    // CheckInFlow mounts asynchronously (after readMarkerForRecoveryOffer).
+    await findByTestId('checkin-flow-situation-pick');
+
+    // Drive: situation → two-tap circumplex (Tense) → 5-minute budget.
+    fireEvent.press(await findByLabelText('Get through something hard'));
+    fireEvent.press(await findByLabelText('Revved up'));
+    fireEvent.press(await findByLabelText('Hard'));
+    fireEvent.press(await findByTestId('time-window-chip-5'));
+
+    // Plan presentation renders (get_through_hard / Tense → settle-breath →
+    // focus-session, which has a practice, so the affordance shows).
+    const alternates = await findByTestId('checkin-flow-plan-see-other-options');
+    expect(alternates).toBeTruthy();
+
+    fireEvent.press(alternates);
+
+    // Destination actually mounted, with route params built from the bridged
+    // quadrant (Tense → wired) + the 5-minute budget.
+    await findByTestId('practices-index');
+    const title = await findByTestId('practices-index-title');
+    expect(title.props.children).toBe('Other options for Wired · 5 minutes');
+  });
+
+  it('regression guard — the plan screen renders the affordance for a practice cell', async () => {
+    const { findByTestId, findByLabelText } = renderAppStack();
+
+    await findByTestId('checkin-flow-situation-pick');
+    fireEvent.press(await findByLabelText('Quiet a busy mind'));
+    fireEvent.press(await findByLabelText('Revved up'));
+    fireEvent.press(await findByLabelText('Hard'));
     fireEvent.press(await findByTestId('time-window-chip-10'));
 
-    const alternates = await findByTestId('protocol-recommendation-alternates');
-    expect(alternates).toBeTruthy();
+    expect(await findByTestId('checkin-flow-plan-see-other-options')).toBeTruthy();
   });
 });

@@ -1,5 +1,15 @@
 // Phase 2 stub recommender — first-match, deterministic.
 //
+// DEPRECATED on the check-in path (engine wiring, Phase B). The daily
+// check-in now routes through the recommendation engine's resolve()
+// (src/engine), which retired suitableForStates in favor of the
+// situation × circumplex map. This stub is RETAINED only for the
+// onboarding stack (OnboardingV2CheckInScreen / resolveOnboardingProtocol /
+// OnboardingProtocolScreen) and the legacy brainStateCheckIns protocolId
+// fallback, which still speak BrainState. Do not wire new check-in code to
+// it; full deletion (and removing suitableForStates from the schema) is
+// deferred to the onboarding-migration sub-step.
+//
 // Phase 4 replaces this with the full algorithm (state + time-of-day
 // + intent path + recency penalty + response-history bonus). Phase 2's
 // job is just to pick *something* reasonable so the multi-step

@@ -33,13 +33,12 @@ describe('selectProtocol — Phase 2 stub recommender', () => {
       expect(result.id).toBe('coherence-breathing-5');
     });
 
-    it('Clear + 45 min returns focused-work-45 (exact match beats coherence-breathing-5 distance=40)', () => {
-      // Eligible: coherence-breathing-5 (5, distance=40), focused-work-45
-      // (45, distance=0), focused-work-90 (timeWindow=45, distance=0).
-      // Closest-match sort picks the two distance=0 candidates first,
-      // alphabetical tie-break selects focused-work-45.
+    it('Clear + 45 min returns coherence-breathing-5 (focused-work retired; only Clear-suitable protocol remaining)', () => {
+      // focused-work-45/90 were retired in the engine wiring. The only
+      // Clear-suitable protocol left is coherence-breathing-5 (timeWindow 5
+      // ≤ 45), so it is selected for any Clear budget ≥ 5.
       const result = selectProtocol({ state: 'clear', timeWindow: 45 });
-      expect(result.id).toBe('focused-work-45');
+      expect(result.id).toBe('coherence-breathing-5');
     });
 
     it('Alive + 5 min returns brief-movement-5', () => {
