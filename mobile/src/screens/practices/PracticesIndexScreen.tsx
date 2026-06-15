@@ -34,6 +34,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Spacing, Typography } from '../../constants';
 import { getAllProtocols } from '../../constants/brainStateProtocols';
 import {
+  eligiblePractices,
+  isEvening,
+  timeWindowToLengthClass,
+  type Slot,
+} from '../../engine';
+import {
   evidenceChipLabel,
   formatProtocolDuration,
 } from '../../utils/protocolDisplay';
@@ -60,13 +66,18 @@ function timeWindowLabel(tw: ProtocolTimeWindow): string {
 
 // Route params shape. Registered in AppNavigator.
 export interface PracticesIndexRouteParams {
+  // The engine slot the check-in's "See other options" was filling. The index
+  // re-runs eligiblePractices(slot, …) for it — the single engine filter, no
+  // re-implemented inline filter (Vara_Engine_Contract.md §9.4). Serializable
+  // (plain object) so it rides navigation params. Optional: the out-of-scope
+  // BrowseRunFlow "try something longer" path reaches this screen without a
+  // slot and falls back to the legacy state filter (see below).
+  slot?: Slot;
+  // Bridged BrainState for the downstream PracticeRun (BrowseRunFlow still
+  // captures a five-state re-check). Also drives the screen title and the
+  // legacy no-slot fallback filter.
   state: BrainState;
-  // Round 10: timeWindow is optional. The "See other options" path on
-  // the recommendation screen passes the user's original budget so
-  // alternates respect the time commitment. The "Try something longer"
-  // path on the not-shifted response omits it — the button's promise
-  // ("something longer") contradicts a same-budget filter, so we show
-  // the full set of state-eligible protocols across all time windows.
+  // The user's time budget — caps eligibility by length class.
   timeWindow?: ProtocolTimeWindow;
   // Sub-step 2.7 round 5 (Bug B fix) — when this screen is reached
   // from CheckInFlow ("See other options" or "Try something longer"),
@@ -96,7 +107,7 @@ type NavigationProp = NativeStackNavigationProp<{
 export function PracticesIndexScreen() {
   const route = useRoute<RouteParams>();
   const navigation = useNavigation<NavigationProp>();
-  const { state, timeWindow, fromCheckInFlow, intentPath } = route.params;
+  const { slot, state, timeWindow, fromCheckInFlow, intentPath } = route.params;
 
   // Custom headerLeft override for Obs 12b: the system-default back
   // button on this screen was reported unresponsive in #1.0.83. An
@@ -119,24 +130,27 @@ export function PracticesIndexScreen() {
     });
   }, [navigation]);
 
-  // Eligibility filter:
-  //   - When timeWindow is provided ("See other options" path): mirror
-  //     the recommender's filter (`<= timeWindow`) so alternates
-  //     respect the user's stated budget.
-  //   - When timeWindow is omitted ("Try something longer" path,
-  //     round 10 Finding 3): drop the budget filter entirely. The
-  //     button's promise is "show me something longer than what I
-  //     just ran"; same-budget filtering would contradict that.
-  //
-  // Phase 4 layers ranking on top of the same eligibility set.
-  const eligible = useMemo<Protocol[]>(
-    () =>
-      getAllProtocols()
-        .filter((p) => p.suitableForStates.includes(state))
-        .filter((p) => timeWindow == null || p.timeWindow <= timeWindow)
-        .sort((a, b) => a.id.localeCompare(b.id)),
-    [state, timeWindow]
-  );
+  // Eligibility:
+  //   - With a slot (check-in "See other options"): the engine's own slot
+  //     filter (Vara_Engine_Contract.md §9.4), so it can never drift from what
+  //     resolve() would have accepted. Time budget caps the length class;
+  //     evening bright-light suppression is read from the device hour.
+  //   - Without a slot (the out-of-scope BrowseRunFlow "try something longer"
+  //     path): the legacy state filter, retained until BrowseRunFlow migrates
+  //     off BrainState. The check-in path never hits this branch.
+  const eligible = useMemo<Protocol[]>(() => {
+    if (slot) {
+      const budgetClass = timeWindowToLengthClass(timeWindow ?? 45);
+      const evening = isEvening({ hour: new Date().getHours() });
+      return eligiblePractices(slot, getAllProtocols(), budgetClass, evening).sort(
+        (a, b) => a.id.localeCompare(b.id)
+      );
+    }
+    return getAllProtocols()
+      .filter((p) => p.suitableForStates.includes(state))
+      .filter((p) => timeWindow == null || p.timeWindow <= timeWindow)
+      .sort((a, b) => a.id.localeCompare(b.id));
+  }, [slot, state, timeWindow]);
 
   return (
     <View style={styles.container} testID="practices-index">

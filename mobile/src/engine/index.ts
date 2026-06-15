@@ -54,3 +54,4 @@ export {
   focusSessionSlot,
   planSlot,
 } from './planMap';
+export { quadrantToBrainState, brainStateToCircumplex } from './stateBridge';

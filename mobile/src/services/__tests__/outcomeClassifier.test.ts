@@ -1,8 +1,45 @@
 import {
   classifyOutcome,
+  classifyReflectionOutcome,
   type ClassifierOutcome,
 } from '../outcomeClassifier';
 import type { BrainState } from '../../types/models';
+
+// ────────────────────────────────────────────────────────────
+// classifyReflectionOutcome — engine-wired check-in reflection recorder.
+// The legacy 5×5 classifyOutcome matrix below is retained for the
+// out-of-scope BrowseRunFlow path; this block covers the new recorder.
+// ────────────────────────────────────────────────────────────
+describe('classifyReflectionOutcome — chip → outcome + firstShift gate', () => {
+  it('strong-positive chip → shifted and qualifies firstShift', () => {
+    expect(classifyReflectionOutcome('energy', 'settle', 'calmer')).toEqual({
+      outcome: 'shifted',
+      qualifiesFirstShift: true,
+    });
+    expect(classifyReflectionOutcome('energy', 'energize', 'more_with_it').outcome).toBe('shifted');
+  });
+
+  it('middle chip → maintenance, does NOT qualify firstShift', () => {
+    expect(classifyReflectionOutcome('energy', 'settle', 'a_little')).toEqual({
+      outcome: 'maintenance',
+      qualifiesFirstShift: false,
+    });
+  });
+
+  it('negative chip → not_shifted, does NOT qualify firstShift', () => {
+    expect(classifyReflectionOutcome('energy', 'settle', 'still_wound_up')).toEqual({
+      outcome: 'not_shifted',
+      qualifiesFirstShift: false,
+    });
+  });
+
+  it('keys on the slot (pillar, direction): same id, different set', () => {
+    // 'a_little' is the middle chip in every energy set → maintenance.
+    expect(classifyReflectionOutcome('energy', 'energize', 'a_little').outcome).toBe('maintenance');
+    // focus strong-positive is 'settled'.
+    expect(classifyReflectionOutcome('focus', 'neutral', 'settled').qualifiesFirstShift).toBe(true);
+  });
+});
 
 // Mirror of the classifier's 5×5 transition matrix. Layout matches
 // the comment block in outcomeClassifier.ts so visual drift is

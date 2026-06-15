@@ -857,7 +857,9 @@ export type ProtocolFamily =
   | 'nsdr'
   | 'cold-water-reset'
   | 'mindful-walking'
-  | 'focused-work'
+  // 'focused-work' retired in the engine-wiring step: focus work is served as a
+  // `focus-session` pointer (Pomodoro), never a catalog practice. See
+  // brainStateProtocols.ts where the variants were removed.
   | 'bright-light';
 
 // Outcome pillar a practice serves. The engine fills plan slots by pillar.

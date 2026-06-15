@@ -35,6 +35,8 @@ import type {
   ProtocolSessionOutcome,
   UserProfile,
 } from '../../types/models';
+import { quadrantToBrainState } from '../../engine';
+import { classifyReflectionOutcome } from '../outcomeClassifier';
 import {
   writeProtocolSession,
   type ProtocolSessionWritePayload,
@@ -261,27 +263,26 @@ export const markProtocolCompleted = async (userId: string): Promise<void> => {
 };
 
 /**
- * Maps a CheckInFlow terminal state to the new ProtocolSession write
- * payload. Pure function — extracted for unit-testability without
- * mocking Firestore.
+ * Maps an engine-wired CheckInFlow terminal state to the ProtocolSession write
+ * payload. Pure — extracted for unit-testability without mocking Firestore.
  *
- * `intentPath` is forwarded from the caller. Phase 3 wires the user's
- * resolved intent path through the flow; until then, callers pass
- * `'default'`.
+ * Returns `null` when there is nothing to persist: pointer-only hand-off and
+ * zero-slot / declined-offer (acknowledged) terminals never ran a catalog
+ * practice, so no ProtocolSession doc is written for them.
  *
- * Outcome mapping:
- *   - `step === 'abandoned'` → outcome='abandoned', stateAfter=null.
- *   - `step === 'flow_complete'` → outcome from the terminal's
- *     classifier output (already computed at re_check → response).
+ * The circumplex + situation + reflection are authoritative on the doc;
+ * `stateBefore`/`stateAfter` are left null (the legacy `brainStateCheckIns` doc
+ * carries the bridged BrainState instead). Outcome + firstShift come from the
+ * reflection (Vara_Engine_Contract.md §9.6).
  */
 export function mapStandardFlowTerminalToPayload(
   terminal: TerminalFlowState,
   intentPath: IntentPath
-): ProtocolSessionWritePayload {
+): ProtocolSessionWritePayload | null {
   if (terminal.step === 'abandoned') {
     return {
       protocolId: terminal.protocol.id,
-      stateBefore: terminal.stateBefore,
+      stateBefore: null,
       stateAfter: null,
       timeWindowSelected: terminal.timeWindow,
       durationActualSeconds: terminal.durationActualSeconds,
@@ -289,20 +290,51 @@ export function mapStandardFlowTerminalToPayload(
       userChosenNextStep: null,
       intentPath,
       sessionStartedAt: terminal.sessionStartedAt,
+      situation: terminal.situation,
+      arousal: terminal.arousal,
+      valence: terminal.valence,
+      quadrant: terminal.quadrant,
+      reflectionId: null,
     };
   }
-  // step === 'flow_complete'
+
+  // step === 'flow_complete'. Only a completed catalog practice is persisted.
+  const completion = terminal.completion;
+  if (completion.kind !== 'practice') {
+    return null;
+  }
+  const { outcome } = classifyReflectionOutcome(
+    completion.pillar,
+    completion.direction,
+    completion.reflection
+  );
   return {
-    protocolId: terminal.protocol.id,
-    stateBefore: terminal.stateBefore,
-    stateAfter: terminal.stateAfter,
+    protocolId: completion.protocol.id,
+    stateBefore: null,
+    stateAfter: null,
     timeWindowSelected: terminal.timeWindow,
-    durationActualSeconds: terminal.durationActualSeconds,
-    outcome: terminal.outcome,
-    userChosenNextStep: terminal.userChosenNextStep,
+    durationActualSeconds: completion.durationActualSeconds,
+    outcome,
+    userChosenNextStep: null,
     intentPath,
-    sessionStartedAt: terminal.sessionStartedAt,
+    sessionStartedAt: completion.sessionStartedAt,
+    situation: terminal.situation,
+    arousal: terminal.arousal,
+    valence: terminal.valence,
+    quadrant: terminal.quadrant,
+    reflectionId: completion.reflection,
   };
+}
+
+// Whether a terminal qualifies for the firstShiftAt marker — true ONLY on the
+// strong-positive reflection chip (locked Phase B decision). Abandoned and
+// pointer-only / acknowledged terminals never qualify.
+function terminalQualifiesFirstShift(terminal: TerminalFlowState): boolean {
+  if (terminal.step !== 'flow_complete') return false;
+  const c = terminal.completion;
+  if (c.kind !== 'practice') return false;
+  return classifyReflectionOutcome(c.pillar, c.direction, c.reflection)
+    .qualifiesFirstShift;
 }
 
 /**
@@ -341,9 +373,9 @@ export function qualifiesAsFirstShift(
  */
 async function setFirstShiftAtIfNeeded(
   userId: string,
-  outcome: ProtocolSessionOutcome
+  qualifies: boolean
 ): Promise<void> {
-  if (!qualifiesAsFirstShift(outcome)) return;
+  if (!qualifies) return;
   if (!db) return;
   try {
     const userRef = doc(db, 'users', userId);
@@ -476,7 +508,7 @@ export async function maybeMarkFirstShift(
     );
     return;
   }
-  await setFirstShiftAtIfNeeded(userId, outcome);
+  await setFirstShiftAtIfNeeded(userId, qualifiesAsFirstShift(outcome));
 }
 
 /**
@@ -520,11 +552,19 @@ export async function writeStandardFlowSession(
   options: WriteStandardFlowSessionOptions = {}
 ): Promise<void> {
   const payload = mapStandardFlowTerminalToPayload(terminal, intentPath);
+
+  // Pointer-only hand-off / zero-slot / declined-offer terminals never ran a
+  // catalog practice — nothing to persist (no protocolSession, no legacy doc).
+  // The flow still completes; the parent handles the pointer navigation.
+  if (payload === null) {
+    return;
+  }
+
   if (options.selectedModality != null) {
     payload.selectedModality = options.selectedModality;
   }
 
-  // New authoritative write.
+  // New authoritative write (circumplex + situation + reflection live here).
   await writeProtocolSession(userId, payload, options);
 
   // Round 14 (sensory reset cancel state-revert fix): the overwhelm
@@ -549,40 +589,26 @@ export async function writeStandardFlowSession(
   // stateBefore — the longer-term direction that makes this
   // special-case branch deletable).
   if (terminal.entrySource !== 'overwhelm_safety_card') {
-    // Round 15 (dashboard summary card stateBefore-vs-stateAfter fix):
-    // the legacy doc represents the user's CURRENT state for today —
-    // what the dashboard summary card and the AI prompt both render
-    // as "the user's brain state right now." Pre-fix, this helper
-    // received terminal.stateBefore, so the doc held the user's
-    // pre-protocol state even after a successful re-check. Dashboard
-    // showed the start state instead of the post-protocol state.
-    //
-    // Fix: pass the user's most-recent attestation. For
-    // flow_complete, that's stateAfter (captured at re-check). For
-    // abandoned, only stateBefore is available (re-check never ran).
-    //
-    // Why step-based conditional (not `terminal.stateAfter ??
-    // terminal.stateBefore`): the AbandonedStep type omits stateAfter
-    // entirely (types.ts:190-204 — "stateAfter is unset because we
-    // never asked"). Accessing terminal.stateAfter without
-    // discriminant narrowing fails strict-mode TS because the
-    // property is absent from one variant of the union. The
-    // step-based form gets clean narrowing for free.
-    const stateForLegacyDoc =
-      terminal.step === 'flow_complete'
-        ? terminal.stateAfter
-        : terminal.stateBefore;
+    // The legacy `brainStateCheckIns` doc still drives dashboard gating + the
+    // summary card, which read a BrainState. The engine speaks the circumplex,
+    // so we bridge the quadrant to a BrainState ONLY here (the protocolSessions
+    // write above stays authoritative on the circumplex). The legacy collection
+    // is flagged for later removal once dashboard reads migrate off it.
+    const stateForLegacyDoc = quadrantToBrainState(terminal.quadrant);
     await writeBrainStateCheckInDoc(
       userId,
       stateForLegacyDoc,
       terminal.step === 'flow_complete',
-      terminal.protocol.id,
+      payload.protocolId,
       { dryRun: options.dryRun }
     );
   }
-  await maybeMarkFirstShift(userId, payload.outcome, {
-    dryRun: options.dryRun,
-  });
+
+  // firstShiftAt qualifies ONLY on the strong-positive reflection chip (locked
+  // Phase B decision) — not derived from the outcome enum.
+  if (!options.dryRun) {
+    await setFirstShiftAtIfNeeded(userId, terminalQualifiesFirstShift(terminal));
+  }
 }
 
 /**

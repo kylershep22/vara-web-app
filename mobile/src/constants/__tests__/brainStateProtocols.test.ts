@@ -31,8 +31,8 @@ function stepsDurationSum(steps: ProtocolStep[]): number {
 
 describe('BRAIN_STATE_PROTOCOLS — Phase 1 launch library', () => {
   describe('library shape', () => {
-    it('contains exactly 16 variants', () => {
-      expect(getAllProtocols()).toHaveLength(16);
+    it('contains exactly 14 variants (focused-work-45/90 retired in the engine wiring)', () => {
+      expect(getAllProtocols()).toHaveLength(14);
     });
 
     it('every variant id matches the dict key', () => {
@@ -41,7 +41,7 @@ describe('BRAIN_STATE_PROTOCOLS — Phase 1 launch library', () => {
       }
     });
 
-    it('contains all 11 launch families', () => {
+    it('contains all 10 launch families (focused-work retired in the engine wiring)', () => {
       const families = new Set(getAllProtocols().map((p) => p.family));
       expect(Array.from(families).sort()).toEqual([
         'box-breathing',
@@ -51,7 +51,6 @@ describe('BRAIN_STATE_PROTOCOLS — Phase 1 launch library', () => {
         'cold-water-reset',
         'cyclic-sighing',
         'extended-exhale',
-        'focused-work',
         'mindful-walking',
         'nsdr',
         'sensory-reset',
@@ -71,8 +70,6 @@ describe('BRAIN_STATE_PROTOCOLS — Phase 1 launch library', () => {
       ['cold-water-reset-5'],
       ['mindful-walking-10'],
       ['mindful-walking-20'],
-      ['focused-work-45'],
-      ['focused-work-90'],
       ['bright-light-10'],
       ['bright-light-20'],
     ])('includes variant id %s', (id) => {

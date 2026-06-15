@@ -67,6 +67,16 @@ export interface ProtocolSessionWritePayload {
   completed?: boolean;
   abandonReason?: ProtocolAbandonReason | null;
   stepsCompleted?: number;
+  // Engine-wired check-in fields (Vara_Engine_Contract.md). The circumplex +
+  // situation + reflection are the AUTHORITATIVE state read on protocolSessions
+  // (the legacy `brainStateCheckIns` doc carries a bridged BrainState; this doc
+  // does not). Additive + optional: the BrowseRunFlow / onboarding writers omit
+  // them, so the doc shape is unchanged for non-engine sessions.
+  situation?: string;
+  arousal?: string;
+  valence?: string;
+  quadrant?: string;
+  reflectionId?: string | null;
 }
 
 export interface WriteProtocolSessionOptions {
@@ -143,6 +153,13 @@ export async function writeProtocolSession(
         ...(payload.completed !== undefined ? { completed: payload.completed } : {}),
         ...(payload.abandonReason !== undefined ? { abandonReason: payload.abandonReason } : {}),
         ...(payload.stepsCompleted !== undefined ? { stepsCompleted: payload.stepsCompleted } : {}),
+        // Engine-wired authoritative state fields (additive — omitted entirely
+        // for non-engine writers so historical doc shape is unchanged).
+        ...(payload.situation !== undefined ? { situation: payload.situation } : {}),
+        ...(payload.arousal !== undefined ? { arousal: payload.arousal } : {}),
+        ...(payload.valence !== undefined ? { valence: payload.valence } : {}),
+        ...(payload.quadrant !== undefined ? { quadrant: payload.quadrant } : {}),
+        ...(payload.reflectionId !== undefined ? { reflectionId: payload.reflectionId } : {}),
         // Server-side timestamps so multi-device clocks don't skew
         // ordering. sessionStartedAt is the device-local moment the
         // session began; createdAt is when the doc landed in Firestore.
