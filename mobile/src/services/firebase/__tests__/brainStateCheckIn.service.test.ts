@@ -268,7 +268,7 @@ function pointerOnlyTerminal(): TerminalFlowState {
     situation: 'get_through_hard',
     arousal: 'revved',
     valence: 'good',
-    quadrant: 'Activated',
+    quadrant: 'Activated', // → bridged 'alive'
     timeWindow: 5,
     plan: MINIMAL_PLAN,
     completion: {
@@ -278,11 +278,48 @@ function pointerOnlyTerminal(): TerminalFlowState {
   } as TerminalFlowState;
 }
 
-describe('writeStandardFlowSession — pointer-only / acknowledged terminals write nothing', () => {
-  it('pointer-only hand-off writes neither a protocolSession nor a legacy doc', async () => {
+function acknowledgedTerminal(): TerminalFlowState {
+  return {
+    step: 'flow_complete',
+    entrySource: 'standard',
+    situation: 'find_energy',
+    arousal: 'low',
+    valence: 'good',
+    quadrant: 'Calm', // → bridged 'steady'
+    timeWindow: 5,
+    plan: MINIMAL_PLAN,
+    completion: { kind: 'acknowledged' },
+  } as TerminalFlowState;
+}
+
+describe('writeStandardFlowSession — daily marker decoupled from practice completion', () => {
+  it('pointer-only hand-off flips the daily marker (bridged state) but runs no practice / completion flip', async () => {
+    mockGetDoc.mockResolvedValueOnce({ exists: () => false, data: () => null }); // legacy doc create path
     await writeStandardFlowSession(TEST_USER_ID, pointerOnlyTerminal(), 'default');
-    expect(mockSetDoc).not.toHaveBeenCalled();
-    expect(mockUpdateDoc).not.toHaveBeenCalled();
+
+    // The legacy brainStateCheckIns doc IS written (checked-in-today flips),
+    // bridged from the Activated quadrant → 'alive'.
+    const legacyWrite = mockSetDoc.mock.calls.find(
+      (call) => 'brainState' in (call[1] as object)
+    );
+    expect(legacyWrite).toBeDefined();
+    expect((legacyWrite![1] as { brainState: string }).brainState).toBe('alive');
+    // No practice ran → protocolCompleted is NOT flipped.
+    const completedFlip = mockUpdateDoc.mock.calls.find(
+      (call) => (call[1] as { protocolCompleted?: boolean }).protocolCompleted === true
+    );
+    expect(completedFlip).toBeUndefined();
+  });
+
+  it('zero-slot / acknowledged check-in also flips the daily marker (Calm → steady)', async () => {
+    mockGetDoc.mockResolvedValueOnce({ exists: () => false, data: () => null });
+    await writeStandardFlowSession(TEST_USER_ID, acknowledgedTerminal(), 'default');
+
+    const legacyWrite = mockSetDoc.mock.calls.find(
+      (call) => 'brainState' in (call[1] as object)
+    );
+    expect(legacyWrite).toBeDefined();
+    expect((legacyWrite![1] as { brainState: string }).brainState).toBe('steady');
   });
 });
 

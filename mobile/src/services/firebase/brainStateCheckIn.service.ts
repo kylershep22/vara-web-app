@@ -446,7 +446,14 @@ export async function writeBrainStateCheckInDoc(
   // recommended fallback. Required at every post-completion call
   // site — see saveBrainStateCheckIn's V1 vestige warning for the
   // bug class this prevents.
-  protocolId: string,
+  //
+  // Optional in the engine wiring: a pointer-only / zero-slot check-in flips
+  // the daily marker without having run a catalog practice, so there is no
+  // completed protocol id to forward. Omitting it falls back to
+  // saveBrainStateCheckIn's documented V1 behavior (the recommended protocol
+  // for the attested state), which is exactly the legacy field's meaning when
+  // no protocol was run.
+  protocolId?: string,
   options: { dryRun?: boolean } = {}
 ): Promise<void> {
   if (options.dryRun) {
@@ -553,19 +560,16 @@ export async function writeStandardFlowSession(
 ): Promise<void> {
   const payload = mapStandardFlowTerminalToPayload(terminal, intentPath);
 
-  // Pointer-only hand-off / zero-slot / declined-offer terminals never ran a
-  // catalog practice — nothing to persist (no protocolSession, no legacy doc).
-  // The flow still completes; the parent handles the pointer navigation.
-  if (payload === null) {
-    return;
+  // Authoritative protocolSession write (circumplex + situation + reflection)
+  // — ONLY when a catalog practice ran. Pointer-only hand-off and zero-slot /
+  // declined-offer terminals have no practice, so the mapper returns null and
+  // nothing is persisted here. The daily marker below still fires for them.
+  if (payload !== null) {
+    if (options.selectedModality != null) {
+      payload.selectedModality = options.selectedModality;
+    }
+    await writeProtocolSession(userId, payload, options);
   }
-
-  if (options.selectedModality != null) {
-    payload.selectedModality = options.selectedModality;
-  }
-
-  // New authoritative write (circumplex + situation + reflection live here).
-  await writeProtocolSession(userId, payload, options);
 
   // Round 14 (sensory reset cancel state-revert fix): the overwhelm
   // path's stateBefore is a system guess ('wired' hardcoded in
@@ -588,18 +592,33 @@ export async function writeStandardFlowSession(
   // pattern that lets overwhelm sessions write a user-attested
   // stateBefore — the longer-term direction that makes this
   // special-case branch deletable).
+  // Daily "checked-in today" marker (legacy `brainStateCheckIns/{uid}_{date}`).
+  // Decoupled from practice completion: written on EVERY non-overwhelm terminal
+  // where a state was captured — practice-complete, pointer hand-off, AND
+  // zero-slot / acknowledged — so the dashboard gating flips for any real
+  // check-in, not just ones that ran a practice. A single write per terminal
+  // (the practice path no longer writes its own legacy doc separately, so there
+  // is no double-write). The engine speaks the circumplex; the marker bridges
+  // the quadrant to a BrainState here (the protocolSessions write stays
+  // authoritative on the circumplex). The legacy collection is flagged for
+  // later removal once dashboard reads migrate off it.
+  //
+  // Overwhelm is still skipped — its state is a system guess, not a user
+  // attestation (round-14 sensory-reset cancel fix).
   if (terminal.entrySource !== 'overwhelm_safety_card') {
-    // The legacy `brainStateCheckIns` doc still drives dashboard gating + the
-    // summary card, which read a BrainState. The engine speaks the circumplex,
-    // so we bridge the quadrant to a BrainState ONLY here (the protocolSessions
-    // write above stays authoritative on the circumplex). The legacy collection
-    // is flagged for later removal once dashboard reads migrate off it.
-    const stateForLegacyDoc = quadrantToBrainState(terminal.quadrant);
+    const practiceCompleted =
+      terminal.step === 'flow_complete' &&
+      terminal.completion.kind === 'practice';
     await writeBrainStateCheckInDoc(
       userId,
-      stateForLegacyDoc,
-      terminal.step === 'flow_complete',
-      payload.protocolId,
+      quadrantToBrainState(terminal.quadrant),
+      // protocolCompleted flips ONLY when a catalog practice actually
+      // completed; pointer-only / zero-slot / abandoned leave it false.
+      practiceCompleted,
+      // The completed/ran practice id when there is one; undefined for
+      // pointer-only / zero-slot (the marker falls back to the recommended
+      // protocol for the attested state — the legacy field's V1 meaning).
+      terminalPracticeId(terminal),
       { dryRun: options.dryRun }
     );
   }
@@ -609,6 +628,17 @@ export async function writeStandardFlowSession(
   if (!options.dryRun) {
     await setFirstShiftAtIfNeeded(userId, terminalQualifiesFirstShift(terminal));
   }
+}
+
+// The catalog practice id involved in this terminal, or undefined when none
+// ran. abandoned carries the abandoned practice; a practice completion carries
+// the completed one; pointer-only / zero-slot / acknowledged have none.
+function terminalPracticeId(terminal: TerminalFlowState): string | undefined {
+  if (terminal.step === 'abandoned') return terminal.protocol.id;
+  if (terminal.completion.kind === 'practice') {
+    return terminal.completion.protocol.id;
+  }
+  return undefined;
 }
 
 /**
