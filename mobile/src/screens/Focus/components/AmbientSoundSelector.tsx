@@ -17,9 +17,8 @@ import {
   SpacingTokens,
   RadiusTokens,
   ShadowTokens,
-  FocusCopy,
-  AmbientSounds,
-} from '../../../tokens/design-tokens';
+} from '../../../constants/designTokens';
+import { FocusCopy, AmbientSounds } from '../../../constants/focusContent';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
 interface AmbientSoundSelectorProps {

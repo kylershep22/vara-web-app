@@ -37,9 +37,8 @@ import {
   RadiusTokens,
   ShadowTokens,
   SizeTokens,
-  FocusCopy,
-  formatSummary,
-} from '../../tokens/design-tokens';
+} from '../../constants/designTokens';
+import { FocusCopy, formatSummary } from '../../constants/focusContent';
 import { LoadingSpinner } from '../../components';
 import { RoutineEditor } from '../../components/routines/RoutineEditor';
 import {

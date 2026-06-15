@@ -23,9 +23,9 @@ import {
   SizeTokens,
   ShadowTokens,
   RadiusTokens,
-  FocusCopy,
   TypographyTokens,
-} from '../../tokens/design-tokens';
+} from '../../constants/designTokens';
+import { FocusCopy } from '../../constants/focusContent';
 import { useTimer, useNotificationSilence, useAmbientSound } from '../../hooks';
 import { useCompletionSound } from '../../hooks/useCompletionSound';
 import {

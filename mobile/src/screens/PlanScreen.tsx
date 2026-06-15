@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../constants';
-import { FocusCopy } from '../tokens/design-tokens';
+import { FocusCopy } from '../constants/focusContent';
 import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import HabitsScreen from './HabitsScreen';
 import { RoutinesTab } from './Focus/RoutinesTab';

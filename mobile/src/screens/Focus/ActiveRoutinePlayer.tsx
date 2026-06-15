@@ -34,8 +34,8 @@ import {
   SizeTokens,
   TypographyTokens,
   AnimationTokens,
-  FocusCopy,
-} from '../../tokens/design-tokens';
+} from '../../constants/designTokens';
+import { FocusCopy } from '../../constants/focusContent';
 import { useReducedMotion } from '../../hooks';
 import { TimerRing, UpNextCard, RoutineCompleteState, ChecklistPlayer } from './components';
 import { getActivityColor } from './components/activityColors';

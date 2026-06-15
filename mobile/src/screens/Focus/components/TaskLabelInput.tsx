@@ -16,8 +16,8 @@ import {
   SpacingTokens,
   RadiusTokens,
   SizeTokens,
-  FocusCopy,
-} from '../../../tokens/design-tokens';
+} from '../../../constants/designTokens';
+import { FocusCopy } from '../../../constants/focusContent';
 
 interface TaskLabelInputProps {
   /** Current task label value */

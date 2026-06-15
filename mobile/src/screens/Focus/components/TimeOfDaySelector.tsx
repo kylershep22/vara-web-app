@@ -17,7 +17,7 @@ import {
   ColorTokens,
   SpacingTokens,
   RadiusTokens,
-} from '../../../tokens/design-tokens';
+} from '../../../constants/designTokens';
 
 export type TimeOfDay = 'morning' | 'evening' | 'sunday' | 'custom';
 

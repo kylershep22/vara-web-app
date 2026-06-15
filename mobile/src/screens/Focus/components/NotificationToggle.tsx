@@ -19,8 +19,8 @@ import {
   RadiusTokens,
   ShadowTokens,
   SizeTokens,
-  FocusCopy,
-} from '../../../tokens/design-tokens';
+} from '../../../constants/designTokens';
+import { FocusCopy } from '../../../constants/focusContent';
 
 interface NotificationToggleProps {
   /** Whether notification silencing is enabled */

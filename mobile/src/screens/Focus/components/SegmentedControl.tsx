@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { ColorTokens, SpacingTokens, RadiusTokens, ShadowTokens, AnimationTokens } from '../../../tokens/design-tokens';
+import { ColorTokens, SpacingTokens, RadiusTokens, ShadowTokens, AnimationTokens } from '../../../constants/designTokens';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
 interface SegmentOption {

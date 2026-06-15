@@ -8,7 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { ColorTokens, SpacingTokens, RadiusTokens } from '../../../tokens/design-tokens';
+import { ColorTokens, SpacingTokens, RadiusTokens } from '../../../constants/designTokens';
 import { Activity } from '../../../services/firebase/routines.service';
 import { getActivityColor } from './activityColors';
 

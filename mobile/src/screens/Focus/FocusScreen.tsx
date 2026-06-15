@@ -8,11 +8,8 @@
 import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  ColorTokens,
-  SpacingTokens,
-  FocusCopy,
-} from '../../tokens/design-tokens';
+import { ColorTokens, SpacingTokens } from '../../constants/designTokens';
+import { FocusCopy } from '../../constants/focusContent';
 import { PomodoroTab } from './PomodoroTab';
 
 export const FocusScreen: React.FC = () => {

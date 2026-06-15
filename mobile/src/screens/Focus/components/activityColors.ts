@@ -8,7 +8,7 @@
  * - Never use blue, bright green, pure red, or any off-palette color
  */
 
-import { ColorTokens, ActivityColors } from '../../../tokens/design-tokens';
+import { ColorTokens, ActivityColors } from '../../../constants/designTokens';
 
 /**
  * Maps legacy activity color names to brand-compliant colors
