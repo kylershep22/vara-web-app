@@ -304,14 +304,16 @@ describe('writeStandardFlowSession — daily marker decoupled from practice comp
     );
     expect(legacyWrite).toBeDefined();
     expect((legacyWrite![1] as { brainState: string }).brainState).toBe('alive');
-    // No practice ran → protocolCompleted is NOT flipped.
+    // No practice ran → the marker names NO protocol (no selectProtocol
+    // re-invocation) and protocolCompleted is NOT flipped.
+    expect('protocolId' in (legacyWrite![1] as object)).toBe(false);
     const completedFlip = mockUpdateDoc.mock.calls.find(
       (call) => (call[1] as { protocolCompleted?: boolean }).protocolCompleted === true
     );
     expect(completedFlip).toBeUndefined();
   });
 
-  it('zero-slot / acknowledged check-in also flips the daily marker (Calm → steady)', async () => {
+  it('zero-slot / acknowledged check-in also flips the daily marker (Calm → steady), no protocol named', async () => {
     mockGetDoc.mockResolvedValueOnce({ exists: () => false, data: () => null });
     await writeStandardFlowSession(TEST_USER_ID, acknowledgedTerminal(), 'default');
 
@@ -320,6 +322,7 @@ describe('writeStandardFlowSession — daily marker decoupled from practice comp
     );
     expect(legacyWrite).toBeDefined();
     expect((legacyWrite![1] as { brainState: string }).brainState).toBe('steady');
+    expect('protocolId' in (legacyWrite![1] as object)).toBe(false);
   });
 });
 

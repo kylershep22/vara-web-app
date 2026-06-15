@@ -449,10 +449,12 @@ export async function writeBrainStateCheckInDoc(
   //
   // Optional in the engine wiring: a pointer-only / zero-slot check-in flips
   // the daily marker without having run a catalog practice, so there is no
-  // completed protocol id to forward. Omitting it falls back to
-  // saveBrainStateCheckIn's documented V1 behavior (the recommended protocol
-  // for the attested state), which is exactly the legacy field's meaning when
-  // no protocol was run.
+  // completed protocol id to forward. When omitted, the marker is written
+  // WITHOUT a protocolId (and without re-invoking the legacy state→protocol
+  // selector): the only reader of brainStateCheckIns.protocolId is the
+  // dashboard's TodaysProtocolCard, which renders only when
+  // protocolCompleted===true (i.e. a practice actually ran), so a no-practice
+  // marker must not name a protocol that wasn't done.
   protocolId?: string,
   options: { dryRun?: boolean } = {}
 ): Promise<void> {
@@ -464,14 +466,21 @@ export async function writeBrainStateCheckInDoc(
   }
 
   try {
-    await saveBrainStateCheckIn(userId, state, protocolId);
-    if (isFlowComplete) {
-      // Only naturally-completed sessions mark the legacy
-      // protocolCompleted flag. Abandoned sessions update the
-      // brainState but leave protocolCompleted=false (or unchanged
-      // from a previous same-day successful completion — setDoc
-      // semantics in saveBrainStateCheckIn handle that).
-      await markProtocolCompleted(userId);
+    if (protocolId !== undefined) {
+      await saveBrainStateCheckIn(userId, state, protocolId);
+      if (isFlowComplete) {
+        // Only naturally-completed sessions mark the legacy
+        // protocolCompleted flag. Abandoned sessions update the
+        // brainState but leave protocolCompleted=false (or unchanged
+        // from a previous same-day successful completion — setDoc
+        // semantics in saveBrainStateCheckIn handle that).
+        await markProtocolCompleted(userId);
+      }
+    } else {
+      // No practice ran (pointer-only / zero-slot): flip the daily marker
+      // with the attested state only. No protocolId, no selectProtocol, no
+      // protocolCompleted flip.
+      await upsertCheckInMarker(userId, state);
     }
   } catch (error) {
     // Legacy write failure shouldn't block the new write succeeding.
@@ -481,6 +490,52 @@ export async function writeBrainStateCheckInDoc(
       '[writeBrainStateCheckInDoc] legacy brainStateCheckIns write failed:',
       error
     );
+  }
+}
+
+/**
+ * Writes the daily `brainStateCheckIns/{uid}_{date}` marker with the attested
+ * brainState ONLY — no protocolId, no selectProtocol fallback,
+ * protocolCompleted left false. Used by the engine-wired check-in for
+ * pointer-only / zero-slot terminals so "checked-in today" flips without naming
+ * a practice that wasn't run. Create-or-update; on update an existing
+ * protocolId/protocolCompleted from an earlier same-day completion is left
+ * untouched (only reset on an actual state change).
+ */
+async function upsertCheckInMarker(
+  userId: string,
+  brainState: BrainState
+): Promise<void> {
+  if (!db) throw new Error('Firestore is not initialized');
+  const todayDate = getTodayDate();
+  const checkInId = `${userId}_${todayDate}`;
+  const docRef = doc(db, COLLECTION, checkInId);
+  const serializedState = serializeBrainState(brainState);
+
+  const existingDoc = await getDoc(docRef);
+  if (existingDoc.exists()) {
+    const existingData = existingDoc.data();
+    let existingBrainState: BrainState | null = null;
+    try {
+      existingBrainState = normalizeBrainState(existingData.brainState as string);
+    } catch {
+      existingBrainState = null;
+    }
+    const stateChanged = existingBrainState !== brainState;
+    await updateDoc(docRef, {
+      brainState: serializedState,
+      ...(stateChanged && { protocolCompleted: false }),
+      updatedAt: serverTimestamp(),
+    });
+  } else {
+    await setDoc(docRef, {
+      userId,
+      date: todayDate,
+      brainState: serializedState,
+      protocolCompleted: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
   }
 }
 
@@ -616,8 +671,9 @@ export async function writeStandardFlowSession(
       // completed; pointer-only / zero-slot / abandoned leave it false.
       practiceCompleted,
       // The completed/ran practice id when there is one; undefined for
-      // pointer-only / zero-slot (the marker falls back to the recommended
-      // protocol for the attested state — the legacy field's V1 meaning).
+      // pointer-only / zero-slot, where the marker is written WITHOUT a
+      // protocolId (no selectProtocol re-invocation, no naming a practice that
+      // wasn't done — see writeBrainStateCheckInDoc).
       terminalPracticeId(terminal),
       { dryRun: options.dryRun }
     );
