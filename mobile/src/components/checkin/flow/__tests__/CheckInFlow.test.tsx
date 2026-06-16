@@ -137,6 +137,29 @@ describe('CheckInFlow — situation → circumplex → time dispatch', () => {
     expect(getByTestId('time-window-selector')).toBeTruthy();
     expect(queryByTestId('checkin-flow-state-pick')).toBeNull();
   });
+
+  it('plan screen shows the reason, and Begin launches the practice player (not habits)', () => {
+    const { getByTestId, getByLabelText, queryByTestId } = render(
+      <CheckInFlow init={{ entrySource: 'standard' }} {...TEST_PROPS} onComplete={jest.fn()} />
+    );
+
+    // Drive to the plan: quiet_mind / Tense → a single settle practice.
+    fireEvent.press(getByLabelText('Quiet a busy mind'));
+    fireEvent.press(getByLabelText('Revved up'));
+    fireEvent.press(getByLabelText('Hard'));
+    fireEvent.press(getByTestId('time-window-chip-5'));
+
+    // The plan renders with the felt reason subhead + a single Begin.
+    expect(getByTestId('checkin-flow-plan')).toBeTruthy();
+    expect(getByTestId('checkin-flow-plan-reason')).toBeTruthy();
+    const begin = getByTestId('checkin-flow-plan-primary');
+    expect(begin.props.accessibilityLabel).toBe('Begin');
+
+    // Begin launches the real practice player in-flow — not a route to habits.
+    fireEvent.press(begin);
+    expect(getByTestId('mock-guided-session-player')).toBeTruthy();
+    expect(queryByTestId('checkin-flow-plan')).toBeNull();
+  });
 });
 
 describe('CheckInFlow — player exit branching (overwhelm entry)', () => {

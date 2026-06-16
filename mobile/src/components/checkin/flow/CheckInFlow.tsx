@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors } from '../../../constants';
 import { logger } from '../../../utils/logger';
-import { quadrantToBrainState } from '../../../engine';
+import { quadrantToBrainState, isEvening } from '../../../engine';
 import type { Slot } from '../../../engine';
 import type {
   BrainState,
@@ -45,6 +45,7 @@ import type { FlowInit, FlowState, TerminalFlowState } from './types';
 import { SituationPickStepView } from './SituationPickStepView';
 import { StatePickStepView } from './StatePickStepView';
 import { PlanRecommendation } from './PlanRecommendation';
+import { planReason } from './planReason';
 import { ReflectionStepView } from './ReflectionStepView';
 import { PointerOfferStepView } from './PointerOfferStepView';
 import { RecoveryConfirmStepView } from './RecoveryConfirmStepView';
@@ -240,6 +241,7 @@ function renderStep(
       return (
         <PlanRecommendation
           plan={state.plan}
+          reason={planReason(state.plan, isEvening({ hour: new Date().getHours() }))}
           onPrimary={() => dispatch({ type: 'plan_primary', nowMs: Date.now() })}
           onSecondary={() =>
             dispatch({ type: 'plan_secondary', nowMs: Date.now() })

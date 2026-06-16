@@ -39,6 +39,10 @@ function pointerNoun(pointer: PracticePointer): string {
 
 export interface PlanRecommendationProps {
   plan: ResolvedPlan;
+  // One-line felt "why" shown under the lead on every non-zero shape (null for
+  // zero-slot, whose acknowledgment message speaks for itself). Composed by
+  // planReason() — INTERIM copy.
+  reason?: string | null;
   // Primary CTA — the lead action for the shape (Begin / Start / Done).
   onPrimary: () => void;
   // Secondary CTA — the offered alternative (accept an offered practice or
@@ -52,6 +56,7 @@ export interface PlanRecommendationProps {
 
 export function PlanRecommendation({
   plan,
+  reason,
   onPrimary,
   onSecondary,
   onSeeOtherOptions,
@@ -93,6 +98,11 @@ export function PlanRecommendation({
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
+        {reason ? (
+          <Text style={styles.reason} testID="checkin-flow-plan-reason">
+            {reason}
+          </Text>
+        ) : null}
         <PlanBody shape={shape} />
       </ScrollView>
 
@@ -153,16 +163,12 @@ function PlanBody({ shape }: { shape: PlanShape }) {
         </>
       );
     case 'single_pointer':
-      return (
+      // No placeholder line — the reason subhead + the single Begin carry it.
+      return shape.message ? (
         <View>
-          {shape.message ? (
-            <Text style={styles.message}>{shape.message}</Text>
-          ) : null}
-          <Text style={styles.leadLine}>
-            Your {pointerNoun(shape.pointer)} is ready when you are.
-          </Text>
+          <Text style={styles.message}>{shape.message}</Text>
         </View>
-      );
+      ) : null;
     case 'practice_then_pointer':
       return (
         <>
@@ -185,11 +191,9 @@ function PlanBody({ shape }: { shape: PlanShape }) {
         </>
       );
     case 'offered_practice_then_pointer':
+      // The reason subhead leads; the offered pre-roll is a quiet option.
       return (
         <View>
-          <Text style={styles.leadLine}>
-            Start your {pointerNoun(shape.pointer)} when you're ready.
-          </Text>
           <Text style={styles.offeredHint}>
             Or ease in with {shape.practice.practice.name} first.
           </Text>
@@ -231,7 +235,7 @@ function PlanActions({
     case 'single_pointer':
       return (
         <PrimaryButton
-          label={shape.pointer.type === 'focus-session' ? 'Start focus session' : 'Open your plan'}
+          label={shape.pointer.type === 'focus-session' ? 'Start focus session' : 'Open your routines'}
           onPress={onPrimary}
         />
       );
@@ -245,7 +249,7 @@ function PlanActions({
             />
           ) : null}
           <PrimaryButton
-            label={shape.pointer.type === 'focus-session' ? 'Start focus session' : 'Open your plan'}
+            label={shape.pointer.type === 'focus-session' ? 'Start focus session' : 'Open your routines'}
             onPress={onPrimary}
           />
         </>
@@ -345,11 +349,12 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
     marginBottom: Spacing.lg,
   },
-  leadLine: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.softCharcoal,
-    marginBottom: Spacing.sm,
+  // The felt "why" subhead under the lead (INTERIM copy via planReason).
+  reason: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.mutedSageGray,
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
   },
   offeredHint: {
     fontSize: Typography.fontSize.base,
