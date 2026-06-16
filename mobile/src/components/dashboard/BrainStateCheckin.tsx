@@ -1,18 +1,24 @@
 /**
  * BrainStateCheckin
- * Single-tap brain state entry surface for the dashboard.
+ * Dashboard check-in entry surface.
  *
- * Sub-step 2.5 migration: tapping a chip now navigates to the new
- * production CheckInFlow screen with `state_preselected` entry. The
- * Firestore writes (legacy brainStateCheckIns + new protocolSessions)
- * happen inside CheckInFlow's terminal useEffect via
- * writeStandardFlowSession. This component owns only the dashboard
- * card UX (expanded chip rows pre-checkin; collapsed view post-
- * checkin); the v1 'captured' celebration phase is removed because
- * the new flow's response screen IS the celebration.
+ * Engine-wiring fix (BUG 1): the dashboard now launches the NEW check-in flow
+ * at its first step (situation_pick) via `entrySource: 'standard'`. The old
+ * five-state chips (Wired/Foggy/Steady/Clear/Alive) + the `state_preselected`
+ * navigation are retired — they bridged straight into the middle of the new
+ * flow (time_pick), so the situation + two-tap circumplex were only reachable
+ * by pressing back. There is now ONE forward path from the dashboard.
+ *
+ * Pre-checkin: a single "Check in" CTA card → CheckInFlow (standard).
+ * Post-checkin: the collapsed week-trend view; "Change" relaunches the same
+ * standard flow. (The collapsed view reads the bridged BrainState off the
+ * legacy doc, unchanged.)
+ *
+ * The `state_preselected` FlowInit variant itself is kept — onboarding
+ * (OnboardingV2ProtocolScreen) still uses it.
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
@@ -23,25 +29,20 @@ import { BrainState } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useBrainStateWeekTrend } from '../../hooks/useBrainStateWeekTrend';
 import { BRAIN_STATES } from './brainStateCheckin/brainStateOptions';
-import { BrainStateOptionRow } from './brainStateCheckin/BrainStateOptionRow';
 import { BrainStateCollapsedView } from './brainStateCheckin/BrainStateCollapsedView';
 
 interface BrainStateCheckinProps {
   currentCheckIn: { brainState: BrainState } | null;
 }
 
-type Phase = 'expanded' | 'collapsed';
-
 type Nav = NativeStackNavigationProp<{
-  CheckInFlow: { entrySource: 'state_preselected'; stateBefore: BrainState };
+  CheckInFlow: { entrySource: 'standard' };
   Insights: undefined;
 }>;
 
 export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
   currentCheckIn,
 }) => {
-  const [phase, setPhase] = useState<Phase>(currentCheckIn ? 'collapsed' : 'expanded');
-
   const navigation = useNavigation<Nav>();
   const { user } = useAuth();
   const { days, summary } = useBrainStateWeekTrend(
@@ -49,56 +50,27 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
     currentCheckIn?.brainState
   );
 
-  // Sync phase with currentCheckIn changes. The 'captured' phase is
-  // gone (sub-step 2.5 migration); the new flow's response screen
-  // owns the post-check-in celebration.
-  useEffect(() => {
-    if (!currentCheckIn && phase === 'collapsed') {
-      setPhase('expanded');
-    }
-    // Removed: forced-collapse when currentCheckIn becomes truthy.
-    // The V1 invariant ('currentCheckIn truthy → must be collapsed')
-    // predated the Change affordance added in sub-step 2.5. With
-    // Change present, the user's setPhase('expanded') call MUST win
-    // over auto-collapse, which means the auto-collapse branch is
-    // actively harmful.
-  }, [currentCheckIn, phase]);
-
-  const handleSelect = (state: BrainState) => {
+  // The single forward entry: launch the new flow at situation_pick.
+  const launchCheckIn = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate('CheckInFlow', {
-      entrySource: 'state_preselected',
-      stateBefore: state,
-    });
-  };
-
-  const handleChangePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setPhase('expanded');
-  };
-
-  const handleCancelChange = () => {
-    // Sub-step 2.7 round 2 — Observation 9: dismiss the expanded
-    // picker without committing to a state change. Visible only
-    // when currentCheckIn is truthy (i.e., the expansion came from
-    // the Change button on the collapsed view, not from the
-    // pre-checkin initial state). No Firestore write — the user's
-    // existing brainStateCheckIn doc is untouched.
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setPhase('collapsed');
+    navigation.navigate('CheckInFlow', { entrySource: 'standard' });
   };
 
   const handleSeeWeekPress = () => {
     navigation.navigate('Insights' as never);
   };
 
-  if (phase === 'collapsed' && currentCheckIn) {
-    const selected = BRAIN_STATES.find((s) => s.state === currentCheckIn.brainState);
+  // Post-checkin: collapsed week-trend view. "Change" relaunches the standard
+  // flow (no more in-card chip re-expansion).
+  if (currentCheckIn) {
+    const selected = BRAIN_STATES.find(
+      (s) => s.state === currentCheckIn.brainState
+    );
     if (!selected) return null;
     return (
       <BrainStateCollapsedView
         selectedState={selected}
-        onChangePress={handleChangePress}
+        onChangePress={launchCheckIn}
         onSeeWeekPress={handleSeeWeekPress}
         days={days}
         summary={summary}
@@ -106,37 +78,21 @@ export const BrainStateCheckin: React.FC<BrainStateCheckinProps> = ({
     );
   }
 
-  const currentSelection = currentCheckIn?.brainState ?? null;
-
+  // Pre-checkin: a single CTA into the new flow.
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <View style={styles.headerText}>
-          <Text style={styles.prompt}>How are you feeling right now?</Text>
-          <Text style={styles.subtext}>Just one tap. No wrong answers.</Text>
-        </View>
-        {currentCheckIn ? (
-          <TouchableOpacity
-            onPress={handleCancelChange}
-            style={styles.cancelButton}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel state change"
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Icon name="close" size={24} color={Colors.softCharcoal} />
-          </TouchableOpacity>
-        ) : null}
+    <TouchableOpacity
+      style={styles.container}
+      onPress={launchCheckIn}
+      accessibilityRole="button"
+      accessibilityLabel="Check in"
+      testID="brain-state-checkin-cta"
+    >
+      <View style={styles.textBlock}>
+        <Text style={styles.prompt}>How are you right now?</Text>
+        <Text style={styles.subtext}>A quick check-in to find what fits.</Text>
       </View>
-      {BRAIN_STATES.map((option, index) => (
-        <BrainStateOptionRow
-          key={option.state}
-          option={option}
-          onPress={handleSelect}
-          selected={currentSelection === option.state}
-          isLast={index === BRAIN_STATES.length - 1}
-        />
-      ))}
-    </View>
+      <Icon name="chevron-right" size={24} color={Colors.evergreenTeal} />
+    </TouchableOpacity>
   );
 };
 
@@ -146,6 +102,13 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.base,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  textBlock: {
+    flex: 1,
+    marginRight: Spacing.sm,
   },
   prompt: {
     fontSize: Typography.fontSize.lg,
@@ -156,18 +119,5 @@ const styles = StyleSheet.create({
   subtext: {
     fontSize: Typography.fontSize.xs,
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  headerText: {
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  cancelButton: {
-    paddingTop: Spacing.xs,
   },
 });

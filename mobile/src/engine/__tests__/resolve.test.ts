@@ -214,3 +214,115 @@ describe('resolve — edge cases', () => {
     if (medSlot.kind === 'practice') expect(medSlot.practice.id).toBe('nsdr-10');
   });
 });
+
+// ────────────────────────────────────────────────────────────
+// Graceful degradation — resolve() never throws on a valid selection.
+// NSDR rest slots declare medium/long length classes; at a 2- or 5-min budget
+// (length class 'short') they have no in-budget candidate. The pre-fix engine
+// threw "no practice fills slot nsdr/settle"; it now degrades.
+// ────────────────────────────────────────────────────────────
+const SHORT_BUDGETS = [2, 5] as const;
+const EVENING = { hour: 21 };
+
+describe('resolve — graceful degradation at a short budget (BUG 2)', () => {
+  // The four MANDATORY NSDR rest cells. Each degrades to a within-budget short
+  // settle practice instead of throwing.
+  const MANDATORY_NSDR_CELLS: ReadonlyArray<{
+    situation: Situation;
+    quadrant: Quadrant;
+    clockTime: { hour: number };
+  }> = [
+    { situation: 'wind_down', quadrant: 'Activated', clockTime: DAYTIME },
+    { situation: 'wind_down', quadrant: 'Depleted', clockTime: DAYTIME },
+    { situation: 'just_reset', quadrant: 'Depleted', clockTime: DAYTIME },
+    // find_energy/Depleted only routes to NSDR in the evening (§8 clock modifier).
+    { situation: 'find_energy', quadrant: 'Depleted', clockTime: EVENING },
+  ];
+
+  for (const cell of MANDATORY_NSDR_CELLS) {
+    for (const budget of SHORT_BUDGETS) {
+      it(`${cell.situation}/${cell.quadrant} @ ${budget}min degrades to a short settle, no throw`, () => {
+        let plan: ResolvedPlan;
+        expect(() => {
+          plan = resolve({
+            situation: cell.situation,
+            state: stateFor(cell.quadrant),
+            clockTime: cell.clockTime,
+            timeBudget: budget,
+          });
+        }).not.toThrow();
+
+        expect(plan!.slots).toHaveLength(1);
+        const slot = plan!.slots[0];
+        expect(slot.kind).toBe('practice');
+        if (slot.kind === 'practice') {
+          // Reflection set + See-other-options key on pillar+direction.
+          expect(slot.slot.pillar).toBe('energy');
+          expect(slot.slot.direction).toBe('settle');
+          // A brief reset that fits — a short settle, NOT a longer-than-budget NSDR.
+          expect(slot.practice.family).not.toBe('nsdr');
+          expect(slot.practice.timeWindow).toBeLessThanOrEqual(5);
+          // The degraded slot re-filters consistently (its length class admits
+          // the picked practice; its modality set contains the pick).
+          expect(slot.slot.lengthClasses).toContain(
+            timeWindowToLengthClass(slot.practice.timeWindow)
+          );
+          expect(slotModalities(slot.slot)).toContain(slot.practice.modality);
+        }
+      });
+    }
+  }
+
+  // The OFFERED NSDR cell (find_energy/Calm + evening) is DROPPED at a short
+  // budget — an optional slot that can't fit the time isn't offered (and is not
+  // substituted). The leading reframe message is preserved.
+  for (const budget of SHORT_BUDGETS) {
+    it(`find_energy/Calm + evening @ ${budget}min drops the offered NSDR, keeps the message`, () => {
+      let plan: ResolvedPlan;
+      expect(() => {
+        plan = resolve({
+          situation: 'find_energy',
+          state: stateFor('Calm'),
+          clockTime: EVENING,
+          timeBudget: budget,
+        });
+      }).not.toThrow();
+      expect(plan!.slots).toHaveLength(0);
+      expect(plan!.message).toBeTruthy();
+    });
+  }
+});
+
+describe('resolve — full no-throw sweep (every cell × budget × time-of-day)', () => {
+  const SITUATIONS: Situation[] = [
+    'get_through_hard',
+    'quiet_mind',
+    'find_energy',
+    'wind_down',
+    'grip_on_day',
+    'just_reset',
+  ];
+  const QUADRANTS: Quadrant[] = ['Tense', 'Activated', 'Depleted', 'Calm'];
+  const BUDGETS = [2, 5, 10, 20, 45] as const;
+  const CLOCKS = [DAYTIME, EVENING];
+
+  it('resolves without throwing for all 240 (situation × quadrant × budget × time) combinations', () => {
+    const failures: string[] = [];
+    for (const situation of SITUATIONS) {
+      for (const quadrant of QUADRANTS) {
+        for (const timeBudget of BUDGETS) {
+          for (const clockTime of CLOCKS) {
+            try {
+              resolve({ situation, state: stateFor(quadrant), clockTime, timeBudget });
+            } catch (e) {
+              failures.push(
+                `${situation}/${quadrant} @ ${timeBudget}min hour=${clockTime.hour}: ${(e as Error).message}`
+              );
+            }
+          }
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+});
