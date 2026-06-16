@@ -39,8 +39,10 @@ export {
 } from './lengthClass';
 export {
   SLOT_TYPE_MODALITIES,
+  DIRECTION_MODALITIES,
   directionMatches,
   eligiblePractices,
+  practicesForDirection,
   slotModalities,
 } from './slotFilter';
 export {
