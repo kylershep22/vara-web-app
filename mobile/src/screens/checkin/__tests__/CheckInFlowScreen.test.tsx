@@ -134,7 +134,9 @@ async function complete(terminal: Record<string, unknown>) {
 describe('CheckInFlowScreen — pointer hand-off navigation', () => {
   it('focus-session pointer replaces with FocusTimer (removes the dead check-in frame)', async () => {
     await complete(pointerOnly('focus-session'));
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('FocusTimer'));
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith('FocusTimer', { fromCheckIn: true })
+    );
     expect(mockGoBack).not.toHaveBeenCalled();
   });
 
@@ -147,7 +149,9 @@ describe('CheckInFlowScreen — pointer hand-off navigation', () => {
 
   it('practice that launched a pointer hands off to FocusTimer', async () => {
     await complete(practice({ pillar: 'focus', type: 'focus-session' }));
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('FocusTimer'));
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith('FocusTimer', { fromCheckIn: true })
+    );
   });
 });
 

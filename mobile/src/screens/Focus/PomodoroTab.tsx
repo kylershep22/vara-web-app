@@ -10,7 +10,7 @@
  * - Notification toggle and ambient sound selector
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -42,13 +42,26 @@ const TASK_LABEL_KEY = '@focus_task_label';
 interface PomodoroTabProps {
   /** Whether 90-minute advanced option should be shown */
   showAdvancedDuration?: boolean;
+  /**
+   * Present only when this Pomodoro was launched FROM the check-in loop. When
+   * set, tapping "Done for now" (after at least one completed block) hands the
+   * loop back to the parent with the most recent focus-session doc id so it can
+   * fire the Focus reflection — closing the loop. Absent for a directly-started
+   * Pomodoro, which pops no reflection.
+   */
+  onLoopDone?: (focusSessionId: string | null) => void;
 }
 
 export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   showAdvancedDuration = true,
+  onLoopDone,
 }) => {
   const { user } = useAuth();
   const { playCompletionSound } = useCompletionSound();
+
+  // Most recently completed focus-session doc id, so the loop-done reflection
+  // can attach to it (light interim write). Null until a block completes.
+  const lastFocusSessionIdRef = useRef<string | null>(null);
 
   // Task label state
   const [taskLabel, setTaskLabel] = useState('');
@@ -118,7 +131,7 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     playCompletionSound();
     if (user && db) {
       try {
-        await addDoc(collection(db, 'focusSessions'), {
+        const ref = await addDoc(collection(db, 'focusSessions'), {
           userId: user.uid,
           duration: selectedDuration,
           type: selectedDuration === 90 ? 'ultradian' : 'pomodoro',
@@ -128,6 +141,7 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
           taskLabel: taskLabel || null,
           interrupted: false,
         });
+        lastFocusSessionIdRef.current = ref.id;
         console.log('Focus session logged successfully');
       } catch (error) {
         console.error('Error logging focus session:', error);
@@ -161,6 +175,18 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     setTimeout(() => timer.start(), 50);
   }, [timer]);
 
+  // "Done for now" terminal. Loop-launched: hand back to the parent (FocusScreen
+  // shows the Focus reflection) with the last completed block's doc id; the
+  // parent owns the exit, so we don't reset here. Directly-started: just reset
+  // (no reflection) — the existing behavior.
+  const handleDoneForNow = useCallback(() => {
+    if (onLoopDone) {
+      onLoopDone(lastFocusSessionIdRef.current);
+      return;
+    }
+    timer.reset();
+  }, [onLoopDone, timer]);
+
   const toggleSoundPanel = useCallback(() => {
     setIsSoundPanelOpen((prev) => !prev);
   }, []);
@@ -173,7 +199,7 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
           state={timer.state === 'session_complete' ? 'session_complete' : 'break_complete'}
           onStartBreak={timer.startBreak}
           onBeginAnother={timer.state === 'break_complete' ? timer.beginAnother : handleStartAnother}
-          onDoneForNow={timer.reset}
+          onDoneForNow={handleDoneForNow}
           breakDurationMinutes={timer.breakDurationMinutes}
           onAdjustBreak={timer.setBreakDuration}
         />

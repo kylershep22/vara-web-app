@@ -25,7 +25,11 @@ import { reflectionSetFor } from './reflection';
 const MIN_TOUCH_TARGET = 48;
 
 export interface ReflectionStepViewProps {
-  protocol: Protocol;
+  // The completed catalog practice. Optional: the focus-session loop reuses this
+  // view after a Pomodoro, which has no catalog Protocol — it passes
+  // `completedLabel` instead.
+  protocol?: Protocol;
+  completedLabel?: string;
   pillar: Pillar;
   direction: SlotDirection;
   onSelect: (reflectionId: string) => void;
@@ -33,11 +37,13 @@ export interface ReflectionStepViewProps {
 
 export function ReflectionStepView({
   protocol,
+  completedLabel,
   pillar,
   direction,
   onSelect,
 }: ReflectionStepViewProps) {
   const set = reflectionSetFor(pillar, direction);
+  const displayName = completedLabel ?? protocol?.name ?? 'your session';
 
   return (
     <View style={styles.container} testID="checkin-flow-reflection">
@@ -45,10 +51,10 @@ export function ReflectionStepView({
         <View
           style={styles.protocolChip}
           testID="checkin-flow-reflection-protocol-chip"
-          accessibilityLabel={`Just completed: ${protocol.name}`}
+          accessibilityLabel={`Just completed: ${displayName}`}
         >
           <Text style={styles.protocolChipLabel}>Just completed</Text>
-          <Text style={styles.protocolChipName}>{protocol.name}</Text>
+          <Text style={styles.protocolChipName}>{displayName}</Text>
         </View>
 
         <Text style={styles.title} testID="checkin-flow-reflection-title">
