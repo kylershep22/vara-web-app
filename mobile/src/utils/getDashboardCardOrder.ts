@@ -22,7 +22,6 @@ export type DashboardCardId =
   | 'eventCode'
   | 'nudge'
   | 'reflection'
-  | 'habits'
   | 'routines'
   | 'weekInsight';
 
@@ -50,7 +49,6 @@ const DEFAULT_ORDER: DashboardCardId[] = [
   'eventCode',
   'nudge',
   'reflection',
-  'habits',
   'routines',
   'weekInsight',
 ];

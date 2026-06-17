@@ -7,17 +7,9 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, StyleSheet, RefreshControl, TouchableOpacity, Text } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  useAnimatedProps,
-  withTiming,
-  FadeIn,
-  FadeOut,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
 import { LoadingSpinner } from '../components';
 import {
   FourThreeTwoOneCard,
@@ -28,7 +20,6 @@ import {
   WellnessScoreOptInCard,
   QuickActionsRow,
 } from '../components/dashboard';
-import { WeeklyHabitsCard } from '../components/dashboard/WeeklyHabitsCard';
 import { AIDailyPlanCard } from '../components/dashboard/AIDailyPlanCard';
 import WelcomeBackCard from '../components/dashboard/WelcomeBackCard';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
@@ -42,11 +33,10 @@ import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
 import NudgeCard from '../components/dashboard/NudgeCard';
 import { DashboardAnchor } from '../components/dashboard/DashboardAnchor/DashboardAnchor';
-import { LockedDivider } from '../components/dashboard/LockedDivider';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
-import { DASHBOARD_V2 } from '../constants/dashboardConfig';
+import { DASHBOARD_V2, DASHBOARD_SUPPRESS } from '../constants/dashboardConfig';
 import { useDashboard } from '../hooks/useDashboard';
 import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
 import { selectWeekInsight } from '../constants/weekInsightTemplates';
@@ -54,8 +44,6 @@ import { useAIConsent } from '../context/AIConsentContext';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebase';
 import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
-
-const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 const DashboardScreen: React.FC = () => {
   const { requireConsent } = useAIConsent();
@@ -169,20 +157,6 @@ const DashboardScreen: React.FC = () => {
     return () => unsubscribe();
   }, [user?.uid]);
 
-  const cardOpacity = useSharedValue(dashboardPhase === 'pre-checkin' ? 0.35 : 1);
-  const blurIntensity = useSharedValue(dashboardPhase === 'pre-checkin' ? 15 : 0);
-
-  useEffect(() => {
-    cardOpacity.value = withTiming(
-      dashboardPhase === 'pre-checkin' ? 0.35 : 1,
-      { duration: 400 }
-    );
-    blurIntensity.value = withTiming(
-      dashboardPhase === 'pre-checkin' ? 15 : 0,
-      { duration: 400 }
-    );
-  }, [dashboardPhase]);
-
   // Phase 2.8.1 — hide the global FAB during the focused brain-state
   // check-in entry flow (dashboardPhase === 'pre-checkin'). When the
   // user completes (or skips) the check-in and the phase transitions
@@ -195,16 +169,6 @@ const DashboardScreen: React.FC = () => {
       { showFAB: dashboardPhase === 'checked-in' } as any
     );
   }, [navigation, dashboardPhase]);
-
-  const cardWrapperStyle = useAnimatedStyle(() => ({
-    opacity: cardOpacity.value,
-  }));
-
-  const blurAnimatedProps = useAnimatedProps(() => ({
-    intensity: blurIntensity.value,
-  }));
-
-  const isMuted = dashboardPhase === 'pre-checkin';
 
   const renderCard = (cardId: string) => {
     switch (cardId) {
@@ -222,9 +186,10 @@ const DashboardScreen: React.FC = () => {
           <TodaysProtocolCard key="protocol" protocol={todaysProtocol} />
         ) : null;
       case 'notifOptIn':
-        // Skip in pre-checkin; it's rendered above the muted wrapper in
-        // that phase so it stays interactive (treated as a setting).
-        if (isMuted) return null;
+        // Skip in pre-checkin; it's rendered separately in that phase (above)
+        // so it stays interactive as a setting. (NotificationOptIn is left
+        // rendering as-is pending the confirm on whether it's a live entry.)
+        if (dashboardPhase === 'pre-checkin') return null;
         return notifOptInCard ? (
           <View key="notifOptIn" style={{ paddingHorizontal: Spacing.base }}>
             <NotificationOptInCard
@@ -256,6 +221,9 @@ const DashboardScreen: React.FC = () => {
           />
         ) : null;
       case 'reflection':
+        // Suppressed on the reworked Home (end-of-day reflection is a different
+        // surface, not in the spec set). Reversible via DASHBOARD_SUPPRESS.
+        if (DASHBOARD_SUPPRESS.dailyReflection) return null;
         return showDailyReflection ? (
           <DailyReflectionCard
             key="reflection"
@@ -263,21 +231,6 @@ const DashboardScreen: React.FC = () => {
             onSkip={handleDailyReflectionSkip}
           />
         ) : null;
-      case 'habits':
-        return (
-          <WeeklyHabitsCard
-            key="habits"
-            habits={habits}
-            visibleDays={visibleDays}
-            today={today}
-            allCompletions={allCompletions}
-            weeklyCompletions={weeklyCompletions}
-            processingHabits={processingHabits}
-            onHabitToggle={handleHabitToggle}
-            onNavigateToHabits={() => navigation.navigate('Rhythms' as never, { tab: 'habits' } as never)}
-            onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
-          />
-        );
       case 'routines':
         return (
           <RoutinesCard
@@ -371,18 +324,14 @@ const DashboardScreen: React.FC = () => {
               />
             )}
 
-            {/* First-shift footer — sub-step 2.7. Renders the one-time
-                "Your first shift is logged in Patterns" acknowledgment
-                directly below whichever check-in card variant is
-                active in the current dashboardPhase. Anchored to the
-                action that produced the first shift, not a separate
-                "achievement" surface. Hidden when firstShiftAt is null
-                (no qualifying shift yet) or when the AsyncStorage
-                marker is set (already shown on this device). */}
-            <FirstShiftFooter
-              firstShiftAt={firstShiftAt}
-              userId={user?.uid}
-            />
+            {/* First-shift footer — suppressed on the reworked Home (not in the
+                spec set). Reversible via DASHBOARD_SUPPRESS. */}
+            {!DASHBOARD_SUPPRESS.firstShiftFooter && (
+              <FirstShiftFooter
+                firstShiftAt={firstShiftAt}
+                userId={user?.uid}
+              />
+            )}
 
             {/* Overwhelm Safety Card — sub-step 2.6. Always visible
                 (no surfacing-trigger logic in v1; Phase 5 layers
@@ -406,29 +355,12 @@ const DashboardScreen: React.FC = () => {
               </View>
             )}
 
-            {/* Pre-checkin locked divider */}
-            {dashboardPhase === 'pre-checkin' && (
-              <Animated.View
-                entering={FadeIn.duration(200)}
-                exiting={FadeOut.duration(200)}
-              >
-                <LockedDivider />
-              </Animated.View>
-            )}
-
-            {/* Dashboard cards: muted + blurred in pre-checkin, ordered by brain state */}
-            <Animated.View
-              style={[cardWrapperStyle]}
-              pointerEvents={isMuted ? 'none' : 'auto'}
-            >
+            {/* Dashboard cards — calm, ordered by brain state. The pre-checkin
+                blur-gate + locked divider are removed: the rework's calm cards
+                are visible in both phases. */}
+            <View>
               {cardOrder.map((cardId) => renderCard(cardId))}
-              <AnimatedBlurView
-                animatedProps={blurAnimatedProps}
-                tint="light"
-                style={StyleSheet.absoluteFill}
-                pointerEvents="none"
-              />
-            </Animated.View>
+            </View>
           </>
         ) : (
           <>
