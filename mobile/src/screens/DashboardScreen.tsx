@@ -101,6 +101,7 @@ const DashboardScreen: React.FC = () => {
   const renderSystemPrompt = (cardId: 'notifOptIn' | 'eventCode' | 'nudge') => {
     switch (cardId) {
       case 'notifOptIn':
+        if (DASHBOARD_SUPPRESS.notifOptIn) return null;
         // Skip in pre-checkin; it renders separately there (above) as a setting.
         if (dashboardPhase === 'pre-checkin') return null;
         return notifOptInCard ? (
@@ -113,6 +114,7 @@ const DashboardScreen: React.FC = () => {
           </View>
         ) : null;
       case 'eventCode':
+        if (DASHBOARD_SUPPRESS.eventCode) return null;
         return showEventCodeCard ? (
           <View key="eventCode" style={{ paddingHorizontal: Spacing.base }}>
             <EventCodeCard
@@ -122,6 +124,7 @@ const DashboardScreen: React.FC = () => {
           </View>
         ) : null;
       case 'nudge':
+        if (DASHBOARD_SUPPRESS.nudge) return null;
         return nudgeSuggestion ? (
           <NudgeCard
             key="nudge"
@@ -216,15 +219,17 @@ const DashboardScreen: React.FC = () => {
                 phase. In post-checkin / returning it renders inside cardOrder
                 after protocol. In pre-checkin it renders here, above the
                 muted wrapper, so it stays fully interactive. */}
-            {dashboardPhase === 'pre-checkin' && notifOptInCard && (
-              <View style={{ paddingHorizontal: Spacing.base }}>
-                <NotificationOptInCard
-                  category={notifOptInCard}
-                  onOptIn={() => handleNotifOptIn(notifOptInCard)}
-                  onDismiss={() => handleNotifDismiss(notifOptInCard)}
-                />
-              </View>
-            )}
+            {!DASHBOARD_SUPPRESS.notifOptIn &&
+              dashboardPhase === 'pre-checkin' &&
+              notifOptInCard && (
+                <View style={{ paddingHorizontal: Spacing.base }}>
+                  <NotificationOptInCard
+                    category={notifOptInCard}
+                    onOptIn={() => handleNotifOptIn(notifOptInCard)}
+                    onDismiss={() => handleNotifDismiss(notifOptInCard)}
+                  />
+                </View>
+              )}
 
             {/* Spec content cards — explicit, fixed order (no longer
                 brain-state-ordered): Suggested action (post only) → Insight →

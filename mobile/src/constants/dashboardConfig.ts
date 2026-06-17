@@ -20,8 +20,13 @@ export const DASHBOARD_SUPPRESS = {
   firstShiftFooter: true,
   // End-of-day reflection prompt — a different surface, not in the spec set.
   dailyReflection: true,
+  // System prompts not in the spec set — the reworked Home renders the spec
+  // components only.
+  eventCode: true,
+  notifOptIn: true,
+  // NudgeCard: it IS live-gated (renders only when a suggestion exists), but it
+  // is an algorithmic cross-feature nudge, NOT a user-opted-in nudge — so per the
+  // decision it is suppressed (the "leave it" carve-out was only for an
+  // opted-in, live nudge). Flip to false to restore.
+  nudge: true,
 } as const;
-
-// NOTE: NudgeCard is intentionally NOT suppressed — it already renders only on a
-// live suggestion (transient), which the decision said to keep. EventCodeCard and
-// NotificationOptInCard are left rendering as-is pending the live-entry confirm.
