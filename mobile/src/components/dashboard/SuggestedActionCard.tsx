@@ -5,14 +5,16 @@
 // user just did). Completion-agnostic copy — it serves both the finished and the
 // checked-in-but-abandoned cases. "Create capacity" framing; no meter, no score.
 //
-// onStart is wired by the screen to launch PracticeRun with the protocol id.
+// Layout matches the mockup .card: an uppercase "When you're ready" cap, a
+// capacity-framed headline, then a meta row "{name} · {min}" with "Begin ›"
+// (space-between). onStart is wired by the screen to launch PracticeRun.
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
 
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import type { Protocol } from '../../types/models';
+import { dashboardEyebrow } from './cardStyles';
 
 export interface SuggestedActionCardProps {
   protocol: Protocol;
@@ -25,20 +27,22 @@ export const SuggestedActionCard: React.FC<SuggestedActionCardProps> = ({
 }) => {
   return (
     <View style={styles.card} testID="dashboard-suggested-action">
-      <Text style={styles.eyebrow}>A little capacity</Text>
-      <Text style={styles.name}>{protocol.name}</Text>
-      <Text style={styles.meta}>{protocol.timeWindow} min</Text>
-      <TouchableOpacity
-        style={styles.cta}
-        onPress={onStart}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel={`Start ${protocol.name}, ${protocol.timeWindow} minutes`}
-        testID="dashboard-suggested-action-start"
-      >
-        <Text style={styles.ctaText}>Start</Text>
-        <Icon name="chevron-right" size={18} color={Colors.evergreenTeal} />
-      </TouchableOpacity>
+      <Text style={styles.eyebrow}>When you're ready</Text>
+      <Text style={styles.headline}>A few minutes to create some capacity</Text>
+      <View style={styles.row}>
+        <Text style={styles.meta}>
+          {protocol.name} · {protocol.timeWindow} min
+        </Text>
+        <Text
+          style={styles.cta}
+          onPress={onStart}
+          accessibilityRole="button"
+          accessibilityLabel={`Begin ${protocol.name}, ${protocol.timeWindow} minutes`}
+          testID="dashboard-suggested-action-start"
+        >
+          Begin ›
+        </Text>
+      </View>
     </View>
   );
 };
@@ -47,35 +51,34 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.divider,
     padding: Spacing.lg,
     marginBottom: Spacing.base,
+    ...Layout.shadow.sm,
   },
   eyebrow: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.mutedSageGray,
+    ...dashboardEyebrow,
     marginBottom: Spacing.xs,
   },
-  name: {
+  headline: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
   },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.md,
+  },
   meta: {
     fontSize: Typography.fontSize.sm,
     color: Colors.mutedSageGray,
-    marginTop: 2,
+    flex: 1,
+    marginRight: Spacing.sm,
   },
   cta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: Spacing.md,
-  },
-  ctaText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
     color: Colors.evergreenTeal,
   },
 });

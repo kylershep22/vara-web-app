@@ -11,12 +11,13 @@ const protocol = {
 } as unknown as Protocol;
 
 describe('SuggestedActionCard', () => {
-  it('renders the practice name and duration', () => {
+  it('renders the capacity headline, eyebrow, and the name · duration meta', () => {
     const { getByText } = render(
       <SuggestedActionCard protocol={protocol} onStart={jest.fn()} />
     );
-    expect(getByText('Coherence Breathing')).toBeTruthy();
-    expect(getByText('5 min')).toBeTruthy();
+    expect(getByText('When you\'re ready')).toBeTruthy();
+    expect(getByText('A few minutes to create some capacity')).toBeTruthy();
+    expect(getByText('Coherence Breathing · 5 min')).toBeTruthy();
   });
 
   it('fires onStart when the CTA is pressed', () => {
