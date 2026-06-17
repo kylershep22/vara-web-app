@@ -1,16 +1,16 @@
-// RoutineCard — reworked dashboard routine surface (both phases).
+// RoutineCard — dashboard routine surface (both phases).
 //
-// Replaces RoutinesCard (left intact/reversible) with the spec treatment:
-//  - Neutral progress at ROUTINE level: each of today's routines is a teal dot
-//    when complete, a pale dot when remaining. No streak, no count-up score.
-//    (Per-activity progress is not available — dashboard completion is binary
-//    per routine via getRoutineCompletionToday — so progress is routine-level.)
-//  - One contextual CTA following the ladder: continue → begin → check habits →
-//    create one.
-//  - Warm empty state when no routine exists.
+// Matches the mockup .card (title "Today's routine", routine name as the body
+// line, neutral progress dots, contextual CTA), with one deliberate override:
 //
-// Data comes from the existing useDashboard wiring (fetchUserRoutines +
-// getRoutineCompletionToday); this is presentation only.
+//   Progress is ROUTINE-LEVEL, not per-step. Dashboard completion is binary per
+//   routine (getRoutineCompletionToday → boolean); there is no per-activity
+//   state and we are NOT building a routine-run model. So the dots are one per
+//   routine (done = teal, remaining = silverSage @ .5), not the mockup's
+//   "2 of 4" per-step dots.
+//
+// CTA ladder (spec §4): continue → begin → check habits → create one. Warm empty
+// state when no routine exists. Presentation only (data from useDashboard).
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
@@ -20,10 +20,6 @@ import {
   Routine,
   calculateTotalDuration,
 } from '../../services/firebase/routines.service';
-import {
-  getTemplatesForType,
-  RoutineTemplate,
-} from '../../constants/routineTemplates';
 
 interface RoutineCardProps {
   routines: Routine[];
@@ -31,15 +27,6 @@ interface RoutineCardProps {
   onBeginRoutine: (routine: Routine) => void;
   onNavigateToRoutines: () => void;
   onNavigateToHabits: () => void;
-  onApplyTemplate: (template: RoutineTemplate) => void;
-}
-
-function timeBasedTemplates(): RoutineTemplate[] {
-  const hour = new Date().getHours();
-  const day = new Date().getDay();
-  if (day === 0) return getTemplatesForType('sunday').slice(0, 2);
-  if (hour < 12) return getTemplatesForType('morning').slice(0, 2);
-  return getTemplatesForType('evening').slice(0, 2);
 }
 
 export const RoutineCard: React.FC<RoutineCardProps> = ({
@@ -48,36 +35,22 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
   onBeginRoutine,
   onNavigateToRoutines,
   onNavigateToHabits,
-  onApplyTemplate,
 }) => {
-  // ── Warm empty state ──────────────────────────────────────────────
+  // ── Warm empty state (spec §4) ────────────────────────────────────
   if (routines.length === 0) {
-    const templates = timeBasedTemplates();
     return (
       <View style={styles.card} testID="dashboard-routine-empty">
-        <Text style={styles.title}>Your routines</Text>
+        <Text style={styles.title}>Today's routine</Text>
         <Text style={styles.emptyBody}>
-          Routines help when you want a little structure. None yet, and that's
-          fine.
+          When you set a routine, it'll show up here.
         </Text>
-        {templates.map((template) => (
-          <TouchableOpacity
-            key={template.id}
-            style={styles.templateRow}
-            onPress={() => onApplyTemplate(template)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.templateName}>{template.name}</Text>
-            <Text style={styles.templateCta}>Try this</Text>
-          </TouchableOpacity>
-        ))}
         <TouchableOpacity
           onPress={onNavigateToRoutines}
           accessibilityRole="button"
           accessibilityLabel="Create a routine"
           testID="dashboard-routine-create"
         >
-          <Text style={styles.link}>Create a routine</Text>
+          <Text style={styles.cta}>Create a routine</Text>
         </TouchableOpacity>
       </View>
     );
@@ -93,55 +66,54 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
   let onCta: () => void;
   let ctaTestID: string;
   if (allDone) {
-    ctaLabel = 'Check habits';
+    ctaLabel = 'Check habits ›';
     onCta = onNavigateToHabits;
     ctaTestID = 'dashboard-routine-check-habits';
   } else if (doneCount > 0 && firstIncomplete) {
-    ctaLabel = 'Continue';
+    ctaLabel = 'Continue ›';
     onCta = () => onBeginRoutine(firstIncomplete);
     ctaTestID = 'dashboard-routine-continue';
   } else {
-    ctaLabel = 'Begin routine';
+    ctaLabel = 'Begin ›';
     onCta = () => firstIncomplete && onBeginRoutine(firstIncomplete);
     ctaTestID = 'dashboard-routine-begin';
   }
 
   return (
     <View style={styles.card} testID="dashboard-routine">
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Your routines</Text>
-        {/* Neutral routine-level progress: teal = done, pale = remaining. */}
-        <View style={styles.dots} testID="dashboard-routine-progress">
-          {routines.map((r) => (
-            <View
-              key={r.id}
-              style={[
-                styles.dot,
-                completions[r.id] ? styles.dotDone : styles.dotRemaining,
-              ]}
-            />
-          ))}
-        </View>
+      <Text style={styles.title}>Today's routine</Text>
+      <Text style={styles.body}>
+        {firstIncomplete ? firstIncomplete.name : 'All done for today.'}
+      </Text>
+
+      {/* Routine-level neutral progress: teal = done, pale = remaining. */}
+      <View style={styles.dots} testID="dashboard-routine-progress">
+        {routines.map((r) => (
+          <View
+            key={r.id}
+            style={[
+              styles.dot,
+              completions[r.id] ? styles.dotDone : styles.dotRemaining,
+            ]}
+          />
+        ))}
       </View>
 
-      {firstIncomplete ? (
-        <Text style={styles.routineMeta}>
-          {firstIncomplete.name} · {calculateTotalDuration(firstIncomplete.activities)} min
+      <View style={styles.row}>
+        <Text style={styles.meta}>
+          {firstIncomplete
+            ? `${calculateTotalDuration(firstIncomplete.activities)} min`
+            : ''}
         </Text>
-      ) : (
-        <Text style={styles.routineMeta}>All done for today.</Text>
-      )}
-
-      <TouchableOpacity
-        style={styles.cta}
-        onPress={onCta}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel={ctaLabel}
-        testID={ctaTestID}
-      >
-        <Text style={styles.ctaText}>{ctaLabel}</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onCta}
+          accessibilityRole="button"
+          accessibilityLabel={ctaLabel.replace(' ›', '')}
+          testID={ctaTestID}
+        >
+          <Text style={styles.cta}>{ctaLabel}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -150,49 +122,46 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.divider,
     padding: Spacing.lg,
     marginBottom: Spacing.base,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    ...Layout.shadow.sm,
   },
   title: {
-    fontSize: Typography.fontSize.base,
+    fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+    marginBottom: Spacing.xs,
+  },
+  body: {
+    fontSize: Typography.fontSize.sm,
     color: Colors.softCharcoal,
   },
   dots: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    gap: 6,
+    marginTop: 4,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 9,
+    height: 9,
+    borderRadius: 9999,
   },
   dotDone: {
     backgroundColor: Colors.evergreenTeal,
   },
   dotRemaining: {
-    backgroundColor: Colors.divider,
+    backgroundColor: Colors.silverSage,
+    opacity: 0.5,
   },
-  routineMeta: {
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  meta: {
     fontSize: Typography.fontSize.sm,
     color: Colors.mutedSageGray,
-    marginTop: Spacing.xs,
-  },
-  cta: {
-    alignSelf: 'flex-start',
-    marginTop: Spacing.md,
-  },
-  ctaText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.evergreenTeal,
   },
   emptyBody: {
     fontSize: Typography.fontSize.sm,
@@ -201,25 +170,9 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     marginBottom: Spacing.md,
   },
-  templateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
-  },
-  templateName: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.softCharcoal,
-  },
-  templateCta: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.evergreenTeal,
-  },
-  link: {
+  cta: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.evergreenTeal,
-    marginTop: Spacing.sm,
   },
 });

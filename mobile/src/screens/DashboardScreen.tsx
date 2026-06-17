@@ -60,7 +60,6 @@ const DashboardScreen: React.FC = () => {
     handleBeginRoutine,
     handleCloseRoutinePlayer,
     handleRoutineComplete,
-    handleApplyRoutineTemplate,
     dashboardPhase,
   } = useDashboard();
 
@@ -251,7 +250,6 @@ const DashboardScreen: React.FC = () => {
                 onBeginRoutine={handleBeginRoutine}
                 onNavigateToRoutines={() => go('Rhythms', { tab: 'routines' })}
                 onNavigateToHabits={() => go('Rhythms', { tab: 'habits' })}
-                onApplyTemplate={handleApplyRoutineTemplate}
               />
 
               {/* Surviving system prompts (live-gated), after the content. */}

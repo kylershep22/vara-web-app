@@ -17,7 +17,6 @@ const baseProps = {
   onBeginRoutine: jest.fn(),
   onNavigateToRoutines: jest.fn(),
   onNavigateToHabits: jest.fn(),
-  onApplyTemplate: jest.fn(),
 };
 
 beforeEach(() => {
