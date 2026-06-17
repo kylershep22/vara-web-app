@@ -27,7 +27,8 @@ import WeekInsightCard from '../components/dashboard/WeekInsightCard';
 import RoutinesCard from '../components/dashboard/RoutinesCard';
 import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
 import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
-import { OverwhelmSafetyCard } from '../components/dashboard/OverwhelmSafetyCard';
+import { CheckInInvite } from '../components/dashboard/CheckInInvite';
+import { SlimResetAffordance } from '../components/dashboard/SlimResetAffordance';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
 import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
@@ -315,14 +316,8 @@ const DashboardScreen: React.FC = () => {
               )
             )}
 
-            {/* Brain State Check-In (only visible in pre-checkin phase).
-                Sub-step 2.5 — chip tap navigates to CheckInFlow; the
-                save no longer happens here in the dashboard. */}
-            {dashboardPhase === 'pre-checkin' && (
-              <BrainStateCheckin
-                currentCheckIn={brainStateCheckIn}
-              />
-            )}
+            {/* Pre-checkin: the ONE bright check-in invite (the priority). */}
+            {dashboardPhase === 'pre-checkin' && <CheckInInvite />}
 
             {/* First-shift footer — suppressed on the reworked Home (not in the
                 spec set). Reversible via DASHBOARD_SUPPRESS. */}
@@ -333,13 +328,9 @@ const DashboardScreen: React.FC = () => {
               />
             )}
 
-            {/* Overwhelm Safety Card — sub-step 2.6. Always visible
-                (no surfacing-trigger logic in v1; Phase 5 layers
-                in path-specific thresholds). Below the brain-state
-                check-in card per the locked decision; 2.7 device-
-                verification screenshots iPhone 12/SE/15 confirm
-                this stays above the fold without scrolling. */}
-            <OverwhelmSafetyCard />
+            {/* Slim 2-minute reset — present in both phases, quiet (not a card),
+                reusing the locked overwhelm entry. */}
+            <SlimResetAffordance />
 
             {/* Notification opt-in: treated as a setting, accessible in every
                 phase. In post-checkin / returning it renders inside cardOrder
