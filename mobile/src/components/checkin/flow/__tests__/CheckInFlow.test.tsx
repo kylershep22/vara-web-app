@@ -128,12 +128,12 @@ describe('CheckInFlow — situation → circumplex → time dispatch', () => {
     fireEvent.press(getByLabelText('Quiet a busy mind'));
     expect(getByTestId('checkin-flow-arousal-title')).toBeTruthy();
 
-    // Arousal tap → valence question.
-    fireEvent.press(getByLabelText('Revved up'));
+    // Energy tap reveals the feeling question on the same screen (no swap).
+    fireEvent.press(getByLabelText('On the higher side'));
     expect(getByTestId('checkin-flow-valence-title')).toBeTruthy();
 
-    // Valence tap → time window.
-    fireEvent.press(getByLabelText('Hard'));
+    // Feeling tap (quiet_mind hard pole = "Too much") → time window.
+    fireEvent.press(getByLabelText('Too much'));
     expect(getByTestId('time-window-selector')).toBeTruthy();
     expect(queryByTestId('checkin-flow-state-pick')).toBeNull();
   });
@@ -145,8 +145,8 @@ describe('CheckInFlow — situation → circumplex → time dispatch', () => {
 
     // Drive to the plan: quiet_mind / Tense → a single settle practice.
     fireEvent.press(getByLabelText('Quiet a busy mind'));
-    fireEvent.press(getByLabelText('Revved up'));
-    fireEvent.press(getByLabelText('Hard'));
+    fireEvent.press(getByLabelText('On the higher side'));
+    fireEvent.press(getByLabelText('Too much'));
     fireEvent.press(getByTestId('time-window-chip-5'));
 
     // The plan renders with the felt reason subhead + a single Begin.

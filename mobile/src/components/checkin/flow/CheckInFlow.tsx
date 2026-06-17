@@ -218,6 +218,7 @@ function renderStep(
     case 'state_pick':
       return (
         <StatePickStepView
+          situation={state.situation}
           onSelect={({ arousal, valence }) =>
             dispatch({ type: 'state_selected', arousal, valence })
           }
