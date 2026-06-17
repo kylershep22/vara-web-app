@@ -1,11 +1,11 @@
 // RightNowAcknowledgment — the quiet post-check-in priority.
 //
-// Replaces the post-check-in DashboardAnchor (5-state brief). Shows the felt
-// "Right now: [state]" line derived from the circumplex QUADRANT via
-// stateAcknowledgment(); calmer than the pre-check-in invite (this is a calm
-// acknowledgment, not a call to action). A subtle "Check in again" relaunches
-// the standard flow. Never a five-state label, never a number/score, and
-// completion-agnostic (says nothing about whether a practice was finished).
+// Replaces the post-check-in DashboardAnchor (5-state brief). The felt
+// "Right now: [state]" derived from the circumplex QUADRANT via
+// stateAcknowledgment(); calmer than the pre-check-in invite. Matches the mockup
+// .ack: a quiet sage-filled card (dewSageLight) with a 4px teal left border,
+// stacked label → phrase → sub → recheck. Never a five-state label, never a
+// number; completion-agnostic.
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
@@ -13,9 +13,13 @@ import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 import type { Quadrant, Situation } from '../../engine';
-import { stateAcknowledgment } from './stateAcknowledgment';
+import {
+  stateAcknowledgment,
+  ACKNOWLEDGMENT_SUBLINE,
+} from './stateAcknowledgment';
+import { dashboardEyebrow } from './cardStyles';
 
 type Nav = NativeStackNavigationProp<{
   CheckInFlow: { entrySource: 'standard' };
@@ -48,13 +52,12 @@ export const RightNowAcknowledgment: React.FC<RightNowAcknowledgmentProps> = ({
   };
 
   return (
-    <View style={styles.container} testID="dashboard-right-now">
-      <View style={styles.textBlock}>
-        <Text style={styles.label}>Right now</Text>
-        <Text style={styles.phrase} testID="dashboard-right-now-phrase">
-          {phrase}
-        </Text>
-      </View>
+    <View style={styles.card} testID="dashboard-right-now">
+      <Text style={styles.label}>Right now</Text>
+      <Text style={styles.phrase} testID="dashboard-right-now-phrase">
+        {phrase}
+      </Text>
+      <Text style={styles.sub}>{ACKNOWLEDGMENT_SUBLINE}</Text>
       <TouchableOpacity
         onPress={handleChange}
         accessibilityRole="button"
@@ -69,30 +72,36 @@ export const RightNowAcknowledgment: React.FC<RightNowAcknowledgmentProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
+  // Quiet sage card with a teal left border (mockup .ack) — visibly calmer than
+  // the bright pre-check-in invite, still a defined element.
+  card: {
+    backgroundColor: Colors.dewSageLight,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.evergreenTeal,
+    borderRadius: Layout.borderRadius.lg,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
     marginBottom: Spacing.base,
   },
-  textBlock: {
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
   label: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.mutedSageGray,
-    marginBottom: 2,
+    ...dashboardEyebrow,
+    marginBottom: 5,
   },
   phrase: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
+  },
+  sub: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.softCharcoal,
+    opacity: 0.78,
+    marginTop: 4,
   },
   change: {
     fontSize: Typography.fontSize.sm,
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.medium,
+    marginTop: 12,
   },
 });

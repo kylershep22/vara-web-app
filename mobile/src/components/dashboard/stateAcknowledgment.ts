@@ -24,6 +24,10 @@ const QUADRANT_PHRASE: Record<Quadrant, string> = {
 // reads naturally after the "Right now:" frame.
 export const NEUTRAL_ACKNOWLEDGMENT = 'Taking it as it comes';
 
+// Quiet sub-line under the phrase. Time-neutral and completion-agnostic (says
+// nothing about whether a practice ran or when). Behind the same swap seam.
+export const ACKNOWLEDGMENT_SUBLINE = 'From your check-in.';
+
 /**
  * Felt phrase for the post-check-in acknowledgment. Pass the resolved quadrant,
  * or null when none could be read — then a neutral, non-guessing line is used.
