@@ -836,6 +836,21 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "protocolSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
       "collectionGroup": "sleepLogs",
       "queryScope": "COLLECTION",
       "fields": [
