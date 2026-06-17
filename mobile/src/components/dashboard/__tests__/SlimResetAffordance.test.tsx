@@ -17,6 +17,12 @@ import { OVERWHELM_DEFAULT_PROTOCOL_ID } from '../../../constants/overwhelmDefau
 beforeEach(() => mockNavigate.mockClear());
 
 describe('SlimResetAffordance', () => {
+  it('renders the mockup copy (label + "2 min ›")', () => {
+    const { getByText } = render(<SlimResetAffordance />);
+    expect(getByText('Need a reset right now?')).toBeTruthy();
+    expect(getByText('2 min ›')).toBeTruthy();
+  });
+
   it('reuses the locked overwhelm entry on press', () => {
     const { getByTestId } = render(<SlimResetAffordance />);
     fireEvent.press(getByTestId('dashboard-slim-reset'));

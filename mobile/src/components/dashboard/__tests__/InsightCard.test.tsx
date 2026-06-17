@@ -4,10 +4,11 @@ import { render } from '@testing-library/react-native';
 import { InsightCard } from '../InsightCard';
 
 describe('InsightCard', () => {
-  it('renders the injected insight title + body', () => {
+  it('renders the eyebrow cap, injected title + body', () => {
     const { getByText } = render(
       <InsightCard insight={{ title: 'Test title', body: 'Test body line.' }} />
     );
+    expect(getByText('A small insight')).toBeTruthy();
     expect(getByText('Test title')).toBeTruthy();
     expect(getByText('Test body line.')).toBeTruthy();
   });

@@ -16,9 +16,11 @@ import { CheckInInvite } from '../CheckInInvite';
 beforeEach(() => mockNavigate.mockClear());
 
 describe('CheckInInvite', () => {
-  it('renders the bright invite', () => {
-    const { getByTestId } = render(<CheckInInvite />);
+  it('renders the bright invite with the mockup sub-line', () => {
+    const { getByTestId, getByText } = render(<CheckInInvite />);
     expect(getByTestId('dashboard-checkin-invite')).toBeTruthy();
+    expect(getByText('How are you right now?')).toBeTruthy();
+    expect(getByText('A quick check-in, then one thing that fits.')).toBeTruthy();
   });
 
   it('launches the standard check-in on press', () => {

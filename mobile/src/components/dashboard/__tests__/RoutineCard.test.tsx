@@ -24,11 +24,12 @@ beforeEach(() => {
 });
 
 describe('RoutineCard — empty state', () => {
-  it('renders the warm empty state with a create affordance', () => {
-    const { getByTestId } = render(
+  it('renders the warm spec line + single create affordance', () => {
+    const { getByTestId, getByText } = render(
       <RoutineCard routines={[]} completions={{}} {...baseProps} />
     );
     expect(getByTestId('dashboard-routine-empty')).toBeTruthy();
+    expect(getByText("When you set a routine, it'll show up here.")).toBeTruthy();
     fireEvent.press(getByTestId('dashboard-routine-create'));
     expect(baseProps.onNavigateToRoutines).toHaveBeenCalledTimes(1);
   });
@@ -38,10 +39,12 @@ describe('RoutineCard — CTA ladder', () => {
   const r1 = routine('r1', 'Morning');
   const r2 = routine('r2', 'Evening');
 
-  it('none done → Begin routine, begins the first incomplete', () => {
-    const { getByTestId } = render(
+  it('none done → "Today\'s routine" title, focal routine body, Begin', () => {
+    const { getByTestId, getByText } = render(
       <RoutineCard routines={[r1, r2]} completions={{}} {...baseProps} />
     );
+    expect(getByText("Today's routine")).toBeTruthy();
+    expect(getByText('Morning')).toBeTruthy(); // focal (first incomplete) routine name
     fireEvent.press(getByTestId('dashboard-routine-begin'));
     expect(baseProps.onBeginRoutine).toHaveBeenCalledWith(r1);
   });

@@ -12,17 +12,21 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 import { RightNowAcknowledgment } from '../RightNowAcknowledgment';
-import { NEUTRAL_ACKNOWLEDGMENT } from '../stateAcknowledgment';
+import {
+  NEUTRAL_ACKNOWLEDGMENT,
+  ACKNOWLEDGMENT_SUBLINE,
+} from '../stateAcknowledgment';
 
 beforeEach(() => mockNavigate.mockClear());
 
 describe('RightNowAcknowledgment', () => {
-  it('renders the felt phrase for the quadrant under a "Right now" label', () => {
+  it('renders the felt phrase + label + completion-agnostic sub-line', () => {
     const { getByText, getByTestId } = render(
       <RightNowAcknowledgment quadrant="Calm" />
     );
     expect(getByText('Right now')).toBeTruthy();
     expect(getByTestId('dashboard-right-now-phrase').props.children).toBe('Settled');
+    expect(getByText(ACKNOWLEDGMENT_SUBLINE)).toBeTruthy();
   });
 
   it('shows the neutral line when no quadrant is available', () => {
