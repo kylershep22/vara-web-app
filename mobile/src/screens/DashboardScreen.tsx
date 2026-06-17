@@ -10,22 +10,7 @@ import Animated from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingSpinner } from '../components';
-import {
-  FourThreeTwoOneCard,
-  BrainHealthInsightStrip,
-  NextBestActionCard,
-  WellnessScoreCard,
-  WellnessScoreBreakdown,
-  WellnessScoreOptInCard,
-  QuickActionsRow,
-} from '../components/dashboard';
-import { AIDailyPlanCard } from '../components/dashboard/AIDailyPlanCard';
-import WelcomeBackCard from '../components/dashboard/WelcomeBackCard';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
-import WeekInsightCard from '../components/dashboard/WeekInsightCard';
-// Retained for the legacy V1 block only (removed with V1 in the dedicated
-// V1-removal commit).
-import { WeeklyHabitsCard } from '../components/dashboard/WeeklyHabitsCard';
 import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
 import { CheckInInvite } from '../components/dashboard/CheckInInvite';
 import { SlimResetAffordance } from '../components/dashboard/SlimResetAffordance';
@@ -39,17 +24,13 @@ import NudgeCard from '../components/dashboard/NudgeCard';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
-import { DASHBOARD_V2, DASHBOARD_SUPPRESS } from '../constants/dashboardConfig';
+import { DASHBOARD_SUPPRESS } from '../constants/dashboardConfig';
 import { useDashboard } from '../hooks/useDashboard';
-import { useWeeklyCorrelations } from '../hooks/useWeeklyCorrelations';
-import { selectWeekInsight } from '../constants/weekInsightTemplates';
-import { useAIConsent } from '../context/AIConsentContext';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebase';
 import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
 
 const DashboardScreen: React.FC = () => {
-  const { requireConsent } = useAIConsent();
   const { user } = useAuth();
   const {
     navigation,
@@ -58,40 +39,12 @@ const DashboardScreen: React.FC = () => {
     refreshing,
     greeting,
     formattedDate,
-    today,
-    visibleDays,
-    habits,
-    allCompletions,
-    processingHabits,
-    weeklyCompletions,
-    handleHabitToggle,
-    tasks,
-    completedToday,
-    lastJournalDate,
-    dailyPlan,
-    generatingPlan,
-    isPlanExpanded,
-    setIsPlanExpanded,
-    handleGenerateDailyPlan,
-    wellnessScore,
-    wellnessScoreLoading,
-    showScoreBreakdown,
-    setShowScoreBreakdown,
-    wellnessScoreEnabled,
-    showOptInPrompt,
-    setShowOptInPrompt,
-    handleRefreshWellnessScore,
-    handleWellnessScoreEnable,
-    fourThreeTwoOneEntry,
-    handleFourThreeTwoOneChange,
-    showWelcomeBack,
-    setShowWelcomeBack,
-    notifOptInCard,
-    handleNotifOptIn,
-    handleNotifDismiss,
     handleRefresh,
     brainStateCheckIn,
     engineSession,
+    notifOptInCard,
+    handleNotifOptIn,
+    handleNotifDismiss,
     showEventCodeCard,
     eventCodeSheetVisible,
     setEventCodeSheetVisible,
@@ -110,9 +63,6 @@ const DashboardScreen: React.FC = () => {
     handleApplyRoutineTemplate,
     dashboardPhase,
   } = useDashboard();
-
-  const { correlations } = useWeeklyCorrelations();
-  const weekInsight = correlations ? selectWeekInsight(correlations) : null;
 
   // Sub-step 2.7 — subscribe to the user's firstShiftAt for the
   // FirstShiftFooter render decision. Real-time so a shift completed
@@ -236,7 +186,7 @@ const DashboardScreen: React.FC = () => {
           </View>
         )}
 
-        {DASHBOARD_V2 ? (
+        {(
           <>
             {/* Post-checkin: the quiet "Right now: [state]" acknowledgment
                 (the priority post-checkin, calmer than the invite), derived
@@ -310,123 +260,8 @@ const DashboardScreen: React.FC = () => {
               ))}
             </View>
           </>
-        ) : (
-          <>
-            {/* ========== V1 DASHBOARD LAYOUT ========== */}
-
-            {/* Welcome Back Card (returning users, 3+ days away) */}
-            {showWelcomeBack && (
-              <WelcomeBackCard
-                onDismiss={() => {
-                  setShowWelcomeBack(false);
-                }}
-              />
-            )}
-
-            {/* Notification Opt-In Card (progressive disclosure) */}
-            {notifOptInCard && (
-              <View style={{ paddingHorizontal: Spacing.base }}>
-                <NotificationOptInCard
-                  category={notifOptInCard}
-                  onOptIn={() => handleNotifOptIn(notifOptInCard)}
-                  onDismiss={() => handleNotifDismiss(notifOptInCard)}
-                />
-              </View>
-            )}
-
-            {/* Weekly Habits Tracker */}
-            <WeeklyHabitsCard
-              habits={habits}
-              visibleDays={visibleDays}
-              today={today}
-              allCompletions={allCompletions}
-              weeklyCompletions={weeklyCompletions}
-              processingHabits={processingHabits}
-              onHabitToggle={handleHabitToggle}
-              onNavigateToHabits={() => navigation.navigate('Rhythms' as never, { tab: 'habits' } as never)}
-              onAddHabit={() => navigation.navigate('Rhythms' as never, { tab: 'habits', openCreateModal: true } as never)}
-            />
-
-            {/* Next Best Action Card */}
-            <NextBestActionCard
-              wellnessScore={wellnessScore}
-              habits={habits}
-              tasks={tasks}
-              completedTodayHabits={completedToday}
-              fourThreeTwoOne={fourThreeTwoOneEntry}
-              lastJournalDate={lastJournalDate}
-              hasMorningCheckIn={true}
-              hasDailyPlan={!!dailyPlan}
-              onGeneratePlan={() => requireConsent(handleGenerateDailyPlan)}
-              onMorningCheckIn={() => {}}
-            />
-
-            {/* Quick Actions Row */}
-            <QuickActionsRow
-              onJournalPress={() => navigation.navigate('Journal' as never)}
-              onReflectPress={() => navigation.navigate('Focus' as never)}
-            />
-
-            {/* --- Below fold --- */}
-
-            {/* 4-3-2-1 Daily Practice */}
-            <FourThreeTwoOneCard onChange={handleFourThreeTwoOneChange} defaultCollapsed={true} />
-
-            {/* Week Insight Card */}
-            {weekInsight && !weekInsightDismissed && (
-              <WeekInsightCard
-                headline={weekInsight.headline}
-                supporting={weekInsight.supporting}
-                onPressFullStory={() => navigation.navigate('Insights' as never)}
-                onDismiss={() => setWeekInsightDismissed(true)}
-              />
-            )}
-
-
-            {/* AI Daily Plan Card */}
-            <AIDailyPlanCard
-              dailyPlan={dailyPlan}
-              generatingPlan={generatingPlan}
-              isPlanExpanded={isPlanExpanded}
-              onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
-              onGenerate={() => requireConsent(handleGenerateDailyPlan)}
-            />
-
-            {/* Brain Health Insight Strip */}
-            <BrainHealthInsightStrip compact />
-
-            {/* Wellness Score Opt-In */}
-            {wellnessScoreEnabled === false && showOptInPrompt && (
-              <WellnessScoreOptInCard
-                onEnable={handleWellnessScoreEnable}
-                onDismiss={() => setShowOptInPrompt(false)}
-              />
-            )}
-
-            {/* Wellness Score Card */}
-            {wellnessScoreEnabled && (
-              <WellnessScoreCard
-                score={wellnessScore}
-                loading={wellnessScoreLoading}
-                onPress={() => setShowScoreBreakdown(true)}
-                onRefresh={handleRefreshWellnessScore}
-              />
-            )}
-
-
-          </>
         )}
       </Animated.ScrollView>
-
-      {/* Wellness Score Breakdown Modal (V1 only) */}
-      {!DASHBOARD_V2 && (
-        <WellnessScoreBreakdown
-          visible={showScoreBreakdown}
-          onClose={() => setShowScoreBreakdown(false)}
-          score={wellnessScore}
-          onNavigate={(route) => navigation.navigate(route as never)}
-        />
-      )}
 
       {/* Event Code Sheet */}
       <EventCodeSheet
