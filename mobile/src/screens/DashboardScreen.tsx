@@ -4,8 +4,7 @@
  * Thin UI shell that delegates state/handlers to useDashboard.
  */
 
-import React, { useCallback, useState, useEffect } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, RefreshControl, TouchableOpacity, Text } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -24,16 +23,19 @@ import { AIDailyPlanCard } from '../components/dashboard/AIDailyPlanCard';
 import WelcomeBackCard from '../components/dashboard/WelcomeBackCard';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
 import WeekInsightCard from '../components/dashboard/WeekInsightCard';
-import RoutinesCard from '../components/dashboard/RoutinesCard';
+// Retained for the legacy V1 block only (removed with V1 in the dedicated
+// V1-removal commit).
+import { WeeklyHabitsCard } from '../components/dashboard/WeeklyHabitsCard';
 import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
-import { BrainStateCheckin } from '../components/dashboard/BrainStateCheckin';
 import { CheckInInvite } from '../components/dashboard/CheckInInvite';
 import { SlimResetAffordance } from '../components/dashboard/SlimResetAffordance';
+import { RightNowAcknowledgment } from '../components/dashboard/RightNowAcknowledgment';
+import { SuggestedActionCard } from '../components/dashboard/SuggestedActionCard';
+import { InsightCard } from '../components/dashboard/InsightCard';
+import { RoutineCard } from '../components/dashboard/RoutineCard';
+import { suggestedAction } from '../components/dashboard/suggestedAction';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
-import { TodaysProtocolCard } from '../components/dashboard/TodaysProtocolCard';
-import { DailyReflectionCard } from '../components/dashboard/DailyReflectionCard';
 import NudgeCard from '../components/dashboard/NudgeCard';
-import { DashboardAnchor } from '../components/dashboard/DashboardAnchor/DashboardAnchor';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
@@ -89,10 +91,7 @@ const DashboardScreen: React.FC = () => {
     handleNotifDismiss,
     handleRefresh,
     brainStateCheckIn,
-    todaysProtocol,
-    showDailyReflection,
-    handleDailyReflection,
-    handleDailyReflectionSkip,
+    engineSession,
     showEventCodeCard,
     eventCodeSheetVisible,
     setEventCodeSheetVisible,
@@ -110,34 +109,10 @@ const DashboardScreen: React.FC = () => {
     handleRoutineComplete,
     handleApplyRoutineTemplate,
     dashboardPhase,
-    cardOrder,
   } = useDashboard();
 
   const { correlations } = useWeeklyCorrelations();
   const weekInsight = correlations ? selectWeekInsight(correlations) : null;
-
-  const [showCheckInOverAnchor, setShowCheckInOverAnchor] = useState(false);
-
-  // Round 10 (Finding 1 fix) — reset showCheckInOverAnchor whenever
-  // the dashboard regains focus. The Change-button flow sets this to
-  // true to swap DashboardAnchor → BrainStateCheckin (expanded
-  // picker), but only the user's tap sets it; nothing reset it back
-  // to false. After a successful Change → CheckInFlow → return,
-  // brainStateCheckIn was correctly refetched but showCheckInOverAnchor
-  // stayed sticky-true, leaving the expanded picker visible as if
-  // the new check-in hadn't happened.
-  //
-  // Resetting on focus honors the intent: the expanded picker is a
-  // transient mode the user enters by explicit tap. Any return to
-  // the dashboard from elsewhere — completed flow, cancelled flow,
-  // backgrounded app — implies the user is no longer in that mode.
-  // The Cancel-mid-flow path benefits too: the user lands back on
-  // the summary view of their original (still-valid) check-in.
-  useFocusEffect(
-    useCallback(() => {
-      setShowCheckInOverAnchor(false);
-    }, [])
-  );
 
   // Sub-step 2.7 — subscribe to the user's firstShiftAt for the
   // FirstShiftFooter render decision. Real-time so a shift completed
@@ -171,25 +146,13 @@ const DashboardScreen: React.FC = () => {
     );
   }, [navigation, dashboardPhase]);
 
-  const renderCard = (cardId: string) => {
+  // System prompts that survive the rework, rendered after the spec content
+  // cards. NotificationOptIn / EventCode are left as-is pending the live-entry
+  // confirm; the nudge is kept because it's already live-gated (transient).
+  const renderSystemPrompt = (cardId: 'notifOptIn' | 'eventCode' | 'nudge') => {
     switch (cardId) {
-      case 'protocol':
-        // Sub-step 2.7 fix (Observation 3): TodaysProtocolCard is
-        // informational-only after the V1 self-attest UI removal. The
-        // mount is guarded on protocolCompleted=true; the pre-completion
-        // case (e.g. user abandoned a CheckInFlow) hides the card
-        // rather than rendering the now-removed Begin/Done UX. Users
-        // re-engage via the chip-tap surface (BrainStateCheckin) or
-        // via Change on the DashboardAnchor card.
-        return brainStateCheckIn &&
-          todaysProtocol &&
-          brainStateCheckIn.protocolCompleted ? (
-          <TodaysProtocolCard key="protocol" protocol={todaysProtocol} />
-        ) : null;
       case 'notifOptIn':
-        // Skip in pre-checkin; it's rendered separately in that phase (above)
-        // so it stays interactive as a setting. (NotificationOptIn is left
-        // rendering as-is pending the confirm on whether it's a live entry.)
+        // Skip in pre-checkin; it renders separately there (above) as a setting.
         if (dashboardPhase === 'pre-checkin') return null;
         return notifOptInCard ? (
           <View key="notifOptIn" style={{ paddingHorizontal: Spacing.base }}>
@@ -221,47 +184,20 @@ const DashboardScreen: React.FC = () => {
             onDismiss={dismissNudge}
           />
         ) : null;
-      case 'reflection':
-        // Suppressed on the reworked Home (end-of-day reflection is a different
-        // surface, not in the spec set). Reversible via DASHBOARD_SUPPRESS.
-        if (DASHBOARD_SUPPRESS.dailyReflection) return null;
-        return showDailyReflection ? (
-          <DailyReflectionCard
-            key="reflection"
-            onReflect={handleDailyReflection}
-            onSkip={handleDailyReflectionSkip}
-          />
-        ) : null;
-      case 'routines':
-        return (
-          <RoutinesCard
-            key="routines"
-            routines={dashboardRoutines}
-            completions={routineCompletions}
-            onBeginRoutine={handleBeginRoutine}
-            onNavigateToRoutines={() => navigation.navigate('Rhythms' as never, { tab: 'routines' } as never)}
-            onApplyTemplate={handleApplyRoutineTemplate}
-          />
-        );
-      case 'weekInsight':
-        // Only render when there's a real insight. When the user has fewer
-        // than ~3 days of check-in data, no correlation in selectWeekInsight
-        // reaches significance and it returns null. We suppress the card
-        // entirely in that case rather than showing a "come back later"
-        // placeholder, per the voice guide's rule against empty-data cards.
-        if (!weekInsight) return null;
-        return (
-          <WeekInsightCard
-            key="weekInsight"
-            headline={weekInsight.headline}
-            supporting={weekInsight.supporting}
-            onPressFullStory={() => navigation.navigate('Insights' as never)}
-          />
-        );
-      default:
-        return null;
     }
   };
+
+  // The standing capacity practice for the post-check-in surface — time-of-day
+  // driven, independent of any just-completed plan.
+  const suggestion = suggestedAction();
+
+  // Locally-typed navigate for the rework's new destinations. The hook's
+  // navigation is untyped, so the legacy blocks fall back to `as never` casts
+  // that don't type-check; this keeps the new calls clean.
+  const go = (screen: string, params?: Record<string, unknown>) =>
+    (navigation as unknown as {
+      navigate: (s: string, p?: object) => void;
+    }).navigate(screen, params);
 
   if (dataLoading) {
     return <LoadingSpinner message="Loading your wellness dashboard..." />;
@@ -302,18 +238,13 @@ const DashboardScreen: React.FC = () => {
 
         {DASHBOARD_V2 ? (
           <>
-            {/* Phase-dependent top section */}
-            {dashboardPhase === 'checked-in' && brainStateCheckIn && (
-              showCheckInOverAnchor ? (
-                <BrainStateCheckin
-                  currentCheckIn={brainStateCheckIn}
-                />
-              ) : (
-                <DashboardAnchor
-                  brainState={brainStateCheckIn.brainState}
-                  onChangeStatePress={() => setShowCheckInOverAnchor(true)}
-                />
-              )
+            {/* Post-checkin: the quiet "Right now: [state]" acknowledgment
+                (the priority post-checkin, calmer than the invite), derived
+                from the circumplex quadrant. */}
+            {dashboardPhase === 'checked-in' && (
+              <RightNowAcknowledgment
+                quadrant={engineSession?.quadrant ?? null}
+              />
             )}
 
             {/* Pre-checkin: the ONE bright check-in invite (the priority). */}
@@ -346,11 +277,37 @@ const DashboardScreen: React.FC = () => {
               </View>
             )}
 
-            {/* Dashboard cards — calm, ordered by brain state. The pre-checkin
-                blur-gate + locked divider are removed: the rework's calm cards
-                are visible in both phases. */}
+            {/* Spec content cards — explicit, fixed order (no longer
+                brain-state-ordered): Suggested action (post only) → Insight →
+                Routine. */}
             <View>
-              {cardOrder.map((cardId) => renderCard(cardId))}
+              {dashboardPhase === 'checked-in' && suggestion && (
+                <SuggestedActionCard
+                  protocol={suggestion.protocol}
+                  onStart={() =>
+                    go('PracticeRun', {
+                      protocolId: suggestion.protocol.id,
+                      stateBefore: brainStateCheckIn?.brainState ?? 'steady',
+                    })
+                  }
+                />
+              )}
+
+              <InsightCard />
+
+              <RoutineCard
+                routines={dashboardRoutines}
+                completions={routineCompletions}
+                onBeginRoutine={handleBeginRoutine}
+                onNavigateToRoutines={() => go('Rhythms', { tab: 'routines' })}
+                onNavigateToHabits={() => go('Rhythms', { tab: 'habits' })}
+                onApplyTemplate={handleApplyRoutineTemplate}
+              />
+
+              {/* Surviving system prompts (live-gated), after the content. */}
+              {(['notifOptIn', 'eventCode', 'nudge'] as const).map((id) => (
+                <React.Fragment key={id}>{renderSystemPrompt(id)}</React.Fragment>
+              ))}
             </View>
           </>
         ) : (
