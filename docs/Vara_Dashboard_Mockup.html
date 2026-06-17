@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vara — Dashboard Mockup</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+:root{
+  --teal:#1B5E57;
+  --mist:#FAFAF6;
+  --white:#FFFFFF;
+  --silver-sage:#B8CDBA;
+  --dew-sage:#D5E3D1;
+  --sunrise-amber:#F4C542;
+  --golden-apricot:#F5B971;
+  --charcoal:#3E3E3E;
+  --muted:#6F7F77;
+  --coral:#D97A6E;
+  --amber-note:#9A7B2E;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#ECEAE2;
+  color:var(--charcoal);line-height:1.5;padding:32px 18px 56px}
+.intro{max-width:760px;margin:0 auto 30px}
+.intro h1{font-size:22px;font-weight:600;color:var(--teal);margin-bottom:10px}
+.intro p{font-size:15px;color:var(--charcoal);max-width:680px}
+.intro .meta{font-size:13px;color:var(--muted);margin-top:10px}
+.board{display:flex;flex-wrap:wrap;gap:36px;justify-content:center;align-items:flex-start}
+.panel{width:340px}
+.tag{font-size:13px;font-weight:600;color:var(--teal);text-transform:uppercase;
+  letter-spacing:.04em;margin-bottom:10px;text-align:center}
+.tag span{display:block;font-weight:400;text-transform:none;letter-spacing:0;
+  color:var(--muted);font-size:12px;margin-top:2px}
+
+/* ---- iOS phone frame (from mockup kit) ---- */
+.phone{background:var(--mist);border-radius:34px;border:1px solid #DCDAD0;
+  box-shadow:0 8px 30px rgba(0,0,0,.07);overflow:hidden;width:340px}
+.status{display:flex;justify-content:space-between;align-items:center;
+  padding:14px 22px 4px;font:600 13px Inter;color:var(--charcoal)}
+.status .ico{display:flex;gap:5px;align-items:center}
+.bars{display:flex;gap:2px;align-items:flex-end;height:11px}
+.bars i{width:3px;background:var(--charcoal);border-radius:1px}
+.bars i:nth-child(1){height:5px}.bars i:nth-child(2){height:7px}
+.bars i:nth-child(3){height:9px}.bars i:nth-child(4){height:11px}
+.batt{width:22px;height:11px;border:1px solid var(--charcoal);border-radius:3px;position:relative}
+.batt::after{content:"";position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:10px;
+  background:var(--charcoal);border-radius:1px}
+.screen{padding:6px 20px 0;display:flex;flex-direction:column}
+
+/* ---- greeting ---- */
+.greet{padding:14px 0 18px}
+.greet h2{font-size:22px;font-weight:600;color:var(--teal)}
+.greet .date{font-size:14px;color:var(--muted);margin-top:3px}
+
+/* ---- priority: bright check-in invite (pre) ---- */
+.invite{background:var(--teal);border-radius:12px;padding:22px 20px;color:#fff;
+  cursor:default;box-shadow:0 2px 8px rgba(27,94,87,.18)}
+.invite h3{font-size:20px;font-weight:600;margin-bottom:6px}
+.invite p{font-size:14px;color:rgba(255,255,255,.86);max-width:230px}
+.invite .go{float:right;margin-top:-34px;font-size:22px;color:rgba(255,255,255,.9)}
+
+/* ---- priority: quiet state acknowledgment (post) ---- */
+.ack{background:rgba(213,227,209,.5);border-left:4px solid var(--teal);
+  border-radius:12px;padding:18px 20px}
+.ack .lab{font-size:12px;font-weight:500;letter-spacing:.02em;color:var(--muted);
+  text-transform:uppercase;margin-bottom:5px}
+.ack .phrase{font-size:18px;font-weight:600;color:var(--charcoal)}
+.ack .sub{font-size:14px;color:var(--charcoal);opacity:.78;margin-top:4px}
+.ack .recheck{display:inline-block;margin-top:12px;font-size:14px;font-weight:500;color:var(--teal)}
+
+/* ---- slim reset affordance ---- */
+.reset{display:flex;align-items:center;justify-content:space-between;
+  border:1px solid var(--silver-sage);border-radius:9999px;
+  padding:11px 18px;margin-top:14px}
+.reset .t{font-size:14px;color:var(--charcoal)}
+.reset .a{font-size:13px;font-weight:500;color:var(--teal)}
+
+/* ---- cards ---- */
+.card{background:var(--white);border-radius:12px;padding:20px 20px;
+  box-shadow:0 1px 3px rgba(0,0,0,.04);margin-top:16px}
+.card .cap{font-size:12px;font-weight:500;letter-spacing:.02em;color:var(--muted);
+  text-transform:uppercase;margin-bottom:7px}
+.card h4{font-size:18px;font-weight:600;color:var(--charcoal);margin-bottom:6px}
+.card .body{font-size:15px;color:var(--charcoal)}
+.card .row{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.card .meta{font-size:14px;color:var(--muted)}
+.card .cta{font-size:14px;font-weight:500;color:var(--teal)}
+.card .more{display:inline-block;margin-top:11px;font-size:14px;font-weight:500;color:var(--teal)}
+.dots{display:flex;gap:6px;margin-top:4px}
+.dots i{width:9px;height:9px;border-radius:9999px;background:var(--silver-sage);opacity:.5}
+.dots i.on{background:var(--teal);opacity:1}
+
+/* ---- tab bar ---- */
+.tabs{display:flex;justify-content:space-around;align-items:center;
+  border-top:1px solid var(--silver-sage);margin:22px -20px 0;padding:10px 0 16px;
+  background:var(--white)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-size:11px;font-weight:500;color:var(--muted)}
+.tab.on{color:var(--teal)}
+.tab .g{width:22px;height:22px;border-radius:6px;border:1.5px solid currentColor;opacity:.9}
+.tab.on .g{background:rgba(27,94,87,.12)}
+
+/* ---- annotation notes ---- */
+.notes{margin-top:16px;font-size:13px;line-height:1.55}
+.notes .n{display:flex;gap:8px;margin-bottom:7px;align-items:flex-start}
+.notes .chip{flex:none;width:16px;height:16px;border-radius:4px;font-size:11px;
+  font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff;margin-top:1px}
+.chip.ok{background:var(--teal)}
+.chip.q{background:var(--amber-note)}
+.chip.dim{background:var(--muted)}
+.notes .n span:last-child{color:var(--charcoal)}
+.foot{max-width:760px;margin:34px auto 0;font-size:12px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>Vara Dashboard — the two states</h1>
+  <p>Production-fidelity, real tokens. Left is the surface before you've checked in today; right is after. The
+  one move to read: the bright "do something" invite on the left is <em>replaced</em> by a quiet "here's where you
+  are" on the right, and a third, tailored card appears. The surface gets calmer once you engage, it doesn't push
+  more. Annotations below each screen mark the deliberate structural choices (teal) and the open decisions from
+  §8 of the spec (amber).</p>
+  <p class="meta">Icons are placeholders for Vara's rounded 1.5px line set. Tab bar is shown unchanged and is out
+  of scope for this build.</p>
+</div>
+
+<div class="board">
+
+  <!-- ============ PRE-CHECK-IN ============ -->
+  <div class="panel">
+    <div class="tag">Pre-check-in<span>also the first-run state</span></div>
+    <div class="phone">
+      <div class="status"><span>9:41</span>
+        <span class="ico"><span class="bars"><i></i><i></i><i></i><i></i></span>
+          <span>&#9787;</span><span class="batt"></span></span>
+      </div>
+      <div class="screen">
+        <div class="greet">
+          <h2>Good afternoon, Kyle</h2>
+          <div class="date">Tuesday, June 16</div>
+        </div>
+
+        <!-- priority: bright invite -->
+        <div class="invite">
+          <span class="go">&#8250;</span>
+          <h3>How are you right now?</h3>
+          <p>A quick check-in, then one thing that fits.</p>
+        </div>
+
+        <!-- slim reset -->
+        <div class="reset">
+          <span class="t">Need a reset right now?</span>
+          <span class="a">2 min &#8250;</span>
+        </div>
+
+        <!-- card: insight -->
+        <div class="card">
+          <div class="cap">A small insight</div>
+          <h4>Focus runs on limited fuel</h4>
+          <div class="body">Attention tires like a muscle. A short reset can help it recover, no willpower needed.</div>
+          <a class="more">More &#8250;</a>
+        </div>
+
+        <!-- card: routine -->
+        <div class="card">
+          <h4>Today's routine</h4>
+          <div class="body">Afternoon reset</div>
+          <div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+          <div class="row"><span class="meta">2 of 4 &middot; ~6 min</span><span class="cta">Continue &#8250;</span></div>
+        </div>
+
+        <!-- tabs -->
+        <div class="tabs">
+          <div class="tab on"><span class="g"></span>Home</div>
+          <div class="tab"><span class="g"></span>Rhythms</div>
+          <div class="tab"><span class="g"></span>Community</div>
+          <div class="tab"><span class="g"></span>Wellness</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="n"><span class="chip ok">&#10003;</span><span>One bright priority (the invite). Everything below stays muted, the only place teal dominates.</span></div>
+      <div class="n"><span class="chip ok">&#10003;</span><span>Two cards here. The invite <em>is</em> today's action, so no separate suggested-action card. (§8.2)</span></div>
+      <div class="n"><span class="chip ok">&#10003;</span><span>2-min reset is a slim affordance, not a card, and reachable without scrolling. (§8.3)</span></div>
+      <div class="n"><span class="chip dim">&#9679;</span><span>Routine progress shown neutrally (done = teal, remaining = pale). No streak, no deficit framing.</span></div>
+    </div>
+  </div>
+
+  <!-- ============ POST-CHECK-IN ============ -->
+  <div class="panel">
+    <div class="tag">Post-check-in<span>reflects your day</span></div>
+    <div class="phone">
+      <div class="status"><span>9:41</span>
+        <span class="ico"><span class="bars"><i></i><i></i><i></i><i></i></span>
+          <span>&#9787;</span><span class="batt"></span></span>
+      </div>
+      <div class="screen">
+        <div class="greet">
+          <h2>Good afternoon, Kyle</h2>
+          <div class="date">Tuesday, June 16</div>
+        </div>
+
+        <!-- priority: quiet acknowledgment -->
+        <div class="ack">
+          <div class="lab">Right now</div>
+          <div class="phrase">A bit wound up</div>
+          <div class="sub">You checked in a moment ago.</div>
+          <a class="recheck">Check in again</a>
+        </div>
+
+        <!-- slim reset -->
+        <div class="reset">
+          <span class="t">Need a reset right now?</span>
+          <span class="a">2 min &#8250;</span>
+        </div>
+
+        <!-- card: suggested action (the new 3rd card) -->
+        <div class="card">
+          <div class="cap">When you're ready</div>
+          <h4>A few minutes to create some capacity</h4>
+          <div class="row"><span class="meta">Downshift breath &middot; 4 min</span><span class="cta">Begin &#8250;</span></div>
+        </div>
+
+        <!-- card: insight -->
+        <div class="card">
+          <div class="cap">A small insight</div>
+          <h4>Focus runs on limited fuel</h4>
+          <div class="body">Attention tires like a muscle. A short reset can help it recover, no willpower needed.</div>
+          <a class="more">More &#8250;</a>
+        </div>
+
+        <!-- card: routine -->
+        <div class="card">
+          <h4>Today's routine</h4>
+          <div class="body">Afternoon reset</div>
+          <div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+          <div class="row"><span class="meta">2 of 4 &middot; ~6 min</span><span class="cta">Continue &#8250;</span></div>
+        </div>
+
+        <!-- tabs -->
+        <div class="tabs">
+          <div class="tab on"><span class="g"></span>Home</div>
+          <div class="tab"><span class="g"></span>Rhythms</div>
+          <div class="tab"><span class="g"></span>Community</div>
+          <div class="tab"><span class="g"></span>Wellness</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="n"><span class="chip ok">&#10003;</span><span>Priority drops to a quiet acknowledgment. The surface is calmer than the pre-state, by design.</span></div>
+      <div class="n"><span class="chip q">?</span><span>State phrase ("A bit wound up") is draft, felt language, not a label or number. (§8.1)</span></div>
+      <div class="n"><span class="chip ok">&#10003;</span><span>Third card appears: the tailored suggested action, framed as creating capacity. (§8.2)</span></div>
+      <div class="n"><span class="chip q">?</span><span>"Reflects your day" = state + forward suggestion only, no log of what you did. (§8.5)</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="foot">Muted descriptors meet AA on white at 14px+. The bright invite uses teal as primary (not an accent), consistent with the "single bright priority card" decision. No amber/apricot used, the calmer call for this surface.</div>
+
+</body>
+</html>
