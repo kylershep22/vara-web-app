@@ -45,12 +45,12 @@ export const CheckInInvite: React.FC<CheckInInviteProps> = ({ onPress }) => {
       onPress={handlePress}
       activeOpacity={0.9}
       accessibilityRole="button"
-      accessibilityLabel="Check in. A quick check-in to find what fits."
+      accessibilityLabel="Check in. A quick check-in, then one thing that fits."
       testID="dashboard-checkin-invite"
     >
       <View style={styles.textBlock}>
         <Text style={styles.prompt}>How are you right now?</Text>
-        <Text style={styles.subtext}>A quick check-in to find what fits.</Text>
+        <Text style={styles.subtext}>A quick check-in, then one thing that fits.</Text>
       </View>
       <Icon name="chevron-right" size={26} color={Colors.surface} />
     </TouchableOpacity>
