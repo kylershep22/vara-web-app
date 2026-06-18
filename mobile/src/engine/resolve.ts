@@ -16,11 +16,14 @@ import type { Protocol } from '../types/models';
 import type {
   LengthClass,
   PracticePointer,
+  Quadrant,
   Ranker,
   ResolveInput,
   ResolvedPlan,
   ResolvedSlot,
   Slot,
+  SlotDirection,
+  SlotMode,
   ClockTime,
   SessionHistory,
 } from './types';
@@ -37,6 +40,107 @@ import { defaultRanker } from './ranker';
 
 function isPointerSlot(slot: Slot): boolean {
   return slot.type === 'focus-session' || slot.type === 'plan';
+}
+
+// Pomodoro timer options (PomodoroTab DurationChips). A focus-session pointer's
+// length is snapped to the nearest of these so the timer opens at the user's
+// budget instead of the 25-min default. Ascending + strict-less comparison
+// breaks ties toward the LOWER option (e.g. a 20-min budget → 15, staying
+// within budget rather than overrunning to 25).
+const TIMER_OPTIONS = [10, 15, 25, 45, 60, 90];
+
+function snapBudgetToTimerOption(budget: number): number {
+  let best = TIMER_OPTIONS[0];
+  let bestDiff = Infinity;
+  for (const opt of TIMER_OPTIONS) {
+    const diff = Math.abs(opt - budget);
+    if (diff < bestDiff) {
+      best = opt;
+      bestDiff = diff;
+    }
+  }
+  return best;
+}
+
+// ≤5-min budget mapping for a pointer slot that must NOT hand off to the focus
+// timer / plan screen. Keyed by quadrant (the spec's per-state short practice):
+// revved/ready → box breathing, wound-up → extended exhale, depleted → a brief
+// movement lift, steady → box breathing. Falls back to direction degradation
+// when the preferred id is absent from the injected catalog.
+// BACKLOG (not built this pass): two catalogue gaps make some ≤5 budgets
+// inexact rather than wrong. find_energy (Depleted/Calm) at a 2-min budget gets
+// brief-movement-5 (the shortest energizing option; longer than the budget but
+// length-honest via the duration shown), and the short-rest cells (wind_down /
+// just_reset Depleted) fall back to a short settle breath because NSDR starts at
+// 10. A sub-5 energize practice and a ≤5 rest practice (each needs new audio)
+// would close both for exact-fit short budgets.
+const SHORT_POINTER_PRACTICE: Record<
+  Quadrant,
+  { id: string; direction: 'settle' | 'energize' }
+> = {
+  Activated: { id: 'box-breathing-2', direction: 'settle' },
+  Tense: { id: 'extended-exhale-2', direction: 'settle' },
+  Depleted: { id: 'brief-movement-5', direction: 'energize' },
+  Calm: { id: 'box-breathing-2', direction: 'settle' },
+};
+
+// Build the catalog Slot a degraded short practice fills. Carries pillar 'energy'
+// and the mapped direction (not the pointer's 'neutral'/'focus'/'time') so the
+// reflection set and "See other options" re-filter resolve to the energy
+// practice the user actually got.
+function shortPracticeSlot(
+  direction: 'settle' | 'energize',
+  mode: SlotMode,
+  practice: Protocol
+): Slot {
+  return {
+    pillar: 'energy',
+    direction,
+    type: direction,
+    lengthClasses: ['short'],
+    mode,
+    modalities: [practice.modality],
+  };
+}
+
+// Degrade a ≤5-budget pointer slot to a concrete short practice. Prefers the
+// quadrant-mapped id; if the injected catalog lacks it, widens to any short
+// practice of the mapped direction (reusing fillCatalogSlot's degradation).
+function degradePointerToShortPractice(
+  pointerSlot: Slot,
+  quadrant: Quadrant,
+  catalog: Protocol[],
+  budgetClass: LengthClass,
+  evening: boolean,
+  ranker: Ranker,
+  clockTime: ClockTime,
+  history: SessionHistory | undefined
+): FilledSlot | null {
+  const pref = SHORT_POINTER_PRACTICE[quadrant];
+  const preferred = catalog.find((p) => p.id === pref.id);
+  if (preferred) {
+    return {
+      practice: preferred,
+      slot: shortPracticeSlot(pref.direction, pointerSlot.mode, preferred),
+    };
+  }
+  // Fallback: any short practice of the mapped direction.
+  const synthetic: Slot = {
+    pillar: 'energy',
+    direction: pref.direction as SlotDirection,
+    type: pref.direction,
+    lengthClasses: ['short'],
+    mode: 'mandatory',
+  };
+  return fillCatalogSlot(
+    synthetic,
+    catalog,
+    budgetClass,
+    evening,
+    ranker,
+    clockTime,
+    history
+  );
 }
 
 const ALL_LENGTH_CLASSES: LengthClass[] = ['short', 'medium', 'long'];
@@ -139,12 +243,50 @@ export function resolve(input: ResolveInput): ResolvedPlan {
   // §9.4 fill each slot; §9.5 offered slots are presented, not auto-chained
   // (mode is carried through to the resolved slot). Unfillable slots degrade
   // (mandatory) or drop (offered) — resolve() never throws.
+  // A ≤5 budget can't honor a focus-session (the Pomodoro floor is 10) and a
+  // sub-5 "focus session" is a reset wearing the wrong label, so short budgets
+  // branch away from pointers to a brief practice (§ time-budget fix).
+  const isShortBudget = budgetClass === 'short';
+
   const slots: ResolvedSlot[] = [];
+  let hasPractice = false;
   for (const slot of template.slots) {
     if (isPointerSlot(slot)) {
+      if (isShortBudget) {
+        // Never hand off to the focus timer / plan screen at ≤5. If a sibling
+        // practice already leads the plan, drop the pointer (a single short
+        // practice IS the plan); offered pointers drop too. Otherwise degrade
+        // the mandatory pointer to a mapped short practice.
+        if (slot.mode === 'offered' || hasPractice) continue;
+        const degraded = degradePointerToShortPractice(
+          slot,
+          quadrant,
+          catalog,
+          budgetClass,
+          evening,
+          ranker,
+          clockTime,
+          history
+        );
+        if (degraded === null) continue;
+        slots.push({
+          kind: 'practice',
+          slot: degraded.slot,
+          practice: degraded.practice,
+          mode: slot.mode,
+        });
+        hasPractice = true;
+        continue;
+      }
+      // Medium/long budget: keep the pointer. focus-session carries a
+      // budget-derived length so the Pomodoro opens at the chosen budget
+      // (not the 25-min default); plan pointers are untimed (no length).
       const pointer: PracticePointer = {
         pillar: slot.pillar,
         type: slot.type as PracticePointer['type'],
+        ...(slot.type === 'focus-session'
+          ? { length: snapBudgetToTimerOption(timeBudget) }
+          : {}),
       };
       slots.push({ kind: 'pointer', slot, pointer, mode: slot.mode });
       continue;
@@ -166,6 +308,7 @@ export function resolve(input: ResolveInput): ResolvedPlan {
       practice: filled.practice,
       mode: slot.mode,
     });
+    hasPractice = true;
   }
 
   return { situation, quadrant, message: template.message, slots };

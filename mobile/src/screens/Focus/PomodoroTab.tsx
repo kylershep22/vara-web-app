@@ -43,6 +43,13 @@ interface PomodoroTabProps {
   /** Whether 90-minute advanced option should be shown */
   showAdvancedDuration?: boolean;
   /**
+   * Initial timer length (minutes). When the Pomodoro is launched from the
+   * check-in's focus-session pointer, this is the budget-derived prefill so the
+   * timer opens at the user's chosen budget instead of the 25-min default.
+   * Absent for a directly-started Pomodoro (keeps the 25-min default).
+   */
+  initialDuration?: number;
+  /**
    * Present only when this Pomodoro was launched FROM the check-in loop. When
    * set, tapping "Done for now" (after at least one completed block) hands the
    * loop back to the parent with the most recent focus-session doc id so it can
@@ -54,6 +61,7 @@ interface PomodoroTabProps {
 
 export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   showAdvancedDuration = true,
+  initialDuration,
   onLoopDone,
 }) => {
   const { user } = useAuth();
@@ -66,8 +74,9 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   // Task label state
   const [taskLabel, setTaskLabel] = useState('');
 
-  // Duration state
-  const [selectedDuration, setSelectedDuration] = useState(25);
+  // Duration state. Prefilled from the check-in budget when launched from the
+  // focus-session pointer; otherwise the 25-min default.
+  const [selectedDuration, setSelectedDuration] = useState(initialDuration ?? 25);
 
   // Sound panel state
   const [isSoundPanelOpen, setIsSoundPanelOpen] = useState(false);

@@ -26,12 +26,17 @@ import { logger } from '../../utils/logger';
 import { ReflectionStepView } from '../../components/checkin/flow/ReflectionStepView';
 import { PomodoroTab } from './PomodoroTab';
 
-type FocusRoute = RouteProp<{ FocusTimer: { fromCheckIn?: boolean } | undefined }, 'FocusTimer'>;
+type FocusRoute = RouteProp<
+  { FocusTimer: { fromCheckIn?: boolean; durationMinutes?: number } | undefined },
+  'FocusTimer'
+>;
 
 export const FocusScreen: React.FC = () => {
   const route = useRoute<FocusRoute>();
   const navigation = useNavigation();
   const fromCheckIn = route.params?.fromCheckIn === true;
+  // Budget-derived prefill length from the check-in's focus-session pointer.
+  const initialDuration = route.params?.durationMinutes;
 
   // Loop-launched reflection state. `reflecting` flips on the Pomodoro's
   // "Done for now" terminal; `focusSessionId` is the block to attach the
@@ -85,6 +90,7 @@ export const FocusScreen: React.FC = () => {
       <View style={styles.content}>
         <PomodoroTab
           showAdvancedDuration
+          initialDuration={initialDuration}
           onLoopDone={fromCheckIn ? handleLoopDone : undefined}
         />
       </View>

@@ -4,11 +4,15 @@ import { classifyPlanShape, leadPracticeSlot } from '../planShape';
 
 const NOON = { hour: 12 };
 
+// Generous default budget: the pointer presentation shapes (focus-session /
+// plan) only occur at medium/long budgets. A ≤5 budget now branches pointers
+// to a short practice (time-budget fix), so the canonical-shape assertions use
+// a long budget to exercise the pointer shapes.
 function shapeFor(
   situation: Situation,
   arousal: Arousal,
   valence: Valence,
-  timeBudget = 5
+  timeBudget = 45
 ): ReturnType<typeof classifyPlanShape> {
   const plan = resolve({
     situation,
@@ -84,7 +88,9 @@ describe('leadPracticeSlot', () => {
       situation: 'get_through_hard',
       state: { arousal: 'revved', valence: 'good' },
       clockTime: NOON,
-      timeBudget: 5,
+      // Long budget so the focus-session pointer is emitted (a ≤5 budget now
+      // branches it to a short practice).
+      timeBudget: 45,
     });
     expect(leadPracticeSlot(pointerOnly)).toBeNull();
 
