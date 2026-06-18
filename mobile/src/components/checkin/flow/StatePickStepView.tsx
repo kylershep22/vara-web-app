@@ -17,7 +17,7 @@
 // beneath it on the same screen. The reveal is Reduce-Motion-aware (instant, no
 // animation, when the setting is on) and announces the feeling question to
 // assistive tech so screen-reader / keyboard users aren't stranded by the
-// disclosure. The situation already picked shows as quiet context at the top.
+// disclosure. The situation already picked anchors the top as a calm chip.
 //
 // Back returns to the situation step (parent reducer) — there is no internal
 // sub-screen to step back through anymore.
@@ -41,8 +41,8 @@ import { FEELING_COPY } from './feelingCopy';
 
 const MIN_TOUCH_TARGET = 48;
 
-// De-emphasized recap of the situation the user already picked, shown as quiet
-// context at the top of the state read. Mirrors the action phrasing from
+// Recap of the situation the user already picked, shown in the anchor chip at
+// the top of the state read. Mirrors the action phrasing from
 // SituationPickStepView intentionally — a recap of the existing label, not new
 // copy.
 const SITUATION_CONTEXT_LABELS: Record<Situation, string> = {
@@ -135,12 +135,18 @@ export function StatePickStepView({
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text
-          style={styles.situationContext}
-          testID="checkin-flow-state-pick-situation"
-        >
-          {SITUATION_CONTEXT_LABELS[situation]}
-        </Text>
+        {/* Situation anchor chip — the chosen situation as a calm, full-width
+            Dew Sage chip directly under the nav row, so content reads top-down
+            with no marooned middle. */}
+        <View style={styles.situationChip}>
+          <Text style={styles.chipOverline}>You're here to</Text>
+          <Text
+            style={styles.chipSituation}
+            testID="checkin-flow-state-pick-situation"
+          >
+            {SITUATION_CONTEXT_LABELS[situation]}
+          </Text>
+        </View>
 
         {/* Energy — always visible, re-tappable after it's answered. */}
         <Text style={styles.title} testID="checkin-flow-arousal-title">
@@ -217,21 +223,37 @@ const styles = StyleSheet.create({
     height: MIN_TOUCH_TARGET,
   },
   scroll: {
-    // Center the read vertically so the whitespace reads as calm, not
-    // unfinished; still scrolls if the content outgrows the viewport (e.g. the
-    // feeling reveal or large text settings).
+    // Top-down read: the chip anchors under the nav row and the questions follow
+    // immediately, so there's no marooned middle. Grows to scroll if the feeling
+    // reveal or large text settings outgrow the viewport.
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
   },
-  situationContext: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.mutedSageGray,
-    marginBottom: Spacing.lg,
+  situationChip: {
+    backgroundColor: Colors.dewSage,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 24,
   },
+  chipOverline: {
+    fontSize: 12,
+    fontWeight: Typography.fontWeight.semibold,
+    letterSpacing: 0.72, // .06em at 12px
+    textTransform: 'uppercase',
+    color: Colors.evergreenTeal,
+    marginBottom: 4,
+  },
+  chipSituation: {
+    fontSize: 20,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+  },
+  // Questions stay primary at 22px.
   title: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: 22,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
     marginBottom: Spacing.lg,
