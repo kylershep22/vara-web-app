@@ -313,6 +313,21 @@ describe('writeStandardFlowSession — daily marker decoupled from practice comp
     expect(completedFlip).toBeUndefined();
   });
 
+  it('pointer-only hand-off stamps the raw quadrant + situation onto the marker (dashboard acknowledgment source)', async () => {
+    mockGetDoc.mockResolvedValueOnce({ exists: () => false, data: () => null });
+    await writeStandardFlowSession(TEST_USER_ID, pointerOnlyTerminal(), 'default');
+
+    const legacyWrite = mockSetDoc.mock.calls.find(
+      (call) => 'brainState' in (call[1] as object)
+    );
+    expect(legacyWrite).toBeDefined();
+    // The marker now carries the raw circumplex so the "Right now"
+    // acknowledgment reflects Activated even though NO protocolSessions doc is
+    // written for a focus-session pointer terminal.
+    expect((legacyWrite![1] as { quadrant?: string }).quadrant).toBe('Activated');
+    expect((legacyWrite![1] as { situation?: string }).situation).toBe('get_through_hard');
+  });
+
   it('zero-slot / acknowledged check-in also flips the daily marker (Calm → steady), no protocol named', async () => {
     mockGetDoc.mockResolvedValueOnce({ exists: () => false, data: () => null });
     await writeStandardFlowSession(TEST_USER_ID, acknowledgedTerminal(), 'default');

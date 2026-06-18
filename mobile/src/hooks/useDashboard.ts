@@ -41,10 +41,7 @@ import {
   getTodayDailyReflection,
   saveDailyReflection,
 } from '../services/firebase';
-import {
-  getTodayLatestEngineSession,
-  type TodayEngineSession,
-} from '../services/firebase/protocolSession.service';
+import { type TodayEngineSession } from '../services/firebase/protocolSession.service';
 import { BrainState, BrainStateCheckIn as BrainStateCheckInType, DailyReflection as DailyReflectionType, DailyReflectionValue } from '../types';
 import { getNudgeSuggestion, NudgeSuggestion } from '../utils/getNudgeSuggestion';
 import { getDashboardCardOrder, type DashboardCardId } from '../utils/getDashboardCardOrder';
@@ -316,11 +313,18 @@ export function useDashboard() {
           setBrainStateCheckIn(existing);
           const existingReflection = await getTodayDailyReflection(user.uid);
           setDailyReflection(existingReflection);
-          // Authoritative circumplex read for the acknowledgment. Independent of
-          // the legacy doc above (overwhelm-only days have a legacy doc but no
-          // qualifying engine session → null → neutral acknowledgment).
-          const latestEngine = await getTodayLatestEngineSession(user.uid);
-          setEngineSession(latestEngine);
+          // Acknowledgment state reads the daily marker, which now carries the
+          // raw quadrant + situation on EVERY check-in terminal (practice,
+          // pointer hand-off, or acknowledged). This decouples "Right now" from
+          // whether a protocolSessions doc exists — a focus-session pointer day
+          // (no practice run) still shows the real quadrant, not the neutral
+          // fallback. A marker without a quadrant (overwhelm/browse-only day)
+          // resolves to null → neutral acknowledgment.
+          const ackState: TodayEngineSession | null =
+            existing?.quadrant && existing?.situation
+              ? { quadrant: existing.quadrant, situation: existing.situation }
+              : null;
+          setEngineSession(ackState);
         } catch (error) {
           logger.error('Error loading brain state check-in:', error);
         }

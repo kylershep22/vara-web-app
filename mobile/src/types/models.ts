@@ -799,6 +799,20 @@ export interface BrainStateCheckIn {
   protocolCompleted: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  // Raw circumplex state from the check-in that wrote this marker. Carried in
+  // addition to the bridged `brainState` so the dashboard "Right now"
+  // acknowledgment can reflect the real quadrant on EVERY terminal type
+  // (practice, pointer hand-off, or acknowledged), not only when a catalog
+  // practice ran and a protocolSessions doc exists. Inlined unions (kept in
+  // sync with engine Quadrant/Situation) avoid a models→engine import cycle.
+  quadrant?: 'Tense' | 'Activated' | 'Depleted' | 'Calm';
+  situation?:
+    | 'get_through_hard'
+    | 'quiet_mind'
+    | 'find_energy'
+    | 'wind_down'
+    | 'grip_on_day'
+    | 'just_reset';
 }
 
 // ==========================================
