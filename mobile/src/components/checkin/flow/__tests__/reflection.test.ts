@@ -7,15 +7,23 @@ describe('reflectionSetFor — set chosen by (pillar, direction)', () => {
     expect(set.strongPositiveId).toBe('settled');
   });
 
-  it('energy + settle → Calmer / A little / Still wound up', () => {
+  it('energy + settle → Calmer / A little calmer / Still wound up', () => {
     const set = reflectionSetFor('energy', 'settle');
-    expect(set.chips.map((c) => c.label)).toEqual(['Calmer', 'A little', 'Still wound up']);
+    expect(set.chips.map((c) => c.label)).toEqual([
+      'Calmer',
+      'A little calmer',
+      'Still wound up',
+    ]);
     expect(set.strongPositiveId).toBe('calmer');
   });
 
-  it('energy + energize → More with it / A little / Still flat', () => {
+  it('energy + energize → More with it / A little more / Still flat', () => {
     const set = reflectionSetFor('energy', 'energize');
-    expect(set.chips.map((c) => c.label)).toEqual(['More with it', 'A little', 'Still flat']);
+    expect(set.chips.map((c) => c.label)).toEqual([
+      'More with it',
+      'A little more',
+      'Still flat',
+    ]);
     expect(set.strongPositiveId).toBe('more_with_it');
   });
 

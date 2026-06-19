@@ -10,6 +10,7 @@
 // (locked Phase B decision; "A little" / middle chips do NOT qualify).
 
 import type { Pillar, SlotDirection } from '../../../engine';
+import type { ProtocolModality } from '../../../types/models';
 
 export interface ReflectionChip {
   // Stable id persisted on the session record. Unique within a set; the
@@ -43,7 +44,7 @@ const ENERGY_SETTLE_SET: ReflectionSet = {
   strongPositiveId: 'calmer',
   chips: [
     { id: 'calmer', label: 'Calmer' },
-    { id: 'a_little', label: 'A little' },
+    { id: 'a_little', label: 'A little calmer' },
     { id: 'still_wound_up', label: 'Still wound up' },
   ],
 };
@@ -54,7 +55,7 @@ const ENERGY_ENERGIZE_SET: ReflectionSet = {
   strongPositiveId: 'more_with_it',
   chips: [
     { id: 'more_with_it', label: 'More with it' },
-    { id: 'a_little', label: 'A little' },
+    { id: 'a_little', label: 'A little more' },
     { id: 'still_flat', label: 'Still flat' },
   ],
 };
@@ -98,4 +99,69 @@ export function isStrongPositiveReflection(
   reflectionId: string
 ): boolean {
   return reflectionSetFor(pillar, direction).strongPositiveId === reflectionId;
+}
+
+// ── display labels by practice category ─────────────────────
+// Every option is a complete answer to "How does it feel now?" (the bare middle
+// "A little" was the bug). The four catalog categories all map onto the existing
+// (pillar, direction) id-sets — so the persisted chip ids and the outcome /
+// firstShift classification are UNCHANGED — but the LABELS shown vary by the
+// practice's category. Down-regulate, settle-before-focus, and rest all share
+// the energy/settle id-set; they differ only in wording.
+export type ReflectionCategory =
+  | 'down_regulate'
+  | 'energize'
+  | 'settle_before_focus'
+  | 'rest'
+  | 'focus';
+
+export interface ReflectionContext {
+  // The completed practice's modality (audio → rest), and whether the practice
+  // leads into a focus session in this plan (settle-before-focus). Both are
+  // available where the reflection is rendered; absent for the focus-session
+  // loop (pillar 'focus').
+  modality?: ProtocolModality;
+  leadsToFocus?: boolean;
+}
+
+export function reflectionCategoryFor(
+  pillar: Pillar,
+  direction: SlotDirection,
+  ctx: ReflectionContext = {}
+): ReflectionCategory {
+  if (pillar === 'focus') return 'focus';
+  if (pillar === 'energy' && direction === 'energize') return 'energize';
+  if (pillar === 'energy' && direction === 'settle') {
+    if (ctx.modality === 'audio') return 'rest'; // NSDR / narrated rest
+    if (ctx.leadsToFocus) return 'settle_before_focus'; // settle breath before a focus session
+    return 'down_regulate';
+  }
+  // pillar 'time' / any unexpected combo: a calm down-regulate default (a
+  // catalog practice never resolves to the time pillar today).
+  return 'down_regulate';
+}
+
+// Labels positionally match each id-set's three chips (strong-positive / middle
+// / negative). The middle is a complete answer, never a bare "A little".
+const CATEGORY_LABELS: Record<ReflectionCategory, [string, string, string]> = {
+  down_regulate: ['Calmer', 'A little calmer', 'Still wound up'],
+  energize: ['More with it', 'A little more', 'Still flat'],
+  settle_before_focus: ['Clearer', 'A little clearer', 'Still scattered'],
+  rest: ['More rested', 'A little more', 'Still tense'],
+  focus: ['Settled', 'Some', 'Still busy'],
+};
+
+/**
+ * The chips to render: stable ids (from the (pillar, direction) set the
+ * classifier reads) paired with category-specific labels. The first chip is the
+ * strong-positive in every set.
+ */
+export function reflectionDisplayChips(
+  pillar: Pillar,
+  direction: SlotDirection,
+  ctx: ReflectionContext = {}
+): ReflectionChip[] {
+  const set = reflectionSetFor(pillar, direction);
+  const labels = CATEGORY_LABELS[reflectionCategoryFor(pillar, direction, ctx)];
+  return set.chips.map((chip, i) => ({ id: chip.id, label: labels[i] }));
 }
