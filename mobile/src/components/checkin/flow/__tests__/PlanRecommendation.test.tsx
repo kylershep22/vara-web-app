@@ -132,7 +132,7 @@ describe('PlanRecommendation', () => {
     expect(onPrimary).toHaveBeenCalledTimes(1);
   });
 
-  it('zero-slot: renders the acknowledgment message, no reason, primary "Done"', () => {
+  it('zero-slot: renders the affirmation, no reason, primary "Done", no reset', () => {
     const { getByTestId, queryByTestId } = render(
       <PlanRecommendation
         plan={planFor('find_energy', 'revved', 'good')} // zero-slot
@@ -144,6 +144,31 @@ describe('PlanRecommendation', () => {
     expect(queryByTestId('checkin-flow-plan-reason')).toBeNull();
     expect(getByTestId('checkin-flow-plan-zero')).toBeTruthy();
     expect(getByTestId('checkin-flow-plan-primary').props.accessibilityLabel).toBe('Done');
+    // No-offer variant: no reset button.
+    expect(queryByTestId('checkin-flow-plan-secondary')).toBeNull();
+  });
+
+  it('offered-reset: one affirmation hero with three weighted choices, no duplicate line', () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <PlanRecommendation
+        plan={planFor('quiet_mind', 'low', 'good', 45)} // message_offered (Calm)
+        reason="ignored for the affirmation shape"
+        onPrimary={noop}
+        onSecondary={noop}
+        onSeeOtherOptions={noop}
+      />
+    );
+    expect(getByTestId('checkin-flow-plan-affirmation')).toBeTruthy();
+    expect(getByText("You're already there.")).toBeTruthy();
+    expect(getByText('Nothing needed unless you want it.')).toBeTruthy();
+    // The redundant reason subhead is gone.
+    expect(queryByTestId('checkin-flow-plan-reason')).toBeNull();
+    // Three weighted choices: primary / outline secondary / tertiary link.
+    expect(getByTestId('checkin-flow-plan-primary').props.accessibilityLabel).toBe("I'm good");
+    expect(getByTestId('checkin-flow-plan-secondary').props.accessibilityLabel).toBe(
+      'Take a short reset'
+    );
+    expect(getByTestId('checkin-flow-plan-see-other-options')).toBeTruthy();
   });
 
   it('primary CTA fires onPrimary', () => {

@@ -23,7 +23,7 @@ import {
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Spacing, Typography } from '../../../constants';
-import type { PracticePointer, ResolvedPlan } from '../../../engine';
+import type { PracticePointer, Quadrant, ResolvedPlan } from '../../../engine';
 import type { Protocol } from '../../../types/models';
 import {
   evidenceChipLabel,
@@ -104,6 +104,8 @@ export function PlanRecommendation({
       <ScrollView contentContainerStyle={styles.scroll}>
         {lead ? (
           <TimedLead lead={lead} reason={reason} />
+        ) : isAffirmationShape(shape) ? (
+          <Affirmation shape={shape} quadrant={plan.quadrant} />
         ) : (
           <>
             {reason ? (
@@ -231,6 +233,44 @@ function TimedLead({
   );
 }
 
+// ── affirmation (zero + message_offered) ────────────────────
+// The "you're already steady" shapes: one calm affirmation hero, the offer (if
+// any) lives in the buttons, not a second body line. Prefer the engine's
+// per-cell message; fall back to a per-quadrant line.
+const QUADRANT_AFFIRMATION: Record<Quadrant, string> = {
+  Calm: "You're steady right now.",
+  Activated: "You've got energy right now.",
+  Tense: "You're holding a lot right now.",
+  Depleted: "You're running low right now.",
+};
+
+function isAffirmationShape(shape: PlanShape): boolean {
+  return shape.kind === 'zero' || shape.kind === 'message_offered';
+}
+
+function Affirmation({
+  shape,
+  quadrant,
+}: {
+  shape: PlanShape;
+  quadrant: Quadrant;
+}) {
+  const hero = shape.message ?? QUADRANT_AFFIRMATION[quadrant];
+  const offered = shape.kind === 'message_offered';
+  return (
+    <View
+      style={styles.affirm}
+      testID={shape.kind === 'zero' ? 'checkin-flow-plan-zero' : 'checkin-flow-plan-affirmation'}
+    >
+      <Text style={styles.overline}>From your check-in</Text>
+      <Text style={styles.affirmHero}>{hero}</Text>
+      {offered ? (
+        <Text style={styles.affirmSub}>Nothing needed unless you want it.</Text>
+      ) : null}
+    </View>
+  );
+}
+
 // ── body ───────────────────────────────────────────────────
 
 function PlanBody({ shape }: { shape: PlanShape }) {
@@ -316,15 +356,15 @@ function PlanActions({
     case 'zero':
       return <PrimaryButton label="Done" onPress={onPrimary} />;
     case 'message_offered':
+      // Weighted choices: "I'm good" is the primary (teal), the reset is a quiet
+      // outline secondary, and "See other options" renders as a tertiary text
+      // link in the footer below.
       return (
         <>
-          {onSecondary ? (
-            <SecondaryButton
-              label="Take a short reset"
-              onPress={onSecondary}
-            />
-          ) : null}
           <PrimaryButton label="I'm good" onPress={onPrimary} />
+          {onSecondary ? (
+            <SecondaryButton label="Take a short reset" onPress={onSecondary} />
+          ) : null}
         </>
       );
     case 'single_practice':
@@ -479,6 +519,22 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: Spacing.lg,
   },
+  // ── affirmation branch (zero + message_offered) ──
+  affirm: {
+    paddingTop: Spacing.sm,
+  },
+  affirmHero: {
+    fontSize: 24,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+    lineHeight: 31,
+  },
+  affirmSub: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.mutedSageGray,
+    lineHeight: 22,
+    marginTop: Spacing.sm,
+  },
   // ── timed branch: ring/hero ──
   timed: {
     alignItems: 'center',
@@ -622,7 +678,7 @@ const styles = StyleSheet.create({
     minHeight: MIN_TOUCH_TARGET,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: Colors.silverSage,
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
