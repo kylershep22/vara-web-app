@@ -7,12 +7,17 @@ import { PlanRecommendation } from '../PlanRecommendation';
 
 const NOON = { hour: 12 };
 
-function planFor(situation: Situation, arousal: Arousal, valence: Valence) {
+function planFor(
+  situation: Situation,
+  arousal: Arousal,
+  valence: Valence,
+  timeBudget = 45
+) {
   return resolve({
     situation,
     state: { arousal, valence },
     clockTime: NOON,
-    timeBudget: 45,
+    timeBudget,
   });
 }
 
@@ -72,6 +77,33 @@ describe('PlanRecommendation', () => {
     expect(getByTestId('checkin-flow-plan-primary').props.accessibilityLabel).toBe(
       'Start focus session'
     );
+  });
+
+  it('focus-session branch renders the ring/hero with the budget-derived duration', () => {
+    const { getByTestId } = render(
+      <PlanRecommendation
+        plan={planFor('get_through_hard', 'revved', 'good', 45)} // focus pointer @45
+        reason="Because you've got energy, straight into focus."
+        onPrimary={noop}
+        onSeeOtherOptions={noop}
+      />
+    );
+    expect(getByTestId('checkin-flow-plan-timed')).toBeTruthy();
+    expect(getByTestId('checkin-flow-plan-duration').props.children).toBe('45 min');
+  });
+
+  it('short-practice branch renders the ring/hero from the resolved practice', () => {
+    const { getByTestId } = render(
+      <PlanRecommendation
+        plan={planFor('get_through_hard', 'revved', 'good', 2)} // ≤5 → box-breathing-2
+        reason="Because you've got energy, a few breaths to settle."
+        onPrimary={noop}
+        onSeeOtherOptions={noop}
+      />
+    );
+    expect(getByTestId('checkin-flow-plan-timed')).toBeTruthy();
+    expect(getByTestId('checkin-flow-plan-duration').props.children).toBe('2 min');
+    expect(getByTestId('checkin-flow-plan-primary').props.accessibilityLabel).toBe('Begin');
   });
 
   it('zero-slot: renders the acknowledgment message, no reason, primary "Done"', () => {
