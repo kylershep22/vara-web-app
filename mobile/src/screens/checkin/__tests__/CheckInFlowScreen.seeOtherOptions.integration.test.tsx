@@ -131,7 +131,7 @@ describe('CheckInFlowScreen — "See other options" navigation chain', () => {
     // Drive: situation → circumplex (Tense) → 5-minute budget. Energy higher +
     // get_through_hard hard pole ("Struggling") → revved + hard → Tense.
     fireEvent.press(await findByLabelText('Get through something hard'));
-    fireEvent.press(await findByLabelText('On the higher side'));
+    fireEvent.press(await findByLabelText('Revved up'));
     fireEvent.press(await findByLabelText('Struggling'));
     fireEvent.press(await findByTestId('time-window-chip-5'));
 
@@ -154,7 +154,7 @@ describe('CheckInFlowScreen — "See other options" navigation chain', () => {
 
     await findByTestId('checkin-flow-situation-pick');
     fireEvent.press(await findByLabelText('Quiet a busy mind'));
-    fireEvent.press(await findByLabelText('On the higher side'));
+    fireEvent.press(await findByLabelText('Revved up'));
     fireEvent.press(await findByLabelText('Too much'));
     fireEvent.press(await findByTestId('time-window-chip-10'));
 

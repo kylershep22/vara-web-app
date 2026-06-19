@@ -129,7 +129,7 @@ describe('CheckInFlow — situation → circumplex → time dispatch', () => {
     expect(getByTestId('checkin-flow-arousal-title')).toBeTruthy();
 
     // Energy tap reveals the feeling question on the same screen (no swap).
-    fireEvent.press(getByLabelText('On the higher side'));
+    fireEvent.press(getByLabelText('Revved up'));
     expect(getByTestId('checkin-flow-valence-title')).toBeTruthy();
 
     // Feeling tap (quiet_mind hard pole = "Too much") → time window.
@@ -145,7 +145,7 @@ describe('CheckInFlow — situation → circumplex → time dispatch', () => {
 
     // Drive to the plan: quiet_mind / Tense → a single settle practice.
     fireEvent.press(getByLabelText('Quiet a busy mind'));
-    fireEvent.press(getByLabelText('On the higher side'));
+    fireEvent.press(getByLabelText('Revved up'));
     fireEvent.press(getByLabelText('Too much'));
     fireEvent.press(getByTestId('time-window-chip-5'));
 

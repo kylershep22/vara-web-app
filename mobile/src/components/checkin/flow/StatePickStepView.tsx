@@ -1,8 +1,8 @@
 // Step 2 of the reworked core loop: the circumplex state read
 // (Vara_Engine_Contract.md §2), consolidated to ONE progressive screen.
 //
-//   Energy (fixed):              "Where's your energy?"
-//                                  On the higher side / On the lower side
+//   Body state (fixed):          "How's your body right now?"
+//                                  Revved up / Running low
 //   Feeling (situation-specific): revealed BELOW once energy is answered
 //                                  (question + labels via FEELING_COPY).
 //
