@@ -1,12 +1,18 @@
 // Post-practice reflection (Vara_Engine_Contract.md §9.6). Replaces the prior
-// five-chip BrainState re-check. A single-tap, per-pillar reflection whose chip
-// set is chosen by the completed practice's slot (pillar, direction). Shown
-// only when a catalog practice actually ran — pointer hand-off / zero-slot
-// cells never reach this step.
+// five-chip BrainState re-check. A single-tap, per-category reflection whose
+// option labels are chosen by the completed practice's category (down-regulate /
+// energize / settle-before-focus / rest / focus). Shown only when a catalog
+// practice actually ran — pointer hand-off / zero-slot cells never reach this
+// step.
+//
+// The chip IDS stay keyed to the slot (pillar, direction) — the outcome /
+// firstShift classifier reads those — while the LABELS vary by category
+// (reflectionDisplayChips). Visually: a full-width "Just completed" banner in
+// the same language as the situation chip, then the hero question and the option
+// cards, composed top-down.
 //
 // Brand: calm, non-judgmental, no streaks, no scores, no red. Single tap
-// advances; there is no "wrong" answer and no back affordance (the practice is
-// done — the only forward path is naming how it landed).
+// advances; there is no "wrong" answer and no back affordance.
 
 import React from 'react';
 import {
@@ -20,7 +26,7 @@ import {
 import { Colors, Spacing, Typography } from '../../../constants';
 import type { Protocol } from '../../../types/models';
 import type { Pillar, SlotDirection } from '../../../engine';
-import { reflectionSetFor } from './reflection';
+import { reflectionDisplayChips } from './reflection';
 
 const MIN_TOUCH_TARGET = 48;
 
@@ -32,6 +38,10 @@ export interface ReflectionStepViewProps {
   completedLabel?: string;
   pillar: Pillar;
   direction: SlotDirection;
+  // True when this practice leads into a focus session in the current plan —
+  // selects the "settle before focus" labels (Clearer / scattered) over plain
+  // down-regulate. Absent for the focus-session loop and standalone practices.
+  leadsToFocus?: boolean;
   onSelect: (reflectionId: string) => void;
 }
 
@@ -40,21 +50,26 @@ export function ReflectionStepView({
   completedLabel,
   pillar,
   direction,
+  leadsToFocus,
   onSelect,
 }: ReflectionStepViewProps) {
-  const set = reflectionSetFor(pillar, direction);
+  const chips = reflectionDisplayChips(pillar, direction, {
+    modality: protocol?.modality,
+    leadsToFocus,
+  });
   const displayName = completedLabel ?? protocol?.name ?? 'your session';
 
   return (
     <View style={styles.container} testID="checkin-flow-reflection">
       <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Completion banner — full-width, same language as the situation chip. */}
         <View
-          style={styles.protocolChip}
+          style={styles.banner}
           testID="checkin-flow-reflection-protocol-chip"
           accessibilityLabel={`Just completed: ${displayName}`}
         >
-          <Text style={styles.protocolChipLabel}>Just completed</Text>
-          <Text style={styles.protocolChipName}>{displayName}</Text>
+          <Text style={styles.bannerOverline}>Just completed</Text>
+          <Text style={styles.bannerName}>{displayName}</Text>
         </View>
 
         <Text style={styles.title} testID="checkin-flow-reflection-title">
@@ -62,7 +77,7 @@ export function ReflectionStepView({
         </Text>
 
         <View style={styles.chips}>
-          {set.chips.map((chip) => (
+          {chips.map((chip) => (
             <TouchableOpacity
               key={chip.id}
               style={styles.chip}
@@ -90,28 +105,28 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xl,
     paddingBottom: Spacing.xl,
   },
-  protocolChip: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: 999,
+  banner: {
     backgroundColor: Colors.dewSage,
-    marginBottom: Spacing.lg,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 24,
   },
-  protocolChipLabel: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.mutedSageGray,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  protocolChipName: {
-    fontSize: Typography.fontSize.sm,
+  bannerOverline: {
+    fontSize: 12,
     fontWeight: Typography.fontWeight.semibold,
+    letterSpacing: 0.72, // .06em at 12px
+    textTransform: 'uppercase',
     color: Colors.evergreenTeal,
-    marginTop: 2,
+    marginBottom: 4,
+  },
+  bannerName: {
+    fontSize: 20,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
   },
   title: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: 24,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.evergreenTeal,
     marginBottom: Spacing.lg,

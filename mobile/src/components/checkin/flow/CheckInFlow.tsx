@@ -49,7 +49,7 @@ import { planReason } from './planReason';
 import { ReflectionStepView } from './ReflectionStepView';
 import { PointerOfferStepView } from './PointerOfferStepView';
 import { RecoveryConfirmStepView } from './RecoveryConfirmStepView';
-import { leadPracticeSlot } from './planShape';
+import { leadPracticeSlot, leadsToFocusSession } from './planShape';
 
 export type { TerminalFlowState } from './types';
 
@@ -303,6 +303,7 @@ function renderStep(
           protocol={state.protocol}
           pillar={state.pillar}
           direction={state.direction}
+          leadsToFocus={leadsToFocusSession(state.plan)}
           onSelect={(reflectionId) =>
             dispatch({ type: 'reflection_selected', reflectionId })
           }
