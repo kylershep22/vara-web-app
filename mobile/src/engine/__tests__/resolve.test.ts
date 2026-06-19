@@ -304,7 +304,7 @@ describe('resolve — time budget branches the plan (BUG: budget not honored)', 
     }
   });
 
-  it('find_energy/Depleted at a 2-min budget serves brief-movement-5 (shortest energizing, length-honest)', () => {
+  it('find_energy/Depleted at a 2-min budget serves Light Movement clamped to 2 min (timer ceiling)', () => {
     const plan = resolve({
       situation: 'find_energy',
       state: stateFor('Depleted'),
@@ -313,7 +313,30 @@ describe('resolve — time budget branches the plan (BUG: budget not honored)', 
     });
     const slot = plan.slots[0];
     expect(slot.kind).toBe('practice');
-    if (slot.kind === 'practice') expect(slot.practice.id).toBe('brief-movement-5');
+    if (slot.kind === 'practice') {
+      expect(slot.practice.family).toBe('brief-movement');
+      expect(slot.practice.timeWindow).toBe(2);
+      expect(slot.practice.durationSeconds).toBe(120);
+      const timer = slot.practice.steps.find((s) => s.kind === 'timer');
+      expect(timer && timer.kind === 'timer' ? timer.durationSeconds : null).toBe(120);
+    }
+  });
+
+  it('Light Movement clamps to its range: 5 → 5, longer budgets cap at 5', () => {
+    const five = resolve({
+      situation: 'find_energy',
+      state: stateFor('Depleted'),
+      clockTime: DAYTIME,
+      timeBudget: 5,
+    });
+    const long = resolve({
+      situation: 'find_energy',
+      state: stateFor('Depleted'),
+      clockTime: DAYTIME,
+      timeBudget: 45,
+    });
+    if (five.slots[0].kind === 'practice') expect(five.slots[0].practice.timeWindow).toBe(5);
+    if (long.slots[0].kind === 'practice') expect(long.slots[0].practice.timeWindow).toBe(5);
   });
 });
 

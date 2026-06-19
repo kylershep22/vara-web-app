@@ -12,7 +12,7 @@
  * nothing fits, the shortest available); an offered slot is simply dropped.
  */
 import { getAllProtocols } from '../constants/brainStateProtocols';
-import type { Protocol } from '../types/models';
+import type { Protocol, ProtocolFamily, ProtocolTimeWindow } from '../types/models';
 import type {
   LengthClass,
   PracticePointer,
@@ -67,13 +67,41 @@ function snapBudgetToTimerOption(budget: number): number {
 // revved/ready → box breathing, wound-up → extended exhale, depleted → a brief
 // movement lift, steady → box breathing. Falls back to direction degradation
 // when the preferred id is absent from the injected catalog.
-// BACKLOG (not built this pass): two catalogue gaps make some ≤5 budgets
-// inexact rather than wrong. find_energy (Depleted/Calm) at a 2-min budget gets
-// brief-movement-5 (the shortest energizing option; longer than the budget but
-// length-honest via the duration shown), and the short-rest cells (wind_down /
-// just_reset Depleted) fall back to a short settle breath because NSDR starts at
-// 10. A sub-5 energize practice and a ≤5 rest practice (each needs new audio)
-// would close both for exact-fit short budgets.
+// Timer-based, self-guided practices honor the budget as a CEILING (the same way
+// focus pointers snap down, never up): the served countdown = the budget clamped
+// to the practice's sensible range. Fixed-length audio (NSDR, narrated breath)
+// can't flex and keep their shortest-available + honest-copy fallback.
+const TIMER_FLEX_RANGE: Partial<
+  Record<ProtocolFamily, { min: number; max: number }>
+> = {
+  'brief-movement': { min: 2, max: 5 },
+};
+
+// Derive a duration-clamped copy of a timer-flexible practice for the budget.
+// Overrides timeWindow + durationSeconds + the timer step so the plan ring and
+// the running countdown both reflect the served length. No-op for fixed-length
+// practices and when the clamp lands on the practice's existing window.
+function clampTimerPractice(practice: Protocol, budgetMinutes: number): Protocol {
+  const range = TIMER_FLEX_RANGE[practice.family];
+  if (!range) return practice;
+  const minutes = Math.max(range.min, Math.min(range.max, budgetMinutes));
+  if (minutes === practice.timeWindow) return practice;
+  const seconds = minutes * 60;
+  return {
+    ...practice,
+    timeWindow: minutes as ProtocolTimeWindow,
+    durationSeconds: seconds,
+    steps: practice.steps.map((s) =>
+      s.kind === 'timer' ? { ...s, durationSeconds: seconds } : s
+    ),
+  };
+}
+
+// BACKLOG (not built this pass): the short-rest cells (wind_down / just_reset
+// Depleted) fall back to a short settle breath at a ≤5 budget because NSDR
+// starts at 10; a ≤5 rest practice (needs new audio) would close that for an
+// exact-fit short budget. (The former find-energy short gap is now CLOSED —
+// timer-based movement flexes down to the budget via clampTimerPractice.)
 const SHORT_POINTER_PRACTICE: Record<
   Quadrant,
   { id: string; direction: 'settle' | 'energize' }
@@ -272,7 +300,7 @@ export function resolve(input: ResolveInput): ResolvedPlan {
         slots.push({
           kind: 'practice',
           slot: degraded.slot,
-          practice: degraded.practice,
+          practice: clampTimerPractice(degraded.practice, timeBudget),
           mode: slot.mode,
         });
         hasPractice = true;
@@ -305,7 +333,7 @@ export function resolve(input: ResolveInput): ResolvedPlan {
     slots.push({
       kind: 'practice',
       slot: filled.slot,
-      practice: filled.practice,
+      practice: clampTimerPractice(filled.practice, timeBudget),
       mode: slot.mode,
     });
     hasPractice = true;
