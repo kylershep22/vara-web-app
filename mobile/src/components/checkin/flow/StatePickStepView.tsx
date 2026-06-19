@@ -59,11 +59,13 @@ interface ArousalOption {
   label: string;
 }
 
-// Fixed energy labels (situation-independent). 'revved' is the higher pole,
-// 'low' the lower pole — the same two poles the engine has always consumed.
+// Fixed body-state labels (situation-independent). 'revved' is the higher pole,
+// 'low' the lower pole — the same two poles the engine has always consumed; only
+// the wording changed (a body-state read fits find-energy, where "on the higher
+// side" contradicted the situation).
 const AROUSAL_OPTIONS: ArousalOption[] = [
-  { value: 'revved', label: 'On the higher side' },
-  { value: 'low', label: 'On the lower side' },
+  { value: 'revved', label: 'Revved up' },
+  { value: 'low', label: 'Running low' },
 ];
 
 export interface StatePickStepViewProps {
@@ -148,9 +150,9 @@ export function StatePickStepView({
           </Text>
         </View>
 
-        {/* Energy — always visible, re-tappable after it's answered. */}
+        {/* Body state — always visible, re-tappable after it's answered. */}
         <Text style={styles.title} testID="checkin-flow-arousal-title">
-          Where's your energy?
+          How's your body right now?
         </Text>
         <View style={styles.options}>
           {AROUSAL_OPTIONS.map((option) => {
