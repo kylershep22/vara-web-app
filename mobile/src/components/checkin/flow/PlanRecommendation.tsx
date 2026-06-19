@@ -174,18 +174,29 @@ function timedLead(shape: PlanShape): TimedLeadData | null {
         chainTo: pointerNoun(shape.pointer),
       };
     case 'single_pointer':
-      if (shape.pointer.type === 'focus-session') {
-        const mins = shape.pointer.length;
-        return {
-          name: 'Focus session',
-          duration: mins != null ? `${mins} min` : 'Focus',
-          description: 'A quiet window to do the work',
-        };
-      }
-      return null; // plan pointer — left as-is (later polish)
+      return shape.pointer.type === 'focus-session'
+        ? focusPointerLead(shape.pointer)
+        : null; // routine/plan pointer — left as-is (non-timed destination)
+    case 'offered_practice_then_pointer':
+      // Focus session is the hero; the offered practice is a pre-roll affordance
+      // above the CTA (PlanActions), not in the ring.
+      return shape.pointer.type === 'focus-session'
+        ? focusPointerLead(shape.pointer)
+        : null;
     default:
-      return null; // zero / message_offered / offered_practice_then_pointer
+      return null; // zero / message_offered
   }
+}
+
+// The focus-session pointer enriched to the timed-lead shape (concern C): the
+// budget-derived prefill drives the ring duration.
+function focusPointerLead(pointer: PracticePointer): TimedLeadData {
+  const mins = pointer.length;
+  return {
+    name: 'Focus session',
+    duration: mins != null ? `${mins} min` : 'Focus',
+    description: 'A quiet window to do the work',
+  };
 }
 
 function TimedLead({
@@ -331,8 +342,8 @@ function PlanActions({
       return (
         <>
           {onSecondary ? (
-            <SecondaryButton
-              label={`Add ${shape.practice.practice.name} first`}
+            <PreRollButton
+              label={`Ease in with ${shape.practice.practice.name} · ${formatProtocolDuration(shape.practice.practice)}`}
               onPress={onSecondary}
             />
           ) : null}
@@ -343,6 +354,30 @@ function PlanActions({
         </>
       );
   }
+}
+
+// Optional pre-roll affordance: a quiet silver-sage outline row (not a second
+// primary) with a leading "+", sitting directly above the teal CTA. Tapping it
+// runs the offered practice and then hands off to the focus session.
+function PreRollButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={styles.preRollButton}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID="checkin-flow-plan-secondary"
+    >
+      <Text style={styles.preRollPlus}>+</Text>
+      <Text style={styles.preRollLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
 }
 
 function PrimaryButton({
@@ -594,6 +629,29 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   offeredButtonLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+  },
+  preRollButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.silverSage,
+    backgroundColor: Colors.surface,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  preRollPlus: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+  },
+  preRollLabel: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.softCharcoal,

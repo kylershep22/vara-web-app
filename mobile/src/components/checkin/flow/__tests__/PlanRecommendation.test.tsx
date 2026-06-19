@@ -106,6 +106,32 @@ describe('PlanRecommendation', () => {
     expect(getByTestId('checkin-flow-plan-primary').props.accessibilityLabel).toBe('Begin');
   });
 
+  it('offered pre-roll shape: focus session is the hero with the optional pre-roll above the CTA', () => {
+    const onPrimary = jest.fn();
+    const onSecondary = jest.fn();
+    const { getByTestId } = render(
+      <PlanRecommendation
+        plan={planFor('get_through_hard', 'low', 'good', 25)} // grounding [offer] → focus
+        reason="Because you're steady, straight into focus when you're ready."
+        onPrimary={onPrimary}
+        onSecondary={onSecondary}
+        onSeeOtherOptions={noop}
+      />
+    );
+    // Focus session is the hero: new ring/hero with the budget-derived duration.
+    expect(getByTestId('checkin-flow-plan-timed')).toBeTruthy();
+    expect(getByTestId('checkin-flow-plan-duration').props.children).toBe('25 min');
+    // Primary routes straight to the focus session.
+    expect(getByTestId('checkin-flow-plan-primary').props.accessibilityLabel).toBe(
+      'Start focus session'
+    );
+    // The optional pre-roll runs practice → focus via the existing routing.
+    fireEvent.press(getByTestId('checkin-flow-plan-secondary'));
+    expect(onSecondary).toHaveBeenCalledTimes(1);
+    fireEvent.press(getByTestId('checkin-flow-plan-primary'));
+    expect(onPrimary).toHaveBeenCalledTimes(1);
+  });
+
   it('zero-slot: renders the acknowledgment message, no reason, primary "Done"', () => {
     const { getByTestId, queryByTestId } = render(
       <PlanRecommendation
