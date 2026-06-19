@@ -359,37 +359,44 @@ export function useDashboard() {
     loadWellnessData();
   }, [user?.uid, today]);
 
-  // Load routines + today's completions for dashboard card
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
+  // Load routines + today's completions for the dashboard card. On focus (not
+  // just mount) so the card reflects routines added / deactivated on the Rhythms
+  // tab when the user returns to Home — the same freshness fix as the check-in
+  // read above.
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.uid) return;
+      let cancelled = false;
 
-    (async () => {
-      try {
-        const allRoutines = await fetchUserRoutines(user.uid);
-        const activeRoutines = allRoutines.filter(r => r.active);
+      (async () => {
+        try {
+          const allRoutines = await fetchUserRoutines(user.uid);
+          const activeRoutines = allRoutines.filter((r) => r.active);
 
-        if (cancelled) return;
-        setDashboardRoutines(activeRoutines);
+          if (cancelled) return;
+          setDashboardRoutines(activeRoutines);
 
-        // Check completions for each active routine
-        const todayStr = new Date().toISOString().split('T')[0];
-        const completionMap: Record<string, boolean> = {};
-        await Promise.all(
-          activeRoutines.map(async (r) => {
-            const completion = await getRoutineCompletionToday(r.id, todayStr);
-            completionMap[r.id] = !!completion;
-          })
-        );
+          // Check completions for each active routine
+          const todayStr = new Date().toISOString().split('T')[0];
+          const completionMap: Record<string, boolean> = {};
+          await Promise.all(
+            activeRoutines.map(async (r) => {
+              const completion = await getRoutineCompletionToday(r.id, todayStr);
+              completionMap[r.id] = !!completion;
+            })
+          );
 
-        if (!cancelled) setRoutineCompletions(completionMap);
-      } catch (error) {
-        console.error('Error loading dashboard routines:', error);
-      }
-    })();
+          if (!cancelled) setRoutineCompletions(completionMap);
+        } catch (error) {
+          logger.error('Error loading dashboard routines:', error);
+        }
+      })();
 
-    return () => { cancelled = true; };
-  }, [user]);
+      return () => {
+        cancelled = true;
+      };
+    }, [user?.uid])
+  );
 
   // Load weekly completions when habits load
   useEffect(() => {

@@ -49,11 +49,11 @@ describe('RoutineCard — CTA ladder', () => {
     expect(baseProps.onBeginRoutine).toHaveBeenCalledWith(r1);
   });
 
-  it('some done → Continue, begins the first incomplete', () => {
+  it('some done → surfaces and begins the first incomplete routine', () => {
     const { getByTestId } = render(
       <RoutineCard routines={[r1, r2]} completions={{ r1: true }} {...baseProps} />
     );
-    fireEvent.press(getByTestId('dashboard-routine-continue'));
+    fireEvent.press(getByTestId('dashboard-routine-begin'));
     expect(baseProps.onBeginRoutine).toHaveBeenCalledWith(r2);
   });
 
@@ -69,10 +69,14 @@ describe('RoutineCard — CTA ladder', () => {
     expect(baseProps.onNavigateToHabits).toHaveBeenCalledTimes(1);
   });
 
-  it('neutral progress shows one dot per routine', () => {
-    const { getByTestId } = render(
+  it('shows a single routine and no progress dot strip', () => {
+    const { queryByTestId, getByText, queryByText } = render(
       <RoutineCard routines={[r1, r2]} completions={{ r1: true }} {...baseProps} />
     );
-    expect(getByTestId('dashboard-routine-progress').children.length).toBe(2);
+    // The multi-routine dot strip is gone (was the 3-vs-1 inconsistency source).
+    expect(queryByTestId('dashboard-routine-progress')).toBeNull();
+    // Only the focal (first incomplete) routine is surfaced.
+    expect(getByText('Evening')).toBeTruthy();
+    expect(queryByText('Morning')).toBeNull();
   });
 });

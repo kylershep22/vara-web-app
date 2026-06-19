@@ -1,16 +1,16 @@
 // RoutineCard — dashboard routine surface (both phases).
 //
-// Matches the mockup .card (title "Today's routine", routine name as the body
-// line, neutral progress dots, contextual CTA), with one deliberate override:
+// Single-routine card matching its "Today's routine" title: it surfaces today's
+// FIRST incomplete active routine as the one invitation to begin. No progress
+// dots — a multi-routine dot strip (one dot per active routine) made the same
+// "The Essentials" card show a different count as the active-routine set changed,
+// reading as an inconsistency. Dashboard completion is binary per routine
+// (getRoutineCompletionToday → boolean) and there is no routine-run model, so
+// there is nothing to count at the card level.
 //
-//   Progress is ROUTINE-LEVEL, not per-step. Dashboard completion is binary per
-//   routine (getRoutineCompletionToday → boolean); there is no per-activity
-//   state and we are NOT building a routine-run model. So the dots are one per
-//   routine (done = teal, remaining = silverSage @ .5), not the mockup's
-//   "2 of 4" per-step dots.
-//
-// CTA ladder (spec §4): continue → begin → check habits → create one. Warm empty
-// state when no routine exists. Presentation only (data from useDashboard).
+// CTA: begin the surfaced routine → check habits once all are done → create one
+// when none exist. Presentation only (data from useDashboard, refreshed on
+// focus so it reflects routines added/deactivated on the Rhythms tab).
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
@@ -56,54 +56,27 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
     );
   }
 
-  const total = routines.length;
-  const doneCount = routines.filter((r) => completions[r.id]).length;
-  const firstIncomplete = routines.find((r) => !completions[r.id]);
-  const allDone = doneCount === total;
+  // The one routine to surface: today's first active routine not yet completed.
+  const target = routines.find((r) => !completions[r.id]);
+  const allDone = target === undefined;
 
-  // CTA ladder: continue → begin → check habits.
-  let ctaLabel: string;
-  let onCta: () => void;
-  let ctaTestID: string;
-  if (allDone) {
-    ctaLabel = 'Check habits ›';
-    onCta = onNavigateToHabits;
-    ctaTestID = 'dashboard-routine-check-habits';
-  } else if (doneCount > 0 && firstIncomplete) {
-    ctaLabel = 'Continue ›';
-    onCta = () => onBeginRoutine(firstIncomplete);
-    ctaTestID = 'dashboard-routine-continue';
-  } else {
-    ctaLabel = 'Begin ›';
-    onCta = () => firstIncomplete && onBeginRoutine(firstIncomplete);
-    ctaTestID = 'dashboard-routine-begin';
-  }
+  // CTA: begin the surfaced routine, or check habits once everything's done.
+  const ctaLabel = allDone ? 'Check habits ›' : 'Begin ›';
+  const onCta = allDone ? onNavigateToHabits : () => onBeginRoutine(target);
+  const ctaTestID = allDone
+    ? 'dashboard-routine-check-habits'
+    : 'dashboard-routine-begin';
 
   return (
     <View style={styles.card} testID="dashboard-routine">
       <Text style={styles.title}>Today's routine</Text>
       <Text style={styles.body}>
-        {firstIncomplete ? firstIncomplete.name : 'All done for today.'}
+        {target ? target.name : 'All done for today.'}
       </Text>
-
-      {/* Routine-level neutral progress: teal = done, pale = remaining. */}
-      <View style={styles.dots} testID="dashboard-routine-progress">
-        {routines.map((r) => (
-          <View
-            key={r.id}
-            style={[
-              styles.dot,
-              completions[r.id] ? styles.dotDone : styles.dotRemaining,
-            ]}
-          />
-        ))}
-      </View>
 
       <View style={styles.row}>
         <Text style={styles.meta}>
-          {firstIncomplete
-            ? `${calculateTotalDuration(firstIncomplete.activities)} min`
-            : ''}
+          {target ? `${calculateTotalDuration(target.activities)} min` : ''}
         </Text>
         <TouchableOpacity
           onPress={onCta}
@@ -135,23 +108,6 @@ const styles = StyleSheet.create({
   body: {
     fontSize: Typography.fontSize.sm,
     color: Colors.softCharcoal,
-  },
-  dots: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 4,
-  },
-  dot: {
-    width: 9,
-    height: 9,
-    borderRadius: 9999,
-  },
-  dotDone: {
-    backgroundColor: Colors.evergreenTeal,
-  },
-  dotRemaining: {
-    backgroundColor: Colors.silverSage,
-    opacity: 0.5,
   },
   row: {
     flexDirection: 'row',
