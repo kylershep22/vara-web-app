@@ -74,6 +74,21 @@ export function leadPracticeSlot(plan: ResolvedPlan): Slot | null {
   }
 }
 
+// True when the plan runs a catalog practice that hands off to a focus session
+// (used to pick the "settle before focus" reflection labels). Plan/routine
+// pointers and non-pointer plans return false.
+export function leadsToFocusSession(plan: ResolvedPlan): boolean {
+  const shape = classifyPlanShape(plan);
+  if (
+    shape.kind === 'practice_then_pointer' ||
+    shape.kind === 'practice_then_offered_pointer' ||
+    shape.kind === 'offered_practice_then_pointer'
+  ) {
+    return shape.pointer.type === 'focus-session';
+  }
+  return false;
+}
+
 export function classifyPlanShape(plan: ResolvedPlan): PlanShape {
   const { slots, message } = plan;
 

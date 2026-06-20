@@ -128,14 +128,37 @@ describe('CheckInFlow — situation → circumplex → time dispatch', () => {
     fireEvent.press(getByLabelText('Quiet a busy mind'));
     expect(getByTestId('checkin-flow-arousal-title')).toBeTruthy();
 
-    // Arousal tap → valence question.
+    // Energy tap reveals the feeling question on the same screen (no swap).
     fireEvent.press(getByLabelText('Revved up'));
     expect(getByTestId('checkin-flow-valence-title')).toBeTruthy();
 
-    // Valence tap → time window.
-    fireEvent.press(getByLabelText('Hard'));
+    // Feeling tap (quiet_mind hard pole = "Too much") → time window.
+    fireEvent.press(getByLabelText('Too much'));
     expect(getByTestId('time-window-selector')).toBeTruthy();
     expect(queryByTestId('checkin-flow-state-pick')).toBeNull();
+  });
+
+  it('plan screen shows the reason, and Begin launches the practice player (not habits)', () => {
+    const { getByTestId, getByLabelText, queryByTestId } = render(
+      <CheckInFlow init={{ entrySource: 'standard' }} {...TEST_PROPS} onComplete={jest.fn()} />
+    );
+
+    // Drive to the plan: quiet_mind / Tense → a single settle practice.
+    fireEvent.press(getByLabelText('Quiet a busy mind'));
+    fireEvent.press(getByLabelText('Revved up'));
+    fireEvent.press(getByLabelText('Too much'));
+    fireEvent.press(getByTestId('time-window-chip-5'));
+
+    // The plan renders with the felt reason subhead + a single Begin.
+    expect(getByTestId('checkin-flow-plan')).toBeTruthy();
+    expect(getByTestId('checkin-flow-plan-reason')).toBeTruthy();
+    const begin = getByTestId('checkin-flow-plan-primary');
+    expect(begin.props.accessibilityLabel).toBe('Begin');
+
+    // Begin launches the real practice player in-flow — not a route to habits.
+    fireEvent.press(begin);
+    expect(getByTestId('mock-guided-session-player')).toBeTruthy();
+    expect(queryByTestId('checkin-flow-plan')).toBeNull();
   });
 });
 

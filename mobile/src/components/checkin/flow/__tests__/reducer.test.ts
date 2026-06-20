@@ -213,7 +213,8 @@ describe('recommendation → running / flow_complete (plan shapes)', () => {
   });
 
   it('single_pointer (get_through_hard/Activated): plan_primary hands off to the focus-session pointer', () => {
-    const reco = toRecommendation('get_through_hard', 'revved', 'good', 5);
+    // Long budget: a ≤5 budget branches the focus-session pointer to a short practice.
+    const reco = toRecommendation('get_through_hard', 'revved', 'good', 45);
     const result = flowReducer(reco, { type: 'plan_primary', nowMs: 1_000 });
     expect(result.step).toBe('flow_complete');
     if (result.step === 'flow_complete' && result.completion.kind === 'pointer_only') {
@@ -235,7 +236,8 @@ describe('recommendation → running / flow_complete (plan shapes)', () => {
   });
 
   it('offered_practice_then_pointer (get_through_hard/Calm): primary launches pointer, secondary runs the pre-roll', () => {
-    const reco = toRecommendation('get_through_hard', 'low', 'good', 5);
+    // Long budget: a ≤5 budget branches the focus-session pointer to a short practice.
+    const reco = toRecommendation('get_through_hard', 'low', 'good', 45);
     const launched = flowReducer(reco, { type: 'plan_primary', nowMs: 1 });
     expect(launched.step).toBe('flow_complete');
     if (launched.step === 'flow_complete' && launched.completion.kind === 'pointer_only') {
@@ -300,7 +302,9 @@ describe('reflection → flow_complete / pointer_offer', () => {
     arousal: Arousal,
     valence: Valence
   ): ReflectionStep {
-    const reco = toRecommendation(situation, arousal, valence, 5);
+    // Long budget so pointer cells keep their focus-session pointer (a ≤5
+    // budget branches pointers to a short practice).
+    const reco = toRecommendation(situation, arousal, valence, 45);
     let s: FlowState = flowReducer(reco, { type: 'plan_primary', nowMs: 1_000_000 });
     s = flowReducer(s, { type: 'player_exit', reason: 'completed', nowMs: 1_120_000 });
     if (s.step !== 'reflection') throw new Error(`setup: ${s.step}`);
@@ -356,7 +360,8 @@ describe('reflection → flow_complete / pointer_offer', () => {
 
 describe('pointer_offer → flow_complete', () => {
   function pointerOffer(): PointerOfferStep {
-    const reco = toRecommendation('quiet_mind', 'revved', 'good', 5);
+    // Long budget so the offered focus-session pointer survives to the offer step.
+    const reco = toRecommendation('quiet_mind', 'revved', 'good', 45);
     let s: FlowState = flowReducer(reco, { type: 'plan_primary', nowMs: 1_000_000 });
     s = flowReducer(s, { type: 'player_exit', reason: 'completed', nowMs: 1_120_000 });
     s = flowReducer(s, { type: 'reflection_selected', reflectionId: 'calmer' });

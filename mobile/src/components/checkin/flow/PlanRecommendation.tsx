@@ -23,7 +23,7 @@ import {
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Spacing, Typography } from '../../../constants';
-import type { PracticePointer, ResolvedPlan } from '../../../engine';
+import type { PracticePointer, Quadrant, ResolvedPlan } from '../../../engine';
 import type { Protocol } from '../../../types/models';
 import {
   evidenceChipLabel,
@@ -39,6 +39,10 @@ function pointerNoun(pointer: PracticePointer): string {
 
 export interface PlanRecommendationProps {
   plan: ResolvedPlan;
+  // One-line felt "why" shown under the lead on every non-zero shape (null for
+  // zero-slot, whose acknowledgment message speaks for itself). Composed by
+  // planReason() — INTERIM copy.
+  reason?: string | null;
   // Primary CTA — the lead action for the shape (Begin / Start / Done).
   onPrimary: () => void;
   // Secondary CTA — the offered alternative (accept an offered practice or
@@ -52,6 +56,7 @@ export interface PlanRecommendationProps {
 
 export function PlanRecommendation({
   plan,
+  reason,
   onPrimary,
   onSecondary,
   onSeeOtherOptions,
@@ -60,6 +65,10 @@ export function PlanRecommendation({
   onClose,
 }: PlanRecommendationProps) {
   const shape = classifyPlanShape(plan);
+  // Timed branches (practice shapes + the focus-session pointer) render the
+  // rebuilt ring/hero; everything else (zero, message-offered, the routine/plan
+  // pointer) keeps the prior presentation.
+  const lead = timedLead(shape);
 
   return (
     <View style={styles.container} testID="checkin-flow-plan">
@@ -93,7 +102,20 @@ export function PlanRecommendation({
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <PlanBody shape={shape} />
+        {lead ? (
+          <TimedLead lead={lead} reason={reason} />
+        ) : isAffirmationShape(shape) ? (
+          <Affirmation shape={shape} quadrant={plan.quadrant} />
+        ) : (
+          <>
+            {reason ? (
+              <Text style={styles.reason} testID="checkin-flow-plan-reason">
+                {reason}
+              </Text>
+            ) : null}
+            <PlanBody shape={shape} />
+          </>
+        )}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -120,6 +142,133 @@ export function PlanRecommendation({
 
 function shapeHasPractice(shape: PlanShape): boolean {
   return shape.kind !== 'zero' && shape.kind !== 'single_pointer';
+}
+
+// ── timed lead (rebuilt ring/hero) ──────────────────────────
+// The renderable lead for the timed branches: a catalog practice's name +
+// duration + description, or the focus-session pointer enriched to the same
+// shape so both render the same ring/hero from resolved-plan data. Returns null
+// for shapes that keep the prior presentation (zero / message-offered / the
+// offered pre-roll / the routine-plan pointer — a duration ring doesn't fit a
+// non-timed routine destination, left for a later polish).
+interface TimedLeadData {
+  name: string;
+  duration: string;
+  description: string;
+  // Mandatory pointer continuation after the lead practice (a quiet chain line).
+  chainTo?: string;
+}
+
+function timedLead(shape: PlanShape): TimedLeadData | null {
+  switch (shape.kind) {
+    case 'single_practice':
+    case 'practice_then_offered_pointer':
+      return {
+        name: shape.practice.practice.name,
+        duration: formatProtocolDuration(shape.practice.practice),
+        description: shape.practice.practice.description,
+      };
+    case 'practice_then_pointer':
+      return {
+        name: shape.practice.practice.name,
+        duration: formatProtocolDuration(shape.practice.practice),
+        description: shape.practice.practice.description,
+        chainTo: pointerNoun(shape.pointer),
+      };
+    case 'single_pointer':
+      return shape.pointer.type === 'focus-session'
+        ? focusPointerLead(shape.pointer)
+        : null; // routine/plan pointer — left as-is (non-timed destination)
+    case 'offered_practice_then_pointer':
+      // Focus session is the hero; the offered practice is a pre-roll affordance
+      // above the CTA (PlanActions), not in the ring.
+      return shape.pointer.type === 'focus-session'
+        ? focusPointerLead(shape.pointer)
+        : null;
+    default:
+      return null; // zero / message_offered
+  }
+}
+
+// The focus-session pointer enriched to the timed-lead shape (concern C): the
+// budget-derived prefill drives the ring duration.
+function focusPointerLead(pointer: PracticePointer): TimedLeadData {
+  const mins = pointer.length;
+  return {
+    name: 'Focus session',
+    duration: mins != null ? `${mins} min` : 'Focus',
+    description: 'A quiet window to do the work',
+  };
+}
+
+function TimedLead({
+  lead,
+  reason,
+}: {
+  lead: TimedLeadData;
+  reason?: string | null;
+}) {
+  return (
+    <View style={styles.timed} testID="checkin-flow-plan-timed">
+      <Text style={styles.overline}>From your check-in</Text>
+      {reason ? (
+        <Text style={styles.reasonHero} testID="checkin-flow-plan-reason">
+          {reason}
+        </Text>
+      ) : null}
+      <View style={styles.ringWrap}>
+        <View style={styles.ring}>
+          <View style={styles.ringInner} pointerEvents="none" />
+          <Text style={styles.ringDuration} testID="checkin-flow-plan-duration">
+            {lead.duration}
+          </Text>
+        </View>
+      </View>
+      <Text style={styles.leadName}>{lead.name}</Text>
+      <Text style={styles.leadDescription}>{lead.description}</Text>
+      {lead.chainTo ? (
+        <Text style={styles.chainCentered}>then your {lead.chainTo}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+// ── affirmation (zero + message_offered) ────────────────────
+// The "you're already steady" shapes: one calm affirmation hero, the offer (if
+// any) lives in the buttons, not a second body line. Prefer the engine's
+// per-cell message; fall back to a per-quadrant line.
+const QUADRANT_AFFIRMATION: Record<Quadrant, string> = {
+  Calm: "You're steady right now.",
+  Activated: "You've got energy right now.",
+  Tense: "You're holding a lot right now.",
+  Depleted: "You're running low right now.",
+};
+
+function isAffirmationShape(shape: PlanShape): boolean {
+  return shape.kind === 'zero' || shape.kind === 'message_offered';
+}
+
+function Affirmation({
+  shape,
+  quadrant,
+}: {
+  shape: PlanShape;
+  quadrant: Quadrant;
+}) {
+  const hero = shape.message ?? QUADRANT_AFFIRMATION[quadrant];
+  const offered = shape.kind === 'message_offered';
+  return (
+    <View
+      style={styles.affirm}
+      testID={shape.kind === 'zero' ? 'checkin-flow-plan-zero' : 'checkin-flow-plan-affirmation'}
+    >
+      <Text style={styles.overline}>From your check-in</Text>
+      <Text style={styles.affirmHero}>{hero}</Text>
+      {offered ? (
+        <Text style={styles.affirmSub}>Nothing needed unless you want it.</Text>
+      ) : null}
+    </View>
+  );
 }
 
 // ── body ───────────────────────────────────────────────────
@@ -153,16 +302,12 @@ function PlanBody({ shape }: { shape: PlanShape }) {
         </>
       );
     case 'single_pointer':
-      return (
+      // No placeholder line — the reason subhead + the single Begin carry it.
+      return shape.message ? (
         <View>
-          {shape.message ? (
-            <Text style={styles.message}>{shape.message}</Text>
-          ) : null}
-          <Text style={styles.leadLine}>
-            Your {pointerNoun(shape.pointer)} is ready when you are.
-          </Text>
+          <Text style={styles.message}>{shape.message}</Text>
         </View>
-      );
+      ) : null;
     case 'practice_then_pointer':
       return (
         <>
@@ -185,11 +330,9 @@ function PlanBody({ shape }: { shape: PlanShape }) {
         </>
       );
     case 'offered_practice_then_pointer':
+      // The reason subhead leads; the offered pre-roll is a quiet option.
       return (
         <View>
-          <Text style={styles.leadLine}>
-            Start your {pointerNoun(shape.pointer)} when you're ready.
-          </Text>
           <Text style={styles.offeredHint}>
             Or ease in with {shape.practice.practice.name} first.
           </Text>
@@ -213,15 +356,15 @@ function PlanActions({
     case 'zero':
       return <PrimaryButton label="Done" onPress={onPrimary} />;
     case 'message_offered':
+      // Weighted choices: "I'm good" is the primary (teal), the reset is a quiet
+      // outline secondary, and "See other options" renders as a tertiary text
+      // link in the footer below.
       return (
         <>
-          {onSecondary ? (
-            <SecondaryButton
-              label="Take a short reset"
-              onPress={onSecondary}
-            />
-          ) : null}
           <PrimaryButton label="I'm good" onPress={onPrimary} />
+          {onSecondary ? (
+            <SecondaryButton label="Take a short reset" onPress={onSecondary} />
+          ) : null}
         </>
       );
     case 'single_practice':
@@ -231,7 +374,7 @@ function PlanActions({
     case 'single_pointer':
       return (
         <PrimaryButton
-          label={shape.pointer.type === 'focus-session' ? 'Start focus session' : 'Open your plan'}
+          label={shape.pointer.type === 'focus-session' ? 'Start focus session' : 'Open your routines'}
           onPress={onPrimary}
         />
       );
@@ -239,18 +382,42 @@ function PlanActions({
       return (
         <>
           {onSecondary ? (
-            <SecondaryButton
-              label={`Add ${shape.practice.practice.name} first`}
+            <PreRollButton
+              label={`Ease in with ${shape.practice.practice.name} · ${formatProtocolDuration(shape.practice.practice)}`}
               onPress={onSecondary}
             />
           ) : null}
           <PrimaryButton
-            label={shape.pointer.type === 'focus-session' ? 'Start focus session' : 'Open your plan'}
+            label={shape.pointer.type === 'focus-session' ? 'Start focus session' : 'Open your routines'}
             onPress={onPrimary}
           />
         </>
       );
   }
+}
+
+// Optional pre-roll affordance: a quiet silver-sage outline row (not a second
+// primary) with a leading "+", sitting directly above the teal CTA. Tapping it
+// runs the offered practice and then hands off to the focus session.
+function PreRollButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={styles.preRollButton}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID="checkin-flow-plan-secondary"
+    >
+      <Text style={styles.preRollPlus}>+</Text>
+      <Text style={styles.preRollLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
 }
 
 function PrimaryButton({
@@ -345,11 +512,101 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
     marginBottom: Spacing.lg,
   },
-  leadLine: {
-    fontSize: Typography.fontSize.lg,
+  // The felt "why" subhead under the lead (INTERIM copy via planReason).
+  reason: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.mutedSageGray,
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
+  },
+  // ── affirmation branch (zero + message_offered) ──
+  affirm: {
+    paddingTop: Spacing.sm,
+  },
+  affirmHero: {
+    fontSize: 24,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
-    marginBottom: Spacing.sm,
+    lineHeight: 31,
+  },
+  affirmSub: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.mutedSageGray,
+    lineHeight: 22,
+    marginTop: Spacing.sm,
+  },
+  // ── timed branch: ring/hero ──
+  timed: {
+    alignItems: 'center',
+    paddingTop: Spacing.sm,
+  },
+  overline: {
+    fontSize: 12,
+    fontWeight: Typography.fontWeight.semibold,
+    letterSpacing: 0.72, // .06em at 12px
+    textTransform: 'uppercase',
+    color: Colors.mutedSageGray,
+    marginBottom: Spacing.md,
+  },
+  reasonHero: {
+    fontSize: 23,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+    textAlign: 'center',
+    lineHeight: 30,
+    marginBottom: Spacing.lg,
+  },
+  ringWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: Spacing.lg,
+  },
+  ring: {
+    width: 188,
+    height: 188,
+    borderRadius: 94,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Inner hairline ring, inset 16px, at ~45% so it reads as a soft echo of the
+  // outer ring (opacity applies to the border-only view, no children).
+  ringInner: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    right: 16,
+    bottom: 16,
+    borderRadius: 78,
+    borderWidth: 1,
+    borderColor: Colors.silverSage,
+    opacity: 0.45,
+  },
+  ringDuration: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: Colors.evergreenTeal,
+  },
+  leadName: {
+    fontSize: 18,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+  },
+  leadDescription: {
+    fontSize: 14,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginTop: Spacing.xs,
+  },
+  chainCentered: {
+    fontSize: 14,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
+    marginTop: Spacing.md,
   },
   offeredHint: {
     fontSize: Typography.fontSize.base,
@@ -421,13 +678,36 @@ const styles = StyleSheet.create({
     minHeight: MIN_TOUCH_TARGET,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: Colors.silverSage,
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.md,
   },
   offeredButtonLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+  },
+  preRollButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.silverSage,
+    backgroundColor: Colors.surface,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  preRollPlus: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+  },
+  preRollLabel: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.softCharcoal,

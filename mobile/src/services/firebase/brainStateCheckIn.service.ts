@@ -36,6 +36,11 @@ import type {
   UserProfile,
 } from '../../types/models';
 import { quadrantToBrainState } from '../../engine';
+import type { Quadrant, Situation } from '../../engine';
+
+// Raw circumplex state forwarded onto the daily marker so the dashboard
+// acknowledgment can read it regardless of whether a practice ran.
+type CheckInStateFields = { quadrant?: Quadrant; situation?: Situation };
 import { classifyReflectionOutcome } from '../outcomeClassifier';
 import {
   writeProtocolSession,
@@ -126,7 +131,12 @@ export const getTodayBrainStateCheckIn = async (
 export const saveBrainStateCheckIn = async (
   userId: string,
   brainState: BrainState,
-  protocolId?: string
+  protocolId?: string,
+  // Raw circumplex state to stamp onto the marker (in addition to the bridged
+  // brainState) so the dashboard acknowledgment can read the real quadrant.
+  // Written conditionally so a caller without it never clobbers a quadrant an
+  // earlier same-day check-in already stored.
+  stateFields: CheckInStateFields = {}
 ): Promise<BrainStateCheckIn> => {
   if (!db) throw new Error('Firestore is not initialized');
   try {
@@ -139,6 +149,10 @@ export const saveBrainStateCheckIn = async (
     const existingDoc = await getDoc(docRef);
     const existingData = existingDoc.exists() ? existingDoc.data() : null;
     const serializedState = serializeBrainState(brainState);
+    const statePatch = {
+      ...(stateFields.quadrant !== undefined ? { quadrant: stateFields.quadrant } : {}),
+      ...(stateFields.situation !== undefined ? { situation: stateFields.situation } : {}),
+    };
 
     if (existingData) {
       // Normalize the stored value before comparing so a legacy "okay" doc
@@ -155,6 +169,7 @@ export const saveBrainStateCheckIn = async (
       await updateDoc(docRef, {
         brainState: serializedState,
         protocolId: resolvedProtocolId,
+        ...statePatch,
         // Only reset protocol completion if brain state actually changed
         ...(stateChanged && { protocolCompleted: false }),
         updatedAt: serverTimestamp(),
@@ -164,6 +179,7 @@ export const saveBrainStateCheckIn = async (
         ...existingData,
         brainState,
         protocolId: resolvedProtocolId,
+        ...statePatch,
         ...(stateChanged && { protocolCompleted: false }),
       } as BrainStateCheckIn;
     } else {
@@ -173,6 +189,7 @@ export const saveBrainStateCheckIn = async (
         brainState: serializedState,
         protocolId: resolvedProtocolId,
         protocolCompleted: false,
+        ...statePatch,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -183,6 +200,7 @@ export const saveBrainStateCheckIn = async (
         brainState,
         protocolId: resolvedProtocolId,
         protocolCompleted: false,
+        ...statePatch,
       } as BrainStateCheckIn;
     }
   } catch (error) {
@@ -456,7 +474,7 @@ export async function writeBrainStateCheckInDoc(
   // protocolCompleted===true (i.e. a practice actually ran), so a no-practice
   // marker must not name a protocol that wasn't done.
   protocolId?: string,
-  options: { dryRun?: boolean } = {}
+  options: { dryRun?: boolean } & CheckInStateFields = {}
 ): Promise<void> {
   if (options.dryRun) {
     logger.log(
@@ -465,9 +483,14 @@ export async function writeBrainStateCheckInDoc(
     return;
   }
 
+  const stateFields: CheckInStateFields = {
+    ...(options.quadrant !== undefined ? { quadrant: options.quadrant } : {}),
+    ...(options.situation !== undefined ? { situation: options.situation } : {}),
+  };
+
   try {
     if (protocolId !== undefined) {
-      await saveBrainStateCheckIn(userId, state, protocolId);
+      await saveBrainStateCheckIn(userId, state, protocolId, stateFields);
       if (isFlowComplete) {
         // Only naturally-completed sessions mark the legacy
         // protocolCompleted flag. Abandoned sessions update the
@@ -480,7 +503,7 @@ export async function writeBrainStateCheckInDoc(
       // No practice ran (pointer-only / zero-slot): flip the daily marker
       // with the attested state only. No protocolId, no selectProtocol, no
       // protocolCompleted flip.
-      await upsertCheckInMarker(userId, state);
+      await upsertCheckInMarker(userId, state, stateFields);
     }
   } catch (error) {
     // Legacy write failure shouldn't block the new write succeeding.
@@ -504,13 +527,18 @@ export async function writeBrainStateCheckInDoc(
  */
 async function upsertCheckInMarker(
   userId: string,
-  brainState: BrainState
+  brainState: BrainState,
+  stateFields: CheckInStateFields = {}
 ): Promise<void> {
   if (!db) throw new Error('Firestore is not initialized');
   const todayDate = getTodayDate();
   const checkInId = `${userId}_${todayDate}`;
   const docRef = doc(db, COLLECTION, checkInId);
   const serializedState = serializeBrainState(brainState);
+  const statePatch = {
+    ...(stateFields.quadrant !== undefined ? { quadrant: stateFields.quadrant } : {}),
+    ...(stateFields.situation !== undefined ? { situation: stateFields.situation } : {}),
+  };
 
   const existingDoc = await getDoc(docRef);
   if (existingDoc.exists()) {
@@ -524,6 +552,7 @@ async function upsertCheckInMarker(
     const stateChanged = existingBrainState !== brainState;
     await updateDoc(docRef, {
       brainState: serializedState,
+      ...statePatch,
       ...(stateChanged && { protocolCompleted: false }),
       updatedAt: serverTimestamp(),
     });
@@ -533,6 +562,7 @@ async function upsertCheckInMarker(
       date: todayDate,
       brainState: serializedState,
       protocolCompleted: false,
+      ...statePatch,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -675,7 +705,15 @@ export async function writeStandardFlowSession(
       // protocolId (no selectProtocol re-invocation, no naming a practice that
       // wasn't done — see writeBrainStateCheckInDoc).
       terminalPracticeId(terminal),
-      { dryRun: options.dryRun }
+      // Raw circumplex stamped onto the marker so the dashboard "Right now"
+      // acknowledgment reflects the real quadrant on EVERY terminal — including
+      // pointer hand-offs (focus session) and zero-slot / acknowledged
+      // terminals that never write a protocolSessions doc.
+      {
+        dryRun: options.dryRun,
+        quadrant: terminal.quadrant,
+        situation: terminal.situation,
+      }
     );
   }
 

@@ -1,17 +1,31 @@
-// Step 2 of the reworked core loop: the two-tap circumplex state read
-// (Vara_Engine_Contract.md §2). Replaces the prior five-chip BrainState pick.
+// Step 2 of the reworked core loop: the circumplex state read
+// (Vara_Engine_Contract.md §2), consolidated to ONE progressive screen.
 //
-//   Tap 1 (arousal): "Where's your energy?"  → Revved up / Running low
-//   Tap 2 (valence): "And how's it feeling?" → Good / Hard
+//   Body state (fixed):          "How's your body right now?"
+//                                  Revved up / Running low
+//   Feeling (situation-specific): revealed BELOW once energy is answered
+//                                  (question + labels via FEELING_COPY).
 //
-// The two taps are one step with an internal sub-state: tapping arousal swaps
-// the question to valence; tapping valence emits the full {arousal, valence}
-// pair upward in a single `state_selected` action (keeps the reducer flat). A
-// back affordance returns from the valence tap to the arousal tap; back from
-// the arousal tap returns to the situation step (parent reducer).
+// The two reads are still the engine's binary axes — Arousal ('revved' | 'low')
+// and Valence ('good' | 'hard'). This screen changes only labels + layout: it
+// emits the SAME single `state_selected { arousal, valence }` action the prior
+// two-screen swap did, so the quadrant the engine derives is unchanged for
+// every (situation, energy, feeling) combination.
+//
+// Progressive disclosure (not navigation, not a swap): the energy block stays
+// visible and re-tappable after it's answered, and the feeling block reveals
+// beneath it on the same screen. The reveal is Reduce-Motion-aware (instant, no
+// animation, when the setting is on) and announces the feeling question to
+// assistive tech so screen-reader / keyboard users aren't stranded by the
+// disclosure. The situation already picked anchors the top as a calm chip.
+//
+// Back returns to the situation step (parent reducer) — there is no internal
+// sub-screen to step back through anymore.
 
 import React, { useState } from 'react';
 import {
+  AccessibilityInfo,
+  LayoutAnimation,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,58 +35,83 @@ import {
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Spacing, Typography } from '../../../constants';
-import type { Arousal, Valence } from '../../../engine';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import type { Arousal, Situation, Valence } from '../../../engine';
+import { FEELING_COPY } from './feelingCopy';
 
 const MIN_TOUCH_TARGET = 48;
 
-export interface StatePickStepViewProps {
-  onSelect: (state: { arousal: Arousal; valence: Valence }) => void;
-  // Returns to the situation step (only meaningful from the arousal tap; the
-  // valence tap's back returns to the arousal tap internally).
-  onBack?: () => void;
-  onClose?: () => void;
-}
+// Recap of the situation the user already picked, shown in the anchor chip at
+// the top of the state read. Mirrors the action phrasing from
+// SituationPickStepView intentionally — a recap of the existing label, not new
+// copy.
+const SITUATION_CONTEXT_LABELS: Record<Situation, string> = {
+  get_through_hard: 'Get through something hard',
+  quiet_mind: 'Quiet a busy mind',
+  find_energy: "Find energy I'm missing",
+  wind_down: 'Wind down and switch off',
+  grip_on_day: 'Get a grip on my day',
+  just_reset: 'Just need a reset',
+};
 
-interface TapOption<T> {
-  value: T;
+interface ArousalOption {
+  value: Arousal;
   label: string;
 }
 
-const AROUSAL_OPTIONS: TapOption<Arousal>[] = [
+// Fixed body-state labels (situation-independent). 'revved' is the higher pole,
+// 'low' the lower pole — the same two poles the engine has always consumed; only
+// the wording changed (a body-state read fits find-energy, where "on the higher
+// side" contradicted the situation).
+const AROUSAL_OPTIONS: ArousalOption[] = [
   { value: 'revved', label: 'Revved up' },
   { value: 'low', label: 'Running low' },
 ];
 
-const VALENCE_OPTIONS: TapOption<Valence>[] = [
-  { value: 'good', label: 'Good' },
-  { value: 'hard', label: 'Hard' },
-];
+export interface StatePickStepViewProps {
+  // The situation picked in the prior step — keys the feeling copy and the quiet
+  // context line.
+  situation: Situation;
+  onSelect: (state: { arousal: Arousal; valence: Valence }) => void;
+  // Returns to the situation step (parent reducer).
+  onBack?: () => void;
+  onClose?: () => void;
+}
 
 export function StatePickStepView({
+  situation,
   onSelect,
   onBack,
   onClose,
 }: StatePickStepViewProps) {
+  const reduceMotion = useReducedMotion();
   const [arousal, setArousal] = useState<Arousal | null>(null);
 
-  const onTap = arousal === null ? 'arousal' : 'valence';
+  const feeling = FEELING_COPY[situation];
 
-  const handleBack = () => {
-    if (arousal !== null) {
-      // Return from the valence tap to the arousal tap.
-      setArousal(null);
-      return;
+  const handleEnergy = (value: Arousal) => {
+    const firstReveal = arousal === null;
+    // Animate the feeling block in — unless Reduce Motion is on, then it's
+    // instant. LayoutAnimation needs no cleanup and is a no-op under test.
+    if (!reduceMotion) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     }
-    onBack?.();
+    setArousal(value);
+    // Move assistive-tech attention to the newly revealed feeling question so
+    // users aren't stranded by the progressive disclosure. Only on the first
+    // reveal — re-tapping energy to change it doesn't re-announce.
+    if (firstReveal) {
+      AccessibilityInfo.announceForAccessibility(feeling.question);
+    }
   };
 
   return (
     <View style={styles.container} testID="checkin-flow-state-pick">
       <View style={styles.header}>
-        {onBack || arousal !== null ? (
+        {onBack ? (
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={handleBack}
+            onPress={onBack}
             accessibilityRole="button"
             accessibilityLabel="Back"
             testID="checkin-flow-state-pick-back"
@@ -98,47 +137,65 @@ export function StatePickStepView({
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        {onTap === 'arousal' ? (
-          <>
-            <Text style={styles.title} testID="checkin-flow-arousal-title">
-              Where's your energy?
-            </Text>
-            <View style={styles.options}>
-              {AROUSAL_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={styles.option}
-                  onPress={() => setArousal(option.value)}
-                  accessibilityRole="button"
-                  accessibilityLabel={option.label}
-                  testID={`checkin-flow-arousal-${option.value}`}
-                >
-                  <Text style={styles.optionLabel}>{option.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        ) : (
-          <>
+        {/* Situation anchor chip — the chosen situation as a calm, full-width
+            Dew Sage chip directly under the nav row, so content reads top-down
+            with no marooned middle. */}
+        <View style={styles.situationChip}>
+          <Text style={styles.chipOverline}>You're here to</Text>
+          <Text
+            style={styles.chipSituation}
+            testID="checkin-flow-state-pick-situation"
+          >
+            {SITUATION_CONTEXT_LABELS[situation]}
+          </Text>
+        </View>
+
+        {/* Body state — always visible, re-tappable after it's answered. */}
+        <Text style={styles.title} testID="checkin-flow-arousal-title">
+          How's your body right now?
+        </Text>
+        <View style={styles.options}>
+          {AROUSAL_OPTIONS.map((option) => {
+            const selected = arousal === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.option, selected && styles.optionSelected]}
+                onPress={() => handleEnergy(option.value)}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={option.label}
+                testID={`checkin-flow-arousal-${option.value}`}
+              >
+                <Text style={styles.optionLabel}>{option.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Feeling — gated on the energy answer, revealed below on the same
+            screen. */}
+        {arousal !== null ? (
+          <View style={styles.feelingBlock} testID="checkin-flow-feeling-block">
             <Text style={styles.title} testID="checkin-flow-valence-title">
-              And how's it feeling?
+              {feeling.question}
             </Text>
             <View style={styles.options}>
-              {VALENCE_OPTIONS.map((option) => (
+              {feeling.options.map((option) => (
                 <TouchableOpacity
-                  key={option.value}
+                  key={option.valence}
                   style={styles.option}
-                  onPress={() => onSelect({ arousal: arousal!, valence: option.value })}
+                  onPress={() => onSelect({ arousal, valence: option.valence })}
                   accessibilityRole="button"
                   accessibilityLabel={option.label}
-                  testID={`checkin-flow-valence-${option.value}`}
+                  testID={`checkin-flow-valence-${option.valence}`}
                 >
                   <Text style={styles.optionLabel}>{option.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-          </>
-        )}
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -168,18 +225,46 @@ const styles = StyleSheet.create({
     height: MIN_TOUCH_TARGET,
   },
   scroll: {
+    // Top-down read: the chip anchors under the nav row and the questions follow
+    // immediately, so there's no marooned middle. Grows to scroll if the feeling
+    // reveal or large text settings outgrow the viewport.
+    flexGrow: 1,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
   },
+  situationChip: {
+    backgroundColor: Colors.dewSage,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 24,
+  },
+  chipOverline: {
+    fontSize: 12,
+    fontWeight: Typography.fontWeight.semibold,
+    letterSpacing: 0.72, // .06em at 12px
+    textTransform: 'uppercase',
+    color: Colors.evergreenTeal,
+    marginBottom: 4,
+  },
+  chipSituation: {
+    fontSize: 20,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+  },
+  // Questions stay primary at 22px.
   title: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: 22,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
     marginBottom: Spacing.lg,
   },
   options: {
     gap: Spacing.sm,
+  },
+  feelingBlock: {
+    marginTop: Spacing.xl,
   },
   option: {
     minHeight: MIN_TOUCH_TARGET + 16,
@@ -190,6 +275,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.divider,
     backgroundColor: Colors.surface,
+  },
+  // The chosen energy keeps a teal outline so it reads as a live selection
+  // while the feeling block is open beneath it.
+  optionSelected: {
+    borderColor: Colors.evergreenTeal,
+    borderWidth: 2,
   },
   optionLabel: {
     fontSize: Typography.fontSize.base,

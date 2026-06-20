@@ -63,8 +63,12 @@ type Nav = NativeStackNavigationProp<{
     intentPath?: IntentPath;
   };
   PracticeRun: { protocolId: string; stateBefore: BrainState };
-  // Focus-session pointer hand-off (Pomodoro screen).
-  FocusTimer: undefined;
+  // Focus-session pointer hand-off (Pomodoro screen). `fromCheckIn` closes the
+  // loop: a focus session launched from the check-in returns to the Focus
+  // reflection on "Done for now". A directly-started Pomodoro omits it.
+  // `durationMinutes` is the budget-derived prefill length so the timer opens at
+  // the user's chosen budget instead of the 25-min default.
+  FocusTimer: { fromCheckIn: true; durationMinutes?: number } | undefined;
   // Plan pointer hand-off targets the Rhythms tab (routines live there).
   Main: { screen: 'Rhythms' } | undefined;
 }>;
@@ -183,8 +187,15 @@ export function CheckInFlowScreen() {
       if (pointer) {
         if (pointer.type === 'focus-session') {
           // replace removes the dead CheckInFlow frame so back from Focus
-          // lands on the launching surface, not a blank check-in.
-          navigation.replace('FocusTimer');
+          // lands on the launching surface, not a blank check-in. fromCheckIn
+          // closes the loop — the focus session returns to the Focus reflection.
+          // durationMinutes prefills the timer at the budget-derived length.
+          navigation.replace('FocusTimer', {
+            fromCheckIn: true,
+            ...(pointer.length !== undefined
+              ? { durationMinutes: pointer.length }
+              : {}),
+          });
         } else {
           // plan pointer → routines on the Rhythms tab. Navigating to Main
           // (already below CheckInFlow in the stack) pops the flow.

@@ -128,9 +128,12 @@ const styles = StyleSheet.create({
     height: MIN_TOUCH_TARGET,
   },
   scroll: {
+    // Center the options vertically so the whitespace reads as calm, not
+    // unfinished; still scrolls when the content outgrows the viewport.
+    flexGrow: 1,
+    justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
+    paddingVertical: Spacing.xl,
   },
   title: {
     fontSize: Typography.fontSize.xl,

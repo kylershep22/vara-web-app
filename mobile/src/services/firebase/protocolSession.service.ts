@@ -18,10 +18,22 @@
 //   - `BrowseRunFlow` directly (Case 4 — no legacy brainStateCheckIns
 //     write because browse-launched sessions didn't exist in v1).
 
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+  Timestamp,
+} from 'firebase/firestore';
 
 import { db } from '../../config/firebase';
 import { logger } from '../../utils/logger';
+import type { Quadrant, Situation } from '../../engine';
 import type { BrainState, IntentPath } from '../../types/models';
 import type {
   MovementModality,
@@ -92,6 +104,93 @@ function buildDocId(
   sessionStartedAt: number
 ): string {
   return `${userId}_${sessionStartedAt}`;
+}
+
+// ── Read: today's latest engine state read ──────────────────────────
+//
+// The dashboard's "Right now: [state]" acknowledgment is derived from the
+// circumplex quadrant (+ situation), which is AUTHORITATIVE on protocolSessions
+// (the legacy brainStateCheckIns doc carries only a bridged BrainState). This
+// read returns the most recent of today's sessions that actually carries both
+// `quadrant` and `situation` — overwhelm-entry and browse-launched docs omit
+// them, so we skip those and keep scanning rather than `limit 1` blindly.
+
+// The four valid circumplex quadrants and six situations, used to validate the
+// loosely-typed (string) fields stored on the doc before narrowing.
+const VALID_QUADRANTS: ReadonlySet<string> = new Set<Quadrant>([
+  'Tense',
+  'Activated',
+  'Depleted',
+  'Calm',
+]);
+const VALID_SITUATIONS: ReadonlySet<string> = new Set<Situation>([
+  'get_through_hard',
+  'quiet_mind',
+  'find_energy',
+  'wind_down',
+  'grip_on_day',
+  'just_reset',
+]);
+
+export interface TodayEngineSession {
+  quadrant: Quadrant;
+  situation: Situation;
+}
+
+// Start of the local calendar day, derived the same way getTodayDate() derives
+// the day-key (local Y/M/D), so the query boundary and the brainStateCheckIns
+// day-key never disagree across a timezone.
+function startOfLocalToday(now: Date = new Date()): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+}
+
+/**
+ * Returns the quadrant + situation from the most recent of today's
+ * protocolSessions that has BOTH fields populated, or null if none qualifies
+ * (e.g. only overwhelm/browse sessions today). Fetches the latest ~5 of today's
+ * docs (createdAt desc) and returns the first qualifying one — a `limit 1` could
+ * land on a fields-omitted overwhelm/browse doc and miss a real check-in.
+ *
+ * Requires the composite index (userId ASC, createdAt DESC) on protocolSessions.
+ */
+export async function getTodayLatestEngineSession(
+  userId: string
+): Promise<TodayEngineSession | null> {
+  if (!db) return null;
+  try {
+    const start = Timestamp.fromDate(startOfLocalToday());
+    const q = query(
+      collection(db, COLLECTION),
+      where('userId', '==', userId),
+      where('createdAt', '>=', start),
+      orderBy('createdAt', 'desc'),
+      limit(5)
+    );
+    const snap = await getDocs(q);
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      const quadrant = data.quadrant;
+      const situation = data.situation;
+      if (
+        typeof quadrant === 'string' &&
+        typeof situation === 'string' &&
+        VALID_QUADRANTS.has(quadrant) &&
+        VALID_SITUATIONS.has(situation)
+      ) {
+        return {
+          quadrant: quadrant as Quadrant,
+          situation: situation as Situation,
+        };
+      }
+    }
+    return null;
+  } catch (error) {
+    logger.error(
+      '[protocolSession.service] getTodayLatestEngineSession failed:',
+      error
+    );
+    return null;
+  }
 }
 
 /**

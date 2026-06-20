@@ -215,6 +215,131 @@ describe('resolve — edge cases', () => {
   });
 });
 
+describe('resolve — time budget branches the plan (BUG: budget not honored)', () => {
+  it('2-min Activated/get_through_hard branches to box-breathing-2, NOT a focus-session pointer', () => {
+    const plan = resolve({
+      situation: 'get_through_hard',
+      state: stateFor('Activated'),
+      clockTime: DAYTIME,
+      timeBudget: 2,
+    });
+    expect(plan.slots).toHaveLength(1);
+    const slot = plan.slots[0];
+    expect(slot.kind).toBe('practice');
+    if (slot.kind === 'practice') {
+      expect(slot.practice.id).toBe('box-breathing-2');
+      expect(slot.slot.pillar).toBe('energy');
+    }
+  });
+
+  it('2-min Tense/get_through_hard keeps the lead breath and drops the focus pointer', () => {
+    const plan = resolve({
+      situation: 'get_through_hard',
+      state: stateFor('Tense'),
+      clockTime: DAYTIME,
+      timeBudget: 2,
+    });
+    expect(plan.slots).toHaveLength(1);
+    expect(plan.slots[0].kind).toBe('practice');
+    expect(plan.slots.some((s) => s.kind === 'pointer')).toBe(false);
+  });
+
+  it('45-min Activated/get_through_hard keeps the focus-session pointer, prefilled to 45', () => {
+    const plan = resolve({
+      situation: 'get_through_hard',
+      state: stateFor('Activated'),
+      clockTime: DAYTIME,
+      timeBudget: 45,
+    });
+    expect(plan.slots).toHaveLength(1);
+    const slot = plan.slots[0];
+    expect(slot.kind).toBe('pointer');
+    if (slot.kind === 'pointer') {
+      expect(slot.pointer.type).toBe('focus-session');
+      expect(slot.pointer.length).toBe(45);
+    }
+  });
+
+  it('snaps a 10-min budget to a 10-min focus session and a 20-min budget to 15 (tie → lower)', () => {
+    const ten = resolve({
+      situation: 'get_through_hard',
+      state: stateFor('Activated'),
+      clockTime: DAYTIME,
+      timeBudget: 10,
+    });
+    const twenty = resolve({
+      situation: 'get_through_hard',
+      state: stateFor('Activated'),
+      clockTime: DAYTIME,
+      timeBudget: 20,
+    });
+    const tenSlot = ten.slots[0];
+    const twentySlot = twenty.slots[0];
+    if (tenSlot.kind === 'pointer') expect(tenSlot.pointer.length).toBe(10);
+    if (twentySlot.kind === 'pointer') expect(twentySlot.pointer.length).toBe(15);
+  });
+
+  it('never emits a focus-session / plan pointer at a ≤5 budget across all pointer cells', () => {
+    const POINTER_CELLS: ReadonlyArray<{ situation: Situation; quadrant: Quadrant }> = [
+      { situation: 'get_through_hard', quadrant: 'Activated' },
+      { situation: 'get_through_hard', quadrant: 'Tense' },
+      { situation: 'get_through_hard', quadrant: 'Depleted' },
+      { situation: 'get_through_hard', quadrant: 'Calm' },
+      { situation: 'grip_on_day', quadrant: 'Activated' },
+      { situation: 'grip_on_day', quadrant: 'Tense' },
+      { situation: 'grip_on_day', quadrant: 'Depleted' },
+      { situation: 'grip_on_day', quadrant: 'Calm' },
+    ];
+    for (const cell of POINTER_CELLS) {
+      for (const budget of [2, 5] as const) {
+        const plan = resolve({
+          situation: cell.situation,
+          state: stateFor(cell.quadrant),
+          clockTime: DAYTIME,
+          timeBudget: budget,
+        });
+        expect(plan.slots.some((s) => s.kind === 'pointer')).toBe(false);
+        expect(plan.slots.length).toBeGreaterThanOrEqual(1);
+      }
+    }
+  });
+
+  it('find_energy/Depleted at a 2-min budget serves Light Movement clamped to 2 min (timer ceiling)', () => {
+    const plan = resolve({
+      situation: 'find_energy',
+      state: stateFor('Depleted'),
+      clockTime: DAYTIME,
+      timeBudget: 2,
+    });
+    const slot = plan.slots[0];
+    expect(slot.kind).toBe('practice');
+    if (slot.kind === 'practice') {
+      expect(slot.practice.family).toBe('brief-movement');
+      expect(slot.practice.timeWindow).toBe(2);
+      expect(slot.practice.durationSeconds).toBe(120);
+      const timer = slot.practice.steps.find((s) => s.kind === 'timer');
+      expect(timer && timer.kind === 'timer' ? timer.durationSeconds : null).toBe(120);
+    }
+  });
+
+  it('Light Movement clamps to its range: 5 → 5, longer budgets cap at 5', () => {
+    const five = resolve({
+      situation: 'find_energy',
+      state: stateFor('Depleted'),
+      clockTime: DAYTIME,
+      timeBudget: 5,
+    });
+    const long = resolve({
+      situation: 'find_energy',
+      state: stateFor('Depleted'),
+      clockTime: DAYTIME,
+      timeBudget: 45,
+    });
+    if (five.slots[0].kind === 'practice') expect(five.slots[0].practice.timeWindow).toBe(5);
+    if (long.slots[0].kind === 'practice') expect(long.slots[0].practice.timeWindow).toBe(5);
+  });
+});
+
 // ────────────────────────────────────────────────────────────
 // Graceful degradation — resolve() never throws on a valid selection.
 // NSDR rest slots declare medium/long length classes; at a 2- or 5-min budget

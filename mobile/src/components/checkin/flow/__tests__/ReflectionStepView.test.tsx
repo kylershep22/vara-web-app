@@ -12,9 +12,10 @@ function getProtocol(id: string): Protocol {
 }
 
 const CYCLIC_SIGHING = getProtocol('cyclic-sighing-2');
+const NSDR = getProtocol('nsdr-10'); // audio → rest category
 
 describe('ReflectionStepView', () => {
-  it('renders the (pillar, direction) chip set and the completed-practice chip', () => {
+  it('renders the down-regulate set (complete-answer labels) and the completion banner', () => {
     const { getByTestId, getByText } = render(
       <ReflectionStepView
         protocol={CYCLIC_SIGHING}
@@ -24,9 +25,9 @@ describe('ReflectionStepView', () => {
       />
     );
     expect(getByTestId('checkin-flow-reflection-protocol-chip')).toBeTruthy();
-    // Energy/settle set.
+    // Energy/settle, down-regulate labels — the middle is a complete answer.
     expect(getByText('Calmer')).toBeTruthy();
-    expect(getByText('A little')).toBeTruthy();
+    expect(getByText('A little calmer')).toBeTruthy();
     expect(getByText('Still wound up')).toBeTruthy();
   });
 
@@ -40,7 +41,40 @@ describe('ReflectionStepView', () => {
       />
     );
     expect(getByText('More with it')).toBeTruthy();
+    expect(getByText('A little more')).toBeTruthy();
     expect(getByText('Still flat')).toBeTruthy();
+  });
+
+  it('uses the rest labels for an audio (NSDR) settle practice, same ids', () => {
+    const onSelect = jest.fn();
+    const { getByText, getByTestId } = render(
+      <ReflectionStepView
+        protocol={NSDR}
+        pillar="energy"
+        direction="settle"
+        onSelect={onSelect}
+      />
+    );
+    expect(getByText('More rested')).toBeTruthy();
+    expect(getByText('Still tense')).toBeTruthy();
+    // Same stable id the classifier reads.
+    fireEvent.press(getByTestId('checkin-flow-reflection-chip-calmer'));
+    expect(onSelect).toHaveBeenCalledWith('calmer');
+  });
+
+  it('uses the settle-before-focus labels when the practice leads a focus session', () => {
+    const { getByText } = render(
+      <ReflectionStepView
+        protocol={CYCLIC_SIGHING}
+        pillar="energy"
+        direction="settle"
+        leadsToFocus
+        onSelect={jest.fn()}
+      />
+    );
+    expect(getByText('Clearer')).toBeTruthy();
+    expect(getByText('A little clearer')).toBeTruthy();
+    expect(getByText('Still scattered')).toBeTruthy();
   });
 
   it('fires onSelect with the chip id', () => {
