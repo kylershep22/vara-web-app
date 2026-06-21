@@ -129,7 +129,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (data.type === 'habit-reminder') {
         navigationRef.navigate(ROUTES.Rhythms as never);
       } else if (data.type === 'routine-reminder') {
-        navigationRef.navigate('Focus' as never);
+        // Routines live on the Rhythms tab (the focus-timer route is `FocusTimer`,
+        // not `Focus`; the old `Focus` target was dead).
+        navigationRef.navigate(ROUTES.Rhythms as never, { tab: 'routines' } as never);
       }
     });
 

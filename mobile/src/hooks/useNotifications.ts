@@ -14,6 +14,7 @@ import * as Notifications from 'expo-notifications';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { logger } from '../utils/logger';
+import { ROUTES } from '../navigation/routes';
 import {
   registerForPushNotifications,
   savePushTokenToUser,
@@ -75,7 +76,7 @@ export function useNotifications() {
     // Route by category first, then fall back to type
     switch (category) {
       case 'daily_rhythm':
-        navigation.navigate('Dashboard');
+        navigation.navigate(ROUTES.Home);
         break;
 
       case 'insights_learning':
@@ -104,7 +105,7 @@ export function useNotifications() {
         break;
 
       case 'milestones_reflection':
-        navigation.navigate('Dashboard');
+        navigation.navigate(ROUTES.Home);
         break;
 
       default:
@@ -125,7 +126,7 @@ export function useNotifications() {
             params: { groupId: data.groupId },
           });
         } else {
-          navigation.navigate('Dashboard');
+          navigation.navigate(ROUTES.Home);
         }
         break;
     }
