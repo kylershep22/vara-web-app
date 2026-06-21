@@ -13,6 +13,7 @@ export interface NudgeSuggestion {
 }
 
 import type { BrainState } from '../types/models';
+import { ROUTES } from '../navigation/routes';
 
 export type Feature = 'journal' | 'focus' | 'breathwork' | 'community' | 'brainHealth' | 'discover' | 'masterclass';
 
@@ -35,7 +36,7 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   journal: {
     icon: 'book-open-variant',
     ctaLabel: 'Open Journal',
-    screenName: 'Journal',
+    screenName: ROUTES.Journal,
     headlines: {
       wired: { headline: 'Write it out', description: 'Journaling can help a busy mind find its thread.' },
       foggy: { headline: 'Clear the fog with words', description: 'Even a few sentences can bring surprising clarity.' },
@@ -47,7 +48,7 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   focus: {
     icon: 'timer-outline',
     ctaLabel: 'Start Session',
-    screenName: 'FocusTimer',
+    screenName: ROUTES.FocusTimer,
     headlines: {
       wired: { headline: 'Try focused calm', description: 'A structured session can channel racing thoughts.' },
       foggy: { headline: 'Sharpen your focus', description: 'A short focus session can cut through the fog.' },
@@ -59,7 +60,7 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   breathwork: {
     icon: 'weather-windy',
     ctaLabel: 'Start Breathwork',
-    screenName: 'Breathwork',
+    screenName: ROUTES.Breathwork,
     headlines: {
       wired: { headline: 'Settle your mind', description: 'Extended exhales help a racing brain find its rhythm.' },
       foggy: { headline: 'Wake up your brain', description: 'Activating breathwork boosts oxygen flow and alertness.' },
@@ -71,7 +72,7 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   community: {
     icon: 'account-group-outline',
     ctaLabel: 'Open Community',
-    screenName: 'Community',
+    screenName: ROUTES.Community,
     headlines: {
       wired: { headline: 'Connect with others', description: 'Sometimes sharing what you\u2019re feeling helps more than solving it.' },
       foggy: { headline: 'See what others are up to', description: 'A little social energy can lift the fog.' },
@@ -83,7 +84,7 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   brainHealth: {
     icon: 'brain',
     ctaLabel: 'Check Brain Health',
-    screenName: 'Insights',
+    screenName: ROUTES.Insights,
     headlines: {
       wired: { headline: 'Track your patterns', description: 'Logging sleep and stress helps you spot what triggers wired days.' },
       foggy: { headline: 'Check your readiness', description: 'Sleep and hydration data might explain the fog.' },
@@ -95,7 +96,7 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   discover: {
     icon: 'headphones',
     ctaLabel: 'Browse Content',
-    screenName: 'Wellness',
+    screenName: ROUTES.Wellness,
     headlines: {
       wired: { headline: 'Listen and unwind', description: 'A podcast or masterclass can redirect a restless mind.' },
       foggy: { headline: 'Let someone else do the thinking', description: 'Listen to something that sparks a new thought.' },
@@ -107,7 +108,7 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   masterclass: {
     icon: 'school-outline',
     ctaLabel: 'Browse Masterclasses',
-    screenName: 'Wellness',
+    screenName: ROUTES.Wellness,
     headlines: {
       wired: { headline: 'Learn something calming', description: 'A masterclass can redirect a restless mind.' },
       foggy: { headline: 'Let an expert guide you', description: 'Sometimes listening is easier than doing.' },

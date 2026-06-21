@@ -23,6 +23,7 @@ import {
 import { syncAllReminders } from '../services/reminderScheduler.service';
 import { isHabitCompletedToday } from '../services/firebase/habits.service';
 import { navigationRef } from '../navigation/AppNavigator';
+import { ROUTES } from '../navigation/routes';
 import {
   initializeUserNotifications,
   updateNotificationsFromPreferences,
@@ -126,7 +127,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (!data?.type || !navigationRef.isReady()) return;
 
       if (data.type === 'habit-reminder') {
-        navigationRef.navigate('Rhythms' as never);
+        navigationRef.navigate(ROUTES.Rhythms as never);
       } else if (data.type === 'routine-reminder') {
         navigationRef.navigate('Focus' as never);
       }
