@@ -29,13 +29,13 @@ import { FocusCopy } from '../../constants/focusContent';
 import { useTimer, useNotificationSilence, useAmbientSound } from '../../hooks';
 import { useCompletionSound } from '../../hooks/useCompletionSound';
 import {
-  TimerRing,
   DurationChips,
   TaskLabelInput,
   BreakPrompt,
   NotificationToggle,
   AmbientSoundSelector,
 } from './components';
+import { TimerRing } from '../../components/shared/TimerRing';
 
 const TASK_LABEL_KEY = '@focus_task_label';
 

@@ -16,7 +16,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '../../constants';
 import { useStepCountdown } from '../../hooks/useStepCountdown';
-import { TimerRing } from '../../screens/Focus/components/TimerRing';
+import { TimerRing } from '../shared/TimerRing';
 import type { TimerStepViewProps } from './stepViewProps';
 
 // Ring large enough to comfortably contain the countdown numerals. Track is
