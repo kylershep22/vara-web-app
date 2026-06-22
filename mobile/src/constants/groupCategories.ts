@@ -40,7 +40,7 @@ export const GROUP_CATEGORIES: Record<GroupCategory, GroupCategoryConfig> = {
     label: 'Sleep',
     icon: 'moon-waning-crescent',
     color: '#1B5E57',
-    description: 'Sleep habits and rest optimization',
+    description: 'Sleep habits and better rest',
   },
   'mental-health': {
     key: 'mental-health',

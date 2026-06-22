@@ -108,7 +108,7 @@ export const HABIT_BRAIN_MAPPING: Record<string, HabitBrainMapping> = {
       { name: 'Clarity', direction: 'increase', icon: 'lightbulb' },
     ],
     pillars: ['energy', 'focus'],
-    description: 'Optimizes brain function and clarity',
+    description: 'Supports brain function and clarity',
   },
 
   // Learning & Cognitive

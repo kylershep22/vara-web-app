@@ -38,7 +38,7 @@ export function PointerOfferStepView({
         <Text style={styles.title} testID="checkin-flow-pointer-offer-title">
           Want to start your {noun}?
         </Text>
-        <Text style={styles.body}>No pressure — it's here if you want it.</Text>
+        <Text style={styles.body}>No pressure. It's here if you want it.</Text>
       </ScrollView>
 
       <View style={styles.footer}>

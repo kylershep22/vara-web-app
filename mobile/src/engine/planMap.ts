@@ -89,7 +89,7 @@ export const PLAN_MAP: Record<Situation, Record<Quadrant, PlanTemplate>> = {
   // 3. Find energy I'm missing (revved ≠ energy)
   find_energy: {
     Tense: { slots: [settleBreathSlot('mandatory')] },
-    Activated: { message: "You're there — go use it.", slots: [] }, // zero-slot
+    Activated: { message: "You're there. Go use it.", slots: [] }, // zero-slot
     Depleted: { slots: [energizeSlot('mandatory')] },
     Calm: { message: 'A gentle lift, or permission to rest.', slots: [energizeSlot('offered')] },
   },

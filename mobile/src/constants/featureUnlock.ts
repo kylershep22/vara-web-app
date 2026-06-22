@@ -62,7 +62,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     id: 'energy',
     title: 'Energy',
     subtitle: 'Restore your vitality',
-    description: 'Begin with sleep optimization, movement, and breathing to boost your daily energy.',
+    description: 'Begin with better sleep, movement, and breathing to boost your daily energy.',
     icon: 'lightning-bolt',
     color: '#E8A838', // Sunrise Amber
     day1Features: ['sleep', 'breathwork_quick', 'movement', 'habits_basic'],
@@ -219,7 +219,7 @@ export const FEATURE_METADATA: Record<FeatureId, {
   },
   sleep: {
     name: 'Sleep',
-    description: 'Sleep optimization tools and content',
+    description: 'Better sleep tools and content',
     icon: 'weather-night',
   },
   brain_readiness: {
