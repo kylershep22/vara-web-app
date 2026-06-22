@@ -7,6 +7,7 @@ import {
 import type {
   BrainState,
   Protocol,
+  ProtocolBrowseCategory,
   ProtocolFamily,
   ProtocolStep,
 } from '../../types/models';
@@ -217,6 +218,42 @@ describe('BRAIN_STATE_PROTOCOLS — Phase 1 launch library', () => {
     // state-coverage assertion above is sufficient — the new
     // `selectProtocol` helper has its own exhaustive matrix tests
     // in services/__tests__/protocolSelector.service.test.ts.
+  });
+
+  describe('browseCategory tagging (IA Phase B-2)', () => {
+    // Browse-list grouping for the Energy hub (B-3). Pure data tag — not read
+    // by the recommender/selector. Guard: every protocol is bucketed into a
+    // valid value, and each of the three buckets is non-empty. Counts are
+    // intentionally not hardcoded (the rest bucket is expected to be thin until
+    // wind-down/sleep audios ship) — they are reported below for visibility.
+    const VALID_CATEGORIES: ProtocolBrowseCategory[] = [
+      'regulate',
+      'rest',
+      'fuel',
+    ];
+
+    it.each(getAllProtocols().map((p): [string, Protocol] => [p.id, p]))(
+      '%s has a valid browseCategory',
+      (_id, p) => {
+        expect(VALID_CATEGORIES).toContain(p.browseCategory);
+      }
+    );
+
+    it('each browseCategory bucket is non-empty', () => {
+      const counts = VALID_CATEGORIES.reduce<Record<string, number>>(
+        (acc, c) => ({ ...acc, [c]: 0 }),
+        {}
+      );
+      for (const p of getAllProtocols()) {
+        counts[p.browseCategory] += 1;
+      }
+      // Report (not assert) the per-bucket counts.
+      // eslint-disable-next-line no-console
+      console.log('browseCategory counts:', counts);
+      for (const c of VALID_CATEGORIES) {
+        expect(counts[c]).toBeGreaterThan(0);
+      }
+    });
   });
 
   describe('getProtocolById', () => {

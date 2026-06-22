@@ -159,6 +159,7 @@ function makeProtocol(steps: any[]): Protocol {
     id: 'test-protocol',
     pillar: 'energy',
     regulationDirection: 'settle',
+    browseCategory: 'regulate',
     family: 'cyclic-sighing',
     name: 'Test Protocol',
     description: 'd',
