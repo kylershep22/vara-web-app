@@ -892,6 +892,13 @@ export type ProtocolRegulationDirection =
   | 'both'
   | 'neutral';
 
+// Grouping tag for the Energy hub browse lists (IA Phase B-3). Purely a
+// browse-UI concern: NOT read by the recommender/selector or slot matching.
+// `regulate` = settle/ground practices, `rest` = deep-rest audio,
+// `fuel` = activating/energizing practices. User-facing list labels are a
+// B-3 decision; these are the data tags only.
+export type ProtocolBrowseCategory = 'regulate' | 'rest' | 'fuel';
+
 // One phase of a paced breath cycle. Sequenced into BreathStep.phases and
 // repeated until the step's durationSeconds elapses. `label` is what the
 // pacer renders alongside the visual ("Inhale", "Hold", "Exhale").
@@ -991,6 +998,10 @@ export interface Protocol {
   // slots by { pillar, regulationDirection, modality→type, timeWindow→length }.
   pillar: ProtocolPillar;
   regulationDirection: ProtocolRegulationDirection;
+  // Browse-list grouping for the Energy hub (IA Phase B-3). Consumed only by
+  // the future browse UI — not by the recommender/selector. Required so the
+  // type enforces that every protocol is bucketed.
+  browseCategory: ProtocolBrowseCategory;
   // Retained for the Phase 2 selectProtocol stub + Practices index until the
   // engine replaces them (Vara_Engine_Contract.md §5 marks this "retired").
   suitableForStates: BrainState[];

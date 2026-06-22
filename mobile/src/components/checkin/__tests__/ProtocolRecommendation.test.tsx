@@ -14,6 +14,7 @@ const sampleProtocol: Protocol = {
   id: 'cyclic-sighing-2',
   pillar: 'energy',
   regulationDirection: 'settle',
+  browseCategory: 'regulate',
   family: 'cyclic-sighing',
   name: 'Cyclic Sighing',
   description:
