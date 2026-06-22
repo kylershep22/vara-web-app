@@ -132,13 +132,13 @@ export const MILESTONE_TEMPLATES: MilestoneTemplatesConfig = {
     ],
     '90 days': [
       { title: 'Build sleep hygiene', targetProgress: 33 },
-      { title: 'Optimize your environment', targetProgress: 66 },
+      { title: 'Improve your environment', targetProgress: 66 },
       { title: 'Restful sleep mastered', targetProgress: 100 },
     ],
     '6 months': [
       { title: 'Routine established', targetProgress: 25 },
       { title: 'Consistent patterns', targetProgress: 50 },
-      { title: 'Recovery optimized', targetProgress: 75 },
+      { title: 'Recovery improved', targetProgress: 75 },
       { title: 'Sleep health achieved', targetProgress: 100 },
     ],
     '1 year': [

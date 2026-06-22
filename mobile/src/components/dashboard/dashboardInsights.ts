@@ -19,7 +19,7 @@ const INSIGHTS: DashboardInsight[] = [
   },
   {
     title: 'Energy is a rhythm',
-    body: 'Most people dip in the early afternoon — a short reset can meet it.',
+    body: 'Most people dip in the early afternoon. A short reset can meet it.',
   },
   {
     title: 'Breath leads the body',
@@ -27,7 +27,7 @@ const INSIGHTS: DashboardInsight[] = [
   },
   {
     title: 'Capacity, not pressure',
-    body: 'The aim is a bit more room to meet your day — not another box to tick.',
+    body: 'The aim is a bit more room to meet your day, not another box to tick.',
   },
   {
     title: 'Light shapes your day',
