@@ -25,6 +25,18 @@ export const ROUTES = {
   Community: 'Community',
   Wellness: 'Wellness',
 
+  // --- Five-pillar tabs (FivePillarTabs, mounted when FOUR_PILLAR_IA is on) ---
+  // Phase B-3a scaffold. Home and Community reuse the existing bottom-tab route
+  // names above (same destinations) so routing parity holds under the flag. The
+  // three new pillar tabs get `Pillar`-prefixed names, deliberately namespaced
+  // away from the BrainPillar content taxonomy literals (growth / energy /
+  // focus / resilience / connection in src/types/models.ts) — there is no bare
+  // `Focus` / `Energy` / `Time` route name, mirroring why the focus session is
+  // `FocusTimer`, not `Focus`.
+  PillarFocus: 'PillarFocus',
+  PillarEnergy: 'PillarEnergy',
+  PillarTime: 'PillarTime',
+
   // --- Root / AppStack (MainNavigator) ---
   Main: 'Main',
   DiscoverNavigator: 'DiscoverNavigator',

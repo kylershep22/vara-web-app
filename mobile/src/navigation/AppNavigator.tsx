@@ -16,7 +16,8 @@ import { FABHost } from './FABHost';
 import { OfflineIndicator } from '../components/shared/OfflineIndicator';
 import { useHabits } from '../hooks/useHabits';
 import { useSubscription } from '../hooks/useSubscription';
-import { ONBOARDING_V2 } from '../constants/dashboardConfig';
+import { ONBOARDING_V2, FOUR_PILLAR_IA } from '../constants/dashboardConfig';
+import { ROUTES } from './routes';
 import { linking } from './linking';
 
 export const navigationRef = createNavigationContainerRef();
@@ -121,6 +122,10 @@ import { CheckInFlowTestScreen } from '../screens/_dev/CheckInFlowTestScreen';
 // Phase 2 sub-step 2.2 — Practices index + single-protocol runner.
 import { PracticesIndexScreen } from '../screens/practices/PracticesIndexScreen';
 import { PracticeRunScreen } from '../screens/practices/PracticeRunScreen';
+
+// Four-Pillar IA Phase B-3a — Energy tab scaffold placeholder (replaced by the
+// real Energy hub in B-3b). Wired only into FivePillarTabs (flag-gated).
+import { EnergyHubPlaceholder } from '../screens/Energy/EnergyHubPlaceholder';
 
 // Phase 2 sub-step 2.5 — production CheckInFlow screen wrapper.
 import { CheckInFlowScreen } from '../screens/checkin/CheckInFlowScreen';
@@ -525,6 +530,114 @@ const BottomTabsNavigator = () => {
 };
 
 /**
+ * Five-Pillar Tabs Navigator — Four-Pillar IA Phase B-3a (flag-gated).
+ *
+ * Mounted in place of BottomTabsNavigator only when FOUR_PILLAR_IA is on.
+ * This slice proves ROUTING, not hubs: each tab lands on an EXISTING screen as
+ * a placeholder destination. No content is re-homed and nothing is deleted —
+ * re-homing the Wellness items (Insights/Journal/Breathwork/Sleep/Masterclass/
+ * Connected Apps) is B-3b/d. Under this flag those items have no tab yet; they
+ * stay registered in AppStack and Settings stays reachable via the dashboard
+ * gear, so flag-ON is usable. (Known, accepted B-3a gap — do not add a stopgap
+ * Wellness tab here.)
+ *
+ * Tabs / placeholder destinations:
+ *   Home      → DashboardScreen     (unchanged)
+ *   Focus     → FocusScreen         (existing pomodoro, for now)
+ *   Energy    → EnergyHubPlaceholder (scaffold stub; real hub is B-3b)
+ *   Time      → PlanScreen          (existing habits + routines, for now)
+ *   Community → CommunityNavigator  (unchanged)
+ *
+ * FAB: matches each tab's current equivalent — Home/Time/Community show it, and
+ * Focus shows it (the FocusTimer screen does today). Energy is intentionally
+ * no-FAB: a browse hub does not host the AI assistant CTA. Revisit when the
+ * real Energy hub lands in B-3b.
+ *
+ * Icons for Focus/Energy/Time are approximate scaffold placeholders
+ * (timer-outline / lightning-bolt / clock-outline) — refine in B-3b.
+ */
+const FivePillarTabs = () => {
+  return (
+    <BottomTabs.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: Colors.evergreenTeal,
+        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: Colors.surface,
+          borderTopColor: Colors.borderLight,
+          borderTopWidth: 1,
+          paddingBottom: 5,
+          paddingTop: 5,
+          height: 62,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+      }}
+    >
+      <BottomTabs.Screen
+        name={ROUTES.Home}
+        component={DashboardScreen}
+        options={tabOpts({
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="view-dashboard" size={size} color={color} />
+          ),
+          showFAB: true,
+        })}
+      />
+      <BottomTabs.Screen
+        name={ROUTES.PillarFocus}
+        component={FocusScreen}
+        options={tabOpts({
+          tabBarLabel: 'Focus',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="timer-outline" size={size} color={color} />
+          ),
+          showFAB: true,
+        })}
+      />
+      <BottomTabs.Screen
+        name={ROUTES.PillarEnergy}
+        component={EnergyHubPlaceholder}
+        options={tabOpts({
+          tabBarLabel: 'Energy',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="lightning-bolt" size={size} color={color} />
+          ),
+          // Intentional: a browse hub does not host the AI FAB. Revisit in B-3b.
+          showFAB: false,
+        })}
+      />
+      <BottomTabs.Screen
+        name={ROUTES.PillarTime}
+        component={PlanScreen}
+        options={tabOpts({
+          tabBarLabel: 'Time',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="clock-outline" size={size} color={color} />
+          ),
+          showFAB: true,
+        })}
+      />
+      <BottomTabs.Screen
+        name={ROUTES.Community}
+        component={CommunityNavigator}
+        options={tabOpts({
+          tabBarLabel: 'Community',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="account-group" size={size} color={color} />
+          ),
+          showFAB: true,
+        })}
+      />
+    </BottomTabs.Navigator>
+  );
+};
+
+/**
  * App Stack Navigator
  * Screens for authenticated users
  */
@@ -544,7 +657,11 @@ const MainNavigator = () => {
           headerShown: false,
         }}
       >
-        <AppStack.Screen name="Main" component={BottomTabsNavigator} />
+        {/* Four-Pillar IA gate (B-3a): flag OFF → legacy four-tab IA, byte-for-byte. */}
+        <AppStack.Screen
+          name="Main"
+          component={FOUR_PILLAR_IA ? FivePillarTabs : BottomTabsNavigator}
+        />
         {/* Discover Navigator - Accessible from More menu */}
         <AppStack.Screen
           name="DiscoverNavigator"

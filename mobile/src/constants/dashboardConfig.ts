@@ -7,6 +7,20 @@ export const DASHBOARD_V2 = true;
 export const ONBOARDING_V2 = true;
 
 /**
+ * FOUR_PILLAR_IA — Four-Pillar IA navigator switch (Phase B-3a).
+ *
+ * When true, MainNavigator mounts the five-tab pillar navigator
+ * (Home / Focus / Energy / Time / Community) instead of the legacy four-tab
+ * BottomTabsNavigator. Compile-time const, default FALSE — ships OFF, so there
+ * is zero user-facing change; flipped locally to walk the new IA.
+ *
+ * Unlike DASHBOARD_V2 (which gates render/data logic), this flag gates the
+ * NAVIGATOR only. Reversibility is the whole point: flipping this one line back
+ * to false restores the original four-tab IA byte-for-byte.
+ */
+export const FOUR_PILLAR_IA = false;
+
+/**
  * Dashboard rework — reversible suppression flags.
  *
  * The reworked Home renders the spec component set ONLY. Cards that predate the
