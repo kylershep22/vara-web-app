@@ -103,7 +103,7 @@ const EVENING_TEMPLATES = [
   },
   {
     id: 'evening-sleep-optimizer',
-    name: 'Sleep Optimizer',
+    name: 'Sleep Wind-Down',
     description: 'For people who struggle to fall or stay asleep',
     totalMinutes: 20,
     activities: [
