@@ -85,19 +85,31 @@ export function useNotifications() {
 
       case 'social_connection':
         if (type === 'message' && data?.conversationId) {
-          navigation.navigate('Messages', {
-            screen: 'Chat',
+          navigation.navigate(ROUTES.Main, {
+            screen: ROUTES.Community,
             params: {
-              conversationId: data.conversationId,
-              otherUserId: data.senderId,
+              screen: ROUTES.Chat,
+              params: {
+                conversationId: data.conversationId,
+                otherUserId: data.senderId,
+              },
             },
           });
         } else if (type === 'connection' && data?.senderId) {
-          navigation.navigate('Profile', { screen: 'ProfileSettings' });
+          navigation.navigate(ROUTES.Main, {
+            screen: ROUTES.Community,
+            params: {
+              screen: ROUTES.UserProfile,
+              params: { userId: data.senderId },
+            },
+          });
         } else if (data?.groupId) {
-          navigation.navigate('Community', {
-            screen: 'Group',
-            params: { groupId: data.groupId },
+          navigation.navigate(ROUTES.Main, {
+            screen: ROUTES.Community,
+            params: {
+              screen: ROUTES.GroupDetail,
+              params: { groupId: data.groupId },
+            },
           });
         } else {
           navigation.navigate('Community');
@@ -111,19 +123,31 @@ export function useNotifications() {
       default:
         // Legacy fallback by type
         if (type === 'message' && data?.conversationId) {
-          navigation.navigate('Messages', {
-            screen: 'Chat',
+          navigation.navigate(ROUTES.Main, {
+            screen: ROUTES.Community,
             params: {
-              conversationId: data.conversationId,
-              otherUserId: data.senderId,
+              screen: ROUTES.Chat,
+              params: {
+                conversationId: data.conversationId,
+                otherUserId: data.senderId,
+              },
             },
           });
-        } else if (type === 'connection') {
-          navigation.navigate('Profile', { screen: 'ProfileSettings' });
+        } else if (type === 'connection' && data?.senderId) {
+          navigation.navigate(ROUTES.Main, {
+            screen: ROUTES.Community,
+            params: {
+              screen: ROUTES.UserProfile,
+              params: { userId: data.senderId },
+            },
+          });
         } else if (type === 'community_activity' && data?.groupId) {
-          navigation.navigate('Community', {
-            screen: 'Group',
-            params: { groupId: data.groupId },
+          navigation.navigate(ROUTES.Main, {
+            screen: ROUTES.Community,
+            params: {
+              screen: ROUTES.GroupDetail,
+              params: { groupId: data.groupId },
+            },
           });
         } else {
           navigation.navigate(ROUTES.Home);
