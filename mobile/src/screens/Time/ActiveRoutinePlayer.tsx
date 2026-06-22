@@ -37,7 +37,8 @@ import {
 } from '../../constants/designTokens';
 import { FocusCopy } from '../../constants/focusContent';
 import { useReducedMotion } from '../../hooks';
-import { TimerRing, UpNextCard, RoutineCompleteState, ChecklistPlayer } from './components';
+import { UpNextCard, RoutineCompleteState, ChecklistPlayer } from './components';
+import { TimerRing } from '../../components/shared/TimerRing';
 import { getActivityColor } from './components/activityColors';
 import { markRoutineComplete, calculateTotalDuration } from '../../services/firebase/routines.service';
 

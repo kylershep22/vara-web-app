@@ -37,6 +37,7 @@ import {
   readMarkerForRecoveryOffer,
 } from '../../utils/flowSessionMarker';
 import { getProtocolById } from '../../constants/brainStateProtocols';
+import { ROUTES } from '../../navigation/routes';
 
 // Route params — discriminated by the same union shape as FlowInit
 // so production callers express intent at the navigation layer
@@ -199,7 +200,7 @@ export function CheckInFlowScreen() {
         } else {
           // plan pointer → routines on the Rhythms tab. Navigating to Main
           // (already below CheckInFlow in the stack) pops the flow.
-          navigation.navigate('Main', { screen: 'Rhythms' });
+          navigation.navigate(ROUTES.Main, { screen: ROUTES.Rhythms });
         }
         return;
       }

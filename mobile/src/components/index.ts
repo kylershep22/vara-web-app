@@ -23,15 +23,9 @@ export { default as PasswordRequirements, allRequirementsMet } from './auth/Pass
 export { StatCard } from './dashboard/StatCard';
 export { FourThreeTwoOneCard } from './dashboard/FourThreeTwoOneCard';
 export { FourThreeTwoOneCarousel } from './dashboard/FourThreeTwoOneCarousel';
-export { UpNextCard } from './dashboard/UpNextCard';
 export { default as ProgressNudgeCard } from './dashboard/ProgressNudgeCard';
 export { BrainHealthInsightStrip } from './dashboard/BrainHealthInsightStrip';
-export { NextBestActionCard } from './dashboard/NextBestActionCard';
-export { GoalsCard } from './dashboard/GoalsCard';
-export { QuickActionButtons } from './dashboard/QuickActionButtons';
 export { QuickActionCarousel } from './dashboard/QuickActionCarousel';
-export { BrainHealthEducationCard } from './dashboard/BrainHealthEducationCard';
-export { TasksCard } from './dashboard/TasksCard';
 export { WellnessScoreCard } from './dashboard/WellnessScoreCard';
 export { WellnessScoreBreakdown } from './dashboard/WellnessScoreBreakdown';
 export { MorningCheckIn, MorningCheckInComplete } from './dashboard/MorningCheckIn';

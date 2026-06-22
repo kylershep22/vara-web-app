@@ -24,8 +24,8 @@ import { Colors, Spacing, Typography, Layout } from '../constants';
 import { FocusCopy } from '../constants/focusContent';
 import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import HabitsScreen from './HabitsScreen';
-import { RoutinesTab } from './Focus/RoutinesTab';
-import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
+import { RoutinesTab } from './Time/RoutinesTab';
+import { ActiveRoutinePlayer } from './Time/ActiveRoutinePlayer';
 import { Routine } from '../services/firebase/routines.service';
 
 

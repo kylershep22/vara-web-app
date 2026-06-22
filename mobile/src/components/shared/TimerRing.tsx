@@ -12,8 +12,8 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { ColorTokens, AnimationTokens } from '../../../constants/designTokens';
-import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { ColorTokens, AnimationTokens } from '../../constants/designTokens';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 // Create animated circle component
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);

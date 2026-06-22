@@ -11,7 +11,8 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingSpinner } from '../components';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
-import { ActiveRoutinePlayer } from './Focus/ActiveRoutinePlayer';
+import { ActiveRoutinePlayer } from './Time/ActiveRoutinePlayer';
+import { ROUTES } from '../navigation/routes';
 import { CheckInInvite } from '../components/dashboard/CheckInInvite';
 import { SlimResetAffordance } from '../components/dashboard/SlimResetAffordance';
 import { RightNowAcknowledgment } from '../components/dashboard/RightNowAcknowledgment';
@@ -253,8 +254,8 @@ const DashboardScreen: React.FC = () => {
                 routines={dashboardRoutines}
                 completions={routineCompletions}
                 onBeginRoutine={handleBeginRoutine}
-                onNavigateToRoutines={() => go('Rhythms', { tab: 'routines' })}
-                onNavigateToHabits={() => go('Rhythms', { tab: 'habits' })}
+                onNavigateToRoutines={() => go(ROUTES.Rhythms, { tab: 'routines' })}
+                onNavigateToHabits={() => go(ROUTES.Rhythms, { tab: 'habits' })}
               />
 
               {/* Surviving system prompts (live-gated), after the content. */}
@@ -281,7 +282,7 @@ const DashboardScreen: React.FC = () => {
           onClose={handleCloseRoutinePlayer}
           onEditRoutine={() => {
             handleCloseRoutinePlayer();
-            navigation.navigate('Rhythms' as never, { tab: 'routines' } as never);
+            navigation.navigate(ROUTES.Rhythms as never, { tab: 'routines' } as never);
           }}
           onComplete={handleRoutineComplete}
         />
