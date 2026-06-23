@@ -61,11 +61,12 @@ export type BrowseRunFlowWriteMode = 'production' | 'dev_dry_run';
 
 export interface BrowseRunFlowProps {
   protocol: Protocol;
-  // The state the user filtered on at the Practices index. Forwarded
-  // to GuidedSessionPlayer because the player's signature requires
-  // it (used for the recovery summary). NOT written to the
-  // ProtocolSession record — Case 4 sessions persist stateBefore=null.
-  stateBefore: BrainState;
+  // The state the user filtered on at the Practices index, or null for a
+  // true browse pick (Energy hub) where no pre-protocol state exists.
+  // Forwarded to GuidedSessionPlayer for the recovery summary only. NOT
+  // written to the ProtocolSession record — Case 4 sessions persist
+  // stateBefore=null regardless of this prop.
+  stateBefore: BrainState | null;
   userId: string;
   // Required at the call site — the parent navigates back to
   // Practices on terminal entry.
@@ -239,7 +240,7 @@ export function BrowseRunFlow({
 function renderStep(
   state: BrowseRunFlowState,
   dispatch: React.Dispatch<Parameters<typeof browseRunReducer>[1]>,
-  stateBefore: BrainState,
+  stateBefore: BrainState | null,
   onModalitySelected?: (modality: MovementModality) => void,
   onCancel?: () => void
 ): React.ReactNode {

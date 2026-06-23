@@ -39,7 +39,9 @@ const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export interface SessionMarker {
   protocolId: string;
-  stateBefore: BrainState;
+  // null for browse-launched sessions — no pre-protocol state was captured.
+  // The recovery path carries it through to a force_quit summary unchanged.
+  stateBefore: BrainState | null;
   startedAt: number;
   // Refreshed by the player every ~10s while the session is running.
   // Used as the `endedAt` for a recovered force_quit summary — it's
@@ -134,7 +136,8 @@ function isValidMarker(x: unknown): x is SessionMarker {
   const o = x as Partial<SessionMarker>;
   return (
     typeof o.protocolId === 'string' &&
-    typeof o.stateBefore === 'string' &&
+    // null is valid (browse-launched marker); a string is a captured state.
+    (o.stateBefore === null || typeof o.stateBefore === 'string') &&
     typeof o.startedAt === 'number' &&
     typeof o.lastUpdatedAt === 'number' &&
     typeof o.currentStepIndex === 'number' &&

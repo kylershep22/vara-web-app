@@ -36,12 +36,12 @@ import type {
 
 export interface PracticeRunRouteParams {
   protocolId: string;
-  // The state the user filtered on at Practices index. Forwarded to
-  // GuidedSessionPlayer (which requires a stateBefore for its
-  // recovery summary). When this run came from CheckInFlow (Bug B
-  // fix, round 5), it doubles as the captured stateBefore on the
-  // ProtocolSession record.
-  stateBefore: BrainState;
+  // The state the user filtered on at Practices index, or null for a true
+  // browse pick (Energy hub) with no pre-protocol state. Forwarded to
+  // GuidedSessionPlayer (recovery summary only). When this run came from
+  // CheckInFlow (Bug B fix, round 5) it is always a real state and doubles
+  // as the captured stateBefore on the ProtocolSession record.
+  stateBefore: BrainState | null;
   // Sub-step 2.7 round 5 (Bug B fix) — when present and true, this
   // PracticeRun was launched from CheckInFlow (via "See other
   // options" or "Try something longer"). Combined with intentPath
@@ -85,7 +85,11 @@ export function PracticeRunScreen() {
   // falls back to the protocol's intrinsic timeWindow when
   // ctx.timeWindow is null.
   const checkInFlowContext = useMemo<CheckInFlowContext | undefined>(() => {
-    if (!fromCheckInFlow) return undefined;
+    // CheckInFlow continuations always carry a real stateBefore; a true browse
+    // pick passes null and has no context. The `stateBefore == null` guard makes
+    // that type-safe (CheckInFlowContext.state is a non-null BrainState) without
+    // fabricating a state — null means "no pre-state captured."
+    if (!fromCheckInFlow || stateBefore == null) return undefined;
     return {
       state: stateBefore,
       timeWindow,
