@@ -1117,7 +1117,10 @@ export type MovementModality = 'walk' | 'stretch';
  */
 export interface ProtocolSessionSummary {
   protocolId: string;
-  stateBefore: BrainState;
+  // null for browse-launched sessions (Energy hub / Practices) — no
+  // pre-protocol state was captured. Real BrainState for check-in and
+  // onboarding sessions. Consumers must not render or persist null as a state.
+  stateBefore: BrainState | null;
   completed: boolean;
   durationActualSeconds: number;
   stepsCompleted: number;

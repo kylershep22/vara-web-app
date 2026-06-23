@@ -123,9 +123,9 @@ import { CheckInFlowTestScreen } from '../screens/_dev/CheckInFlowTestScreen';
 import { PracticesIndexScreen } from '../screens/practices/PracticesIndexScreen';
 import { PracticeRunScreen } from '../screens/practices/PracticeRunScreen';
 
-// Four-Pillar IA Phase B-3a — Energy tab scaffold placeholder (replaced by the
-// real Energy hub in B-3b). Wired only into FivePillarTabs (flag-gated).
-import { EnergyHubPlaceholder } from '../screens/Energy/EnergyHubPlaceholder';
+// Four-Pillar IA Phase B-3b — Energy hub + browse list (flag-gated).
+import { EnergyHubScreen } from '../screens/Energy/EnergyHubScreen';
+import { EnergyBrowseListScreen } from '../screens/Energy/EnergyBrowseListScreen';
 
 // Phase 2 sub-step 2.5 — production CheckInFlow screen wrapper.
 import { CheckInFlowScreen } from '../screens/checkin/CheckInFlowScreen';
@@ -601,13 +601,13 @@ const FivePillarTabs = () => {
       />
       <BottomTabs.Screen
         name={ROUTES.PillarEnergy}
-        component={EnergyHubPlaceholder}
+        component={EnergyHubScreen}
         options={tabOpts({
           tabBarLabel: 'Energy',
           tabBarIcon: ({ color, size }) => (
             <Icon name="lightning-bolt" size={size} color={color} />
           ),
-          // Intentional: a browse hub does not host the AI FAB. Revisit in B-3b.
+          // Intentional: a browse hub does not host the AI FAB.
           showFAB: false,
         })}
       />
@@ -914,6 +914,25 @@ const MainNavigator = () => {
             headerShown: false,
           }}
         />
+        {/* Four-Pillar IA Phase B-3b — Energy hub browse list. Flag-gated so
+            the old four-tab IA never registers it (flag OFF = byte-identical).
+            The Energy tab (PillarEnergy → EnergyHubScreen) navigates here; this
+            screen launches the existing player via PracticeRun. Title is set
+            per-category in-screen; showFAB stays off to match the Energy
+            pillar's browse-hub intent. */}
+        {FOUR_PILLAR_IA && (
+          <AppStack.Screen
+            name={ROUTES.EnergyBrowse}
+            component={EnergyBrowseListScreen}
+            options={stackOpts({
+              ...standardHeaderOptions,
+              animation: 'slide_from_right',
+              headerShown: true,
+              headerShadowVisible: false,
+              showFAB: false,
+            })}
+          />
+        )}
         {/* Phase 1 dev test harnesses — gated by __DEV__ so the routes
             (and the underlying components, via Metro tree-shaking) are
             never reachable in release builds. */}

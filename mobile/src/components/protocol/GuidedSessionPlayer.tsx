@@ -90,7 +90,10 @@ const MARKER_REFRESH_INTERVAL_MS = 10_000;
 
 export interface GuidedSessionPlayerProps {
   protocol: Protocol;
-  stateBefore: BrainState;
+  // null for browse-launched sessions (no pre-protocol check-in). Threaded
+  // only into the force-quit recovery marker and the in-memory summary —
+  // never rendered, filtered on, or persisted as a state by the player.
+  stateBefore: BrainState | null;
   // Fires once when the current session ends (natural completion or
   // user-initiated end-early). Player will not call onExit twice.
   onExit: (summary: ProtocolSessionSummary) => void;
@@ -645,7 +648,7 @@ function TerminalView() {
 function buildSummary(
   state: PlayerState,
   protocol: Protocol,
-  stateBefore: BrainState
+  stateBefore: BrainState | null
 ): ProtocolSessionSummary {
   const startedAt = state.sessionStartedAtMs ?? Date.now();
   const endedAt =

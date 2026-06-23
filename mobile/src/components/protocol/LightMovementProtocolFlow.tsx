@@ -45,7 +45,8 @@ import { LightMovementModalityPicker } from './LightMovementModalityPicker';
 
 export interface LightMovementProtocolFlowProps {
   protocol: Protocol;
-  stateBefore: BrainState;
+  // null for browse-launched sessions; threaded straight to GuidedSessionPlayer.
+  stateBefore: BrainState | null;
   // Same signature as GuidedSessionPlayer's onExit so parent wiring
   // doesn't need to change for non-Light-Movement protocols.
   onExit: (summary: ProtocolSessionSummary) => void;

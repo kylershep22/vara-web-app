@@ -36,6 +36,10 @@ export const ROUTES = {
   PillarFocus: 'PillarFocus',
   PillarEnergy: 'PillarEnergy',
   PillarTime: 'PillarTime',
+  // Energy hub browse list (B-3b), reached from the Energy tab (PillarEnergy →
+  // EnergyHubScreen). Parameterized by browseCategory (regulate/rest/fuel).
+  // Registered in the flag-ON AppStack path only.
+  EnergyBrowse: 'EnergyBrowse',
 
   // --- Root / AppStack (MainNavigator) ---
   Main: 'Main',
