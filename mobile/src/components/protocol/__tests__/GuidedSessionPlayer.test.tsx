@@ -483,6 +483,48 @@ describe('GuidedSessionPlayer — exit reasons', () => {
     expect(onExit.mock.calls[0][0].abandonReason).toBe('user_exit');
   });
 
+  it('preroll (idle) X confirm calls onExitBeforeStart, not onExit (no session started)', async () => {
+    const onExit = jest.fn<void, [ProtocolSessionSummary]>();
+    const onExitBeforeStart = jest.fn<void, []>();
+    const { getByTestId } = render(
+      <GuidedSessionPlayer
+        protocol={singleInstruction}
+        stateBefore={null}
+        onExit={onExit}
+        onExitBeforeStart={onExitBeforeStart}
+        onRecoveredSession={jest.fn().mockResolvedValue(undefined)}
+      />
+    );
+    // Do NOT start — exit straight from the preroll.
+    fireEvent.press(getByTestId('player-header-close'));
+    fireEvent.press(getByTestId('end-early-modal-confirm'));
+
+    await waitFor(() => {
+      expect(onExitBeforeStart).toHaveBeenCalledTimes(1);
+    });
+    // No session was started, so no abandoned-session exit fires.
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
+  it('preroll (idle) X confirm without onExitBeforeStart is a no-op (preserves check-in/onboarding)', async () => {
+    const onExit = jest.fn<void, [ProtocolSessionSummary]>();
+    const { getByTestId, queryByTestId } = render(
+      <GuidedSessionPlayer
+        protocol={singleInstruction}
+        stateBefore="wired"
+        onExit={onExit}
+        onRecoveredSession={jest.fn().mockResolvedValue(undefined)}
+      />
+    );
+    fireEvent.press(getByTestId('player-header-close'));
+    fireEvent.press(getByTestId('end-early-modal-confirm'));
+
+    // No opt-in handler: END_EARLY is a no-op at idle, so onExit never fires
+    // and the player stays on the preroll (Begin button still present).
+    expect(onExit).not.toHaveBeenCalled();
+    expect(queryByTestId('player-idle-start')).not.toBeNull();
+  });
+
   it('transport End early in normal state dispatches with reason=user_exit', async () => {
     const onExit = jest.fn<void, [ProtocolSessionSummary]>();
     const { getByTestId } = render(

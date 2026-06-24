@@ -264,6 +264,9 @@ function renderStep(
             onExit={handlePlayerExit}
             onModalitySelected={onModalitySelected}
             onCancel={onCancel ?? (() => {})}
+            // Preroll (idle) exit routes back without an abandoned-session
+            // write — same destination as the picker cancel.
+            onExitBeforeStart={onCancel}
           />
         );
       }
@@ -272,6 +275,10 @@ function renderStep(
           protocol={state.protocol}
           stateBefore={stateBefore}
           onExit={handlePlayerExit}
+          // Browse preroll exit: route back to the browse list (no
+          // abandoned-session write — nothing started yet). Check-in does not
+          // pass this, so its preroll behavior is unchanged.
+          onExitBeforeStart={onCancel}
         />
       );
     }
