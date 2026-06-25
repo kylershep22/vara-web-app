@@ -32,6 +32,11 @@ const COPY_SOURCES = [
   'src/components/dashboard/dashboardInsights.ts',
   'src/engine/planMap.ts',
   'src/components/checkin/flow/PointerOfferStepView.tsx',
+  // Four-Pillar IA Energy pillar screens (B-3b). User-facing hub + browse
+  // list copy; guarded here so the pillar rollout can't reintroduce an
+  // em dash / optim* in the rendered strings.
+  'src/screens/Energy/EnergyHubScreen.tsx',
+  'src/screens/Energy/EnergyBrowseListScreen.tsx',
 ];
 
 // U+2014 EM DASH, built via char code so no literal em-dash byte lives in
