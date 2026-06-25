@@ -42,7 +42,9 @@ import type { FlowAction, FlowInit, FlowState, ResolvedContext } from './types';
 
 // The reflection set keys on the slot direction; an `energize` practice reflects
 // via the energize set, everything else (settle / both / neutral) via settle.
-function slotDirectionForPractice(p: Protocol): SlotDirection {
+// Exported so the true-browse path (BrowseRunFlow) derives the same reflection
+// inputs the check-in loop uses, without forking a browse-specific variant.
+export function slotDirectionForPractice(p: Protocol): SlotDirection {
   return p.regulationDirection === 'energize' ? 'energize' : 'settle';
 }
 

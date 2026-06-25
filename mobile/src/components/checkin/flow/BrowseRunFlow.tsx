@@ -3,11 +3,14 @@
 // State machine: running → re_check → flow_complete | abandoned.
 //
 // Used by PracticeRunScreen when the user launches a protocol from
-// the Practices index without going through the standard check-in
-// flow. The user has already self-selected the protocol; this flow
-// plays it and captures stateAfter at re-check so we still get a
-// state-transition data point (re-check IS the measurement, per
-// Build Guide §1).
+// the Practices index / Energy hub without going through the standard
+// check-in flow. The user has already self-selected the protocol; this
+// flow plays it and captures a post-protocol attestation at the re_check
+// step. B-3b Issue 2: the re_check step renders by context — the check-in
+// continuation (ctx present) keeps the deprecated 5-state re-check feeding
+// the response screen; true browse (ctx absent) shows the modern felt
+// reflection (ReflectionStepView) and persists the reflectionId WITHOUT
+// synthesizing a 5-state stateAfter.
 //
 // Differences from CheckInFlow:
 //   - No state_pick / time_pick / recommendation steps.
@@ -45,7 +48,9 @@ import {
 import { GuidedSessionPlayer } from '../../protocol/GuidedSessionPlayer';
 import { LightMovementProtocolFlow } from '../../protocol/LightMovementProtocolFlow';
 import { ReCheckStepView } from './ReCheckStepView';
+import { ReflectionStepView } from './ReflectionStepView';
 import { ResponseStepView } from './ResponseStepView';
+import { slotDirectionForPractice } from './reducer';
 import {
   browseRunReducer,
   initBrowseRunFlow,
@@ -168,8 +173,15 @@ export function BrowseRunFlow({
           // BrowseRunFlow session that abandoned, and the original
           // CheckInFlow context's state is the most recent
           // attestation we have for the user).
+          // B-3b Issue 2 widened stateAfter to BrainState | null for the
+          // true-browse reflection path. This block only runs with ctx
+          // present (a check-in continuation), where a flow_complete always
+          // carries a concrete re-check stateAfter; `?? ctx.state` is a
+          // type-safe guard for the unreachable null case.
           const stateForLegacyDoc =
-            state.step === 'flow_complete' ? state.stateAfter : ctx.state;
+            state.step === 'flow_complete'
+              ? state.stateAfter ?? ctx.state
+              : ctx.state;
           writes.push(
             (async () => {
               await writeBrainStateCheckInDoc(
@@ -283,11 +295,31 @@ function renderStep(
       );
     }
     case 're_check':
+      // Check-in continuation (ctx present) keeps the deprecated 5-state
+      // re-check, which feeds the response screen + transition classifier —
+      // this is the check-in-launched path and must NOT change (B-3b Issue 2
+      // is scoped to true browse).
+      if (state.checkInFlowContext) {
+        return (
+          <ReCheckStepView
+            protocol={state.protocol}
+            onSelect={(stateAfter) =>
+              dispatch({ type: 'state_after_selected', stateAfter })
+            }
+          />
+        );
+      }
+      // True browse (ctx absent) — B-3b Issue 2: the modern felt reflection
+      // (same component + props the check-in loop uses), derived from the
+      // protocol already in scope. This retires the last user-facing 5-state
+      // browse surface; the chosen reflectionId is persisted, no stateAfter.
       return (
-        <ReCheckStepView
+        <ReflectionStepView
           protocol={state.protocol}
-          onSelect={(stateAfter) =>
-            dispatch({ type: 'state_after_selected', stateAfter })
+          pillar={state.protocol.pillar}
+          direction={slotDirectionForPractice(state.protocol)}
+          onSelect={(reflectionId) =>
+            dispatch({ type: 'reflection_selected', reflectionId })
           }
         />
       );

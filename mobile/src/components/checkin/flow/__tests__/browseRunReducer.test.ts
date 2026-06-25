@@ -106,21 +106,34 @@ describe('browseRunReducer — running → re_check (completed) or abandoned (en
 });
 
 describe('browseRunReducer — re_check transition (Finding H fix branches)', () => {
-  // Round 12 (Finding H): re_check → response when ctx present;
-  // re_check → flow_complete (short-circuit) when ctx absent.
+  // Round 12 (Finding H): re_check → response when ctx present.
+  // B-3b Issue 2: true browse (ctx absent) now captures a felt
+  // reflection (reflection_selected → flow_complete), NOT a 5-state.
 
-  it('ctx absent: state_after_selected short-circuits to flow_complete (true-browse)', () => {
+  it('ctx absent: reflection_selected goes to flow_complete with reflectionId and stateAfter null (no synthesized 5-state)', () => {
     const result = browseRunReducer(reCheckState(), {
-      type: 'state_after_selected',
-      stateAfter: 'clear',
+      type: 'reflection_selected',
+      reflectionId: 'calmer',
     });
     expect(result.step).toBe('flow_complete');
     if (result.step === 'flow_complete') {
-      expect(result.stateAfter).toBe('clear');
+      // No 5-state synthesized from the reflection chip.
+      expect(result.stateAfter).toBeNull();
+      expect(result.reflectionId).toBe('calmer');
       expect(result.protocol).toBe(NSDR_20);
       expect(result.durationActualSeconds).toBe(1200);
       expect(result.userChosenNextStep).toBeNull();
+      expect(result.checkInFlowContext).toBeNull();
     }
+  });
+
+  it('ctx absent: state_after_selected is now a no-op (true browse uses reflection, not the 5-state)', () => {
+    const start = reCheckState();
+    const result = browseRunReducer(start, {
+      type: 'state_after_selected',
+      stateAfter: 'clear',
+    });
+    expect(result).toBe(start);
   });
 
   it('ctx present: state_after_selected transitions to response (round 12 Finding H)', () => {
@@ -266,7 +279,8 @@ describe('browseRunReducer — terminal absorbing-state behavior', () => {
     sessionStartedAt: 1_000_000,
     sessionEndedAt: 1_000_000 + 1_200_000,
     durationActualSeconds: 1200,
-    stateAfter: 'clear',
+    stateAfter: null,
+    reflectionId: 'calmer',
     checkInFlowContext: null,
     userChosenNextStep: null,
   };
@@ -274,8 +288,8 @@ describe('browseRunReducer — terminal absorbing-state behavior', () => {
   it('any action on abandoned returns the same state', () => {
     expect(
       browseRunReducer(abandoned, {
-        type: 'state_after_selected',
-        stateAfter: 'clear',
+        type: 'reflection_selected',
+        reflectionId: 'calmer',
       })
     ).toBe(abandoned);
     expect(
@@ -290,15 +304,15 @@ describe('browseRunReducer — terminal absorbing-state behavior', () => {
   it('any action on flow_complete returns the same state', () => {
     expect(
       browseRunReducer(flowComplete, {
-        type: 'state_after_selected',
-        stateAfter: 'wired',
+        type: 'reflection_selected',
+        reflectionId: 'still_wound_up',
       })
     ).toBe(flowComplete);
   });
 });
 
 describe('browseRunReducer — full happy path', () => {
-  it('init → player completed → state_after_selected → flow_complete', () => {
+  it('init → player completed → reflection_selected → flow_complete (true browse)', () => {
     let state: BrowseRunFlowState = initBrowseRunFlow({
       protocol: NSDR_20,
       nowMs: 1_000_000,
@@ -313,12 +327,13 @@ describe('browseRunReducer — full happy path', () => {
     expect(state.step).toBe('re_check');
 
     state = browseRunReducer(state, {
-      type: 'state_after_selected',
-      stateAfter: 'clear',
+      type: 'reflection_selected',
+      reflectionId: 'calmer',
     });
     expect(state.step).toBe('flow_complete');
     if (state.step === 'flow_complete') {
-      expect(state.stateAfter).toBe('clear');
+      expect(state.reflectionId).toBe('calmer');
+      expect(state.stateAfter).toBeNull();
       expect(state.protocol).toBe(NSDR_20);
     }
   });
@@ -377,28 +392,32 @@ describe('browseRunReducer — full happy path', () => {
 });
 
 describe('mapBrowseTerminalToPayload — Case 4 schema mapping (no context)', () => {
-  it('flow_complete → outcome="browse_launched", stateBefore=null, stateAfter=captured', () => {
+  it('flow_complete (reflection) → browse_launched shape + reflectionId, stateBefore/stateAfter null', () => {
     const terminal: BrowseFlowCompleteStep = {
       step: 'flow_complete',
       protocol: NSDR_20,
       sessionStartedAt: 1_000_000,
       sessionEndedAt: 1_000_000 + 1_200_000,
       durationActualSeconds: 1200,
-      stateAfter: 'clear',
+      stateAfter: null,
+      reflectionId: 'calmer',
       checkInFlowContext: null,
       userChosenNextStep: null,
     };
     const payload = mapBrowseTerminalToPayload(terminal, 'default');
+    // The existing browse_launched row shape PLUS the reflectionId field —
+    // NOT a new third shape, and stateAfter stays null (no synthesized state).
     expect(payload).toEqual({
       protocolId: 'nsdr-20',
       stateBefore: null,
-      stateAfter: 'clear',
+      stateAfter: null,
       timeWindowSelected: NSDR_20.timeWindow,
       durationActualSeconds: 1200,
       outcome: 'browse_launched',
       userChosenNextStep: null,
       intentPath: 'default',
       sessionStartedAt: 1_000_000,
+      reflectionId: 'calmer',
     });
   });
 
@@ -425,7 +444,8 @@ describe('mapBrowseTerminalToPayload — Case 4 schema mapping (no context)', ()
       sessionStartedAt: 1_000_000,
       sessionEndedAt: 1_000_000 + 1_200_000,
       durationActualSeconds: 1200,
-      stateAfter: 'clear',
+      stateAfter: null,
+      reflectionId: 'calmer',
       checkInFlowContext: null,
       userChosenNextStep: null,
     };
@@ -470,6 +490,8 @@ describe('mapBrowseTerminalToPayload — context-present (Bug B fix)', () => {
       sessionEndedAt: 1_000_000 + 1_200_000,
       durationActualSeconds: 1200,
       stateAfter,
+      // Check-in continuation path keeps the 5-state re-check, not a reflection.
+      reflectionId: null,
       checkInFlowContext: ctx,
       userChosenNextStep,
     };
@@ -581,7 +603,8 @@ describe('mapBrowseTerminalToPayload — context-present (Bug B fix)', () => {
       sessionStartedAt: 1_000_000,
       sessionEndedAt: 1_000_000 + 1_200_000,
       durationActualSeconds: 1200,
-      stateAfter: 'clear',
+      stateAfter: null,
+      reflectionId: 'calmer',
       checkInFlowContext: null,
       userChosenNextStep: null,
     };
