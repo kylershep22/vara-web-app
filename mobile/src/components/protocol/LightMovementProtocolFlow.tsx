@@ -60,6 +60,12 @@ export interface LightMovementProtocolFlowProps {
   // modality. Parent navigates back. No session write — none
   // started.
   onCancel: () => void;
+  // Fires when the user confirms exit at the player PREROLL (after picking a
+  // modality, before the timer starts). Threaded to GuidedSessionPlayer's
+  // onExitBeforeStart. Opt-in: only browse launches pass it, so check-in's
+  // brief-movement preroll behavior is unchanged. No session write — none
+  // started.
+  onExitBeforeStart?: () => void;
   // Round 3 (Layer 3) — the time window the user picked at the
   // chip step. Forwarded to the modality picker so it can render
   // the gap-acknowledgment line when the recommender returned a
@@ -94,6 +100,7 @@ export function LightMovementProtocolFlow({
   onExit,
   onModalitySelected,
   onCancel,
+  onExitBeforeStart,
   timeWindowSelected = null,
 }: LightMovementProtocolFlowProps) {
   const [selectedModality, setSelectedModality] =
@@ -126,6 +133,7 @@ export function LightMovementProtocolFlow({
       protocol={derivedProtocol}
       stateBefore={stateBefore}
       onExit={onExit}
+      onExitBeforeStart={onExitBeforeStart}
     />
   );
 }

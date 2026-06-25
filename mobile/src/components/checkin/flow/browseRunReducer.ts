@@ -90,15 +90,12 @@ function reduceReCheck(
   state: Extract<BrowseRunFlowState, { step: 're_check' }>,
   action: BrowseRunFlowAction
 ): BrowseRunFlowState {
+  const ctx = state.checkInFlowContext;
+
+  // Check-in continuation path (ctx present) — the 5-state re-check feeds
+  // the response acknowledgment screen + transition classifier. Untouched
+  // by B-3b Issue 2 (the check-in-launched path keeps the 5-state vocab).
   if (action.type === 'state_after_selected') {
-    const ctx = state.checkInFlowContext;
-    // Round 12 (Finding H fix) — when ctx is present, the session is
-    // a CheckInFlow continuation and gets the standard response
-    // acknowledgment screen. When ctx is absent (true browse — no
-    // production entry today, reserved for future standalone
-    // Practices), preserve the sub-step 2.5 short-circuit straight
-    // to flow_complete (Case 4 spec: capture data and route, no
-    // further user choice).
     if (ctx) {
       return {
         step: 'response',
@@ -111,14 +108,25 @@ function reduceReCheck(
         checkInFlowContext: ctx,
       };
     }
+    // True browse no longer renders the 5-state re-check, so it never
+    // dispatches this. Defensive no-op (the reflection path is below).
+    return state;
+  }
+
+  // True-browse path (ctx absent) — B-3b Issue 2: the modern felt
+  // reflection replaces the 5-state re-check. The reflectionId is persisted
+  // as-is; NO stateAfter is synthesized from the chip. Case 4 short-circuit
+  // to flow_complete preserved (capture data and route, no response screen).
+  if (action.type === 'reflection_selected') {
     return {
       step: 'flow_complete',
       protocol: state.protocol,
       sessionStartedAt: state.sessionStartedAt,
       sessionEndedAt: state.sessionEndedAt,
       durationActualSeconds: state.durationActualSeconds,
-      stateAfter: action.stateAfter,
-      checkInFlowContext: null,
+      stateAfter: null,
+      reflectionId: action.reflectionId,
+      checkInFlowContext: ctx,
       userChosenNextStep: null,
     };
   }
@@ -137,6 +145,8 @@ function reduceResponse(
       sessionEndedAt: state.sessionEndedAt,
       durationActualSeconds: state.durationActualSeconds,
       stateAfter: state.stateAfter,
+      // Check-in continuation path records a 5-state re-check, not a reflection.
+      reflectionId: null,
       checkInFlowContext: state.checkInFlowContext,
       userChosenNextStep: action.choice,
     };
@@ -163,10 +173,13 @@ function reduceResponse(
 //     captured at the new `response` step. Replaces the prior always-
 //     null write that produced the round-2 'auto_dismissed' fragility.
 //
-//   - context ABSENT (true browse — no production entry as of round
-//     6; reachable only from dev harnesses) — preserves the original
-//     Case 4 mapping: stateBefore=null, outcome='browse_launched',
-//     userChosenNextStep=null (no response step renders without ctx).
+//   - context ABSENT (true browse — the Energy hub browse path, B-3b) —
+//     stateBefore=null, outcome='browse_launched', userChosenNextStep=null
+//     (no response step renders without ctx). B-3b Issue 2: the post-protocol
+//     step is now the modern felt reflection, so the row also carries
+//     `reflectionId` and stateAfter stays null (no 5-state is synthesized
+//     from the reflection chip). Existing browse_launched shape + reflectionId,
+//     NOT a new third shape.
 
 export function mapBrowseTerminalToPayload(
   terminal: BrowseTerminalFlowState,
@@ -207,15 +220,26 @@ export function mapBrowseTerminalToPayload(
   }
   // step === 'flow_complete'
   if (ctx) {
+    // Check-in continuation: the 5-state re-check → response step always
+    // carries a concrete BrainState (the null case below is unreachable for
+    // ctx-present flow_complete, guarded defensively rather than asserted).
+    const stateAfter = terminal.stateAfter;
+    if (stateAfter === null) {
+      return { ...base, stateAfter: null, outcome: 'browse_launched' };
+    }
     return {
       ...base,
-      stateAfter: terminal.stateAfter,
-      outcome: classifyOutcome(ctx.state, terminal.stateAfter),
+      stateAfter,
+      outcome: classifyOutcome(ctx.state, stateAfter),
     };
   }
+  // True browse (B-3b Issue 2): the existing browse_launched row shape PLUS
+  // the felt-reflection id. stateAfter stays null — the reflection chip is
+  // NOT mapped to a synthesized 5-state.
   return {
     ...base,
-    stateAfter: terminal.stateAfter,
+    stateAfter: null,
     outcome: 'browse_launched',
+    reflectionId: terminal.reflectionId,
   };
 }

@@ -8,6 +8,12 @@
 // and flow_complete:
 //   running → re_check → response → flow_complete | abandoned (ctx)
 //   running → re_check → flow_complete | abandoned             (no ctx)
+// B-3b Issue 2: the `re_check` step now renders DIFFERENT views by ctx —
+// the deprecated 5-state ReCheckStepView for the check-in continuation
+// (ctx present), and the modern felt ReflectionStepView for true browse
+// (ctx absent). The state-machine shape above is unchanged; only the
+// ctx-absent transition carries a reflectionId (via `reflection_selected`)
+// instead of a synthesized stateAfter (via `state_after_selected`).
 //
 // Why the round-12 split: sub-step 2.5's original Case 4 design
 // assumed true-browse sessions (Practices-launched, no CheckInFlow
@@ -143,14 +149,16 @@ export interface BrowseResponseStep {
   checkInFlowContext: CheckInFlowContext;
 }
 
-// Terminal — re-check completed. Carries the captured stateAfter.
-// Parent observes step === 'flow_complete' and writes a
-// ProtocolSession; the outcome and stateBefore depend on
-// checkInFlowContext:
-//   - context present: outcome via classifyOutcome(context.state,
-//     stateAfter); stateBefore=context.state. Routing: dashboard.
-//   - context absent: outcome='browse_launched'; stateBefore=null.
-//     Routing: Practices index per SPEC_CONSISTENCY_BACKLOG
+// Terminal — re-check / reflection completed. The post-protocol
+// attestation differs by path (B-3b Issue 2):
+//   - context present (check-in continuation): the 5-state re-check ran,
+//     so `stateAfter` is a concrete BrainState and `reflectionId` is null.
+//     outcome via classifyOutcome(context.state, stateAfter);
+//     stateBefore=context.state. Routing: dashboard.
+//   - context absent (true browse): the modern felt reflection ran, so
+//     `reflectionId` is the chosen chip id and `stateAfter` is NULL (we do
+//     NOT synthesize a 5-state from the reflection). outcome='browse_launched';
+//     stateBefore=null. Routing: Practices index per SPEC_CONSISTENCY_BACKLOG
 //     "Case 4 routing target after re-check".
 export interface BrowseFlowCompleteStep {
   step: 'flow_complete';
@@ -158,7 +166,12 @@ export interface BrowseFlowCompleteStep {
   sessionStartedAt: number;
   sessionEndedAt: number;
   durationActualSeconds: number;
-  stateAfter: BrainState;
+  // Concrete BrainState on the check-in continuation path; null on true
+  // browse (reflection path) — no 5-state is synthesized from the chip.
+  stateAfter: BrainState | null;
+  // Felt-reflection chip id on the true-browse path; null on the check-in
+  // continuation path (which still records a 5-state re-check).
+  reflectionId: string | null;
   checkInFlowContext: CheckInFlowContext | null;
   // Round 12 (Finding H fix) — populated by `next_step_chosen`
   // when the response step ran (ctx-present continuation paths).
@@ -178,7 +191,11 @@ export interface BrowseFlowCompleteStep {
 
 export type BrowseRunFlowAction =
   | { type: 'player_exit'; reason: BrowseRunPlayerExitReason; nowMs: number }
+  // Check-in continuation path only (ctx present): the 5-state re-check.
   | { type: 'state_after_selected'; stateAfter: BrainState }
+  // True-browse path only (ctx absent): the modern felt reflection. Carries
+  // the chosen chip id; no BrainState is synthesized (B-3b Issue 2).
+  | { type: 'reflection_selected'; reflectionId: string }
   | { type: 'next_step_chosen'; choice: UserChosenNextStep };
 
 // ────────────────────────────────────────────────────────────

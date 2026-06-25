@@ -446,10 +446,10 @@ describe('BrowseRunFlow — terminal write with CheckInFlowContext (Bug A v2 fix
   });
 });
 
-describe('BrowseRunFlow — terminal write WITHOUT context (true-browse legacy behavior)', () => {
-  it('does NOT invoke writeBrainStateCheckInDoc or maybeMarkFirstShift when context is absent', async () => {
+describe('BrowseRunFlow — terminal write WITHOUT context (true-browse: felt reflection)', () => {
+  it('shows the felt reflection (not the 5-state re-check) and writes browse_launched + reflectionId, stateAfter null', async () => {
     const onComplete = jest.fn();
-    const { findByTestId, getByLabelText } = render(
+    const { findByTestId, queryByTestId } = render(
       <BrowseRunFlow
         protocol={NSDR_20}
         {...TEST_PROPS}
@@ -460,19 +460,26 @@ describe('BrowseRunFlow — terminal write WITHOUT context (true-browse legacy b
     act(() => {
       lastOnExit!(summary({ completed: true, protocolId: 'nsdr-20' }));
     });
-    expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
-    fireEvent.press(getByLabelText('Clear'));
+    // B-3b Issue 2: the modern reflection renders, NOT the deprecated
+    // 5-state re-check (Wired/Foggy/Steady/Clear/Alive).
+    expect(await findByTestId('checkin-flow-reflection')).toBeTruthy();
+    expect(queryByTestId('checkin-flow-re-check')).toBeNull();
+    // NSDR-20 is energy/settle → the strong-positive chip id is 'calmer'.
+    fireEvent.press(await findByTestId('checkin-flow-reflection-chip-calmer'));
 
     await waitFor(
       () => expect(onComplete).toHaveBeenCalledTimes(1),
       { timeout: TERMINAL_ON_COMPLETE_TIMEOUT_MS }
     );
 
-    // Authoritative write still fires.
+    // Authoritative write still fires — existing browse_launched shape plus
+    // reflectionId, with stateAfter NULL (no synthesized 5-state).
     expect(writeProtocolSessionMock).toHaveBeenCalledTimes(1);
     const [, payload] = (writeProtocolSessionMock as jest.Mock).mock.calls[0];
     expect(payload.outcome).toBe('browse_launched');
     expect(payload.stateBefore).toBeNull();
+    expect(payload.stateAfter).toBeNull();
+    expect(payload.reflectionId).toBe('calmer');
 
     // Legacy helpers NOT called (preserves isolated browse semantics).
     // Round 14 — both writeBrainStateCheckInDoc and maybeMarkFirstShift
@@ -569,8 +576,8 @@ describe('BrowseRunFlow — response step (round 12 Finding H fix)', () => {
     expect(payload.outcome).toBe('not_shifted');
   });
 
-  it('ctx absent: state_after_selected goes straight to flow_complete (no response step rendered)', async () => {
-    const { findByTestId, queryByTestId, getByLabelText } = render(
+  it('ctx absent: reflection goes straight to flow_complete (no response step rendered)', async () => {
+    const { findByTestId, queryByTestId } = render(
       <BrowseRunFlow
         protocol={NSDR_20}
         {...TEST_PROPS}
@@ -581,8 +588,8 @@ describe('BrowseRunFlow — response step (round 12 Finding H fix)', () => {
     act(() => {
       lastOnExit!(summary({ completed: true, protocolId: 'nsdr-20' }));
     });
-    expect(await findByTestId('checkin-flow-re-check')).toBeTruthy();
-    fireEvent.press(getByLabelText('Clear'));
+    expect(await findByTestId('checkin-flow-reflection')).toBeTruthy();
+    fireEvent.press(await findByTestId('checkin-flow-reflection-chip-calmer'));
 
     await waitFor(
       () => expect(writeProtocolSessionMock).toHaveBeenCalled(),

@@ -105,6 +105,13 @@ export interface GuidedSessionPlayerProps {
   onRecoveredSession?: (
     summary: ProtocolSessionSummary
   ) => Promise<void>;
+  // Fires when the user confirms exit at the PREROLL (idle) screen, before the
+  // session has started. There is no session to abandon, so this routes back
+  // without an abandoned-session write — distinct from mid-practice end-early,
+  // which goes through onExit. Optional and opt-in: callers that provide it
+  // (browse launches) get a working preroll exit; callers that omit it
+  // (check-in, onboarding) keep the existing behavior unchanged.
+  onExitBeforeStart?: () => void;
 }
 
 export function GuidedSessionPlayer({
@@ -112,6 +119,7 @@ export function GuidedSessionPlayer({
   stateBefore,
   onExit,
   onRecoveredSession,
+  onExitBeforeStart,
 }: GuidedSessionPlayerProps) {
   const reduceMotion = useReducedMotion();
 
@@ -413,11 +421,22 @@ export function GuidedSessionPlayer({
 
   const handleHeaderExitConfirm = useCallback(() => {
     setHeaderExitVisible(false);
+    // At the preroll (idle) there is no session to abandon: END_EARLY is a
+    // no-op at idle (playerReducer only abandons from running/paused), which
+    // is why the header X dead-ended here. If the caller provided an
+    // idle-exit handler (browse launches do), route back through it — no
+    // abandoned-session write. Otherwise fall through to the unchanged
+    // END_EARLY dispatch (still a no-op at idle for callers that don't opt
+    // in, preserving check-in/onboarding behavior).
+    if (state.status.kind === 'idle') {
+      onExitBeforeStart?.();
+      return;
+    }
     // Header X always uses user_exit, even during audio error. The
     // user actively chose to leave via the header — audio failure was
     // just the context.
     dispatch({ type: 'END_EARLY', nowMs: Date.now(), reason: 'user_exit' });
-  }, []);
+  }, [state.status.kind, onExitBeforeStart]);
 
   // ----- step dispatch -----
 
