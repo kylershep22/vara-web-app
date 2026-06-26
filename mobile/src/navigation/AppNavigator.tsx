@@ -42,7 +42,7 @@ import {
 import DashboardScreen from '../screens/DashboardScreen';
 import MoreMenuScreen from '../screens/MoreMenuScreen';
 import PlanScreen from '../screens/PlanScreen';
-import { FocusScreen, FocusHubScreen } from '../screens/Focus';
+import { FocusScreen, FocusHubScreen, FocusRhythmsScreen } from '../screens/Focus';
 import JournalScreen from '../screens/JournalScreen';
 import InsightsScreen from '../screens/InsightsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -928,6 +928,23 @@ const MainNavigator = () => {
               ...standardHeaderOptions,
               animation: 'slide_from_right',
               headerShown: true,
+              headerShadowVisible: false,
+              showFAB: false,
+            })}
+          />
+        )}
+        {/* Four-Pillar IA Phase B-3c — Focus rhythms. Flag-gated like the Energy
+            hub browse list. The Focus tab (PillarFocus → FocusHubScreen)
+            navigates here; it is a quiet opt-in capture, so showFAB stays off. */}
+        {FOUR_PILLAR_IA && (
+          <AppStack.Screen
+            name={ROUTES.FocusRhythms}
+            component={FocusRhythmsScreen}
+            options={stackOpts({
+              ...standardHeaderOptions,
+              animation: 'slide_from_right',
+              headerShown: true,
+              title: 'Focus rhythms',
               headerShadowVisible: false,
               showFAB: false,
             })}

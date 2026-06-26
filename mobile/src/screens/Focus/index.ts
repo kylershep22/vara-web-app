@@ -4,6 +4,7 @@
 
 export { FocusScreen } from './FocusScreen';
 export { FocusHubScreen } from './FocusHubScreen';
+export { FocusRhythmsScreen } from './FocusRhythmsScreen';
 export { PomodoroTab } from './PomodoroTab';
 
 // Re-export Pomodoro components for use elsewhere
