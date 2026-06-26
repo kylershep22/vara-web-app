@@ -1,9 +1,12 @@
-// Focus-session loop closure (Vara_Engine_Contract.md §12.1).
+// Focus-session loop closure (Vara_Engine_Contract.md §12.1) + the B-3c
+// "Center first" pre-focus box breathing handoff (commit 5).
 //
-// A focus session launched FROM the check-in (route param fromCheckIn) returns
-// to the Focus reflection on "Done for now"; a directly-started one does not.
-// PomodoroTab is mocked to expose its onLoopDone wiring without the timer/audio
-// tree.
+// A focus session launched FROM the check-in (fromCheckIn) OR the hub (fromHub)
+// returns to the Focus reflection on "Done for now". With Center-first ON, the
+// Begin tap first runs box breathing (GuidedSessionPlayer), then hands off to
+// the timer, which still ends on the focus reflection. PomodoroTab and
+// GuidedSessionPlayer are mocked to expose their wiring without the timer/audio
+// trees.
 
 const mockGoBack = jest.fn();
 const mockRoute: {
@@ -30,13 +33,82 @@ jest.mock('../../../utils/logger', () => ({
   logger: { error: jest.fn(), warn: jest.fn(), log: jest.fn() },
 }));
 
-// Mock PomodoroTab — expose whether it received onLoopDone, and a button that
-// fires it (simulating the "Done for now" terminal after a completed block).
+jest.mock('../../../context/AuthContext', () => ({
+  useAuth: () => ({ user: { uid: 'u1' } }),
+}));
+
+const mockGetPrefs = jest.fn((..._a: any[]) => Promise.resolve({ centerFirst: false }));
+const mockSavePrefs = jest.fn((..._a: any[]) => Promise.resolve());
+jest.mock('../../../services/firebase/focusPreferences.service', () => ({
+  getFocusPreferences: (...a: any[]) => mockGetPrefs(...a),
+  saveFocusPreferences: (...a: any[]) => mockSavePrefs(...a),
+}));
+
+const mockWriteSession = jest.fn((..._a: any[]) => Promise.resolve());
+jest.mock('../../../services/firebase/protocolSession.service', () => ({
+  writeProtocolSession: (...a: any[]) => mockWriteSession(...a),
+}));
+
+// Mock GuidedSessionPlayer — expose the protocol it ran and buttons to fire
+// onExit (natural completion / mid-practice abandon).
+jest.mock('../../../components/protocol/GuidedSessionPlayer', () => {
+  const ReactLib = jest.requireActual('react');
+  const { View, Text, TouchableOpacity } = jest.requireActual('react-native');
+  return {
+    GuidedSessionPlayer: (props: any) =>
+      ReactLib.createElement(
+        View,
+        { testID: 'mock-gsp' },
+        ReactLib.createElement(Text, { testID: 'mock-gsp-protocol' }, props.protocol?.id),
+        ReactLib.createElement(
+          TouchableOpacity,
+          {
+            testID: 'mock-gsp-complete',
+            onPress: () =>
+              props.onExit?.({
+                protocolId: props.protocol?.id,
+                stateBefore: null,
+                completed: true,
+                durationActualSeconds: 128,
+                stepsCompleted: 1,
+                totalSteps: 1,
+                abandonReason: null,
+                startedAt: 1000,
+                endedAt: 1128,
+              }),
+          },
+          ReactLib.createElement(Text, null, 'complete')
+        ),
+        ReactLib.createElement(
+          TouchableOpacity,
+          {
+            testID: 'mock-gsp-abandon',
+            onPress: () =>
+              props.onExit?.({
+                protocolId: props.protocol?.id,
+                stateBefore: null,
+                completed: false,
+                durationActualSeconds: 40,
+                stepsCompleted: 0,
+                totalSteps: 1,
+                abandonReason: 'user_exit',
+                startedAt: 1000,
+                endedAt: 1040,
+              }),
+          },
+          ReactLib.createElement(Text, null, 'abandon')
+        )
+      ),
+  };
+});
+
+// Mock PomodoroTab — expose onLoopDone wiring, centerFirst/autoStart props, and
+// buttons to fire onLoopDone, onCenterFirstBegin, onToggleCenterFirst.
 jest.mock('../PomodoroTab', () => {
   const ReactLib = jest.requireActual('react');
   const { View, Text, TouchableOpacity } = jest.requireActual('react-native');
   return {
-    PomodoroTab: (props: { onLoopDone?: (id: string | null) => void }) =>
+    PomodoroTab: (props: any) =>
       ReactLib.createElement(
         View,
         { testID: 'mock-pomodoro' },
@@ -46,19 +118,41 @@ jest.mock('../PomodoroTab', () => {
           props.onLoopDone ? 'loop' : 'direct'
         ),
         ReactLib.createElement(
+          Text,
+          { testID: 'mock-pomodoro-centerfirst' },
+          props.centerFirst ? 'on' : 'off'
+        ),
+        ReactLib.createElement(
+          Text,
+          { testID: 'mock-pomodoro-autostart' },
+          props.autoStart ? 'on' : 'off'
+        ),
+        ReactLib.createElement(
+          Text,
+          { testID: 'mock-pomodoro-cancenter' },
+          props.onCenterFirstBegin ? 'yes' : 'no'
+        ),
+        ReactLib.createElement(
           TouchableOpacity,
-          {
-            testID: 'mock-pomodoro-done',
-            onPress: () => props.onLoopDone?.('focus-doc-1'),
-          },
+          { testID: 'mock-pomodoro-done', onPress: () => props.onLoopDone?.('focus-doc-1') },
           ReactLib.createElement(Text, null, 'done')
+        ),
+        ReactLib.createElement(
+          TouchableOpacity,
+          { testID: 'mock-pomodoro-begin-center', onPress: () => props.onCenterFirstBegin?.(25) },
+          ReactLib.createElement(Text, null, 'begin-center')
+        ),
+        ReactLib.createElement(
+          TouchableOpacity,
+          { testID: 'mock-pomodoro-toggle', onPress: () => props.onToggleCenterFirst?.(true) },
+          ReactLib.createElement(Text, null, 'toggle')
         )
       ),
   };
 });
 
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { FocusScreen } from '../FocusScreen';
 
 beforeEach(() => {
@@ -66,6 +160,10 @@ beforeEach(() => {
   mockUpdateDoc.mockClear();
   mockDoc.mockClear();
   mockRoute.params = undefined;
+  mockGetPrefs.mockReset();
+  mockGetPrefs.mockResolvedValue({ centerFirst: false });
+  mockSavePrefs.mockClear();
+  mockWriteSession.mockClear();
 });
 
 describe('FocusScreen — focus-session loop closure', () => {
@@ -73,11 +171,9 @@ describe('FocusScreen — focus-session loop closure', () => {
     mockRoute.params = { fromCheckIn: true };
     const { getByTestId, queryByTestId } = render(<FocusScreen />);
 
-    // PomodoroTab was given onLoopDone (loop mode); no reflection yet.
     expect(getByTestId('mock-pomodoro-mode').props.children).toBe('loop');
     expect(queryByTestId('checkin-flow-reflection')).toBeNull();
 
-    // "Done for now" → the Focus reflection, with the §9 focus chips.
     fireEvent.press(getByTestId('mock-pomodoro-done'));
     expect(getByTestId('checkin-flow-reflection')).toBeTruthy();
     expect(getByTestId('checkin-flow-reflection-chip-settled')).toBeTruthy();
@@ -97,7 +193,6 @@ describe('FocusScreen — focus-session loop closure', () => {
     expect(mockUpdateDoc.mock.calls[0][1]).toEqual(
       expect.objectContaining({ reflection: 'settled' })
     );
-    // Exit home — same exit a catalog-practice reflection uses.
     expect(mockGoBack).toHaveBeenCalledTimes(1);
   });
 
@@ -105,7 +200,6 @@ describe('FocusScreen — focus-session loop closure', () => {
     mockRoute.params = { fromHub: true };
     const { getByTestId, queryByTestId } = render(<FocusScreen />);
 
-    // Hub launch also drives the loop (onLoopDone present); no reflection yet.
     expect(getByTestId('mock-pomodoro-mode').props.children).toBe('loop');
     expect(queryByTestId('checkin-flow-reflection')).toBeNull();
 
@@ -135,5 +229,93 @@ describe('FocusScreen — focus-session loop closure', () => {
     fireEvent.press(getByTestId('mock-pomodoro-done')); // onLoopDone is undefined → no-op
     expect(queryByTestId('checkin-flow-reflection')).toBeNull();
     expect(mockGoBack).not.toHaveBeenCalled();
+  });
+});
+
+describe('FocusScreen — Center first (B-3c commit 5)', () => {
+  it('initializes the Center-first row from the persisted preference', async () => {
+    mockGetPrefs.mockResolvedValue({ centerFirst: true });
+    mockRoute.params = { fromHub: true };
+    const { getByTestId } = render(<FocusScreen />);
+    await waitFor(() =>
+      expect(getByTestId('mock-pomodoro-centerfirst').props.children).toBe('on')
+    );
+    expect(mockGetPrefs).toHaveBeenCalledWith('u1');
+  });
+
+  it('persists the choice when the row is toggled', async () => {
+    mockRoute.params = { fromHub: true };
+    const { getByTestId } = render(<FocusScreen />);
+    fireEvent.press(getByTestId('mock-pomodoro-toggle'));
+    await waitFor(() =>
+      expect(mockSavePrefs).toHaveBeenCalledWith('u1', { centerFirst: true })
+    );
+    expect(getByTestId('mock-pomodoro-centerfirst').props.children).toBe('on');
+  });
+
+  it('ON: Begin launches box breathing, then hands off to the auto-started timer', async () => {
+    mockGetPrefs.mockResolvedValue({ centerFirst: true });
+    mockRoute.params = { fromHub: true };
+    const { getByTestId, queryByTestId } = render(<FocusScreen />);
+    await waitFor(() =>
+      expect(getByTestId('mock-pomodoro-centerfirst').props.children).toBe('on')
+    );
+
+    // Begin with centering → box breathing runs (the fixed 2-min protocol).
+    fireEvent.press(getByTestId('mock-pomodoro-begin-center'));
+    expect(getByTestId('mock-gsp')).toBeTruthy();
+    expect(getByTestId('mock-gsp-protocol').props.children).toBe('box-breathing-2');
+    expect(queryByTestId('mock-pomodoro')).toBeNull(); // timer not shown during centering
+
+    // Completion → writes its OWN protocolSession row, then hands off to the
+    // auto-started timer.
+    fireEvent.press(getByTestId('mock-gsp-complete'));
+    expect(mockWriteSession).toHaveBeenCalledTimes(1);
+    expect(mockWriteSession.mock.calls[0][0]).toBe('u1');
+    expect(mockWriteSession.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        protocolId: 'box-breathing-2',
+        stateBefore: null,
+        stateAfter: null,
+        outcome: 'browse_launched',
+      })
+    );
+    expect(getByTestId('mock-pomodoro')).toBeTruthy();
+    expect(getByTestId('mock-pomodoro-autostart').props.children).toBe('on');
+    // Centering consumed: a second block starts directly (no re-center).
+    expect(getByTestId('mock-pomodoro-cancenter').props.children).toBe('no');
+  });
+
+  it('ON: the single end-of-loop reflection is still the FOCUS reflection', async () => {
+    mockGetPrefs.mockResolvedValue({ centerFirst: true });
+    mockRoute.params = { fromHub: true };
+    const { getByTestId } = render(<FocusScreen />);
+    await waitFor(() =>
+      expect(getByTestId('mock-pomodoro-centerfirst').props.children).toBe('on')
+    );
+
+    fireEvent.press(getByTestId('mock-pomodoro-begin-center'));
+    fireEvent.press(getByTestId('mock-gsp-complete')); // box breathing done → timer
+    // Timer "Done for now" → the FOCUS reflection (not a box-breathing one).
+    fireEvent.press(getByTestId('mock-pomodoro-done'));
+    expect(getByTestId('checkin-flow-reflection')).toBeTruthy();
+    expect(getByTestId('checkin-flow-reflection-chip-settled')).toBeTruthy();
+  });
+
+  it('ON but abandoned mid-practice: writes an abandoned row and returns to the timer un-started', async () => {
+    mockGetPrefs.mockResolvedValue({ centerFirst: true });
+    mockRoute.params = { fromHub: true };
+    const { getByTestId } = render(<FocusScreen />);
+    await waitFor(() =>
+      expect(getByTestId('mock-pomodoro-centerfirst').props.children).toBe('on')
+    );
+
+    fireEvent.press(getByTestId('mock-pomodoro-begin-center'));
+    fireEvent.press(getByTestId('mock-gsp-abandon'));
+    expect(mockWriteSession.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ protocolId: 'box-breathing-2', outcome: 'abandoned' })
+    );
+    expect(getByTestId('mock-pomodoro')).toBeTruthy();
+    expect(getByTestId('mock-pomodoro-autostart').props.children).toBe('off');
   });
 });

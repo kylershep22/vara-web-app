@@ -42,6 +42,7 @@ const COPY_SOURCES = [
   // the pillar rollout can't reintroduce an em dash / optim* in these strings.
   'src/screens/Focus/FocusHubScreen.tsx',
   'src/screens/Focus/FocusRhythmsScreen.tsx',
+  'src/screens/Focus/components/CenterFirstToggle.tsx',
   'src/constants/focusRhythms.ts',
   'src/components/checkin/flow/reflection.ts',
 ];
