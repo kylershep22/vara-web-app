@@ -32,9 +32,9 @@ const FOCUS_SET: ReflectionSet = {
   direction: 'neutral',
   strongPositiveId: 'settled',
   chips: [
-    { id: 'settled', label: 'Settled' },
-    { id: 'some', label: 'Some' },
-    { id: 'still_busy', label: 'Still busy' },
+    { id: 'settled', label: 'Stayed with it' },
+    { id: 'some', label: 'Drifted some' },
+    { id: 'still_busy', label: 'Kept slipping' },
   ],
 };
 
@@ -148,7 +148,7 @@ const CATEGORY_LABELS: Record<ReflectionCategory, [string, string, string]> = {
   energize: ['More with it', 'A little more', 'Still flat'],
   settle_before_focus: ['Clearer', 'A little clearer', 'Still scattered'],
   rest: ['More rested', 'A little more', 'Still tense'],
-  focus: ['Settled', 'Some', 'Still busy'],
+  focus: ['Stayed with it', 'Drifted some', 'Kept slipping'],
 };
 
 /**
