@@ -39,10 +39,11 @@ describe('FocusHubScreen', () => {
     ).toBeTruthy();
   });
 
-  it('tapping the primary card opens the focus timer', () => {
+  it('tapping the primary card opens the focus timer, flagged as hub-launched', () => {
     const { getByTestId } = render(<FocusHubScreen />);
     fireEvent.press(getByTestId('focus-hub-card-primary'));
-    expect(mockNavigate).toHaveBeenCalledWith('FocusTimer');
+    // fromHub chains the timer into the focus reflection on completion (commit 3).
+    expect(mockNavigate).toHaveBeenCalledWith('FocusTimer', { fromHub: true });
   });
 
   it('shows the secondary "Focus rhythms" entry and routes to it', () => {

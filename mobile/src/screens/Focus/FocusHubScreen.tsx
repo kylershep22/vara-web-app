@@ -22,7 +22,7 @@ import { ROUTES } from '../../navigation/routes';
 const MIN_TOUCH_TARGET = 48;
 
 type NavigationProp = NativeStackNavigationProp<{
-  FocusTimer: undefined;
+  FocusTimer: { fromHub?: boolean } | undefined;
   FocusRhythms: undefined;
 }>;
 
@@ -39,7 +39,7 @@ export function FocusHubScreen() {
             rule). Opens the existing Pomodoro timer. */}
         <TouchableOpacity
           style={styles.primaryCard}
-          onPress={() => navigation.navigate(ROUTES.FocusTimer)}
+          onPress={() => navigation.navigate(ROUTES.FocusTimer, { fromHub: true })}
           accessibilityRole="button"
           accessibilityLabel="Set a focus. Choose a length and give a single task your full attention."
           testID="focus-hub-card-primary"

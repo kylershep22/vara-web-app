@@ -3,11 +3,16 @@
  * Pomodoro focus screen.
  *
  * Closes the focus-session loop (Vara_Engine_Contract.md §12.1): when this
- * screen is reached FROM the check-in loop (route param `fromCheckIn`), tapping
- * "Done for now" on the Pomodoro returns to the Focus reflection (the §9 focus
- * chip set) before exiting home — the same exit a catalog-practice reflection
- * uses. A directly-started Pomodoro (no `fromCheckIn`) pops no reflection. The
- * return is guarded on the explicit launch param, never any global state.
+ * screen is reached FROM the check-in loop (route param `fromCheckIn`) OR from
+ * the Focus hub (route param `fromHub`, B-3c), tapping "Done for now" on the
+ * Pomodoro returns to the Focus reflection (the §9 focus chip set) before
+ * exiting home — the same exit a catalog-practice reflection uses. A
+ * directly-started Pomodoro (neither param) pops no reflection. The return is
+ * guarded on the explicit launch params, never any global state.
+ *
+ * The focus reflection carries no protocol and no BrainState: it is the focus
+ * pillar's state-less, neutral-direction set, and stateBefore/stateAfter are
+ * never synthesized for a bare timer session.
  *
  * Routines have been relocated to the Track page.
  */
@@ -27,7 +32,11 @@ import { ReflectionStepView } from '../../components/checkin/flow/ReflectionStep
 import { PomodoroTab } from './PomodoroTab';
 
 type FocusRoute = RouteProp<
-  { FocusTimer: { fromCheckIn?: boolean; durationMinutes?: number } | undefined },
+  {
+    FocusTimer:
+      | { fromCheckIn?: boolean; fromHub?: boolean; durationMinutes?: number }
+      | undefined;
+  },
   'FocusTimer'
 >;
 
@@ -35,6 +44,10 @@ export const FocusScreen: React.FC = () => {
   const route = useRoute<FocusRoute>();
   const navigation = useNavigation();
   const fromCheckIn = route.params?.fromCheckIn === true;
+  // Hub-launched sessions (B-3c) chain into the focus reflection too, via an
+  // explicit param so check-in's behavior is never overloaded.
+  const fromHub = route.params?.fromHub === true;
+  const chainReflection = fromCheckIn || fromHub;
   // Budget-derived prefill length from the check-in's focus-session pointer.
   const initialDuration = route.params?.durationMinutes;
 
@@ -68,7 +81,7 @@ export const FocusScreen: React.FC = () => {
     [focusSessionId, navigation]
   );
 
-  if (fromCheckIn && reflecting) {
+  if (chainReflection && reflecting) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ReflectionStepView
@@ -91,7 +104,7 @@ export const FocusScreen: React.FC = () => {
         <PomodoroTab
           showAdvancedDuration
           initialDuration={initialDuration}
-          onLoopDone={fromCheckIn ? handleLoopDone : undefined}
+          onLoopDone={chainReflection ? handleLoopDone : undefined}
         />
       </View>
     </SafeAreaView>

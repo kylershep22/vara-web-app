@@ -6,7 +6,9 @@
 // tree.
 
 const mockGoBack = jest.fn();
-const mockRoute: { params: { fromCheckIn?: boolean } | undefined } = {
+const mockRoute: {
+  params: { fromCheckIn?: boolean; fromHub?: boolean } | undefined;
+} = {
   params: undefined,
 };
 
@@ -96,6 +98,32 @@ describe('FocusScreen — focus-session loop closure', () => {
       expect.objectContaining({ reflection: 'settled' })
     );
     // Exit home — same exit a catalog-practice reflection uses.
+    expect(mockGoBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('hub-launched: "Done for now" chains into the Focus reflection', () => {
+    mockRoute.params = { fromHub: true };
+    const { getByTestId, queryByTestId } = render(<FocusScreen />);
+
+    // Hub launch also drives the loop (onLoopDone present); no reflection yet.
+    expect(getByTestId('mock-pomodoro-mode').props.children).toBe('loop');
+    expect(queryByTestId('checkin-flow-reflection')).toBeNull();
+
+    fireEvent.press(getByTestId('mock-pomodoro-done'));
+    expect(getByTestId('checkin-flow-reflection')).toBeTruthy();
+    expect(getByTestId('checkin-flow-reflection-chip-settled')).toBeTruthy();
+  });
+
+  it('hub-launched: selecting a reflection writes it (focus vocabulary) and exits', () => {
+    mockRoute.params = { fromHub: true };
+    const { getByTestId } = render(<FocusScreen />);
+    fireEvent.press(getByTestId('mock-pomodoro-done'));
+    fireEvent.press(getByTestId('checkin-flow-reflection-chip-settled'));
+
+    expect(mockDoc).toHaveBeenCalledWith(expect.anything(), 'focusSessions', 'focus-doc-1');
+    expect(mockUpdateDoc.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ reflection: 'settled' })
+    );
     expect(mockGoBack).toHaveBeenCalledTimes(1);
   });
 
