@@ -121,6 +121,7 @@ import {
   waitFor,
 } from '@testing-library/react-native';
 import { GuidedSessionPlayer } from '../GuidedSessionPlayer';
+import { getProtocolById } from '../../../constants/brainStateProtocols';
 import {
   clearMarker,
   isExpired,
@@ -523,6 +524,54 @@ describe('GuidedSessionPlayer — exit reasons', () => {
     // and the player stays on the preroll (Begin button still present).
     expect(onExit).not.toHaveBeenCalled();
     expect(queryByTestId('player-idle-start')).not.toBeNull();
+  });
+
+  // B-3b Issue 1 follow-up — reproduction probe for the device-walk dead-end
+  // on a browse-launched Rest/NSDR (audio modality) protocol. Mirrors the
+  // instruction-modality idle test above but for an AUDIO protocol, to confirm
+  // whether the idle gate + onExitBeforeStart fire on the audio path.
+  it('REPRO: audio (NSDR) preroll X confirm calls onExitBeforeStart, not onExit', async () => {
+    const onExit = jest.fn<void, [ProtocolSessionSummary]>();
+    const onExitBeforeStart = jest.fn<void, []>();
+    const { getByTestId } = render(
+      <GuidedSessionPlayer
+        protocol={singleAudio}
+        stateBefore={null}
+        onExit={onExit}
+        onExitBeforeStart={onExitBeforeStart}
+        onRecoveredSession={jest.fn().mockResolvedValue(undefined)}
+      />
+    );
+    fireEvent.press(getByTestId('player-header-close'));
+    fireEvent.press(getByTestId('end-early-modal-confirm'));
+
+    await waitFor(() => {
+      expect(onExitBeforeStart).toHaveBeenCalledTimes(1);
+    });
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
+  it('REPRO: real nsdr-10 catalog protocol preroll X confirm calls onExitBeforeStart', async () => {
+    const realNsdr = getProtocolById('nsdr-10');
+    if (!realNsdr) throw new Error('fixture: nsdr-10 missing');
+    const onExit = jest.fn<void, [ProtocolSessionSummary]>();
+    const onExitBeforeStart = jest.fn<void, []>();
+    const { getByTestId } = render(
+      <GuidedSessionPlayer
+        protocol={realNsdr}
+        stateBefore={null}
+        onExit={onExit}
+        onExitBeforeStart={onExitBeforeStart}
+        onRecoveredSession={jest.fn().mockResolvedValue(undefined)}
+      />
+    );
+    fireEvent.press(getByTestId('player-header-close'));
+    fireEvent.press(getByTestId('end-early-modal-confirm'));
+
+    await waitFor(() => {
+      expect(onExitBeforeStart).toHaveBeenCalledTimes(1);
+    });
+    expect(onExit).not.toHaveBeenCalled();
   });
 
   it('transport End early in normal state dispatches with reason=user_exit', async () => {
