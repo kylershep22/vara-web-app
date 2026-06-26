@@ -42,7 +42,7 @@ import {
 import DashboardScreen from '../screens/DashboardScreen';
 import MoreMenuScreen from '../screens/MoreMenuScreen';
 import PlanScreen from '../screens/PlanScreen';
-import { FocusScreen } from '../screens/Focus';
+import { FocusScreen, FocusHubScreen } from '../screens/Focus';
 import JournalScreen from '../screens/JournalScreen';
 import InsightsScreen from '../screens/InsightsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -543,15 +543,15 @@ const BottomTabsNavigator = () => {
  *
  * Tabs / placeholder destinations:
  *   Home      → DashboardScreen     (unchanged)
- *   Focus     → FocusScreen         (existing pomodoro, for now)
+ *   Focus     → FocusHubScreen      (B-3c hub; primary card opens FocusTimer)
  *   Energy    → EnergyHubPlaceholder (scaffold stub; real hub is B-3b)
  *   Time      → PlanScreen          (existing habits + routines, for now)
  *   Community → CommunityNavigator  (unchanged)
  *
  * FAB: matches each tab's current equivalent — Home/Time/Community show it, and
- * Focus shows it (the FocusTimer screen does today). Energy is intentionally
- * no-FAB: a browse hub does not host the AI assistant CTA. Revisit when the
- * real Energy hub lands in B-3b.
+ * Focus keeps it (the FocusHubScreen tab, B-3c). Energy is intentionally
+ * no-FAB: a browse hub does not host the AI assistant CTA. (The Focus-hub FAB
+ * disposition is unchanged in B-3c; any Guide-pill migration is a later slice.)
  *
  * Icons for Focus/Energy/Time are approximate scaffold placeholders
  * (timer-outline / lightning-bolt / clock-outline) — refine in B-3b.
@@ -590,7 +590,7 @@ const FivePillarTabs = () => {
       />
       <BottomTabs.Screen
         name={ROUTES.PillarFocus}
-        component={FocusScreen}
+        component={FocusHubScreen}
         options={tabOpts({
           tabBarLabel: 'Focus',
           tabBarIcon: ({ color, size }) => (

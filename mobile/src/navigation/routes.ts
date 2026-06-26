@@ -40,6 +40,10 @@ export const ROUTES = {
   // EnergyHubScreen). Parameterized by browseCategory (regulate/rest/fuel).
   // Registered in the flag-ON AppStack path only.
   EnergyBrowse: 'EnergyBrowse',
+  // Focus hub (B-3c) secondary entry, reached from the Focus tab (PillarFocus →
+  // FocusHubScreen). A quiet capture of when focus comes easiest; no scores.
+  // Registered in the flag-ON AppStack path only.
+  FocusRhythms: 'FocusRhythms',
 
   // --- Root / AppStack (MainNavigator) ---
   Main: 'Main',

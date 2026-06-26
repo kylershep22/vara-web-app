@@ -3,6 +3,7 @@
  */
 
 export { FocusScreen } from './FocusScreen';
+export { FocusHubScreen } from './FocusHubScreen';
 export { PomodoroTab } from './PomodoroTab';
 
 // Re-export Pomodoro components for use elsewhere
