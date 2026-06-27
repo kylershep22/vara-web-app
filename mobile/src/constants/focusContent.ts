@@ -51,6 +51,7 @@ export const FocusCopy = {
   durationChipsLabel: 'Session length',
   sessionCompleteLine1: 'Session complete.',
   sessionCompleteLine2: 'Nicely done. Rest if it feels right.',
+  reflectionPrompt: 'How did that focus feel?',
   breakCtaTakeBreak: 'Take a break',
   breakCtaStartAnother: 'Start another',
   breakCtaDoneForNow: 'Done for now',

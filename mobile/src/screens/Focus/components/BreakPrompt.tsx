@@ -19,6 +19,11 @@ import { FocusCopy } from '../../../constants/focusContent';
 
 type BreakState = 'session_complete' | 'break_running' | 'break_complete';
 
+interface ReflectionChip {
+  id: string;
+  label: string;
+}
+
 interface BreakPromptProps {
   state: BreakState;
   onStartBreak: () => void;
@@ -27,6 +32,12 @@ interface BreakPromptProps {
   breakTimeRemaining?: string;
   breakDurationMinutes?: number;
   onAdjustBreak?: (minutes: number) => void;
+  // Inline per-block focus reflection (B-3c.1). Rendered ONLY on
+  // session_complete (a real completed focus block), above the continuation
+  // actions, and skippable. Absent on break_complete — breaks are not reflected.
+  reflectionChips?: ReflectionChip[];
+  selectedReflectionId?: string | null;
+  onSelectReflection?: (reflectionId: string) => void;
 }
 
 export const BreakPrompt: React.FC<BreakPromptProps> = ({
@@ -37,6 +48,9 @@ export const BreakPrompt: React.FC<BreakPromptProps> = ({
   breakTimeRemaining,
   breakDurationMinutes = 5,
   onAdjustBreak,
+  reflectionChips,
+  selectedReflectionId,
+  onSelectReflection,
 }) => {
   const renderContent = () => {
     switch (state) {
@@ -67,6 +81,40 @@ export const BreakPrompt: React.FC<BreakPromptProps> = ({
       default:
         return null;
     }
+  };
+
+  const renderReflection = () => {
+    if (state !== 'session_complete' || !reflectionChips?.length) return null;
+    return (
+      <View style={styles.reflection}>
+        <Text style={styles.reflectionPrompt}>{FocusCopy.reflectionPrompt}</Text>
+        <View style={styles.reflectionChips}>
+          {reflectionChips.map((chip) => {
+            const selected = chip.id === selectedReflectionId;
+            return (
+              <TouchableOpacity
+                key={chip.id}
+                style={[styles.reflectionChip, selected && styles.reflectionChipSelected]}
+                onPress={() => onSelectReflection?.(chip.id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={chip.label}
+                testID={`break-reflection-chip-${chip.id}`}
+              >
+                <Text
+                  style={[
+                    styles.reflectionChipText,
+                    selected && styles.reflectionChipTextSelected,
+                  ]}
+                >
+                  {chip.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
   };
 
   const renderControls = () => {
@@ -168,6 +216,7 @@ export const BreakPrompt: React.FC<BreakPromptProps> = ({
   return (
     <View style={styles.container}>
       {renderContent()}
+      {renderReflection()}
       {renderControls()}
     </View>
   );
@@ -201,6 +250,43 @@ const styles = StyleSheet.create({
     color: ColorTokens.accentApricot,
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.02 * 48,
+  },
+  reflection: {
+    alignItems: 'center',
+    marginBottom: SpacingTokens.lg,
+  },
+  reflectionPrompt: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: ColorTokens.textSecondary,
+    textAlign: 'center',
+    marginBottom: SpacingTokens.sm,
+  },
+  reflectionChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: SpacingTokens.sm,
+  },
+  reflectionChip: {
+    paddingVertical: SpacingTokens.sm,
+    paddingHorizontal: SpacingTokens.base,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: ColorTokens.secondary,
+    backgroundColor: ColorTokens.backgroundPrimary,
+  },
+  reflectionChipSelected: {
+    borderColor: ColorTokens.primary,
+    backgroundColor: ColorTokens.primaryLight,
+  },
+  reflectionChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: ColorTokens.textSecondary,
+  },
+  reflectionChipTextSelected: {
+    color: ColorTokens.primary,
   },
   sessionCompleteControls: {
     alignItems: 'center',

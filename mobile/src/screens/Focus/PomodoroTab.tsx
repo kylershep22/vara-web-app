@@ -37,8 +37,13 @@ import {
 import { CenterFirstToggle } from './components/CenterFirstToggle';
 import { TimerRing } from '../../components/shared/TimerRing';
 import { resolvePlayAction } from './centerFirst';
+import { reflectionDisplayChips } from '../../components/checkin/flow/reflection';
 
 const TASK_LABEL_KEY = '@focus_task_label';
+
+// The focus reflection chips (ids + "Stayed with it / Drifted some / Kept
+// slipping" labels). Stable, so computed once at module scope.
+const FOCUS_REFLECTION_CHIPS = reflectionDisplayChips('focus', 'neutral');
 
 interface PomodoroTabProps {
   /** Whether 90-minute advanced option should be shown */
@@ -51,13 +56,20 @@ interface PomodoroTabProps {
    */
   initialDuration?: number;
   /**
-   * Present only when this Pomodoro was launched FROM the check-in loop. When
-   * set, tapping "Done for now" (after at least one completed block) hands the
-   * loop back to the parent with the most recent focus-session doc id so it can
-   * fire the Focus reflection — closing the loop. Absent for a directly-started
-   * Pomodoro, which pops no reflection.
+   * Present only when this Pomodoro should EXIT the screen on "Done for now"
+   * (launched from the hub / check-in). When set, "Done for now" hands back to
+   * the parent to navigate away. Absent for a directly-started Pomodoro, which
+   * just resets to setup. (Per-block reflection is now inline on the completion
+   * surface, independent of this exit signal — see onBlockReflect.)
    */
-  onLoopDone?: (focusSessionId: string | null) => void;
+  onExit?: () => void;
+  /**
+   * Fires when the user taps a focus reflection chip on a completed block's
+   * completion surface. Carries the chip id and the just-completed focus-session
+   * doc id (null if none captured). The parent persists it onto that
+   * focusSessions doc. Skippable: the user may continue without reflecting.
+   */
+  onBlockReflect?: (reflectionId: string, focusSessionId: string | null) => void;
   /**
    * B-3c "Center first" wiring. `centerFirst` controls the opt-in setup row
    * (shown only when `onToggleCenterFirst` is provided). When `onCenterFirstBegin`
@@ -75,7 +87,8 @@ interface PomodoroTabProps {
 export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   showAdvancedDuration = true,
   initialDuration,
-  onLoopDone,
+  onExit,
+  onBlockReflect,
   centerFirst = false,
   onToggleCenterFirst,
   onCenterFirstBegin,
@@ -97,6 +110,10 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
 
   // Sound panel state
   const [isSoundPanelOpen, setIsSoundPanelOpen] = useState(false);
+
+  // The reflection chip chosen for the just-completed block (null = none yet).
+  // Cleared when a new block starts so each block reflects independently.
+  const [selectedReflectionId, setSelectedReflectionId] = useState<string | null>(null);
 
   // Timer hook
   const timer = useTimer({
@@ -217,17 +234,34 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     setTimeout(() => timer.start(), 50);
   }, [timer]);
 
-  // "Done for now" terminal. Loop-launched: hand back to the parent (FocusScreen
-  // shows the Focus reflection) with the last completed block's doc id; the
-  // parent owns the exit, so we don't reset here. Directly-started: just reset
-  // (no reflection) — the existing behavior.
+  // A new active/idle block clears the previous block's reflection selection.
+  // (During session_complete the state holds, so the selection persists while
+  // the completion surface is shown.)
+  useEffect(() => {
+    if (timer.state === 'running' || timer.state === 'idle') {
+      setSelectedReflectionId(null);
+    }
+  }, [timer.state]);
+
+  const handleSelectReflection = useCallback(
+    (reflectionId: string) => {
+      setSelectedReflectionId(reflectionId);
+      onBlockReflect?.(reflectionId, lastFocusSessionIdRef.current);
+    },
+    [onBlockReflect]
+  );
+
+  // "Done for now" terminal. Hub/check-in launched: hand back to the parent to
+  // exit the screen (the parent owns navigation). Directly-started: just reset
+  // to setup. Reflection already happened inline on this surface (optional), so
+  // "Done for now" never re-prompts it.
   const handleDoneForNow = useCallback(() => {
-    if (onLoopDone) {
-      onLoopDone(lastFocusSessionIdRef.current);
+    if (onExit) {
+      onExit();
       return;
     }
     timer.reset();
-  }, [onLoopDone, timer]);
+  }, [onExit, timer]);
 
   const toggleSoundPanel = useCallback(() => {
     setIsSoundPanelOpen((prev) => !prev);
@@ -311,6 +345,9 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
             onDoneForNow={handleDoneForNow}
             breakDurationMinutes={timer.breakDurationMinutes}
             onAdjustBreak={timer.setBreakDuration}
+            reflectionChips={FOCUS_REFLECTION_CHIPS}
+            selectedReflectionId={selectedReflectionId}
+            onSelectReflection={handleSelectReflection}
           />
         </View>
       ) : (

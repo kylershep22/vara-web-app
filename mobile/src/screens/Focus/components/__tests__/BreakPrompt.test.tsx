@@ -69,6 +69,101 @@ describe('BreakPrompt', () => {
     });
   });
 
+  describe('inline reflection (session_complete only)', () => {
+    const chips = [
+      { id: 'settled', label: 'Stayed with it' },
+      { id: 'some', label: 'Drifted some' },
+      { id: 'still_busy', label: 'Kept slipping' },
+    ];
+
+    it('renders the reflection chips on session_complete, above the actions', () => {
+      const { getByText } = render(
+        <BreakPrompt
+          state="session_complete"
+          onStartBreak={noop}
+          onBeginAnother={noop}
+          onDoneForNow={noop}
+          breakDurationMinutes={5}
+          onAdjustBreak={noop}
+          reflectionChips={chips}
+          selectedReflectionId={null}
+          onSelectReflection={noop}
+        />
+      );
+      expect(getByText('Stayed with it')).toBeTruthy();
+      expect(getByText('Drifted some')).toBeTruthy();
+      expect(getByText('Kept slipping')).toBeTruthy();
+      // Actions remain on the same surface (reflection is skippable).
+      expect(getByText(FocusCopy.breakCtaDoneForNow)).toBeTruthy();
+    });
+
+    it('selecting a chip fires onSelectReflection with the chip id', () => {
+      const onSelectReflection = jest.fn();
+      const { getByText } = render(
+        <BreakPrompt
+          state="session_complete"
+          onStartBreak={noop}
+          onBeginAnother={noop}
+          onDoneForNow={noop}
+          breakDurationMinutes={5}
+          onAdjustBreak={noop}
+          reflectionChips={chips}
+          selectedReflectionId={null}
+          onSelectReflection={onSelectReflection}
+        />
+      );
+      fireEvent.press(getByText('Drifted some'));
+      expect(onSelectReflection).toHaveBeenCalledWith('some');
+    });
+
+    it('marks the selected chip', () => {
+      const { getByTestId } = render(
+        <BreakPrompt
+          state="session_complete"
+          onStartBreak={noop}
+          onBeginAnother={noop}
+          onDoneForNow={noop}
+          breakDurationMinutes={5}
+          onAdjustBreak={noop}
+          reflectionChips={chips}
+          selectedReflectionId="settled"
+          onSelectReflection={noop}
+        />
+      );
+      expect(getByTestId('break-reflection-chip-settled').props.accessibilityState.selected).toBe(true);
+      expect(getByTestId('break-reflection-chip-some').props.accessibilityState.selected).toBe(false);
+    });
+
+    it('does NOT render reflection chips on break_complete (reflection is per focus block)', () => {
+      const { queryByText } = render(
+        <BreakPrompt
+          state="break_complete"
+          onStartBreak={noop}
+          onBeginAnother={noop}
+          onDoneForNow={noop}
+          reflectionChips={chips}
+          selectedReflectionId={null}
+          onSelectReflection={noop}
+        />
+      );
+      expect(queryByText('Stayed with it')).toBeNull();
+    });
+
+    it('session_complete without chips renders no reflection block', () => {
+      const { queryByText } = render(
+        <BreakPrompt
+          state="session_complete"
+          onStartBreak={noop}
+          onBeginAnother={noop}
+          onDoneForNow={noop}
+          breakDurationMinutes={5}
+          onAdjustBreak={noop}
+        />
+      );
+      expect(queryByText('Stayed with it')).toBeNull();
+    });
+  });
+
   describe('break_running', () => {
     it('renders the countdown', () => {
       const { getByText } = render(

@@ -1,12 +1,14 @@
-// Focus-session loop closure (Vara_Engine_Contract.md §12.1) + the B-3c
-// "Center first" pre-focus box breathing handoff (commit 5).
+// FocusScreen orchestration (B-3c / B-3c.1).
 //
-// A focus session launched FROM the check-in (fromCheckIn) OR the hub (fromHub)
-// returns to the Focus reflection on "Done for now". With Center-first ON, the
-// Begin tap first runs box breathing (GuidedSessionPlayer), then hands off to
-// the timer, which still ends on the focus reflection. PomodoroTab and
-// GuidedSessionPlayer are mocked to expose their wiring without the timer/audio
-// trees.
+// - "Done for now" exits the screen when launched from the hub / check-in
+//   (onExit), and is a no-op (reset) for a directly-started timer.
+// - The per-block focus reflection is INLINE on the completion surface (inside
+//   PomodoroTab/BreakPrompt); selecting a chip flows up via onBlockReflect and
+//   FocusScreen writes it onto that block's focusSessions doc. No separate
+//   reflection screen → no double-reflect.
+// - Center-first: Begin runs box breathing (GuidedSessionPlayer), then hands off
+//   to the auto-started timer.
+// PomodoroTab and GuidedSessionPlayer are mocked to expose their wiring.
 
 const mockGoBack = jest.fn();
 const mockRoute: {
@@ -102,8 +104,7 @@ jest.mock('../../../components/protocol/GuidedSessionPlayer', () => {
   };
 });
 
-// Mock PomodoroTab — expose onLoopDone wiring, centerFirst/autoStart props, and
-// buttons to fire onLoopDone, onCenterFirstBegin, onToggleCenterFirst.
+// Mock PomodoroTab — expose onExit / onBlockReflect / center wiring and buttons.
 jest.mock('../PomodoroTab', () => {
   const ReactLib = jest.requireActual('react');
   const { View, Text, TouchableOpacity } = jest.requireActual('react-native');
@@ -115,7 +116,7 @@ jest.mock('../PomodoroTab', () => {
         ReactLib.createElement(
           Text,
           { testID: 'mock-pomodoro-mode' },
-          props.onLoopDone ? 'loop' : 'direct'
+          props.onExit ? 'loop' : 'direct'
         ),
         ReactLib.createElement(
           Text,
@@ -134,8 +135,18 @@ jest.mock('../PomodoroTab', () => {
         ),
         ReactLib.createElement(
           TouchableOpacity,
-          { testID: 'mock-pomodoro-done', onPress: () => props.onLoopDone?.('focus-doc-1') },
+          { testID: 'mock-pomodoro-done', onPress: () => props.onExit?.() },
           ReactLib.createElement(Text, null, 'done')
+        ),
+        ReactLib.createElement(
+          TouchableOpacity,
+          { testID: 'mock-pomodoro-reflect', onPress: () => props.onBlockReflect?.('settled', 'focus-doc-1') },
+          ReactLib.createElement(Text, null, 'reflect')
+        ),
+        ReactLib.createElement(
+          TouchableOpacity,
+          { testID: 'mock-pomodoro-reflect-noid', onPress: () => props.onBlockReflect?.('settled', null) },
+          ReactLib.createElement(Text, null, 'reflect-noid')
         ),
         ReactLib.createElement(
           TouchableOpacity,
@@ -166,73 +177,55 @@ beforeEach(() => {
   mockWriteSession.mockClear();
 });
 
-describe('FocusScreen — focus-session loop closure', () => {
-  it('loop-launched: "Done for now" returns to the Focus reflection (focus chip set)', () => {
-    mockRoute.params = { fromCheckIn: true };
-    const { getByTestId, queryByTestId } = render(<FocusScreen />);
-
-    expect(getByTestId('mock-pomodoro-mode').props.children).toBe('loop');
-    expect(queryByTestId('checkin-flow-reflection')).toBeNull();
-
-    fireEvent.press(getByTestId('mock-pomodoro-done'));
-    expect(getByTestId('checkin-flow-reflection')).toBeTruthy();
-    expect(getByTestId('checkin-flow-reflection-chip-settled')).toBeTruthy();
-    expect(getByTestId('checkin-flow-reflection-chip-some')).toBeTruthy();
-    expect(getByTestId('checkin-flow-reflection-chip-still_busy')).toBeTruthy();
-  });
-
-  it('loop-launched: selecting a reflection writes it (focus vocabulary) and exits home', () => {
+describe('FocusScreen — Done for now / exit', () => {
+  it('check-in launched: "Done for now" exits the screen', () => {
     mockRoute.params = { fromCheckIn: true };
     const { getByTestId } = render(<FocusScreen />);
+    expect(getByTestId('mock-pomodoro-mode').props.children).toBe('loop');
     fireEvent.press(getByTestId('mock-pomodoro-done'));
+    expect(mockGoBack).toHaveBeenCalledTimes(1);
+  });
 
-    fireEvent.press(getByTestId('checkin-flow-reflection-chip-settled'));
+  it('hub launched: "Done for now" exits the screen', () => {
+    mockRoute.params = { fromHub: true };
+    const { getByTestId } = render(<FocusScreen />);
+    expect(getByTestId('mock-pomodoro-mode').props.children).toBe('loop');
+    fireEvent.press(getByTestId('mock-pomodoro-done'));
+    expect(mockGoBack).toHaveBeenCalledTimes(1);
+  });
 
+  it('directly-started: no onExit, "Done for now" does not navigate', () => {
+    mockRoute.params = undefined;
+    const { getByTestId } = render(<FocusScreen />);
+    expect(getByTestId('mock-pomodoro-mode').props.children).toBe('direct');
+    fireEvent.press(getByTestId('mock-pomodoro-done'));
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
+});
+
+describe('FocusScreen — inline per-block reflection', () => {
+  it('writes the selected chip onto the block focusSessions doc (any launch source)', () => {
+    mockRoute.params = undefined; // ungated — fires even for a direct launch
+    const { getByTestId } = render(<FocusScreen />);
+    fireEvent.press(getByTestId('mock-pomodoro-reflect'));
     expect(mockDoc).toHaveBeenCalledWith(expect.anything(), 'focusSessions', 'focus-doc-1');
     expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
     expect(mockUpdateDoc.mock.calls[0][1]).toEqual(
       expect.objectContaining({ reflection: 'settled' })
     );
-    expect(mockGoBack).toHaveBeenCalledTimes(1);
+    // Reflecting does NOT navigate away (only "Done for now" exits).
+    expect(mockGoBack).not.toHaveBeenCalled();
   });
 
-  it('hub-launched: "Done for now" chains into the Focus reflection', () => {
-    mockRoute.params = { fromHub: true };
-    const { getByTestId, queryByTestId } = render(<FocusScreen />);
-
-    expect(getByTestId('mock-pomodoro-mode').props.children).toBe('loop');
-    expect(queryByTestId('checkin-flow-reflection')).toBeNull();
-
-    fireEvent.press(getByTestId('mock-pomodoro-done'));
-    expect(getByTestId('checkin-flow-reflection')).toBeTruthy();
-    expect(getByTestId('checkin-flow-reflection-chip-settled')).toBeTruthy();
-  });
-
-  it('hub-launched: selecting a reflection writes it (focus vocabulary) and exits', () => {
+  it('skips the write when there is no completed block id', () => {
     mockRoute.params = { fromHub: true };
     const { getByTestId } = render(<FocusScreen />);
-    fireEvent.press(getByTestId('mock-pomodoro-done'));
-    fireEvent.press(getByTestId('checkin-flow-reflection-chip-settled'));
-
-    expect(mockDoc).toHaveBeenCalledWith(expect.anything(), 'focusSessions', 'focus-doc-1');
-    expect(mockUpdateDoc.mock.calls[0][1]).toEqual(
-      expect.objectContaining({ reflection: 'settled' })
-    );
-    expect(mockGoBack).toHaveBeenCalledTimes(1);
-  });
-
-  it('directly-started: no onLoopDone, "Done for now" pops NO reflection', () => {
-    mockRoute.params = undefined; // not from the check-in loop
-    const { getByTestId, queryByTestId } = render(<FocusScreen />);
-
-    expect(getByTestId('mock-pomodoro-mode').props.children).toBe('direct');
-    fireEvent.press(getByTestId('mock-pomodoro-done')); // onLoopDone is undefined → no-op
-    expect(queryByTestId('checkin-flow-reflection')).toBeNull();
-    expect(mockGoBack).not.toHaveBeenCalled();
+    fireEvent.press(getByTestId('mock-pomodoro-reflect-noid'));
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
   });
 });
 
-describe('FocusScreen — Center first (B-3c commit 5)', () => {
+describe('FocusScreen — Center first (B-3c)', () => {
   it('initializes the Center-first row from the persisted preference', async () => {
     mockGetPrefs.mockResolvedValue({ centerFirst: true });
     mockRoute.params = { fromHub: true };
@@ -261,14 +254,11 @@ describe('FocusScreen — Center first (B-3c commit 5)', () => {
       expect(getByTestId('mock-pomodoro-centerfirst').props.children).toBe('on')
     );
 
-    // Begin with centering → box breathing runs (the fixed 2-min protocol).
     fireEvent.press(getByTestId('mock-pomodoro-begin-center'));
     expect(getByTestId('mock-gsp')).toBeTruthy();
     expect(getByTestId('mock-gsp-protocol').props.children).toBe('box-breathing-2');
-    expect(queryByTestId('mock-pomodoro')).toBeNull(); // timer not shown during centering
+    expect(queryByTestId('mock-pomodoro')).toBeNull();
 
-    // Completion → writes its OWN protocolSession row, then hands off to the
-    // auto-started timer.
     fireEvent.press(getByTestId('mock-gsp-complete'));
     expect(mockWriteSession).toHaveBeenCalledTimes(1);
     expect(mockWriteSession.mock.calls[0][0]).toBe('u1');
@@ -282,24 +272,7 @@ describe('FocusScreen — Center first (B-3c commit 5)', () => {
     );
     expect(getByTestId('mock-pomodoro')).toBeTruthy();
     expect(getByTestId('mock-pomodoro-autostart').props.children).toBe('on');
-    // Centering consumed: a second block starts directly (no re-center).
     expect(getByTestId('mock-pomodoro-cancenter').props.children).toBe('no');
-  });
-
-  it('ON: the single end-of-loop reflection is still the FOCUS reflection', async () => {
-    mockGetPrefs.mockResolvedValue({ centerFirst: true });
-    mockRoute.params = { fromHub: true };
-    const { getByTestId } = render(<FocusScreen />);
-    await waitFor(() =>
-      expect(getByTestId('mock-pomodoro-centerfirst').props.children).toBe('on')
-    );
-
-    fireEvent.press(getByTestId('mock-pomodoro-begin-center'));
-    fireEvent.press(getByTestId('mock-gsp-complete')); // box breathing done → timer
-    // Timer "Done for now" → the FOCUS reflection (not a box-breathing one).
-    fireEvent.press(getByTestId('mock-pomodoro-done'));
-    expect(getByTestId('checkin-flow-reflection')).toBeTruthy();
-    expect(getByTestId('checkin-flow-reflection-chip-settled')).toBeTruthy();
   });
 
   it('ON but abandoned mid-practice: writes an abandoned row and returns to the timer un-started', async () => {
