@@ -233,21 +233,10 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     setIsSoundPanelOpen((prev) => !prev);
   }, []);
 
-  // Determine what to show in timer center
+  // Center content for the in-ring states. The completion PROMPTS
+  // (session_complete / break_complete) render OUTSIDE the ring (see below) so
+  // they no longer clip the circle; the break countdown stays in the ring.
   const renderTimerContent = () => {
-    if (timer.state === 'session_complete' || timer.state === 'break_complete') {
-      return (
-        <BreakPrompt
-          state={timer.state === 'session_complete' ? 'session_complete' : 'break_complete'}
-          onStartBreak={timer.startBreak}
-          onBeginAnother={timer.state === 'break_complete' ? timer.beginAnother : handleStartAnother}
-          onDoneForNow={handleDoneForNow}
-          breakDurationMinutes={timer.breakDurationMinutes}
-          onAdjustBreak={timer.setBreakDuration}
-        />
-      );
-    }
-
     if (timer.state === 'break_running') {
       return (
         <BreakPrompt
@@ -275,8 +264,13 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   // Get ring color based on state
   const ringColor = timer.isBreak ? ColorTokens.accentApricot : ColorTokens.primary;
 
+  // The completion prompts (focus block done / break done) render as their own
+  // vertical stack, not inside the fixed-diameter ring.
+  const isCompletionState =
+    timer.state === 'session_complete' || timer.state === 'break_complete';
+
   // Show controls based on state
-  const showControls = timer.state !== 'session_complete' && timer.state !== 'break_complete';
+  const showControls = !isCompletionState;
 
   return (
     <ScrollView
@@ -304,17 +298,34 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
         <CenterFirstToggle value={centerFirst} onToggle={onToggleCenterFirst} />
       )}
 
-      {/* Timer Ring */}
-      <View style={styles.timerContainer}>
-        <TimerRing
-          diameter={SizeTokens.timerRingPomodoro}
-          strokeWidth={SizeTokens.timerRingStrokePomodoro}
-          progress={timer.progress}
-          fillColor={ringColor}
-        >
-          {renderTimerContent()}
-        </TimerRing>
-      </View>
+      {/* Completion surface — focus block done / break done. Rendered as its
+          own vertical stack OUTSIDE the ring so it never clips the circle. */}
+      {isCompletionState ? (
+        <View style={styles.completionContainer}>
+          <BreakPrompt
+            state={timer.state === 'session_complete' ? 'session_complete' : 'break_complete'}
+            onStartBreak={timer.startBreak}
+            onBeginAnother={
+              timer.state === 'break_complete' ? timer.beginAnother : handleStartAnother
+            }
+            onDoneForNow={handleDoneForNow}
+            breakDurationMinutes={timer.breakDurationMinutes}
+            onAdjustBreak={timer.setBreakDuration}
+          />
+        </View>
+      ) : (
+        /* Timer Ring — idle / running / paused / break_running (countdown). */
+        <View style={styles.timerContainer}>
+          <TimerRing
+            diameter={SizeTokens.timerRingPomodoro}
+            strokeWidth={SizeTokens.timerRingStrokePomodoro}
+            progress={timer.progress}
+            fillColor={ringColor}
+          >
+            {renderTimerContent()}
+          </TimerRing>
+        </View>
+      )}
 
       {/* Timer Controls */}
       {showControls && (
@@ -385,6 +396,11 @@ const styles = StyleSheet.create({
   timerContainer: {
     alignItems: 'center',
     marginVertical: SpacingTokens.lg,
+  },
+  completionContainer: {
+    alignItems: 'center',
+    marginVertical: SpacingTokens.lg,
+    paddingHorizontal: SpacingTokens.lg,
   },
   timerContent: {
     alignItems: 'center',
