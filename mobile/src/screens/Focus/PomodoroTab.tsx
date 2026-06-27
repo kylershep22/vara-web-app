@@ -26,13 +26,12 @@ import {
   TypographyTokens,
 } from '../../constants/designTokens';
 import { FocusCopy } from '../../constants/focusContent';
-import { useTimer, useNotificationSilence, useAmbientSound } from '../../hooks';
+import { useTimer, useAmbientSound } from '../../hooks';
 import { useCompletionSound } from '../../hooks/useCompletionSound';
 import {
   DurationChips,
   TaskLabelInput,
   BreakPrompt,
-  NotificationToggle,
   AmbientSoundSelector,
 } from './components';
 import { CenterFirstToggle } from './components/CenterFirstToggle';
@@ -107,9 +106,6 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     onBreakComplete: handleBreakComplete,
   });
 
-  // Notification silence hook
-  const notificationSilence = useNotificationSilence();
-
   // Ambient sound hook
   const ambientSound = useAmbientSound();
 
@@ -142,13 +138,11 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     saveTaskLabel();
   }, [taskLabel]);
 
-  // Handle timer start - activate DND and ambient sound
+  // Handle timer start - fade ambient sound in/out
   useEffect(() => {
     if (timer.isActive) {
-      notificationSilence.activate();
       ambientSound.fadeIn();
     } else if (timer.state === 'paused' || timer.state === 'idle') {
-      notificationSilence.deactivate();
       ambientSound.fadeOut();
     }
   }, [timer.isActive, timer.state]);
@@ -374,13 +368,6 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
         isExpanded={isSoundPanelOpen}
         selectedSound={ambientSound.selectedSound}
         onSoundSelect={ambientSound.setSelectedSound}
-      />
-
-      {/* Notification Toggle */}
-      <NotificationToggle
-        isEnabled={notificationSilence.isEnabled}
-        onToggle={notificationSilence.toggle}
-        isCurrentlyActive={notificationSilence.isCurrentlyActive}
       />
 
     </ScrollView>

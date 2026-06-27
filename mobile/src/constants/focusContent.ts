@@ -58,9 +58,6 @@ export const FocusCopy = {
   breakCompleteLine2: 'Ready for another session?',
   breakCtaPrimary: 'Begin another',
   breakCtaTertiary: 'Done for now',
-  notificationLabel: 'Silence notifications',
-  notificationHelperOff: 'Reduce distractions while focusing',
-  notificationHelperOn: 'Notifications paused during sessions',
   ambientPanelLabel: 'Ambient sound',
   loading: 'Taking a moment...',
 

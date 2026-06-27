@@ -37,7 +37,6 @@ export { useWeeklySummary } from './useWeeklySummary';
 
 // Focus Page Hooks
 export { useTimer, type TimerState } from './useTimer';
-export { useNotificationSilence } from './useNotificationSilence';
 export { useAmbientSound } from './useAmbientSound';
 
 // Feature Unlock
