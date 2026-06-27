@@ -1,10 +1,30 @@
-import { reflectionSetFor, isStrongPositiveReflection } from '../reflection';
+import {
+  reflectionSetFor,
+  reflectionDisplayChips,
+  isStrongPositiveReflection,
+} from '../reflection';
 
 describe('reflectionSetFor — set chosen by (pillar, direction)', () => {
-  it('focus → Settled / Some / Still busy', () => {
+  it('focus → Stayed with it / Drifted some / Kept slipping', () => {
     const set = reflectionSetFor('focus', 'neutral');
-    expect(set.chips.map((c) => c.label)).toEqual(['Settled', 'Some', 'Still busy']);
+    expect(set.chips.map((c) => c.label)).toEqual([
+      'Stayed with it',
+      'Drifted some',
+      'Kept slipping',
+    ]);
+    // Persisted ids and the strong-positive marker are UNCHANGED — only the
+    // user-facing wording moves (outcome classification keys on these ids).
+    expect(set.chips.map((c) => c.id)).toEqual(['settled', 'some', 'still_busy']);
     expect(set.strongPositiveId).toBe('settled');
+  });
+
+  it('focus rendered chips carry the new labels on the stable ids', () => {
+    const chips = reflectionDisplayChips('focus', 'neutral');
+    expect(chips).toEqual([
+      { id: 'settled', label: 'Stayed with it' },
+      { id: 'some', label: 'Drifted some' },
+      { id: 'still_busy', label: 'Kept slipping' },
+    ]);
   });
 
   it('energy + settle → Calmer / A little calmer / Still wound up', () => {

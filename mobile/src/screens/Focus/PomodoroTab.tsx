@@ -35,7 +35,9 @@ import {
   NotificationToggle,
   AmbientSoundSelector,
 } from './components';
+import { CenterFirstToggle } from './components/CenterFirstToggle';
 import { TimerRing } from '../../components/shared/TimerRing';
+import { resolvePlayAction } from './centerFirst';
 
 const TASK_LABEL_KEY = '@focus_task_label';
 
@@ -57,12 +59,28 @@ interface PomodoroTabProps {
    * Pomodoro, which pops no reflection.
    */
   onLoopDone?: (focusSessionId: string | null) => void;
+  /**
+   * B-3c "Center first" wiring. `centerFirst` controls the opt-in setup row
+   * (shown only when `onToggleCenterFirst` is provided). When `onCenterFirstBegin`
+   * is supplied AND the row is on, the idle Begin tap launches the pre-focus
+   * practice instead of starting the timer (the parent owns that handoff). When
+   * `autoStart` is true the timer starts on mount — used when the parent hands
+   * back from the centering practice so no second tap is needed.
+   */
+  centerFirst?: boolean;
+  onToggleCenterFirst?: (next: boolean) => void;
+  onCenterFirstBegin?: (durationMinutes: number) => void;
+  autoStart?: boolean;
 }
 
 export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   showAdvancedDuration = true,
   initialDuration,
   onLoopDone,
+  centerFirst = false,
+  onToggleCenterFirst,
+  onCenterFirstBegin,
+  autoStart = false,
 }) => {
   const { user } = useAuth();
   const { playCompletionSound } = useCompletionSound();
@@ -170,14 +188,35 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   }, [timer]);
 
   const handlePlayPause = useCallback(() => {
-    if (timer.state === 'idle') {
-      timer.start();
-    } else if (timer.state === 'running' || timer.state === 'break_running') {
-      timer.pause();
-    } else if (timer.state === 'paused') {
-      timer.resume();
+    const action = resolvePlayAction(timer.state, {
+      centerFirst,
+      canCenter: !!onCenterFirstBegin,
+    });
+    switch (action) {
+      case 'center':
+        // Hand off to the parent's pre-focus practice instead of starting.
+        onCenterFirstBegin?.(selectedDuration);
+        return;
+      case 'start':
+        timer.start();
+        return;
+      case 'pause':
+        timer.pause();
+        return;
+      case 'resume':
+        timer.resume();
+        return;
     }
-  }, [timer]);
+  }, [timer, centerFirst, onCenterFirstBegin, selectedDuration]);
+
+  // Auto-start when handed back from the centering practice (no second tap).
+  // Mount-only; the small delay mirrors handleStartAnother's reset→start gap.
+  useEffect(() => {
+    if (!autoStart) return;
+    const id = setTimeout(() => timer.start(), 50);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleStartAnother = useCallback(() => {
     timer.reset();
@@ -265,6 +304,11 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
         disabled={timer.isActive}
         showAdvanced={showAdvancedDuration}
       />
+
+      {/* Center first — opt-in pre-focus practice (B-3c). Setup only. */}
+      {onToggleCenterFirst && timer.state === 'idle' && (
+        <CenterFirstToggle value={centerFirst} onToggle={onToggleCenterFirst} />
+      )}
 
       {/* Timer Ring */}
       <View style={styles.timerContainer}>

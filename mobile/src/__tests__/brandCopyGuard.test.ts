@@ -37,6 +37,14 @@ const COPY_SOURCES = [
   // em dash / optim* in the rendered strings.
   'src/screens/Energy/EnergyHubScreen.tsx',
   'src/screens/Energy/EnergyBrowseListScreen.tsx',
+  // Four-Pillar IA Focus pillar (B-3c). The Focus hub + rhythms screens, the
+  // rhythms option labels, and the reworded focus reflection copy; guarded so
+  // the pillar rollout can't reintroduce an em dash / optim* in these strings.
+  'src/screens/Focus/FocusHubScreen.tsx',
+  'src/screens/Focus/FocusRhythmsScreen.tsx',
+  'src/screens/Focus/components/CenterFirstToggle.tsx',
+  'src/constants/focusRhythms.ts',
+  'src/components/checkin/flow/reflection.ts',
 ];
 
 // U+2014 EM DASH, built via char code so no literal em-dash byte lives in
