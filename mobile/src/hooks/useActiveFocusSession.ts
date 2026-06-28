@@ -34,6 +34,10 @@ import {
   type ActiveFocusSession,
   type FocusSessionType,
 } from '../services/firebase/focusSession.service';
+import {
+  scheduleFocusCompletionNotification,
+  cancelScheduledNotification,
+} from '../services/notifications.service';
 import { logger } from '../utils/logger';
 
 interface UseActiveFocusSessionParams {
@@ -73,6 +77,17 @@ export function useActiveFocusSession({
   const activeStartedAtRef = useRef<number>(0);
   // Most recently finalized id, for the inline reflection write.
   const lastIdRef = useRef<string | null>(null);
+  // Scheduled completion-notification id, so it can be cancelled.
+  const notifIdRef = useRef<string | null>(null);
+
+  // Cancel the pending completion notification (if any). Called when the block
+  // pauses / resets / completes in the FOREGROUND (the foreground handler would
+  // otherwise route it to a stray toast) / is abandoned on unmount.
+  const cancelNotif = useCallback(() => {
+    const nid = notifIdRef.current;
+    notifIdRef.current = null;
+    if (nid) cancelScheduledNotification(nid).catch(() => {});
+  }, []);
 
   // Latest values so finalizeCompletedBlock (a stable callback) is never stale.
   const userIdRef = useRef(userId);
@@ -93,8 +108,9 @@ export function useActiveFocusSession({
         activeStartedAtRef.current = Date.now();
       }
       if (endsAt != null) {
+        const id = activeIdRef.current;
         const record: ActiveFocusSession = {
-          focusSessionId: activeIdRef.current,
+          focusSessionId: id,
           userId,
           durationMinutes,
           type: focusType(durationMinutes),
@@ -105,13 +121,25 @@ export function useActiveFocusSession({
         saveActiveFocusSession(record).catch((error) =>
           logger.warn('[useActiveFocusSession] persist failed', error)
         );
+        // (Re)schedule the OS-owned completion notification for endsAt. Cancel
+        // any previous one first so a resume (new endsAt) does not leave a
+        // stale notification behind.
+        cancelNotif();
+        scheduleFocusCompletionNotification(id, endsAt)
+          .then((nid) => {
+            notifIdRef.current = nid;
+          })
+          .catch((error) =>
+            logger.warn('[useActiveFocusSession] schedule notif failed', error)
+          );
       }
     } else if (timerState === 'paused') {
       // Kill-while-paused must not finalize: drop the record, keep the id so
-      // resume re-persists the same block.
+      // resume re-persists the same block. Cancel the pending notification too.
       clearActiveFocusSession().catch(() => {});
+      cancelNotif();
     }
-  }, [timerState, endsAt, userId, durationMinutes, taskLabel]);
+  }, [timerState, endsAt, userId, durationMinutes, taskLabel, cancelNotif]);
 
   // App-return sweep: a persisted record whose endsAt already passed is a block
   // that elapsed while backgrounded or killed → write its completion row.
@@ -147,7 +175,21 @@ export function useActiveFocusSession({
     };
   }, [userId]);
 
+  // Abandon a running block on unmount (navigating away from the timer). Screen
+  // sleep / backgrounding do NOT unmount React components, so this fires only on
+  // a deliberate departure: cancel the notification and drop the record so it is
+  // never finalized later as a fabricated completion.
+  useEffect(() => {
+    return () => {
+      cancelNotif();
+      clearActiveFocusSession().catch(() => {});
+    };
+  }, [cancelNotif]);
+
   const finalizeCompletedBlock = useCallback(async (): Promise<string | null> => {
+    // Foreground completion: cancel the OS notification so it cannot surface as
+    // a stray toast right after the in-app completion.
+    cancelNotif();
     const uid = userIdRef.current;
     if (!uid) {
       activeIdRef.current = null;
@@ -172,12 +214,13 @@ export function useActiveFocusSession({
     activeIdRef.current = null;
     await clearActiveFocusSession();
     return id;
-  }, []);
+  }, [cancelNotif]);
 
   const clearActiveBlock = useCallback(() => {
     activeIdRef.current = null;
     clearActiveFocusSession().catch(() => {});
-  }, []);
+    cancelNotif();
+  }, [cancelNotif]);
 
   const getLastFocusSessionId = useCallback(() => lastIdRef.current, []);
 

@@ -20,6 +20,15 @@ jest.mock('../../services/firebase/focusSession.service', () => ({
   isFocusSessionElapsed: (rec: { endsAt: number }, now: number) => rec.endsAt <= now,
 }));
 
+const mockScheduleNotif = jest.fn(
+  (_id: string, _e: number): Promise<string | null> => Promise.resolve('notif-1')
+);
+const mockCancelNotif = jest.fn((_id: string) => Promise.resolve());
+jest.mock('../../services/notifications.service', () => ({
+  scheduleFocusCompletionNotification: (id: string, e: number) => mockScheduleNotif(id, e),
+  cancelScheduledNotification: (id: string) => mockCancelNotif(id),
+}));
+
 jest.mock('../../utils/logger', () => ({
   logger: { error: jest.fn(), warn: jest.fn(), log: jest.fn() },
 }));
@@ -52,6 +61,9 @@ beforeEach(() => {
   mockGet.mockResolvedValue(null);
   mockClear.mockClear();
   mockFinalize.mockClear();
+  mockScheduleNotif.mockClear();
+  mockScheduleNotif.mockResolvedValue('notif-1');
+  mockCancelNotif.mockClear();
 });
 
 describe('persist on running', () => {
@@ -120,6 +132,44 @@ describe('finalizeCompletedBlock', () => {
     );
     expect(mockClear).toHaveBeenCalled();
     expect(result.current.getLastFocusSessionId()).toBe('minted-1');
+  });
+});
+
+describe('completion notification', () => {
+  it('schedules the completion notification when a focus block runs', async () => {
+    renderHook((p: Props) => useActiveFocusSession(p), {
+      initialProps: { ...base, timerState: 'running', endsAt: 5000 },
+    });
+    await waitFor(() =>
+      expect(mockScheduleNotif).toHaveBeenCalledWith('minted-1', 5000)
+    );
+  });
+
+  it('does not schedule a notification for a break', () => {
+    renderHook((p: Props) => useActiveFocusSession(p), {
+      initialProps: { ...base, timerState: 'break_running', endsAt: 5000 },
+    });
+    expect(mockScheduleNotif).not.toHaveBeenCalled();
+  });
+
+  it('cancels the scheduled notification when paused', async () => {
+    const { rerender } = renderHook((p: Props) => useActiveFocusSession(p), {
+      initialProps: { ...base, timerState: 'running', endsAt: 5000 },
+    });
+    await waitFor(() => expect(mockScheduleNotif).toHaveBeenCalled());
+    rerender({ ...base, timerState: 'paused', endsAt: 5000 });
+    await waitFor(() => expect(mockCancelNotif).toHaveBeenCalledWith('notif-1'));
+  });
+
+  it('cancels the notification on foreground completion (no stray toast)', async () => {
+    const { result } = renderHook((p: Props) => useActiveFocusSession(p), {
+      initialProps: { ...base, timerState: 'running', endsAt: 5000 },
+    });
+    await waitFor(() => expect(mockScheduleNotif).toHaveBeenCalled());
+    await act(async () => {
+      await result.current.finalizeCompletedBlock();
+    });
+    expect(mockCancelNotif).toHaveBeenCalledWith('notif-1');
   });
 });
 

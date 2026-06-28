@@ -85,6 +85,12 @@ export const FocusCopy = {
   completeCtaPrimary: 'Done',
   completeCtaSecondary: 'Adjust this routine',
 
+  // Focus completion notification (B-3c.2). Fires when a focus block's time
+  // elapses while the app is backgrounded or closed. Calm and outcome-neutral:
+  // no urgency, no "time's up", no deficit framing.
+  focusCompleteNotificationTitle: 'Your focus block is complete',
+  focusCompleteNotificationBody: 'Come back when you\'re ready.',
+
   // Notifications
   morningReminder: 'Your morning routine is ready whenever you are.',
   eveningReminder: 'A quiet moment for your evening routine, if it feels right.',
