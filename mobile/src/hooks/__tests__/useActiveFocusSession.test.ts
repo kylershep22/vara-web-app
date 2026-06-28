@@ -43,6 +43,7 @@ interface Props {
   endsAt: number | null;
   durationMinutes: number;
   taskLabel: string | null;
+  initialCompletedSessionId?: string | null;
 }
 
 const base: Props = {
@@ -170,6 +171,15 @@ describe('completion notification', () => {
       await result.current.finalizeCompletedBlock();
     });
     expect(mockCancelNotif).toHaveBeenCalledWith('notif-1');
+  });
+});
+
+describe('cold-launch deep-link binding', () => {
+  it('seeds the last focus-session id so the inline reflection binds to it', () => {
+    const { result } = renderHook((p: Props) => useActiveFocusSession(p), {
+      initialProps: { ...base, initialCompletedSessionId: 'fs-bound' },
+    });
+    expect(result.current.getLastFocusSessionId()).toBe('fs-bound');
   });
 });
 

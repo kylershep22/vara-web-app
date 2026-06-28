@@ -46,6 +46,12 @@ interface UseActiveFocusSessionParams {
   endsAt: number | null;
   durationMinutes: number;
   taskLabel: string | null;
+  /**
+   * Cold-launch deep link: the focusSessions id this surface was opened to
+   * reflect on. Seeds the last-finalized id so the inline reflection chip binds
+   * to that block's doc (the row was already finalized by the launch handler).
+   */
+  initialCompletedSessionId?: string | null;
 }
 
 interface UseActiveFocusSessionReturn {
@@ -71,12 +77,14 @@ export function useActiveFocusSession({
   endsAt,
   durationMinutes,
   taskLabel,
+  initialCompletedSessionId = null,
 }: UseActiveFocusSessionParams): UseActiveFocusSessionReturn {
   // The current block's stable id (minted at start) and wall-clock start.
   const activeIdRef = useRef<string | null>(null);
   const activeStartedAtRef = useRef<number>(0);
-  // Most recently finalized id, for the inline reflection write.
-  const lastIdRef = useRef<string | null>(null);
+  // Most recently finalized id, for the inline reflection write. Seeded from a
+  // cold-launch deep link so the reflection binds without a live completion.
+  const lastIdRef = useRef<string | null>(initialCompletedSessionId);
   // Scheduled completion-notification id, so it can be cancelled.
   const notifIdRef = useRef<string | null>(null);
 

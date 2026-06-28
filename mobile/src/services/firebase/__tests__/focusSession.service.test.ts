@@ -33,6 +33,7 @@ import {
   getActiveFocusSession,
   isFocusSessionElapsed,
   mintFocusSessionId,
+  planFocusCompleteLaunch,
   saveActiveFocusSession,
   type ActiveFocusSession,
 } from '../focusSession.service';
@@ -129,6 +130,32 @@ describe('finalizeFocusSession', () => {
       })
     );
     expect(options).toEqual({ merge: true });
+  });
+});
+
+describe('planFocusCompleteLaunch', () => {
+  it('finalizes + binds when an elapsed record matches the user', () => {
+    const plan = planFocusCompleteLaunch(sample, 'u1', sample.endsAt + 1);
+    expect(plan.finalize).toBe(sample);
+    expect(plan.completedSessionId).toBe('fs-abc');
+  });
+
+  it('does not bind when the record is missing', () => {
+    const plan = planFocusCompleteLaunch(null, 'u1', Date.now());
+    expect(plan.finalize).toBeNull();
+    expect(plan.completedSessionId).toBeNull();
+  });
+
+  it('does not bind a record that has not elapsed yet', () => {
+    const plan = planFocusCompleteLaunch(sample, 'u1', sample.endsAt - 1);
+    expect(plan.finalize).toBeNull();
+    expect(plan.completedSessionId).toBeNull();
+  });
+
+  it('does not bind another user record', () => {
+    const plan = planFocusCompleteLaunch(sample, 'other', sample.endsAt + 1);
+    expect(plan.finalize).toBeNull();
+    expect(plan.completedSessionId).toBeNull();
   });
 });
 

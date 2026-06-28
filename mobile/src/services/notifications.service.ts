@@ -254,6 +254,21 @@ export async function getPermissionsStatus(): Promise<Notifications.Notification
 }
 
 /**
+ * The notification response that launched the app from a cold start (the user
+ * tapped a notification while the app was killed), or null. Used for
+ * cold-launch deep-link routing that the warm/background response listener
+ * cannot catch because it was not yet subscribed.
+ */
+export async function getLastNotificationResponse(): Promise<Notifications.NotificationResponse | null> {
+  try {
+    return await Notifications.getLastNotificationResponseAsync();
+  } catch (error) {
+    console.warn('Failed to read last notification response:', error);
+    return null;
+  }
+}
+
+/**
  * Open device settings for notifications
  */
 export async function openNotificationSettings(): Promise<void> {

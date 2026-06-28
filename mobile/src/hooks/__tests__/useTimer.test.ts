@@ -117,6 +117,24 @@ describe('useTimer — foreground reconciliation', () => {
     expect(result.current.remainingSeconds).toBe(290);
   });
 
+  it('completeNow() shows the completion surface without re-writing a row', () => {
+    // Cold-launch deep link: the row was already finalized by the launch
+    // handler, so entering session_complete must NOT fire onSessionComplete
+    // (which would write a duplicate).
+    const onSessionComplete = jest.fn();
+    const { result } = renderHook(() =>
+      useTimer({ durationMinutes: 25, onSessionComplete })
+    );
+
+    act(() => {
+      result.current.completeNow();
+    });
+
+    expect(result.current.state).toBe('session_complete');
+    expect(result.current.remainingSeconds).toBe(0);
+    expect(onSessionComplete).not.toHaveBeenCalled();
+  });
+
   it('re-derives endsAt on resume so a later foreground reconciles correctly', () => {
     const { result } = renderHook(() => useTimer({ durationMinutes: 5 }));
 

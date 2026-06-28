@@ -66,6 +66,12 @@ interface UseTimerReturn {
   startBreak: () => void;
   /** Begin another session (from break_complete state) */
   beginAnother: () => void;
+  /**
+   * Force the completion surface WITHOUT firing onSessionComplete. Used by the
+   * cold-launch deep link: the focusSessions row was already finalized by the
+   * launch handler, so re-firing onSessionComplete would write a duplicate.
+   */
+  completeNow: () => void;
   /** Check if timer is in a break state */
   isBreak: boolean;
   /** Check if timer is active (running or break_running) */
@@ -274,6 +280,15 @@ export const useTimer = ({
     }
   }, [state, durationMinutes]);
 
+  const completeNow = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    endsAtRef.current = null;
+    setRemainingSeconds(0);
+    setState('session_complete');
+  }, []);
+
   // Calculate progress (0 to 1)
   const progress = totalSeconds > 0 ? (totalSeconds - remainingSeconds) / totalSeconds : 0;
 
@@ -297,6 +312,7 @@ export const useTimer = ({
     reset,
     startBreak,
     beginAnother,
+    completeNow,
     isBreak: state === 'break_running' || state === 'break_complete',
     isActive: state === 'running' || state === 'break_running',
     breakDurationMinutes: breakMinutes,

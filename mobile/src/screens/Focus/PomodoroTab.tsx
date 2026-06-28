@@ -81,6 +81,14 @@ interface PomodoroTabProps {
   onToggleCenterFirst?: (next: boolean) => void;
   onCenterFirstBegin?: (durationMinutes: number) => void;
   autoStart?: boolean;
+  /**
+   * Cold-launch deep link (B-3c.2). When a completion notification is tapped
+   * from a killed/backgrounded app, the focusSessions row is already finalized
+   * by the launch handler; this is its id. On mount the timer opens directly on
+   * the B-3c.1 completion surface bound to it, so the inline reflection chip
+   * writes via the existing onBlockReflect(reflectionId, blockId) path.
+   */
+  completedSessionId?: string;
 }
 
 export const PomodoroTab: React.FC<PomodoroTabProps> = ({
@@ -92,6 +100,7 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   onToggleCenterFirst,
   onCenterFirstBegin,
   autoStart = false,
+  completedSessionId,
 }) => {
   const { user } = useAuth();
   const { playCompletionSound } = useCompletionSound();
@@ -127,6 +136,7 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     endsAt: timer.endsAt,
     durationMinutes: selectedDuration,
     taskLabel: taskLabel || null,
+    initialCompletedSessionId: completedSessionId ?? null,
   });
 
   // Ambient sound hook
@@ -216,10 +226,19 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     }
   }, [timer, centerFirst, onCenterFirstBegin, selectedDuration]);
 
+  // Cold-launch deep link: open directly on the completion surface bound to the
+  // already-finalized block. Mount-only; takes precedence over autoStart (the
+  // two never co-occur — one is a completion tap, the other a centering handoff).
+  useEffect(() => {
+    if (!completedSessionId) return;
+    timer.completeNow();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-start when handed back from the centering practice (no second tap).
   // Mount-only; the small delay mirrors handleStartAnother's reset→start gap.
   useEffect(() => {
-    if (!autoStart) return;
+    if (!autoStart || completedSessionId) return;
     const id = setTimeout(() => timer.start(), 50);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -146,6 +146,31 @@ export function isFocusSessionElapsed(
   return record.endsAt <= nowMs;
 }
 
+export interface FocusCompleteLaunchPlan {
+  /** The record to finalize, or null when there is nothing honest to write. */
+  finalize: ActiveFocusSession | null;
+  /** The focusSessions id to bind the completion surface to, or null. */
+  completedSessionId: string | null;
+}
+
+/**
+ * Pure: decide what a `focus-complete` notification launch should do, given the
+ * persisted active record. Only an elapsed record belonging to this user is
+ * finalized and bound — a missing record (already finalized on an earlier
+ * return), a not-yet-elapsed record (killed mid-block), or another user's record
+ * degrades to "open Focus, bind nothing" (no fabricated completion, no crash).
+ */
+export function planFocusCompleteLaunch(
+  record: ActiveFocusSession | null,
+  userId: string,
+  nowMs: number
+): FocusCompleteLaunchPlan {
+  if (record && record.userId === userId && isFocusSessionElapsed(record, nowMs)) {
+    return { finalize: record, completedSessionId: record.focusSessionId };
+  }
+  return { finalize: null, completedSessionId: null };
+}
+
 // Test-only export.
 export const _FOCUS_SESSION_ACTIVE_KEY = ACTIVE_KEY;
 
