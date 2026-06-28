@@ -43,6 +43,13 @@ interface UseTimerReturn {
   remainingSeconds: number;
   /** Total duration in seconds */
   totalSeconds: number;
+  /**
+   * Epoch ms the current running phase is scheduled to hit 0, or null when not
+   * in a running phase. The timestamp source of truth (see foreground
+   * reconciliation); exposed so the caller can persist it / schedule a
+   * completion notification keyed to it.
+   */
+  endsAt: number | null;
   /** Progress from 0 to 1 */
   progress: number;
   /** Formatted time string (MM:SS) */
@@ -281,6 +288,7 @@ export const useTimer = ({
     state,
     remainingSeconds,
     totalSeconds,
+    endsAt: endsAtRef.current,
     progress,
     formattedTime: formatTime(remainingSeconds),
     start,

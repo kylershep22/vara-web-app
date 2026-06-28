@@ -10,13 +10,11 @@
  * - Notification toggle and ambient sound selector
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../config/firebase';
 import {
   ColorTokens,
   SpacingTokens,
@@ -28,6 +26,7 @@ import {
 import { FocusCopy } from '../../constants/focusContent';
 import { useTimer, useAmbientSound } from '../../hooks';
 import { useCompletionSound } from '../../hooks/useCompletionSound';
+import { useActiveFocusSession } from '../../hooks/useActiveFocusSession';
 import {
   DurationChips,
   TaskLabelInput,
@@ -97,10 +96,6 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   const { user } = useAuth();
   const { playCompletionSound } = useCompletionSound();
 
-  // Most recently completed focus-session doc id, so the loop-done reflection
-  // can attach to it (light interim write). Null until a block completes.
-  const lastFocusSessionIdRef = useRef<string | null>(null);
-
   // Task label state
   const [taskLabel, setTaskLabel] = useState('');
 
@@ -121,6 +116,17 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     breakDurationMinutes: 5,
     onSessionComplete: handleSessionComplete,
     onBreakComplete: handleBreakComplete,
+  });
+
+  // Persisted active-session record. Survives screen-sleep / backgrounding /
+  // kill: the focusSessions completion row is finalized from this record on any
+  // app return (B-3c.2). Breaks are not persisted.
+  const focusSession = useActiveFocusSession({
+    userId: user?.uid ?? null,
+    timerState: timer.state,
+    endsAt: timer.endsAt,
+    durationMinutes: selectedDuration,
+    taskLabel: taskLabel || null,
   });
 
   // Ambient sound hook
@@ -164,39 +170,29 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     }
   }, [timer.isActive, timer.state]);
 
-  // Session complete handler - log to Firestore
+  // Session complete handler. Finalizes the focusSessions completion row from
+  // the persisted active-session record under its stable id (idempotent), so
+  // the warm path and a foreground reconcile converge on the same doc.
   async function handleSessionComplete() {
     playCompletionSound();
-    if (user && db) {
-      try {
-        const ref = await addDoc(collection(db, 'focusSessions'), {
-          userId: user.uid,
-          duration: selectedDuration,
-          type: selectedDuration === 90 ? 'ultradian' : 'pomodoro',
-          completed: true,
-          startedAt: serverTimestamp(),
-          endedAt: serverTimestamp(),
-          taskLabel: taskLabel || null,
-          interrupted: false,
-        });
-        lastFocusSessionIdRef.current = ref.id;
-        console.log('Focus session logged successfully');
-      } catch (error) {
-        console.error('Error logging focus session:', error);
-      }
-    } else if (!db) {
-      console.warn('Firebase not initialized, cannot log focus session');
-    }
+    await focusSession.finalizeCompletedBlock();
   }
 
   function handleBreakComplete() {
     console.log('Break complete');
   }
 
+  // A user-initiated reset abandons the current block: clear the persisted
+  // active record (and minted id) so it is never finalized on a later return.
+  const handleReset = useCallback(() => {
+    focusSession.clearActiveBlock();
+    timer.reset();
+  }, [focusSession, timer]);
+
   const handleDurationChange = useCallback((duration: number) => {
     setSelectedDuration(duration);
-    timer.reset();
-  }, [timer]);
+    handleReset();
+  }, [handleReset]);
 
   const handlePlayPause = useCallback(() => {
     const action = resolvePlayAction(timer.state, {
@@ -246,9 +242,9 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   const handleSelectReflection = useCallback(
     (reflectionId: string) => {
       setSelectedReflectionId(reflectionId);
-      onBlockReflect?.(reflectionId, lastFocusSessionIdRef.current);
+      onBlockReflect?.(reflectionId, focusSession.getLastFocusSessionId());
     },
-    [onBlockReflect]
+    [onBlockReflect, focusSession]
   );
 
   // "Done for now" terminal. Hub/check-in launched: hand back to the parent to
@@ -260,8 +256,8 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
       onExit();
       return;
     }
-    timer.reset();
-  }, [onExit, timer]);
+    handleReset();
+  }, [onExit, handleReset]);
 
   const toggleSoundPanel = useCallback(() => {
     setIsSoundPanelOpen((prev) => !prev);
@@ -369,7 +365,7 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
         <View style={styles.controls}>
           <TouchableOpacity
             style={styles.controlButton}
-            onPress={timer.reset}
+            onPress={handleReset}
             accessibilityRole="button"
             accessibilityLabel="Reset timer"
           >
