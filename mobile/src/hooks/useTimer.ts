@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 export type TimerState =
@@ -81,6 +82,30 @@ export const useTimer = ({
   const [breakMinutes, setBreakMinutes] = useState(initialBreakMinutes);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Epoch-ms timestamp the current running phase should hit 0. This is the
+  // SOURCE OF TRUTH for time elapsed: the visible JS interval is only for a
+  // smooth display and is frozen by iOS while backgrounded, so on returning to
+  // the foreground we reconcile remaining from Date.now() vs endsAt. Null
+  // whenever the timer is not in a running phase.
+  const endsAtRef = useRef<number | null>(null);
+
+  // Mirror of remainingSeconds for fresh reads inside callbacks/handlers
+  // (useCallback closures and the AppState handler would otherwise see a stale
+  // value). Kept in sync below.
+  const remainingRef = useRef(remainingSeconds);
+  useEffect(() => {
+    remainingRef.current = remainingSeconds;
+  }, [remainingSeconds]);
+
+  // Latest-callback refs so the foreground-reconciliation effect can complete a
+  // phase without listing the (often inline) callbacks in its deps.
+  const onSessionCompleteRef = useRef(onSessionComplete);
+  const onBreakCompleteRef = useRef(onBreakComplete);
+  useEffect(() => {
+    onSessionCompleteRef.current = onSessionComplete;
+    onBreakCompleteRef.current = onBreakComplete;
+  });
+
   // Clear interval on unmount
   useEffect(() => {
     return () => {
@@ -108,6 +133,7 @@ export const useTimer = ({
 
           if (newValue <= 0) {
             clearInterval(intervalRef.current!);
+            endsAtRef.current = null;
 
             if (state === 'running') {
               // Session complete
@@ -141,9 +167,45 @@ export const useTimer = ({
     };
   }, [state, onSessionComplete, onBreakComplete, onTick]);
 
+  // Foreground reconciliation. iOS suspends the JS interval while backgrounded,
+  // so on returning to 'active' we recompute remaining from the wall clock. If
+  // endsAt has already passed, transition to completion via the SAME path the
+  // interval would have taken (so the completion surface + row write happen);
+  // otherwise correct the displayed remaining for the elapsed background time.
+  useEffect(() => {
+    const reconcile = (next: AppStateStatus) => {
+      if (next !== 'active') return;
+      if (state !== 'running' && state !== 'break_running') return;
+      if (endsAtRef.current == null) return;
+
+      const remainingMs = endsAtRef.current - Date.now();
+      if (remainingMs <= 0) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+        endsAtRef.current = null;
+        setRemainingSeconds(0);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (state === 'running') {
+          setState('session_complete');
+          onSessionCompleteRef.current?.();
+        } else {
+          setState('break_complete');
+          onBreakCompleteRef.current?.();
+        }
+      } else {
+        setRemainingSeconds(Math.ceil(remainingMs / 1000));
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', reconcile);
+    return () => subscription.remove();
+  }, [state]);
+
   const start = useCallback(() => {
     if (state === 'idle') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      endsAtRef.current = Date.now() + remainingRef.current * 1000;
       setState('running');
     }
   }, [state]);
@@ -151,6 +213,8 @@ export const useTimer = ({
   const pause = useCallback(() => {
     if (state === 'running' || state === 'break_running') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      // Freeze: remaining is preserved in state; endsAt is re-derived on resume.
+      endsAtRef.current = null;
       setState('paused');
     }
   }, [state]);
@@ -158,6 +222,7 @@ export const useTimer = ({
   const resume = useCallback(() => {
     if (state === 'paused') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      endsAtRef.current = Date.now() + remainingRef.current * 1000;
       // Resume to the previous active state
       setState('running'); // Simplified - could track previous state
     }
@@ -168,6 +233,7 @@ export const useTimer = ({
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
+    endsAtRef.current = null;
     const seconds = durationMinutes * 60;
     setRemainingSeconds(seconds);
     setTotalSeconds(seconds);
@@ -180,6 +246,7 @@ export const useTimer = ({
       const breakSeconds = breakMinutes * 60;
       setRemainingSeconds(breakSeconds);
       setTotalSeconds(breakSeconds);
+      endsAtRef.current = Date.now() + breakSeconds * 1000;
       setState('break_running');
     }
   }, [state, breakMinutes]);
@@ -195,6 +262,7 @@ export const useTimer = ({
       const seconds = durationMinutes * 60;
       setRemainingSeconds(seconds);
       setTotalSeconds(seconds);
+      endsAtRef.current = Date.now() + seconds * 1000;
       setState('running');
     }
   }, [state, durationMinutes]);
