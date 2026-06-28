@@ -44,6 +44,7 @@ const COPY_SOURCES = [
   'src/screens/Focus/FocusRhythmsScreen.tsx',
   'src/screens/Focus/components/CenterFirstToggle.tsx',
   'src/constants/focusRhythms.ts',
+  'src/constants/focusContent.ts',
   'src/components/checkin/flow/reflection.ts',
 ];
 

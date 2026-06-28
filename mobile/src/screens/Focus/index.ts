@@ -13,5 +13,4 @@ export { DurationChips } from './components/DurationChips';
 export { TaskLabelInput } from './components/TaskLabelInput';
 export { BrainHealthTip } from './components/BrainHealthTip';
 export { BreakPrompt } from './components/BreakPrompt';
-export { NotificationToggle } from './components/NotificationToggle';
 export { AmbientSoundSelector } from './components/AmbientSoundSelector';

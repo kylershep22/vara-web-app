@@ -3,7 +3,7 @@
  * Opt-in row on the focus timer setup. When on, a short box breathing practice
  * runs before the focus session to help the user arrive at the task. Remembered
  * across sessions (the value is persisted by the parent). Silver Sage off, Teal
- * on, mirroring NotificationToggle.
+ * on.
  *
  * Copy is about arriving at the task, not winding down — deliberately calm and
  * non-clinical, no performance framing.

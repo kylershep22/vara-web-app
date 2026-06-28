@@ -2,13 +2,14 @@
  * FocusScreen
  * Pomodoro focus screen.
  *
- * Closes the focus-session loop (Vara_Engine_Contract.md §12.1): when this
- * screen is reached FROM the check-in loop (route param `fromCheckIn`) OR from
- * the Focus hub (route param `fromHub`, B-3c), tapping "Done for now" on the
- * Pomodoro returns to the Focus reflection (the §9 focus chip set) before
- * exiting home — the same exit a catalog-practice reflection uses. A
- * directly-started Pomodoro (neither param) pops no reflection. The return is
- * guarded on the explicit launch params, never any global state.
+ * Focus-session loop (Vara_Engine_Contract.md §12.1). The per-block focus
+ * reflection (the §9 focus chip set) is shown INLINE on the completion surface
+ * for EVERY completed focus block (B-3c.1), skippable, regardless of launch
+ * source. Selecting a chip writes it onto that block's focusSessions doc
+ * (handleBlockReflect). "Done for now" then simply exits the screen when the
+ * timer was launched from the hub / check-in (route params `fromHub` /
+ * `fromCheckIn`); a directly-started one just resets. There is no separate
+ * reflection screen, so no double-reflect.
  *
  * The focus reflection carries no protocol and no BrainState: it is the focus
  * pillar's state-less, neutral-direction set, and stateBefore/stateAfter are
@@ -40,7 +41,6 @@ import { getProtocolById } from '../../constants/brainStateProtocols';
 import { db } from '../../config/firebase';
 import { logger } from '../../utils/logger';
 import { useAuth } from '../../context/AuthContext';
-import { ReflectionStepView } from '../../components/checkin/flow/ReflectionStepView';
 import { GuidedSessionPlayer } from '../../components/protocol/GuidedSessionPlayer';
 import {
   getFocusPreferences,
@@ -68,18 +68,14 @@ export const FocusScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
   const fromCheckIn = route.params?.fromCheckIn === true;
-  // Hub-launched sessions (B-3c) chain into the focus reflection too, via an
-  // explicit param so check-in's behavior is never overloaded.
+  // Hub / check-in launched sessions EXIT the screen on "Done for now" (the
+  // parent navigates away); a directly-started one just resets. The per-block
+  // focus reflection is now INLINE on the completion surface (B-3c.1), so it is
+  // independent of this exit signal.
   const fromHub = route.params?.fromHub === true;
-  const chainReflection = fromCheckIn || fromHub;
+  const shouldExitOnDone = fromCheckIn || fromHub;
   // Budget-derived prefill length from the check-in's focus-session pointer.
   const initialDuration = route.params?.durationMinutes;
-
-  // Loop-launched reflection state. `reflecting` flips on the Pomodoro's
-  // "Done for now" terminal; `focusSessionId` is the block to attach the
-  // reflection to (may be null if no block completed / no db).
-  const [reflecting, setReflecting] = useState(false);
-  const [focusSessionId, setFocusSessionId] = useState<string | null>(null);
 
   // Center-first state. `centerFirst` controls the setup row (initialized from
   // the persisted preference). `centering` flips while the box breathing
@@ -162,42 +158,27 @@ export const FocusScreen: React.FC = () => {
     [user, centerProtocol]
   );
 
-  const handleLoopDone = useCallback((id: string | null) => {
-    setFocusSessionId(id);
-    setReflecting(true);
-  }, []);
+  // "Done for now" on a hub / check-in launched session exits the screen.
+  const handleExit = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
 
-  const handleFocusReflection = useCallback(
-    (reflectionId: string) => {
-      // Light interim write: store the reflection on the focusSessions doc in
-      // the SAME vocabulary as catalog reflections (the §9 focus chip ids), so
-      // both collections can be read uniformly later. Unification not built now.
-      if (focusSessionId && db) {
-        updateDoc(doc(db, 'focusSessions', focusSessionId), {
+  // Inline per-block reflection: write the chosen chip onto the just-completed
+  // block's focusSessions doc (same vocabulary / field as before). Fires per
+  // focus block, skippable; no synthesized state, no protocol on this doc.
+  const handleBlockReflect = useCallback(
+    (reflectionId: string, blockId: string | null) => {
+      if (blockId && db) {
+        updateDoc(doc(db, 'focusSessions', blockId), {
           reflection: reflectionId, // INTERIM field
           reflectionAt: serverTimestamp(),
         }).catch((error) => {
           logger.error('[FocusScreen] focus reflection write failed:', error);
         });
       }
-      // Exit home — the same exit a catalog-practice reflection uses.
-      navigation.goBack();
     },
-    [focusSessionId, navigation]
+    []
   );
-
-  if (chainReflection && reflecting) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <ReflectionStepView
-          completedLabel="Focus session"
-          pillar="focus"
-          direction="neutral"
-          onSelect={handleFocusReflection}
-        />
-      </SafeAreaView>
-    );
-  }
 
   // Centering phase: run the fixed pre-focus practice. Hub-local — its own
   // GuidedSessionPlayer with no terminal reflection and no route-home; on exit
@@ -228,7 +209,8 @@ export const FocusScreen: React.FC = () => {
           centerFirst={centerFirst}
           onToggleCenterFirst={handleToggleCenterFirst}
           onCenterFirstBegin={canCenter ? handleCenterFirstBegin : undefined}
-          onLoopDone={chainReflection ? handleLoopDone : undefined}
+          onExit={shouldExitOnDone ? handleExit : undefined}
+          onBlockReflect={handleBlockReflect}
         />
       </View>
     </SafeAreaView>
