@@ -19,7 +19,15 @@ import {
   registerAndSaveFCMToken,
   isServerPushEnabled,
   addNotificationResponseListener,
+  getLastNotificationResponse,
 } from '../services/notifications.service';
+import {
+  getActiveFocusSession,
+  clearActiveFocusSession,
+  finalizeFocusSession,
+  planFocusCompleteLaunch,
+} from '../services/firebase/focusSession.service';
+import { logger } from '../utils/logger';
 import { syncAllReminders } from '../services/reminderScheduler.service';
 import { isHabitCompletedToday } from '../services/firebase/habits.service';
 import { navigationRef } from '../navigation/AppNavigator';
@@ -46,6 +54,23 @@ interface NotificationContextType {
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+
+/** Resolve once the navigation container is ready (bounded), for cold-launch routing. */
+async function waitForNavReady(timeoutMs = 5000): Promise<boolean> {
+  const start = Date.now();
+  while (!navigationRef.isReady()) {
+    if (Date.now() - start > timeoutMs) return false;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return true;
+}
+
+/** Navigate to the focus timer, optionally bound to a completed block's id. */
+function navigateToFocusTimer(completedSessionId?: string): void {
+  if (!navigationRef.isReady()) return;
+  const navigate = navigationRef.navigate as (name: string, params?: object) => void;
+  navigate(ROUTES.FocusTimer, completedSessionId ? { completedSessionId } : undefined);
+}
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -132,11 +157,58 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Routines live on the Rhythms tab (the focus-timer route is `FocusTimer`,
         // not `Focus`; the old `Focus` target was dead).
         navigationRef.navigate(ROUTES.Rhythms as never, { tab: 'routines' } as never);
+      } else if (data.type === 'focus-complete') {
+        // Warm/background tap: the block's row was finalized by the live
+        // foreground reconcile; land the completion surface bound to it so the
+        // inline reflection can write.
+        const id = typeof data.focusSessionId === 'string' ? data.focusSessionId : undefined;
+        navigateToFocusTimer(id);
       }
     });
 
     return () => subscription.remove();
   }, []);
+
+  // Cold-launch deep link: the app was opened by TAPPING a focus-complete
+  // notification while killed, so the warm response listener above never saw the
+  // tap. Read the launch response, finalize the elapsed block from its persisted
+  // record (stable id), and route to the completion surface bound to it. A
+  // missing / not-yet-elapsed / other-user record degrades to opening Focus
+  // plain (no fabricated completion, no crash).
+  useEffect(() => {
+    if (!user?.uid) return;
+    const uid = user.uid;
+    let cancelled = false;
+    (async () => {
+      const response = await getLastNotificationResponse();
+      if (cancelled || !response) return;
+      const data = response.notification.request.content.data;
+      if (data?.type !== 'focus-complete') return;
+
+      const record = await getActiveFocusSession();
+      const plan = planFocusCompleteLaunch(record, uid, Date.now());
+      if (plan.finalize) {
+        try {
+          await finalizeFocusSession({
+            focusSessionId: plan.finalize.focusSessionId,
+            userId: plan.finalize.userId,
+            durationMinutes: plan.finalize.durationMinutes,
+            type: plan.finalize.type,
+            taskLabel: plan.finalize.taskLabel,
+          });
+        } catch (error) {
+          logger.error('[NotificationContext] cold-launch finalize failed', error);
+        }
+        await clearActiveFocusSession();
+      }
+      if (cancelled) return;
+      if (!(await waitForNavReady())) return;
+      navigateToFocusTimer(plan.completedSessionId ?? undefined);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
 
   // Cancel all notifications when user logs out
   useEffect(() => {

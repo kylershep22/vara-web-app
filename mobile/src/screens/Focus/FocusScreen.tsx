@@ -57,7 +57,15 @@ const CENTER_FIRST_PROTOCOL_ID = 'box-breathing-2';
 type FocusRoute = RouteProp<
   {
     FocusTimer:
-      | { fromCheckIn?: boolean; fromHub?: boolean; durationMinutes?: number }
+      | {
+          fromCheckIn?: boolean;
+          fromHub?: boolean;
+          durationMinutes?: number;
+          // Cold-launch deep link from a completion-notification tap (B-3c.2):
+          // the already-finalized focusSessions id to open the completion
+          // surface on.
+          completedSessionId?: string;
+        }
       | undefined;
   },
   'FocusTimer'
@@ -76,6 +84,8 @@ export const FocusScreen: React.FC = () => {
   const shouldExitOnDone = fromCheckIn || fromHub;
   // Budget-derived prefill length from the check-in's focus-session pointer.
   const initialDuration = route.params?.durationMinutes;
+  // Cold-launch deep link: the already-finalized block to reflect on.
+  const completedSessionId = route.params?.completedSessionId;
 
   // Center-first state. `centerFirst` controls the setup row (initialized from
   // the persisted preference). `centering` flips while the box breathing
@@ -211,6 +221,7 @@ export const FocusScreen: React.FC = () => {
           onCenterFirstBegin={canCenter ? handleCenterFirstBegin : undefined}
           onExit={shouldExitOnDone ? handleExit : undefined}
           onBlockReflect={handleBlockReflect}
+          completedSessionId={completedSessionId}
         />
       </View>
     </SafeAreaView>

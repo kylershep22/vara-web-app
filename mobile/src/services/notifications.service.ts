@@ -4,6 +4,7 @@ import * as Device from 'expo-device';
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { FocusCopy } from '../constants/focusContent';
 
 // ==========================================
 // FOREGROUND NOTIFICATION GATE
@@ -141,12 +142,14 @@ export async function savePushTokenToUser(userId: string, pushToken: string): Pr
 }
 
 /**
- * Schedule a local notification (for habit reminders, etc.)
+ * Schedule a local notification (for habit reminders, etc.). `data` is attached
+ * to the notification content so a tap can be deep-link routed by type.
  */
 export async function scheduleLocalNotification(
   title: string,
   body: string,
-  trigger: Notifications.NotificationTriggerInput
+  trigger: Notifications.NotificationTriggerInput,
+  data?: Record<string, unknown>
 ): Promise<string> {
   return await Notifications.scheduleNotificationAsync({
     content: {
@@ -154,9 +157,54 @@ export async function scheduleLocalNotification(
       body,
       sound: true,
       priority: Notifications.AndroidNotificationPriority.HIGH,
+      ...(data ? { data } : {}),
     },
     trigger,
   });
+}
+
+/**
+ * Ensure notification permission, requesting it once if undetermined. Returns
+ * whether notifications are granted. Used by the focus timer to request on
+ * first use; a denial simply means no completion notification (the timer still
+ * works) — callers degrade gracefully.
+ */
+export async function ensureNotificationPermission(): Promise<boolean> {
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status === 'granted') return true;
+    const { status: requested } = await Notifications.requestPermissionsAsync();
+    return requested === 'granted';
+  } catch (error) {
+    console.warn('Notification permission check failed (non-fatal):', error);
+    return false;
+  }
+}
+
+/**
+ * Schedule the focus-block completion notification for `endsAt`. The OS owns it,
+ * so it fires whether the app is backgrounded or killed. The data payload deep
+ * links a tap back to the FocusScreen completion surface for that block. Returns
+ * the scheduled id (to cancel later), or null when permission is denied or
+ * scheduling fails — the timer keeps working regardless.
+ */
+export async function scheduleFocusCompletionNotification(
+  focusSessionId: string,
+  endsAt: number
+): Promise<string | null> {
+  const granted = await ensureNotificationPermission();
+  if (!granted) return null;
+  try {
+    return await scheduleLocalNotification(
+      FocusCopy.focusCompleteNotificationTitle,
+      FocusCopy.focusCompleteNotificationBody,
+      { type: Notifications.SchedulableTriggerInputTypes.DATE, date: endsAt },
+      { type: 'focus-complete', focusSessionId, endsAt }
+    );
+  } catch (error) {
+    console.warn('Failed to schedule focus completion notification:', error);
+    return null;
+  }
 }
 
 /**
@@ -203,6 +251,21 @@ export function addNotificationResponseListener(
  */
 export async function getPermissionsStatus(): Promise<Notifications.NotificationPermissionsStatus> {
   return await Notifications.getPermissionsAsync();
+}
+
+/**
+ * The notification response that launched the app from a cold start (the user
+ * tapped a notification while the app was killed), or null. Used for
+ * cold-launch deep-link routing that the warm/background response listener
+ * cannot catch because it was not yet subscribed.
+ */
+export async function getLastNotificationResponse(): Promise<Notifications.NotificationResponse | null> {
+  try {
+    return await Notifications.getLastNotificationResponseAsync();
+  } catch (error) {
+    console.warn('Failed to read last notification response:', error);
+    return null;
+  }
 }
 
 /**
