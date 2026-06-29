@@ -222,6 +222,25 @@ export async function cancelAllNotifications(): Promise<void> {
 }
 
 /**
+ * Cancel all PENDING scheduled notifications EXCEPT the focus-block completion
+ * notification(s). Used by the foreground consolidation so a glance at the phone
+ * mid-block (foreground then re-background) no longer wipes the pending
+ * focus-complete schedule, which the OS owns and the timer relies on to fire at
+ * endsAt. Every other type is cleared exactly as cancelAllNotifications() did.
+ *
+ * Follows the existing filter-then-cancel precedent (cancelAllUserNotifications,
+ * syncAllReminders). focus-complete has no stable identifier prefix, so it is
+ * matched by its data payload (data.type === 'focus-complete').
+ */
+export async function cancelAllScheduledExceptFocusComplete(): Promise<void> {
+  const pending = await Notifications.getAllScheduledNotificationsAsync();
+  for (const request of pending) {
+    if (request.content?.data?.type === 'focus-complete') continue;
+    await Notifications.cancelScheduledNotificationAsync(request.identifier);
+  }
+}
+
+/**
  * Get all scheduled notifications
  */
 export async function getAllScheduledNotifications(): Promise<Notifications.NotificationRequest[]> {
