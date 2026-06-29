@@ -15,7 +15,7 @@ import { useNotificationPreferences } from '../hooks/useNotificationPreferences'
 import { useToast } from './ToastContext';
 import {
   setForegroundNotificationHandler,
-  cancelAllNotifications,
+  cancelAllScheduledExceptFocusComplete,
   registerAndSaveFCMToken,
   isServerPushEnabled,
   addNotificationResponseListener,
@@ -111,11 +111,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setup();
   }, [user?.uid]);
 
-  // Foreground consolidation: cancel pending, reschedule future
+  // Foreground consolidation: cancel pending, reschedule future. Spares the
+  // pending focus-complete notification (the OS owns it; the timer relies on it
+  // firing at endsAt) so a mid-block glance at the phone no longer wipes it.
+  // Every other type is cleared exactly as before.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
       if (appStateRef.current !== 'active' && nextState === 'active' && user?.uid) {
-        await cancelAllNotifications();
+        await cancelAllScheduledExceptFocusComplete();
         // Only reschedule locally if server push is off
         if (preferences?.allNotificationsEnabled && !serverPush) {
           await scheduleDailyReminder(user.uid);
