@@ -47,7 +47,6 @@ export const ROUTES = {
 
   // --- Root / AppStack (MainNavigator) ---
   Main: 'Main',
-  DiscoverNavigator: 'DiscoverNavigator',
   Insights: 'Insights',
   FocusTimer: 'FocusTimer',
   Journal: 'Journal',
@@ -118,9 +117,6 @@ export const ROUTES = {
   ReportReason: 'ReportReason',
   ReportDetail: 'ReportDetail',
   ReportConfirmation: 'ReportConfirmation',
-
-  // --- Discover stack (DiscoverNavigator; retirement deferred to B-3) ---
-  DiscoverMain: 'DiscoverMain',
 
   // --- Profile stack (ProfileNavigator) ---
   ProfileMain: 'ProfileMain',
