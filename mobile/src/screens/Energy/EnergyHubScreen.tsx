@@ -58,7 +58,7 @@ const CATEGORIES: CategoryCardConfig[] = [
 // evening wind-down reflection); B-3d.3 adds the Learn library (Masterclass).
 interface SecondaryEntry {
   id: string;
-  route: 'Journal';
+  route: 'Journal' | 'Masterclass';
   label: string;
   descriptor: string;
   icon: string;
@@ -72,11 +72,19 @@ const SECONDARY_ENTRIES: SecondaryEntry[] = [
     descriptor: 'Wind down with an evening reflection.',
     icon: 'book-outline',
   },
+  {
+    id: 'learn',
+    route: 'Masterclass',
+    label: 'Learn',
+    descriptor: 'Short lessons on how your brain works.',
+    icon: 'school-outline',
+  },
 ];
 
 type NavigationProp = NativeStackNavigationProp<{
   EnergyBrowse: { category: ProtocolBrowseCategory };
   Journal: undefined;
+  Masterclass: undefined;
 }>;
 
 export function EnergyHubScreen() {

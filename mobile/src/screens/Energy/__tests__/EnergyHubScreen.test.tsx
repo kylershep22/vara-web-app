@@ -26,6 +26,13 @@ describe('EnergyHubScreen — re-homed library entries', () => {
     expect(mockNavigate).toHaveBeenCalledWith('Journal');
   });
 
+  it('renders the Learn entry and navigates to the Masterclass route', () => {
+    const { getByTestId } = render(<EnergyHubScreen />);
+    const learn = getByTestId('energy-hub-secondary-learn');
+    fireEvent.press(learn);
+    expect(mockNavigate).toHaveBeenCalledWith('Masterclass');
+  });
+
   it('keeps the three protocol category cards primary', () => {
     const { getByTestId } = render(<EnergyHubScreen />);
     expect(getByTestId('energy-hub-card-regulate')).toBeTruthy();
