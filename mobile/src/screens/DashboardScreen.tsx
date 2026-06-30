@@ -19,6 +19,7 @@ import { RightNowAcknowledgment } from '../components/dashboard/RightNowAcknowle
 import { SuggestedActionCard } from '../components/dashboard/SuggestedActionCard';
 import { InsightCard } from '../components/dashboard/InsightCard';
 import { RoutineCard } from '../components/dashboard/RoutineCard';
+import { InsightsLookbackCard } from '../components/dashboard/InsightsLookbackCard';
 import { suggestedAction } from '../components/dashboard/suggestedAction';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import NudgeCard from '../components/dashboard/NudgeCard';
@@ -262,6 +263,12 @@ const DashboardScreen: React.FC = () => {
               {(['notifOptIn', 'eventCode', 'nudge'] as const).map((id) => (
                 <React.Fragment key={id}>{renderSystemPrompt(id)}</React.Fragment>
               ))}
+
+              {/* Insights' quiet launch home (B-3d.6): a de-emphasized look-back
+                  row at the very bottom, below the routine card. Insights leaves
+                  the tab IA under the four-pillar migration; this keeps it
+                  reachable without a stats hero. */}
+              <InsightsLookbackCard />
             </View>
           </>
         )}

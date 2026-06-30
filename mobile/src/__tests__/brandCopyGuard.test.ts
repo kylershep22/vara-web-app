@@ -46,6 +46,10 @@ const COPY_SOURCES = [
   'src/constants/focusRhythms.ts',
   'src/constants/focusContent.ts',
   'src/components/checkin/flow/reflection.ts',
+  // Four-Pillar IA Insights launch home (B-3d.6). The quiet dashboard look-back
+  // card's user-facing copy; guarded so the rollout can't reintroduce an em dash
+  // / optim* in its rendered strings.
+  'src/components/dashboard/InsightsLookbackCard.tsx',
 ];
 
 // U+2014 EM DASH, built via char code so no literal em-dash byte lives in
