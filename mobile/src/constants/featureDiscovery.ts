@@ -426,7 +426,9 @@ export const FEATURE_PREVIEW_CONTENT: Record<DiscoverableFeatureId, FeaturePrevi
     ],
     availabilityNote: 'Opens after you\'ve engaged with educational content.',
     ctaAvailable: 'Start learning',
-    navigationTarget: 'Masterclasses',
+    // B-3d.1: was 'Masterclasses' (plural) — a dead target; the registered route
+    // is 'Masterclass' (singular). Fixed so the feature-preview CTA navigates.
+    navigationTarget: 'Masterclass',
   },
   messaging: {
     id: 'messaging',

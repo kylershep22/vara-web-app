@@ -14,6 +14,7 @@ export interface NudgeSuggestion {
 
 import type { BrainState } from '../types/models';
 import { ROUTES } from '../navigation/routes';
+import { NAV_TARGETS } from '../navigation/navTargets';
 
 export type Feature = 'journal' | 'focus' | 'breathwork' | 'community' | 'brainHealth' | 'discover' | 'masterclass';
 
@@ -96,7 +97,9 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   discover: {
     icon: 'headphones',
     ctaLabel: 'Browse Content',
-    screenName: ROUTES.Wellness,
+    // B-3d.1: was ROUTES.Wellness (the legacy tab, dead under the four-pillar
+    // IA). Resolves flag-aware to the Energy browse hub (ON) / Masterclass (OFF).
+    screenName: NAV_TARGETS.browseContent,
     headlines: {
       wired: { headline: 'Listen and unwind', description: 'A podcast or masterclass can redirect a restless mind.' },
       foggy: { headline: 'Let someone else do the thinking', description: 'Listen to something that sparks a new thought.' },
@@ -108,7 +111,11 @@ const FEATURE_CONFIG: Record<Feature, FeatureConfig> = {
   masterclass: {
     icon: 'school-outline',
     ctaLabel: 'Browse Masterclasses',
-    screenName: ROUTES.Wellness,
+    // B-3d.1: was ROUTES.Wellness (the legacy tab, dead under the four-pillar
+    // IA). Points straight at the Masterclass content screen — an AppStack
+    // screen registered under both flags, and the same destination the Energy
+    // "Learn" entry uses (B-3d.3).
+    screenName: ROUTES.Masterclass,
     headlines: {
       wired: { headline: 'Learn something calming', description: 'A masterclass can redirect a restless mind.' },
       foggy: { headline: 'Let an expert guide you', description: 'Sometimes listening is easier than doing.' },
