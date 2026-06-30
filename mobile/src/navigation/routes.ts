@@ -20,10 +20,11 @@
 
 export const ROUTES = {
   // --- Bottom tabs (BottomTabsNavigator) ---
+  // The legacy Wellness tab was dissolved in B-3d.7; its route name is retired
+  // (no navigator registers it, no caller targets it).
   Home: 'Home',
   Rhythms: 'Rhythms',
   Community: 'Community',
-  Wellness: 'Wellness',
 
   // --- Five-pillar tabs (FivePillarTabs, mounted when FOUR_PILLAR_IA is on) ---
   // Phase B-3a scaffold. Home and Community reuse the existing bottom-tab route

@@ -40,7 +40,6 @@ import {
 
 // App screens
 import DashboardScreen from '../screens/DashboardScreen';
-import MoreMenuScreen from '../screens/MoreMenuScreen';
 import PlanScreen from '../screens/PlanScreen';
 import { FocusScreen, FocusHubScreen, FocusRhythmsScreen } from '../screens/Focus';
 import JournalScreen from '../screens/JournalScreen';
@@ -439,17 +438,11 @@ const BottomTabsNavigator = () => {
           showFAB: true,
         })}
       />
-      <BottomTabs.Screen
-        name="Wellness"
-        component={MoreMenuScreen}
-        options={tabOpts({
-          tabBarLabel: 'Wellness',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="leaf" size={size} color={color} />
-          ),
-          showFAB: true,
-        })}
-      />
+      {/* The Wellness tab (MoreMenuScreen) was dissolved in B-3d.7: its items
+          re-homed (Journal/Masterclass -> Energy, Connected Apps/Help ->
+          Settings, Insights -> the dashboard look-back card). This legacy
+          navigator is itself replaced by FivePillarTabs when FOUR_PILLAR_IA
+          flips (B-3d.8); until then it runs as a 3-tab transient. */}
     </BottomTabs.Navigator>
   );
 };

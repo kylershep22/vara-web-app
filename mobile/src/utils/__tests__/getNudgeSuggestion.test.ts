@@ -33,9 +33,11 @@ function allNudgesForState(state: BrainState) {
 describe('getNudgeSuggestion — no dead Wellness target', () => {
   const registered = new Set<string>(Object.values(ROUTES));
 
-  it.each(ALL_STATES)('never returns the dead ROUTES.Wellness target for state "%s"', (state) => {
+  // 'Wellness' is the retired legacy tab route (removed from the registry in
+  // B-3d.7). Asserted as a literal here since ROUTES.Wellness no longer exists.
+  it.each(ALL_STATES)('never returns the dead "Wellness" target for state "%s"', (state) => {
     for (const nudge of allNudgesForState(state)) {
-      expect(nudge.screenName).not.toBe(ROUTES.Wellness);
+      expect(nudge.screenName).not.toBe('Wellness');
     }
   });
 
