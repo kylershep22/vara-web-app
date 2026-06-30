@@ -52,8 +52,31 @@ const CATEGORIES: CategoryCardConfig[] = [
   },
 ];
 
+// Secondary entries below the three protocol categories. These are not "ways to
+// shift how you feel" (the three cards above) — they are the library surfaces
+// re-homed into Energy by the Four-Pillar IA. B-3d.2 adds Journal (Rest /
+// evening wind-down reflection); B-3d.3 adds the Learn library (Masterclass).
+interface SecondaryEntry {
+  id: string;
+  route: 'Journal';
+  label: string;
+  descriptor: string;
+  icon: string;
+}
+
+const SECONDARY_ENTRIES: SecondaryEntry[] = [
+  {
+    id: 'journal',
+    route: 'Journal',
+    label: 'Journal',
+    descriptor: 'Wind down with an evening reflection.',
+    icon: 'book-outline',
+  },
+];
+
 type NavigationProp = NativeStackNavigationProp<{
   EnergyBrowse: { category: ProtocolBrowseCategory };
+  Journal: undefined;
 }>;
 
 export function EnergyHubScreen() {
@@ -85,6 +108,28 @@ export function EnergyHubScreen() {
                 <Text style={styles.cardDescriptor}>{c.descriptor}</Text>
               </View>
               <Icon name="chevron-right" size={24} color={Colors.mutedSageGray} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Library surfaces re-homed into Energy (B-3d). Quieter than the three
+            category cards above so the "three ways" framing stays primary. */}
+        <View style={styles.secondary}>
+          {SECONDARY_ENTRIES.map((e) => (
+            <TouchableOpacity
+              key={e.id}
+              style={styles.secondaryRow}
+              onPress={() => navigation.navigate(e.route)}
+              accessibilityRole="button"
+              accessibilityLabel={`${e.label}. ${e.descriptor}`}
+              testID={`energy-hub-secondary-${e.id}`}
+            >
+              <Icon name={e.icon as any} size={20} color={Colors.mutedSageGray} />
+              <View style={styles.secondaryText}>
+                <Text style={styles.secondaryLabel}>{e.label}</Text>
+                <Text style={styles.cardDescriptor}>{e.descriptor}</Text>
+              </View>
+              <Icon name="chevron-right" size={20} color={Colors.mutedSageGray} />
             </TouchableOpacity>
           ))}
         </View>
@@ -141,5 +186,28 @@ const styles = StyleSheet.create({
   cardDescriptor: {
     ...TextStyles.bodySmall,
     color: Colors.mutedSageGray,
+  },
+  // Secondary entries (re-homed library surfaces): de-emphasized vs the category
+  // cards — no border/surface fill, smaller icon, lighter label.
+  secondary: {
+    marginTop: Spacing.xl,
+    gap: Spacing.xs,
+  },
+  secondaryRow: {
+    minHeight: MIN_TOUCH_TARGET,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
+  secondaryText: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  secondaryLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+    marginBottom: 2,
   },
 });
