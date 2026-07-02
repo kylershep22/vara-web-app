@@ -69,12 +69,26 @@ export const Typography = {
 // TEXT STYLE PRESETS
 // Based on Vara Mobile UI Standards v1.0
 // ===========================================
+
+// React Native's `lineHeight` is an ABSOLUTE value (density-independent px), NOT
+// a CSS-style unitless multiplier. Derive it from the font size so the multiplier
+// intent stays visible and the value auto-tracks fontSize if the size changes
+// (mirrors the correct pattern in JournalScreen.tsx: `fontSize * multiplier`).
+// Assigning the bare multiplier (e.g. 1.5) collapsed the line box to ~1.5px and
+// clipped/ghosted text on every consumer — the B-3d clipping bug this fixes.
+//
+// NOTE: these are computed at the BASE font size and do NOT scale under iOS
+// Dynamic Type / allowFontScaling — a pre-existing, app-wide a11y gap tracked as
+// a separate follow-up, out of scope for this fix.
+const lineHeightFor = (fontSize: number, multiplier: number): number =>
+  fontSize * multiplier;
+
 export const TextStyles = {
   // Display - 32px / Semi-Bold (600) - rare, hero only
   display: {
     fontSize: Typography.fontSize['3xl'],
     fontWeight: Typography.fontWeight.semibold,
-    lineHeight: Typography.lineHeight.heading,
+    lineHeight: lineHeightFor(Typography.fontSize['3xl'], Typography.lineHeight.heading),
     letterSpacing: Typography.letterSpacing.tighter,
   },
 
@@ -83,7 +97,7 @@ export const TextStyles = {
   h1: {
     fontSize: Typography.fontSize['2xl'],
     fontWeight: Typography.fontWeight.semibold,
-    lineHeight: Typography.lineHeight.heading,
+    lineHeight: lineHeightFor(Typography.fontSize['2xl'], Typography.lineHeight.heading),
     letterSpacing: Typography.letterSpacing.tight,
   },
 
@@ -92,7 +106,7 @@ export const TextStyles = {
   h2: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.semibold,
-    lineHeight: Typography.lineHeight.heading,
+    lineHeight: lineHeightFor(Typography.fontSize.xl, Typography.lineHeight.heading),
     letterSpacing: Typography.letterSpacing.tight,
   },
 
@@ -101,7 +115,7 @@ export const TextStyles = {
   h3: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.medium,
-    lineHeight: Typography.lineHeight.heading,
+    lineHeight: lineHeightFor(Typography.fontSize.lg, Typography.lineHeight.heading),
     letterSpacing: Typography.letterSpacing.normal,
   },
 
@@ -109,7 +123,7 @@ export const TextStyles = {
   body: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.regular,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: lineHeightFor(Typography.fontSize.base, Typography.lineHeight.normal),
     letterSpacing: Typography.letterSpacing.normal,
   },
 
@@ -117,7 +131,7 @@ export const TextStyles = {
   bodySmall: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.regular,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: lineHeightFor(Typography.fontSize.sm, Typography.lineHeight.normal),
     letterSpacing: Typography.letterSpacing.normal,
   },
 
@@ -125,7 +139,7 @@ export const TextStyles = {
   caption: {
     fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.medium,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: lineHeightFor(Typography.fontSize.xs, Typography.lineHeight.normal),
     letterSpacing: Typography.letterSpacing.wide,
   },
 
@@ -134,7 +148,7 @@ export const TextStyles = {
   button: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: lineHeightFor(Typography.fontSize.base, Typography.lineHeight.normal),
     letterSpacing: Typography.letterSpacing.normal,
   },
 
@@ -142,7 +156,7 @@ export const TextStyles = {
   nav: {
     fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.medium,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: lineHeightFor(Typography.fontSize.xs, Typography.lineHeight.normal),
     letterSpacing: Typography.letterSpacing.normal,
   },
 } as const;
