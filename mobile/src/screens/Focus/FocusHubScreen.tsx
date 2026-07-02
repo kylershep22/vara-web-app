@@ -18,6 +18,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
+import { FAB_SCROLL_CLEARANCE } from '../../constants/fabLayout';
 
 const MIN_TOUCH_TARGET = 48;
 
@@ -81,7 +82,8 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    // A3: clear the docked Guide FAB so the secondary card isn't occluded.
+    paddingBottom: FAB_SCROLL_CLEARANCE,
   },
   title: {
     ...TextStyles.h1,

@@ -27,7 +27,13 @@ const standardHeaderOptions = {
   headerStyle: { backgroundColor: Colors.mistWhite, elevation: 0, shadowOpacity: 0 } as any,
   headerTintColor: Colors.evergreenTeal,
   headerTitleStyle: { fontWeight: '600' as const, color: Colors.softCharcoal },
-  headerBackTitleVisible: false,
+  // A1 (B-3d polish): pushed AppStack screens sit above the tab navigator, whose
+  // route name is "Main" — which iOS was leaking as the back-button label
+  // ("< Main"). `headerBackTitleVisible` is a no-op in React Navigation v7, so it
+  // never suppressed it. Set an explicit generic fallback label instead; screens
+  // with a single, unambiguous parent pillar override this with the pillar name
+  // (e.g. EnergyBrowse → "Energy", FocusRhythms → "Focus").
+  headerBackTitle: 'Back',
 };
 
 // Auth screens
@@ -702,7 +708,9 @@ const MainNavigator = () => {
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
-            title: 'Masterclasses',
+            // A2: the Energy entry point says "Learn"; entry and destination must
+            // agree. (Route id stays "Masterclass"; only the visible title changes.)
+            title: 'Learn',
             headerShadowVisible: false,
             showFAB: true,
           })}
@@ -836,6 +844,8 @@ const MainNavigator = () => {
             component={EnergyBrowseListScreen}
             options={stackOpts({
               ...standardHeaderOptions,
+              // Single, unambiguous parent: only reached from the Energy hub.
+              headerBackTitle: 'Energy',
               animation: 'slide_from_right',
               headerShown: true,
               headerShadowVisible: false,
@@ -852,6 +862,8 @@ const MainNavigator = () => {
             component={FocusRhythmsScreen}
             options={stackOpts({
               ...standardHeaderOptions,
+              // Single, unambiguous parent: only reached from the Focus hub.
+              headerBackTitle: 'Focus',
               animation: 'slide_from_right',
               headerShown: true,
               title: 'Focus rhythms',

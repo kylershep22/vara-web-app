@@ -120,6 +120,8 @@ export function AIAssistantFAB({ context }: AIAssistantFABProps) {
 const styles = StyleSheet.create({
   fabContainer: {
     position: 'absolute',
+    // Keep bottom/size in sync with FAB_BOTTOM_OFFSET / FAB_HEIGHT in
+    // constants/fabLayout.ts (used to compute scroll clearance on FAB screens).
     bottom: Spacing.xl + 60, // Above tab bar
     right: Spacing.base,
     width: 68,
