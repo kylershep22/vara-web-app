@@ -1,7 +1,7 @@
 // Tests for CheckInFlowScreen's terminal-state navigation routing in the
 // engine-wired flow. Routing is now driven by the FlowCompletion:
 //   - pointer hand-off (focus-session) → replace('FocusTimer')
-//   - pointer hand-off (plan)          → navigate('Main', { screen: 'Rhythms' })
+//   - pointer hand-off (plan)          → navigate('Main', { screen: NAV_TARGETS.plan })
 //   - practice with no pointer / acknowledged / abandoned → goBack()
 //
 // CheckInFlow is mocked at the module boundary so tests can drive the parent's
@@ -60,6 +60,7 @@ import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 
 import { CheckInFlowScreen } from '../CheckInFlowScreen';
+import { NAV_TARGETS } from '../../../navigation/navTargets';
 
 beforeEach(() => {
   mockNavigate.mockClear();
@@ -140,10 +141,12 @@ describe('CheckInFlowScreen — pointer hand-off navigation', () => {
     expect(mockGoBack).not.toHaveBeenCalled();
   });
 
-  it('plan pointer navigates to the Rhythms tab (routines)', async () => {
+  it('plan pointer navigates to the planning tab (routines), flag-aware', async () => {
+    // NAV_TARGETS.plan resolves to 'Rhythms' (legacy IA) or 'PillarTime'
+    // (four-pillar IA), so this assertion holds under either FOUR_PILLAR_IA.
     await complete(pointerOnly('plan'));
     await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: 'Rhythms' })
+      expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: NAV_TARGETS.plan })
     );
   });
 

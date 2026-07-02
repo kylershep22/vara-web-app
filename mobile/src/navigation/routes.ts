@@ -20,10 +20,11 @@
 
 export const ROUTES = {
   // --- Bottom tabs (BottomTabsNavigator) ---
+  // The legacy Wellness tab was dissolved in B-3d.7; its route name is retired
+  // (no navigator registers it, no caller targets it).
   Home: 'Home',
   Rhythms: 'Rhythms',
   Community: 'Community',
-  Wellness: 'Wellness',
 
   // --- Five-pillar tabs (FivePillarTabs, mounted when FOUR_PILLAR_IA is on) ---
   // Phase B-3a scaffold. Home and Community reuse the existing bottom-tab route
@@ -47,7 +48,6 @@ export const ROUTES = {
 
   // --- Root / AppStack (MainNavigator) ---
   Main: 'Main',
-  DiscoverNavigator: 'DiscoverNavigator',
   Insights: 'Insights',
   FocusTimer: 'FocusTimer',
   Journal: 'Journal',
@@ -118,9 +118,6 @@ export const ROUTES = {
   ReportReason: 'ReportReason',
   ReportDetail: 'ReportDetail',
   ReportConfirmation: 'ReportConfirmation',
-
-  // --- Discover stack (DiscoverNavigator; retirement deferred to B-3) ---
-  DiscoverMain: 'DiscoverMain',
 
   // --- Profile stack (ProfileNavigator) ---
   ProfileMain: 'ProfileMain',

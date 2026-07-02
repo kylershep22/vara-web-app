@@ -706,6 +706,47 @@ const SettingsScreen = () => {
         </View>
       </View>
 
+      {/* More Section — utilities re-homed from the dissolved Wellness tab
+          (B-3d.4): Connected Apps + Help & Support. Both routes live in the
+          parent AppStack, so navigate() bubbles up from this ProfileStack
+          screen and resolves under either IA. */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>More</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => navigation.navigate('WearableIntegration' as never)}
+            accessibilityRole="button"
+            accessibilityLabel="Connected Apps"
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Connected Apps</Text>
+              <Text style={styles.settingDescription}>
+                Tell us what tools you use
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => navigation.navigate('HelpSupport' as never)}
+            accessibilityRole="button"
+            accessibilityLabel="Help and Support"
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Help & Support</Text>
+              <Text style={styles.settingDescription}>
+                FAQs, feedback & contact
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Account Actions Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account Actions</Text>

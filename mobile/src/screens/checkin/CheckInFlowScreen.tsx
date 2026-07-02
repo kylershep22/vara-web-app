@@ -38,6 +38,7 @@ import {
 } from '../../utils/flowSessionMarker';
 import { getProtocolById } from '../../constants/brainStateProtocols';
 import { ROUTES } from '../../navigation/routes';
+import { NAV_TARGETS } from '../../navigation/navTargets';
 
 // Route params — discriminated by the same union shape as FlowInit
 // so production callers express intent at the navigation layer
@@ -70,8 +71,10 @@ type Nav = NativeStackNavigationProp<{
   // `durationMinutes` is the budget-derived prefill length so the timer opens at
   // the user's chosen budget instead of the 25-min default.
   FocusTimer: { fromCheckIn: true; durationMinutes?: number } | undefined;
-  // Plan pointer hand-off targets the Rhythms tab (routines live there).
-  Main: { screen: 'Rhythms' } | undefined;
+  // Plan pointer hand-off targets the planning tab (routines live there).
+  // B-3d.1: flag-aware — `Rhythms` under the legacy IA, `PillarTime` under the
+  // four-pillar IA. Typed off NAV_TARGETS.plan so the flip needs no edit here.
+  Main: { screen: typeof NAV_TARGETS.plan } | undefined;
 }>;
 
 // Sub-step 2.7 round 5 (Bug B fix) — until Phase 3 wires real intent
@@ -198,9 +201,10 @@ export function CheckInFlowScreen() {
               : {}),
           });
         } else {
-          // plan pointer → routines on the Rhythms tab. Navigating to Main
-          // (already below CheckInFlow in the stack) pops the flow.
-          navigation.navigate(ROUTES.Main, { screen: ROUTES.Rhythms });
+          // plan pointer → routines on the planning tab. Navigating to Main
+          // (already below CheckInFlow in the stack) pops the flow. NAV_TARGETS
+          // resolves the tab name for the active IA (Rhythms / PillarTime).
+          navigation.navigate(ROUTES.Main, { screen: NAV_TARGETS.plan });
         }
         return;
       }

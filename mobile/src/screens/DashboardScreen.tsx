@@ -12,13 +12,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingSpinner } from '../components';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
 import { ActiveRoutinePlayer } from './Time/ActiveRoutinePlayer';
-import { ROUTES } from '../navigation/routes';
+import { NAV_TARGETS } from '../navigation/navTargets';
 import { CheckInInvite } from '../components/dashboard/CheckInInvite';
 import { SlimResetAffordance } from '../components/dashboard/SlimResetAffordance';
 import { RightNowAcknowledgment } from '../components/dashboard/RightNowAcknowledgment';
 import { SuggestedActionCard } from '../components/dashboard/SuggestedActionCard';
 import { InsightCard } from '../components/dashboard/InsightCard';
 import { RoutineCard } from '../components/dashboard/RoutineCard';
+import { InsightsLookbackCard } from '../components/dashboard/InsightsLookbackCard';
 import { suggestedAction } from '../components/dashboard/suggestedAction';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import NudgeCard from '../components/dashboard/NudgeCard';
@@ -254,14 +255,20 @@ const DashboardScreen: React.FC = () => {
                 routines={dashboardRoutines}
                 completions={routineCompletions}
                 onBeginRoutine={handleBeginRoutine}
-                onNavigateToRoutines={() => go(ROUTES.Rhythms, { tab: 'routines' })}
-                onNavigateToHabits={() => go(ROUTES.Rhythms, { tab: 'habits' })}
+                onNavigateToRoutines={() => go(NAV_TARGETS.plan, { tab: 'routines' })}
+                onNavigateToHabits={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
               />
 
               {/* Surviving system prompts (live-gated), after the content. */}
               {(['notifOptIn', 'eventCode', 'nudge'] as const).map((id) => (
                 <React.Fragment key={id}>{renderSystemPrompt(id)}</React.Fragment>
               ))}
+
+              {/* Insights' quiet launch home (B-3d.6): a de-emphasized look-back
+                  row at the very bottom, below the routine card. Insights leaves
+                  the tab IA under the four-pillar migration; this keeps it
+                  reachable without a stats hero. */}
+              <InsightsLookbackCard />
             </View>
           </>
         )}
@@ -282,7 +289,7 @@ const DashboardScreen: React.FC = () => {
           onClose={handleCloseRoutinePlayer}
           onEditRoutine={() => {
             handleCloseRoutinePlayer();
-            navigation.navigate(ROUTES.Rhythms as never, { tab: 'routines' } as never);
+            navigation.navigate(NAV_TARGETS.plan as never, { tab: 'routines' } as never);
           }}
           onComplete={handleRoutineComplete}
         />

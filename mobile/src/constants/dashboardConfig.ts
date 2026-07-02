@@ -18,7 +18,7 @@ export const ONBOARDING_V2 = true;
  * NAVIGATOR only. Reversibility is the whole point: flipping this one line back
  * to false restores the original four-tab IA byte-for-byte.
  */
-export const FOUR_PILLAR_IA = false;
+export const FOUR_PILLAR_IA = true;
 
 /**
  * Dashboard rework — reversible suppression flags.

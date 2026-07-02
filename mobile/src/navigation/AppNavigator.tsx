@@ -40,7 +40,6 @@ import {
 
 // App screens
 import DashboardScreen from '../screens/DashboardScreen';
-import MoreMenuScreen from '../screens/MoreMenuScreen';
 import PlanScreen from '../screens/PlanScreen';
 import { FocusScreen, FocusHubScreen, FocusRhythmsScreen } from '../screens/Focus';
 import JournalScreen from '../screens/JournalScreen';
@@ -97,9 +96,10 @@ import {
 import { resolveInitialStep } from '../services/firebase/onboardingStressRecovery.service';
 import type { OnboardingSrStep } from '../constants/onboardingStressRecovery';
 
-// Discover screens
+// Discover content screens. The legacy DiscoverNavigator/DiscoverScreen hub was
+// retired in B-3d.5; these content screens are now registered solely in the
+// AppStack below (and reached via the Energy pillar under the four-pillar IA).
 import {
-  DiscoverScreen,
   BreathworkScreen,
   BreathworkDetailScreen,
   SleepScreen,
@@ -135,7 +135,6 @@ const AuthStack = createNativeStackNavigator();
 const AppStack = createNativeStackNavigator();
 const OnboardingStack = createNativeStackNavigator();
 const CommunityStack = createNativeStackNavigator();
-const DiscoverStack = createNativeStackNavigator();
 const ProfileStack = createNativeStackNavigator();
 const BottomTabs = createBottomTabNavigator();
 const PaywallStack = createNativeStackNavigator();
@@ -326,81 +325,6 @@ const CommunityNavigator = () => {
 };
 
 /**
- * Discover Stack Navigator
- * Navigation for wellness library content
- */
-const DiscoverNavigator = () => {
-  return (
-    <DiscoverStack.Navigator
-      screenOptions={{
-        ...standardHeaderOptions,
-        animation: 'slide_from_right',
-        headerShadowVisible: false,
-      }}
-    >
-      <DiscoverStack.Screen
-        name="DiscoverMain"
-        component={DiscoverScreen}
-        options={stackOpts({
-          headerShown: false, // Custom header in component
-          showFAB: true,
-        })}
-      />
-      <DiscoverStack.Screen
-        name="Breathwork"
-        component={BreathworkScreen}
-        options={stackOpts({ title: 'Breathwork', showFAB: true })}
-      />
-      <DiscoverStack.Screen
-        name="BreathworkDetail"
-        component={BreathworkDetailScreen}
-        options={stackOpts({ title: 'Session Details', showFAB: true })}
-      />
-      <DiscoverStack.Screen
-        name="Sleep"
-        component={SleepScreen}
-        options={stackOpts({ title: 'Sleep Library', showFAB: true })}
-      />
-      <DiscoverStack.Screen
-        name="SleepDetail"
-        component={SleepDetailScreen}
-        options={stackOpts({ title: 'Sleep Content', showFAB: true })}
-      />
-      <DiscoverStack.Screen
-        name="Movement"
-        component={MovementScreen}
-        options={stackOpts({ title: 'Movement Library', showFAB: true })}
-      />
-      <DiscoverStack.Screen
-        name="MovementDetail"
-        component={MovementDetailScreen}
-        options={stackOpts({ title: 'Workout Details', showFAB: true })}
-      />
-      <DiscoverStack.Screen
-        name="Masterclass"
-        component={MasterclassScreen}
-        options={stackOpts({ title: 'Masterclasses', showFAB: true })}
-      />
-      <DiscoverStack.Screen
-        name="MasterclassDetail"
-        component={MasterclassDetailScreen}
-        options={stackOpts({ title: 'Class Details', showFAB: true })}
-      />
-      <DiscoverStack.Screen
-        name="PodcastEpisode"
-        component={PodcastEpisodeScreen}
-        options={stackOpts({
-          ...standardHeaderOptions,
-          title: 'Episode',
-          headerShadowVisible: false,
-          showFAB: true,
-        })}
-      />
-    </DiscoverStack.Navigator>
-  );
-};
-
-/**
  * Profile Stack Navigator
  * Navigation for profile and settings
  */
@@ -514,17 +438,11 @@ const BottomTabsNavigator = () => {
           showFAB: true,
         })}
       />
-      <BottomTabs.Screen
-        name="Wellness"
-        component={MoreMenuScreen}
-        options={tabOpts({
-          tabBarLabel: 'Wellness',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="leaf" size={size} color={color} />
-          ),
-          showFAB: true,
-        })}
-      />
+      {/* The Wellness tab (MoreMenuScreen) was dissolved in B-3d.7: its items
+          re-homed (Journal/Masterclass -> Energy, Connected Apps/Help ->
+          Settings, Insights -> the dashboard look-back card). This legacy
+          navigator is itself replaced by FivePillarTabs when FOUR_PILLAR_IA
+          flips (B-3d.8); until then it runs as a 3-tab transient. */}
     </BottomTabs.Navigator>
   );
 };
@@ -661,14 +579,6 @@ const MainNavigator = () => {
         <AppStack.Screen
           name="Main"
           component={FOUR_PILLAR_IA ? FivePillarTabs : BottomTabsNavigator}
-        />
-        {/* Discover Navigator - Accessible from More menu */}
-        <AppStack.Screen
-          name="DiscoverNavigator"
-          component={DiscoverNavigator}
-          options={{
-            animation: 'slide_from_right',
-          }}
         />
         {/* Insights - Accessible from Wellness menu */}
         <AppStack.Screen
