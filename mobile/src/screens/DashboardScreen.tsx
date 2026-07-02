@@ -20,6 +20,7 @@ import { SuggestedActionCard } from '../components/dashboard/SuggestedActionCard
 import { InsightCard } from '../components/dashboard/InsightCard';
 import { RoutineCard } from '../components/dashboard/RoutineCard';
 import { InsightsLookbackCard } from '../components/dashboard/InsightsLookbackCard';
+import { FAB_SCROLL_CLEARANCE } from '../constants/fabLayout';
 import { suggestedAction } from '../components/dashboard/suggestedAction';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import NudgeCard from '../components/dashboard/NudgeCard';
@@ -306,6 +307,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.lg,
+    // A3: clear the docked Guide FAB so the bottom "Look back" card isn't occluded.
+    paddingBottom: FAB_SCROLL_CLEARANCE,
   },
   header: {
     marginBottom: Spacing.lg,
