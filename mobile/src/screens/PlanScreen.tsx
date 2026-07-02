@@ -260,7 +260,7 @@ const PlanScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Rhythms</Text>
+        <Text style={styles.pageTitle}>Time</Text>
         <Text style={styles.pageSubtitle}>Your habits and routines</Text>
       </View>
 
