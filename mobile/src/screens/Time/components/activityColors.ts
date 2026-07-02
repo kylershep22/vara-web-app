@@ -2,20 +2,23 @@
  * Activity Color Utilities
  * Brand-compliant color mapping for activity icons
  *
- * Per Focus Page Spec Section 4.2:
+ * Brand rule:
  * - Replace all blue icons with color-primary (#1B5E57)
- * - Replace all red icons with color-error (#D97A6E / Soft Coral)
+ * - Coral (#D97A6E) is color-ERROR and is reserved for genuine errors ONLY — it
+ *   is NEVER an activity-icon color (previously red/pink mapped to it, which put
+ *   coral on positive elements like the Gratitude heart).
  * - Never use blue, bright green, pure red, or any off-palette color
  */
 
 import { ColorTokens, ActivityColors } from '../../../constants/designTokens';
 
 /**
- * Maps legacy activity color names to brand-compliant colors
- * Only three colors are allowed per spec:
+ * Maps legacy activity color names to brand-compliant colors.
+ * Allowed activity-icon colors:
  * - primary (Evergreen Teal) - most activities
- * - coral (Soft Coral) - heart/gratitude related
  * - apricot (Golden Apricot) - energy/coffee related
+ * Coral is intentionally absent: it is the error color and must not appear on
+ * activity icons.
  */
 export function getActivityColor(colorName: string): string {
   const colorMap: Record<string, string> = {
@@ -27,9 +30,11 @@ export function getActivityColor(colorName: string): string {
     indigo: ActivityColors.primary,     // Map indigo → primary teal
     purple: ActivityColors.primary,     // Map purple → primary teal
 
-    // Coral mappings (gratitude, heart, love related)
-    red: ActivityColors.coral,          // Map red → soft coral (brand fix)
-    pink: ActivityColors.coral,         // Map pink → soft coral
+    // Warm/affinity legacy names → primary teal. (Previously mapped to coral,
+    // but coral is the ERROR color — never valid on an activity icon, e.g. the
+    // Gratitude heart or "No Screens" now render teal, not coral.)
+    red: ActivityColors.primary,
+    pink: ActivityColors.primary,
 
     // Apricot mappings (energy, warmth, coffee related)
     orange: ActivityColors.apricot,
@@ -68,21 +73,14 @@ export function getActivityColorWithOpacity(colorName: string, opacity: number =
 export function suggestActivityColor(activityName: string): string {
   const lowerName = activityName.toLowerCase();
 
-  // Coral-appropriate activities (gratitude, heart, love)
-  const coralKeywords = [
-    'gratitude', 'love', 'heart', 'appreciation', 'thankful',
-    'compassion', 'kindness', 'affection', 'caring'
-  ];
-
-  // Apricot-appropriate activities (energy, warmth, morning boost)
+  // Apricot-appropriate activities (energy, warmth, morning boost). Warm/affinity
+  // activities (gratitude, heart, love) intentionally have NO special color and
+  // fall through to primary teal — coral is the error color and is never
+  // suggested for an activity.
   const apricotKeywords = [
     'coffee', 'tea', 'energy', 'breakfast', 'morning',
     'wake', 'sunshine', 'warm', 'boost', 'caffeine'
   ];
-
-  if (coralKeywords.some(keyword => lowerName.includes(keyword))) {
-    return 'coral';
-  }
 
   if (apricotKeywords.some(keyword => lowerName.includes(keyword))) {
     return 'apricot';
