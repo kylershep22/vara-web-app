@@ -119,14 +119,18 @@ describe('shiftOutcome — maps shift to a ProtocolSessionOutcome (unchanged)', 
 });
 
 describe('onboardingWhatToExpectLine — generic, duration-sized, null-safe', () => {
-  test('Wired (2-min Cyclic Sighing) names "about two minutes"', () => {
+  // Post-rehost the onboarding practice comes from the circumplex engine over a
+  // phone-only catalog at the just_reset situation, so every state resolves to a
+  // short (2-min) settle/grounding practice (Tense/Depleted/Calm → box breathing,
+  // Activated → sensory reset). The copy is duration-sized to that.
+  test('Wired (2-min settle breath) names "about two minutes"', () => {
     expect(onboardingWhatToExpectLine('wired')).toBe(
       "It's about two minutes, fully guided, so there's nothing to figure out. Just follow along."
     );
   });
-  test('Steady (5-min protocol) names "about five minutes"', () => {
+  test('Steady (2-min settle breath) names "about two minutes"', () => {
     expect(onboardingWhatToExpectLine('steady')).toBe(
-      "It's about five minutes, fully guided, so there's nothing to figure out. Just follow along."
+      "It's about two minutes, fully guided, so there's nothing to figure out. Just follow along."
     );
   });
   test('unresolved state → null (screen omits the line)', () => {

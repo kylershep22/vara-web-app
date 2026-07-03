@@ -21,6 +21,17 @@
  */
 import { getAllProtocols } from '../../constants/brainStateProtocols';
 import type { Protocol, ProtocolFamily, ProtocolModality } from '../../types/models';
+import type { Situation } from '../../engine/types';
+
+/**
+ * Situation the onboarding read is pinned to. Onboarding is an opinionated
+ * stress-recovery arc ("your system is running hot") — the user is here to
+ * downshift, not to pick an outcome — so we skip the situation step and feed the
+ * engine the neutral regulate-to-baseline situation. The two-tap state read
+ * still personalizes the plan within it (quadrant), and every just_reset cell
+ * yields a phone-only practice at the onboarding budget.
+ */
+export const ONBOARDING_SITUATION: Situation = 'just_reset';
 
 const EQUIPMENT_FAMILIES: readonly ProtocolFamily[] = [
   'cold-water-reset',

@@ -92,7 +92,7 @@ describe('OnboardingReflectScreen snapshot card', () => {
     expect(flat.backgroundColor).toBe(STATE_COLORS.wired);
   });
 
-  it('names the actual duration when the protocol resolves to 2 minutes (Wired → Cyclic Sighing)', () => {
+  it('names the actual duration with activated-valence copy (Wired → 2-min settle breath)', () => {
     mockParams = { state: 'wired', stressorLabels: [], peak: null };
     const { getByText } = render(<OnboardingReflectScreen />);
     expect(
@@ -100,11 +100,11 @@ describe('OnboardingReflectScreen snapshot card', () => {
     ).toBeTruthy();
   });
 
-  it('names the actual duration with positive-valence copy (Steady → Coherence Breathing, 5 min)', () => {
+  it('names the actual duration with positive-valence copy (Steady → 2-min settle breath)', () => {
     mockParams = { state: 'steady', stressorLabels: [], peak: null };
     const { getByText } = render(<OnboardingReflectScreen />);
     expect(
-      getByText("Here's a five-minute practice to help you stay with this.")
+      getByText("Here's a two-minute practice to help you stay with this.")
     ).toBeTruthy();
   });
 
