@@ -31,7 +31,7 @@ jest.mock('react-native-safe-area-context', () => {
 });
 
 import OnboardingReflectScreen from '../OnboardingReflectScreen';
-import { STATE_COLORS } from '../onboardingShift';
+import { QUADRANT_COLOR } from '../onboardingShift';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -49,7 +49,7 @@ describe('OnboardingReflectScreen snapshot card', () => {
     expect(getByTestId('snapshot-row-arriving')).toBeTruthy();
     expect(getByTestId('snapshot-row-drivers')).toBeTruthy();
     expect(getByTestId('snapshot-row-peaks')).toBeTruthy();
-    expect(getByText('Wired')).toBeTruthy();
+    expect(getByText('Wound up')).toBeTruthy(); // wired → Tense felt label
     expect(getByText('A racing mind, Feeling reactive')).toBeTruthy();
     expect(getByText('Mid-day')).toBeTruthy();
   });
@@ -85,11 +85,12 @@ describe('OnboardingReflectScreen snapshot card', () => {
     expect(getByText('Drivers')).toBeTruthy();
   });
 
-  it('colors the state dot with the brain-state color (Wired = terracotta)', () => {
+  it('colors the state dot with the quadrant color (Tense = the non-error terracotta)', () => {
     mockParams = { state: 'wired', stressorLabels: [], peak: null };
     const { getByTestId } = render(<OnboardingReflectScreen />);
     const flat = StyleSheet.flatten(getByTestId('snapshot-state-dot').props.style);
-    expect(flat.backgroundColor).toBe(STATE_COLORS.wired);
+    // wired bridges to Tense; the color is unchanged from the old five-state map.
+    expect(flat.backgroundColor).toBe(QUADRANT_COLOR.Tense);
   });
 
   it('names the actual duration with activated-valence copy (Wired → 2-min settle breath)', () => {

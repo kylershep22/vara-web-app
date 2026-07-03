@@ -17,29 +17,26 @@ import { BRAIN_STATES } from '../../components/dashboard/brainStateCheckin/brain
 import { driverValenceForState } from '../../constants/onboardingStressRecovery';
 import { minutesWord } from './resolveOnboardingProtocol';
 
-export const STATE_LABELS: Record<BrainState, string> = BRAIN_STATES.reduce(
-  (acc, o) => ({ ...acc, [o.state]: o.label }),
-  {} as Record<BrainState, string>
-);
-
-// Same per-state colors the selection cards use (BrainStateOptionRow dot), so
-// the re-check transition visual matches the swatches above it.
+// Per-state colors the selection cards use (BrainStateOptionRow dot). Kept as
+// the source for QUADRANT_COLOR (via the bridge), so the re-check + reflect dots
+// match the swatches and the Tense dot stays the non-error terracotta.
 export const STATE_COLORS: Record<BrainState, string> = BRAIN_STATES.reduce(
   (acc, o) => ({ ...acc, [o.state]: o.color }),
   {} as Record<BrainState, string>
 );
 
 /**
- * The "your brain is learning" reassurance under the shift line (screen 7),
- * branched on the INITIAL state's valence. Activated arrivals get the
- * stress-recovery framing; positive arrivals get a resilience framing that
- * doesn't presume they needed to recover.
+ * The reassurance line under the shift (screen 7), branched on the INITIAL
+ * state's valence. Outcomes-led (the pivot away from brain-health-as-headline):
+ * both name the felt payoff of repetition, not a mechanism. Activated arrivals
+ * get the harder-moments framing; positive arrivals get a stay-with-it framing
+ * that doesn't presume they needed to recover.
  */
 export const BRAIN_LINE_ACTIVATED =
-  'Small recovery moments like this, repeated, are how your brain learns to handle stress better over time.';
+  'Small resets like this, repeated, are what make the next hard moment easier to move through.';
 
 export const BRAIN_LINE_POSITIVE =
-  'Small moments like this, repeated, are how your brain builds resilience over time.';
+  'Small moments like this, repeated, are what keep steady days within reach.';
 
 export function brainLine(initialState: BrainState): string {
   return driverValenceForState(initialState) === 'positive'
