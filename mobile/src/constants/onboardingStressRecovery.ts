@@ -6,6 +6,18 @@
  * was skipped or a route param was lost on resume (spec Edge Case 8).
  */
 import type { BrainState } from '../types/models';
+import type { Situation } from '../engine/types';
+
+/**
+ * Situation the onboarding read is pinned to. Onboarding is an opinionated
+ * stress-recovery arc ("your system is running hot") — the user is here to
+ * downshift, not to pick an outcome — so we skip the situation step and feed the
+ * engine the neutral regulate-to-baseline situation. The two-tap state read
+ * still personalizes the plan within it (quadrant). Canonical home is here so
+ * both the screens and the onboarding services can share it without a
+ * service→screen import; onboardingCatalog re-exports it.
+ */
+export const ONBOARDING_SITUATION: Situation = 'just_reset';
 
 /** Ordered step routes for the stress-recovery onboarding arc (screens 1–9). */
 export const ONBOARDING_SR_STEPS = [

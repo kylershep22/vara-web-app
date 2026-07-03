@@ -9,6 +9,10 @@
  * Reflect lead-in and the driver screen). No new valence maps.
  */
 import type { BrainState, ProtocolSessionOutcome } from '../../types/models';
+import type { Quadrant } from '../../engine/types';
+import { classifyQuadrant } from '../../engine';
+import { brainStateToCircumplex } from '../../engine/stateBridge';
+import { quadrantToBrainState } from '../../engine/stateBridge';
 import { BRAIN_STATES } from '../../components/dashboard/brainStateCheckin/brainStateOptions';
 import { driverValenceForState } from '../../constants/onboardingStressRecovery';
 import { minutesWord } from './resolveOnboardingProtocol';
@@ -62,42 +66,87 @@ export function shiftOutcome(shift: Shift): ProtocolSessionOutcome {
   return 'not_shifted';
 }
 
-/**
- * Valence-transition bucket for the re-check shift line. Single valence source
- * (driverValenceForState); positive = steady/clear/alive, activated = wired/foggy.
- *
- *   moved         — re-checked UP into a positive state (the only bucket that
- *                   earns the "you moved" line + the before->after arrow row).
- *                   Covers activated->positive and upward positive->positive.
- *   activated     — both states activated (flat, or a lateral wired<->foggy move).
- *   positive_hold — both states positive but not an upward move (flat or a dip
- *                   that stays inside the good range).
- *   positive_dip  — started positive, re-checked into an activated state.
- */
-export type ShiftBucket = 'moved' | 'activated' | 'positive_hold' | 'positive_dip';
+// ── Circumplex re-check display (Vara_Engine_Contract.md §2) ─────────────────
+// The re-check speaks the two-tap circumplex vocabulary. These felt words are
+// the user-facing quadrant names for the shift line + transition row. The
+// lowercase FRAGMENT reads mid-sentence ("You went from wound up to settled");
+// the FELT_LABEL is the title-case chip on the transition row. Colors reuse the
+// existing swatches via the state bridge, so the re-check dots match the read
+// above them and the Tense dot stays the non-error terracotta (scope: colors).
 
-export function classifyShiftBucket(before: BrainState, after: BrainState): ShiftBucket {
-  const beforePositive = driverValenceForState(before) === 'positive';
-  const afterPositive = driverValenceForState(after) === 'positive';
-  if (afterPositive && RANK[after] > RANK[before]) return 'moved';
-  if (!beforePositive && !afterPositive) return 'activated';
-  if (beforePositive && afterPositive) return 'positive_hold';
-  return 'positive_dip';
+const QUADRANT_FRAGMENT: Record<Quadrant, string> = {
+  Tense: 'wound up',
+  Depleted: 'running low',
+  Activated: 'charged up',
+  Calm: 'settled',
+};
+
+export const QUADRANT_FELT_LABEL: Record<Quadrant, string> = {
+  Tense: 'Wound up',
+  Depleted: 'Running low',
+  Activated: 'Charged up',
+  Calm: 'Settled',
+};
+
+export const QUADRANT_COLOR: Record<Quadrant, string> = {
+  Tense: STATE_COLORS[quadrantToBrainState('Tense')],
+  Depleted: STATE_COLORS[quadrantToBrainState('Depleted')],
+  Activated: STATE_COLORS[quadrantToBrainState('Activated')],
+  Calm: STATE_COLORS[quadrantToBrainState('Calm')],
+};
+
+/** The quadrant a (bridged) five-state value reads back to. Lossless for the
+ * four quadrants the two-tap read produces; `clear` resolves to Calm. */
+export function quadrantForBrainState(state: BrainState): Quadrant {
+  const c = brainStateToCircumplex(state);
+  return classifyQuadrant(c.arousal, c.valence);
+}
+
+const QUADRANT_VALENCE: Record<Quadrant, 'good' | 'hard'> = {
+  Tense: 'hard',
+  Depleted: 'hard',
+  Activated: 'good',
+  Calm: 'good',
+};
+
+/**
+ * Re-check transition bucket in circumplex terms. The onboarding practice is
+ * always a settle practice, so reaching Calm is the felt win; anything else is
+ * framed honestly, never as an overclaimed win and never as a failure.
+ *
+ *   eased         — re-checked into Calm from elsewhere (the win + the arrow row).
+ *   held_calm     — already Calm, stayed Calm (affirm staying with it).
+ *   charge_remains— came from a hard state, still revved (Activated): honest,
+ *                   "some charge left, a little more can help it settle".
+ *   held_good     — was already good (Calm/Activated), still good high-energy.
+ *   quiet         — both hard states (no shift): compassionate, non-shaming.
+ *   dipped        — was good, re-checked into a hard state: names the catch.
+ */
+export type QuadrantShiftBucket =
+  | 'eased'
+  | 'held_calm'
+  | 'charge_remains'
+  | 'held_good'
+  | 'quiet'
+  | 'dipped';
+
+export function classifyQuadrantShift(before: Quadrant, after: Quadrant): QuadrantShiftBucket {
+  if (after === 'Calm') return before === 'Calm' ? 'held_calm' : 'eased';
+  const beforeGood = QUADRANT_VALENCE[before] === 'good';
+  // after is not Calm here, so afterGood ⇒ Activated (revved + good).
+  if (QUADRANT_VALENCE[after] === 'good') return beforeGood ? 'held_good' : 'charge_remains';
+  // after is a hard state (Tense/Depleted).
+  return beforeGood ? 'dipped' : 'quiet';
 }
 
 /**
- * "You moved …" line, sized to the ACTUAL elapsed time so an early exit can't
- * falsely claim the protocol's nominal length. Durations that round to under
- * two minutes (and null/0) drop the duration claim entirely — "just now" —
- * because we only ship plural-minute copy ("two/five minutes"); this also
- * avoids an ungrammatical "one minutes" / "zero minutes". Pure formatter.
+ * The "You went from X to settled" felt-win line, sized to the ACTUAL elapsed
+ * time so an early exit can't claim the nominal length. Under two minutes (and
+ * null/0) drops the duration claim ("just now") — we only ship plural-minute
+ * copy. Pure formatter; only meaningful for the `eased` bucket.
  */
-export function improvedShiftLine(
-  before: BrainState,
-  after: BrainState,
-  durationSeconds: number | null
-): string {
-  const movement = `You moved from ${STATE_LABELS[before]} to ${STATE_LABELS[after]}`;
+export function easedShiftLine(before: Quadrant, durationSeconds: number | null): string {
+  const movement = `You went from ${QUADRANT_FRAGMENT[before]} to settled`;
   const minutes = durationSeconds ? Math.round(durationSeconds / 60) : 0;
   if (!durationSeconds || durationSeconds <= 0 || minutes < 2) {
     return `${movement} just now.`;
@@ -106,24 +155,28 @@ export function improvedShiftLine(
 }
 
 /**
- * Screen 7 — the before->after shift line, branched by valence transition.
- * `durationActualSeconds` is the real elapsed time forwarded from the player
- * (null/short → "just now"). Outcome derivation (computeShift/shiftOutcome) is
- * separate and unchanged.
+ * Screen 7 — the before->after shift line in circumplex terms, branched by the
+ * quadrant transition. `durationActualSeconds` is the real elapsed time from the
+ * player (null/short → "just now"). Outcome derivation (computeShift/shiftOutcome)
+ * is separate and still keyed off the bridged five-state values.
  */
-export function shiftLine(
-  before: BrainState,
-  after: BrainState,
+export function quadrantShiftLine(
+  before: Quadrant,
+  after: Quadrant,
   durationActualSeconds: number | null
 ): string {
-  switch (classifyShiftBucket(before, after)) {
-    case 'moved':
-      return improvedShiftLine(before, after, durationActualSeconds);
-    case 'activated':
-      return "Recovery isn't linear. Some days the shift is quiet. Showing up is the part that compounds.";
-    case 'positive_hold':
+  switch (classifyQuadrantShift(before, after)) {
+    case 'eased':
+      return easedShiftLine(before, durationActualSeconds);
+    case 'charge_remains':
+      return "Still some charge there, and that's okay. A couple more minutes can help it settle.";
+    case 'held_calm':
+      return "You're settled, and staying with it is the whole practice.";
+    case 'held_good':
       return "You're in a good place. Showing up when you already feel good matters just as much as when things are hard.";
-    case 'positive_dip':
+    case 'quiet':
+      return "Recovery isn't linear. Some days the shift is quiet. Showing up is the part that compounds.";
+    case 'dipped':
       return "States move through the day, and noticing the shift is its own kind of skill. You're in a tougher spot than when you started, and that's exactly what these check-ins help you catch.";
   }
 }

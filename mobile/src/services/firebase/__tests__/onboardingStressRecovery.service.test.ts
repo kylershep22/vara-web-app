@@ -82,13 +82,18 @@ describe('onboardingStressRecovery.service', () => {
       mockSaveRecheckCheckIn.mockClear();
     });
 
-    test('writes the re-check state as a daily check-in when present', async () => {
+    test('writes the re-check state as a daily check-in, stamped with the circumplex', async () => {
       mockGetDoc.mockResolvedValue({
         exists: () => true,
         data: () => ({ onboardingStressRecovery: { recheckStateAfter: 'steady' } }),
       });
       await persistRecheckAsDailyCheckIn('u1');
-      expect(mockSaveRecheckCheckIn).toHaveBeenCalledWith('u1', 'steady');
+      // steady bridges to Calm; onboarding pins just_reset — parity with the
+      // dashboard's marker write so the acknowledgment card can read the quadrant.
+      expect(mockSaveRecheckCheckIn).toHaveBeenCalledWith('u1', 'steady', {
+        quadrant: 'Calm',
+        situation: 'just_reset',
+      });
     });
 
     test('no-op when the re-check state is absent (skipped / not reached)', async () => {

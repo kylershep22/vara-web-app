@@ -12,7 +12,14 @@
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import type { BrainState } from '../../types/models';
-import { ONBOARDING_SR_STEPS, type OnboardingSrStep, type PeakWindow } from '../../constants/onboardingStressRecovery';
+import {
+  ONBOARDING_SR_STEPS,
+  ONBOARDING_SITUATION,
+  type OnboardingSrStep,
+  type PeakWindow,
+} from '../../constants/onboardingStressRecovery';
+import { classifyQuadrant } from '../../engine';
+import { brainStateToCircumplex } from '../../engine/stateBridge';
 import { saveOnboardingRecheckCheckIn } from './brainStateCheckIn.service';
 
 const USERS_COLLECTION = 'users';
@@ -70,7 +77,15 @@ export async function persistRecheckAsDailyCheckIn(userId: string): Promise<void
     const after = (snap.data()?.onboardingStressRecovery?.recheckStateAfter ??
       null) as BrainState | null;
     if (!after) return; // re-check skipped or not reached → gate normally
-    await saveOnboardingRecheckCheckIn(userId, after);
+    // Stamp the marker with the real circumplex quadrant + pinned situation
+    // (derived losslessly from the bridged re-check state), matching the
+    // dashboard's check-in write so the acknowledgment card can read it.
+    const circumplex = brainStateToCircumplex(after);
+    const quadrant = classifyQuadrant(circumplex.arousal, circumplex.valence);
+    await saveOnboardingRecheckCheckIn(userId, after, {
+      quadrant,
+      situation: ONBOARDING_SITUATION,
+    });
   } catch {
     // Swallow — analytics/UX convenience, must not block completion.
   }
