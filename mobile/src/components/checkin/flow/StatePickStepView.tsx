@@ -37,6 +37,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography } from '../../../constants';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import type { Arousal, Situation, Valence } from '../../../engine';
+import { StepIndicator } from '../../onboarding/StepIndicator';
 import { FEELING_COPY } from './feelingCopy';
 
 const MIN_TOUCH_TARGET = 48;
@@ -90,6 +91,12 @@ export interface StatePickStepViewProps {
   // questions (arousal default below, feeling default = the situation question).
   arousalPrompt?: string;
   feelingPrompt?: string;
+  // Onboarding progress chrome. When both are provided (the onboarding arrival +
+  // re-check reads), the same thin step bar every other onboarding screen shows
+  // renders at the top so the flow reads continuous. The dashboard check-in omits
+  // them, so no bar renders there.
+  currentStep?: number;
+  totalSteps?: number;
 }
 
 const DEFAULT_AROUSAL_PROMPT = "How's your body right now?";
@@ -104,6 +111,8 @@ export function StatePickStepView({
   subtitle,
   arousalPrompt = DEFAULT_AROUSAL_PROMPT,
   feelingPrompt,
+  currentStep,
+  totalSteps,
 }: StatePickStepViewProps) {
   const reduceMotion = useReducedMotion();
   const [arousal, setArousal] = useState<Arousal | null>(null);
@@ -162,6 +171,14 @@ export function StatePickStepView({
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Onboarding progress bar — only when the caller passes step context
+            (arrival + re-check reads); the dashboard check-in omits it. */}
+        {currentStep != null && totalSteps != null && (
+          <View style={styles.progress} testID="checkin-flow-progress">
+            <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
+          </View>
+        )}
+
         {/* Optional header (re-check): a title + subtitle that acknowledge a
             practice just happened. The initial read omits this. */}
         {!!title && (
@@ -271,6 +288,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
+  },
+  progress: {
+    marginBottom: Spacing.lg,
   },
   headerBlock: {
     marginBottom: 24,

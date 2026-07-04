@@ -47,6 +47,7 @@ describe('OnboardingRecheckScreen — two-tap read → felt-shift reveal', () =>
   it('phase 1 renders the reframed two-tap read (acknowledges the practice, no shift line yet)', () => {
     const { getByTestId, getByText, queryByText } = render(<OnboardingRecheckScreen />);
     expect(getByText('How about now?')).toBeTruthy();
+    expect(getByTestId('checkin-flow-progress')).toBeTruthy(); // step bar present on the read
     expect(
       getByText('No right answer. Just notice where you actually are after those two minutes.')
     ).toBeTruthy();

@@ -115,6 +115,17 @@ describe('StatePickStepView — one progressive screen', () => {
     expect(queryByText('How about now?')).toBeNull();
   });
 
+  it('renders the onboarding progress bar only when step context is provided', () => {
+    const withSteps = render(
+      <StatePickStepView situation="just_reset" onSelect={jest.fn()} currentStep={2} totalSteps={9} />
+    );
+    expect(withSteps.getByTestId('checkin-flow-progress')).toBeTruthy();
+
+    // Dashboard check-in (no step context) shows no bar.
+    const noSteps = render(<StatePickStepView situation="just_reset" onSelect={jest.fn()} />);
+    expect(noSteps.queryByTestId('checkin-flow-progress')).toBeNull();
+  });
+
   it('the chosen energy stays re-tappable and can be changed before answering feeling', () => {
     const onSelect = jest.fn();
     const { getByTestId } = render(

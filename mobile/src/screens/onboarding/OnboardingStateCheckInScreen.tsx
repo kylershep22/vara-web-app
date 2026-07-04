@@ -9,8 +9,9 @@
  * five-state readers stay fed.
  *
  * Rendered bare (no OnboardingScaffold), like the Protocol screen: it's an
- * immersive read with its own layout and auto-advances on the second tap, so it
- * doesn't carry the step bar. It still occupies its true position in the arc.
+ * immersive read with its own layout that auto-advances on the second tap. It
+ * still carries the onboarding step bar (passed to StatePickStepView) so the
+ * flow reads continuous with the scaffold screens.
  */
 import React, { useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +21,10 @@ import { quadrantToBrainState } from '../../engine/stateBridge';
 import { ONBOARDING_SITUATION } from './onboardingCatalog';
 import type { Arousal, Valence } from '../../engine/types';
 import { useAuth } from '../../context/AuthContext';
+import {
+  ONBOARDING_SR_TOTAL_STEPS,
+  onboardingStepNumber,
+} from '../../constants/onboardingStressRecovery';
 import {
   saveInitialState,
   saveOnboardingStep,
@@ -51,6 +56,8 @@ const OnboardingStateCheckInScreen: React.FC = () => {
     <StatePickStepView
       situation={ONBOARDING_SITUATION}
       hideSituationChip
+      currentStep={onboardingStepNumber('OnboardingStateCheckIn')}
+      totalSteps={ONBOARDING_SR_TOTAL_STEPS}
       onSelect={onSelect}
       onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
     />
