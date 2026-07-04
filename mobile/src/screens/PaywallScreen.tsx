@@ -41,13 +41,15 @@ const FALLBACK_MONTHLY = `${FALLBACK_CURRENCY}${config.monthlyPrice}`;
 const FALLBACK_ANNUAL = `${FALLBACK_CURRENCY}${config.annualPrice}`;
 const FALLBACK_ANNUAL_EQUIVALENT = `${FALLBACK_CURRENCY}${config.annualMonthlyEquivalent}`;
 
-// Feature list
+// Feature list. Outcomes-led (the June pivot): value stated as focus / energy /
+// time and how the guidance meets the user, not brain-health mechanics. The
+// insights line stays a gentle look-back (no surveillance / progress-grading).
 const FEATURES = [
-  'AI-powered brain health guidance',
+  'AI guidance in service of focus, energy, and time',
   'Full audio and content library',
   'Unlimited habits, routines, and reflections',
-  'Detailed insights and progress patterns',
-  'Brain-aligned guidance that adapts to how you arrive each day',
+  'A gentle look back at your patterns',
+  'Guidance that meets you where you arrive each day',
 ];
 
 const PaywallScreen: React.FC = () => {
@@ -191,9 +193,10 @@ const PaywallScreen: React.FC = () => {
             timeline, and legal copy below (shown only when a trial is available). */}
         <Text style={styles.heading}>The full Vara experience</Text>
 
-        {/* Body */}
+        {/* Body — outcomes-led subtitle (focus / energy / time), not brain-health
+            mechanics. */}
         <Text style={styles.body}>
-          Everything Vara offers, built around how your brain actually works.
+          Find your focus. Settle your energy. Get your time back.
         </Text>
 
         {/* Feature List */}
