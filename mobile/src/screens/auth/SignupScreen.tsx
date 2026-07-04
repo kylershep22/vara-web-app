@@ -264,9 +264,7 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
                 resizeMode="cover"
               />
               <Text style={styles.title}>Create Your Account</Text>
-              <Text style={styles.subtitle}>
-                A calm place to begin supporting your brain health
-              </Text>
+              <Text style={styles.subtitle}>A calm place to begin.</Text>
             </View>
 
             {/* Error Banner */}
