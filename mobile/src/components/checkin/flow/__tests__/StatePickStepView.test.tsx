@@ -85,6 +85,36 @@ describe('StatePickStepView — one progressive screen', () => {
     expect(getByTestId('checkin-flow-arousal-title')).toBeTruthy();
   });
 
+  it('renders the optional header + prompt overrides (re-check variant), keeping the read intact', () => {
+    const { getByTestId, getByText, queryByText } = render(
+      <StatePickStepView
+        situation="just_reset"
+        onSelect={jest.fn()}
+        hideSituationChip
+        title="How about now?"
+        subtitle="No right answer."
+        arousalPrompt="Your body:"
+        feelingPrompt="And how it feels:"
+      />
+    );
+    expect(getByText('How about now?')).toBeTruthy();
+    expect(getByText('No right answer.')).toBeTruthy();
+    expect(getByTestId('checkin-flow-arousal-title').props.children).toBe('Your body:');
+    expect(queryByText("How's your body right now?")).toBeNull();
+    fireEvent.press(getByTestId('checkin-flow-arousal-revved'));
+    expect(getByTestId('checkin-flow-valence-title').props.children).toBe('And how it feels:');
+  });
+
+  it('defaults to the full questions with no header when overrides are absent (initial read)', () => {
+    const { getByTestId, queryByText } = render(
+      <StatePickStepView situation="just_reset" onSelect={jest.fn()} />
+    );
+    expect(getByTestId('checkin-flow-arousal-title').props.children).toBe(
+      "How's your body right now?"
+    );
+    expect(queryByText('How about now?')).toBeNull();
+  });
+
   it('the chosen energy stays re-tappable and can be changed before answering feeling', () => {
     const onSelect = jest.fn();
     const { getByTestId } = render(

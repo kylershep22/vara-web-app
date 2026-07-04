@@ -80,7 +80,19 @@ export interface StatePickStepViewProps {
   // situation (the user never picked it), so the recap would be noise there; the
   // situation still keys the feeling copy exactly as in the dashboard flow.
   hideSituationChip?: boolean;
+  // Optional header (title + subtitle) rendered above the read. Used by the
+  // onboarding re-check to acknowledge a practice just happened; the initial
+  // read omits it.
+  title?: string;
+  subtitle?: string;
+  // Override the two section prompts. The re-check softens them ("Your body:" /
+  // "And how it feels:") under its own title; the initial read keeps the full
+  // questions (arousal default below, feeling default = the situation question).
+  arousalPrompt?: string;
+  feelingPrompt?: string;
 }
+
+const DEFAULT_AROUSAL_PROMPT = "How's your body right now?";
 
 export function StatePickStepView({
   situation,
@@ -88,11 +100,19 @@ export function StatePickStepView({
   onBack,
   onClose,
   hideSituationChip = false,
+  title,
+  subtitle,
+  arousalPrompt = DEFAULT_AROUSAL_PROMPT,
+  feelingPrompt,
 }: StatePickStepViewProps) {
   const reduceMotion = useReducedMotion();
   const [arousal, setArousal] = useState<Arousal | null>(null);
 
   const feeling = FEELING_COPY[situation];
+  // The rendered feeling heading: the caller's override (re-check) or the
+  // situation-specific question (initial read). Same value drives the a11y
+  // announce so screen-reader users hear what's on screen.
+  const feelingHeading = feelingPrompt ?? feeling.question;
 
   const handleEnergy = (value: Arousal) => {
     const firstReveal = arousal === null;
@@ -106,7 +126,7 @@ export function StatePickStepView({
     // users aren't stranded by the progressive disclosure. Only on the first
     // reveal — re-tapping energy to change it doesn't re-announce.
     if (firstReveal) {
-      AccessibilityInfo.announceForAccessibility(feeling.question);
+      AccessibilityInfo.announceForAccessibility(feelingHeading);
     }
   };
 
@@ -142,6 +162,17 @@ export function StatePickStepView({
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Optional header (re-check): a title + subtitle that acknowledge a
+            practice just happened. The initial read omits this. */}
+        {!!title && (
+          <View style={styles.headerBlock}>
+            <Text style={styles.headerTitle} accessibilityRole="header">
+              {title}
+            </Text>
+            {!!subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
+          </View>
+        )}
+
         {/* Situation anchor chip — the chosen situation as a calm, full-width
             Dew Sage chip directly under the nav row, so content reads top-down
             with no marooned middle. Hidden when the situation was pinned for the
@@ -160,7 +191,7 @@ export function StatePickStepView({
 
         {/* Body state — always visible, re-tappable after it's answered. */}
         <Text style={styles.title} testID="checkin-flow-arousal-title">
-          How's your body right now?
+          {arousalPrompt}
         </Text>
         <View style={styles.options}>
           {AROUSAL_OPTIONS.map((option) => {
@@ -186,7 +217,7 @@ export function StatePickStepView({
         {arousal !== null ? (
           <View style={styles.feelingBlock} testID="checkin-flow-feeling-block">
             <Text style={styles.title} testID="checkin-flow-valence-title">
-              {feeling.question}
+              {feelingHeading}
             </Text>
             <View style={styles.options}>
               {feeling.options.map((option) => (
@@ -240,6 +271,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
+  },
+  headerBlock: {
+    marginBottom: 24,
+  },
+  headerTitle: {
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.evergreenTeal,
+    marginBottom: Spacing.sm,
+  },
+  headerSubtitle: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.softCharcoal,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
   },
   situationChip: {
     backgroundColor: Colors.dewSage,

@@ -61,12 +61,18 @@ const OnboardingRecheckScreen: React.FC = () => {
     if (user?.uid) void saveOnboardingStep(user.uid, 'OnboardingRecheck');
   }, [user?.uid]);
 
-  // Phase 1 — the two-tap re-check read, identical to the arrival read.
+  // Phase 1 — the two-tap re-check read. Same component as the arrival read, but
+  // reframed so it acknowledges a practice just happened (not a repeat of the
+  // identical question).
   if (!after) {
     return (
       <StatePickStepView
         situation={ONBOARDING_SITUATION}
         hideSituationChip
+        title="How about now?"
+        subtitle="No right answer. Just notice where you actually are after those two minutes."
+        arousalPrompt="Your body:"
+        feelingPrompt="And how it feels:"
         onSelect={setAfter}
       />
     );
