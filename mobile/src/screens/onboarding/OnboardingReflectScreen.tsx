@@ -22,7 +22,11 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep } from '../../services/firebase/onboardingStressRecovery.service';
 import { onboardingResetLine, onboardingWhatToExpectLine } from './resolveOnboardingProtocol';
-import { STATE_LABELS, STATE_COLORS } from './onboardingShift';
+import {
+  QUADRANT_FELT_LABEL,
+  QUADRANT_COLOR,
+  quadrantForBrainState,
+} from './onboardingShift';
 import type { BrainState } from '../../types/models';
 
 interface Resolved {
@@ -44,6 +48,11 @@ const SnapshotCard: React.FC<{
   const rows: { key: string; testID: string; label: string; content: React.ReactNode }[] = [];
 
   if (state) {
+    // Reflect the arriving state in circumplex felt language (the read is now
+    // two-tap). Bridged five-state → quadrant is lossless for what the read
+    // produces; the dot color is unchanged (QUADRANT_COLOR bridges back to the
+    // same swatch).
+    const quadrant = quadrantForBrainState(state);
     rows.push({
       key: 'arriving',
       testID: 'snapshot-row-arriving',
@@ -52,9 +61,9 @@ const SnapshotCard: React.FC<{
         <View style={styles.valueRow}>
           <View
             testID="snapshot-state-dot"
-            style={[styles.stateDot, { backgroundColor: STATE_COLORS[state] }]}
+            style={[styles.stateDot, { backgroundColor: QUADRANT_COLOR[quadrant] }]}
           />
-          <Text style={styles.value}>{STATE_LABELS[state]}</Text>
+          <Text style={styles.value}>{QUADRANT_FELT_LABEL[quadrant]}</Text>
         </View>
       ),
     });

@@ -70,12 +70,22 @@ function renderFlow() {
 // recently pushed) screen renders last, so press the last match.
 const pressLast = (els: any[]) => fireEvent.press(els[els.length - 1]);
 
-const ARRIVAL = 'How are you arriving right now?';
-// These tests select Steady (positive valence), so the driver screen shows the
-// positive stem + options (see getDriverQuestion).
+// Screen 2 is now the two-tap circumplex read (StatePickStepView), rendered bare
+// with its own "Back" affordance and the arousal question as its title.
+const ARRIVAL = "How's your body right now?";
+// The two-tap read auto-advances on the feeling tap. low + good = Calm, which
+// bridges to Steady (positive valence), so the driver screen shows the positive
+// stem + options and the peak screen shows the neutral title.
+const arriveAsSteady = (u: {
+  getByLabelText: any;
+  getAllByTestId: any;
+  findByText: any;
+}) => {
+  pressLast(u.getAllByTestId('checkin-flow-arousal-low'));
+  pressLast(u.getAllByTestId('checkin-flow-valence-good'));
+};
 const DRIVERS = "What's behind it?";
 const POSITIVE_DRIVER = "A good night's sleep";
-// Steady is positive valence, so the peak screen shows the neutral title.
 const PEAK = 'When would a daily moment fit best?';
 const REFLECT = "Here's where you're starting.";
 
@@ -86,44 +96,42 @@ describe('Onboarding pre-protocol back navigation', () => {
     fireEvent.press(getByLabelText('Begin'));
     await findByText(ARRIVAL);
 
-    pressLast(getAllByLabelText('Go back'));
+    // Screen 2's own back affordance is labelled "Back" (not the scaffold "Go back").
+    pressLast(getAllByLabelText('Back'));
     await findByText(/When your system is running hot/);
-    // Intro is the start of the flow — no back affordance.
+    // Intro is the start of the flow — no back affordance of either kind.
+    expect(queryByLabelText('Back')).toBeNull();
     expect(queryByLabelText('Go back')).toBeNull();
   });
 
-  test('back from drivers preserves the arrival selection, and it survives a round trip', async () => {
-    const { getByLabelText, getAllByLabelText, getByTestId, findByText } = renderFlow();
+  test('back from drivers returns to arrival with the energy read retained', async () => {
+    const u = renderFlow();
+    const { getByLabelText, getAllByLabelText, getAllByTestId, queryByTestId, findByText } = u;
 
     fireEvent.press(getByLabelText('Begin'));
     await findByText(ARRIVAL);
 
-    fireEvent.press(getByLabelText('Steady'));
-    expect(getByTestId('brain-state-radio-steady')).toBeTruthy();
-
-    pressLast(getAllByLabelText('Continue'));
+    arriveAsSteady(u);
     await findByText(DRIVERS);
 
-    // Back → arrival; selection preserved.
+    // Back → arrival; the mounted read retained its energy answer, so the feeling
+    // block is still revealed without re-tapping (native-stack mount retention).
     pressLast(getAllByLabelText('Go back'));
     await findByText(ARRIVAL);
-    expect(getByTestId('brain-state-radio-steady')).toBeTruthy();
+    expect(queryByTestId('checkin-flow-feeling-block')).toBeTruthy();
 
-    // Forward again, then back again — still preserved.
-    pressLast(getAllByLabelText('Continue'));
+    // Forward again (re-tap the feeling) — drivers still reachable, still positive.
+    pressLast(getAllByTestId('checkin-flow-valence-good'));
     await findByText(DRIVERS);
-    pressLast(getAllByLabelText('Go back'));
-    await findByText(ARRIVAL);
-    expect(getByTestId('brain-state-radio-steady')).toBeTruthy();
   });
 
   test('back from peak preserves the checked drivers', async () => {
-    const { getByLabelText, getAllByLabelText, findByText } = renderFlow();
+    const u = renderFlow();
+    const { getByLabelText, getAllByLabelText, findByText } = u;
 
     fireEvent.press(getByLabelText('Begin'));
     await findByText(ARRIVAL);
-    fireEvent.press(getByLabelText('Steady'));
-    pressLast(getAllByLabelText('Continue'));
+    arriveAsSteady(u);
     await findByText(DRIVERS);
 
     fireEvent.press(getByLabelText(POSITIVE_DRIVER));
@@ -138,12 +146,12 @@ describe('Onboarding pre-protocol back navigation', () => {
   });
 
   test('back from the starting-point transition preserves the peak selection', async () => {
-    const { getByLabelText, getAllByLabelText, findByText } = renderFlow();
+    const u = renderFlow();
+    const { getByLabelText, getAllByLabelText, findByText } = u;
 
     fireEvent.press(getByLabelText('Begin'));
     await findByText(ARRIVAL);
-    fireEvent.press(getByLabelText('Steady'));
-    pressLast(getAllByLabelText('Continue'));
+    arriveAsSteady(u);
     await findByText(DRIVERS);
     pressLast(getAllByLabelText('Continue'));
     await findByText(PEAK);

@@ -4,34 +4,41 @@
  * on which protocol a brain state maps to — otherwise the reflect copy promises
  * a duration the user doesn't get. Both import this single resolver.
  *
- * Resolution (per commit 3b0a5f5): an onboarding-only override routes some
- * states to a phone-only protocol for the signup demo (Wired -> Cyclic Sighing
- * instead of Cold Water Reset, which needs running water); other states fall
- * through the generic selector. The catalog / selectProtocol are untouched.
+ * Resolution (circumplex rehost): the onboarding first win now comes from the
+ * SHIPPED engine, same as the dashboard. We reverse-bridge the (bridged) five-
+ * state route value back to its two-tap circumplex reading, pin the neutral
+ * `just_reset` situation, and let resolve() pick the lead practice over a
+ * phone-only catalog. The reverse-bridge is lossless for the four quadrants the
+ * two-tap read produces (wired/alive/foggy/steady ↔ Tense/Activated/Depleted/
+ * Calm). The retired override hardcode is replaced by the catalog constraint —
+ * see onboardingCatalog.ts. Selection is clock-independent for `just_reset`
+ * (no §8 evening modifier, and the default ranker ignores the clock), so Reflect
+ * and Protocol resolve the same practice regardless of when each screen renders.
  */
 import type { BrainState, Protocol } from '../../types/models';
 import { getProtocolById } from '../../constants/brainStateProtocols';
-import { selectProtocol } from '../../services/protocolSelector.service';
+import { resolve } from '../../engine';
+import { brainStateToCircumplex } from '../../engine/stateBridge';
 import {
-  ONBOARDING_ENTRY_PROTOCOL_OVERRIDES,
   ONBOARDING_PROTOCOL_TIME_WINDOW,
   DEFAULT_ONBOARDING_PROTOCOL_ID,
   driverValenceForState,
 } from '../../constants/onboardingStressRecovery';
+import { onboardingPhoneOnlyCatalog, ONBOARDING_SITUATION } from './onboardingCatalog';
 
 export function resolveOnboardingProtocol(state: BrainState): Protocol | null {
-  const overrideId = ONBOARDING_ENTRY_PROTOCOL_OVERRIDES[state];
-  if (overrideId) {
-    const overridden = getProtocolById(overrideId);
-    if (overridden) return overridden;
-  }
-  try {
-    return selectProtocol({ state, timeWindow: ONBOARDING_PROTOCOL_TIME_WINDOW });
-  } catch {
-    // selectProtocol throws in __DEV__ on a no-match; fall back to the library
-    // invariant protocol so onboarding never dead-ends.
-    return getProtocolById(DEFAULT_ONBOARDING_PROTOCOL_ID) ?? null;
-  }
+  const plan = resolve({
+    situation: ONBOARDING_SITUATION,
+    state: brainStateToCircumplex(state),
+    clockTime: { hour: new Date().getHours() },
+    timeBudget: ONBOARDING_PROTOCOL_TIME_WINDOW,
+    catalog: onboardingPhoneOnlyCatalog(),
+  });
+  const lead = plan.slots.find((s) => s.kind === 'practice');
+  if (lead && lead.kind === 'practice') return lead.practice;
+  // just_reset always yields a practice, but never dead-end the demo: fall back
+  // to the library-invariant downshift protocol if a slot ever fails to fill.
+  return getProtocolById(DEFAULT_ONBOARDING_PROTOCOL_ID) ?? null;
 }
 
 // Small-number words keep the reset copy in brand voice ("two-minute", not

@@ -75,6 +75,16 @@ describe('StatePickStepView — one progressive screen', () => {
     );
   });
 
+  it('hides the situation context chip when hideSituationChip is set (onboarding pins the situation)', () => {
+    const { queryByTestId, getByTestId } = render(
+      <StatePickStepView situation="just_reset" onSelect={jest.fn()} hideSituationChip />
+    );
+    // The pinned-situation recap is suppressed…
+    expect(queryByTestId('checkin-flow-state-pick-situation')).toBeNull();
+    // …but the two-tap read itself is unchanged.
+    expect(getByTestId('checkin-flow-arousal-title')).toBeTruthy();
+  });
+
   it('the chosen energy stays re-tappable and can be changed before answering feeling', () => {
     const onSelect = jest.fn();
     const { getByTestId } = render(

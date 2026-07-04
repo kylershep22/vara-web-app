@@ -6,6 +6,18 @@
  * was skipped or a route param was lost on resume (spec Edge Case 8).
  */
 import type { BrainState } from '../types/models';
+import type { Situation } from '../engine/types';
+
+/**
+ * Situation the onboarding read is pinned to. Onboarding is an opinionated
+ * stress-recovery arc ("your system is running hot") — the user is here to
+ * downshift, not to pick an outcome — so we skip the situation step and feed the
+ * engine the neutral regulate-to-baseline situation. The two-tap state read
+ * still personalizes the plan within it (quadrant). Canonical home is here so
+ * both the screens and the onboarding services can share it without a
+ * service→screen import; onboardingCatalog re-exports it.
+ */
+export const ONBOARDING_SITUATION: Situation = 'just_reset';
 
 /** Ordered step routes for the stress-recovery onboarding arc (screens 1–9). */
 export const ONBOARDING_SR_STEPS = [
@@ -137,17 +149,7 @@ export const DEFAULT_ONBOARDING_STATE: BrainState = 'wired';
 export const DEFAULT_ONBOARDING_PROTOCOL_ID = 'cyclic-sighing-2';
 export const ONBOARDING_PROTOCOL_TIME_WINDOW = 5; // minutes (ProtocolTimeWindow)
 
-/**
- * Onboarding-only entry-protocol overrides. The signup-moment demo must be
- * completable phone-only, anywhere, in a few minutes — so Wired is routed to
- * breathwork (cyclic sighing / physiological sigh) instead of the generic
- * selector's pick of Cold Water Reset, which requires cold running water.
- *
- * Scope is the onboarding moment ONLY: the catalog and production
- * `selectProtocol` are untouched, so Cold Water Reset stays available to Wired
- * users in the post-onboarding library. Non-overridden states fall through to
- * `selectProtocol`.
- */
-export const ONBOARDING_ENTRY_PROTOCOL_OVERRIDES: Partial<Record<BrainState, string>> = {
-  wired: 'cyclic-sighing-2',
-};
+// The onboarding-only entry-protocol override (Wired -> Cyclic Sighing, to keep
+// the signup demo phone-only) has been retired: the circumplex rehost resolves
+// the first win through the engine over a phone-only catalog instead. See
+// screens/onboarding/onboardingCatalog.ts.

@@ -225,7 +225,11 @@ export const saveBrainStateCheckIn = async (
  */
 export const saveOnboardingRecheckCheckIn = async (
   userId: string,
-  brainState: BrainState
+  brainState: BrainState,
+  // Raw circumplex to stamp on the marker (in addition to the bridged
+  // brainState), matching the dashboard's saveBrainStateCheckIn write, so the
+  // post-onboarding dashboard acknowledgment can read the real quadrant.
+  stateFields: CheckInStateFields = {}
 ): Promise<void> => {
   if (!db) return;
   try {
@@ -246,6 +250,11 @@ export const saveOnboardingRecheckCheckIn = async (
       // keep the fallback
     }
 
+    const statePatch = {
+      ...(stateFields.quadrant !== undefined ? { quadrant: stateFields.quadrant } : {}),
+      ...(stateFields.situation !== undefined ? { situation: stateFields.situation } : {}),
+    };
+
     await setDoc(docRef, {
       userId,
       date: todayDate,
@@ -253,6 +262,7 @@ export const saveOnboardingRecheckCheckIn = async (
       protocolId,
       protocolCompleted: false,
       source: 'onboarding_recheck',
+      ...statePatch,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

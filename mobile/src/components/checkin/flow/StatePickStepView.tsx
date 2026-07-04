@@ -76,6 +76,10 @@ export interface StatePickStepViewProps {
   // Returns to the situation step (parent reducer).
   onBack?: () => void;
   onClose?: () => void;
+  // Suppress the "You're here to …" situation recap chip. Onboarding pins the
+  // situation (the user never picked it), so the recap would be noise there; the
+  // situation still keys the feeling copy exactly as in the dashboard flow.
+  hideSituationChip?: boolean;
 }
 
 export function StatePickStepView({
@@ -83,6 +87,7 @@ export function StatePickStepView({
   onSelect,
   onBack,
   onClose,
+  hideSituationChip = false,
 }: StatePickStepViewProps) {
   const reduceMotion = useReducedMotion();
   const [arousal, setArousal] = useState<Arousal | null>(null);
@@ -139,16 +144,19 @@ export function StatePickStepView({
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Situation anchor chip — the chosen situation as a calm, full-width
             Dew Sage chip directly under the nav row, so content reads top-down
-            with no marooned middle. */}
-        <View style={styles.situationChip}>
-          <Text style={styles.chipOverline}>You're here to</Text>
-          <Text
-            style={styles.chipSituation}
-            testID="checkin-flow-state-pick-situation"
-          >
-            {SITUATION_CONTEXT_LABELS[situation]}
-          </Text>
-        </View>
+            with no marooned middle. Hidden when the situation was pinned for the
+            user (onboarding), where a recap of an unmade choice would be noise. */}
+        {!hideSituationChip && (
+          <View style={styles.situationChip}>
+            <Text style={styles.chipOverline}>You're here to</Text>
+            <Text
+              style={styles.chipSituation}
+              testID="checkin-flow-state-pick-situation"
+            >
+              {SITUATION_CONTEXT_LABELS[situation]}
+            </Text>
+          </View>
+        )}
 
         {/* Body state — always visible, re-tappable after it's answered. */}
         <Text style={styles.title} testID="checkin-flow-arousal-title">
