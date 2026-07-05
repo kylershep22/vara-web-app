@@ -36,12 +36,14 @@ beforeEach(() => {
 });
 
 describe('OnboardingStateCheckInScreen — two-tap circumplex read', () => {
-  it('renders the two-tap read with the pinned-situation chip hidden', () => {
+  it('renders the two-tap read with the pinned-situation chip hidden + the step bar', () => {
     const { getByTestId, queryByTestId } = render(<OnboardingStateCheckInScreen />);
     expect(getByTestId('checkin-flow-arousal-title')).toBeTruthy();
     expect(queryByTestId('checkin-flow-state-pick-situation')).toBeNull();
     // No five-state chips anymore.
     expect(queryByTestId('brain-state-radio-wired')).toBeNull();
+    // Carries the onboarding progress bar so the flow reads continuous.
+    expect(getByTestId('checkin-flow-progress')).toBeTruthy();
   });
 
   it('bridges revved+hard (Tense) to wired, saves it, and advances to the driver screen', () => {

@@ -50,6 +50,11 @@ const COPY_SOURCES = [
   // card's user-facing copy; guarded so the rollout can't reintroduce an em dash
   // / optim* in its rendered strings.
   'src/components/dashboard/InsightsLookbackCard.tsx',
+  // Launch conversion surfaces (Slice A). The post-onboarding paywall + the
+  // Create Account screen; guarded so the outcomes-led copy can't regress an em
+  // dash / optim* (and, below, brain-health-led framing).
+  'src/screens/PaywallScreen.tsx',
+  'src/screens/auth/SignupScreen.tsx',
 ];
 
 // U+2014 EM DASH, built via char code so no literal em-dash byte lives in
@@ -109,6 +114,55 @@ describe('Brand copy guard - em-dash + optim*', () => {
           const violations = lines
             .map((line, idx) => ({ line: line.trim(), num: idx + 1 }))
             .filter(({ line }) => re.test(line) && !isAllowlisted(line));
+
+          if (violations.length > 0) {
+            const details = violations
+              .map((v) => `  Line ${v.num}: ${v.line}`)
+              .join('\n');
+            throw new Error(
+              `Found prohibited ${label} in ${relPath}:\n${details}`
+            );
+          }
+        });
+      });
+    });
+  });
+});
+
+// Conversion surfaces (the paywall + Create Account screen) additionally must
+// stay OUTCOMES-LED. The June pivot moved brain health from headline to
+// backbone, so these highest-intent screens must not reintroduce brain-health-
+// led framing. Scoped to just these two files on purpose: a tree-wide "brain
+// health" ban would trip legitimate uses (e.g. brainHealthMapping.ts). Comments
+// are stripped first, so a comment that mentions the retired framing to explain
+// why it was removed does not trip the guard.
+const OUTCOMES_LED_SURFACES = [
+  'src/screens/PaywallScreen.tsx',
+  'src/screens/auth/SignupScreen.tsx',
+];
+
+const RETIRED_POSITIONING_PATTERNS = [
+  { label: 'brain-health-led framing (brain health / brain-health)', re: /brain[-\s]?health/i },
+  { label: 'brain-aligned framing', re: /brain[-\s]?aligned/i },
+  { label: 'brain-as-headline phrasing', re: /how your brain\b|supporting your brain/i },
+];
+
+describe('Conversion surfaces stay outcomes-led (no brain-health-led framing)', () => {
+  OUTCOMES_LED_SURFACES.forEach((relPath) => {
+    const fullPath = path.join(mobileRoot, relPath);
+    if (!fs.existsSync(fullPath)) return;
+
+    describe(relPath, () => {
+      const raw = fs.readFileSync(fullPath, 'utf-8');
+      const lines = stripBlockComments(raw)
+        .split('\n')
+        .map(stripLineComment);
+
+      RETIRED_POSITIONING_PATTERNS.forEach(({ label, re }) => {
+        it(`does not contain ${label}`, () => {
+          const violations = lines
+            .map((line, idx) => ({ line: line.trim(), num: idx + 1 }))
+            .filter(({ line }) => re.test(line));
 
           if (violations.length > 0) {
             const details = violations

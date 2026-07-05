@@ -44,9 +44,16 @@ beforeEach(() => {
 });
 
 describe('OnboardingRecheckScreen — two-tap read → felt-shift reveal', () => {
-  it('phase 1 renders the two-tap read (no shift line yet)', () => {
-    const { getByTestId, queryByText } = render(<OnboardingRecheckScreen />);
-    expect(getByTestId('checkin-flow-arousal-title')).toBeTruthy();
+  it('phase 1 renders the reframed two-tap read (acknowledges the practice, no shift line yet)', () => {
+    const { getByTestId, getByText, queryByText } = render(<OnboardingRecheckScreen />);
+    expect(getByText('How about now?')).toBeTruthy();
+    expect(getByTestId('checkin-flow-progress')).toBeTruthy(); // step bar present on the read
+    expect(
+      getByText('No right answer. Just notice where you actually are after those two minutes.')
+    ).toBeTruthy();
+    // Softened section prompt, not the initial read's full question.
+    expect(getByTestId('checkin-flow-arousal-title').props.children).toBe('Your body:');
+    expect(queryByText("How's your body right now?")).toBeNull();
     expect(queryByText(/You went from/)).toBeNull();
   });
 

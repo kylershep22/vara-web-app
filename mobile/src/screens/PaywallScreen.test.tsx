@@ -138,13 +138,22 @@ describe('PaywallScreen', () => {
       expect(await screen.findByText(/Free for 14 days.*Cancel anytime/i)).toBeTruthy();
     });
 
-    it('shows feature list', () => {
+    it('shows the outcomes-led subtitle + feature list (no brain-health-led framing)', () => {
       render(<PaywallScreen />);
-      expect(screen.getByText('AI-powered brain health guidance')).toBeTruthy();
-      expect(screen.getByText('Full audio and content library')).toBeTruthy();
       expect(
-        screen.getByText('Brain-aligned guidance that adapts to how you arrive each day')
+        screen.getByText('Find your focus. Settle your energy. Get your time back.')
       ).toBeTruthy();
+      expect(screen.getByText('AI guidance in service of focus, energy, and time')).toBeTruthy();
+      expect(screen.getByText('Full audio and content library')).toBeTruthy();
+      expect(screen.getByText('A gentle look back at your patterns')).toBeTruthy();
+      expect(
+        screen.getByText('Guidance that meets you where you arrive each day')
+      ).toBeTruthy();
+      // Retired brain-health-led copy is gone.
+      expect(screen.queryByText('AI-powered brain health guidance')).toBeNull();
+      expect(
+        screen.queryByText('Everything Vara offers, built around how your brain actually works.')
+      ).toBeNull();
     });
   });
 

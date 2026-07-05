@@ -23,6 +23,8 @@ import { Colors, Spacing, Typography, Layout } from '../../constants';
 import {
   ONBOARDING_PROTOCOL_TIME_WINDOW,
   ONBOARDING_SITUATION,
+  ONBOARDING_SR_TOTAL_STEPS,
+  onboardingStepNumber,
 } from '../../constants/onboardingStressRecovery';
 import { useAuth } from '../../context/AuthContext';
 import { saveOnboardingStep, saveRecheckShift } from '../../services/firebase/onboardingStressRecovery.service';
@@ -61,12 +63,20 @@ const OnboardingRecheckScreen: React.FC = () => {
     if (user?.uid) void saveOnboardingStep(user.uid, 'OnboardingRecheck');
   }, [user?.uid]);
 
-  // Phase 1 — the two-tap re-check read, identical to the arrival read.
+  // Phase 1 — the two-tap re-check read. Same component as the arrival read, but
+  // reframed so it acknowledges a practice just happened (not a repeat of the
+  // identical question).
   if (!after) {
     return (
       <StatePickStepView
         situation={ONBOARDING_SITUATION}
         hideSituationChip
+        currentStep={onboardingStepNumber('OnboardingRecheck')}
+        totalSteps={ONBOARDING_SR_TOTAL_STEPS}
+        title="How about now?"
+        subtitle="No right answer. Just notice where you actually are after those two minutes."
+        arousalPrompt="Your body:"
+        feelingPrompt="And how it feels:"
         onSelect={setAfter}
       />
     );
