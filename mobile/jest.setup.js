@@ -58,6 +58,18 @@ jest.mock('@expo/vector-icons', () => ({
   MaterialCommunityIcons: 'MockedMaterialCommunityIcons',
 }));
 
+// Mock expo-image and expo-linear-gradient — both load expo-modules-core's
+// EventEmitter at import, which fails under Jest's react-native preset. Mapping
+// each to a host-component string lets ScreenHeader (and any screen using it)
+// render in tests; children pass through unchanged.
+jest.mock('expo-image', () => ({
+  Image: 'Image',
+}));
+
+jest.mock('expo-linear-gradient', () => ({
+  LinearGradient: 'LinearGradient',
+}));
+
 // Set required environment variables for tests
 process.env.REACT_APP_FIREBASE_API_KEY = 'test-api-key';
 process.env.REACT_APP_FIREBASE_AUTH_DOMAIN = 'test.firebaseapp.com';
