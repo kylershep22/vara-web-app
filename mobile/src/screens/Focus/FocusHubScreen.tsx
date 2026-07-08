@@ -16,11 +16,18 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import { FAB_SCROLL_CLEARANCE } from '../../constants/fabLayout';
+import { ScreenHeader } from '../../components/shared/ScreenHeader';
+
+// The one illustration on Focus home: a watercolor header band. Raster asset
+// (WebP) rendered via ScreenHeader's expo-image layer, never an SVG icon.
+const focusHeader = require('../../../assets/images/focusHeader.webp');
 
 const MIN_TOUCH_TARGET = 48;
+// How far the primary card rides up onto the header's bottom (mist) seam.
+const CARD_OVERLAP = Spacing.xl;
 
 type NavigationProp = NativeStackNavigationProp<{
   FocusTimer: { fromHub?: boolean } | undefined;
@@ -33,11 +40,16 @@ export function FocusHubScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} testID="focus-hub">
+        {/* Band mode: the screen owns the title/subtitle, above the header. */}
         <Text style={styles.title}>Focus</Text>
         <Text style={styles.intro}>Protected time for one thing at a time.</Text>
 
+        {/* The single hero illustration. Full-bleed band; the in-code mist scrim
+            fades both seams into the page so there is no hard image edge. */}
+        <ScreenHeader source={focusHeader} mode="band" style={styles.header} />
+
         {/* Primary action: whole-card tappable (no inner button, per the card
-            rule). Opens the existing Pomodoro timer. */}
+            rule). Overlaps the header's bottom seam. Opens the Pomodoro timer. */}
         <TouchableOpacity
           style={styles.primaryCard}
           onPress={() => navigation.navigate(ROUTES.FocusTimer, { fromHub: true })}
@@ -93,7 +105,12 @@ const styles = StyleSheet.create({
   intro: {
     ...TextStyles.body,
     color: Colors.mutedSageGray,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  header: {
+    // Full-bleed: cancel the ScrollView's horizontal padding so the band runs
+    // edge to edge.
+    marginHorizontal: -Spacing.lg,
   },
   primaryCard: {
     padding: Spacing.lg,
@@ -102,6 +119,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.divider,
     backgroundColor: Colors.surface,
     marginBottom: Spacing.md,
+    // Ride up onto the header's bottom seam. zIndex + elevation keep the card
+    // above the band on both platforms so the overlap reads.
+    marginTop: -CARD_OVERLAP,
+    zIndex: 1,
+    ...Layout.shadow.md,
   },
   primaryEyebrow: {
     fontSize: 12,
