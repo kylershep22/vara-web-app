@@ -20,6 +20,10 @@ export const Colors = {
 
   // Neutral Colors
   mistWhite: '#FAFAF6',
+  // Fully-transparent form of mistWhite, for gradient scrims that must fade a
+  // raster illustration into the mist page background with no color shift at the
+  // seam. Same RGB as mistWhite so the fade is purely in alpha.
+  mistWhiteTransparent: 'rgba(250,250,246,0)',
   softCharcoal: '#3E3E3E',
   white: '#FFFFFF',
   shadowColor: '#000000', // Only for shadows, never for text
