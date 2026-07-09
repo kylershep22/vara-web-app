@@ -29,18 +29,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { Colors, Spacing, TextStyles } from '../../constants';
 
-const DEFAULT_HEIGHT = 200;
+const DEFAULT_HEIGHT = 220;
 
 // The mist scrim's shape. Colors are design tokens (mistWhite and its
 // transparent form); the fade positions are the scrim's spec: opaque mist at
 // both seams (0 and 1), transparent through the middle where the art reads.
+// The fade zones are kept narrow so the scrim only softens the top and bottom
+// SEAMS rather than washing the whole band: the top transparent stop sits high
+// (0.15) so the art reveals near the title, and the bottom fade (0.7 -> 1) is
+// wide enough for the primary card to overlap the seam cleanly.
 const SCRIM_COLORS = [
   Colors.mistWhite,
   Colors.mistWhiteTransparent,
   Colors.mistWhiteTransparent,
   Colors.mistWhite,
 ] as const;
-const SCRIM_LOCATIONS = [0, 0.3, 0.66, 1] as const;
+const SCRIM_LOCATIONS = [0, 0.15, 0.7, 1] as const;
 
 type ScreenHeaderMode = 'band' | 'overlay';
 
@@ -70,11 +74,16 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   return (
     <View style={[styles.container, { height }, style]} testID={testID}>
-      {/* Raster watercolor art at absolute-fill (NOT ImageBackground). */}
+      {/* Raster watercolor art at absolute-fill (NOT ImageBackground). The art
+          is a wide 3:1 asset whose subject (sun + mountain ridgeline) sits in
+          the lower third; contentPosition="bottom" biases the cover crop down
+          so the band frames the subject, not the empty pale sky above it. No
+          opacity is applied to the Image — the scrim does all the blending. */}
       <Image
         source={source}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
+        contentPosition="bottom"
         transition={0}
         accessible={!!accessibilityLabel}
         accessibilityLabel={accessibilityLabel}
@@ -99,7 +108,11 @@ export function ScreenHeader({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    // No explicit width: the band stretches to fill its parent's cross axis
+    // (align-stretch is the default in a column). That lets a caller full-bleed
+    // the band out of a padded ScrollView with negative horizontal margins —
+    // a fixed `width: '100%'` would pin it to the padded content box and the
+    // negative margin would shift it left, clipping the right edge.
     // The scrim fades to this same mist, so any pixel the art doesn't cover
     // still reads as the page background.
     backgroundColor: Colors.mistWhite,
