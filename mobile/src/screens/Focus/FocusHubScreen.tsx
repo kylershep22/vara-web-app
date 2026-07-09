@@ -105,11 +105,13 @@ const styles = StyleSheet.create({
   intro: {
     ...TextStyles.body,
     color: Colors.mutedSageGray,
-    marginBottom: Spacing.md,
+    // Tight gap so the title/subtitle and the header band read as one unit.
+    marginBottom: Spacing.xs,
   },
   header: {
-    // Full-bleed: cancel the ScrollView's horizontal padding so the band runs
-    // edge to edge.
+    // Full-bleed: cancel the ScrollView's horizontal padding on BOTH edges so
+    // the band runs edge to edge. ScreenHeader has no fixed width, so the
+    // negative margins stretch it the full screen width with no right-edge clip.
     marginHorizontal: -Spacing.lg,
   },
   primaryCard: {
