@@ -57,6 +57,15 @@ interface ScreenHeaderProps {
   title?: string;
   /** Header height in px. */
   height?: number;
+  /**
+   * Override the scrim's gradient stop positions. Must have 4 stops to match
+   * the 4 mist color stops. Defaults to the standard seam-softening scrim
+   * (SCRIM_LOCATIONS). Move the top stop toward 0 and the bottom-transparent
+   * stop later to pull the scrim back and reveal more of the raster art — a
+   * deliberately stronger-artwork look. The colors are untouched, so the fade
+   * is still pure mist alpha: no image opacity/tint/contrast/filter involved.
+   */
+  scrimLocations?: readonly [number, number, ...number[]];
   /** Describes the illustration for screen readers. Omit for decorative art. */
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
@@ -68,6 +77,7 @@ export function ScreenHeader({
   mode = 'band',
   title,
   height = DEFAULT_HEIGHT,
+  scrimLocations = SCRIM_LOCATIONS,
   accessibilityLabel,
   style,
   testID,
@@ -92,7 +102,7 @@ export function ScreenHeader({
       {/* Mist-white scrim sibling above the image, fading both seams to mist. */}
       <LinearGradient
         colors={SCRIM_COLORS}
-        locations={SCRIM_LOCATIONS}
+        locations={scrimLocations}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />

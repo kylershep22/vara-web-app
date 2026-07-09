@@ -29,6 +29,16 @@ const MIN_TOUCH_TARGET = 48;
 // How far the primary card rides up onto the header's bottom (mist) seam.
 const CARD_OVERLAP = Spacing.xl;
 
+// EXPERIMENTAL (Slice B on-device eval): a deliberately stronger-artwork scrim,
+// Focus-home ONLY. It pulls the top wash off entirely (top stop at 0) and pushes
+// the bottom-transparent stop later (0.7 -> 0.82) so more of the real watercolor
+// — the sun + hills that sit in the lower third — reveals. Only the scrim moves:
+// the Image keeps contentFit/contentPosition and has no opacity/tint/filter. The
+// bottom fade (0.82 -> 1) is kept for the card overlap. The shared ScreenHeader
+// default is untouched, so no other hero is affected. Revert = delete this const
+// and the scrimLocations prop below (one line).
+const FOCUS_STRONG_SCRIM = [0, 0, 0.82, 1] as const;
+
 type NavigationProp = NativeStackNavigationProp<{
   FocusTimer: { fromHub?: boolean } | undefined;
   FocusRhythms: undefined;
@@ -46,7 +56,12 @@ export function FocusHubScreen() {
 
         {/* The single hero illustration. Full-bleed band; the in-code mist scrim
             fades both seams into the page so there is no hard image edge. */}
-        <ScreenHeader source={focusHeader} mode="band" style={styles.header} />
+        <ScreenHeader
+          source={focusHeader}
+          mode="band"
+          scrimLocations={FOCUS_STRONG_SCRIM}
+          style={styles.header}
+        />
 
         {/* Primary action: whole-card tappable (no inner button, per the card
             rule). Overlaps the header's bottom seam. Opens the Pomodoro timer. */}
