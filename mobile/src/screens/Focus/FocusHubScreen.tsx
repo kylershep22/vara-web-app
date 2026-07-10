@@ -30,14 +30,15 @@ const MIN_TOUCH_TARGET = 48;
 const CARD_OVERLAP = Spacing.xl;
 
 // EXPERIMENTAL (Slice B on-device eval): a deliberately stronger-artwork scrim,
-// Focus-home ONLY. It pulls the top wash off entirely (top stop at 0) and pushes
-// the bottom-transparent stop later (0.7 -> 0.82) so more of the real watercolor
+// Focus-home ONLY. It keeps only a faint top blend (top stop ~0.05) so the cream
+// art melts into the mist background with no hard seam, and pushes the
+// bottom-transparent stop later (0.7 -> 0.82) so more of the real watercolor
 // — the sun + hills that sit in the lower third — reveals. Only the scrim moves:
 // the Image keeps contentFit/contentPosition and has no opacity/tint/filter. The
 // bottom fade (0.82 -> 1) is kept for the card overlap. The shared ScreenHeader
 // default is untouched, so no other hero is affected. Revert = delete this const
 // and the scrimLocations prop below (one line).
-const FOCUS_STRONG_SCRIM = [0, 0, 0.82, 1] as const;
+const FOCUS_STRONG_SCRIM = [0, 0.05, 0.82, 1] as const;
 
 type NavigationProp = NativeStackNavigationProp<{
   FocusTimer: { fromHub?: boolean } | undefined;
