@@ -16,11 +16,29 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import { FAB_SCROLL_CLEARANCE } from '../../constants/fabLayout';
+import { ScreenHeader } from '../../components/shared/ScreenHeader';
+
+// The one illustration on Focus home: a watercolor header band. Raster asset
+// (WebP) rendered via ScreenHeader's expo-image layer, never an SVG icon.
+const focusHeader = require('../../../assets/images/focusHeader.webp');
 
 const MIN_TOUCH_TARGET = 48;
+// How far the primary card rides up onto the header's bottom (mist) seam.
+const CARD_OVERLAP = Spacing.xl;
+
+// EXPERIMENTAL (Slice B on-device eval): a deliberately stronger-artwork scrim,
+// Focus-home ONLY. It keeps only a faint top blend (top stop ~0.05) so the cream
+// art melts into the mist background with no hard seam, and pushes the
+// bottom-transparent stop later (0.7 -> 0.82) so more of the real watercolor
+// — the sun + hills that sit in the lower third — reveals. Only the scrim moves:
+// the Image keeps contentFit/contentPosition and has no opacity/tint/filter. The
+// bottom fade (0.82 -> 1) is kept for the card overlap. The shared ScreenHeader
+// default is untouched, so no other hero is affected. Revert = delete this const
+// and the scrimLocations prop below (one line).
+const FOCUS_STRONG_SCRIM = [0, 0.05, 0.82, 1] as const;
 
 type NavigationProp = NativeStackNavigationProp<{
   FocusTimer: { fromHub?: boolean } | undefined;
@@ -33,11 +51,21 @@ export function FocusHubScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} testID="focus-hub">
+        {/* Band mode: the screen owns the title/subtitle, above the header. */}
         <Text style={styles.title}>Focus</Text>
         <Text style={styles.intro}>Protected time for one thing at a time.</Text>
 
+        {/* The single hero illustration. Full-bleed band; the in-code mist scrim
+            fades both seams into the page so there is no hard image edge. */}
+        <ScreenHeader
+          source={focusHeader}
+          mode="band"
+          scrimLocations={FOCUS_STRONG_SCRIM}
+          style={styles.header}
+        />
+
         {/* Primary action: whole-card tappable (no inner button, per the card
-            rule). Opens the existing Pomodoro timer. */}
+            rule). Overlaps the header's bottom seam. Opens the Pomodoro timer. */}
         <TouchableOpacity
           style={styles.primaryCard}
           onPress={() => navigation.navigate(ROUTES.FocusTimer, { fromHub: true })}
@@ -93,7 +121,14 @@ const styles = StyleSheet.create({
   intro: {
     ...TextStyles.body,
     color: Colors.mutedSageGray,
-    marginBottom: Spacing.xl,
+    // Tight gap so the title/subtitle and the header band read as one unit.
+    marginBottom: Spacing.xs,
+  },
+  header: {
+    // Full-bleed: cancel the ScrollView's horizontal padding on BOTH edges so
+    // the band runs edge to edge. ScreenHeader has no fixed width, so the
+    // negative margins stretch it the full screen width with no right-edge clip.
+    marginHorizontal: -Spacing.lg,
   },
   primaryCard: {
     padding: Spacing.lg,
@@ -102,6 +137,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.divider,
     backgroundColor: Colors.surface,
     marginBottom: Spacing.md,
+    // Ride up onto the header's bottom seam. zIndex + elevation keep the card
+    // above the band on both platforms so the overlap reads.
+    marginTop: -CARD_OVERLAP,
+    zIndex: 1,
+    ...Layout.shadow.md,
   },
   primaryEyebrow: {
     fontSize: 12,

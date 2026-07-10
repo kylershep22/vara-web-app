@@ -20,3 +20,4 @@ export { OfflineIndicator } from './OfflineIndicator';
 export { Badge } from './Badge';
 export type { BadgeVariant } from './Badge';
 export { CommunityAvatar } from './CommunityAvatar';
+export { ScreenHeader } from './ScreenHeader';
