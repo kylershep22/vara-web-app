@@ -46,6 +46,17 @@ const SCRIM_COLORS = [
 ] as const;
 const SCRIM_LOCATIONS = [0, 0.15, 0.7, 1] as const;
 
+/**
+ * BAND_STRONG_SCRIM — the approved stronger-artwork scrim for launch hero bands
+ * (Focus, Energy, …). Pass to ScreenHeader's `scrimLocations`. It keeps only a
+ * faint top blend (top stop 0.05) so the cream art melts into the mist page with
+ * no hard seam, holds the art transparent through 0.82, and keeps a bottom fade
+ * (0.82 -> 1) so the first card can overlap the bottom seam cleanly. The colors
+ * are untouched (pure mist alpha) — no image opacity/tint/contrast/filter. This
+ * is the single source of truth so the value cannot drift across heroes.
+ */
+export const BAND_STRONG_SCRIM = [0, 0.05, 0.82, 1] as const;
+
 type ScreenHeaderMode = 'band' | 'overlay';
 
 interface ScreenHeaderProps {
