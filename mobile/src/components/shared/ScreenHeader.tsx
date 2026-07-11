@@ -77,6 +77,13 @@ interface ScreenHeaderProps {
    * is still pure mist alpha: no image opacity/tint/contrast/filter involved.
    */
   scrimLocations?: readonly [number, number, ...number[]];
+  /**
+   * How the cover crop is anchored, per the asset's composition. Defaults to
+   * `bottom` (Focus: subject in the lower third). Pass `center` when the subject
+   * sits mid-frame (Energy: mountain peak upper-center + river valley), so the
+   * band frames it rather than biasing toward one edge.
+   */
+  contentPosition?: ImageProps['contentPosition'];
   /** Describes the illustration for screen readers. Omit for decorative art. */
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
@@ -89,6 +96,7 @@ export function ScreenHeader({
   title,
   height = DEFAULT_HEIGHT,
   scrimLocations = SCRIM_LOCATIONS,
+  contentPosition = 'bottom',
   accessibilityLabel,
   style,
   testID,
@@ -96,15 +104,16 @@ export function ScreenHeader({
   return (
     <View style={[styles.container, { height }, style]} testID={testID}>
       {/* Raster watercolor art at absolute-fill (NOT ImageBackground). The art
-          is a wide 3:1 asset whose subject (sun + mountain ridgeline) sits in
-          the lower third; contentPosition="bottom" biases the cover crop down
-          so the band frames the subject, not the empty pale sky above it. No
-          opacity is applied to the Image — the scrim does all the blending. */}
+          is a wide 3:1 asset covered into the band; `contentPosition` anchors
+          the crop to the asset's subject (bottom for a lower-third subject,
+          center for a mid-frame one) so the band frames the subject, not empty
+          sky. No opacity is applied to the Image — the scrim does all the
+          blending. */}
       <Image
         source={source}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
-        contentPosition="bottom"
+        contentPosition={contentPosition}
         transition={0}
         accessible={!!accessibilityLabel}
         accessibilityLabel={accessibilityLabel}
