@@ -129,16 +129,26 @@ describe('Brand copy guard - em-dash + optim*', () => {
   });
 });
 
-// Conversion surfaces (the paywall + Create Account screen) additionally must
-// stay OUTCOMES-LED. The June pivot moved brain health from headline to
-// backbone, so these highest-intent screens must not reintroduce brain-health-
-// led framing. Scoped to just these two files on purpose: a tree-wide "brain
-// health" ban would trip legitimate uses (e.g. brainHealthMapping.ts). Comments
-// are stripped first, so a comment that mentions the retired framing to explain
-// why it was removed does not trip the guard.
+// Conversion + in-app headline surfaces additionally must stay OUTCOMES-LED.
+// The June pivot moved brain health from headline to backbone, so these
+// highest-intent / hero-copy screens must not reintroduce brain-health-led
+// framing. Scoped to a curated list on purpose: a tree-wide "brain health" ban
+// would trip legitimate BACKBONE education (e.g. brainHealthMapping.ts, the
+// Learn/Masterclass explainer body). These surfaces carry acquisition or
+// in-app *headline/hub/empty-state* copy where leading with "your brain" is the
+// violation; explainer body copy that uses the backbone as the "why" is NOT
+// listed here. Comments are stripped first, so a comment that mentions the
+// retired framing to explain why it was removed does not trip the guard.
 const OUTCOMES_LED_SURFACES = [
   'src/screens/PaywallScreen.tsx',
   'src/screens/auth/SignupScreen.tsx',
+  // In-app pillar/reflection headline surfaces (v2 outcomes-led sweep). The
+  // Energy hub (three-ways cards + Learn/Journal rows), the Journal intro
+  // callout, and the Journal empty state are hub/headline copy, so they hold to
+  // the same no-brain-health-led-framing rule as the conversion screens.
+  'src/screens/Energy/EnergyHubScreen.tsx',
+  'src/screens/JournalScreen.tsx',
+  'src/components/journal/JournalEmptyState.tsx',
 ];
 
 const RETIRED_POSITIONING_PATTERNS = [

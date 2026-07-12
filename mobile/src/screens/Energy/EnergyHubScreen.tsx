@@ -84,7 +84,7 @@ const SECONDARY_ENTRIES: SecondaryEntry[] = [
     id: 'learn',
     route: 'Masterclass',
     label: 'Learn',
-    descriptor: 'Short lessons on how your brain works.',
+    descriptor: 'Short lessons on why these practices work.',
     icon: 'school-outline',
   },
 ];

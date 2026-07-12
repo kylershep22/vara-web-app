@@ -27,7 +27,7 @@ export const JournalEmptyState: React.FC<JournalEmptyStateProps> = ({
         <Ionicons name="journal-outline" size={96} color={Colors.evergreenTeal} />
       </View>
 
-      <Text style={styles.headline}>Every thought matters</Text>
+      <Text style={styles.headline}>A quiet place to reflect</Text>
 
       <Text style={styles.body}>
         {"Capture what's on your mind when you're ready. It only takes a moment."}

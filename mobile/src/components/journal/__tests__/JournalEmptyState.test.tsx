@@ -35,7 +35,7 @@ describe('JournalEmptyState', () => {
       <JournalEmptyState onStartReflection={jest.fn()} />
     );
 
-    expect(getByText('Every thought matters')).toBeTruthy();
+    expect(getByText('A quiet place to reflect')).toBeTruthy();
     expect(
       getByText(
         "Capture what's on your mind when you're ready. It only takes a moment."
