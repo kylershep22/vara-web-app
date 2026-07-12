@@ -27,7 +27,16 @@ import NudgeCard from '../components/dashboard/NudgeCard';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
+import { ScreenHeader, BAND_STRONG_SCRIM } from '../components/shared/ScreenHeader';
 import { DASHBOARD_SUPPRESS } from '../constants/dashboardConfig';
+
+// The one illustration on Home: a watercolor header band. Raster asset (WebP)
+// rendered via ScreenHeader's expo-image layer, never an SVG icon.
+const homeHeader = require('../../assets/images/homeHeader.webp');
+
+// How far the first content block rides up onto the header's bottom (mist) seam
+// — matches Focus/Energy so the overlap reads identically across heroes.
+const CARD_OVERLAP = Spacing.xl;
 import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebase';
@@ -181,6 +190,20 @@ const DashboardScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* Hero band (reuses Focus/Energy's ScreenHeader + BAND_STRONG_SCRIM).
+            Full-bleed; the in-code mist scrim fades both seams into the page so
+            there is no hard image edge. contentPosition="center" frames this
+            asset's panoramic subject (sun + mountain range + valley), which is
+            spread across the frame rather than lower-third like Focus. The
+            first content block below overlaps the bottom seam (marginBottom). */}
+        <ScreenHeader
+          source={homeHeader}
+          mode="band"
+          scrimLocations={BAND_STRONG_SCRIM}
+          contentPosition="center"
+          style={styles.headerBand}
+        />
+
         {/* Error banner — non-blocking, shows which data failed */}
         {dataErrors.length > 0 && (
           <View style={styles.errorBanner}>
@@ -311,7 +334,20 @@ const styles = StyleSheet.create({
     paddingBottom: FAB_SCROLL_CLEARANCE,
   },
   header: {
-    marginBottom: Spacing.lg,
+    // Tight gap so the greeting and the header band read as one unit
+    // (matches Focus/Energy).
+    marginBottom: Spacing.xs,
+  },
+  headerBand: {
+    // Full-bleed: cancel the ScrollView's horizontal padding on BOTH edges so
+    // the band runs edge to edge with no right-edge clip. NOTE: this screen's
+    // scrollContent uses Spacing.base (16), NOT Spacing.lg like Focus/Energy —
+    // the negative margin MUST match the parent padding or the band overshoots.
+    marginHorizontal: -Spacing.base,
+    // Let the first content block below ride up onto the header's bottom (mist)
+    // seam at the shared overlap depth. Content paints after the band (later
+    // sibling), so it sits above the seam.
+    marginBottom: -CARD_OVERLAP,
   },
   headerTop: {
     flexDirection: 'row',
