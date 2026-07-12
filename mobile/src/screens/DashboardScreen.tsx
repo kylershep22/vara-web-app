@@ -28,6 +28,7 @@ import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../components/shared/ScreenHeader';
+import { GuidePill } from '../components/ai/GuidePill';
 import { DASHBOARD_SUPPRESS } from '../constants/dashboardConfig';
 
 // The one illustration on Home: a watercolor header band. Raster asset (WebP)
@@ -180,13 +181,21 @@ const DashboardScreen: React.FC = () => {
               <Text style={styles.greeting}>{greeting}</Text>
               <Text style={styles.dateText}>{formattedDate}</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ProfileStack' as never, { screen: 'Settings' } as never)}
-              style={styles.settingsButton}
-              accessibilityLabel="Settings"
-            >
-              <Icon name="cog-outline" size={28} color={Colors.evergreenTeal} />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              {/* Docked Guide pill, left of Settings. Hidden pre-check-in so the
+                  check-in invite stays the single focus (matches the FAB's old
+                  pre-check-in hide); returns once the user has checked in. */}
+              {dashboardPhase === 'checked-in' && (
+                <GuidePill context={{ screen: 'home' }} testID="home-guide" />
+              )}
+              <TouchableOpacity
+                onPress={() => navigation.navigate('ProfileStack' as never, { screen: 'Settings' } as never)}
+                style={styles.settingsButton}
+                accessibilityLabel="Settings"
+              >
+                <Icon name="cog-outline" size={28} color={Colors.evergreenTeal} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -356,6 +365,11 @@ const styles = StyleSheet.create({
   },
   headerTextContainer: {
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   greeting: {
     color: Colors.evergreenTeal,

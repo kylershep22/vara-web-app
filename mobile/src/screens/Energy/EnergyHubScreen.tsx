@@ -20,6 +20,7 @@ import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import type { ProtocolBrowseCategory } from '../../types/models';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../../components/shared/ScreenHeader';
+import { GuidePill } from '../../components/ai/GuidePill';
 
 // The one illustration on Energy home: a watercolor header band. Raster asset
 // (WebP) rendered via ScreenHeader's expo-image layer, never an SVG icon.
@@ -109,13 +110,19 @@ export function EnergyHubScreen() {
             hard image edge. contentPosition="center" frames this asset's subject
             (mountain peak upper-center + river valley), which is mid-frame rather
             than lower-third like Focus. */}
-        <ScreenHeader
-          source={energyHeader}
-          mode="band"
-          scrimLocations={BAND_STRONG_SCRIM}
-          contentPosition="center"
-          style={styles.header}
-        />
+        <View style={styles.header}>
+          <ScreenHeader
+            source={energyHeader}
+            mode="band"
+            scrimLocations={BAND_STRONG_SCRIM}
+            contentPosition="center"
+          />
+          <GuidePill
+            context={{ screen: 'energy' }}
+            style={styles.headerGuide}
+            testID="energy-hub-guide"
+          />
+        </View>
 
         {/* First card overlaps the header's bottom seam (matches Focus). */}
         <View style={styles.cards}>
@@ -195,6 +202,16 @@ const styles = StyleSheet.create({
     // the band runs edge to edge. ScreenHeader has no fixed width, so the
     // negative margins stretch it the full screen width with no right-edge clip.
     marginHorizontal: -Spacing.lg,
+    // Anchor for the absolutely-positioned docked Guide pill.
+    position: 'relative',
+  },
+  headerGuide: {
+    position: 'absolute',
+    top: Spacing.base,
+    // Bring the pill in from the full-bleed edge so its right edge aligns with
+    // the content column (screen padding is Spacing.lg here).
+    right: Spacing.lg,
+    zIndex: 2,
   },
   cards: {
     gap: Spacing.md,

@@ -22,6 +22,7 @@ import { LoadingSpinner, PostCard } from '../../components';
 import { PostOverflowSheet } from '../../components/community/PostOverflowSheet';
 import { EditPostModal } from '../../components/community/EditPostModal';
 import { CommunityFeedHeader } from '../../components/community/CommunityFeedHeader';
+import { GuidePill } from '../../components/ai/GuidePill';
 import { CommunityOrientationCard } from '../../components/community/CommunityOrientationCard';
 import CreatePostModal from '../../components/community/CreatePostModal';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -184,21 +185,25 @@ const CommunityScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.screenTitle}>Community</Text>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={() => navigation.navigate('ProfileStack')}
-        >
-          {userProfile?.avatarUrl ? (
-            <Image
-              source={{ uri: userProfile.avatarUrl }}
-              style={styles.profileImage as ImageStyle}
-            />
-          ) : (
-            <View style={styles.profileAvatarFallback}>
-              <Text style={styles.profileAvatarText}>{initials}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {/* Docked Guide pill, left of the profile avatar. */}
+          <GuidePill context={{ screen: 'community' }} testID="community-guide" />
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => navigation.navigate('ProfileStack')}
+          >
+            {userProfile?.avatarUrl ? (
+              <Image
+                source={{ uri: userProfile.avatarUrl }}
+                style={styles.profileImage as ImageStyle}
+              />
+            ) : (
+              <View style={styles.profileAvatarFallback}>
+                <Text style={styles.profileAvatarText}>{initials}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {!isReady || !orientationChecked || (loading && posts.length === 0) ? (
@@ -298,6 +303,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     paddingTop: Spacing.md,
     paddingBottom: 0,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   screenTitle: {
     color: Colors.evergreenTeal,

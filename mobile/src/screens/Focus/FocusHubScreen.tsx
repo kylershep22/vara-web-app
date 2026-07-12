@@ -20,6 +20,7 @@ import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants
 import { ROUTES } from '../../navigation/routes';
 import { FAB_SCROLL_CLEARANCE } from '../../constants/fabLayout';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../../components/shared/ScreenHeader';
+import { GuidePill } from '../../components/ai/GuidePill';
 
 // The one illustration on Focus home: a watercolor header band. Raster asset
 // (WebP) rendered via ScreenHeader's expo-image layer, never an SVG icon.
@@ -45,13 +46,21 @@ export function FocusHubScreen() {
         <Text style={styles.intro}>Protected time for one thing at a time.</Text>
 
         {/* The single hero illustration. Full-bleed band; the in-code mist scrim
-            fades both seams into the page so there is no hard image edge. */}
-        <ScreenHeader
-          source={focusHeader}
-          mode="band"
-          scrimLocations={BAND_STRONG_SCRIM}
-          style={styles.header}
-        />
+            fades both seams into the page so there is no hard image edge. The
+            docked Guide pill sits top-right over the band (its opaque teal fill
+            keeps it legible against the art). */}
+        <View style={styles.header}>
+          <ScreenHeader
+            source={focusHeader}
+            mode="band"
+            scrimLocations={BAND_STRONG_SCRIM}
+          />
+          <GuidePill
+            context={{ screen: 'focus' }}
+            style={styles.headerGuide}
+            testID="focus-hub-guide"
+          />
+        </View>
 
         {/* Primary action: whole-card tappable (no inner button, per the card
             rule). Overlaps the header's bottom seam. Opens the Pomodoro timer. */}
@@ -118,6 +127,16 @@ const styles = StyleSheet.create({
     // the band runs edge to edge. ScreenHeader has no fixed width, so the
     // negative margins stretch it the full screen width with no right-edge clip.
     marginHorizontal: -Spacing.lg,
+    // Anchor for the absolutely-positioned docked Guide pill.
+    position: 'relative',
+  },
+  headerGuide: {
+    position: 'absolute',
+    top: Spacing.base,
+    // Bring the pill in from the full-bleed edge so its right edge aligns with
+    // the content column (screen padding is Spacing.lg here).
+    right: Spacing.lg,
+    zIndex: 2,
   },
   primaryCard: {
     padding: Spacing.lg,
