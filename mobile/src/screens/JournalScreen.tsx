@@ -555,8 +555,8 @@ const JournalScreen: React.FC = () => {
       {/* Highlight Card intro — matches the Sleep Library pattern */}
       <View style={styles.highlightCard}>
         <Text style={styles.highlightText}>
-          Reflection is how your brain makes sense of experience. A few notes
-          here add up to real self-knowledge over time.
+          Putting what's on your mind into words helps you make sense of it. A
+          few notes here add up to real self-knowledge over time.
         </Text>
       </View>
 
