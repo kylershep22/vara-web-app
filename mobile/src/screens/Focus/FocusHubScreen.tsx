@@ -18,7 +18,6 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
-import { FAB_SCROLL_CLEARANCE } from '../../constants/fabLayout';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../../components/shared/ScreenHeader';
 import { GuidePill } from '../../components/ai/GuidePill';
 
@@ -108,8 +107,8 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
-    // A3: clear the docked Guide FAB so the secondary card isn't occluded.
-    paddingBottom: FAB_SCROLL_CLEARANCE,
+    // Comfortable bottom breathing room (the Guide is a top-right pill now).
+    paddingBottom: Spacing['2xl'],
   },
   title: {
     ...TextStyles.h1,

@@ -20,7 +20,6 @@ import { SuggestedActionCard } from '../components/dashboard/SuggestedActionCard
 import { InsightCard } from '../components/dashboard/InsightCard';
 import { RoutineCard } from '../components/dashboard/RoutineCard';
 import { InsightsLookbackCard } from '../components/dashboard/InsightsLookbackCard';
-import { FAB_SCROLL_CLEARANCE } from '../constants/fabLayout';
 import { suggestedAction } from '../components/dashboard/suggestedAction';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import NudgeCard from '../components/dashboard/NudgeCard';
@@ -94,19 +93,6 @@ const DashboardScreen: React.FC = () => {
     });
     return () => unsubscribe();
   }, [user?.uid]);
-
-  // Phase 2.8.1 — hide the global FAB during the focused brain-state
-  // check-in entry flow (dashboardPhase === 'pre-checkin'). When the
-  // user completes (or skips) the check-in and the phase transitions
-  // to 'checked-in', the FAB returns. Dashboard's Stack.Screen
-  // declares showFAB: true; this override applies for the screen's
-  // lifetime in the tab stack. Cast bypasses the excess-property
-  // check on the navigator's options type (see navigation/types.ts).
-  useEffect(() => {
-    navigation.setOptions(
-      { showFAB: dashboardPhase === 'checked-in' } as any
-    );
-  }, [navigation, dashboardPhase]);
 
   // System prompts that survive the rework, rendered after the spec content
   // cards. NotificationOptIn / EventCode are left as-is pending the live-entry
@@ -339,8 +325,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.lg,
-    // A3: clear the docked Guide FAB so the bottom "Look back" card isn't occluded.
-    paddingBottom: FAB_SCROLL_CLEARANCE,
+    // Comfortable bottom breathing room above the tab bar (the Guide is now a
+    // top-right pill, so no bottom-FAB clearance is needed).
+    paddingBottom: Spacing['2xl'],
   },
   header: {
     // Tight gap so the greeting and the header band read as one unit

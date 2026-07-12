@@ -12,9 +12,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { Colors } from '../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { stackOpts, tabOpts } from './types';
-import { FABHost } from './FABHost';
 import { OfflineIndicator } from '../components/shared/OfflineIndicator';
-import { useHabits } from '../hooks/useHabits';
 import { useSubscription } from '../hooks/useSubscription';
 import { ONBOARDING_V2, FOUR_PILLAR_IA } from '../constants/dashboardConfig';
 import { ROUTES } from './routes';
@@ -244,7 +242,6 @@ const CommunityNavigator = () => {
         component={CommunityScreen}
         options={stackOpts({
           headerShown: false, // Community has custom header
-          showFAB: true,
         })}
       />
       <CommunityStack.Screen
@@ -252,7 +249,6 @@ const CommunityNavigator = () => {
         component={GroupsScreen}
         options={stackOpts({
           headerShown: false, // GroupsScreen has custom header
-          showFAB: true,
         })}
       />
       <CommunityStack.Screen
@@ -260,7 +256,6 @@ const CommunityNavigator = () => {
         component={GroupDetailScreen}
         options={stackOpts({
           headerShown: false, // GroupDetailScreen has custom header
-          showFAB: true,
         })}
       />
       <CommunityStack.Screen
@@ -268,7 +263,6 @@ const CommunityNavigator = () => {
         component={ChallengesScreen}
         options={stackOpts({
           headerShown: false, // ChallengesScreen has custom header
-          showFAB: true,
         })}
       />
       <CommunityStack.Screen
@@ -276,7 +270,6 @@ const CommunityNavigator = () => {
         component={ChallengeDetailScreen}
         options={stackOpts({
           headerShown: false, // ChallengeDetailScreen has custom header
-          showFAB: true,
         })}
       />
       <CommunityStack.Screen
@@ -284,7 +277,6 @@ const CommunityNavigator = () => {
         component={PeopleScreen}
         options={stackOpts({
           headerShown: false, // PeopleScreen has custom header
-          showFAB: true,
         })}
       />
       <CommunityStack.Screen
@@ -292,7 +284,6 @@ const CommunityNavigator = () => {
         component={ConversationsScreen}
         options={stackOpts({
           headerShown: false, // MessagesScreen has custom header
-          showFAB: true,
         })}
       />
       <CommunityStack.Screen
@@ -300,7 +291,6 @@ const CommunityNavigator = () => {
         component={ChatScreen}
         options={stackOpts({
           headerShown: true,
-          showFAB: true,
         })}
       />
       <CommunityStack.Screen
@@ -308,7 +298,6 @@ const CommunityNavigator = () => {
         component={UserProfileScreen}
         options={stackOpts({
           headerShown: false, // UserProfileScreen has custom header
-          showFAB: true,
         })}
       />
       <CommunityStack.Screen
@@ -351,7 +340,6 @@ const ProfileNavigator = () => {
           headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
-          showFAB: true,
         })}
       />
       <ProfileStack.Screen
@@ -363,7 +351,6 @@ const ProfileNavigator = () => {
           headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
-          showFAB: true,
         })}
       />
       <ProfileStack.Screen
@@ -371,7 +358,6 @@ const ProfileNavigator = () => {
         component={NotificationSettingsScreen}
         options={stackOpts({
           headerShown: false, // NotificationSettingsScreen has its own header
-          showFAB: true,
         })}
       />
       <ProfileStack.Screen
@@ -379,7 +365,6 @@ const ProfileNavigator = () => {
         component={MutedAccountsScreen}
         options={stackOpts({
           headerShown: false,
-          showFAB: true,
         })}
       />
     </ProfileStack.Navigator>
@@ -419,7 +404,6 @@ const BottomTabsNavigator = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="view-dashboard" size={size} color={color} />
           ),
-          showFAB: true,
         })}
       />
       <BottomTabs.Screen
@@ -430,7 +414,6 @@ const BottomTabsNavigator = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="clipboard-check" size={size} color={color} />
           ),
-          showFAB: true,
         })}
       />
       <BottomTabs.Screen
@@ -441,7 +424,6 @@ const BottomTabsNavigator = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="account-group" size={size} color={color} />
           ),
-          showFAB: true,
         })}
       />
       {/* The Wellness tab (MoreMenuScreen) was dissolved in B-3d.7: its items
@@ -472,10 +454,9 @@ const BottomTabsNavigator = () => {
  *   Time      → PlanScreen          (existing habits + routines, for now)
  *   Community → CommunityNavigator  (unchanged)
  *
- * FAB: matches each tab's current equivalent — Home/Time/Community show it, and
- * Focus keeps it (the FocusHubScreen tab, B-3c). Energy is intentionally
- * no-FAB: a browse hub does not host the AI assistant CTA. (The Focus-hub FAB
- * disposition is unchanged in B-3c; any Guide-pill migration is a later slice.)
+ * AI Guide: a docked pill mounted per pillar hub (components/ai/GuidePill.tsx),
+ * top-right on all five pillar screens. It is no longer a global FAB threaded
+ * through screen options; session surfaces hide it by not mounting it.
  *
  * Icons for Focus/Energy/Time are approximate scaffold placeholders
  * (timer-outline / lightning-bolt / clock-outline) — refine in B-3b.
@@ -509,7 +490,6 @@ const FivePillarTabs = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="view-dashboard" size={size} color={color} />
           ),
-          showFAB: true,
         })}
       />
       <BottomTabs.Screen
@@ -520,7 +500,6 @@ const FivePillarTabs = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="timer-outline" size={size} color={color} />
           ),
-          showFAB: true,
         })}
       />
       <BottomTabs.Screen
@@ -531,8 +510,6 @@ const FivePillarTabs = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="lightning-bolt" size={size} color={color} />
           ),
-          // Intentional: a browse hub does not host the AI FAB.
-          showFAB: false,
         })}
       />
       <BottomTabs.Screen
@@ -543,7 +520,6 @@ const FivePillarTabs = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="clock-outline" size={size} color={color} />
           ),
-          showFAB: true,
         })}
       />
       <BottomTabs.Screen
@@ -554,7 +530,6 @@ const FivePillarTabs = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="account-group" size={size} color={color} />
           ),
-          showFAB: true,
         })}
       />
     </BottomTabs.Navigator>
@@ -566,13 +541,6 @@ const FivePillarTabs = () => {
  * Screens for authenticated users
  */
 const MainNavigator = () => {
-  // Call hooks at top level (required by Rules of Hooks)
-  // Provide safe defaults if data isn't available yet
-  const habitsData = useHabits();
-
-  // Safely extract data with fallbacks
-  const habits = habitsData?.habits || [];
-
   return (
     <>
       <OfflineIndicator />
@@ -596,7 +564,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Your week',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         {/* Focus Timer - Accessible from Wellness menu */}
@@ -609,7 +576,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Focus',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         {/* Journal - Accessible from Wellness menu */}
@@ -622,7 +588,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Journal',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         {/* Breathwork - Accessible from Wellness menu */}
@@ -635,7 +600,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Breathwork',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         <AppStack.Screen
@@ -647,7 +611,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Session Details',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         {/* Sleep - Accessible from Wellness menu */}
@@ -660,7 +623,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Sleep Library',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         <AppStack.Screen
@@ -672,7 +634,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Sleep Content',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         {/* Movement - Accessible from Wellness menu */}
@@ -685,7 +646,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Movement Library',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         <AppStack.Screen
@@ -697,7 +657,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Workout Details',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         {/* Masterclass - Accessible from Wellness menu */}
@@ -712,7 +671,6 @@ const MainNavigator = () => {
             // agree. (Route id stays "Masterclass"; only the visible title changes.)
             title: 'Learn',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         <AppStack.Screen
@@ -724,7 +682,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Class Details',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         <AppStack.Screen
@@ -736,7 +693,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Episode',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         {/* Help & Support - Accessible from Wellness menu */}
@@ -746,7 +702,6 @@ const MainNavigator = () => {
           options={stackOpts({
             animation: 'slide_from_right',
             headerShown: false,
-            showFAB: true,
           })}
         />
         {/* Connected Apps */}
@@ -759,7 +714,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Connected Apps',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         {/* Habit Detail - Accessible from Plan/Track screen */}
@@ -774,7 +728,6 @@ const MainNavigator = () => {
             headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
             headerTintColor: '#fff',
             headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
-            showFAB: true,
           })}
         />
         {/* Profile screens accessible from anywhere */}
@@ -821,7 +774,6 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Other options',
             headerShadowVisible: false,
-            showFAB: true,
           })}
         />
         <AppStack.Screen
@@ -836,8 +788,8 @@ const MainNavigator = () => {
             the old four-tab IA never registers it (flag OFF = byte-identical).
             The Energy tab (PillarEnergy → EnergyHubScreen) navigates here; this
             screen launches the existing player via PracticeRun. Title is set
-            per-category in-screen; showFAB stays off to match the Energy
-            pillar's browse-hub intent. */}
+            per-category in-screen. No Guide pill here: it lives on the Energy
+            hub, not its browse lists. */}
         {FOUR_PILLAR_IA && (
           <AppStack.Screen
             name={ROUTES.EnergyBrowse}
@@ -849,13 +801,12 @@ const MainNavigator = () => {
               animation: 'slide_from_right',
               headerShown: true,
               headerShadowVisible: false,
-              showFAB: false,
             })}
           />
         )}
         {/* Four-Pillar IA Phase B-3c — Focus rhythms. Flag-gated like the Energy
             hub browse list. The Focus tab (PillarFocus → FocusHubScreen)
-            navigates here; it is a quiet opt-in capture, so showFAB stays off. */}
+            navigates here; it is a quiet opt-in capture, no Guide pill. */}
         {FOUR_PILLAR_IA && (
           <AppStack.Screen
             name={ROUTES.FocusRhythms}
@@ -868,7 +819,6 @@ const MainNavigator = () => {
               headerShown: true,
               title: 'Focus rhythms',
               headerShadowVisible: false,
-              showFAB: false,
             })}
           />
         )}
@@ -924,16 +874,9 @@ const MainNavigator = () => {
           </>
         )}
       </AppStack.Navigator>
-
-      {/* Phase 2.8.1 — Global FAB visibility is driven by each
-          <Stack.Screen options.showFAB> declaration. Default is HIDE.
-          Destinations explicitly opt in; guided-sequence screens stay
-          silent and inherit the safe default. See navigation/types.ts
-          and PHASE_NOTES.md. */}
-      <FABHost
-        navigationRef={navigationRef}
-        context={{ screen: 'global', userHabits: habits }}
-      />
+      {/* The AI Guide is now a docked pill mounted per pillar hub
+          (components/ai/GuidePill.tsx), replacing the global bottom-right FAB.
+          Session surfaces hide it by simply not mounting it. */}
     </>
   );
 };
