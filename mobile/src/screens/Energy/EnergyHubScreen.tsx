@@ -19,8 +19,16 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import type { ProtocolBrowseCategory } from '../../types/models';
+import { ScreenHeader, BAND_STRONG_SCRIM } from '../../components/shared/ScreenHeader';
+
+// The one illustration on Energy home: a watercolor header band. Raster asset
+// (WebP) rendered via ScreenHeader's expo-image layer, never an SVG icon.
+const energyHeader = require('../../../assets/images/energyHeader.webp');
 
 const MIN_TOUCH_TARGET = 48;
+// How far the first category card rides up onto the header's bottom (mist) seam
+// — matches Focus so the overlap reads identically across heroes.
+const CARD_OVERLAP = Spacing.xl;
 
 interface CategoryCardConfig {
   category: ProtocolBrowseCategory;
@@ -96,6 +104,20 @@ export function EnergyHubScreen() {
         <Text style={styles.title}>Energy</Text>
         <Text style={styles.intro}>Three ways to shift how you feel.</Text>
 
+        {/* Hero band (reuses Focus's ScreenHeader + BAND_STRONG_SCRIM). Full-bleed;
+            the in-code mist scrim fades both seams into the page so there is no
+            hard image edge. contentPosition="center" frames this asset's subject
+            (mountain peak upper-center + river valley), which is mid-frame rather
+            than lower-third like Focus. */}
+        <ScreenHeader
+          source={energyHeader}
+          mode="band"
+          scrimLocations={BAND_STRONG_SCRIM}
+          contentPosition="center"
+          style={styles.header}
+        />
+
+        {/* First card overlaps the header's bottom seam (matches Focus). */}
         <View style={styles.cards}>
           {CATEGORIES.map((c) => (
             <TouchableOpacity
@@ -164,10 +186,22 @@ const styles = StyleSheet.create({
   intro: {
     ...TextStyles.body,
     color: Colors.mutedSageGray,
-    marginBottom: Spacing.xl,
+    // Tight gap so the title/subtitle and the header band read as one unit
+    // (matches Focus).
+    marginBottom: Spacing.xs,
+  },
+  header: {
+    // Full-bleed: cancel the ScrollView's horizontal padding on BOTH edges so
+    // the band runs edge to edge. ScreenHeader has no fixed width, so the
+    // negative margins stretch it the full screen width with no right-edge clip.
+    marginHorizontal: -Spacing.lg,
   },
   cards: {
     gap: Spacing.md,
+    // Ride the first card up onto the header's bottom (mist) seam. zIndex keeps
+    // the cards above the band; the opaque card surface reads over the seam.
+    marginTop: -CARD_OVERLAP,
+    zIndex: 1,
   },
   card: {
     minHeight: MIN_TOUCH_TARGET,

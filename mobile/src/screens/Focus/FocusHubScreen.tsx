@@ -19,7 +19,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import { FAB_SCROLL_CLEARANCE } from '../../constants/fabLayout';
-import { ScreenHeader } from '../../components/shared/ScreenHeader';
+import { ScreenHeader, BAND_STRONG_SCRIM } from '../../components/shared/ScreenHeader';
 
 // The one illustration on Focus home: a watercolor header band. Raster asset
 // (WebP) rendered via ScreenHeader's expo-image layer, never an SVG icon.
@@ -28,17 +28,6 @@ const focusHeader = require('../../../assets/images/focusHeader.webp');
 const MIN_TOUCH_TARGET = 48;
 // How far the primary card rides up onto the header's bottom (mist) seam.
 const CARD_OVERLAP = Spacing.xl;
-
-// EXPERIMENTAL (Slice B on-device eval): a deliberately stronger-artwork scrim,
-// Focus-home ONLY. It keeps only a faint top blend (top stop ~0.05) so the cream
-// art melts into the mist background with no hard seam, and pushes the
-// bottom-transparent stop later (0.7 -> 0.82) so more of the real watercolor
-// — the sun + hills that sit in the lower third — reveals. Only the scrim moves:
-// the Image keeps contentFit/contentPosition and has no opacity/tint/filter. The
-// bottom fade (0.82 -> 1) is kept for the card overlap. The shared ScreenHeader
-// default is untouched, so no other hero is affected. Revert = delete this const
-// and the scrimLocations prop below (one line).
-const FOCUS_STRONG_SCRIM = [0, 0.05, 0.82, 1] as const;
 
 type NavigationProp = NativeStackNavigationProp<{
   FocusTimer: { fromHub?: boolean } | undefined;
@@ -60,7 +49,7 @@ export function FocusHubScreen() {
         <ScreenHeader
           source={focusHeader}
           mode="band"
-          scrimLocations={FOCUS_STRONG_SCRIM}
+          scrimLocations={BAND_STRONG_SCRIM}
           style={styles.header}
         />
 
