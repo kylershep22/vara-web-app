@@ -102,7 +102,13 @@ export function EnergyHubScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} testID="energy-hub">
-        <Text style={styles.title}>Energy</Text>
+        {/* The Guide pill sits inline with the title, right-aligned — off the
+            art, so it never competes with the watercolor (the escape hatch from
+            placing it over the band). */}
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Energy</Text>
+          <GuidePill context={{ screen: 'energy' }} testID="energy-hub-guide" />
+        </View>
         <Text style={styles.intro}>Three ways to shift how you feel.</Text>
 
         {/* Hero band (reuses Focus's ScreenHeader + BAND_STRONG_SCRIM). Full-bleed;
@@ -116,11 +122,6 @@ export function EnergyHubScreen() {
             mode="band"
             scrimLocations={BAND_STRONG_SCRIM}
             contentPosition="center"
-          />
-          <GuidePill
-            context={{ screen: 'energy' }}
-            style={styles.headerGuide}
-            testID="energy-hub-guide"
           />
         </View>
 
@@ -185,10 +186,18 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.xl,
   },
+  // Title + Guide pill share one row; the pill is right-aligned and off the
+  // hero band. alignItems center vertically centers the pill against the title
+  // (matches Focus).
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+  },
   title: {
     ...TextStyles.h1,
     color: Colors.evergreenTeal,
-    marginBottom: Spacing.xs,
   },
   intro: {
     ...TextStyles.body,
@@ -202,16 +211,6 @@ const styles = StyleSheet.create({
     // the band runs edge to edge. ScreenHeader has no fixed width, so the
     // negative margins stretch it the full screen width with no right-edge clip.
     marginHorizontal: -Spacing.lg,
-    // Anchor for the absolutely-positioned docked Guide pill.
-    position: 'relative',
-  },
-  headerGuide: {
-    position: 'absolute',
-    top: Spacing.base,
-    // Bring the pill in from the full-bleed edge so its right edge aligns with
-    // the content column (screen padding is Spacing.lg here).
-    right: Spacing.lg,
-    zIndex: 2,
   },
   cards: {
     gap: Spacing.md,

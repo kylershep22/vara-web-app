@@ -40,24 +40,23 @@ export function FocusHubScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} testID="focus-hub">
-        {/* Band mode: the screen owns the title/subtitle, above the header. */}
-        <Text style={styles.title}>Focus</Text>
+        {/* Band mode: the screen owns the title/subtitle, above the header. The
+            Guide pill sits inline with the title, right-aligned — off the art,
+            so it never competes with the watercolor (the escape hatch from
+            placing it over the band). */}
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Focus</Text>
+          <GuidePill context={{ screen: 'focus' }} testID="focus-hub-guide" />
+        </View>
         <Text style={styles.intro}>Protected time for one thing at a time.</Text>
 
         {/* The single hero illustration. Full-bleed band; the in-code mist scrim
-            fades both seams into the page so there is no hard image edge. The
-            docked Guide pill sits top-right over the band (its opaque teal fill
-            keeps it legible against the art). */}
+            fades both seams into the page so there is no hard image edge. */}
         <View style={styles.header}>
           <ScreenHeader
             source={focusHeader}
             mode="band"
             scrimLocations={BAND_STRONG_SCRIM}
-          />
-          <GuidePill
-            context={{ screen: 'focus' }}
-            style={styles.headerGuide}
-            testID="focus-hub-guide"
           />
         </View>
 
@@ -110,10 +109,17 @@ const styles = StyleSheet.create({
     // Comfortable bottom breathing room (the Guide is a top-right pill now).
     paddingBottom: Spacing['2xl'],
   },
+  // Title + Guide pill share one row; the pill is right-aligned and off the
+  // hero band. alignItems center vertically centers the pill against the title.
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+  },
   title: {
     ...TextStyles.h1,
     color: Colors.evergreenTeal,
-    marginBottom: Spacing.xs,
   },
   intro: {
     ...TextStyles.body,
@@ -126,16 +132,6 @@ const styles = StyleSheet.create({
     // the band runs edge to edge. ScreenHeader has no fixed width, so the
     // negative margins stretch it the full screen width with no right-edge clip.
     marginHorizontal: -Spacing.lg,
-    // Anchor for the absolutely-positioned docked Guide pill.
-    position: 'relative',
-  },
-  headerGuide: {
-    position: 'absolute',
-    top: Spacing.base,
-    // Bring the pill in from the full-bleed edge so its right edge aligns with
-    // the content column (screen padding is Spacing.lg here).
-    right: Spacing.lg,
-    zIndex: 2,
   },
   primaryCard: {
     padding: Spacing.lg,
