@@ -210,6 +210,7 @@ function fillCatalogSlot(
       budgetClass,
       clockTime,
       history,
+      leadPreference: s.leadPreference,
     })[0];
 
   // Primary: the slot's own type/modalities, within budget.

@@ -42,7 +42,7 @@ export const settleSlot = (
 
 export const energizeSlot = (
   mode: SlotMode,
-  lengthClasses: LengthClass[] = ['short']
+  lengthClasses: LengthClass[] = ['short', 'medium', 'long']
 ): Slot => ({ pillar: 'energy', direction: 'energize', type: 'energize', lengthClasses, mode });
 
 export const nsdrSlot = (
