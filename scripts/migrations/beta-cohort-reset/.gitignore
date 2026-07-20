@@ -1,0 +1,14 @@
+# Never commit credentials or migration logs from this directory.
+serviceAccountKey.json
+*.key.json
+*-key.json
+*.log
+dry-run-*.txt
+apply-*.txt
+output/
+
+# Backup snapshots contain full user PII — never commit.
+backups/
+
+# Machine-specific corporate/AV root CA (Norton TLS-inspection) — not portable
+*.pem
