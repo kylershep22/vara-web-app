@@ -127,11 +127,17 @@ describe('onboarding first win is phone-only for every quadrant', () => {
       {} as Record<Quadrant, string | null>
     );
 
+    // PROVISIONAL — these leads come from the placeholder PRACTICE_LEAD_PREFERENCE
+    // seed (src/engine/practicePreference.ts), NOT a clinical decision. The seed
+    // ranks extended-exhale-2 ahead of box-breathing-2, so the three settle-led
+    // quadrants now surface Extended Exhale as the onboarding first win. If you
+    // are here because this gate tripped again: it guards a placeholder pending
+    // clinical review, so confirm the swap is intended before re-pinning.
     expect(leadByQuadrant).toEqual({
-      Tense: 'box-breathing-2',
+      Tense: 'extended-exhale-2',
       Activated: 'sensory-reset-2',
-      Depleted: 'box-breathing-2',
-      Calm: 'box-breathing-2',
+      Depleted: 'extended-exhale-2',
+      Calm: 'extended-exhale-2',
     });
   });
 });
