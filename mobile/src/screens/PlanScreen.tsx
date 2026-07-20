@@ -20,7 +20,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { Colors, Spacing, Typography, Layout } from '../constants';
+import { Colors, Spacing, Typography, Layout, TextStyles } from '../constants';
+import { GuidePill } from '../components/ai/GuidePill';
 import { FocusCopy } from '../constants/focusContent';
 import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import HabitsScreen from './HabitsScreen';
@@ -260,8 +261,12 @@ const PlanScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Time</Text>
-        <Text style={styles.pageSubtitle}>Your habits and routines</Text>
+        <View style={styles.headerText}>
+          <Text style={styles.pageTitle}>Time</Text>
+          <Text style={styles.pageSubtitle}>Your habits and routines</Text>
+        </View>
+        {/* Docked Guide pill, top-right (this pillar has no hero band). */}
+        <GuidePill context={{ screen: 'time' }} testID="time-guide" />
       </View>
 
       {/* Primary Tab Group */}
@@ -319,19 +324,27 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.base,
     paddingTop: Spacing.base,
     paddingBottom: Spacing.base,
   },
+  headerText: {
+    flex: 1,
+  },
+  // Match the Focus/Energy hub title + subtitle type scale (TextStyles.h1 /
+  // TextStyles.body). The old pageTitle referenced Typography.fontSize.xxl,
+  // which does not exist (the token is '2xl'), so the title silently fell back
+  // to RN's default size and read smaller than the other hubs.
   pageTitle: {
-    fontSize: Typography.fontSize.xxl,
-    fontWeight: '600',
+    ...TextStyles.h1,
     color: Colors.evergreenTeal,
   },
   pageSubtitle: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: '400',
-    color: Colors.textSecondary,
+    ...TextStyles.body,
+    color: Colors.mutedSageGray,
     marginTop: 2,
   },
 

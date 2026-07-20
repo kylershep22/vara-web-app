@@ -9,6 +9,11 @@ const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),
 }));
+// The docked Guide pill pulls the AI chat + consent stack; stub it out so the
+// hub unit test stays focused on the hub's own content and navigation.
+jest.mock('../../../components/ai/GuidePill', () => ({
+  GuidePill: () => null,
+}));
 
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';

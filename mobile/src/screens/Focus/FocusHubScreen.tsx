@@ -18,8 +18,8 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
-import { FAB_SCROLL_CLEARANCE } from '../../constants/fabLayout';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../../components/shared/ScreenHeader';
+import { GuidePill } from '../../components/ai/GuidePill';
 
 // The one illustration on Focus home: a watercolor header band. Raster asset
 // (WebP) rendered via ScreenHeader's expo-image layer, never an SVG icon.
@@ -40,18 +40,25 @@ export function FocusHubScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} testID="focus-hub">
-        {/* Band mode: the screen owns the title/subtitle, above the header. */}
-        <Text style={styles.title}>Focus</Text>
+        {/* Band mode: the screen owns the title/subtitle, above the header. The
+            Guide pill sits inline with the title, right-aligned — off the art,
+            so it never competes with the watercolor (the escape hatch from
+            placing it over the band). */}
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Focus</Text>
+          <GuidePill context={{ screen: 'focus' }} testID="focus-hub-guide" />
+        </View>
         <Text style={styles.intro}>Protected time for one thing at a time.</Text>
 
         {/* The single hero illustration. Full-bleed band; the in-code mist scrim
             fades both seams into the page so there is no hard image edge. */}
-        <ScreenHeader
-          source={focusHeader}
-          mode="band"
-          scrimLocations={BAND_STRONG_SCRIM}
-          style={styles.header}
-        />
+        <View style={styles.header}>
+          <ScreenHeader
+            source={focusHeader}
+            mode="band"
+            scrimLocations={BAND_STRONG_SCRIM}
+          />
+        </View>
 
         {/* Primary action: whole-card tappable (no inner button, per the card
             rule). Overlaps the header's bottom seam. Opens the Pomodoro timer. */}
@@ -99,13 +106,20 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
-    // A3: clear the docked Guide FAB so the secondary card isn't occluded.
-    paddingBottom: FAB_SCROLL_CLEARANCE,
+    // Comfortable bottom breathing room (the Guide is a top-right pill now).
+    paddingBottom: Spacing['2xl'],
+  },
+  // Title + Guide pill share one row; the pill is right-aligned and off the
+  // hero band. alignItems center vertically centers the pill against the title.
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
   },
   title: {
     ...TextStyles.h1,
     color: Colors.evergreenTeal,
-    marginBottom: Spacing.xs,
   },
   intro: {
     ...TextStyles.body,

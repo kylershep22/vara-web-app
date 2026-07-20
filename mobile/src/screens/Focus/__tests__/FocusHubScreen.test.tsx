@@ -12,6 +12,11 @@ jest.mock('react-native-safe-area-context', () => ({
     return <View>{children}</View>;
   },
 }));
+// The docked Guide pill pulls the AI chat + consent stack; stub it out so the
+// hub unit test stays focused on the hub's own content and navigation.
+jest.mock('../../../components/ai/GuidePill', () => ({
+  GuidePill: () => null,
+}));
 
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';

@@ -41,7 +41,6 @@ import {
 import { FocusCopy, formatSummary } from '../../constants/focusContent';
 import { LoadingSpinner } from '../../components';
 import { RoutineEditor } from '../../components/routines/RoutineEditor';
-import { FAB_SCROLL_CLEARANCE } from '../../constants/fabLayout';
 import {
   TimeOfDaySelector,
   TimeOfDay,
@@ -495,8 +494,8 @@ const styles = StyleSheet.create({
   },
   routineContent: {
     paddingHorizontal: SpacingTokens.lg,
-    // A3: clear the docked Guide FAB so "Build from scratch" isn't occluded.
-    paddingBottom: FAB_SCROLL_CLEARANCE,
+    // Comfortable bottom breathing room (the Guide is a top-right pill now).
+    paddingBottom: SpacingTokens['2xl'],
   },
   routineCard: {
     backgroundColor: ColorTokens.backgroundSurface,
@@ -623,8 +622,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SpacingTokens.xl,
     paddingTop: SpacingTokens['2xl'],
-    // A3: clear the docked Guide FAB so the empty-state CTA isn't occluded.
-    paddingBottom: FAB_SCROLL_CLEARANCE,
+    // Comfortable bottom breathing room (the Guide is a top-right pill now).
+    paddingBottom: SpacingTokens['2xl'],
   },
   emptyEmoji: {
     fontSize: 48,

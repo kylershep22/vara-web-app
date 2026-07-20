@@ -81,7 +81,7 @@ export { BreathworkTimer } from './library/BreathworkTimer';
 export { MasterclassCard } from './library/MasterclassCard';
 
 // AI components
-export { AIAssistantFAB } from './ai/AIAssistantFAB';
+export { GuidePill } from './ai/GuidePill';
 export { AIChatModal } from './ai/AIChatModal';
 
 // Celebration components
