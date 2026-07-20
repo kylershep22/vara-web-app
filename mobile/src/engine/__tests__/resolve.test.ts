@@ -172,8 +172,11 @@ describe('resolve — edge cases', () => {
     const slot = plan.slots[0];
     expect(slot.kind).toBe('practice');
     if (slot.kind === 'practice') {
+      // Assert behavior, not a specific id: an energize-direction movement
+      // practice. Which movement leads is a preference-ranking concern, not the
+      // engine's — the length cap now lets the budget govern the length class.
       expect(slot.slot.direction).toBe('energize');
-      expect(slot.practice.id).toBe('brief-movement-5');
+      expect(slot.practice.modality).toBe('movement');
     }
   });
 
@@ -322,21 +325,23 @@ describe('resolve — time budget branches the plan (BUG: budget not honored)', 
     }
   });
 
-  it('Light Movement clamps to its range: 5 → 5, longer budgets cap at 5', () => {
+  it('Light Movement clamps to its range at a short budget: 5 → 5', () => {
+    // At a short (≤5) budget the only in-budget energize practice is the short
+    // movement, and clampTimerPractice holds it at its 5-min ceiling. (Longer
+    // budgets no longer cap here — the energize slot now accepts medium/long, so
+    // the budget governs the served length; that path is covered separately.)
     const five = resolve({
       situation: 'find_energy',
       state: stateFor('Depleted'),
       clockTime: DAYTIME,
       timeBudget: 5,
     });
-    const long = resolve({
-      situation: 'find_energy',
-      state: stateFor('Depleted'),
-      clockTime: DAYTIME,
-      timeBudget: 45,
-    });
-    if (five.slots[0].kind === 'practice') expect(five.slots[0].practice.timeWindow).toBe(5);
-    if (long.slots[0].kind === 'practice') expect(long.slots[0].practice.timeWindow).toBe(5);
+    const slot = five.slots[0];
+    expect(slot.kind).toBe('practice');
+    if (slot.kind === 'practice') {
+      expect(slot.practice.family).toBe('brief-movement');
+      expect(slot.practice.timeWindow).toBe(5);
+    }
   });
 });
 
