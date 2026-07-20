@@ -12,32 +12,46 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 import { RightNowAcknowledgment } from '../RightNowAcknowledgment';
-import {
-  NEUTRAL_ACKNOWLEDGMENT,
-  ACKNOWLEDGMENT_SUBLINE,
-} from '../stateAcknowledgment';
 
 beforeEach(() => mockNavigate.mockClear());
 
 describe('RightNowAcknowledgment', () => {
-  it('renders the felt phrase + label + completion-agnostic sub-line', () => {
-    const { getByText, getByTestId } = render(
-      <RightNowAcknowledgment quadrant="Calm" />
+  it('acknowledges the completed practice — never a state readback', () => {
+    const { getByTestId, queryByText } = render(
+      <RightNowAcknowledgment practiceName="Extended Exhale" />
     );
-    expect(getByText('Right now')).toBeTruthy();
-    expect(getByTestId('dashboard-right-now-phrase').props.children).toBe('Settled');
-    expect(getByText(ACKNOWLEDGMENT_SUBLINE)).toBeTruthy();
+    expect(getByTestId('dashboard-right-now-completion').props.children).toBe(
+      'Extended Exhale, done.'
+    );
+    // No state label, no "From your check-in." sub-line.
+    expect(queryByText('Right now')).toBeNull();
+    expect(queryByText('From your check-in.')).toBeNull();
   });
 
-  it('shows the neutral line when no quadrant is available', () => {
-    const { getByTestId } = render(<RightNowAcknowledgment quadrant={null} />);
-    expect(getByTestId('dashboard-right-now-phrase').props.children).toBe(
-      NEUTRAL_ACKNOWLEDGMENT
+  it('adds the time of day when a completion time is available', () => {
+    const { getByTestId } = render(
+      <RightNowAcknowledgment
+        practiceName="Box Breathing"
+        completedAt={new Date(2026, 6, 20, 8, 0, 0)}
+      />
     );
+    expect(getByTestId('dashboard-right-now-completion').props.children).toBe(
+      'Box Breathing, done this morning.'
+    );
+  });
+
+  it('renders nothing when no practice completed — the slot collapses', () => {
+    const { queryByTestId } = render(
+      <RightNowAcknowledgment practiceName={null} />
+    );
+    expect(queryByTestId('dashboard-right-now')).toBeNull();
+    expect(queryByTestId('dashboard-right-now-completion')).toBeNull();
   });
 
   it('relaunches the standard check-in on "Check in again"', () => {
-    const { getByTestId } = render(<RightNowAcknowledgment quadrant="Tense" />);
+    const { getByTestId } = render(
+      <RightNowAcknowledgment practiceName="Box Breathing" />
+    );
     fireEvent.press(getByTestId('dashboard-right-now-change'));
     expect(mockNavigate).toHaveBeenCalledWith('CheckInFlow', {
       entrySource: 'standard',
@@ -47,7 +61,10 @@ describe('RightNowAcknowledgment', () => {
   it('honors the onChangePress override', () => {
     const onChangePress = jest.fn();
     const { getByTestId } = render(
-      <RightNowAcknowledgment quadrant="Tense" onChangePress={onChangePress} />
+      <RightNowAcknowledgment
+        practiceName="Box Breathing"
+        onChangePress={onChangePress}
+      />
     );
     fireEvent.press(getByTestId('dashboard-right-now-change'));
     expect(onChangePress).toHaveBeenCalledTimes(1);

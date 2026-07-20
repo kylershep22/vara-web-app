@@ -41,7 +41,6 @@ import {
   getTodayDailyReflection,
   saveDailyReflection,
 } from '../services/firebase';
-import { type TodayEngineSession } from '../services/firebase/protocolSession.service';
 import { BrainState, BrainStateCheckIn as BrainStateCheckInType, DailyReflection as DailyReflectionType, DailyReflectionValue } from '../types';
 import { getNudgeSuggestion, NudgeSuggestion } from '../utils/getNudgeSuggestion';
 import { getDashboardCardOrder, type DashboardCardId } from '../utils/getDashboardCardOrder';
@@ -117,12 +116,6 @@ export function useDashboard() {
 
   // Dashboard V2: Brain State Check-In
   const [brainStateCheckIn, setBrainStateCheckIn] = useState<BrainStateCheckInType | null>(null);
-
-  // Dashboard rework: today's latest engine session (circumplex quadrant +
-  // situation) — the authoritative input for the "Right now: [state]"
-  // acknowledgment. Read from protocolSessions (the legacy brainStateCheckIns
-  // doc carries only a bridged 5-state value).
-  const [engineSession, setEngineSession] = useState<TodayEngineSession | null>(null);
 
   // Dashboard V2: Daily Reflection
   const [dailyReflection, setDailyReflection] = useState<DailyReflectionType | null>(null);
@@ -313,18 +306,6 @@ export function useDashboard() {
           setBrainStateCheckIn(existing);
           const existingReflection = await getTodayDailyReflection(user.uid);
           setDailyReflection(existingReflection);
-          // Acknowledgment state reads the daily marker, which now carries the
-          // raw quadrant + situation on EVERY check-in terminal (practice,
-          // pointer hand-off, or acknowledged). This decouples "Right now" from
-          // whether a protocolSessions doc exists — a focus-session pointer day
-          // (no practice run) still shows the real quadrant, not the neutral
-          // fallback. A marker without a quadrant (overwhelm/browse-only day)
-          // resolves to null → neutral acknowledgment.
-          const ackState: TodayEngineSession | null =
-            existing?.quadrant && existing?.situation
-              ? { quadrant: existing.quadrant, situation: existing.situation }
-              : null;
-          setEngineSession(ackState);
         } catch (error) {
           logger.error('Error loading brain state check-in:', error);
         }
@@ -781,7 +762,6 @@ export function useDashboard() {
 
     // Dashboard V2
     brainStateCheckIn,
-    engineSession,
     todaysProtocol,
 
     // Daily Reflection

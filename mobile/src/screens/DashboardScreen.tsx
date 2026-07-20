@@ -53,7 +53,7 @@ const DashboardScreen: React.FC = () => {
     formattedDate,
     handleRefresh,
     brainStateCheckIn,
-    engineSession,
+    todaysProtocol,
     notifOptInCard,
     handleNotifOptIn,
     handleNotifDismiss,
@@ -155,6 +155,20 @@ const DashboardScreen: React.FC = () => {
   // driven, independent of any just-completed plan.
   const suggestion = suggestedAction();
 
+  // Post-check-in acknowledgment: name what the user DID (a completed catalog
+  // practice), never the state they reported. Renders only when a practice
+  // actually completed today — a pointer hand-off / zero-slot / not-yet-started
+  // check-in leaves protocolCompleted false, so the slot collapses and the
+  // SuggestedActionCard below is the forward-pointing element. completedAt drives
+  // the "done this morning/afternoon/evening" variant; sourced from the daily
+  // marker's updatedAt (no dedicated completion timestamp exists — a same-day
+  // same-state re-check would move it).
+  const practiceCompleted =
+    brainStateCheckIn?.protocolCompleted === true && todaysProtocol != null;
+  const completedAt = practiceCompleted
+    ? brainStateCheckIn?.updatedAt?.toDate?.() ?? null
+    : null;
+
   // Locally-typed navigate for the rework's new destinations. The hook's
   // navigation is untyped, so the legacy blocks fall back to `as never` casts
   // that don't type-check; this keeps the new calls clean.
@@ -216,12 +230,13 @@ const DashboardScreen: React.FC = () => {
 
         {(
           <>
-            {/* Post-checkin: the quiet "Right now: [state]" acknowledgment
-                (the priority post-checkin, calmer than the invite), derived
-                from the circumplex quadrant. */}
+            {/* Post-checkin: acknowledge what the user DID (a completed
+                practice), never the state they reported. Self-collapses when no
+                practice completed — see practiceCompleted above. */}
             {dashboardPhase === 'checked-in' && (
               <RightNowAcknowledgment
-                quadrant={engineSession?.quadrant ?? null}
+                practiceName={practiceCompleted ? todaysProtocol!.name : null}
+                completedAt={completedAt}
               />
             )}
 
