@@ -54,6 +54,10 @@ export interface Slot {
   // SLOT_TYPE_MODALITIES[type] so composite cells state intent directly rather
   // than relying on the length class to disambiguate (resolution #2).
   modalities?: ProtocolModality[];
+  // Optional per-cell lead-preference ordering (best-first protocol ids). When
+  // present it takes precedence over the global PRACTICE_LEAD_PREFERENCE for
+  // this slot; ids absent from both fall through to the alphabetical tiebreak.
+  leadPreference?: readonly string[];
 }
 
 export interface PlanTemplate {
@@ -101,6 +105,9 @@ export interface RankContext {
   budgetClass: LengthClass;
   clockTime: ClockTime;
   history?: SessionHistory;
+  // The filling slot's per-cell lead preference, if any. Takes precedence over
+  // the global default in the tiebreak (see defaultRanker).
+  leadPreference?: readonly string[];
 }
 
 // Pluggable ranker. Returns candidates best-first. Must be deterministic.
