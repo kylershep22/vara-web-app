@@ -1,11 +1,15 @@
-// RightNowAcknowledgment — the quiet post-check-in priority.
+// RightNowAcknowledgment — the quiet post-check-in slot.
 //
-// Replaces the post-check-in DashboardAnchor (5-state brief). The felt
-// "Right now: [state]" derived from the circumplex QUADRANT via
-// stateAcknowledgment(); calmer than the pre-check-in invite. Matches the mockup
-// .ack: a quiet sage-filled card (dewSageLight) with a 4px teal left border,
-// stacked label → phrase → sub → recheck. Never a five-state label, never a
-// number; completion-agnostic.
+// Names what the user DID (a completed practice), never the state they
+// reported. Per Voice & Tone v2.1 §3.1 the reported state is used at input to
+// route, then disappears — it is never reflected back after the work is done.
+//
+// Renders ONLY when a catalog practice completed today. In the
+// checked-in-but-nothing-completed / pointer-handoff / zero-slot states there is
+// nothing the user "did" to acknowledge, so the component returns null and the
+// slot collapses (no ghost padding — the card's own margin lives on the card,
+// which is not rendered). The standing SuggestedActionCard below is the
+// forward-pointing element in that case.
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
@@ -14,33 +18,30 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Colors, Spacing, Typography, Layout } from '../../constants';
-import type { Quadrant, Situation } from '../../engine';
-import {
-  stateAcknowledgment,
-  ACKNOWLEDGMENT_SUBLINE,
-} from './stateAcknowledgment';
-import { dashboardEyebrow } from './cardStyles';
+import { completionAcknowledgment } from './completionAcknowledgment';
 
 type Nav = NativeStackNavigationProp<{
   CheckInFlow: { entrySource: 'standard' };
 }>;
 
 export interface RightNowAcknowledgmentProps {
-  // Resolved quadrant for today's latest engine session, or null when none
-  // could be read (a neutral line is shown then — never a guessed quadrant).
-  quadrant: Quadrant | null;
-  // Reserved/dormant — situation-refined phrasing is a later deliverable.
-  situation?: Situation;
+  // Display name of the catalog practice completed today, or null when no
+  // practice completed (checked-in-but-nothing-done / pointer / zero-slot). When
+  // null the component renders nothing and the slot collapses.
+  practiceName: string | null;
+  // Completion time, for the "done this morning/afternoon/evening" variant.
+  // Sourced from the daily marker's `updatedAt` (no dedicated completion
+  // timestamp exists). Omit / null to fall back to the plain "…, done." line.
+  completedAt?: Date | null;
   onChangePress?: () => void;
 }
 
 export const RightNowAcknowledgment: React.FC<RightNowAcknowledgmentProps> = ({
-  quadrant,
-  situation,
+  practiceName,
+  completedAt,
   onChangePress,
 }) => {
   const navigation = useNavigation<Nav>();
-  const phrase = stateAcknowledgment(quadrant, situation);
 
   const handleChange = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -51,13 +52,16 @@ export const RightNowAcknowledgment: React.FC<RightNowAcknowledgmentProps> = ({
     navigation.navigate('CheckInFlow', { entrySource: 'standard' });
   };
 
+  // No completed practice → nothing to acknowledge. Return null so the slot
+  // reserves no space (dashboardEyebrow/sub-line and the card container are all
+  // gone with it — clean collapse, no empty wrapper).
+  if (practiceName == null) return null;
+
   return (
     <View style={styles.card} testID="dashboard-right-now">
-      <Text style={styles.label}>Right now</Text>
-      <Text style={styles.phrase} testID="dashboard-right-now-phrase">
-        {phrase}
+      <Text style={styles.line} testID="dashboard-right-now-completion">
+        {completionAcknowledgment(practiceName, completedAt)}
       </Text>
-      <Text style={styles.sub}>{ACKNOWLEDGMENT_SUBLINE}</Text>
       <TouchableOpacity
         onPress={handleChange}
         accessibilityRole="button"
@@ -83,20 +87,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: Spacing.base,
   },
-  label: {
-    ...dashboardEyebrow,
-    marginBottom: 5,
-  },
-  phrase: {
+  line: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
-  },
-  sub: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.softCharcoal,
-    opacity: 0.78,
-    marginTop: 4,
   },
   change: {
     fontSize: Typography.fontSize.sm,
