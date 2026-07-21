@@ -26,7 +26,7 @@ import { useTimer, useAmbientSound } from '../../hooks';
 import { useCompletionSound } from '../../hooks/useCompletionSound';
 import { useActiveFocusSession } from '../../hooks/useActiveFocusSession';
 import {
-  DurationChips,
+  DurationPresets,
   BreakPrompt,
   AmbientSoundSelector,
 } from './components';
@@ -40,8 +40,6 @@ import { reflectionDisplayChips } from '../../components/checkin/flow/reflection
 const FOCUS_REFLECTION_CHIPS = reflectionDisplayChips('focus', 'neutral');
 
 interface PomodoroTabProps {
-  /** Whether 90-minute advanced option should be shown */
-  showAdvancedDuration?: boolean;
   /**
    * Initial timer length (minutes) for the Center-first handoff: the length the
    * user picked before the pre-focus practice, so the timer reopens at it.
@@ -88,7 +86,6 @@ interface PomodoroTabProps {
 }
 
 export const PomodoroTab: React.FC<PomodoroTabProps> = ({
-  showAdvancedDuration = true,
   initialDuration,
   onExit,
   onBlockReflect,
@@ -287,12 +284,11 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Duration Chips */}
-      <DurationChips
+      {/* Duration presets — 25 / 90 / custom, default 25 */}
+      <DurationPresets
         selectedDuration={selectedDuration}
         onDurationChange={handleDurationChange}
         disabled={timer.isActive}
-        showAdvanced={showAdvancedDuration}
       />
 
       {/* Center first — opt-in pre-focus practice (B-3c). Setup only. */}

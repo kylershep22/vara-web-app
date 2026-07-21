@@ -82,8 +82,10 @@ export const FocusScreen: React.FC = () => {
   // independent of this exit signal.
   const fromHub = route.params?.fromHub === true;
   const shouldExitOnDone = fromCheckIn || fromHub;
-  // Budget-derived prefill length from the check-in's focus-session pointer.
-  const initialDuration = route.params?.durationMinutes;
+  // NOTE: route.params.durationMinutes (the check-in's budget-derived length) is
+  // intentionally NOT consumed. The timer always defaults to 25 regardless of how
+  // the user arrived; budget-aware pre-selection is deferred Track 2. The param is
+  // left on the route type but unused here.
   // Cold-launch deep link: the already-finalized block to reflect on.
   const completedSessionId = route.params?.completedSessionId;
 
@@ -213,8 +215,7 @@ export const FocusScreen: React.FC = () => {
 
       <View style={styles.content}>
         <PomodoroTab
-          showAdvancedDuration
-          initialDuration={centeredDuration ?? initialDuration}
+          initialDuration={centeredDuration}
           autoStart={autoStartTimer}
           centerFirst={centerFirst}
           onToggleCenterFirst={handleToggleCenterFirst}
