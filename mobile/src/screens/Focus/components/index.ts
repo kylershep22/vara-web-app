@@ -5,7 +5,6 @@
 
 export { SegmentedControl } from './SegmentedControl';
 export { DurationChips } from './DurationChips';
-export { TaskLabelInput } from './TaskLabelInput';
 export { BrainHealthTip } from './BrainHealthTip';
 export { BreakPrompt } from './BreakPrompt';
 export { AmbientSoundSelector } from './AmbientSoundSelector';

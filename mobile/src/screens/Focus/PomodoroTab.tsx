@@ -3,8 +3,7 @@
  * Pomodoro timer tab content
  *
  * Per Focus Page Spec Phase 2:
- * - Task label input for naming focus task
- * - Duration chips (10, 15, 25, 45, 60 + hidden 90)
+ * - Duration presets (25 / 90 / custom), defaulting to 25
  * - Timer ring with SVG circular progress
  * - Break prompt flow after session complete
  * - Notification toggle and ambient sound selector
@@ -13,7 +12,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import {
   ColorTokens,
@@ -29,7 +27,6 @@ import { useCompletionSound } from '../../hooks/useCompletionSound';
 import { useActiveFocusSession } from '../../hooks/useActiveFocusSession';
 import {
   DurationChips,
-  TaskLabelInput,
   BreakPrompt,
   AmbientSoundSelector,
 } from './components';
@@ -37,8 +34,6 @@ import { CenterFirstToggle } from './components/CenterFirstToggle';
 import { TimerRing } from '../../components/shared/TimerRing';
 import { resolvePlayAction } from './centerFirst';
 import { reflectionDisplayChips } from '../../components/checkin/flow/reflection';
-
-const TASK_LABEL_KEY = '@focus_task_label';
 
 // The focus reflection chips (ids + "Stayed with it / Drifted some / Kept
 // slipping" labels). Stable, so computed once at module scope.
@@ -48,10 +43,11 @@ interface PomodoroTabProps {
   /** Whether 90-minute advanced option should be shown */
   showAdvancedDuration?: boolean;
   /**
-   * Initial timer length (minutes). When the Pomodoro is launched from the
-   * check-in's focus-session pointer, this is the budget-derived prefill so the
-   * timer opens at the user's chosen budget instead of the 25-min default.
-   * Absent for a directly-started Pomodoro (keeps the 25-min default).
+   * Initial timer length (minutes) for the Center-first handoff: the length the
+   * user picked before the pre-focus practice, so the timer reopens at it.
+   * Absent on a normal arrival (opens on the 25-min default). The incoming
+   * check-in budget is intentionally NOT plumbed here — budget-aware
+   * pre-selection is deferred Track 2; everyone lands on 25.
    */
   initialDuration?: number;
   /**
@@ -105,11 +101,10 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
   const { user } = useAuth();
   const { playCompletionSound } = useCompletionSound();
 
-  // Task label state
-  const [taskLabel, setTaskLabel] = useState('');
-
-  // Duration state. Prefilled from the check-in budget when launched from the
-  // focus-session pointer; otherwise the 25-min default.
+  // Duration state. `initialDuration` carries only the Center-first resume
+  // length (the user's picked length across the box-breathing handoff); a normal
+  // arrival opens on the 25-min default. The incoming check-in budget is
+  // intentionally NOT read here (budget-aware pre-selection is deferred Track 2).
   const [selectedDuration, setSelectedDuration] = useState(initialDuration ?? 25);
 
   // Sound panel state
@@ -135,41 +130,11 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     timerState: timer.state,
     endsAt: timer.endsAt,
     durationMinutes: selectedDuration,
-    taskLabel: taskLabel || null,
     initialCompletedSessionId: completedSessionId ?? null,
   });
 
   // Ambient sound hook
   const ambientSound = useAmbientSound();
-
-  // Load saved task label on mount
-  useEffect(() => {
-    const loadTaskLabel = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(TASK_LABEL_KEY);
-        if (saved) {
-          setTaskLabel(saved);
-        }
-      } catch (error) {
-        console.warn('Error loading task label:', error);
-      }
-    };
-    loadTaskLabel();
-  }, []);
-
-  // Save task label when it changes
-  useEffect(() => {
-    const saveTaskLabel = async () => {
-      try {
-        if (taskLabel) {
-          await AsyncStorage.setItem(TASK_LABEL_KEY, taskLabel);
-        }
-      } catch (error) {
-        console.warn('Error saving task label:', error);
-      }
-    };
-    saveTaskLabel();
-  }, [taskLabel]);
 
   // Handle timer start - fade ambient sound in/out
   useEffect(() => {
@@ -301,11 +266,6 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
     return (
       <View style={styles.timerContent}>
         <Text style={styles.timerText}>{timer.formattedTime}</Text>
-        {taskLabel && timer.isActive && (
-          <Text style={styles.taskLabel} numberOfLines={1}>
-            {taskLabel}
-          </Text>
-        )}
       </View>
     );
   };
@@ -327,13 +287,6 @@ export const PomodoroTab: React.FC<PomodoroTabProps> = ({
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Task Label Input */}
-      <TaskLabelInput
-        value={taskLabel}
-        onChangeText={setTaskLabel}
-        disabled={timer.isActive}
-      />
-
       {/* Duration Chips */}
       <DurationChips
         selectedDuration={selectedDuration}
@@ -463,12 +416,6 @@ const styles = StyleSheet.create({
     color: ColorTokens.primary,
     fontVariant: ['tabular-nums'],
     letterSpacing: TypographyTokens.letterSpacingTimer * TypographyTokens.fontTimerLarge,
-  },
-  taskLabel: {
-    fontSize: 14,
-    color: ColorTokens.textSecondary,
-    marginTop: SpacingTokens.xs,
-    maxWidth: 160,
   },
   controls: {
     flexDirection: 'row',

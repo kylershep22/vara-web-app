@@ -42,7 +42,6 @@ interface Props {
   timerState: TimerState;
   endsAt: number | null;
   durationMinutes: number;
-  taskLabel: string | null;
   initialCompletedSessionId?: string | null;
 }
 
@@ -51,7 +50,6 @@ const base: Props = {
   timerState: 'idle',
   endsAt: null,
   durationMinutes: 25,
-  taskLabel: 'Writing',
 };
 
 beforeEach(() => {
@@ -81,7 +79,6 @@ describe('persist on running', () => {
         userId: 'u1',
         durationMinutes: 25,
         type: 'pomodoro',
-        taskLabel: 'Writing',
         endsAt,
       })
     );
@@ -190,7 +187,6 @@ describe('finalize on app return (startup)', () => {
       userId: 'u1',
       durationMinutes: 25,
       type: 'pomodoro',
-      taskLabel: null,
       startedAt: 0,
       endsAt: Date.now() - 1000,
     });
@@ -212,7 +208,6 @@ describe('finalize on app return (startup)', () => {
       userId: 'u1',
       durationMinutes: 25,
       type: 'pomodoro',
-      taskLabel: null,
       startedAt: 0,
       endsAt: Date.now() + 60_000,
     });

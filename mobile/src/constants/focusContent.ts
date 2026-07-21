@@ -46,8 +46,6 @@ export const FocusCopy = {
   tabRoutines: 'Routines',
 
   // Pomodoro tab
-  taskInputLabel: 'What are you focusing on?',
-  taskInputPlaceholder: 'e.g., Writing, deep reading, design work...',
   durationChipsLabel: 'Session length',
   sessionCompleteLine1: 'Session complete.',
   sessionCompleteLine2: 'Nicely done. Rest if it feels right.',

@@ -197,7 +197,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             userId: plan.finalize.userId,
             durationMinutes: plan.finalize.durationMinutes,
             type: plan.finalize.type,
-            taskLabel: plan.finalize.taskLabel,
           });
         } catch (error) {
           logger.error('[NotificationContext] cold-launch finalize failed', error);

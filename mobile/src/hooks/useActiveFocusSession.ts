@@ -45,7 +45,6 @@ interface UseActiveFocusSessionParams {
   timerState: TimerState;
   endsAt: number | null;
   durationMinutes: number;
-  taskLabel: string | null;
   /**
    * Cold-launch deep link: the focusSessions id this surface was opened to
    * reflect on. Seeds the last-finalized id so the inline reflection chip binds
@@ -76,7 +75,6 @@ export function useActiveFocusSession({
   timerState,
   endsAt,
   durationMinutes,
-  taskLabel,
   initialCompletedSessionId = null,
 }: UseActiveFocusSessionParams): UseActiveFocusSessionReturn {
   // The current block's stable id (minted at start) and wall-clock start.
@@ -100,11 +98,9 @@ export function useActiveFocusSession({
   // Latest values so finalizeCompletedBlock (a stable callback) is never stale.
   const userIdRef = useRef(userId);
   const durationRef = useRef(durationMinutes);
-  const taskRef = useRef(taskLabel);
   useEffect(() => {
     userIdRef.current = userId;
     durationRef.current = durationMinutes;
-    taskRef.current = taskLabel;
   });
 
   // Persist while a focus block runs; drop the record while paused.
@@ -122,7 +118,6 @@ export function useActiveFocusSession({
           userId,
           durationMinutes,
           type: focusType(durationMinutes),
-          taskLabel,
           startedAt: activeStartedAtRef.current,
           endsAt,
         };
@@ -147,7 +142,7 @@ export function useActiveFocusSession({
       clearActiveFocusSession().catch(() => {});
       cancelNotif();
     }
-  }, [timerState, endsAt, userId, durationMinutes, taskLabel, cancelNotif]);
+  }, [timerState, endsAt, userId, durationMinutes, cancelNotif]);
 
   // App-return sweep: a persisted record whose endsAt already passed is a block
   // that elapsed while backgrounded or killed → write its completion row.
@@ -166,7 +161,6 @@ export function useActiveFocusSession({
           userId: rec.userId,
           durationMinutes: rec.durationMinutes,
           type: rec.type,
-          taskLabel: rec.taskLabel,
         });
         lastIdRef.current = rec.focusSessionId;
       } catch (error) {
@@ -213,7 +207,6 @@ export function useActiveFocusSession({
         userId: uid,
         durationMinutes: durationRef.current,
         type: focusType(durationRef.current),
-        taskLabel: taskRef.current,
       });
       lastIdRef.current = id;
     } catch (error) {
