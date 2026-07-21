@@ -93,10 +93,13 @@ describe('PlanRecommendation', () => {
   });
 
   it('short-practice branch renders the ring/hero from the resolved practice', () => {
+    // A non-pointer short-budget cell: find_energy/Depleted @2min resolves to a
+    // brief-movement practice clamped to the 2-min budget. (Pointer cells no
+    // longer degrade to a short practice — they preserve the pointer.)
     const { getByTestId } = render(
       <PlanRecommendation
-        plan={planFor('get_through_hard', 'revved', 'good', 2)} // ≤5 → box-breathing-2
-        reason="Because you've got energy, a few breaths to settle."
+        plan={planFor('find_energy', 'low', 'hard', 2)}
+        reason="Because you're running low, a couple minutes of movement."
         onPrimary={noop}
         onSeeOtherOptions={noop}
       />

@@ -219,7 +219,9 @@ describe('resolve — edge cases', () => {
 });
 
 describe('resolve — time budget branches the plan (BUG: budget not honored)', () => {
-  it('2-min Activated/get_through_hard branches to box-breathing-2, NOT a focus-session pointer', () => {
+  it('2-min Activated/get_through_hard PRESERVES the focus-session pointer (the chosen outcome)', () => {
+    // The pointer is the outcome the user selected; at a ≤5 budget it survives
+    // and the Pomodoro opens at its 10-min floor (never dropped/degraded).
     const plan = resolve({
       situation: 'get_through_hard',
       state: stateFor('Activated'),
@@ -228,23 +230,26 @@ describe('resolve — time budget branches the plan (BUG: budget not honored)', 
     });
     expect(plan.slots).toHaveLength(1);
     const slot = plan.slots[0];
-    expect(slot.kind).toBe('practice');
-    if (slot.kind === 'practice') {
-      expect(slot.practice.id).toBe('box-breathing-2');
-      expect(slot.slot.pillar).toBe('energy');
+    expect(slot.kind).toBe('pointer');
+    if (slot.kind === 'pointer') {
+      expect(slot.pointer.type).toBe('focus-session');
+      expect(slot.pointer.length).toBe(10); // budget snapped up to the timer floor
     }
   });
 
-  it('2-min Tense/get_through_hard keeps the lead breath and drops the focus pointer', () => {
+  it('2-min Tense/get_through_hard keeps the lead breath AND the focus pointer (pre-roll + outcome)', () => {
     const plan = resolve({
       situation: 'get_through_hard',
       state: stateFor('Tense'),
       clockTime: DAYTIME,
       timeBudget: 2,
     });
-    expect(plan.slots).toHaveLength(1);
+    expect(plan.slots).toHaveLength(2);
     expect(plan.slots[0].kind).toBe('practice');
-    expect(plan.slots.some((s) => s.kind === 'pointer')).toBe(false);
+    expect(plan.slots[0].slot.type).toBe('settle-breath');
+    const pointer = plan.slots[1];
+    expect(pointer.kind).toBe('pointer');
+    if (pointer.kind === 'pointer') expect(pointer.pointer.type).toBe('focus-session');
   });
 
   it('45-min Activated/get_through_hard keeps the focus-session pointer, prefilled to 45', () => {
@@ -282,27 +287,18 @@ describe('resolve — time budget branches the plan (BUG: budget not honored)', 
     if (twentySlot.kind === 'pointer') expect(twentySlot.pointer.length).toBe(15);
   });
 
-  it('never emits a focus-session / plan pointer at a ≤5 budget across all pointer cells', () => {
-    const POINTER_CELLS: ReadonlyArray<{ situation: Situation; quadrant: Quadrant }> = [
-      { situation: 'get_through_hard', quadrant: 'Activated' },
-      { situation: 'get_through_hard', quadrant: 'Tense' },
-      { situation: 'get_through_hard', quadrant: 'Depleted' },
-      { situation: 'get_through_hard', quadrant: 'Calm' },
-      { situation: 'grip_on_day', quadrant: 'Activated' },
-      { situation: 'grip_on_day', quadrant: 'Tense' },
-      { situation: 'grip_on_day', quadrant: 'Depleted' },
-      { situation: 'grip_on_day', quadrant: 'Calm' },
-    ];
-    for (const cell of POINTER_CELLS) {
+  it('find_energy is NOT a pointer cell — its short-budget behavior is unchanged', () => {
+    // Regression guard: find_energy has no pointer slot in any quadrant, so the
+    // pointer-preservation change must not introduce a pointer here.
+    for (const quadrant of ['Tense', 'Activated', 'Depleted', 'Calm'] as const) {
       for (const budget of [2, 5] as const) {
         const plan = resolve({
-          situation: cell.situation,
-          state: stateFor(cell.quadrant),
+          situation: 'find_energy',
+          state: stateFor(quadrant),
           clockTime: DAYTIME,
           timeBudget: budget,
         });
         expect(plan.slots.some((s) => s.kind === 'pointer')).toBe(false);
-        expect(plan.slots.length).toBeGreaterThanOrEqual(1);
       }
     }
   });
@@ -420,6 +416,79 @@ describe('resolve — graceful degradation at a short budget (BUG 2)', () => {
       expect(plan!.slots).toHaveLength(0);
       expect(plan!.message).toBeTruthy();
     });
+  }
+});
+
+// ────────────────────────────────────────────────────────────
+// Pointer survival at short budgets. The pointer step (focus-session / plan) is
+// the outcome the user chose; it must survive at EVERY budget, including ≤5.
+// Under a squeeze the preparatory practice yields — the pointer never does.
+// Covers all NINE cells that carry a pointer slot (audit named five; 3/4/6/19
+// share the same branch and the same defect).
+// ────────────────────────────────────────────────────────────
+describe('resolve — pointer preserved at short budgets (pointer = chosen outcome)', () => {
+  interface PointerCell {
+    situation: Situation;
+    quadrant: Quadrant;
+    pointerType: 'focus-session' | 'plan';
+    pointerMode: SlotMode;
+    hasPreRoll: boolean; // a leading practice slot before the pointer
+  }
+  const POINTER_CELLS: readonly PointerCell[] = [
+    // Situation 1 — get_through_hard (outcome: focus session)
+    { situation: 'get_through_hard', quadrant: 'Tense', pointerType: 'focus-session', pointerMode: 'mandatory', hasPreRoll: true },
+    { situation: 'get_through_hard', quadrant: 'Activated', pointerType: 'focus-session', pointerMode: 'mandatory', hasPreRoll: false },
+    { situation: 'get_through_hard', quadrant: 'Depleted', pointerType: 'focus-session', pointerMode: 'mandatory', hasPreRoll: true },
+    { situation: 'get_through_hard', quadrant: 'Calm', pointerType: 'focus-session', pointerMode: 'mandatory', hasPreRoll: true },
+    // Situation 2 — quiet_mind (Activated offers a focus pointer)
+    { situation: 'quiet_mind', quadrant: 'Activated', pointerType: 'focus-session', pointerMode: 'offered', hasPreRoll: true },
+    // Situation 5 — grip_on_day (outcome: plan / routine)
+    { situation: 'grip_on_day', quadrant: 'Tense', pointerType: 'plan', pointerMode: 'mandatory', hasPreRoll: true },
+    { situation: 'grip_on_day', quadrant: 'Activated', pointerType: 'plan', pointerMode: 'mandatory', hasPreRoll: false },
+    { situation: 'grip_on_day', quadrant: 'Depleted', pointerType: 'plan', pointerMode: 'mandatory', hasPreRoll: false },
+    { situation: 'grip_on_day', quadrant: 'Calm', pointerType: 'plan', pointerMode: 'mandatory', hasPreRoll: false },
+  ];
+
+  it('covers all nine pointer cells', () => {
+    expect(POINTER_CELLS).toHaveLength(9);
+  });
+
+  for (const cell of POINTER_CELLS) {
+    for (const budget of [2, 5] as const) {
+      it(`${cell.situation}/${cell.quadrant} @ ${budget}min keeps the ${cell.pointerType} pointer`, () => {
+        const plan = resolve({
+          situation: cell.situation,
+          state: stateFor(cell.quadrant),
+          clockTime: DAYTIME,
+          timeBudget: budget,
+        });
+
+        const pointers = plan.slots.filter((s) => s.kind === 'pointer');
+        expect(pointers).toHaveLength(1);
+        const pointer = pointers[0];
+        expect(pointer.slot.type).toBe(cell.pointerType);
+        expect(pointer.mode).toBe(cell.pointerMode);
+        if (pointer.kind === 'pointer') {
+          expect(pointer.pointer.type).toBe(cell.pointerType);
+          // focus-session carries a budget-snapped length (10-min floor at ≤5);
+          // plan is untimed.
+          if (cell.pointerType === 'focus-session') {
+            expect(pointer.pointer.length).toBe(10);
+          } else {
+            expect(pointer.pointer.length).toBeUndefined();
+          }
+        }
+
+        if (cell.hasPreRoll) {
+          expect(plan.slots).toHaveLength(2);
+          expect(plan.slots[0].kind).toBe('practice');
+          // The pre-roll leads; the pointer is last.
+          expect(plan.slots[1].kind).toBe('pointer');
+        } else {
+          expect(plan.slots).toHaveLength(1);
+        }
+      });
+    }
   }
 });
 
