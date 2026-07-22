@@ -79,17 +79,20 @@ describe('PlanRecommendation', () => {
     );
   });
 
-  it('focus-session branch renders the ring/hero with the budget-derived duration', () => {
-    const { getByTestId } = render(
+  it('focus-session branch renders a non-timed hero — no duration promise at any budget', () => {
+    const { getByText, queryByTestId } = render(
       <PlanRecommendation
-        plan={planFor('get_through_hard', 'revved', 'good', 45)} // focus pointer @45
+        plan={planFor('get_through_hard', 'revved', 'good', 45)} // single focus pointer @45
         reason="Because you've got energy, straight into focus."
         onPrimary={noop}
         onSeeOtherOptions={noop}
       />
     );
-    expect(getByTestId('checkin-flow-plan-timed')).toBeTruthy();
-    expect(getByTestId('checkin-flow-plan-duration').props.children).toBe('45 min');
+    // The timer owns duration (its own default); the plan surface must not
+    // promise a minute value the timer won't keep — so no duration ring, at any
+    // budget (here 45, but the same holds for the ≤5 floored case).
+    expect(getByText('Focus session')).toBeTruthy();
+    expect(queryByTestId('checkin-flow-plan-duration')).toBeNull();
   });
 
   it('short-practice branch renders the ring/hero from the resolved practice', () => {
@@ -112,7 +115,7 @@ describe('PlanRecommendation', () => {
   it('offered pre-roll shape: focus session is the hero with the optional pre-roll above the CTA', () => {
     const onPrimary = jest.fn();
     const onSecondary = jest.fn();
-    const { getByTestId } = render(
+    const { getByText, getByTestId, queryByTestId } = render(
       <PlanRecommendation
         plan={planFor('get_through_hard', 'low', 'good', 25)} // grounding [offer] → focus
         reason="Because you're steady, straight into focus when you're ready."
@@ -121,9 +124,9 @@ describe('PlanRecommendation', () => {
         onSeeOtherOptions={noop}
       />
     );
-    // Focus session is the hero: new ring/hero with the budget-derived duration.
-    expect(getByTestId('checkin-flow-plan-timed')).toBeTruthy();
-    expect(getByTestId('checkin-flow-plan-duration').props.children).toBe('25 min');
+    // Focus session is the hero — non-timed, no duration promise on the plan surface.
+    expect(getByText('Focus session')).toBeTruthy();
+    expect(queryByTestId('checkin-flow-plan-duration')).toBeNull();
     // Primary routes straight to the focus session.
     expect(getByTestId('checkin-flow-plan-primary').props.accessibilityLabel).toBe(
       'Start focus session'

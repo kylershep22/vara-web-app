@@ -65,9 +65,10 @@ export function PlanRecommendation({
   onClose,
 }: PlanRecommendationProps) {
   const shape = classifyPlanShape(plan);
-  // Timed branches (practice shapes + the focus-session pointer) render the
-  // rebuilt ring/hero; everything else (zero, message-offered, the routine/plan
-  // pointer) keeps the prior presentation.
+  // The hero lead: practice shapes render the ring/hero with their real duration;
+  // the focus-session pointer renders the same hero WITHOUT a ring (non-timed —
+  // the timer owns duration). Everything else (zero, message-offered, the
+  // routine/plan pointer) keeps the prior presentation.
   const lead = timedLead(shape);
 
   return (
@@ -144,16 +145,19 @@ function shapeHasPractice(shape: PlanShape): boolean {
   return shape.kind !== 'zero' && shape.kind !== 'single_pointer';
 }
 
-// ── timed lead (rebuilt ring/hero) ──────────────────────────
-// The renderable lead for the timed branches: a catalog practice's name +
-// duration + description, or the focus-session pointer enriched to the same
-// shape so both render the same ring/hero from resolved-plan data. Returns null
-// for shapes that keep the prior presentation (zero / message-offered / the
-// offered pre-roll / the routine-plan pointer — a duration ring doesn't fit a
-// non-timed routine destination, left for a later polish).
+// ── hero lead (ring/hero) ───────────────────────────────────
+// The renderable lead for the hero branches: a catalog practice's name +
+// duration + description (ring shows the real run-length), or the focus-session
+// pointer as a name + description with NO duration (a non-timed hero — the ring
+// is skipped). Returns null for shapes that keep the prior presentation (zero /
+// message-offered / the offered pre-roll / the routine-plan pointer — a duration
+// ring doesn't fit a non-timed routine destination, left for a later polish).
 interface TimedLeadData {
   name: string;
-  duration: string;
+  // Present for catalog-practice heroes (their real run-length). ABSENT for the
+  // focus-session pointer, which is a non-timed hero: the timer screen owns
+  // duration, so the plan surface makes no minute promise.
+  duration?: string;
   description: string;
   // Mandatory pointer continuation after the lead practice (a quiet chain line).
   chainTo?: string;
@@ -177,26 +181,27 @@ function timedLead(shape: PlanShape): TimedLeadData | null {
       };
     case 'single_pointer':
       return shape.pointer.type === 'focus-session'
-        ? focusPointerLead(shape.pointer)
+        ? focusPointerLead()
         : null; // routine/plan pointer — left as-is (non-timed destination)
     case 'offered_practice_then_pointer':
       // Focus session is the hero; the offered practice is a pre-roll affordance
       // above the CTA (PlanActions), not in the ring.
       return shape.pointer.type === 'focus-session'
-        ? focusPointerLead(shape.pointer)
+        ? focusPointerLead()
         : null;
     default:
       return null; // zero / message_offered
   }
 }
 
-// The focus-session pointer enriched to the timed-lead shape (concern C): the
-// budget-derived prefill drives the ring duration.
-function focusPointerLead(pointer: PracticePointer): TimedLeadData {
-  const mins = pointer.length;
+// The focus-session pointer as a NON-TIMED hero: name + description, no duration.
+// The pointer's length (snapBudgetToTimerOption) is a false promise on this
+// surface — the timer screen owns duration and keeps its own default regardless
+// of budget — so the plan surface shows no minute value at any budget. (Catalog
+// practice heroes still carry their real run-length; that path is untouched.)
+function focusPointerLead(): TimedLeadData {
   return {
     name: 'Focus session',
-    duration: mins != null ? `${mins} min` : 'Focus',
     description: 'A quiet window to do the work',
   };
 }
@@ -216,14 +221,16 @@ function TimedLead({
           {reason}
         </Text>
       ) : null}
-      <View style={styles.ringWrap}>
-        <View style={styles.ring}>
-          <View style={styles.ringInner} pointerEvents="none" />
-          <Text style={styles.ringDuration} testID="checkin-flow-plan-duration">
-            {lead.duration}
-          </Text>
+      {lead.duration != null ? (
+        <View style={styles.ringWrap}>
+          <View style={styles.ring}>
+            <View style={styles.ringInner} pointerEvents="none" />
+            <Text style={styles.ringDuration} testID="checkin-flow-plan-duration">
+              {lead.duration}
+            </Text>
+          </View>
         </View>
-      </View>
+      ) : null}
       <Text style={styles.leadName}>{lead.name}</Text>
       <Text style={styles.leadDescription}>{lead.description}</Text>
       {lead.chainTo ? (
