@@ -73,8 +73,9 @@ export interface PracticePointer {
   type: PointerSlotType; // 'focus-session' → Pomodoro flow; 'plan' → plan/routine
   // focus-session only: the budget-derived length (minutes) that prefills the
   // Pomodoro timer, snapped to a real timer option. Absent for plan pointers
-  // (a routine destination is not timed). Only set for medium/long budgets;
-  // a ≤5 budget degrades the pointer to a short practice instead of handing off.
+  // (a routine destination is not timed). Set at every budget — the pointer is
+  // the chosen outcome and is always emitted; a ≤5 budget snaps up to the
+  // 10-min timer floor rather than dropping the hand-off.
   length?: number;
 }
 
