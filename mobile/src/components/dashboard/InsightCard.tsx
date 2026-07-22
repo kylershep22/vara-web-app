@@ -13,6 +13,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { getDashboardInsight, type DashboardInsight } from './dashboardInsights';
 import { dashboardEyebrow } from './cardStyles';
+import { CardHeading } from './CardHeading';
 
 export interface InsightCardProps {
   // Injectable for tests / future content feed; defaults to today's rotation.
@@ -23,8 +24,13 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
   const item = insight ?? getDashboardInsight();
   return (
     <View style={styles.card} testID="dashboard-insight">
-      <Text style={styles.eyebrow}>A small insight</Text>
-      <Text style={styles.title}>{item.title}</Text>
+      {/* The tile anchors to the heading BLOCK, not to the eyebrow: "A small
+          insight" is queued for removal in a copy pass, and anchoring the tile
+          to it would orphan the tile when the eyebrow goes. No strings change. */}
+      <CardHeading icon="lightbulb-outline" style={styles.heading}>
+        <Text style={styles.eyebrow}>A small insight</Text>
+        <Text style={styles.title}>{item.title}</Text>
+      </CardHeading>
       <Text style={styles.body}>{item.body}</Text>
     </View>
   );
@@ -38,6 +44,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.base,
     ...Layout.shadow.sm,
   },
+  heading: {
+    marginBottom: Spacing.xs,
+  },
   eyebrow: {
     ...dashboardEyebrow,
     marginBottom: Spacing.xs,
@@ -46,7 +55,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
-    marginBottom: Spacing.xs,
   },
   body: {
     fontSize: Typography.fontSize.sm,

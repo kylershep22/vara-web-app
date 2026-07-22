@@ -16,6 +16,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { CardHeading } from './CardHeading';
 import {
   Routine,
   calculateTotalDuration,
@@ -40,7 +41,11 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
   if (routines.length === 0) {
     return (
       <View style={styles.card} testID="dashboard-routine-empty">
-        <Text style={styles.title}>Today's routine</Text>
+        <CardHeading
+          icon="clipboard-check-outline"
+          title="Today's routine"
+          style={styles.heading}
+        />
         <Text style={styles.emptyBody}>
           When you set a routine, it'll show up here.
         </Text>
@@ -69,7 +74,11 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
 
   return (
     <View style={styles.card} testID="dashboard-routine">
-      <Text style={styles.title}>Today's routine</Text>
+      <CardHeading
+        icon="clipboard-check-outline"
+        title="Today's routine"
+        style={styles.heading}
+      />
       <Text style={styles.body}>
         {target ? target.name : 'All done for today.'}
       </Text>
@@ -99,10 +108,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.base,
     ...Layout.shadow.sm,
   },
-  title: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.softCharcoal,
+  heading: {
     marginBottom: Spacing.xs,
   },
   body: {
