@@ -19,6 +19,7 @@ import { RightNowAcknowledgment } from '../components/dashboard/RightNowAcknowle
 import { SuggestedActionCard } from '../components/dashboard/SuggestedActionCard';
 import { InsightCard } from '../components/dashboard/InsightCard';
 import { RoutineCard } from '../components/dashboard/RoutineCard';
+import { WeeklyHabitGrid } from '../components/dashboard/WeeklyHabitGrid';
 import { InsightsLookbackCard } from '../components/dashboard/InsightsLookbackCard';
 import { suggestedAction } from '../components/dashboard/suggestedAction';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
@@ -73,6 +74,11 @@ const DashboardScreen: React.FC = () => {
     handleCloseRoutinePlayer,
     handleRoutineComplete,
     dashboardPhase,
+    habits,
+    allCompletions,
+    weeklyCompletions,
+    processingHabits,
+    handleHabitToggle,
   } = useDashboard();
 
   // Sub-step 2.7 — subscribe to the user's firstShiftAt for the
@@ -291,6 +297,25 @@ const DashboardScreen: React.FC = () => {
                 onBeginRoutine={handleBeginRoutine}
                 onNavigateToRoutines={() => go(NAV_TARGETS.plan, { tab: 'routines' })}
                 onNavigateToHabits={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
+              />
+
+              {/* This week's habits — the user's own consistency, shown back to
+                  them neutrally. Only today is interactive; `handleHabitToggle`
+                  is never handed a past date (see WeeklyHabitGrid). Self-hides
+                  when there are no habits. The overflow tap-through goes to the
+                  Time tab's habits sub-tab, the same target the routine card
+                  uses. HabitDetail needs the full habit object, not just its
+                  id. */}
+              <WeeklyHabitGrid
+                habits={habits}
+                completionsByHabit={allCompletions}
+                optimisticCompletions={weeklyCompletions}
+                processingHabits={processingHabits}
+                onCompleteToday={handleHabitToggle}
+                onOpenHabit={(habit) =>
+                  go('HabitDetail', { habitId: habit.id, habit })
+                }
+                onViewAll={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
               />
 
               {/* Surviving system prompts (live-gated), after the content. */}
