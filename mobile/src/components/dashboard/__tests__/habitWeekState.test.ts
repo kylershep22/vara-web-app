@@ -14,7 +14,7 @@ import {
   scheduledWeekdays,
   type CellState,
   type WeekDay,
-} from '../weeklyHabitGrid';
+} from '../habitWeekState';
 
 // Sunday-start week containing Thu 2026-07-16: Sun 12 … Sat 18.
 const THURSDAY = new Date(2026, 6, 16, 9, 0, 0);
