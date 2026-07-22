@@ -316,6 +316,7 @@ const DashboardScreen: React.FC = () => {
                   go('HabitDetail', { habitId: habit.id, habit })
                 }
                 onViewAll={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
+                onAddHabit={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
               />
 
               {/* Surviving system prompts (live-gated), after the content. */}

@@ -59,6 +59,8 @@ interface WeeklyHabitGridProps {
   onCompleteToday: (habitId: string, date: string) => void;
   onOpenHabit: (habit: Habit) => void;
   onViewAll: () => void;
+  /** Empty-state CTA. Same destination as onViewAll, different affordance. */
+  onAddHabit: () => void;
   /** Injectable for tests; defaults to now. */
   now?: Date;
 }
@@ -71,6 +73,7 @@ export const WeeklyHabitGrid: React.FC<WeeklyHabitGridProps> = ({
   onCompleteToday,
   onOpenHabit,
   onViewAll,
+  onAddHabit,
   now,
 }) => {
   const week = useMemo(
@@ -78,8 +81,31 @@ export const WeeklyHabitGrid: React.FC<WeeklyHabitGridProps> = ({
     [now]
   );
 
-  // No habits — render nothing rather than an empty grid or a prompt to start.
-  if (habits.length === 0) return null;
+  // No habits — the card holds its place with a plain description of what the
+  // space is for. No day-of-week header: there is no grid to label yet.
+  //
+  // The copy states what the surface does; it does not tell the user what they
+  // have failed to do. No "you haven't", and no "yet", which turns an empty
+  // surface into a deficit. Someone who has never made a habit is not behind.
+  if (habits.length === 0) {
+    return (
+      <View style={styles.card} testID="weekly-habit-grid-empty">
+        {/* PROVISIONAL COPY — pending the copy pass. */}
+        <Text style={styles.emptyBody}>
+          Habits show up here, a week at a time.
+        </Text>
+        <TouchableOpacity
+          onPress={onAddHabit}
+          accessibilityRole="button"
+          accessibilityLabel="Add a habit"
+          testID="weekly-habit-grid-add"
+          style={styles.emptyCta}
+        >
+          <Text style={styles.emptyCtaLabel}>Add a habit</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const rows = habits.slice(0, MAX_ROWS);
   const hasMore = habits.length > rows.length;
@@ -425,6 +451,22 @@ const styles = StyleSheet.create({
     backgroundColor: SAGE_DASH,
   },
 
+  emptyBody: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    lineHeight: 20,
+  },
+  emptyCta: {
+    marginTop: Spacing.sm,
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  emptyCtaLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
+  },
   viewAll: {
     marginTop: Spacing.sm,
     alignSelf: 'flex-start',

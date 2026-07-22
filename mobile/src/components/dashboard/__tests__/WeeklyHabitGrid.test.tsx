@@ -54,6 +54,7 @@ function setup(over: Partial<React.ComponentProps<typeof WeeklyHabitGrid>> = {})
   const onCompleteToday = jest.fn();
   const onOpenHabit = jest.fn();
   const onViewAll = jest.fn();
+  const onAddHabit = jest.fn();
 
   const utils = render(
     <WeeklyHabitGrid
@@ -62,12 +63,13 @@ function setup(over: Partial<React.ComponentProps<typeof WeeklyHabitGrid>> = {})
       onCompleteToday={onCompleteToday}
       onOpenHabit={onOpenHabit}
       onViewAll={onViewAll}
+      onAddHabit={onAddHabit}
       now={THURSDAY}
       {...over}
     />
   );
 
-  return { ...utils, onCompleteToday, onOpenHabit, onViewAll };
+  return { ...utils, onCompleteToday, onOpenHabit, onViewAll, onAddHabit };
 }
 
 describe('a perfect non-daily week renders zero missed-state cells', () => {
@@ -296,9 +298,38 @@ describe('rows and navigation', () => {
     expect(onOpenHabit).toHaveBeenCalledWith(DAILY);
   });
 
-  it('renders nothing at all when there are no habits', () => {
-    const { queryByTestId } = setup({ habits: [] });
+  it('renders an empty state, not a grid, when there are no habits', () => {
+    const { getByTestId, queryByTestId, getByText } = setup({ habits: [] });
+
     expect(queryByTestId('weekly-habit-grid')).toBeNull();
+    expect(getByTestId('weekly-habit-grid-empty')).toBeTruthy();
+    expect(getByText('Habits show up here, a week at a time.')).toBeTruthy();
+    expect(getByTestId('weekly-habit-grid-add')).toBeTruthy();
+  });
+
+  it('the empty state omits the day-of-week header — no grid to label', () => {
+    const { queryByTestId } = setup({ habits: [] });
+    expect(
+      queryByTestId('weekly-habit-grid-header', { includeHiddenElements: true })
+    ).toBeNull();
+  });
+
+  it('the empty-state CTA routes to the habits surface', () => {
+    const { getByTestId, onAddHabit } = setup({ habits: [] });
+    fireEvent.press(getByTestId('weekly-habit-grid-add'));
+    expect(onAddHabit).toHaveBeenCalledTimes(1);
+  });
+
+  it('the empty state never implies the user is behind', () => {
+    const { toJSON } = setup({ habits: [] });
+    const text = collectText(toJSON()).join(' ');
+
+    // No deficit framing: no "yet", no "you haven't", no catching up.
+    expect(text).not.toMatch(/\byet\b/i);
+    expect(text).not.toMatch(/haven'?t|hasn'?t|don'?t have|no habits/i);
+    expect(text).not.toMatch(/behind|catch up|missed|start now|still/i);
+    // And no counts, here as anywhere else in the card.
+    expect(text).not.toMatch(/\d/);
   });
 
   it('an optimistic completion wins over the loaded set', () => {
