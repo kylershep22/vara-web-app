@@ -43,7 +43,6 @@ const sample: ActiveFocusSession = {
   userId: 'u1',
   durationMinutes: 25,
   type: 'pomodoro',
-  taskLabel: 'Writing',
   startedAt: 1_700_000_000_000,
   endsAt: 1_700_000_000_000 + 25 * 60_000,
 };
@@ -109,7 +108,6 @@ describe('finalizeFocusSession', () => {
       userId: 'u1',
       durationMinutes: 25,
       type: 'pomodoro',
-      taskLabel: 'Writing',
     });
     expect(mockDoc).toHaveBeenCalledWith(expect.anything(), 'focusSessions', 'fs-abc');
     expect(mockSetDoc).toHaveBeenCalledTimes(1);
@@ -125,10 +123,11 @@ describe('finalizeFocusSession', () => {
         duration: 25,
         type: 'pomodoro',
         completed: true,
-        taskLabel: 'Writing',
         interrupted: false,
       })
     );
+    // The intent field was removed: new writes must NOT include taskLabel.
+    expect(data).not.toHaveProperty('taskLabel');
     expect(options).toEqual({ merge: true });
   });
 });

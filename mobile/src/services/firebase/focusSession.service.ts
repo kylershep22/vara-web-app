@@ -15,9 +15,9 @@
  *     so every path converges on one idempotent doc (no duplicates) and the
  *     active record is cleared.
  *
- * The completion row keeps the exact field shape the previous inline write used
- * (duration / type / completed / startedAt / endedAt / taskLabel / interrupted)
- * so downstream consumers (dashboard, correlation engine) are unaffected. No
+ * The completion row shape is duration / type / completed / startedAt / endedAt
+ * / interrupted (the former free-text taskLabel was removed with the intent
+ * field — new writes omit it; existing docs keep their legacy value). No
  * BrainState and no protocolId: a bare focus block is state-less and
  * protocol-less, unchanged.
  *
@@ -40,7 +40,6 @@ export interface ActiveFocusSession {
   userId: string;
   durationMinutes: number;
   type: FocusSessionType;
-  taskLabel: string | null;
   /** Epoch ms when the block began. */
   startedAt: number;
   /** Epoch ms the block is scheduled to complete (the timer's endsAt). */
@@ -103,7 +102,6 @@ export interface FinalizeFocusSessionInput {
   userId: string;
   durationMinutes: number;
   type: FocusSessionType;
-  taskLabel: string | null;
 }
 
 /**
@@ -126,7 +124,6 @@ export async function finalizeFocusSession(
       completed: true,
       startedAt: serverTimestamp(),
       endedAt: serverTimestamp(),
-      taskLabel: input.taskLabel,
       interrupted: false,
     },
     { merge: true }
@@ -182,7 +179,6 @@ function isValidActive(x: unknown): x is ActiveFocusSession {
     typeof o.userId === 'string' &&
     typeof o.durationMinutes === 'number' &&
     (o.type === 'pomodoro' || o.type === 'ultradian') &&
-    (o.taskLabel === null || typeof o.taskLabel === 'string') &&
     typeof o.startedAt === 'number' &&
     typeof o.endsAt === 'number'
   );
