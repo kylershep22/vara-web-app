@@ -12,6 +12,7 @@ import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
 import { WeeklyHabitGrid } from '../WeeklyHabitGrid';
+import { currentWeek, resolveWeekStart } from '../habitWeekState';
 import type { Habit } from '../../../types/models';
 
 // Thursday 2026-07-16. Sunday-start week: Sun 12 … Sat 18.
@@ -181,11 +182,55 @@ describe('no surveillance, no shame', () => {
     expect(text.join(' ')).not.toMatch(/\d/);
   });
 
-  it('the only text is habit names', () => {
+  it('the only text is habit names and the day-of-week header letters', () => {
     const { toJSON } = setup({ habits: [MWF, DAILY] });
-    expect(collectText(toJSON()).sort()).toEqual(
+    const text = collectText(toJSON());
+
+    // The header renders first: seven single letters, one per column.
+    const header = text.slice(0, 7);
+    expect(header).toHaveLength(7);
+    for (const letter of header) {
+      expect(letter).toMatch(/^[A-Z]$/);
+    }
+
+    // Everything after the header is habit names — nothing else.
+    expect(text.slice(7).sort()).toEqual(
       ['Morning walk', 'Strength training'].sort()
     );
+  });
+
+  it('the header letters follow the same locale week start as the grid', () => {
+    const { toJSON } = setup({ habits: [DAILY] });
+    const expected = currentWeek(THURSDAY, resolveWeekStart()).map((d) =>
+      d.dayName.charAt(0)
+    );
+    expect(collectText(toJSON()).slice(0, 7)).toEqual(expected);
+  });
+
+  it('the header carries no digits and no count', () => {
+    const { getByTestId } = setup({
+      habits: [MWF, DAILY, FLEXIBLE, UNKNOWN, habit({ id: 'h5', name: 'Fifth' })],
+    });
+    // includeHiddenElements because the header is hidden from the a11y tree —
+    // the default query would not find it, which is itself the proof.
+    const header = getByTestId('weekly-habit-grid-header', {
+      includeHiddenElements: true,
+    });
+    expect(collectText(header).join('')).not.toMatch(/\d/);
+  });
+
+  it('the header is hidden from screen readers (cells speak their own day)', () => {
+    const { getByTestId, queryByTestId } = setup();
+
+    // Absent from the default (accessibility-respecting) query...
+    expect(queryByTestId('weekly-habit-grid-header')).toBeNull();
+
+    // ...and hidden on both platforms' props.
+    const header = getByTestId('weekly-habit-grid-header', {
+      includeHiddenElements: true,
+    });
+    expect(header.props.accessibilityElementsHidden).toBe(true);
+    expect(header.props.importantForAccessibility).toBe('no-hide-descendants');
   });
 
   it('uses no coral, red, or amber in any rendered style', () => {
@@ -237,7 +282,8 @@ describe('rows and navigation', () => {
 
   it('preserves the order it was given (newest first, as loaded)', () => {
     const { toJSON } = setup({ habits: [MWF, DAILY, FLEXIBLE] });
-    expect(collectText(toJSON())).toEqual([
+    // Skip the seven header letters.
+    expect(collectText(toJSON()).slice(7)).toEqual([
       'Strength training',
       'Morning walk',
       'Read something',

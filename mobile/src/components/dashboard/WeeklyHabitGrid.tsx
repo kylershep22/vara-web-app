@@ -86,6 +86,26 @@ export const WeeklyHabitGrid: React.FC<WeeklyHabitGridProps> = ({
 
   return (
     <View style={styles.card} testID="weekly-habit-grid">
+      {/* Column headers. Structural axis labels, not evaluative text — the
+          no-text rule targets counts, scores, streaks, and percentages. Hidden
+          from screen readers because every cell already speaks its own day
+          ("Monday, completed"), so reading the letters first would just be
+          seven meaningless characters ahead of the grid. */}
+      <View
+        style={styles.headerRow}
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        testID="weekly-habit-grid-header"
+      >
+        <View style={styles.headerNameSpacer} />
+        {week.map((day) => (
+          <View key={day.dateKey} style={styles.headerCell}>
+            <Text style={styles.headerLabel}>{day.dayName.charAt(0)}</Text>
+          </View>
+        ))}
+      </View>
+
       {rows.map((habit) => (
         <HabitRow
           key={habit.id}
@@ -301,6 +321,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 48,
+  },
+  // Mirrors the row's column widths exactly so the letters sit over their days.
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  headerNameSpacer: {
+    flex: 1.5,
+    minWidth: 72,
+    paddingRight: Spacing.sm,
+  },
+  headerCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerLabel: {
+    fontSize: Typography.fontSize.xs, // 12px caption
+    color: Colors.mutedSageGray,
   },
   nameColumn: {
     flex: 1.5,
