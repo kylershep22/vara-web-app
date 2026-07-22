@@ -11,9 +11,17 @@ jest.mock('../../../hooks/useReducedMotion', () => ({
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
-import { WeeklyHabitGrid } from '../WeeklyHabitGrid';
+import { CARD_TITLE, WeeklyHabitGrid } from '../WeeklyHabitGrid';
 import { currentWeek, resolveWeekStart } from '../habitWeekState';
 import type { Habit } from '../../../types/models';
+
+// The card's non-habit strings, in render order: the title, then the seven
+// day-of-week header letters. Named rather than inlined as offsets — three
+// tests used to slice positionally and all three broke silently the first time
+// a string was added ahead of them.
+const CARD_TITLE_STRINGS = 1;
+const HEADER_LETTERS = 7;
+const GRID_CHROME = CARD_TITLE_STRINGS + HEADER_LETTERS;
 
 // Thursday 2026-07-16. Sunday-start week: Sun 12 … Sat 18.
 const THURSDAY = new Date(2026, 6, 16, 9, 0, 0);
@@ -184,19 +192,22 @@ describe('no surveillance, no shame', () => {
     expect(text.join(' ')).not.toMatch(/\d/);
   });
 
-  it('the only text is habit names and the day-of-week header letters', () => {
+  it('the only text is the card title, the header letters, and habit names', () => {
     const { toJSON } = setup({ habits: [MWF, DAILY] });
     const text = collectText(toJSON());
 
-    // The header renders first: seven single letters, one per column.
-    const header = text.slice(0, 7);
-    expect(header).toHaveLength(7);
+    // The title renders first — the card's identity, not a count or a status.
+    expect(text[0]).toBe(CARD_TITLE);
+
+    // Then seven single letters, one per column.
+    const header = text.slice(CARD_TITLE_STRINGS, GRID_CHROME);
+    expect(header).toHaveLength(HEADER_LETTERS);
     for (const letter of header) {
       expect(letter).toMatch(/^[A-Z]$/);
     }
 
-    // Everything after the header is habit names — nothing else.
-    expect(text.slice(7).sort()).toEqual(
+    // Everything after the chrome is habit names — nothing else.
+    expect(text.slice(GRID_CHROME).sort()).toEqual(
       ['Morning walk', 'Strength training'].sort()
     );
   });
@@ -206,7 +217,9 @@ describe('no surveillance, no shame', () => {
     const expected = currentWeek(THURSDAY, resolveWeekStart()).map((d) =>
       d.dayName.charAt(0)
     );
-    expect(collectText(toJSON()).slice(0, 7)).toEqual(expected);
+    expect(
+      collectText(toJSON()).slice(CARD_TITLE_STRINGS, GRID_CHROME)
+    ).toEqual(expected);
   });
 
   it('the header carries no digits and no count', () => {
@@ -264,6 +277,63 @@ describe('no surveillance, no shame', () => {
   });
 });
 
+describe('card chrome (restyle)', () => {
+  it('titles the card in both the populated and empty states', () => {
+    expect(setup().getByTestId('weekly-habit-grid-title').props.children).toBe(
+      CARD_TITLE
+    );
+    expect(
+      setup({ habits: [] }).getByTestId('weekly-habit-grid-title').props.children
+    ).toBe(CARD_TITLE);
+  });
+
+  it('renders exactly one today band for the whole grid, not one per row', () => {
+    // A single continuous backdrop is the point — per-cell backgrounds would
+    // break at every row divider.
+    const { getAllByTestId } = setup({ habits: [MWF, DAILY] });
+    expect(
+      getAllByTestId('weekly-habit-grid-today-band', {
+        includeHiddenElements: true,
+      })
+    ).toHaveLength(1);
+  });
+
+  it('the today band is inert and invisible to screen readers', () => {
+    const { getByTestId } = setup();
+    const band = getByTestId('weekly-habit-grid-today-band', {
+      includeHiddenElements: true,
+    });
+    expect(band.props.pointerEvents).toBe('none');
+    expect(band.props.importantForAccessibility).toBe('no-hide-descendants');
+  });
+
+  it('the completed disc carries a decorative check with no label of its own', () => {
+    const { getByTestId, getByLabelText } = setup({
+      completionsByHabit: { 'h-mwf': ['2026-07-13'] },
+    });
+
+    const check = getByTestId('mark-completed-check', {
+      includeHiddenElements: true,
+    });
+    expect(check.props.accessible).toBe(false);
+    expect(check.props.importantForAccessibility).toBe('no-hide-descendants');
+    expect(check.props.accessibilityLabel).toBeUndefined();
+
+    // The announcement is exactly what it was before the check existed.
+    expect(getByLabelText('Monday, completed')).toBeTruthy();
+  });
+
+  it('draws no rule above the first row', () => {
+    const { getByTestId } = setup({ habits: [MWF, DAILY] });
+    const flatten = (s: any) => (Array.isArray(s) ? Object.assign({}, ...s.filter(Boolean)) : s);
+
+    expect(flatten(getByTestId('weekly-habit-row-h-mwf').props.style).borderTopWidth)
+      .toBeUndefined();
+    expect(flatten(getByTestId('weekly-habit-row-h-daily').props.style).borderTopWidth)
+      .toBe(1);
+  });
+});
+
 describe('rows and navigation', () => {
   it('shows at most four habits and offers a tap-through for the rest', () => {
     const { queryByTestId, getByTestId, onViewAll } = setup({
@@ -284,8 +354,8 @@ describe('rows and navigation', () => {
 
   it('preserves the order it was given (newest first, as loaded)', () => {
     const { toJSON } = setup({ habits: [MWF, DAILY, FLEXIBLE] });
-    // Skip the seven header letters.
-    expect(collectText(toJSON()).slice(7)).toEqual([
+    // Skip the card title and the seven header letters.
+    expect(collectText(toJSON()).slice(GRID_CHROME)).toEqual([
       'Strength training',
       'Morning walk',
       'Read something',
