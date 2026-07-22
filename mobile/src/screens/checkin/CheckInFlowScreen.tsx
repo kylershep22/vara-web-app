@@ -74,7 +74,12 @@ type Nav = NativeStackNavigationProp<{
   // Plan pointer hand-off targets the planning tab (routines live there).
   // B-3d.1: flag-aware — `Rhythms` under the legacy IA, `PillarTime` under the
   // four-pillar IA. Typed off NAV_TARGETS.plan so the flip needs no edit here.
-  Main: { screen: typeof NAV_TARGETS.plan } | undefined;
+  // The nested `params` carry PlanScreen's sub-tab: that screen defaults to
+  // 'habits' when no `tab` arrives, so the pointer has to name 'routines'
+  // explicitly (matching the dashboard / notification callers' `{ tab }` shape).
+  Main:
+    | { screen: typeof NAV_TARGETS.plan; params: { tab: 'routines' } }
+    | undefined;
 }>;
 
 // Sub-step 2.7 round 5 (Bug B fix) — until Phase 3 wires real intent
@@ -203,8 +208,15 @@ export function CheckInFlowScreen() {
         } else {
           // plan pointer → routines on the planning tab. Navigating to Main
           // (already below CheckInFlow in the stack) pops the flow. NAV_TARGETS
-          // resolves the tab name for the active IA (Rhythms / PillarTime).
-          navigation.navigate(ROUTES.Main, { screen: NAV_TARGETS.plan });
+          // resolves the tab name for the active IA (Rhythms / PillarTime), and
+          // the nested params select PlanScreen's Routines sub-tab — without
+          // them the screen falls back to its own 'habits' default, which
+          // contradicts the "we'll take you to your routines" promise the user
+          // just accepted.
+          navigation.navigate(ROUTES.Main, {
+            screen: NAV_TARGETS.plan,
+            params: { tab: 'routines' },
+          });
         }
         return;
       }
