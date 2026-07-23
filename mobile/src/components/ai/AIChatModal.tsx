@@ -377,17 +377,15 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       });
     }
 
-    // Days active this week (count unique dates with any habit completion)
     const habits = initialContext?.userHabits || [];
-    const activeDaysSet = new Set<string>();
-    habits.forEach((h: any) => {
-      if (h.thisWeekSteps && Array.isArray(h.thisWeekSteps)) {
-        h.thisWeekSteps.forEach((step: any) => {
-          if (step.date) activeDaysSet.add(step.date);
-        });
-      }
-    });
-    const daysActive = activeDaysSet.size;
+
+    // "Days active this week" is not computed. It read h.thisWeekSteps as an
+    // array of dated steps, but that field is a number (and permanently 0), so
+    // the loop never ran and the value was always 0. Feeding a hard "0 of 7
+    // days active" to the coach is worse than dead code — it is false state
+    // about the user that the coach could reflect back at them. Silence beats a
+    // wrong zero. The honest value needs the completions subcollection, which
+    // this modal does not load; that is a separate slice.
 
     // Days since last coach session
     let daysSinceLastSession = 'first time';
@@ -420,7 +418,7 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
       dailyReflection: reflection || 'not reflected yet',
       sleepQuality: brainMetrics?.sleepQuality ? `${brainMetrics.sleepQuality}/5` : 'not tracked',
       stressLevel: brainMetrics?.stressLevel ? `${brainMetrics.stressLevel}/5` : 'not tracked',
-      weekSummary: `${daysActive} of 7 days active, ${focusCount} focus sessions (${focusMinutes} min total)`,
+      weekSummary: `${focusCount} focus sessions (${focusMinutes} min total)`,
       moodTrend,
       recentJournalTags: uniqueTags.length > 0 ? uniqueTags.join(', ') : 'none',
       daysSinceLastCoachSession: daysSinceLastSession,
