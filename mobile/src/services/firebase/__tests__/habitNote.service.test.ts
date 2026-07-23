@@ -20,11 +20,8 @@ jest.mock('firebase/firestore', () => ({
 }));
 jest.mock('../../../config/firebase', () => ({ db: { __db: true }, firebaseError: null }));
 
-import {
-  setCompletionNote,
-  getCompletionNote,
-  MAX_QUICK_NOTE_LENGTH,
-} from '../habits.service';
+import { setCompletionNote, getCompletionNote } from '../habits.service';
+import { MAX_QUICK_NOTE_LENGTH } from '../../../constants/habitNotes';
 
 describe('setCompletionNote', () => {
   beforeEach(() => {

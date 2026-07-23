@@ -21,6 +21,7 @@ import {
 } from 'firebase/firestore';
 import { db, firebaseError } from '../../config/firebase';
 import { Habit, HabitCompletion, HabitReflection, ConnectionQuality, CompletionSource } from '../../types';
+import { MAX_QUICK_NOTE_LENGTH } from '../../constants/habitNotes';
 
 const COLLECTION = 'habits';
 const COMPLETIONS_SUBCOLLECTION = 'completions';
@@ -206,13 +207,6 @@ export const markHabitComplete = async (
     throw error;
   }
 };
-
-/**
- * Longest note we store on a completion. Deliberately longer than the 80-char
- * intention (a stable phrase) because a note records a specific moment, and
- * short enough to stay scannable in the "What you noted" card.
- */
-export const MAX_QUICK_NOTE_LENGTH = 140;
 
 /**
  * Attach a free-text note to a completion that has ALREADY been written.

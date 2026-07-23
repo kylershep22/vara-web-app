@@ -31,7 +31,6 @@ export {
   isHabitCompletedToday,
   setCompletionNote,
   getCompletionNote,
-  MAX_QUICK_NOTE_LENGTH,
 } from './habits.service';
 export type { CompletionReflectionData } from './habits.service';
 
