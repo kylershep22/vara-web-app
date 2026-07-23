@@ -55,6 +55,12 @@ const COPY_SOURCES = [
   // dash / optim* (and, below, brain-health-led framing).
   'src/screens/PaywallScreen.tsx',
   'src/screens/auth/SignupScreen.tsx',
+  // Habit detail rebuild. The screen's own copy plus the module that composes
+  // its descriptive reporting lines.
+  'src/screens/HabitDetailScreen.tsx',
+  'src/components/habits/habitHistory.ts',
+  'src/components/habits/HabitWeekStrip.tsx',
+  'src/components/habits/HabitFourWeekView.tsx',
 ];
 
 // U+2014 EM DASH, built via char code so no literal em-dash byte lives in
@@ -149,6 +155,9 @@ const OUTCOMES_LED_SURFACES = [
   'src/screens/Energy/EnergyHubScreen.tsx',
   'src/screens/JournalScreen.tsx',
   'src/components/journal/JournalEmptyState.tsx',
+  // The habit detail screen. It led with brain health in two places before the
+  // rebuild; both are gone and neither may come back.
+  'src/screens/HabitDetailScreen.tsx',
 ];
 
 const RETIRED_POSITIONING_PATTERNS = [
@@ -156,6 +165,92 @@ const RETIRED_POSITIONING_PATTERNS = [
   { label: 'brain-aligned framing', re: /brain[-\s]?aligned/i },
   { label: 'brain-as-headline phrasing', re: /how your brain\b|supporting your brain/i },
 ];
+
+// Habit surfaces additionally must state NO CLINICAL CLAIM. Voice & Tone §5
+// bans clinical claims outright; §4 permits only conditional framing. The habit
+// detail screen shipped two as flat fact — "consistent focus habits strengthen
+// prefrontal cortex pathways over time" and "even 5 minutes of focused practice
+// builds your brain's attention networks" — from a twenty-string table in
+// intentions.ts. The table is deleted; this guard is what stops a replacement
+// being written.
+//
+// Scoped to the habit surfaces on purpose. A tree-wide ban would trip the
+// legitimate BACKBONE education in brainHealthMapping.ts and the Learn content,
+// which is explainer body copy, not a claim attached to a user's own habit.
+// Comments are stripped first, so the notes explaining what was removed (and
+// this list itself) cannot trip it.
+const NO_CLINICAL_CLAIM_SOURCES = [
+  'src/screens/HabitDetailScreen.tsx',
+  'src/components/habits/habitHistory.ts',
+  'src/components/habits/HabitWeekStrip.tsx',
+  'src/components/habits/HabitFourWeekView.tsx',
+  'src/components/habits/IntentionEditSheet.tsx',
+  // Where the deleted table lived.
+  'src/constants/intentions.ts',
+];
+
+const CLINICAL_CLAIM_PATTERNS = [
+  {
+    label: 'brain-anatomy mechanism',
+    re: /prefrontal|cortex|neural (pathway|loop|network)|attention network|neuroplastic|synap|dopamine|serotonin|cortisol/i,
+  },
+  { label: 'rewiring claim', re: /rewir(e|es|ed|ing)/i },
+  {
+    label: 'cognitive-benefit claim',
+    re: /builds? your brain|strengthens? your brain|cognitive (improvement|gain|benefit)/i,
+  },
+];
+
+describe('Habit surfaces state no clinical claim', () => {
+  NO_CLINICAL_CLAIM_SOURCES.forEach((relPath) => {
+    const fullPath = path.join(mobileRoot, relPath);
+    if (!fs.existsSync(fullPath)) return;
+
+    describe(relPath, () => {
+      const raw = fs.readFileSync(fullPath, 'utf-8');
+      const lines = stripBlockComments(raw)
+        .split('\n')
+        .map(stripLineComment);
+
+      CLINICAL_CLAIM_PATTERNS.forEach(({ label, re }) => {
+        it(`does not contain a ${label}`, () => {
+          const violations = lines
+            .map((line, idx) => ({ line: line.trim(), num: idx + 1 }))
+            .filter(({ line }) => re.test(line));
+
+          if (violations.length > 0) {
+            const details = violations
+              .map((v) => `  Line ${v.num}: ${v.line}`)
+              .join('\n');
+            throw new Error(
+              `Found prohibited ${label} in ${relPath}:\n${details}`
+            );
+          }
+        });
+      });
+    });
+  });
+});
+
+// The habit detail screen must not reintroduce coral. Colors.error (#D97A6E) is
+// reserved for genuine errors; removing a habit you chose is an intentional
+// action. Checked at the source rather than in a render, because a coral style
+// on a state the default render never reaches would pass a render assertion.
+describe('Habit detail screen uses no error color', () => {
+  const raw = fs.readFileSync(
+    path.join(mobileRoot, 'src/screens/HabitDetailScreen.tsx'),
+    'utf-8'
+  );
+  const lines = stripBlockComments(raw).split('\n').map(stripLineComment);
+
+  it.each([
+    ['Colors.error', /Colors\.error/],
+    ['the coral hex', /D97A6E/i],
+    ['any red or amber literal', /#(FF|F4|E5|D9)[0-9A-F]{0,2}(00|3B|43)/i],
+  ])('does not reference %s', (_label, re) => {
+    expect(lines.filter((line) => re.test(line))).toEqual([]);
+  });
+});
 
 describe('Conversion surfaces stay outcomes-led (no brain-health-led framing)', () => {
   OUTCOMES_LED_SURFACES.forEach((relPath) => {
