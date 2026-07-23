@@ -19,7 +19,7 @@
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Text, TouchableOpacity, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -87,6 +87,7 @@ const HabitDetailScreen: React.FC = () => {
     category: habit.category || '',
     identity: habit.identity || '',
     identityStatement: habit.identityStatement || '',
+    notePromptEnabled: !!habit.notePromptEnabled,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -199,6 +200,7 @@ const HabitDetailScreen: React.FC = () => {
       category: habit.category || '',
       identity: habit.identity || '',
       identityStatement: habit.identityStatement || '',
+      notePromptEnabled: !!habit.notePromptEnabled,
     });
     setEditModalVisible(true);
   };
@@ -487,6 +489,23 @@ const HabitDetailScreen: React.FC = () => {
           style={styles.input}
           inputAccessoryViewID="habit-edit-modal"
         />
+
+        {/* The note prompt follows the habit, so turning it on here changes
+            every surface this habit can be completed from. */}
+        <View style={styles.noteToggleRow}>
+          <View style={styles.noteToggleText}>
+            <Text style={styles.noteToggleLabel}>Add a note when I complete this</Text>
+            <Text style={styles.noteToggleHelper}>A quick line you can look back on.</Text>
+          </View>
+          <Switch
+            value={formData.notePromptEnabled}
+            onValueChange={(value) => setFormData({ ...formData, notePromptEnabled: value })}
+            trackColor={{ false: '#D5E3D1', true: Colors.evergreenTeal }}
+            thumbColor="#fff"
+            accessibilityLabel="Add a note when I complete this"
+            testID="habit-edit-note-prompt-toggle"
+          />
+        </View>
       </EnhancedModal>
 
       <IntentionEditSheet
@@ -640,6 +659,27 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: Spacing.base,
+  },
+  noteToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 48,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.base,
+  },
+  noteToggleText: {
+    flex: 1,
+    marginRight: Spacing.base,
+  },
+  noteToggleLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+  },
+  noteToggleHelper: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginTop: 2,
   },
 });
 

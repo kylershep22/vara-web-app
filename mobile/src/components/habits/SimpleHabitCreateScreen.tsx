@@ -10,6 +10,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
+  Switch,
 } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -35,6 +36,7 @@ export interface SimpleHabitFormData {
   specificDays: number[];
   timeOfDay: TimeOfDay;
   intention: string;
+  notePromptEnabled: boolean;
 }
 
 export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = ({
@@ -48,6 +50,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('anytime');
   const [intention, setIntention] = useState('');
   const [showIntention, setShowIntention] = useState(false);
+  const [notePromptEnabled, setNotePromptEnabled] = useState(false);
   const [showCaptured, setShowCaptured] = useState(false);
 
   const resetForm = () => {
@@ -57,6 +60,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
     setTimeOfDay('anytime');
     setIntention('');
     setShowIntention(false);
+    setNotePromptEnabled(false);
     setShowCaptured(false);
   };
 
@@ -70,6 +74,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
       specificDays,
       timeOfDay,
       intention: intention.trim(),
+      notePromptEnabled,
     });
 
     setShowCaptured(true);
@@ -203,6 +208,23 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
             />
           )}
 
+          {/* Note prompt — grouped with the optional intention above, since both
+              are things you may add to a habit rather than things it needs. */}
+          <View style={styles.noteToggleRow}>
+            <View style={styles.noteToggleText}>
+              <Text style={styles.noteToggleLabel}>Add a note when I complete this</Text>
+              <Text style={styles.noteToggleHelper}>A quick line you can look back on.</Text>
+            </View>
+            <Switch
+              value={notePromptEnabled}
+              onValueChange={setNotePromptEnabled}
+              trackColor={{ false: '#D5E3D1', true: Colors.evergreenTeal }}
+              thumbColor="#fff"
+              accessibilityLabel="Add a note when I complete this"
+              testID="habit-create-note-prompt-toggle"
+            />
+          </View>
+
           {/* Save Button */}
           <View style={styles.saveContainer}>
             <Button
@@ -306,6 +328,26 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     color: Colors.evergreenTeal,
     fontWeight: Typography.fontWeight.medium,
+  },
+  noteToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 48,
+    paddingVertical: Spacing.sm,
+  },
+  noteToggleText: {
+    flex: 1,
+    marginRight: Spacing.base,
+  },
+  noteToggleLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
+  },
+  noteToggleHelper: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   saveContainer: {
     marginTop: Spacing.xl,

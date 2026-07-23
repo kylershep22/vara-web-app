@@ -221,6 +221,12 @@ export function useHabitsScreen() {
         };
       }
 
+      // Only written when opted in — an unset field is off, so habits created
+      // without the toggle carry no flag at all.
+      if (formData.notePromptEnabled) {
+        habitData.notePromptEnabled = true;
+      }
+
       await createHabit(user.uid, habitData);
       setModalVisible(false);
     } catch (error: any) {
