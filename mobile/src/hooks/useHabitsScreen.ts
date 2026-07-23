@@ -28,6 +28,7 @@ import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 import { SimpleHabitFormData } from '../components/habits/SimpleHabitCreateScreen';
 import { logger } from '../utils/logger';
 import { scheduleHabitReminder, cancelHabitReminder } from '../services/reminderScheduler.service';
+import { useHabitNotePrompt, confirmCompletionNoteLoss } from './useHabitNotePrompt';
 
 export function useHabitsScreen() {
   const { user } = useAuth();
@@ -48,6 +49,7 @@ export function useHabitsScreen() {
   const [pillarInfoVisible, setPillarInfoVisible] = useState(false);
   const [completionSheetHabit, setCompletionSheetHabit] = useState<Habit | null>(null);
   const [reflectionEnabled, setReflectionEnabled] = useState(true);
+  const { noteTarget, promptForNote, saveNote, dismissNote } = useHabitNotePrompt();
   const today = new Date().toISOString().split('T')[0];
 
   // Load user's reflectionEnabled preference
@@ -265,6 +267,17 @@ export function useHabitsScreen() {
 
     const isCompleted = completedToday.has(habitId);
 
+    // Only when undoing, and only when there is something to lose: a note lives
+    // on the completion document that un-completing deletes.
+    if (isCompleted && !(await confirmCompletionNoteLoss(habitId, today))) {
+      setTogglingHabits(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(habitId);
+        return newSet;
+      });
+      return;
+    }
+
     try {
       if (isCompleted) {
         // Optimistic: immediately show as unchecked
@@ -279,6 +292,8 @@ export function useHabitsScreen() {
         // Optimistic: immediately show as checked
         completeHabitLocally(habitId);
         await markHabitComplete(habitId, user!.uid, today, { source: 'track' });
+        // Completion is saved. The note sheet is an addendum on top of it.
+        promptForNote(habits.find((h) => h.id === habitId), today);
       } else {
         // V1: Open the completion sheet for reflection
         const habit = habits.find((h) => h.id === habitId);
@@ -308,7 +323,7 @@ export function useHabitsScreen() {
         return newSet;
       });
     }
-  }, [completedToday, today, user, habits, reflectionEnabled, togglingHabits, setAllHabitsCompletedToday]);
+  }, [completedToday, today, user, habits, reflectionEnabled, togglingHabits, setAllHabitsCompletedToday, promptForNote]);
 
   /** Shared logic to mark habit complete in local state + trigger celebration / notif opt-in */
   const completeHabitLocally = useCallback((habitId: string) => {
@@ -384,5 +399,9 @@ export function useHabitsScreen() {
     completionSheetHabit,
     handleCompletionSheetDone,
     handleCompletionSheetDismiss,
+    // Note capture
+    noteTarget,
+    saveNote,
+    dismissNote,
   };
 }

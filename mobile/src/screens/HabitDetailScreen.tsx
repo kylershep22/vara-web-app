@@ -33,6 +33,7 @@ import { EnhancedModal, ModalFooterActions } from '../components/shared/Enhanced
 import { BaseCard } from '../components/shared/BaseCard';
 import { CardHeading } from '../components/dashboard/CardHeading';
 import { IntentionEditSheet } from '../components/habits/IntentionEditSheet';
+import { HabitNoteSheet } from '../components/habits/HabitNoteSheet';
 import { HabitWeekStrip } from '../components/habits/HabitWeekStrip';
 import { HabitFourWeekView } from '../components/habits/HabitFourWeekView';
 import {
@@ -53,6 +54,7 @@ import {
   markHabitComplete,
   unmarkHabitComplete,
 } from '../services/firebase';
+import { useHabitNotePrompt, confirmCompletionNoteLoss } from '../hooks/useHabitNotePrompt';
 import { logger } from '../utils/logger';
 import { Habit, HabitCompletion, HabitIntention } from '../types';
 
@@ -90,6 +92,7 @@ const HabitDetailScreen: React.FC = () => {
     notePromptEnabled: !!habit.notePromptEnabled,
   });
   const [submitting, setSubmitting] = useState(false);
+  const { noteTarget, promptForNote, saveNote, dismissNote } = useHabitNotePrompt();
 
   // One clock for the whole render tree, so the week strip, the four-week view
   // and "today" cannot disagree across a midnight boundary mid-session.
@@ -162,6 +165,14 @@ const HabitDetailScreen: React.FC = () => {
     if (!user?.uid || processing) return;
 
     const wasCompleted = completedToday;
+
+    // Only when undoing, and only when there is something to lose: a note
+    // lives on the completion document that un-completing deletes.
+    if (wasCompleted) {
+      const proceed = await confirmCompletionNoteLoss(habit.id, todayKey);
+      if (!proceed) return;
+    }
+
     setProcessing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
@@ -178,6 +189,8 @@ const HabitDetailScreen: React.FC = () => {
         await unmarkHabitComplete(habit.id, todayKey);
       } else {
         await markHabitComplete(habit.id, user.uid, todayKey, { source: 'track' });
+        // Completion is saved. The note sheet is an addendum on top of it.
+        promptForNote(habit, todayKey);
       }
     } catch (error) {
       logger.error('Error toggling habit completion:', error);
@@ -190,7 +203,21 @@ const HabitDetailScreen: React.FC = () => {
     } finally {
       setProcessing(false);
     }
-  }, [user, processing, completedToday, habit.id, todayKey]);
+  }, [user, processing, completedToday, habit, todayKey, promptForNote]);
+
+  // Re-read completions after a note lands so "What you noted" appears without
+  // needing to leave and re-enter the screen.
+  const handleSaveNote = useCallback(
+    async (note: string) => {
+      await saveNote(note);
+      try {
+        setCompletions(await getHabitCompletions(habit.id));
+      } catch (error) {
+        logger.error('Error reloading completions after note:', error);
+      }
+    },
+    [saveNote, habit.id]
+  );
 
   const handleEdit = () => {
     setFormData({
@@ -514,6 +541,15 @@ const HabitDetailScreen: React.FC = () => {
         currentIntention={habit.intention}
         onSave={handleSaveIntention}
       />
+
+      {noteTarget && (
+        <HabitNoteSheet
+          visible
+          habitName={noteTarget.habitName}
+          onSave={handleSaveNote}
+          onDismiss={dismissNote}
+        />
+      )}
     </SafeAreaView>
   );
 };
