@@ -35,9 +35,6 @@ export interface UserProfile {
   privacy: 'public' | 'connections' | 'private';
   searchable?: boolean;
 
-  // Habit completion reflections master toggle (default: true)
-  reflectionEnabled?: boolean;
-
   // Standardized interests (IDs from WELLNESS_INTERESTS)
   interests?: string[];
   interestsPublic?: boolean; // Toggle for showing interests publicly

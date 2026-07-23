@@ -36,7 +36,6 @@ interface Settings {
   intensity: 'low' | 'standard' | 'high';
   privacy: 'public' | 'connections' | 'private';
   searchable: boolean;
-  reflectionEnabled: boolean;
 }
 
 // The coach "invite code" channel ('RedeemCode') is only registered in
@@ -61,7 +60,6 @@ const SettingsScreen = () => {
     intensity: 'standard',
     privacy: 'public',
     searchable: true,
-    reflectionEnabled: true,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -103,7 +101,6 @@ const SettingsScreen = () => {
           intensity: data.intensity || 'standard',
           privacy: data.privacy || 'public',
           searchable: data.searchable !== false,
-          reflectionEnabled: data.reflectionEnabled !== false,
         });
       }
     } catch (error) {

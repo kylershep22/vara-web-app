@@ -6,8 +6,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useHabits } from './useHabits';
 import { useCelebrations } from './useCelebrations';
@@ -47,25 +45,7 @@ export function useHabitsScreen() {
   const [togglingHabits, setTogglingHabits] = useState<Set<string>>(new Set());
   const [pillarInfoVisible, setPillarInfoVisible] = useState(false);
   const [completionSheetHabit, setCompletionSheetHabit] = useState<Habit | null>(null);
-  const [reflectionEnabled, setReflectionEnabled] = useState(true);
   const today = new Date().toISOString().split('T')[0];
-
-  // Load user's reflectionEnabled preference
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        if (!db) return;
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setReflectionEnabled(data.reflectionEnabled !== false);
-        }
-      } catch (error) {
-        logger.error('Error loading reflectionEnabled setting:', error);
-      }
-    })();
-  }, [user]);
 
   // Check which habits are completed today
   useEffect(() => {
@@ -269,7 +249,7 @@ export function useHabitsScreen() {
         });
         setAllHabitsCompletedToday(false);
         await unmarkHabitComplete(habitId, today);
-      } else if (DASHBOARD_V2 || !reflectionEnabled) {
+      } else if (DASHBOARD_V2) {
         // Optimistic: immediately show as checked
         completeHabitLocally(habitId);
         await markHabitComplete(habitId, user!.uid, today, { source: 'track' });
@@ -302,7 +282,7 @@ export function useHabitsScreen() {
         return newSet;
       });
     }
-  }, [completedToday, today, user, habits, reflectionEnabled, togglingHabits, setAllHabitsCompletedToday]);
+  }, [completedToday, today, user, habits, togglingHabits, setAllHabitsCompletedToday]);
 
   /** Shared logic to mark habit complete in local state + trigger celebration / notif opt-in */
   const completeHabitLocally = useCallback((habitId: string) => {
