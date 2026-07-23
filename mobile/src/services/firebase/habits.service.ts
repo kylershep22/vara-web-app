@@ -208,6 +208,64 @@ export const markHabitComplete = async (
 };
 
 /**
+ * Longest note we store on a completion. Deliberately longer than the 80-char
+ * intention (a stable phrase) because a note records a specific moment, and
+ * short enough to stay scannable in the "What you noted" card.
+ */
+export const MAX_QUICK_NOTE_LENGTH = 140;
+
+/**
+ * Attach a free-text note to a completion that has ALREADY been written.
+ *
+ * A merge write, never markHabitComplete: markHabitComplete uses setDoc without
+ * merge, so re-calling it here would clobber completedAt/source/reflection on
+ * the existing record. This touches `quickNote` and nothing else, and creates
+ * no second document — the completion doc id is the date.
+ */
+export const setCompletionNote = async (
+  habitId: string,
+  date: string, // YYYY-MM-DD format
+  note: string
+): Promise<void> => {
+  const firestore = ensureFirestore();
+  try {
+    const trimmed = note.trim().slice(0, MAX_QUICK_NOTE_LENGTH);
+    if (!trimmed) return;
+
+    const completionRef = doc(firestore, COLLECTION, habitId, COMPLETIONS_SUBCOLLECTION, date);
+    await setDoc(completionRef, { quickNote: trimmed }, { merge: true });
+  } catch (error) {
+    console.error('Error saving completion note:', error);
+    throw error;
+  }
+};
+
+/**
+ * The note on a completion, or null when the completion has none (or does not
+ * exist). Used to decide whether un-completing would discard something.
+ */
+export const getCompletionNote = async (
+  habitId: string,
+  date: string
+): Promise<string | null> => {
+  if (!db) return null;
+  try {
+    const completionRef = doc(db, COLLECTION, habitId, COMPLETIONS_SUBCOLLECTION, date);
+    const snap = await getDoc(completionRef);
+    if (!snap.exists()) return null;
+
+    const note = snap.data()?.quickNote;
+    return typeof note === 'string' && note.trim().length > 0 ? note : null;
+  } catch (error: any) {
+    // A missing note must never block un-completing; treat any read failure as
+    // "no note" rather than surfacing an error the user cannot act on.
+    if (error?.code === 'permission-denied') return null;
+    console.error('Error reading completion note:', error);
+    return null;
+  }
+};
+
+/**
  * Unmark habit completion for a specific date
  */
 export const unmarkHabitComplete = async (
