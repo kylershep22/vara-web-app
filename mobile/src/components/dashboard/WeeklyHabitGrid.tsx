@@ -128,7 +128,6 @@ export const WeeklyHabitGrid: React.FC<WeeklyHabitGridProps> = ({
   }
 
   const rows = habits.slice(0, MAX_ROWS);
-  const hasMore = habits.length > rows.length;
   const todayIndex = week.findIndex((d) => d.tense === 'today');
 
   return (
@@ -204,19 +203,20 @@ export const WeeklyHabitGrid: React.FC<WeeklyHabitGridProps> = ({
         ))}
       </View>
 
-      {hasMore && (
-        // Deliberately no count of what is hidden — a number here would be a
-        // score by another name.
-        <TouchableOpacity
-          onPress={onViewAll}
-          accessibilityRole="button"
-          accessibilityLabel="View all habits"
-          testID="weekly-habit-grid-view-all"
-          style={styles.viewAll}
-        >
-          <Text style={styles.viewAllLabel}>View all habits ›</Text>
-        </TouchableOpacity>
-      )}
+      {/* Always present in the populated card: this is the route into the
+          Habits tab, not merely an overflow affordance. It renders identically
+          whether or not habits are hidden — and still names no count, which
+          would be a score by another name. The empty state omits it; it has its
+          own "Add a habit" CTA. */}
+      <TouchableOpacity
+        onPress={onViewAll}
+        accessibilityRole="button"
+        accessibilityLabel="View all habits"
+        testID="weekly-habit-grid-view-all"
+        style={styles.viewAll}
+      >
+        <Text style={styles.viewAllLabel}>View all habits ›</Text>
+      </TouchableOpacity>
     </View>
   );
 };

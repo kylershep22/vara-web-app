@@ -275,7 +275,9 @@ const DashboardScreen: React.FC = () => {
 
             {/* Spec content cards — explicit, fixed order (no longer
                 brain-state-ordered): Suggested action (post only) → Insight →
-                Routine. */}
+                This week → Routine. The habit grid sits above the routine card:
+                it is the surface a returning user comes to check, so it should
+                not sit below a card they may have already acted on. */}
             <View>
               {dashboardPhase === 'checked-in' && suggestion && (
                 <SuggestedActionCard
@@ -291,21 +293,12 @@ const DashboardScreen: React.FC = () => {
 
               <InsightCard />
 
-              <RoutineCard
-                routines={dashboardRoutines}
-                completions={routineCompletions}
-                onBeginRoutine={handleBeginRoutine}
-                onNavigateToRoutines={() => go(NAV_TARGETS.plan, { tab: 'routines' })}
-                onNavigateToHabits={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
-              />
-
               {/* This week's habits — the user's own consistency, shown back to
                   them neutrally. Only today is interactive; `handleHabitToggle`
                   is never handed a past date (see WeeklyHabitGrid). Self-hides
-                  when there are no habits. The overflow tap-through goes to the
-                  Time tab's habits sub-tab, the same target the routine card
-                  uses. HabitDetail needs the full habit object, not just its
-                  id. */}
+                  when there are no habits. The tap-through goes to the Time
+                  tab's habits sub-tab, the same target the routine card uses.
+                  HabitDetail needs the full habit object, not just its id. */}
               <WeeklyHabitGrid
                 habits={habits}
                 completionsByHabit={allCompletions}
@@ -317,6 +310,14 @@ const DashboardScreen: React.FC = () => {
                 }
                 onViewAll={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
                 onAddHabit={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
+              />
+
+              <RoutineCard
+                routines={dashboardRoutines}
+                completions={routineCompletions}
+                onBeginRoutine={handleBeginRoutine}
+                onNavigateToRoutines={() => go(NAV_TARGETS.plan, { tab: 'routines' })}
+                onNavigateToHabits={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
               />
 
               {/* Surviving system prompts (live-gated), after the content. */}

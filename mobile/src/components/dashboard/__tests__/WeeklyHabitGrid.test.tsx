@@ -22,6 +22,15 @@ import type { Habit } from '../../../types/models';
 const CARD_TITLE_STRINGS = 1;
 const HEADER_LETTERS = 7;
 const GRID_CHROME = CARD_TITLE_STRINGS + HEADER_LETTERS;
+// And the one string AFTER the habit names: the tap-through, which now renders
+// in every populated card rather than only on overflow. Named for the same
+// reason as GRID_CHROME — so adding a string never silently shifts an offset.
+const TRAILING_STRINGS = 1;
+
+/** The habit names only, with the card's chrome stripped from both ends. */
+function habitNames(text: string[]): string[] {
+  return text.slice(GRID_CHROME, text.length - TRAILING_STRINGS);
+}
 
 // Thursday 2026-07-16. Sunday-start week: Sun 12 … Sat 18.
 const THURSDAY = new Date(2026, 6, 16, 9, 0, 0);
@@ -192,7 +201,7 @@ describe('no surveillance, no shame', () => {
     expect(text.join(' ')).not.toMatch(/\d/);
   });
 
-  it('the only text is the card title, the header letters, and habit names', () => {
+  it('the only text is the card title, the header letters, habit names, and the tap-through', () => {
     const { toJSON } = setup({ habits: [MWF, DAILY] });
     const text = collectText(toJSON());
 
@@ -206,10 +215,11 @@ describe('no surveillance, no shame', () => {
       expect(letter).toMatch(/^[A-Z]$/);
     }
 
-    // Everything after the chrome is habit names — nothing else.
-    expect(text.slice(GRID_CHROME).sort()).toEqual(
+    // Between the chrome and the tap-through: habit names, nothing else.
+    expect(habitNames(text).sort()).toEqual(
       ['Morning walk', 'Strength training'].sort()
     );
+    expect(text[text.length - 1]).toMatch(/^View all habits/);
   });
 
   it('the header letters follow the same locale week start as the grid', () => {
@@ -347,15 +357,35 @@ describe('rows and navigation', () => {
     expect(onViewAll).toHaveBeenCalledTimes(1);
   });
 
-  it('offers no tap-through when every habit already fits', () => {
-    const { queryByTestId } = setup({ habits: [MWF, DAILY] });
+  it('offers the tap-through even when every habit already fits', () => {
+    // It is the route into the Habits tab, not an overflow affordance — two
+    // habits fit in the four-row cap and it must still be there.
+    const { getByTestId, onViewAll } = setup({ habits: [MWF, DAILY] });
+
+    fireEvent.press(getByTestId('weekly-habit-grid-view-all'));
+    expect(onViewAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads the same whether or not habits are hidden — never a count', () => {
+    const label = (habits: Habit[]) =>
+      String(setup({ habits }).getByText(/View all habits/).props.children);
+
+    const fits = label([MWF, DAILY]);
+    const overflows = label([MWF, DAILY, FLEXIBLE, UNKNOWN, habit({ id: 'h5', name: 'Fifth' })]);
+
+    expect(fits).toBe(overflows);
+    expect(fits).not.toMatch(/\d/);
+  });
+
+  it('keeps the tap-through out of the empty state, which has its own CTA', () => {
+    const { queryByTestId, getByTestId } = setup({ habits: [] });
     expect(queryByTestId('weekly-habit-grid-view-all')).toBeNull();
+    expect(getByTestId('weekly-habit-grid-add')).toBeTruthy();
   });
 
   it('preserves the order it was given (newest first, as loaded)', () => {
     const { toJSON } = setup({ habits: [MWF, DAILY, FLEXIBLE] });
-    // Skip the card title and the seven header letters.
-    expect(collectText(toJSON()).slice(GRID_CHROME)).toEqual([
+    expect(habitNames(collectText(toJSON()))).toEqual([
       'Strength training',
       'Morning walk',
       'Read something',
