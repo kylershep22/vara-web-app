@@ -4,15 +4,17 @@
 // daily-rotating insight from getDashboardInsight() (a static launch set behind
 // a seam). Calm and conditional — no stat, score, streak, lock, rating, or
 // "More" link (decision: omit it — no destination, avoids content-store framing).
-// Layout matches the mockup .card: an uppercase "A small insight" cap, title,
-// body.
+//
+// No eyebrow cap (Voice & Tone v2.2 §4): "A small insight" diminished the
+// insight before it spoke, and the uppercase cap treatment read as a button —
+// it was the one thing this card visually shared with the actionable
+// SuggestedActionCard directly above it. The insight leads with its own title.
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { getDashboardInsight, type DashboardInsight } from './dashboardInsights';
-import { dashboardEyebrow } from './cardStyles';
 import { CardHeading } from './CardHeading';
 
 export interface InsightCardProps {
@@ -24,11 +26,9 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
   const item = insight ?? getDashboardInsight();
   return (
     <View style={styles.card} testID="dashboard-insight">
-      {/* The tile anchors to the heading BLOCK, not to the eyebrow: "A small
-          insight" is queued for removal in a copy pass, and anchoring the tile
-          to it would orphan the tile when the eyebrow goes. No strings change. */}
+      {/* The tile was anchored to the heading BLOCK rather than the eyebrow
+          precisely so removing the eyebrow would not orphan it. It didn't. */}
       <CardHeading icon="lightbulb-outline" style={styles.heading}>
-        <Text style={styles.eyebrow}>A small insight</Text>
         <Text style={styles.title}>{item.title}</Text>
       </CardHeading>
       <Text style={styles.body}>{item.body}</Text>
@@ -45,10 +45,6 @@ const styles = StyleSheet.create({
     ...Layout.shadow.sm,
   },
   heading: {
-    marginBottom: Spacing.xs,
-  },
-  eyebrow: {
-    ...dashboardEyebrow,
     marginBottom: Spacing.xs,
   },
   title: {
