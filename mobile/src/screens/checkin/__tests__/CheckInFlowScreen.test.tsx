@@ -1,7 +1,8 @@
 // Tests for CheckInFlowScreen's terminal-state navigation routing in the
 // engine-wired flow. Routing is now driven by the FlowCompletion:
 //   - pointer hand-off (focus-session) → replace('FocusTimer')
-//   - pointer hand-off (plan)          → navigate('Main', { screen: NAV_TARGETS.plan })
+//   - pointer hand-off (plan)          → navigate('Main', { screen: NAV_TARGETS.plan,
+//                                                           params: { tab: 'routines' } })
 //   - practice with no pointer / acknowledged / abandoned → goBack()
 //
 // CheckInFlow is mocked at the module boundary so tests can drive the parent's
@@ -146,8 +147,26 @@ describe('CheckInFlowScreen — pointer hand-off navigation', () => {
     // (four-pillar IA), so this assertion holds under either FOUR_PILLAR_IA.
     await complete(pointerOnly('plan'));
     await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: NAV_TARGETS.plan })
+      expect(mockNavigate).toHaveBeenCalledWith('Main', {
+        screen: NAV_TARGETS.plan,
+        params: { tab: 'routines' },
+      })
     );
+  });
+
+  it('plan pointer names the Routines sub-tab explicitly (never PlanScreen\'s habits default)', async () => {
+    // The pointer's promise is "we'll take you to your routines". PlanScreen
+    // defaults activeTab to 'habits' when no `tab` param arrives, so omitting
+    // the nested params silently lands the user on Habits. Pin the param.
+    await complete(pointerOnly('plan'));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
+
+    const [, options] = mockNavigate.mock.calls[0] as [
+      string,
+      { screen: string; params?: { tab?: string } },
+    ];
+    expect(options.params).toEqual({ tab: 'routines' });
+    expect(options.params?.tab).not.toBe('habits');
   });
 
   it('practice that launched a pointer hands off to FocusTimer', async () => {
