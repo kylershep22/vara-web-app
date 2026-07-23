@@ -398,9 +398,10 @@ export function AIChatModal({ visible, onClose, initialContext }: AIChatModalPro
     // Save this session timestamp
     AsyncStorage.setItem(LAST_COACH_SESSION_KEY, new Date().toISOString()).catch(() => {});
 
-    // Top 5 habits by totalStepsTaken, with identity/intention
+    // First 5 habits, with identity/intention. Previously sorted by
+    // totalStepsTaken, a field that was always 0 for every habit, so the sort
+    // was a no-op; it and the field are gone, leaving load order.
     const topHabits = [...habits]
-      .sort((a: any, b: any) => (b.totalStepsTaken || 0) - (a.totalStepsTaken || 0))
       .slice(0, 5)
       .map((h: any) => {
         const parts = [h.name || h.title || 'Untitled'];

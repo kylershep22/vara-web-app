@@ -150,8 +150,6 @@ export function useHabitsScreen() {
       }
 
       if (!editingHabit) {
-        habitData.totalStepsTaken = 0;
-        habitData.thisWeekSteps = 0;
         habitData.missedYesterday = false;
         habitData.consecutiveMisses = 0;
         habitData.scalingPhase = 'getting_started';
@@ -202,8 +200,6 @@ export function useHabitsScreen() {
         frequency,
         frequencyType: formData.frequencyType,
         active: true,
-        totalStepsTaken: 0,
-        thisWeekSteps: 0,
         missedYesterday: false,
         consecutiveMisses: 0,
         scalingPhase: 'getting_started',

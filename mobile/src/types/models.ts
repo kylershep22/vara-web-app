@@ -178,10 +178,6 @@ export interface Habit {
   problem?: string; // What problem does this habit solve?
   trigger?: string; // What situation/feeling triggers the need for this habit?
 
-  // Progress Tracking (Vara's "Steps Taken" system)
-  totalStepsTaken?: number; // Total completions (any version counts)
-  thisWeekSteps?: number; // Steps taken this week
-
   // Build On What Works (habit stacking)
   stackedAfter?: string; // Habit ID or routine name this is stacked after
 
