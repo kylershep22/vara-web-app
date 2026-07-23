@@ -1,21 +1,61 @@
 /**
  * Habit Detail Screen
- * View and manage individual habit details
+ *
+ * One habit, on the surface the user chose to open. Accountability, not a
+ * scoreboard (Voice & Tone v2.2 §3.4, Accountability Amendment):
+ *
+ *   - No streak, percentage, fraction against a target, completion rate, or
+ *     assigned state ("great job!") appears anywhere on this screen.
+ *   - Descriptive counts ARE permitted here, because the user navigated here to
+ *     look. The test is whether a number can be FAILED: a cumulative total only
+ *     grows, so it cannot. Those counts render inside sentences, never as large
+ *     numerals in a stat row.
+ *   - No clinical claims. The screen previously asserted that focus habits
+ *     "strengthen prefrontal cortex pathways" and that five minutes "builds
+ *     your brain's attention networks". Both are gone, and nothing here
+ *     replaces them with a softer mechanism.
+ *   - Coral is reserved for genuine errors. Removing your own habit is an
+ *     intentional action, so it is Muted Sage Gray.
  */
 
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Text } from 'react-native';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { View, StyleSheet, ScrollView, Alert, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { Button, Input, EnhancedModal, ModalFooterActions, BaseCard } from '../components';
-import { IntentionHighlightCard } from '../components/habits/IntentionHighlightCard';
-import { BrainHealthInsightNote } from '../components/habits/BrainHealthInsightNote';
-import { IntentionEditSheet } from '../components/habits/IntentionEditSheet';
-import { Colors, Spacing, Typography, Layout } from '../constants';
+import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+
+import { Button, Input, EnhancedModal, ModalFooterActions, BaseCard } from '../components';
+import { CardHeading } from '../components/dashboard/CardHeading';
+import { IntentionEditSheet } from '../components/habits/IntentionEditSheet';
+import { HabitWeekStrip } from '../components/habits/HabitWeekStrip';
+import { HabitFourWeekView } from '../components/habits/HabitFourWeekView';
+import {
+  qualitativeNoticing,
+  reportingLines,
+  scheduleLabel,
+  sinceLabel,
+  timeOfDayLabel,
+  toDateSafe,
+} from '../components/habits/habitHistory';
+import { localDateKey } from '../components/dashboard/habitWeekState';
+import { Colors, Spacing, Typography, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
-import { updateHabit, deleteHabit } from '../services/firebase';
-import { Habit, HabitIntention } from '../types';
+import {
+  updateHabit,
+  deleteHabit,
+  getHabitCompletions,
+  markHabitComplete,
+  unmarkHabitComplete,
+} from '../services/firebase';
+import { logger } from '../utils/logger';
+import { Habit, HabitCompletion, HabitIntention } from '../types';
+
+/** Dew Sage (#D5E3D1) @62% — the metadata chip fill. */
+const DEW_CHIP = 'rgba(213, 227, 209, 0.62)';
+
+/** Most recent notes shown in "What you noted", when any exist. */
+const MAX_NOTES = 3;
 
 type HabitDetailRouteParams = {
   HabitDetail: {
@@ -31,6 +71,8 @@ const HabitDetailScreen: React.FC = () => {
   const { user } = useAuth();
 
   const [habit, setHabit] = useState<Habit>(initialHabit);
+  const [completions, setCompletions] = useState<HabitCompletion[]>([]);
+  const [processing, setProcessing] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [intentionSheetVisible, setIntentionSheetVisible] = useState(false);
   const [formData, setFormData] = useState({
@@ -42,6 +84,107 @@ const HabitDetailScreen: React.FC = () => {
     identityStatement: habit.identityStatement || '',
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // One clock for the whole render tree, so the week strip, the four-week view
+  // and "today" cannot disagree across a midnight boundary mid-session.
+  const now = useMemo(() => new Date(), []);
+  const todayKey = useMemo(() => localDateKey(now), [now]);
+
+  // The habit's own name is the header title. Set here rather than as a static
+  // navigator option so renaming it in the edit sheet retitles the header.
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: habit.name });
+  }, [navigation, habit.name]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const loaded = await getHabitCompletions(habit.id);
+        if (!cancelled) setCompletions(loaded);
+      } catch (error) {
+        // A brand-new habit can transiently fail the subcollection read; the
+        // service already swallows permission-denied and returns []. Anything
+        // else leaves the cards in their sparse state rather than erroring the
+        // whole screen.
+        logger.error('Error loading habit completions:', error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [habit.id]);
+
+  const completionDateKeys = useMemo(
+    () => completions.filter((c) => c.completed !== false).map((c) => c.date),
+    [completions]
+  );
+
+  const completedToday = completionDateKeys.includes(todayKey);
+
+  const startDate = useMemo(() => toDateSafe(habit.createdAt), [habit.createdAt]);
+
+  const lines = useMemo(
+    () => reportingLines({ habit, completionDateKeys, startDate, today: now }),
+    [habit, completionDateKeys, startDate, now]
+  );
+
+  const noticing = useMemo(() => qualitativeNoticing(habit), [habit]);
+
+  // "What you noted" renders only when free-text notes exist. Nothing writes
+  // `quickNote` yet — note capture is a separate slice — so today this is
+  // always empty and the card does not render at all. It lights up on its own
+  // when capture ships; it has no empty state by design.
+  const notes = useMemo(
+    () =>
+      completions
+        .filter((c) => typeof c.quickNote === 'string' && c.quickNote.trim().length > 0)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, MAX_NOTES),
+    [completions]
+  );
+
+  const chips = useMemo(
+    () =>
+      [scheduleLabel(habit), timeOfDayLabel(habit), sinceLabel(startDate)].filter(
+        (chip): chip is string => !!chip
+      ),
+    [habit, startDate]
+  );
+
+  const handleToggleToday = useCallback(async () => {
+    if (!user?.uid || processing) return;
+
+    const wasCompleted = completedToday;
+    setProcessing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+
+    // Optimistic: the mark and the button flip immediately, and roll back
+    // together if the write fails.
+    setCompletions((prev) =>
+      wasCompleted
+        ? prev.filter((c) => c.date !== todayKey)
+        : [...prev, { date: todayKey, completed: true } as HabitCompletion]
+    );
+
+    try {
+      if (wasCompleted) {
+        await unmarkHabitComplete(habit.id, todayKey);
+      } else {
+        await markHabitComplete(habit.id, user.uid, todayKey, { source: 'track' });
+      }
+    } catch (error) {
+      logger.error('Error toggling habit completion:', error);
+      setCompletions((prev) =>
+        wasCompleted
+          ? [...prev, { date: todayKey, completed: true } as HabitCompletion]
+          : prev.filter((c) => c.date !== todayKey)
+      );
+      Alert.alert('Unable to save', 'That did not save. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
+  }, [user, processing, completedToday, habit.id, todayKey]);
 
   const handleEdit = () => {
     setFormData({
@@ -57,7 +200,7 @@ const HabitDetailScreen: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      Alert.alert('Error', 'Please enter a habit name');
+      Alert.alert('Add a name', 'Please enter a habit name.');
       return;
     }
 
@@ -67,29 +210,30 @@ const HabitDetailScreen: React.FC = () => {
       setHabit({ ...habit, ...formData });
       setEditModalVisible(false);
     } catch (error) {
-      console.error('Error updating habit:', error);
-      Alert.alert('Error', 'Failed to update habit. Please try again.');
+      logger.error('Error updating habit:', error);
+      Alert.alert('Unable to save', 'Failed to update habit. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = () => {
+  const handleRemove = () => {
     Alert.alert(
-      'Delete Habit',
-      'Are you sure you want to delete this habit? This action cannot be undone.',
+      'Remove habit',
+      'This removes the habit and its history. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
-          style: 'destructive',
+          // Deliberately not `style: 'destructive'`. Removing a habit you chose
+          // is an intentional action, not an error state.
+          text: 'Remove',
           onPress: async () => {
             try {
               await deleteHabit(habit.id);
               navigation.goBack();
             } catch (error) {
-              console.error('Error deleting habit:', error);
-              Alert.alert('Error', 'Failed to delete habit');
+              logger.error('Error removing habit:', error);
+              Alert.alert('Unable to remove', 'Failed to remove habit.');
             }
           },
         },
@@ -99,118 +243,186 @@ const HabitDetailScreen: React.FC = () => {
 
   const handleSaveIntention = async (intention?: HabitIntention) => {
     try {
-      const updateData: any = {};
-      if (intention) {
-        updateData.intention = intention;
-      } else {
-        // Remove intention - set to null for Firestore
-        updateData.intention = null;
-      }
-      await updateHabit(habit.id, updateData);
+      await updateHabit(habit.id, { intention: intention ?? (null as any) });
       setHabit({ ...habit, intention: intention || undefined });
     } catch (error) {
-      console.error('Error updating intention:', error);
-      Alert.alert('Error', 'Failed to update intention. Please try again.');
+      logger.error('Error updating intention:', error);
+      Alert.alert('Unable to save', 'Failed to update. Please try again.');
     }
-  };
-
-  const getFrequencyLabel = () => {
-    if (habit.type === 'daily') return 'Daily';
-    if (habit.type === 'weekly') return `${habit.frequency}x per week`;
-    return `${habit.frequency}x (custom)`;
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Main Info Card */}
-        <BaseCard style={styles.mainCard}>
-          <Text style={styles.habitName}>{habit.name}</Text>
-
-          <View style={styles.metaRow}>
-            <Icon name="calendar-repeat" size={16} color={Colors.mutedSageGray} />
-            <Text style={styles.metaText}>{getFrequencyLabel()}</Text>
+        {/* Metadata. Chips, not a labelled row: schedule, time of day and start
+            date are attributes of the habit, not measurements of the user. */}
+        {chips.length > 0 && (
+          <View style={styles.chipRow} testID="habit-detail-chips">
+            {chips.map((chip) => (
+              <View key={chip} style={styles.chip}>
+                <Text style={styles.chipText}>{chip}</Text>
+              </View>
+            ))}
           </View>
+        )}
 
-          {habit.category && (
-            <View style={styles.metaRow}>
-              <Icon name="tag-outline" size={16} color={Colors.mutedSageGray} />
-              <Text style={styles.metaText}>{habit.category}</Text>
+        {/* Primary action. A calm state change: the button swaps to an outline
+            "Completed today" and tapping it undoes the completion. No
+            celebration, no animation beyond the mark's own 150ms crossfade. */}
+        <Button
+          variant={completedToday ? 'outline' : 'primary'}
+          icon={completedToday ? 'check-circle-outline' : 'check'}
+          onPress={handleToggleToday}
+          disabled={processing}
+          fullWidth
+          style={styles.primaryAction}
+          accessibilityLabel={completedToday ? 'Completed today, tap to undo' : 'Complete today'}
+          testID="habit-detail-complete-today"
+        >
+          {completedToday ? 'Completed today' : 'Complete today'}
+        </Button>
+
+        {/* ── This week ────────────────────────────────────────────── */}
+        <BaseCard style={styles.card}>
+          <CardHeading
+            icon="calendar-blank-outline"
+            title="This week"
+            style={styles.cardHeading}
+          />
+          <HabitWeekStrip
+            habit={habit}
+            completions={completionDateKeys}
+            onToggleToday={handleToggleToday}
+            processing={processing}
+            now={now}
+          />
+          {noticing && (
+            <Text style={styles.noticing} testID="habit-detail-noticing">
+              {noticing}
+            </Text>
+          )}
+        </BaseCard>
+
+        {/* ── Since you started ────────────────────────────────────── */}
+        <BaseCard style={styles.card}>
+          <CardHeading
+            icon="chart-timeline-variant"
+            title="Since you started"
+            style={styles.cardHeading}
+          />
+          <HabitFourWeekView completions={completionDateKeys} now={now} />
+
+          {/* Descriptive sentences with the value emphasised, never numerals
+              standing alone. A line the habit is too new to support is omitted
+              rather than rendered as a zero. */}
+          {lines.length > 0 && (
+            <View style={styles.lines} testID="habit-detail-reporting-lines">
+              {lines.map((line) => (
+                <Text key={line.id} style={styles.line} testID={`reporting-line-${line.id}`}>
+                  <Text style={styles.lineEmphasis}>{line.emphasis}</Text>
+                  {line.rest}
+                </Text>
+              ))}
             </View>
           )}
         </BaseCard>
 
-        {/* Progress Card */}
-        <BaseCard style={styles.statsCard}>
-          <Text style={styles.sectionTitle}>Your Progress</Text>
-
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <View style={styles.statIconContainer}>
-                <Icon name="leaf" size={24} color={Colors.evergreenTeal} />
+        {/* ── What you noted (only when notes exist) ───────────────── */}
+        {notes.length > 0 && (
+          <BaseCard style={styles.card} testID="habit-detail-notes">
+            <CardHeading
+              icon="note-text-outline"
+              title="What you noted"
+              style={styles.cardHeading}
+            />
+            {notes.map((note) => (
+              <View key={note.date} style={styles.note}>
+                <Text style={styles.noteDate}>{relativeDate(note.date, todayKey)}</Text>
+                <Text style={styles.noteText}>{note.quickNote}</Text>
               </View>
-              <Text style={styles.statValue}>{habit.totalStepsTaken || 0}</Text>
-              <Text style={styles.statLabel}>Completions total</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <View style={styles.statIconContainer}>
-                <Icon name="calendar-week" size={24} color={Colors.evergreenTeal} />
-              </View>
-              <Text style={styles.statValue}>{habit.thisWeekSteps || 0}</Text>
-              <Text style={styles.statLabel}>Active days this week</Text>
-            </View>
-          </View>
-        </BaseCard>
-
-        {/* Intention Highlight Card */}
-        {habit.intention && (
-          <IntentionHighlightCard
-            intention={habit.intention}
-            onEdit={() => setIntentionSheetVisible(true)}
-          />
-        )}
-
-        {/* Identity Section (if applicable) */}
-        {(habit.identity || habit.identityStatement) && (
-          <BaseCard style={styles.identityCard}>
-            <Text style={styles.sectionTitle}>Who You're Becoming</Text>
-
-            {habit.identity && (
-              <Text style={styles.identityText}>{habit.identity}</Text>
-            )}
-
-            {habit.identityStatement && (
-              <Text style={styles.identityStatement}>
-                "{habit.identityStatement}"
-              </Text>
-            )}
+            ))}
           </BaseCard>
         )}
 
-        {/* Brain Health Insight Note */}
-        <BrainHealthInsightNote
-          category={habit.category}
-          intentionCategory={habit.intention?.category}
-        />
+        {/* ── Why this one ─────────────────────────────────────────── */}
+        <BaseCard style={styles.card} testID="habit-detail-why">
+          <View style={styles.whyHeader}>
+            <CardHeading
+              icon="heart-outline"
+              title="Why this one"
+              style={styles.whyHeading}
+            />
+            {habit.intention && (
+              <TouchableOpacity
+                onPress={() => setIntentionSheetVisible(true)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="Edit your reason"
+                testID="habit-detail-why-edit"
+              >
+                <Icon name="pencil" size={16} color={Colors.mutedSageGray} />
+              </TouchableOpacity>
+            )}
+          </View>
 
-        {/* Actions */}
+          {/* The user's own words. NEVER generated: no inference from the habit
+              title, no canned suggestion. A machine-written reason for a habit
+              the user chose is worse than no reason. */}
+          {habit.intention ? (
+            <Text style={styles.whyText}>{habit.intention.label}</Text>
+          ) : (
+            <>
+              <Text style={styles.whyEmpty}>
+                Remind yourself why this one matters to you.
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIntentionSheetVisible(true)}
+                style={styles.whyCta}
+                accessibilityRole="button"
+                accessibilityLabel="Add your reason"
+                testID="habit-detail-why-add"
+              >
+                <Text style={styles.whyCtaLabel}>Add your reason ›</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </BaseCard>
+
+        {/* ── Look back ────────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.lookBack}
+          onPress={() => navigation.navigate('Insights')}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Look back. Longer patterns across all your habits."
+          testID="habit-detail-look-back"
+        >
+          <Icon name="history" size={20} color={Colors.mutedSageGray} />
+          <View style={styles.lookBackText}>
+            <Text style={styles.lookBackTitle}>Look back</Text>
+            <Text style={styles.lookBackSubtitle}>
+              Longer patterns across all your habits.
+            </Text>
+          </View>
+          <Icon name="chevron-right" size={20} color={Colors.silverSage} />
+        </TouchableOpacity>
+
+        {/* ── Footer actions ───────────────────────────────────────── */}
         <View style={styles.actionsContainer}>
-          <Button
-            variant="outline"
-            onPress={handleEdit}
-            style={styles.actionButton}
-          >
-            Edit Habit
+          <Button variant="outline" onPress={handleEdit} fullWidth testID="habit-detail-edit">
+            Edit habit
           </Button>
 
+          {/* Muted Sage Gray, never coral: this is an intentional action, not
+              an error. */}
           <Button
             variant="text"
-            onPress={handleDelete}
-            style={styles.deleteButton}
-            textColor={Colors.error}
+            onPress={handleRemove}
+            fullWidth
+            textColor={Colors.mutedSageGray}
+            testID="habit-detail-remove"
           >
-            Delete Habit
+            Remove habit
           </Button>
         </View>
       </ScrollView>
@@ -219,7 +431,7 @@ const HabitDetailScreen: React.FC = () => {
       <EnhancedModal
         visible={editModalVisible}
         onDismiss={() => setEditModalVisible(false)}
-        title="Edit Habit"
+        title="Edit habit"
         subtitle="Update your habit details"
         headerIcon="pencil"
         inputAccessoryViewID="habit-edit-modal"
@@ -272,7 +484,6 @@ const HabitDetailScreen: React.FC = () => {
         />
       </EnhancedModal>
 
-      {/* Intention Edit Sheet */}
       <IntentionEditSheet
         visible={intentionSheetVisible}
         onDismiss={() => setIntentionSheetVisible(false)}
@@ -283,6 +494,23 @@ const HabitDetailScreen: React.FC = () => {
   );
 };
 
+/**
+ * "Yesterday" / "3 days ago" / "12 July" for a note's date. Relative near the
+ * present, absolute once relative stops being useful.
+ */
+function relativeDate(dateKey: string, todayKey: string): string {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const date = new Date(y, (m ?? 1) - 1, d ?? 1);
+  const [ty, tm, td] = todayKey.split('-').map(Number);
+  const today = new Date(ty, (tm ?? 1) - 1, td ?? 1);
+
+  const days = Math.round((today.getTime() - date.getTime()) / 86_400_000);
+  if (days <= 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -292,91 +520,118 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     paddingBottom: Spacing.xl * 2,
   },
-  mainCard: {
-    marginBottom: Spacing.base,
-  },
-  habitName: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.softCharcoal,
-    marginBottom: Spacing.base,
-  },
-  metaRow: {
+  chipRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.base,
+  },
+  chip: {
+    backgroundColor: DEW_CHIP,
+    borderRadius: Layout.borderRadius.sm,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  chipText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.softCharcoal,
+  },
+  primaryAction: {
+    marginBottom: Spacing.base,
+  },
+  card: {
+    marginBottom: Spacing.base,
+  },
+  cardHeading: {
     marginBottom: Spacing.sm,
   },
-  metaText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.mutedSageGray,
-    marginLeft: Spacing.sm,
-  },
-  statsCard: {
-    marginBottom: Spacing.base,
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.softCharcoal,
-    marginBottom: Spacing.base,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.dewSage,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  statValue: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.softCharcoal,
-  },
-  statLabel: {
+  noticing: {
+    marginTop: Spacing.sm,
     fontSize: Typography.fontSize.sm,
     color: Colors.mutedSageGray,
-    marginTop: Spacing.xs,
+    lineHeight: 20,
   },
-  statDivider: {
-    width: 1,
-    height: 60,
-    backgroundColor: Colors.borderLight,
+  lines: {
+    marginTop: Spacing.base,
+    gap: Spacing.xs,
   },
-  identityCard: {
-    marginBottom: Spacing.base,
+  line: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    lineHeight: 20,
   },
-  identityText: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
+  lineEmphasis: {
     color: Colors.evergreenTeal,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  note: {
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.dewSage,
+    paddingLeft: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  noteDate: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginBottom: 2,
+  },
+  noteText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.softCharcoal,
+    lineHeight: 20,
+  },
+  whyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: Spacing.sm,
   },
-  identityStatement: {
+  whyHeading: {
+    flex: 1,
+  },
+  whyText: {
     fontSize: Typography.fontSize.base,
+    color: Colors.softCharcoal,
+    lineHeight: 22,
+  },
+  whyEmpty: {
+    fontSize: Typography.fontSize.sm,
     color: Colors.mutedSageGray,
-    fontStyle: 'italic',
-    lineHeight: Typography.fontSize.base * 1.5,
+    lineHeight: 20,
+  },
+  whyCta: {
+    marginTop: Spacing.xs,
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  whyCtaLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
+  },
+  lookBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    minHeight: 48,
+  },
+  lookBackText: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  lookBackTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+    marginBottom: 2,
+  },
+  lookBackSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
   },
   actionsContainer: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.sm,
     gap: Spacing.sm,
-  },
-  actionButton: {
-    width: '100%',
-  },
-  deleteButton: {
-    width: '100%',
   },
   input: {
     marginBottom: Spacing.base,
