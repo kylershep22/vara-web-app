@@ -205,8 +205,9 @@ export interface HabitCompletion {
 
   // Vara Habits Enhancement: Track which version was completed
   versionCompleted?: 'full' | 'quick_start' | 'just_show_up'; // Which version did they do?
-  satisfaction?: 'great' | 'good' | 'okay'; // How did they feel after?
-  quickNote?: string; // Optional 1-line reflection
+  quickNote?: string; // Optional 1-line reflection. No writer yet; read by the
+                      // Habit Details "What you noted" card. Note capture is a
+                      // separate slice — retained deliberately.
 
   // Completion reflection (from HabitCompletionSheet)
   reflection?: HabitReflection | null;        // For non-Connection habits
