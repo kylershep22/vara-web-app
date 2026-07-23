@@ -25,7 +25,12 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Button, Input, EnhancedModal, ModalFooterActions, BaseCard } from '../components';
+// Direct paths, not the components barrel: the barrel pulls in the community
+// and media trees (expo-video among them) for five small pieces.
+import Button from '../components/Button';
+import Input from '../components/Input';
+import { EnhancedModal, ModalFooterActions } from '../components/shared/EnhancedModal';
+import { BaseCard } from '../components/shared/BaseCard';
 import { CardHeading } from '../components/dashboard/CardHeading';
 import { IntentionEditSheet } from '../components/habits/IntentionEditSheet';
 import { HabitWeekStrip } from '../components/habits/HabitWeekStrip';

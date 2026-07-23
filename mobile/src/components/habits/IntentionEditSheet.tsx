@@ -10,7 +10,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Text } from 'react-native';
-import { EnhancedModal } from '../';
+// Direct path, not the components barrel: the barrel pulls in the community
+// and media trees (expo-video among them) for one modal.
+import { EnhancedModal } from '../shared/EnhancedModal';
 import { INTENTION_OPTIONS, INTENTION_CATEGORY_LABELS } from '../../constants/intentions';
 import { IntentionCategory, HabitIntention } from '../../types/models';
 
