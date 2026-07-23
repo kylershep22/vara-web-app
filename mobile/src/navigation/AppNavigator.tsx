@@ -716,7 +716,14 @@ const MainNavigator = () => {
             headerShadowVisible: false,
           })}
         />
-        {/* Habit Detail - Accessible from Plan/Track screen */}
+        {/* Habit Detail - Accessible from Plan/Track screen.
+            Plain Mist White detail header, matching every other detail screen:
+            the solid teal header with its white pill Back button was this
+            screen's alone. standardHeaderOptions already gives a mist background,
+            an Evergreen Teal back chevron, and a Soft Charcoal title.
+            No `title` here on purpose — the habit's own name is the title, and
+            the screen sets it from route params (a habit renamed in the edit
+            sheet has to retitle the header too, which a static option cannot). */}
         <AppStack.Screen
           name="HabitDetail"
           component={HabitDetailScreen}
@@ -724,10 +731,7 @@ const MainNavigator = () => {
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
-            title: 'Habit Details',
-            headerStyle: { backgroundColor: Colors.evergreenTeal, elevation: 0, shadowOpacity: 0 } as any,
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '700' as const, color: '#fff' },
+            headerShadowVisible: false,
           })}
         />
         {/* Profile screens accessible from anywhere */}

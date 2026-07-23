@@ -2,11 +2,17 @@
  * IntentionEditSheet
  * Bottom sheet for editing a habit's intention
  * Uses EnhancedModal with category chip groups + custom input
+ *
+ * Titled to match the card that opens it on the habit detail screen ("Why this
+ * one") and the question the create sheet already asks, so "Add your reason"
+ * does not open a sheet about something called an intention.
  */
 
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Text } from 'react-native';
-import { EnhancedModal } from '../';
+// Direct path, not the components barrel: the barrel pulls in the community
+// and media trees (expo-video among them) for one modal.
+import { EnhancedModal } from '../shared/EnhancedModal';
 import { INTENTION_OPTIONS, INTENTION_CATEGORY_LABELS } from '../../constants/intentions';
 import { IntentionCategory, HabitIntention } from '../../types/models';
 
@@ -95,8 +101,8 @@ export const IntentionEditSheet: React.FC<IntentionEditSheetProps> = ({
     <EnhancedModal
       visible={visible}
       onDismiss={onDismiss}
-      title="Edit Intention"
-      subtitle="What is this habit supporting?"
+      title="Why this one"
+      subtitle="Why does this matter to you?"
       headerIcon="heart"
       maxHeightPercent={0.85}
       footer={

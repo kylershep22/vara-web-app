@@ -94,7 +94,6 @@ export {
 export {
   INTENTION_OPTIONS,
   INTENTION_CATEGORY_LABELS,
-  INTENTION_INSIGHTS,
 } from './intentions';
 export {
   VARA_VALUES,
