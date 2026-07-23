@@ -36,6 +36,27 @@ export const SAGE_RULE = 'rgba(184, 205, 186, 0.35)';
 export const DEW_BAND = 'rgba(213, 227, 209, 0.42)';
 
 /**
+ * Silver Sage @30% — the four-week history view's "no completion recorded"
+ * mark. Its own token, and deliberately NOT SAGE_DASH.
+ *
+ * The dash means exactly one thing in this vocabulary: the habit was never
+ * asked about that day. The history view cannot say that — with no schedule
+ * history it does not know what was asked — so it must not borrow the dash's
+ * form, or the same mark would carry two meanings on one screen.
+ *
+ * So the history empty mark is a DOT, and it is separable from every dot in
+ * the strip above it: at 5px @30% it is smaller and fainter than the gap dot
+ * (8px @45%), which is the mark that does mean "asked, and it didn't happen".
+ * It is close in weight to the upcoming dot (6px @22%), which is harmless —
+ * the history view contains no future days for it to be confused with.
+ */
+export const SAGE_HISTORY_EMPTY = 'rgba(184, 205, 186, 0.30)';
+/** Diameter of the history view's empty mark. */
+export const HISTORY_EMPTY_SIZE = 5;
+/** Diameter of the history view's completed mark. */
+export const HISTORY_COMPLETED_SIZE = 11;
+
+/**
  * The mark itself. Completed crossfades over the state it replaced (150ms
  * ease-out, disabled under Reduce Motion) — a calm state change, not a
  * celebration.

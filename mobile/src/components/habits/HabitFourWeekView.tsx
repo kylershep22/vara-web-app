@@ -11,9 +11,15 @@
 // gaps the user never actually had. So past weeks distinguish only what we can
 // know for certain:
 //
-//   completed  → an 11px Evergreen Teal dot
-//   everything else → a hairline dash, the same form the week strip uses for a
-//                     day the habit was never asked about
+//   completed       → an 11px Evergreen Teal dot
+//   everything else → a small, faint neutral dot
+//
+// That second mark is NOT the strip's hairline dash. The dash means one thing
+// in this vocabulary — the habit was never asked about that day — and this view
+// cannot claim that, because it does not know what was asked. Borrowing the
+// dash would give one mark two meanings on a single screen. It is a distinct
+// token (SAGE_HISTORY_EMPTY), sized and toned apart from the strip's gap dot,
+// which is the mark that does mean "asked, and it didn't happen".
 //
 // The three-state treatment (including the scheduled-not-completed dot) applies
 // only to the CURRENT week, in HabitWeekStrip, where the schedule on the habit
@@ -24,7 +30,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Typography, Spacing } from '../../constants';
 import { resolveWeekStart } from '../dashboard/habitWeekState';
-import { SAGE_DASH } from '../dashboard/habitCellMarks';
+import {
+  HISTORY_COMPLETED_SIZE,
+  HISTORY_EMPTY_SIZE,
+  SAGE_HISTORY_EMPTY,
+} from '../dashboard/habitCellMarks';
 import { HISTORY_WEEKS, pastWeeks, weekdayNames } from './habitHistory';
 
 const LABEL_COL_PCT = 26;
@@ -92,7 +102,7 @@ export const HabitFourWeekView: React.FC<HabitFourWeekViewProps> = ({
                 {completed ? (
                   <View style={styles.completedDot} testID="history-mark-completed" />
                 ) : (
-                  <View style={styles.emptyDash} testID="history-mark-empty" />
+                  <View style={styles.emptyDot} testID="history-mark-empty" />
                 )}
               </View>
             );
@@ -138,17 +148,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   completedDot: {
-    width: 11,
-    height: 11,
-    borderRadius: 5.5,
+    width: HISTORY_COMPLETED_SIZE,
+    height: HISTORY_COMPLETED_SIZE,
+    borderRadius: HISTORY_COMPLETED_SIZE / 2,
     backgroundColor: Colors.evergreenTeal,
   },
-  // Not a paler dot: a different FORM, so it can never be read as a missed day.
-  emptyDash: {
-    width: 8,
-    height: 1.5,
-    borderRadius: 1,
-    backgroundColor: SAGE_DASH,
+  // A dot, not the strip's dash: the dash is spoken for. Less than half the
+  // completed mark's diameter and a third of full sage, so a month of quiet
+  // days reads as quiet rather than as a row of marks against the user.
+  emptyDot: {
+    width: HISTORY_EMPTY_SIZE,
+    height: HISTORY_EMPTY_SIZE,
+    borderRadius: HISTORY_EMPTY_SIZE / 2,
+    backgroundColor: SAGE_HISTORY_EMPTY,
   },
 });
 
