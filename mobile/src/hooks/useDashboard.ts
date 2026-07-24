@@ -51,6 +51,7 @@ import {
   Routine,
 } from '../services/firebase/routines.service';
 import { RoutineTemplate } from '../constants/routineTemplates';
+import { useHabitNotePrompt, confirmCompletionNoteLoss } from './useHabitNotePrompt';
 
 const SMALL_SCREEN_WIDTH = 375;
 const MEDIUM_SCREEN_WIDTH = 414;
@@ -64,6 +65,7 @@ export function useDashboard() {
   const goalsLoading = DASHBOARD_V2 ? false : goalsResult.loading;
   const goalsError = DASHBOARD_V2 ? null : goalsResult.error;
   const { habits, loading: habitsLoading, error: habitsError } = useHabits(true);
+  const { noteTarget, promptForNote, saveNote, dismissNote } = useHabitNotePrompt();
   const tasksResult = useTasks();
   const allTasks = DASHBOARD_V2 ? [] : tasksResult.tasks;
   const tasksLoading = DASHBOARD_V2 ? false : tasksResult.loading;
@@ -420,12 +422,17 @@ export function useDashboard() {
   }, []);
 
   const handleHabitToggle = useCallback(async (habitId: string, date: string) => {
+    const isCompleted = weeklyCompletions[habitId]?.[date] || false;
+
+    // Only when undoing, and only when there is something to lose: a note lives
+    // on the completion document that un-completing deletes. Completing stays
+    // one tap — nothing is asked before the write.
+    if (isCompleted && !(await confirmCompletionNoteLoss(habitId, date))) return;
+
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setProcessingHabits(prev => new Set(prev).add(`${habitId}-${date}`));
 
     try {
-      const isCompleted = weeklyCompletions[habitId]?.[date] || false;
-
       if (isCompleted) {
         await unmarkHabitComplete(habitId, date);
         setWeeklyCompletions(prev => ({
@@ -442,6 +449,9 @@ export function useDashboard() {
       } else {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         await markHabitComplete(habitId, user!.uid, date);
+        // Completion is saved. The note sheet is an addendum on top of it, so
+        // the grid's one-tap completion is unchanged for flagged habits.
+        promptForNote(habits.find((h) => h.id === habitId), date);
         setWeeklyCompletions(prev => ({
           ...prev,
           [habitId]: { ...prev[habitId], [date]: true },
@@ -473,7 +483,7 @@ export function useDashboard() {
         return newSet;
       });
     }
-  }, [weeklyCompletions, today, user, trackEngagement, evaluateTriggers]);
+  }, [weeklyCompletions, today, user, habits, promptForNote, trackEngagement, evaluateTriggers]);
 
   const handleGenerateDailyPlan = useCallback(async () => {
     setGeneratingPlan(true);
@@ -719,6 +729,9 @@ export function useDashboard() {
     processingHabits,
     weeklyCompletions,
     handleHabitToggle,
+    noteTarget,
+    saveNote,
+    dismissNote,
 
     // Goals/Tasks
     goals,

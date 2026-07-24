@@ -20,6 +20,7 @@ import { SuggestedActionCard } from '../components/dashboard/SuggestedActionCard
 import { InsightCard } from '../components/dashboard/InsightCard';
 import { RoutineCard } from '../components/dashboard/RoutineCard';
 import { WeeklyHabitGrid } from '../components/dashboard/WeeklyHabitGrid';
+import { HabitNoteSheet } from '../components/habits/HabitNoteSheet';
 import { InsightsLookbackCard } from '../components/dashboard/InsightsLookbackCard';
 import { suggestedAction } from '../components/dashboard/suggestedAction';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
@@ -79,6 +80,9 @@ const DashboardScreen: React.FC = () => {
     weeklyCompletions,
     processingHabits,
     handleHabitToggle,
+    noteTarget,
+    saveNote,
+    dismissNote,
   } = useDashboard();
 
   // Sub-step 2.7 — subscribe to the user's firstShiftAt for the
@@ -353,6 +357,17 @@ const DashboardScreen: React.FC = () => {
             navigation.navigate(NAV_TARGETS.plan as never, { tab: 'routines' } as never);
           }}
           onComplete={handleRoutineComplete}
+        />
+      )}
+
+      {/* Note capture — opens only after a flagged habit's completion has
+          already been written, so the grid stays one tap. */}
+      {noteTarget && (
+        <HabitNoteSheet
+          visible
+          habitName={noteTarget.habitName}
+          onSave={saveNote}
+          onDismiss={dismissNote}
         />
       )}
     </SafeAreaView>

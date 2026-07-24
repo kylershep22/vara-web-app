@@ -29,6 +29,8 @@ export {
   unmarkHabitComplete,
   getHabitCompletions,
   isHabitCompletedToday,
+  setCompletionNote,
+  getCompletionNote,
 } from './habits.service';
 export type { CompletionReflectionData } from './habits.service';
 

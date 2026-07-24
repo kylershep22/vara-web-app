@@ -11,6 +11,8 @@ const mockSetOptions = jest.fn();
 const mockGetHabitCompletions = jest.fn();
 const mockMarkHabitComplete = jest.fn();
 const mockUnmarkHabitComplete = jest.fn();
+const mockSetCompletionNote = jest.fn();
+const mockGetCompletionNote = jest.fn();
 
 let mockHabit: any;
 
@@ -40,6 +42,8 @@ jest.mock('../../services/firebase', () => ({
   getHabitCompletions: (...args: any[]) => mockGetHabitCompletions(...args),
   markHabitComplete: (...args: any[]) => mockMarkHabitComplete(...args),
   unmarkHabitComplete: (...args: any[]) => mockUnmarkHabitComplete(...args),
+  setCompletionNote: (...args: any[]) => mockSetCompletionNote(...args),
+  getCompletionNote: (...args: any[]) => mockGetCompletionNote(...args),
   updateHabit: jest.fn().mockResolvedValue(undefined),
   deleteHabit: jest.fn().mockResolvedValue(undefined),
 }));
@@ -112,6 +116,9 @@ beforeEach(() => {
   mockGetHabitCompletions.mockResolvedValue([]);
   mockMarkHabitComplete.mockResolvedValue(undefined);
   mockUnmarkHabitComplete.mockResolvedValue(undefined);
+  mockSetCompletionNote.mockResolvedValue(undefined);
+  // Default: the completion carries no note, so un-complete stays silent.
+  mockGetCompletionNote.mockResolvedValue(null);
 });
 
 describe('HabitDetailScreen — the clinical claims are gone', () => {
@@ -220,6 +227,195 @@ describe('HabitDetailScreen — "What you noted"', () => {
     expect(getByText('Yesterday')).toBeTruthy();
     // Capped at three, newest first.
     expect(queryByText('note 3')).toBeNull();
+  });
+});
+
+describe('HabitDetailScreen — note capture', () => {
+  it('presents no note sheet for an unflagged habit', async () => {
+    const { getByTestId, queryByTestId } = await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-detail-complete-today'));
+    });
+
+    expect(mockMarkHabitComplete).toHaveBeenCalledTimes(1);
+    expect(queryByTestId('habit-note-sheet')).toBeNull();
+  });
+
+  it('writes the completion first, then opens the sheet for a flagged habit', async () => {
+    mockHabit = habitFixture({ notePromptEnabled: true });
+    const { getByTestId } = await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-detail-complete-today'));
+    });
+
+    // The completion is already saved by the time the sheet appears.
+    expect(mockMarkHabitComplete).toHaveBeenCalledWith('h1', 'u1', TODAY_KEY, {
+      source: 'track',
+    });
+    expect(getByTestId('habit-note-sheet')).toBeTruthy();
+  });
+
+  it.each([
+    ['the X button', 'habit-note-sheet-close'],
+    ['tapping outside', 'habit-note-sheet-overlay'],
+  ])('leaves the completion intact when dismissed by %s', async (_label, testID) => {
+    mockHabit = habitFixture({ notePromptEnabled: true });
+    const { getByTestId, queryByTestId, getByText } = await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-detail-complete-today'));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId(testID));
+    });
+
+    expect(queryByTestId('habit-note-sheet')).toBeNull();
+    expect(mockSetCompletionNote).not.toHaveBeenCalled();
+    expect(mockUnmarkHabitComplete).not.toHaveBeenCalled();
+    // The completion stands: the button still reads as done.
+    expect(getByText('Completed today')).toBeTruthy();
+  });
+
+  it('leaves the completion intact when dismissed by hardware back', async () => {
+    mockHabit = habitFixture({ notePromptEnabled: true });
+    const { getByTestId, queryByTestId, getByText } = await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-detail-complete-today'));
+    });
+    await act(async () => {
+      fireEvent(getByTestId('habit-note-sheet'), 'requestClose');
+    });
+
+    expect(queryByTestId('habit-note-sheet')).toBeNull();
+    expect(mockSetCompletionNote).not.toHaveBeenCalled();
+    expect(mockUnmarkHabitComplete).not.toHaveBeenCalled();
+    expect(getByText('Completed today')).toBeTruthy();
+  });
+
+  it('merges the note onto the completion already written, not a second one', async () => {
+    mockHabit = habitFixture({ notePromptEnabled: true });
+    const { getByTestId } = await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-detail-complete-today'));
+    });
+    fireEvent.changeText(getByTestId('habit-note-sheet-input'), 'hills felt easier');
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-note-sheet-save'));
+    });
+
+    expect(mockSetCompletionNote).toHaveBeenCalledWith('h1', TODAY_KEY, 'hills felt easier');
+    // The completion write happened exactly once — the note did not re-write it.
+    expect(mockMarkHabitComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('lights up "What you noted" once a note is saved', async () => {
+    mockHabit = habitFixture({ notePromptEnabled: true });
+    const { getByTestId, queryByTestId } = await renderScreen();
+
+    expect(queryByTestId('habit-detail-notes')).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-detail-complete-today'));
+    });
+    fireEvent.changeText(getByTestId('habit-note-sheet-input'), 'got out despite the rain');
+
+    // The re-read after saving is what surfaces the card.
+    mockGetHabitCompletions.mockResolvedValue([
+      { id: TODAY_KEY, date: TODAY_KEY, completed: true, quickNote: 'got out despite the rain' },
+    ]);
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-note-sheet-save'));
+    });
+
+    expect(getByTestId('habit-detail-notes')).toBeTruthy();
+  });
+});
+
+describe('HabitDetailScreen — un-completing', () => {
+  it('presents no note sheet when un-completing', async () => {
+    mockHabit = habitFixture({ notePromptEnabled: true });
+    mockGetHabitCompletions.mockResolvedValue([
+      { id: TODAY_KEY, date: TODAY_KEY, completed: true },
+    ]);
+    const { getByTestId, queryByTestId } = await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-detail-complete-today'));
+    });
+
+    expect(mockUnmarkHabitComplete).toHaveBeenCalledWith('h1', TODAY_KEY);
+    expect(queryByTestId('habit-note-sheet')).toBeNull();
+  });
+
+  it('un-completes silently when the completion carries no note', async () => {
+    const { Alert } = require('react-native');
+    const alertSpy = jest.spyOn(Alert, 'alert');
+    mockGetCompletionNote.mockResolvedValue(null);
+    mockGetHabitCompletions.mockResolvedValue([
+      { id: TODAY_KEY, date: TODAY_KEY, completed: true },
+    ]);
+    const { getByTestId } = await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-detail-complete-today'));
+    });
+
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(mockUnmarkHabitComplete).toHaveBeenCalledTimes(1);
+    alertSpy.mockRestore();
+  });
+
+  it('states the consequence before discarding a note, and Keep aborts', async () => {
+    const { Alert } = require('react-native');
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(((
+      _title: string,
+      _message: string,
+      buttons: any[]
+    ) => {
+      buttons.find((b) => b.text === 'Keep').onPress();
+    }) as any);
+
+    mockGetCompletionNote.mockResolvedValue('a note worth keeping');
+    mockGetHabitCompletions.mockResolvedValue([
+      { id: TODAY_KEY, date: TODAY_KEY, completed: true, quickNote: 'a note worth keeping' },
+    ]);
+    const { getByTestId } = await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-detail-complete-today'));
+    });
+
+    expect(alertSpy.mock.calls[0][1]).toBe('Removing this completion also removes your note.');
+    expect(mockUnmarkHabitComplete).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
+  });
+
+  it('discards the completion and its note when Remove is chosen', async () => {
+    const { Alert } = require('react-native');
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(((
+      _title: string,
+      _message: string,
+      buttons: any[]
+    ) => {
+      buttons.find((b) => b.text === 'Remove').onPress();
+    }) as any);
+
+    mockGetCompletionNote.mockResolvedValue('a note');
+    mockGetHabitCompletions.mockResolvedValue([
+      { id: TODAY_KEY, date: TODAY_KEY, completed: true, quickNote: 'a note' },
+    ]);
+    const { getByTestId } = await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('habit-detail-complete-today'));
+    });
+
+    expect(mockUnmarkHabitComplete).toHaveBeenCalledWith('h1', TODAY_KEY);
+    alertSpy.mockRestore();
   });
 });
 

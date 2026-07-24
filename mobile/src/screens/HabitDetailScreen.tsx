@@ -19,7 +19,7 @@
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Text, TouchableOpacity, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -33,6 +33,7 @@ import { EnhancedModal, ModalFooterActions } from '../components/shared/Enhanced
 import { BaseCard } from '../components/shared/BaseCard';
 import { CardHeading } from '../components/dashboard/CardHeading';
 import { IntentionEditSheet } from '../components/habits/IntentionEditSheet';
+import { HabitNoteSheet } from '../components/habits/HabitNoteSheet';
 import { HabitWeekStrip } from '../components/habits/HabitWeekStrip';
 import { HabitFourWeekView } from '../components/habits/HabitFourWeekView';
 import {
@@ -53,6 +54,7 @@ import {
   markHabitComplete,
   unmarkHabitComplete,
 } from '../services/firebase';
+import { useHabitNotePrompt, confirmCompletionNoteLoss } from '../hooks/useHabitNotePrompt';
 import { logger } from '../utils/logger';
 import { Habit, HabitCompletion, HabitIntention } from '../types';
 
@@ -87,8 +89,10 @@ const HabitDetailScreen: React.FC = () => {
     category: habit.category || '',
     identity: habit.identity || '',
     identityStatement: habit.identityStatement || '',
+    notePromptEnabled: !!habit.notePromptEnabled,
   });
   const [submitting, setSubmitting] = useState(false);
+  const { noteTarget, promptForNote, saveNote, dismissNote } = useHabitNotePrompt();
 
   // One clock for the whole render tree, so the week strip, the four-week view
   // and "today" cannot disagree across a midnight boundary mid-session.
@@ -161,6 +165,14 @@ const HabitDetailScreen: React.FC = () => {
     if (!user?.uid || processing) return;
 
     const wasCompleted = completedToday;
+
+    // Only when undoing, and only when there is something to lose: a note
+    // lives on the completion document that un-completing deletes.
+    if (wasCompleted) {
+      const proceed = await confirmCompletionNoteLoss(habit.id, todayKey);
+      if (!proceed) return;
+    }
+
     setProcessing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
@@ -177,6 +189,8 @@ const HabitDetailScreen: React.FC = () => {
         await unmarkHabitComplete(habit.id, todayKey);
       } else {
         await markHabitComplete(habit.id, user.uid, todayKey, { source: 'track' });
+        // Completion is saved. The note sheet is an addendum on top of it.
+        promptForNote(habit, todayKey);
       }
     } catch (error) {
       logger.error('Error toggling habit completion:', error);
@@ -189,7 +203,21 @@ const HabitDetailScreen: React.FC = () => {
     } finally {
       setProcessing(false);
     }
-  }, [user, processing, completedToday, habit.id, todayKey]);
+  }, [user, processing, completedToday, habit, todayKey, promptForNote]);
+
+  // Re-read completions after a note lands so "What you noted" appears without
+  // needing to leave and re-enter the screen.
+  const handleSaveNote = useCallback(
+    async (note: string) => {
+      await saveNote(note);
+      try {
+        setCompletions(await getHabitCompletions(habit.id));
+      } catch (error) {
+        logger.error('Error reloading completions after note:', error);
+      }
+    },
+    [saveNote, habit.id]
+  );
 
   const handleEdit = () => {
     setFormData({
@@ -199,6 +227,7 @@ const HabitDetailScreen: React.FC = () => {
       category: habit.category || '',
       identity: habit.identity || '',
       identityStatement: habit.identityStatement || '',
+      notePromptEnabled: !!habit.notePromptEnabled,
     });
     setEditModalVisible(true);
   };
@@ -487,6 +516,23 @@ const HabitDetailScreen: React.FC = () => {
           style={styles.input}
           inputAccessoryViewID="habit-edit-modal"
         />
+
+        {/* The note prompt follows the habit, so turning it on here changes
+            every surface this habit can be completed from. */}
+        <View style={styles.noteToggleRow}>
+          <View style={styles.noteToggleText}>
+            <Text style={styles.noteToggleLabel}>Add a note when I complete this</Text>
+            <Text style={styles.noteToggleHelper}>A quick line you can look back on.</Text>
+          </View>
+          <Switch
+            value={formData.notePromptEnabled}
+            onValueChange={(value) => setFormData({ ...formData, notePromptEnabled: value })}
+            trackColor={{ false: '#D5E3D1', true: Colors.evergreenTeal }}
+            thumbColor="#fff"
+            accessibilityLabel="Add a note when I complete this"
+            testID="habit-edit-note-prompt-toggle"
+          />
+        </View>
       </EnhancedModal>
 
       <IntentionEditSheet
@@ -495,6 +541,15 @@ const HabitDetailScreen: React.FC = () => {
         currentIntention={habit.intention}
         onSave={handleSaveIntention}
       />
+
+      {noteTarget && (
+        <HabitNoteSheet
+          visible
+          habitName={noteTarget.habitName}
+          onSave={handleSaveNote}
+          onDismiss={dismissNote}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -640,6 +695,27 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: Spacing.base,
+  },
+  noteToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 48,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.base,
+  },
+  noteToggleText: {
+    flex: 1,
+    marginRight: Spacing.base,
+  },
+  noteToggleLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+  },
+  noteToggleHelper: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginTop: 2,
   },
 });
 

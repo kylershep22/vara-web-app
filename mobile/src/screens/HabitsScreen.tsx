@@ -13,6 +13,7 @@ import { WizardContainer } from '../components/habits/wizard';
 import { HabitListItem } from '../components/habits/HabitListItem';
 import { IntentionsSummaryCard } from '../components/habits/IntentionsSummaryCard';
 import { HabitCompletionSheet } from '../components/HabitCompletionSheet';
+import { HabitNoteSheet } from '../components/habits/HabitNoteSheet';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 import { SimpleHabitCreateScreen } from '../components/habits/SimpleHabitCreateScreen';
@@ -53,6 +54,9 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
     completionSheetHabit,
     handleCompletionSheetDone,
     handleCompletionSheetDismiss,
+    noteTarget,
+    saveNote,
+    dismissNote,
   } = useHabitsScreen();
 
   const handleNavigateToDetail = useCallback((habit: Habit) => {
@@ -206,6 +210,15 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
           visible={!!completionSheetHabit}
           onComplete={handleCompletionSheetDone}
           onDismiss={handleCompletionSheetDismiss}
+        />
+      )}
+
+      {noteTarget && (
+        <HabitNoteSheet
+          visible
+          habitName={noteTarget.habitName}
+          onSave={saveNote}
+          onDismiss={dismissNote}
         />
       )}
     </SafeAreaView>

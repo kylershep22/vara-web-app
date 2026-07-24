@@ -187,6 +187,13 @@ export interface Habit {
   // Values alignment (from Step 5 — links habit to a personal value)
   valueAlignment?: string | null;
 
+  // Opt-in: invite a free-text note after this habit is completed. Per-habit,
+  // so the behaviour follows the habit to every completion surface rather than
+  // varying by where the user happened to tap. Unset means off — existing
+  // habits are not backfilled. Distinct from UserProfile.reflectionEnabled,
+  // which is a per-user field for the (currently unreachable) reflection sheet.
+  notePromptEnabled?: boolean;
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -205,9 +212,10 @@ export interface HabitCompletion {
 
   // Vara Habits Enhancement: Track which version was completed
   versionCompleted?: 'full' | 'quick_start' | 'just_show_up'; // Which version did they do?
-  quickNote?: string; // Optional 1-line reflection. No writer yet; read by the
-                      // Habit Details "What you noted" card. Note capture is a
-                      // separate slice — retained deliberately.
+  quickNote?: string; // Optional 1-line note, written by setCompletionNote as a
+                      // merge onto an already-saved completion. Only habits with
+                      // notePromptEnabled are ever asked. Read by the Habit
+                      // Details "What you noted" card.
 
   // Completion reflection (from HabitCompletionSheet)
   reflection?: HabitReflection | null;        // For non-Connection habits
