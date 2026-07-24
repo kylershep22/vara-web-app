@@ -35,9 +35,6 @@ export interface UserProfile {
   privacy: 'public' | 'connections' | 'private';
   searchable?: boolean;
 
-  // Habit completion reflections master toggle (default: true)
-  reflectionEnabled?: boolean;
-
   // Standardized interests (IDs from WELLNESS_INTERESTS)
   interests?: string[];
   interestsPublic?: boolean; // Toggle for showing interests publicly
@@ -190,8 +187,7 @@ export interface Habit {
   // Opt-in: invite a free-text note after this habit is completed. Per-habit,
   // so the behaviour follows the habit to every completion surface rather than
   // varying by where the user happened to tap. Unset means off — existing
-  // habits are not backfilled. Distinct from UserProfile.reflectionEnabled,
-  // which is a per-user field for the (currently unreachable) reflection sheet.
+  // habits are not backfilled.
   notePromptEnabled?: boolean;
 
   createdAt: Timestamp;
