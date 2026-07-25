@@ -74,6 +74,7 @@ export const ROUTES = {
   DevAudioLoader: 'DevAudioLoader',
   DevGuidedSessionPlayer: 'DevGuidedSessionPlayer',
   DevCheckInFlow: 'DevCheckInFlow',
+  DevVideoPlayer: 'DevVideoPlayer',
 
   // --- Auth (AuthNavigator) ---
   Login: 'Login',

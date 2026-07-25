@@ -122,6 +122,7 @@ import { BreathPacerTestScreen } from '../screens/_dev/BreathPacerTestScreen';
 import { ProtocolAudioLoaderTestScreen } from '../screens/_dev/ProtocolAudioLoaderTestScreen';
 import { GuidedSessionPlayerTestScreen } from '../screens/_dev/GuidedSessionPlayerTestScreen';
 import { CheckInFlowTestScreen } from '../screens/_dev/CheckInFlowTestScreen';
+import { VideoPlayerTestScreen } from '../screens/_dev/VideoPlayerTestScreen';
 
 // Phase 2 sub-step 2.2 — Practices index + single-protocol runner.
 import { PracticesIndexScreen } from '../screens/practices/PracticesIndexScreen';
@@ -872,6 +873,17 @@ const MainNavigator = () => {
                 animation: 'slide_from_right',
                 headerShown: true,
                 title: 'Dev: Check-In Flow',
+                headerShadowVisible: false,
+              }}
+            />
+            <AppStack.Screen
+              name="DevVideoPlayer"
+              component={VideoPlayerTestScreen}
+              options={{
+                ...standardHeaderOptions,
+                animation: 'slide_from_right',
+                headerShown: true,
+                title: 'Dev: Video Player',
                 headerShadowVisible: false,
               }}
             />

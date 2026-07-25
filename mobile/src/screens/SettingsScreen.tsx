@@ -703,6 +703,32 @@ const SettingsScreen = () => {
         </View>
       </View>
 
+      {/* TEMPORARY dev entry — focus-video-player slice. Gated on __DEV__ so it
+          never reaches TestFlight or production. Delete together with
+          VideoPlayerTestScreen once the Focus hub launches the player for real. */}
+      {__DEV__ && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Developer (dev builds only)</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => navigation.navigate('DevVideoPlayer' as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Dev: Video Player harness"
+              testID="settings-dev-video-player"
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>Dev: Video Player</Text>
+                <Text style={styles.settingDescription}>
+                  Temporary harness for the focus-video player
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* More Section — utilities re-homed from the dissolved Wellness tab
           (B-3d.4): Connected Apps + Help & Support. Both routes live in the
           parent AppStack, so navigate() bubbles up from this ProfileStack
