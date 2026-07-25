@@ -12,48 +12,26 @@
 // warm in the platform HTTP cache by the time the user taps "Start."
 
 import { Audio, AVPlaybackStatus } from 'expo-av';
-import { ref, getDownloadURL } from 'firebase/storage';
 
-import { storage } from '../../config/firebase';
 import { logger } from '../../utils/logger';
+import {
+  resolveStorageUrl,
+  _clearStorageUrlCacheForTesting,
+  _getStorageUrlCacheSizeForTesting,
+} from '../storage/resolveStorageUrl';
 
 // Firebase Storage root prefix for all protocol audio. Concatenated with
 // the per-step `audioPath` (e.g. `nsdr/nsdr_10min_v1.mp3`).
 const STORAGE_ROOT = 'protocolAudio';
 
-// In-memory cache of resolved download URLs. Lives for the JS bundle
-// lifetime; cleared on hot reload or app restart. We deliberately do not
-// persist this — Firebase URLs can expire (signed URLs, token refresh)
-// and the resolution call is cheap on the warm path.
-const urlCache = new Map<string, string>();
+const LOAD_ERROR_MESSAGE =
+  `Couldn't load protocol audio. Check your connection and try again.`;
 
 // Resolve and cache the Firebase Storage download URL for an audio path.
-// Throws on missing Storage init or on Storage SDK failures.
+// Delegates to the shared resolver so audio and video share one fetch-and-
+// cache implementation; this function only owns the `protocolAudio/` prefix.
 async function resolveUrl(audioPath: string): Promise<string> {
-  if (!storage) {
-    throw new Error(
-      'protocolAudioLoader: Firebase Storage is not initialized'
-    );
-  }
-  const cached = urlCache.get(audioPath);
-  if (cached) {
-    return cached;
-  }
-  const fullPath = `${STORAGE_ROOT}/${audioPath}`;
-  try {
-    const storageRef = ref(storage, fullPath);
-    const url = await getDownloadURL(storageRef);
-    urlCache.set(audioPath, url);
-    return url;
-  } catch (error) {
-    logger.error(
-      `protocolAudioLoader: failed to resolve URL for "${fullPath}"`,
-      error
-    );
-    throw new Error(
-      `Couldn't load protocol audio. Check your connection and try again.`
-    );
-  }
+  return resolveStorageUrl(`${STORAGE_ROOT}/${audioPath}`, LOAD_ERROR_MESSAGE);
 }
 
 // Pre-fetch an audio file. Call from Protocol Detail screen mount so the
@@ -111,21 +89,20 @@ export async function loadProtocolAudio(
       `protocolAudioLoader: failed to load Sound for "${audioPath}"`,
       error
     );
-    throw new Error(
-      `Couldn't load protocol audio. Check your connection and try again.`
-    );
+    throw new Error(LOAD_ERROR_MESSAGE);
   }
 }
 
 // Test-only: clear the URL cache. Used by the dev test screen and unit
 // tests to force a re-resolve. Production code should not call this.
+// Now clears the shared cache, so it also drops any video URLs.
 export function _clearProtocolAudioCacheForTesting(): void {
-  urlCache.clear();
+  _clearStorageUrlCacheForTesting();
 }
 
 // Test-only: inspect cache state. Used by unit tests.
 export function _getProtocolAudioCacheSizeForTesting(): number {
-  return urlCache.size;
+  return _getStorageUrlCacheSizeForTesting();
 }
 
 // Re-export the playback status type so call sites don't need a
