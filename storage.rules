@@ -12,8 +12,8 @@ service firebase.storage {
       return isSignedIn() && request.auth.token.admin == true;
     }
 
-    // Owner check against a uid path segment. Every user-scoped path below
-    // embeds the owner uid as a matchable segment, so this resolves reliably.
+    // Owner check against a uid path segment. Every per-user path below embeds
+    // the owner uid as a matchable segment.
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
@@ -30,154 +30,144 @@ service firebase.storage {
       return request.resource.contentType.matches('audio/.*');
     }
 
-    // Media-only guard for paths whose exact content type isn't settled yet.
-    function isMediaType() {
-      return isImageType() || isAudioType() || isVideoType();
-    }
-
     // 5 MB for images. Largest image currently in the bucket is 3.17 MB.
     function underImageSizeLimit() {
       return request.resource.size < 5 * 1024 * 1024;
     }
 
-    // 100 MB for admin audio. Raised from the previous 50 MB: the bucket
-    // already holds sleep stories at 53.50 MB and 60.62 MB, which the old
-    // limit would have rejected. They exist only because console uploads
-    // bypass rules, so the old ceiling was never actually exercised.
+    // 100 MB for admin audio. The bucket already holds sleep stories at
+    // 53.50 MB and 60.62 MB, which the previous 50 MB ceiling would have
+    // rejected; they exist only because console uploads bypass rules.
     function underAudioSizeLimit() {
       return request.resource.size < 100 * 1024 * 1024;
     }
 
-    // 200 MB for admin-authored video. No live video to calibrate against;
-    // sized for a 1-2 minute explainer at comfortable bitrate, with headroom.
+    // 200 MB for admin-authored video.
     function underVideoSizeLimit() {
       return request.resource.size < 200 * 1024 * 1024;
     }
 
-    // 25 MB for anything a user uploads from their device. Deliberately far
-    // below the admin ceilings — this is phone-camera content, not authored
-    // media.
+    // 25 MB for anything uploaded from a user's device.
     function underUserUploadSizeLimit() {
       return request.resource.size < 25 * 1024 * 1024;
     }
 
 
     /* ==================== App-served media ====================
-       Admin-authored content. Authenticated read on every path — never
-       public: there is no reason to serve media to non-users, and public
-       read invites hotlinking and egress abuse.
+       Authenticated read on every path — never public: no reason to serve
+       media to non-users, and public read invites hotlinking and egress
+       abuse. Writes are admin-claim-only; no client code writes to any path
+       in this section. Production media lands via the Firebase Console / CLI,
+       which bypasses these rules entirely.
 
-       Writes are admin-claim-only. No client code writes to any path in this
-       section; production media lands via the Firebase Console / CLI, which
-       bypasses these rules entirely. The admin write clauses exist so a
-       future admin tool can upload without a rules change. */
+       All eight prefixes below exist in the bucket. Five of them
+       (meditation-audio, movement-video, movement-thumbs, coaching-video,
+       coaching-auido) are currently empty folder markers, so their grants are
+       inert until content lands. */
 
-    /* --- Paths with live content. These four MUST stay covered: omitting
-           any of them sends real, in-use media to the default deny. --- */
-
-    // Guided-protocol audio (NSDR and future practices). Read at runtime by
-    // src/services/audio/protocolAudioLoader.ts. Currently holds
-    // protocolAudio/nsdr/nsdr_10min_v1.mp3 and nsdr_20min_v1.mp3.
+    // 2 objects / 10.6 MB. Read at runtime by protocolAudioLoader.ts.
     match /protocolAudio/{allPaths=**} {
       allow read: if isSignedIn();
       allow write: if isAdmin() && isAudioType() && underAudioSizeLimit();
     }
 
-    // Sleep sounds and sleep stories. Read at runtime by
-    // src/services/firebase/library.service.ts. Holds 6 objects / 182 MB.
+    // 6 objects / 182 MB. Read at runtime by library.service.ts.
     match /sleep-audio/{allPaths=**} {
       allow read: if isSignedIn();
       allow write: if isAdmin() && isAudioType() && underAudioSizeLimit();
     }
 
-    // Breathwork audio (2 objects / 105 MB) and movement audio (1 object /
-    // 49 MB). NOTE: neither prefix is referenced anywhere in mobile/src or
-    // web src — this content is currently orphaned. These grants make it
-    // readable again; if the content is dead, delete the objects and drop
-    // these two blocks rather than granting read to files nothing loads.
+    // 2 objects / 105 MB. NOT referenced anywhere in mobile/src or web src.
     match /breathwork-audio/{allPaths=**} {
       allow read: if isSignedIn();
       allow write: if isAdmin() && isAudioType() && underAudioSizeLimit();
     }
 
+    // 1 object / 49 MB. NOT referenced anywhere in mobile/src or web src.
     match /movement-audio/{allPaths=**} {
       allow read: if isSignedIn();
       allow write: if isAdmin() && isAudioType() && underAudioSizeLimit();
     }
 
-    /* --- Paths with no content yet. Declared ahead of the content so the
-           rules are in place before anything is uploaded. --- */
+    // Empty.
+    match /meditation-audio/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isAudioType() && underAudioSizeLimit();
+    }
 
-    // Focus explainer video. Target of the focus-video-player slice; will
-    // hold focusVideo/explainer/focus_explainer_v1.mp4.
+    // Empty.
+    match /movement-video/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isVideoType() && underVideoSizeLimit();
+    }
+
+    // Empty. Thumbnails are images, not video.
+    match /movement-thumbs/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImageType() && underImageSizeLimit();
+    }
+
+    // Empty.
+    match /coaching-video/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isVideoType() && underVideoSizeLimit();
+    }
+
+    // Empty. NOTE: the folder name is misspelled in the bucket
+    // ("auido"). This block matches the ACTUAL name so the path is
+    // genuinely governed. If the folder is ever renamed to
+    // coaching-audio/, this block must be renamed with it or the path
+    // silently falls through to the default deny.
+    match /coaching-auido/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isAudioType() && underAudioSizeLimit();
+    }
+
+    // Does NOT exist in the bucket yet — the single intentional forward
+    // declaration, kept because the focus-video-player slice uploads here
+    // immediately after this ruleset deploys. Without it the first video
+    // upload lands on a path with no read rule and 403s on playback.
+    // Drop this block if the video work is shelved.
     match /focusVideo/{allPaths=**} {
       allow read: if isSignedIn();
       allow write: if isAdmin() && isVideoType() && underVideoSizeLimit();
     }
 
-    // Forward-declared media prefixes. Empty today; covered now so future
-    // uploads are governed from the moment they land. `audio/` in particular
-    // was referenced by legacy web code against a bucket that no longer
-    // exists, so treat any content appearing here as new, not restored.
-    match /focus/{allPaths=**} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() && isMediaType() && underVideoSizeLimit();
-    }
 
-    match /practice-audio/{allPaths=**} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() && isAudioType() && underAudioSizeLimit();
-    }
+    /* ==================== Per-user paths ====================
+       All five prefixes hold content that the app renders to OTHER members:
+       profile photos on profiles, post attachments in the community feed.
+       Read is therefore authenticated, not owner-scoped — owner-scoped read
+       would blank every other member's avatar and post image. This matches
+       the Firestore rules governing the same records (`match /users/{userId}`
+       allows read to any authenticated user).
 
-    match /audio/{allPaths=**} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() && isAudioType() && underAudioSizeLimit();
-    }
+       Write is owner-scoped on every path: a user writes only under their own
+       uid. That is the boundary that actually protects user data here.
 
-    /* Deliberately NOT granted: meditation-audio/, movement-video/,
-       movement-thumbs/, coaching-video/, and coaching-auido/ (sic — a typo
-       folder created in the console). All five are empty folder markers with
-       no content and no code references. They fall through to the default
-       deny. Add a block when real content lands, not before. */
+       None of these paths holds private per-user data. If a private per-user
+       media path is ever introduced, it must be owner-scoped for READ as well
+       and must not be folded into these blocks. */
 
-
-    /* ==================== Profile photos ====================
-       Authenticated read: community surfaces render other members' avatars
-       and banners, so owner-scoped read would break them. This also matches
-       the Firestore rule governing the same data — `match /users/{userId}`
-       in firestore.rules allows read to any authenticated user.
-       Writes stay owner-scoped. */
-
-    // Live profile path. Written by mobile ProfileScreen.tsx as
-    // users/{uid}/{avatar|banner}_{ts}.jpg, and by web ProfilePage.jsx /
-    // UserProfilePage.jsx as users/{uid}/{avatar|banner}_{ts}.
+    // 9 objects / 6 users. Live profile path: mobile ProfileScreen.tsx and
+    // web ProfilePage.jsx / UserProfilePage.jsx write users/{uid}/...
     match /users/{userId}/{fileName} {
       allow read: if isSignedIn();
       allow write: if isOwner(userId) && isImageType() && underImageSizeLimit();
     }
 
-    // Legacy avatar path, still written by web EditProfile.jsx and
-    // Settings.jsx as avatars/{uid}/{file.name}. Holds one object.
-    // Read widened from owner-only to authenticated to match users/ above —
-    // under the previous owner-only rule, an avatar uploaded through the web
-    // Settings page was not readable by anyone else.
+    // 1 object. Legacy avatar path, still written by web EditProfile.jsx and
+    // Settings.jsx. Read widened from owner-only to authenticated so an
+    // avatar uploaded here is visible to other members, matching users/.
     match /avatars/{userId}/{fileName} {
       allow read: if isSignedIn();
       allow write: if isOwner(userId) && isImageType() && underImageSizeLimit();
     }
 
-
-    /* ==================== Community content ====================
-       Post attachments are rendered to other members by design, so read is
-       authenticated rather than owner-scoped — consistent with the Firestore
-       `match /posts/{postId}` rule. Writes stay owner-scoped. */
-
-    // Post attachments. Written by mobile storage.service.ts as
-    // posts/{uid}/{img|vid}_{ts}_{rand}.{ext} and by web CommunityPage.jsx as
-    // posts/{uid}/{ts}_{filename}.
-    // isVideoType() is included because uploadPostVideo() has shipped in
-    // storage.service.ts; an images-only rule rejects it, which is why client
-    // video posting is currently broken.
+    // 8 objects / 5 users. Written by mobile storage.service.ts and web
+    // CommunityPage.jsx. isVideoType() is required because uploadPostVideo()
+    // has shipped in storage.service.ts; an images-only rule rejects it,
+    // which is why client video posting is currently broken.
     match /posts/{userId}/{fileName} {
       allow read: if isSignedIn();
       allow write: if isOwner(userId) && (
@@ -186,48 +176,23 @@ service firebase.storage {
                       );
     }
 
-    // Separate legacy prefix from posts/. Holds one object.
+    // 1 object. Separate legacy prefix from posts/.
     match /communityPosts/{userId}/{fileName} {
       allow read: if isSignedIn();
       allow write: if isOwner(userId) && isImageType() && underImageSizeLimit();
     }
 
-    // Group post images. NOTE: the owner uid is the THIRD segment here —
-    // groupId sits between the prefix and the uid. Written by web
-    // GroupForumPage.jsx. No objects currently.
+    // Empty. NOTE: the owner uid is the THIRD segment — groupId sits between
+    // the prefix and the uid. Written by web GroupForumPage.jsx.
     match /groupPosts/{groupId}/{userId}/{fileName} {
       allow read: if isSignedIn();
       allow write: if isOwner(userId) && isImageType() && underImageSizeLimit();
     }
 
 
-    /* ==================== Private user data ====================
-       Owner-scoped read AND write. Declared defensively: neither prefix
-       exists in the bucket today, and the corresponding Firestore
-       collections (reflections, brainStateCheckIns et al.) hold text
-       documents with no file attachments. If either ever holds media, it is
-       personal by nature and must never be readable by another member.
-
-       Both rules assume a uid-first layout — checkins/{uid}/... — matching
-       the convention every existing user path already follows. Content type
-       is constrained to media and capped; tighten once the actual use is
-       known. */
-
-    match /checkins/{userId}/{allPaths=**} {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isMediaType() && underUserUploadSizeLimit();
-    }
-
-    match /reflections/{userId}/{allPaths=**} {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isMediaType() && underUserUploadSizeLimit();
-    }
-
-
     /* ==================== Default deny ====================
-       Anything not explicitly matched above is denied for both read and
-       write. There is no public read and no public write anywhere in this
-       ruleset. */
+       Anything not matched above is denied for read and write. No public read
+       and no public write anywhere in this ruleset. */
     match /{allPaths=**} {
       allow read, write: if false;
     }
