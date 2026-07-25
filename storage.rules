@@ -42,9 +42,15 @@ service firebase.storage {
       return request.resource.size < 100 * 1024 * 1024;
     }
 
-    // 200 MB for admin-authored video.
+    // 500 MB for admin-authored video. Raised from 200 MB because the
+    // focus-video/ test content already exceeds that (241.86 MB). Reads are
+    // unaffected by this limit and console uploads bypass rules entirely, so
+    // the old ceiling was never exercised — but it was provably wrong about
+    // the content in the bucket. NOTE: 242 MB is far larger than a 1-2 minute
+    // explainer should be; the encoding recipe should bring real content down
+    // by an order of magnitude, at which point this can drop back.
     function underVideoSizeLimit() {
-      return request.resource.size < 200 * 1024 * 1024;
+      return request.resource.size < 500 * 1024 * 1024;
     }
 
     // 25 MB for anything uploaded from a user's device.
@@ -123,12 +129,12 @@ service firebase.storage {
       allow write: if isAdmin() && isAudioType() && underAudioSizeLimit();
     }
 
-    // Does NOT exist in the bucket yet — the single intentional forward
-    // declaration, kept because the focus-video-player slice uploads here
-    // immediately after this ruleset deploys. Without it the first video
-    // upload lands on a path with no read rule and 403s on playback.
-    // Drop this block if the video work is shelved.
-    match /focusVideo/{allPaths=**} {
+    // Focus explainer video, read by the focus-video-player slice. Holds 2
+    // test objects (125 MB and 242 MB). Hyphenated to match the bucket's
+    // actual folder name and the convention used by movement-video/ and
+    // coaching-video/ — an earlier camelCase spelling (focusVideo/) matched
+    // nothing and would have 403'd every playback.
+    match /focus-video/{allPaths=**} {
       allow read: if isSignedIn();
       allow write: if isAdmin() && isVideoType() && underVideoSizeLimit();
     }
