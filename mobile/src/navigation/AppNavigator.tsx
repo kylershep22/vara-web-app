@@ -876,19 +876,24 @@ const MainNavigator = () => {
                 headerShadowVisible: false,
               }}
             />
-            <AppStack.Screen
-              name="DevVideoPlayer"
-              component={VideoPlayerTestScreen}
-              options={{
-                ...standardHeaderOptions,
-                animation: 'slide_from_right',
-                headerShown: true,
-                title: 'Dev: Video Player',
-                headerShadowVisible: false,
-              }}
-            />
           </>
         )}
+        {/* TEMP — REVERT BEFORE MERGE (see commit "TEMP: expose video dev entry
+            for preview walk"). Hoisted out of the __DEV__ block above so the
+            route resolves in a PREVIEW build for one device walk. The other
+            four dev harnesses stay gated; only this one is exposed. Reverting
+            puts it back inside the __DEV__ fragment. */}
+        <AppStack.Screen
+          name="DevVideoPlayer"
+          component={VideoPlayerTestScreen}
+          options={{
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: 'Dev: Video Player',
+            headerShadowVisible: false,
+          }}
+        />
       </AppStack.Navigator>
       {/* The AI Guide is now a docked pill mounted per pillar hub
           (components/ai/GuidePill.tsx), replacing the global bottom-right FAB.
