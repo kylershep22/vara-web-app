@@ -99,6 +99,20 @@ describe('VideoPlayerModal', () => {
     expect(mockUseVideoSource).toHaveBeenCalledWith(null);
   });
 
+  it('autoplays once the URL resolves — no tap required', () => {
+    render(
+      <VideoPlayerModal visible storagePath="focus-video/a.mp4" onClose={jest.fn()} />
+    );
+    expect(mockPlayer.play).toHaveBeenCalled();
+  });
+
+  it('sets the time-update interval during the same setup pass', () => {
+    render(
+      <VideoPlayerModal visible storagePath="focus-video/a.mp4" onClose={jest.fn()} />
+    );
+    expect(mockPlayer.timeUpdateEventInterval).toBe(0.25);
+  });
+
   it('renders the video surface once a URL resolves', () => {
     const { getByTestId } = render(
       <VideoPlayerModal visible storagePath="focus-video/a.mp4" onClose={jest.fn()} />

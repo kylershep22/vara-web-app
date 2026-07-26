@@ -106,8 +106,13 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
   const activePath = visible ? storagePath : null;
   const { url, loading, error, retry } = useVideoSource(activePath);
 
+  // useVideoPlayer is keyed on the source, so this setup runs again when the
+  // resolved URL replaces the initial null — which is where autoplay actually
+  // takes effect. Opening the player is an explicit "watch this" action, so it
+  // starts without a second tap.
   const player = useVideoPlayer(url ?? null, (p) => {
     p.timeUpdateEventInterval = TIME_UPDATE_INTERVAL_SECONDS;
+    p.play();
   });
 
   const { status } = useEvent(player, 'statusChange', {
