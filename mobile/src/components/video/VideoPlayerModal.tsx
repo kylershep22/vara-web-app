@@ -10,16 +10,21 @@
  * is there. It contains no reference to any specific video, so swapping the
  * explainer is a data change (a different path) and never a code change.
  *
- * Control set is deliberately fixed at five: play/pause, scrubber with seek,
- * elapsed/total time, fullscreen toggle, close. No speed, captions, or volume.
+ * Control set is deliberately fixed at four: play/pause, scrubber with seek,
+ * elapsed/total time, close. No speed, captions, or volume.
  *
- * Fit: `contentFit="contain"` inline, so both landscape and portrait sources
- * letterbox/pillarbox rather than stretch or crop. In native fullscreen the
- * platform presents its own player and handles fit itself — we do not force a
- * fit there.
+ * PORTRAIT ONLY — no fullscreen. The landscape-fullscreen affordance was
+ * removed after the first device walk: entering native fullscreen from a
+ * portrait-locked app froze the player outright on one clip and stranded it
+ * with no controls and no exit on the other, forcing a force-quit. A video
+ * that plays reliably inline beats one with a fullscreen button that traps
+ * people. Landscape fullscreen is a post-launch follow-up, not a launch fix.
+ *
+ * Fit: `contentFit="contain"`, so both landscape and portrait sources
+ * letterbox/pillarbox rather than stretch or crop.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -34,7 +39,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useEvent } from 'expo';
-import { VideoView, useVideoPlayer, type VideoView as VideoViewType } from 'expo-video';
+import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { Colors, Spacing, Typography } from '../../constants';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -95,7 +100,6 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
   onClose,
 }) => {
   const reduceMotion = useReducedMotion();
-  const viewRef = useRef<VideoViewType>(null);
 
   // Only resolve while the modal is open, so a mounted-but-hidden modal does
   // not hit Storage.
@@ -144,10 +148,6 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
     },
     [player]
   );
-
-  const handleFullscreen = useCallback(() => {
-    viewRef.current?.enterFullscreen();
-  }, []);
 
   const playLabel = isPlaying ? 'Pause video' : 'Play video';
 
@@ -209,18 +209,18 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
         <View style={styles.videoArea}>
           {url && !showError ? (
             <VideoView
-              ref={viewRef}
               player={player}
               style={styles.video}
               // contain: both landscape and portrait sources fit the frame
-              // without stretch or crop. Native fullscreen handles its own fit.
+              // without stretch or crop.
               contentFit="contain"
               nativeControls={false}
-              fullscreenOptions={{
-                enable: true,
-                orientation: 'landscape',
-                autoExitOnRotate: false,
-              }}
+              // Both presentations are disabled explicitly, not just left at
+              // their defaults: each is a way for the video to leave this modal
+              // into a surface with its own controls, which is exactly how the
+              // first walk got stuck with no way back.
+              fullscreenOptions={{ enable: false }}
+              allowsPictureInPicture={false}
               testID="video-player-view"
             />
           ) : null}
@@ -249,7 +249,7 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
           ) : null}
         </View>
 
-        {/* Controls — exactly five: play/pause, scrubber, time, fullscreen, close
+        {/* Controls — four: play/pause, scrubber, elapsed/total time, close
             (close lives in the header above). */}
         <SafeAreaView edges={['bottom']} style={styles.controlsSafe}>
           <View style={styles.controls} testID="video-player-controls">
@@ -293,22 +293,6 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
             <Text style={styles.time} testID="video-player-duration">
               {formatTime(duration)}
             </Text>
-
-            <TouchableOpacity
-              onPress={handleFullscreen}
-              style={styles.iconButton}
-              disabled={!url || showError}
-              accessibilityRole="button"
-              accessibilityLabel="Play video fullscreen"
-              accessibilityState={{ disabled: !url || showError }}
-              testID="video-player-fullscreen"
-            >
-              <Icon
-                name="fullscreen"
-                size={26}
-                color={!url || showError ? Colors.mutedSageGray : Colors.white}
-              />
-            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </View>

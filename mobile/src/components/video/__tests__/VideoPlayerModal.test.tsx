@@ -159,12 +159,21 @@ describe('VideoPlayerModal', () => {
     expect(mockPlayer.currentTime).toBe(42);
   });
 
-  it('enters native fullscreen from the fullscreen control', () => {
+  it('has no fullscreen control — it trapped users and was removed', () => {
+    const { queryByTestId } = render(
+      <VideoPlayerModal visible storagePath="focus-video/a.mp4" onClose={jest.fn()} />
+    );
+    expect(queryByTestId('video-player-fullscreen')).toBeNull();
+  });
+
+  it('disables every path out of the modal that could strand playback', () => {
     const { getByTestId } = render(
       <VideoPlayerModal visible storagePath="focus-video/a.mp4" onClose={jest.fn()} />
     );
-    fireEvent.press(getByTestId('video-player-fullscreen'));
-    expect(mockEnterFullscreen).toHaveBeenCalled();
+    const view = getByTestId('video-player-view');
+    expect(view.props.fullscreenOptions).toEqual({ enable: false });
+    expect(view.props.allowsPictureInPicture).toBe(false);
+    expect(mockEnterFullscreen).not.toHaveBeenCalled();
   });
 
   it('closes from the close control', () => {
