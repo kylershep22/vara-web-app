@@ -304,7 +304,19 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
                 minimumTrackTintColor={Colors.white}
                 maximumTrackTintColor={Colors.mutedSageGray}
                 thumbTintColor={Colors.white}
-                disabled={!url || showError || duration <= 0}
+                // Enabled as soon as there is something to play. It used to also
+                // require duration > 0, which left the slider DISABLED for as
+                // long as the duration was unknown — and a disabled slider does
+                // not consume touches, so drags fell straight through to
+                // whatever was behind it. That is the likeliest source of the
+                // "it grabbed the whole modal" feel, and it explains why the two
+                // clips behaved differently: they report duration at different
+                // times.
+                disabled={!url || showError}
+                // iOS UISlider only begins tracking when the touch lands ON the
+                // thumb unless this is set. Without it, a drag that starts on
+                // the track does nothing and the touch propagates.
+                tapToSeek
                 accessibilityLabel="Video position"
                 accessibilityHint="Swipe up or down to move through the video"
                 accessibilityValue={sliderAccessibility}
@@ -401,7 +413,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.sm,
+    // Lifted clear of the bottom edge. Sitting flush against it put the
+    // scrubber inside the iOS home-indicator region, where the system can claim
+    // a drag that starts there before the app ever sees it.
+    paddingBottom: Spacing.base,
   },
   iconButton: {
     width: MIN_TOUCH_TARGET,
@@ -411,6 +426,10 @@ const styles = StyleSheet.create({
   },
   slider: {
     flex: 1,
+    // A taller track than the default gives the drag a real target, so a
+    // slightly-off touch still lands on the scrubber instead of missing it and
+    // propagating.
+    height: MIN_TOUCH_TARGET,
     // Android renders the slider a few px higher than iOS; this keeps the
     // thumb visually centred against the time labels on both.
     marginHorizontal: Platform.OS === 'android' ? 0 : Spacing.xs,

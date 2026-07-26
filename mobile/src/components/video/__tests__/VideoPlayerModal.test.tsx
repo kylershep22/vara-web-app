@@ -241,6 +241,31 @@ describe('VideoPlayerModal', () => {
     expect(getByTestId('video-player-playpause').props.accessibilityLabel).toBe('Pause video');
   });
 
+  it('keeps the scrubber enabled before duration is known, so drags do not fall through', () => {
+    // A disabled slider consumes no touches, so the drag propagates to whatever
+    // is behind it. Duration is unknown for a while on a file without faststart.
+    mockPlayer.duration = 0;
+    const { getByTestId } = render(
+      <VideoPlayerModal visible storagePath="focus-video/a.mp4" onClose={jest.fn()} />
+    );
+    expect(getByTestId('video-player-scrubber').props.disabled).toBe(false);
+  });
+
+  it('disables the scrubber only when there is nothing to scrub', () => {
+    mockUseVideoSource.mockReturnValue({ ...READY, url: null, loading: true });
+    const { getByTestId } = render(
+      <VideoPlayerModal visible storagePath="focus-video/a.mp4" onClose={jest.fn()} />
+    );
+    expect(getByTestId('video-player-scrubber').props.disabled).toBe(true);
+  });
+
+  it('enables tapToSeek so a drag starting on the track is captured', () => {
+    const { getByTestId } = render(
+      <VideoPlayerModal visible storagePath="focus-video/a.mp4" onClose={jest.fn()} />
+    );
+    expect(getByTestId('video-player-scrubber').props.tapToSeek).toBe(true);
+  });
+
   it('exposes the scrubber to assistive tech with a spoken position', () => {
     const { getByTestId } = render(
       <VideoPlayerModal visible storagePath="focus-video/a.mp4" onClose={jest.fn()} />
