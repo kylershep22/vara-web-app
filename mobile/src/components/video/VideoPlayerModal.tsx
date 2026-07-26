@@ -35,7 +35,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+  initialWindowMetrics,
+} from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useEvent } from 'expo';
@@ -163,8 +167,7 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
   const playerErrored = status === 'error';
   const showError = !!error || playerErrored;
 
-  const errorMessage =
-    error ?? "Couldn't play this video. Check your connection and try again.";
+  const errorMessage = error ?? "Couldn't play this video. Check your connection and try again.";
 
   const sliderAccessibility = useMemo(
     () => ({
@@ -185,122 +188,136 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
       supportedOrientations={['portrait']}
       testID="video-player-modal"
     >
-      <View style={styles.container}>
-        <StatusBar hidden />
+      {/* A React Native Modal renders into its own native view hierarchy, which
+          the app-root SafeAreaProvider (App.tsx) does not measure. Without a
+          provider nested here, SafeAreaView inside the modal reads zero or
+          stale insets — which is why the title collided with the camera cutout
+          on one clip and cleared it on another. The difference was render
+          timing, not the video. */}
+      {/* initialMetrics seeds the provider with the window insets captured at
+          app start, so the header is correctly inset on the FIRST frame. A bare
+          provider has to measure natively before it reports anything, which
+          renders the title at inset zero — under the camera — until the measure
+          lands. The modal is full-screen in the same window, so the app's
+          window metrics are the right ones. */}
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <View style={styles.container}>
+          <StatusBar hidden />
 
-        {/* Header — close control */}
-        <SafeAreaView edges={['top']} style={styles.headerSafe}>
-          <View style={styles.header}>
-            {title ? (
-              <Text style={styles.title} numberOfLines={1}>
-                {title}
-              </Text>
-            ) : (
-              <View style={styles.titleSpacer} />
-            )}
-            <TouchableOpacity
-              onPress={onClose}
-              style={styles.closeButton}
-              accessibilityRole="button"
-              accessibilityLabel="Close video"
-              testID="video-player-close"
-            >
-              <Icon name="close" size={26} color={Colors.white} />
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-
-        {/* Video surface */}
-        <View style={styles.videoArea}>
-          {url && !showError ? (
-            <VideoView
-              player={player}
-              style={styles.video}
-              // contain: both landscape and portrait sources fit the frame
-              // without stretch or crop.
-              contentFit="contain"
-              nativeControls={false}
-              // Both presentations are disabled explicitly, not just left at
-              // their defaults: each is a way for the video to leave this modal
-              // into a surface with its own controls, which is exactly how the
-              // first walk got stuck with no way back.
-              fullscreenOptions={{ enable: false }}
-              allowsPictureInPicture={false}
-              testID="video-player-view"
-            />
-          ) : null}
-
-          {showSpinner && !showError ? (
-            <View style={styles.overlayCentre} testID="video-player-loading">
-              <ActivityIndicator size="large" color={Colors.white} />
-              <Text style={styles.overlayText}>Loading video…</Text>
-            </View>
-          ) : null}
-
-          {showError ? (
-            <View style={styles.overlayCentre} testID="video-player-error">
-              <Icon name="alert-circle-outline" size={32} color={Colors.error} />
-              <Text style={styles.errorText}>{errorMessage}</Text>
+          {/* Header — close control */}
+          <SafeAreaView edges={['top']} style={styles.headerSafe}>
+            <View style={styles.header}>
+              {title ? (
+                <Text style={styles.title} numberOfLines={1}>
+                  {title}
+                </Text>
+              ) : (
+                <View style={styles.titleSpacer} />
+              )}
               <TouchableOpacity
-                onPress={retry}
-                style={styles.retryButton}
+                onPress={onClose}
+                style={styles.closeButton}
                 accessibilityRole="button"
-                accessibilityLabel="Try loading the video again"
-                testID="video-player-retry"
+                accessibilityLabel="Close video"
+                testID="video-player-close"
               >
-                <Text style={styles.retryText}>Try again</Text>
+                <Icon name="close" size={26} color={Colors.white} />
               </TouchableOpacity>
             </View>
-          ) : null}
-        </View>
+          </SafeAreaView>
 
-        {/* Controls — four: play/pause, scrubber, elapsed/total time, close
-            (close lives in the header above). */}
-        <SafeAreaView edges={['bottom']} style={styles.controlsSafe}>
-          <View style={styles.controls} testID="video-player-controls">
-            <TouchableOpacity
-              onPress={togglePlay}
-              style={styles.iconButton}
-              disabled={!url || showError}
-              accessibilityRole="button"
-              accessibilityLabel={playLabel}
-              accessibilityState={{ disabled: !url || showError }}
-              testID="video-player-playpause"
-            >
-              <Icon
-                name={isPlaying ? 'pause' : 'play'}
-                size={28}
-                color={!url || showError ? Colors.mutedSageGray : Colors.white}
+          {/* Video surface */}
+          <View style={styles.videoArea}>
+            {url && !showError ? (
+              <VideoView
+                player={player}
+                style={styles.video}
+                // contain: both landscape and portrait sources fit the frame
+                // without stretch or crop.
+                contentFit="contain"
+                nativeControls={false}
+                // Both presentations are disabled explicitly, not just left at
+                // their defaults: each is a way for the video to leave this modal
+                // into a surface with its own controls, which is exactly how the
+                // first walk got stuck with no way back.
+                fullscreenOptions={{ enable: false }}
+                allowsPictureInPicture={false}
+                testID="video-player-view"
               />
-            </TouchableOpacity>
+            ) : null}
 
-            <Text style={styles.time} testID="video-player-elapsed">
-              {formatTime(position)}
-            </Text>
+            {showSpinner && !showError ? (
+              <View style={styles.overlayCentre} testID="video-player-loading">
+                <ActivityIndicator size="large" color={Colors.white} />
+                <Text style={styles.overlayText}>Loading video…</Text>
+              </View>
+            ) : null}
 
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={Math.max(1, duration)}
-              value={position}
-              onValueChange={setScrubValue}
-              onSlidingComplete={handleSlidingComplete}
-              minimumTrackTintColor={Colors.white}
-              maximumTrackTintColor={Colors.mutedSageGray}
-              thumbTintColor={Colors.white}
-              disabled={!url || showError || duration <= 0}
-              accessibilityLabel="Video position"
-              accessibilityHint="Swipe up or down to move through the video"
-              accessibilityValue={sliderAccessibility}
-              testID="video-player-scrubber"
-            />
-
-            <Text style={styles.time} testID="video-player-duration">
-              {formatTime(duration)}
-            </Text>
+            {showError ? (
+              <View style={styles.overlayCentre} testID="video-player-error">
+                <Icon name="alert-circle-outline" size={32} color={Colors.error} />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+                <TouchableOpacity
+                  onPress={retry}
+                  style={styles.retryButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Try loading the video again"
+                  testID="video-player-retry"
+                >
+                  <Text style={styles.retryText}>Try again</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </View>
-        </SafeAreaView>
-      </View>
+
+          {/* Controls — four: play/pause, scrubber, elapsed/total time, close
+            (close lives in the header above). */}
+          <SafeAreaView edges={['bottom']} style={styles.controlsSafe}>
+            <View style={styles.controls} testID="video-player-controls">
+              <TouchableOpacity
+                onPress={togglePlay}
+                style={styles.iconButton}
+                disabled={!url || showError}
+                accessibilityRole="button"
+                accessibilityLabel={playLabel}
+                accessibilityState={{ disabled: !url || showError }}
+                testID="video-player-playpause"
+              >
+                <Icon
+                  name={isPlaying ? 'pause' : 'play'}
+                  size={28}
+                  color={!url || showError ? Colors.mutedSageGray : Colors.white}
+                />
+              </TouchableOpacity>
+
+              <Text style={styles.time} testID="video-player-elapsed">
+                {formatTime(position)}
+              </Text>
+
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={Math.max(1, duration)}
+                value={position}
+                onValueChange={setScrubValue}
+                onSlidingComplete={handleSlidingComplete}
+                minimumTrackTintColor={Colors.white}
+                maximumTrackTintColor={Colors.mutedSageGray}
+                thumbTintColor={Colors.white}
+                disabled={!url || showError || duration <= 0}
+                accessibilityLabel="Video position"
+                accessibilityHint="Swipe up or down to move through the video"
+                accessibilityValue={sliderAccessibility}
+                testID="video-player-scrubber"
+              />
+
+              <Text style={styles.time} testID="video-player-duration">
+                {formatTime(duration)}
+              </Text>
+            </View>
+          </SafeAreaView>
+        </View>
+      </SafeAreaProvider>
     </Modal>
   );
 };

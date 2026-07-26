@@ -44,6 +44,25 @@ jest.mock('@react-native-community/slider', () => {
   );
 });
 
+// The real SafeAreaProvider withholds children until it has measured natively,
+// which never happens under jest. Mock it, and expose non-zero initial metrics
+// so the "header is inset on the first frame" assertion is meaningful.
+jest.mock('react-native-safe-area-context', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    SafeAreaProvider: ({ children, ...props }: Record<string, unknown>) =>
+      React.createElement(View, { ...props, testID: 'safe-area-provider' }, children),
+    SafeAreaView: ({ children, ...props }: Record<string, unknown>) =>
+      React.createElement(View, props, children),
+    useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }),
+    initialWindowMetrics: {
+      frame: { x: 0, y: 0, width: 390, height: 844 },
+      insets: { top: 47, bottom: 34, left: 0, right: 0 },
+    },
+  };
+});
+
 const mockUseVideoSource = jest.fn();
 jest.mock('../../../hooks/useVideoSource', () => ({
   useVideoSource: (path: string | null) => mockUseVideoSource(path),
@@ -234,6 +253,18 @@ describe('VideoPlayerModal', () => {
       now: 0,
       text: '0 seconds of 2 minutes',
     });
+  });
+
+  it('nests its own SafeAreaProvider so the header clears the camera cutout', () => {
+    // A React Native Modal is outside the app-root provider's measured tree, so
+    // without this the top inset reads zero and the title sits under the notch.
+    const { getByTestId } = render(
+      <VideoPlayerModal visible storagePath="focus-video/a.mp4" title="Test" onClose={jest.fn()} />
+    );
+    const provider = getByTestId('safe-area-provider');
+    expect(provider).toBeTruthy();
+    // Seeded from window metrics so the first frame is already inset.
+    expect(provider.props.initialMetrics?.insets?.top).toBe(47);
   });
 
   it('cross-fades instead of sliding under Reduce Motion', () => {
