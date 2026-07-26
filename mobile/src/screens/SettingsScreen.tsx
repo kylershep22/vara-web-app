@@ -703,16 +703,12 @@ const SettingsScreen = () => {
         </View>
       </View>
 
-      {/* TEMPORARY dev entry — focus-video-player slice. Delete together with
-          VideoPlayerTestScreen once the Focus hub launches the player for real.
-
-          TEMP — REVERT BEFORE MERGE (see commit "TEMP: expose video dev entry
-          for preview walk"). The `__DEV__ &&` wrapper is removed so this row
-          renders in a PREVIEW build for one device walk. Reverting restores
-          the gate, after which it can never reach TestFlight or production. */}
-      {true && (
+      {/* TEMPORARY dev entry — focus-video-player slice. Gated on __DEV__ so it
+          never reaches TestFlight or production. Delete together with
+          VideoPlayerTestScreen once the Focus hub launches the player for real. */}
+      {__DEV__ && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Developer (TEMP — visible in preview)</Text>
+          <Text style={styles.sectionTitle}>Developer (dev builds only)</Text>
           <View style={styles.card}>
             <TouchableOpacity
               style={styles.settingRow}
