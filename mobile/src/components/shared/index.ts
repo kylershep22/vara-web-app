@@ -22,3 +22,5 @@ export type { BadgeVariant } from './Badge';
 export { CommunityAvatar } from './CommunityAvatar';
 export { ScreenHeader, BAND_STRONG_SCRIM } from './ScreenHeader';
 export { SpotIllustration } from './SpotIllustration';
+export { ComingSoonCard } from './ComingSoonCard';
+export type { ComingSoonCardProps } from './ComingSoonCard';

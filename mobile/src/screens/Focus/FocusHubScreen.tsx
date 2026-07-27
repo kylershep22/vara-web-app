@@ -3,7 +3,9 @@
 // Replaces FocusScreen as the PillarFocus tab root. A calm home with a single
 // primary action: set a focus, which opens the existing Pomodoro timer
 // (FocusTimer stack screen). A quieter secondary entry captures when focus
-// comes easiest (FocusRhythmsScreen).
+// comes easiest (FocusRhythmsScreen). Below those, the planned focus tools sit
+// as inert coming-soon cards so the shape of the pillar is visible without
+// anything pretending to be tappable.
 //
 // Built to the EnergyHubScreen precedent. No streaks, no counts, no stats: the
 // only outcome is a felt one, surfaced by the post-timer reflection, never a
@@ -19,6 +21,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../../components/shared/ScreenHeader';
+import { ComingSoonCard } from '../../components/shared/ComingSoonCard';
 import { GuidePill } from '../../components/ai/GuidePill';
 
 // The one illustration on Focus home: a watercolor header band. Raster asset
@@ -93,6 +96,22 @@ export function FocusHubScreen() {
           </View>
           <Icon name="chevron-right" size={24} color={Colors.mutedSageGray} />
         </TouchableOpacity>
+
+        {/* Planned focus tools. Inert placeholders, not dead buttons: they hold
+            their place in the launcher so the shape of the pillar is honest,
+            without implying a tap does something. See ComingSoonCard. */}
+        <View style={styles.plannedGroup}>
+          <ComingSoonCard
+            title="Time blocking"
+            body="Shape the day into a few protected blocks."
+            testID="focus-hub-card-time-blocking"
+          />
+          <ComingSoonCard
+            title="Task batching"
+            body="Group similar work so you switch less."
+            testID="focus-hub-card-task-batching"
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -173,6 +192,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.divider,
     backgroundColor: Colors.surface,
+  },
+  // Spacing lives on the group, not on the live rows above it, so the rhythms
+  // row's own styling stays exactly as shipped.
+  plannedGroup: {
+    marginTop: Spacing.md,
+    gap: Spacing.md,
   },
   secondaryText: {
     flex: 1,

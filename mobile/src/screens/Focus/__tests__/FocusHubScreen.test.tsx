@@ -59,6 +59,34 @@ describe('FocusHubScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith('FocusRhythms');
   });
 
+  it('shows the planned tools as coming-soon cards, in order after rhythms', () => {
+    const { getByText, getByTestId } = render(<FocusHubScreen />);
+    expect(getByText('Time blocking')).toBeTruthy();
+    expect(getByText('Shape the day into a few protected blocks.')).toBeTruthy();
+    expect(getByText('Task batching')).toBeTruthy();
+    expect(getByText('Group similar work so you switch less.')).toBeTruthy();
+    // Both are present and distinct; the rhythms row still sits above them.
+    expect(getByTestId('focus-hub-card-rhythms')).toBeTruthy();
+    expect(getByTestId('focus-hub-card-time-blocking')).toBeTruthy();
+    expect(getByTestId('focus-hub-card-task-batching')).toBeTruthy();
+  });
+
+  it('coming-soon cards navigate nowhere when pressed', () => {
+    const { getByTestId } = render(<FocusHubScreen />);
+    fireEvent.press(getByTestId('focus-hub-card-time-blocking'));
+    fireEvent.press(getByTestId('focus-hub-card-task-batching'));
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('coming-soon cards are inert to assistive tech, not actionable', () => {
+    const { getByTestId } = render(<FocusHubScreen />);
+    for (const id of ['focus-hub-card-time-blocking', 'focus-hub-card-task-batching']) {
+      const card = getByTestId(id);
+      expect(card.props.accessibilityRole).toBe('text');
+      expect(card.props.onPress).toBeUndefined();
+    }
+  });
+
   it('has no streak / count / stats language', () => {
     const { queryByText } = render(<FocusHubScreen />);
     expect(queryByText(/streak/i)).toBeNull();
