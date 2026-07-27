@@ -4,6 +4,7 @@
  */
 
 import { Timestamp } from 'firebase/firestore';
+import type { HabitCategoryKey } from '../constants/habitTaxonomy';
 
 // ==========================================
 // VALUE MODELS
@@ -141,7 +142,29 @@ export interface Habit {
   streak: number;
   longestStreak: number;
   active: boolean;
+
+  // TWO CATEGORY FIELDS LIVE HERE. They are different things. Do not merge
+  // them, do not read one as a fallback for the other.
+  //
+  // `category` is the LEGACY free-text field. It is uncontrolled (the habit
+  // detail screen used to accept any typed string), it is rendered raw to the
+  // user in the habit list meta line, and three live readers depend on its
+  // exact values: the completion sheet routes on `category === 'Connection'`,
+  // and isCognitiveReserveCategory / crFlagged key off the twelve strings in
+  // constants/habitCategories.ts. It is also written by the web app against
+  // this same collection. Nothing in the new taxonomy writes it.
   category?: string;
+
+  // `habitCategory` is the NEW controlled taxonomy: one of the nine keys in
+  // constants/habitTaxonomy.ts, or null on every habit created before the
+  // capture shipped. Pillar and focus-demand are DERIVED from it via
+  // HABIT_CATEGORY_MAPPING at read time and are deliberately not denormalized
+  // here, so a mapping change needs no migration. Never free text.
+  //
+  // Three labels ("Health", "Mindfulness", "Connection") appear in both
+  // vocabularies. That overlap is coincidental and carries no shared meaning.
+  habitCategory?: HabitCategoryKey | null;
+
   neurochemicalTags?: string[]; // Brain health neurochemical impacts (e.g., 'dopamine', 'serotonin', 'cortisol')
 
   // ==========================================

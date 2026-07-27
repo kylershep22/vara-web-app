@@ -18,6 +18,8 @@ import Input from '../Input';
 import Button from '../Button';
 import { EnhancedModal } from '../../components/shared/EnhancedModal';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { HabitCategorySelect } from './HabitCategorySelect';
+import type { HabitCategoryKey } from '../../constants/habitTaxonomy';
 
 type FrequencyType = 'daily' | 'specific_days' | 'flexible';
 type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'anytime';
@@ -32,6 +34,9 @@ interface SimpleHabitCreateScreenProps {
 
 export interface SimpleHabitFormData {
   name: string;
+  // Required, and non-null by construction: save is blocked until a chip is
+  // chosen, so this is never a placeholder value the user did not pick.
+  category: HabitCategoryKey;
   frequencyType: FrequencyType;
   specificDays: number[];
   timeOfDay: TimeOfDay;
@@ -45,6 +50,8 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
   onSave,
 }) => {
   const [name, setName] = useState('');
+  // No default: null until the user picks one, and save stays blocked until then.
+  const [category, setCategory] = useState<HabitCategoryKey | null>(null);
   const [frequencyType, setFrequencyType] = useState<FrequencyType>('daily');
   const [specificDays, setSpecificDays] = useState<number[]>([]);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('anytime');
@@ -55,6 +62,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
 
   const resetForm = () => {
     setName('');
+    setCategory(null);
     setFrequencyType('daily');
     setSpecificDays([]);
     setTimeOfDay('anytime');
@@ -65,11 +73,14 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
   };
 
   const handleSave = () => {
-    if (!name.trim()) return;
+    // Both are required. The button is already disabled without them; this
+    // guard is what makes `category` non-null for the callback's type.
+    if (!name.trim() || !category) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     onSave({
       name: name.trim(),
+      category,
       frequencyType,
       specificDays,
       timeOfDay,
@@ -129,6 +140,15 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
             placeholder="e.g. Morning walk, Read 10 pages"
             style={styles.input}
             autoFocus
+          />
+
+          {/* Kind of habit. Required, no default: this is the only moment the
+              app can learn what a habit IS, since nothing about a created habit
+              links back to where it came from. */}
+          <HabitCategorySelect
+            value={category}
+            onChange={setCategory}
+            testIDPrefix="habit-create-category"
           />
 
           {/* Frequency */}
@@ -231,7 +251,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
               variant="primary"
               onPress={handleSave}
               fullWidth
-              disabled={!name.trim()}
+              disabled={!name.trim() || !category}
               accessibilityLabel="Save Habit"
             >
               Save Habit
