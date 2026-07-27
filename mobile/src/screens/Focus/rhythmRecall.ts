@@ -4,7 +4,11 @@
 // This is RECALL of a stable preference the user deliberately set and can edit,
 // not a readback of ephemeral check-in state. No scores, counts, percentages,
 // streaks or targets; no "you focus best" ranking. Just what they told us, plus
-// one present-tense observation when the clock happens to agree.
+// the clock test for whether now is one of their windows.
+//
+// The copy shown when that test passes lives on the Focus hub with the rest of
+// the primary card's copy, not here: it is a fixed string selected by a boolean,
+// not language derived from the stored windows.
 //
 // Present, never past. Offer, never guilt. Nothing here names a time as bad,
 // references a window the user missed, or fires a notification.
@@ -28,10 +32,6 @@ export const RHYTHM_INVITATION = 'Notice when focus comes easiest for you.';
 
 /** Shown when the user chose "It varies" and nothing else. */
 export const RHYTHM_VARIES_SUMMARY = "Your focus doesn't follow one fixed time.";
-
-/** The quiet present-tense line, shown only inside a stored window. */
-export const RHYTHM_IN_WINDOW_LINE =
-  'Focus usually comes a little easier for you around now.';
 
 /** Canonical display order, so a summary never depends on tap order. */
 const TIMED_KEYS_IN_ORDER = FOCUS_RHYTHM_OPTIONS.map((o) => o.key).filter(

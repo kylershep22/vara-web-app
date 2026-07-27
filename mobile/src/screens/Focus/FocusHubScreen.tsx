@@ -28,7 +28,6 @@ import { getFocusRhythms } from '../../services/firebase/focusRhythms.service';
 import { logger } from '../../utils/logger';
 import {
   RHYTHM_INVITATION,
-  RHYTHM_IN_WINDOW_LINE,
   isRhythmActiveNow,
   rhythmSummary,
 } from './rhythmRecall';
@@ -40,6 +39,20 @@ const focusHeader = require('../../../assets/images/focusHeader.webp');
 const MIN_TOUCH_TARGET = 48;
 // How far the primary card rides up onto the header's bottom (mist) seam.
 const CARD_OVERLAP = Spacing.xl;
+
+// The primary card's two bodies. The default is the standing invitation to set
+// a focus. The in-window body is what it becomes when the clock is inside one
+// of the user's stored rhythm windows: the same card, the same single CTA, just
+// speaking to the moment. The acknowledgment rides on the existing primary
+// action deliberately, rather than adding a second thing to tap.
+//
+// Present tense, invitational, and never a ranking: no "peak", no "your best
+// hours", no "make the most of it". Outside every window the card says nothing
+// about rhythms at all, so there is no deficit counterpart to this string.
+const PRIMARY_BODY_DEFAULT =
+  'Choose a length, settle in if you need to, and give a single task your full attention.';
+const PRIMARY_BODY_IN_WINDOW =
+  "Now's usually an easier time to focus. Protect a little of it?";
 
 type NavigationProp = NativeStackNavigationProp<{
   FocusTimer: { fromHub?: boolean } | undefined;
@@ -110,27 +123,19 @@ export function FocusHubScreen() {
           style={styles.primaryCard}
           onPress={() => navigation.navigate(ROUTES.FocusTimer, { fromHub: true })}
           accessibilityRole="button"
-          accessibilityLabel="Set a focus. Choose a length and give a single task your full attention."
+          accessibilityLabel={`Set a focus. ${
+            inRhythmNow
+              ? PRIMARY_BODY_IN_WINDOW
+              : 'Choose a length and give a single task your full attention.'
+          }`}
           testID="focus-hub-card-primary"
         >
           <Text style={styles.primaryEyebrow}>Deep work</Text>
           <Text style={styles.primaryHeading}>Set a focus</Text>
-          <Text style={styles.primaryBody}>
-            Choose a length, settle in if you need to, and give a single task
-            your full attention.
+          <Text style={[styles.primaryBody, inRhythmNow && styles.primaryBodyInWindow]}>
+            {inRhythmNow ? PRIMARY_BODY_IN_WINDOW : PRIMARY_BODY_DEFAULT}
           </Text>
         </TouchableOpacity>
-
-        {/* A present-tense observation, shown only when the clock is inside a
-            window the user set. Plain text on the wash, subordinate to the
-            primary card above it: not a card, not a CTA, nothing to tap. When
-            the hour matches nothing, the correct output is silence, so there is
-            no "not your window" counterpart. */}
-        {inRhythmNow && (
-          <Text style={styles.rhythmNote} testID="focus-hub-rhythm-note">
-            {RHYTHM_IN_WINDOW_LINE}
-          </Text>
-        )}
 
         {/* Secondary, quieter list-item entry. Its body reflects the user's own
             stored rhythms back once they have set any. */}
@@ -234,6 +239,14 @@ const styles = StyleSheet.create({
     ...TextStyles.body,
     color: Colors.mutedSageGray,
   },
+  // In-window only: softCharcoal (10.7:1 on the card surface), NOT the default's
+  // mutedSageGray (4.22:1, under the 4.5:1 AA floor for 16px body text). The two
+  // deliberately differ. Do not unify them: dropping this override puts new copy
+  // below AA, and recoloring the default belongs to the app-wide mutedSageGray
+  // contrast slice, not to this one.
+  primaryBodyInWindow: {
+    color: Colors.softCharcoal,
+  },
   secondaryCard: {
     minHeight: MIN_TOUCH_TARGET,
     flexDirection: 'row',
@@ -243,15 +256,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.divider,
     backgroundColor: Colors.surface,
-  },
-  // The in-window observation. Sits in the gap between the primary card and the
-  // rhythms row, as unstyled body text on the page wash so it can never be
-  // mistaken for a second primary action.
-  rhythmNote: {
-    ...TextStyles.bodySmall,
-    color: Colors.mutedSageGray,
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.xs,
   },
   // Spacing lives on the group, not on the live rows above it, so the rhythms
   // row's own styling stays exactly as shipped.
