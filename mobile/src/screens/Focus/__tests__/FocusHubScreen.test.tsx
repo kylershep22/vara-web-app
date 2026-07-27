@@ -34,8 +34,20 @@ jest.mock('../../../components/ai/GuidePill', () => ({
 }));
 
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { FocusHubScreen } from '../FocusHubScreen';
+
+// The primary card's two bodies. Asserted as literals on purpose: importing the
+// constants from the component would let a copy change pass silently.
+const DEFAULT_BODY =
+  'Choose a length, settle in if you need to, and give a single task your full attention.';
+const IN_WINDOW_BODY = "Now's usually an easier time to focus. Protect a little of it?";
+
+// Layer 1 replaced 2c's passive line with the body swap above. Nothing may
+// render this string, or its test id, ever again.
+const RETIRED_PASSIVE_LINE =
+  'Focus usually comes a little easier for you around now.';
 
 beforeEach(() => {
   mockNavigate.mockClear();
@@ -59,11 +71,7 @@ describe('FocusHubScreen', () => {
     const { getByText } = render(<FocusHubScreen />);
     expect(getByText('Deep work')).toBeTruthy();
     expect(getByText('Set a focus')).toBeTruthy();
-    expect(
-      getByText(
-        'Choose a length, settle in if you need to, and give a single task your full attention.'
-      )
-    ).toBeTruthy();
+    expect(getByText(DEFAULT_BODY)).toBeTruthy();
   });
 
   it('tapping the primary card opens the focus timer, flagged as hub-launched', () => {
@@ -126,11 +134,10 @@ describe('FocusHubScreen', () => {
       );
     });
 
-    it('gives "varies" alone its own sentence and no in-window line', async () => {
+    it('gives "varies" alone its own sentence', async () => {
       mockGetFocusRhythms.mockResolvedValue(['varies']);
-      const { findByText, queryByTestId } = render(<FocusHubScreen />);
+      const { findByText } = render(<FocusHubScreen />);
       expect(await findByText("Your focus doesn't follow one fixed time.")).toBeTruthy();
-      expect(queryByTestId('focus-hub-rhythm-note')).toBeNull();
     });
 
     it('still routes to the rhythms screen once reflected', async () => {
@@ -141,59 +148,193 @@ describe('FocusHubScreen', () => {
       expect(mockNavigate).toHaveBeenCalledWith('FocusRhythms');
     });
 
-    it('shows the in-window line when the clock is inside a stored window', async () => {
+    it('keeps reflecting while the primary card speaks in-window', async () => {
       jest.spyOn(Date.prototype, 'getHours').mockReturnValue(14);
       mockGetFocusRhythms.mockResolvedValue(['afternoon']);
-      const { findByTestId, getByText } = render(<FocusHubScreen />);
-      await findByTestId('focus-hub-rhythm-note');
+      const { findByText, getByText } = render(<FocusHubScreen />);
+      // READ 1 (the rhythms row) and the Layer 1 body swap are independent.
+      await findByText(IN_WINDOW_BODY);
       expect(
-        getByText('Focus usually comes a little easier for you around now.')
+        getByText('Focus tends to come easiest for you in the afternoon.')
       ).toBeTruthy();
     });
+  });
 
-    it('stays silent outside every stored window', async () => {
+  describe('in-window invitation on the primary card', () => {
+    it('swaps the body to the invitation inside a stored window', async () => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(14);
+      mockGetFocusRhythms.mockResolvedValue(['afternoon']);
+      const { findByText, queryByText } = render(<FocusHubScreen />);
+      expect(await findByText(IN_WINDOW_BODY)).toBeTruthy();
+      expect(queryByText(DEFAULT_BODY)).toBeNull();
+    });
+
+    it('keeps the default body outside every stored window', async () => {
       jest.spyOn(Date.prototype, 'getHours').mockReturnValue(6);
       mockGetFocusRhythms.mockResolvedValue(['afternoon']);
-      const { findByText, queryByTestId } = render(<FocusHubScreen />);
+      const { findByText, getByText, queryByText } = render(<FocusHubScreen />);
+      // Wait for the read to land so this is not just asserting the pre-load state.
       await findByText('Focus tends to come easiest for you in the afternoon.');
-      // No "not your window" counterpart: the correct output is nothing.
-      expect(queryByTestId('focus-hub-rhythm-note')).toBeNull();
+      expect(getByText(DEFAULT_BODY)).toBeTruthy();
+      expect(queryByText(IN_WINDOW_BODY)).toBeNull();
     });
 
-    it('shows the line after midnight for a late-night setter, but not at 3am', async () => {
-      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(0);
+    // Every real window, both sides. The out-hour for each is deliberately
+    // inside a DIFFERENT window, so a matcher that ignored the stored set
+    // entirely would fail here rather than pass by accident.
+    it.each([
+      ['early_morning', 6, 14],
+      ['mid_morning', 10, 6],
+      ['afternoon', 14, 23],
+      ['evening', 19, 10],
+      ['late_night', 23, 14],
+    ])('%s: invites at %i:00, stays default at %i:00', async (window, inHour, outHour) => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(inHour as number);
+      mockGetFocusRhythms.mockResolvedValue([window]);
+      const inside = render(<FocusHubScreen />);
+      expect(await inside.findByText(IN_WINDOW_BODY)).toBeTruthy();
+      inside.unmount();
+
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(outHour as number);
+      const outside = render(<FocusHubScreen />);
+      expect(await outside.findByText(DEFAULT_BODY)).toBeTruthy();
+      expect(outside.queryByText(IN_WINDOW_BODY)).toBeNull();
+    });
+
+    it('never invites on "varies" alone, at any hour', async () => {
+      mockGetFocusRhythms.mockResolvedValue(['varies']);
+      for (const hour of [0, 6, 10, 14, 19, 23]) {
+        jest.spyOn(Date.prototype, 'getHours').mockReturnValue(hour);
+        const { findByText, queryByText, unmount } = render(<FocusHubScreen />);
+        expect(await findByText("Your focus doesn't follow one fixed time.")).toBeTruthy();
+        expect(queryByText(DEFAULT_BODY)).toBeTruthy();
+        expect(queryByText(IN_WINDOW_BODY)).toBeNull();
+        unmount();
+      }
+    });
+
+    it('never invites with no windows set, at any hour', async () => {
+      mockGetFocusRhythms.mockResolvedValue([]);
+      for (const hour of [0, 6, 10, 14, 19, 23]) {
+        jest.spyOn(Date.prototype, 'getHours').mockReturnValue(hour);
+        const { findByText, queryByText, unmount } = render(<FocusHubScreen />);
+        expect(await findByText(DEFAULT_BODY)).toBeTruthy();
+        expect(queryByText(IN_WINDOW_BODY)).toBeNull();
+        unmount();
+      }
+    });
+
+    it('invites either side of midnight for a late-night setter, but not at 3am', async () => {
       mockGetFocusRhythms.mockResolvedValue(['late_night']);
-      const first = render(<FocusHubScreen />);
-      expect(await first.findByTestId('focus-hub-rhythm-note')).toBeTruthy();
-      first.unmount();
 
+      // 23:30 — before the wrap.
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(23);
+      const before = render(<FocusHubScreen />);
+      expect(await before.findByText(IN_WINDOW_BODY)).toBeTruthy();
+      before.unmount();
+
+      // 00:30 — after the wrap, still the same window.
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(0);
+      const after = render(<FocusHubScreen />);
+      expect(await after.findByText(IN_WINDOW_BODY)).toBeTruthy();
+      after.unmount();
+
+      // 03:00 — hours 2 to 4 belong to no window at all.
       jest.spyOn(Date.prototype, 'getHours').mockReturnValue(3);
-      const second = render(<FocusHubScreen />);
-      // Summary still reflects; only the present-tense line goes quiet.
+      const dead = render(<FocusHubScreen />);
+      // The rhythms row still reflects; only the body goes back to default.
       expect(
-        await second.findByText('Focus tends to come easiest for you late at night.')
+        await dead.findByText('Focus tends to come easiest for you late at night.')
       ).toBeTruthy();
-      expect(second.queryByTestId('focus-hub-rhythm-note')).toBeNull();
+      expect(dead.getByText(DEFAULT_BODY)).toBeTruthy();
+      expect(dead.queryByText(IN_WINDOW_BODY)).toBeNull();
     });
 
-    it('leaves the invitation in place when the rhythms read fails', async () => {
+    it('keeps the default body when the rhythms read fails', async () => {
       mockGetFocusRhythms.mockRejectedValue(new Error('offline'));
-      const { getByText, queryByTestId } = render(<FocusHubScreen />);
+      const { getByText, queryByText } = render(<FocusHubScreen />);
       await waitFor(() =>
         expect(getByText('Notice when focus comes easiest for you.')).toBeTruthy()
       );
-      expect(queryByTestId('focus-hub-rhythm-note')).toBeNull();
+      expect(getByText(DEFAULT_BODY)).toBeTruthy();
+      expect(queryByText(IN_WINDOW_BODY)).toBeNull();
     });
 
-    it('does not disturb the primary card or the coming-soon cards', async () => {
+    it('renders the invitation at AA on the card, not the default body color', async () => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(14);
       mockGetFocusRhythms.mockResolvedValue(['afternoon']);
-      const { findByTestId, getByText, getByTestId } = render(<FocusHubScreen />);
-      await findByTestId('focus-hub-rhythm-note');
+      const { findByText } = render(<FocusHubScreen />);
+      const body = await findByText(IN_WINDOW_BODY);
+      // softCharcoal (10.7:1 on the card), not mutedSageGray (4.22:1, under AA).
+      expect(StyleSheet.flatten(body.props.style).color).toBe('#3E3E3E');
+    });
+
+    it('leaves the default body color untouched', () => {
+      const { getByText } = render(<FocusHubScreen />);
+      // The app-wide mutedSageGray contrast issue is NOT closed by this slice.
+      expect(StyleSheet.flatten(getByText(DEFAULT_BODY).props.style).color).toBe('#6F7F77');
+    });
+
+    it('reads the invitation to assistive tech as part of the one CTA', async () => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(14);
+      mockGetFocusRhythms.mockResolvedValue(['afternoon']);
+      const { findByText, getByTestId } = render(<FocusHubScreen />);
+      await findByText(IN_WINDOW_BODY);
+      expect(getByTestId('focus-hub-card-primary').props.accessibilityLabel).toBe(
+        `Set a focus. ${IN_WINDOW_BODY}`
+      );
+    });
+
+    it('stays on-grain: no peak / optimizer / best-hours framing', () => {
+      expect(IN_WINDOW_BODY).not.toMatch(
+        /peak|optimi[sz]|most productive|your best|prime time|make the most of/i
+      );
+      // Invitational and present tense, never deficit or guilt.
+      expect(IN_WINDOW_BODY).not.toMatch(/should|missed|don't|didn't|not your|wasted/i);
+    });
+
+    it('adds no second CTA: one primary card, still routing to the timer', async () => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(14);
+      mockGetFocusRhythms.mockResolvedValue(['afternoon']);
+      const { findByText, getAllByTestId, getByTestId } = render(<FocusHubScreen />);
+      await findByText(IN_WINDOW_BODY);
+      expect(getAllByTestId('focus-hub-card-primary')).toHaveLength(1);
+      fireEvent.press(getByTestId('focus-hub-card-primary'));
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith('FocusTimer', { fromHub: true });
+    });
+
+    it('leaves the rhythms row and the coming-soon cards alone', async () => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(14);
+      mockGetFocusRhythms.mockResolvedValue(['afternoon']);
+      const { findByText, getByText, getByTestId } = render(<FocusHubScreen />);
+      await findByText(IN_WINDOW_BODY);
+      expect(getByText('Deep work')).toBeTruthy();
       expect(getByText('Set a focus')).toBeTruthy();
       expect(getByTestId('focus-hub-card-time-blocking')).toBeTruthy();
       expect(getByTestId('focus-hub-card-task-batching')).toBeTruthy();
-      fireEvent.press(getByTestId('focus-hub-card-primary'));
-      expect(mockNavigate).toHaveBeenCalledWith('FocusTimer', { fromHub: true });
+      fireEvent.press(getByTestId('focus-hub-card-rhythms'));
+      expect(mockNavigate).toHaveBeenCalledWith('FocusRhythms');
+    });
+  });
+
+  describe("2c's passive in-window line is gone", () => {
+    it('renders neither the retired line nor its test id, in-window', async () => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(14);
+      mockGetFocusRhythms.mockResolvedValue(['afternoon']);
+      const { findByText, queryByText, queryByTestId } = render(<FocusHubScreen />);
+      await findByText(IN_WINDOW_BODY);
+      expect(queryByText(RETIRED_PASSIVE_LINE)).toBeNull();
+      expect(queryByTestId('focus-hub-rhythm-note')).toBeNull();
+    });
+
+    it('renders neither out-of-window either', async () => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(6);
+      mockGetFocusRhythms.mockResolvedValue(['afternoon']);
+      const { findByText, queryByText, queryByTestId } = render(<FocusHubScreen />);
+      await findByText(DEFAULT_BODY);
+      expect(queryByText(RETIRED_PASSIVE_LINE)).toBeNull();
+      expect(queryByTestId('focus-hub-rhythm-note')).toBeNull();
     });
   });
 

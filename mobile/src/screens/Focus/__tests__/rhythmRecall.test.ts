@@ -3,7 +3,6 @@
 
 import {
   RHYTHM_INVITATION,
-  RHYTHM_IN_WINDOW_LINE,
   RHYTHM_VARIES_SUMMARY,
   activeRhythm,
   isRhythmActiveNow,
@@ -188,12 +187,5 @@ describe('isRhythmActiveNow', () => {
     for (let h = 0; h < 24; h += 1) {
       expect(isRhythmActiveNow([], h)).toBe(false);
     }
-  });
-
-  it('has an observational, present-tense line with no guilt or absence', () => {
-    expect(RHYTHM_IN_WINDOW_LINE).toBe(
-      'Focus usually comes a little easier for you around now.'
-    );
-    expect(RHYTHM_IN_WINDOW_LINE).not.toMatch(/should|missed|don't|didn't|last/i);
   });
 });
