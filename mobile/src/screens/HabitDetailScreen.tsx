@@ -34,6 +34,7 @@ import { BaseCard } from '../components/shared/BaseCard';
 import { CardHeading } from '../components/dashboard/CardHeading';
 import { IntentionEditSheet } from '../components/habits/IntentionEditSheet';
 import { HabitNoteSheet } from '../components/habits/HabitNoteSheet';
+import { HabitCategorySelect } from '../components/habits/HabitCategorySelect';
 import { HabitWeekStrip } from '../components/habits/HabitWeekStrip';
 import { HabitFourWeekView } from '../components/habits/HabitFourWeekView';
 import {
@@ -82,11 +83,16 @@ const HabitDetailScreen: React.FC = () => {
   const [processing, setProcessing] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [intentionSheetVisible, setIntentionSheetVisible] = useState(false);
+  // The legacy free-text `category` is deliberately NOT in this form. It used
+  // to be an open text input here, which is how uncontrolled values got into
+  // the field that the completion sheet routes on. Leaving it out means an edit
+  // sends no `category` key at all, so updateHabit's partial write preserves
+  // whatever the habit already had.
   const [formData, setFormData] = useState({
     name: habit.name,
     type: habit.type,
     frequency: habit.frequency,
-    category: habit.category || '',
+    habitCategory: habit.habitCategory ?? null,
     identity: habit.identity || '',
     identityStatement: habit.identityStatement || '',
     notePromptEnabled: !!habit.notePromptEnabled,
@@ -224,7 +230,7 @@ const HabitDetailScreen: React.FC = () => {
       name: habit.name,
       type: habit.type,
       frequency: habit.frequency,
-      category: habit.category || '',
+      habitCategory: habit.habitCategory ?? null,
       identity: habit.identity || '',
       identityStatement: habit.identityStatement || '',
       notePromptEnabled: !!habit.notePromptEnabled,
@@ -488,13 +494,15 @@ const HabitDetailScreen: React.FC = () => {
           inputAccessoryViewID="habit-edit-modal"
         />
 
-        <Input
-          label="Category"
-          value={formData.category}
-          onChangeText={(text) => setFormData({ ...formData, category: text })}
-          placeholder="e.g., Mindfulness, Health"
-          style={styles.input}
-          inputAccessoryViewID="habit-edit-modal"
+        {/* Was a free-text input. Now the same controlled chip group the create
+            sheet uses, bound to the new field. Unlike create, a pick is NOT
+            required here: habits created before this capture open with nothing
+            selected, and forcing a choice to save an unrelated edit would be a
+            retroactive classification the user never asked for. */}
+        <HabitCategorySelect
+          value={formData.habitCategory}
+          onChange={(key) => setFormData({ ...formData, habitCategory: key })}
+          testIDPrefix="habit-edit-category"
         />
 
         <Input

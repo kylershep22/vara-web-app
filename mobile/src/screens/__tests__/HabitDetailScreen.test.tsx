@@ -13,6 +13,7 @@ const mockMarkHabitComplete = jest.fn();
 const mockUnmarkHabitComplete = jest.fn();
 const mockSetCompletionNote = jest.fn();
 const mockGetCompletionNote = jest.fn();
+const mockUpdateHabit = jest.fn();
 
 let mockHabit: any;
 
@@ -44,7 +45,7 @@ jest.mock('../../services/firebase', () => ({
   unmarkHabitComplete: (...args: any[]) => mockUnmarkHabitComplete(...args),
   setCompletionNote: (...args: any[]) => mockSetCompletionNote(...args),
   getCompletionNote: (...args: any[]) => mockGetCompletionNote(...args),
-  updateHabit: jest.fn().mockResolvedValue(undefined),
+  updateHabit: (...args: any[]) => mockUpdateHabit(...args),
   deleteHabit: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -501,5 +502,113 @@ describe('HabitDetailScreen — chrome', () => {
 
     fireEvent.press(getByTestId('habit-detail-look-back'));
     expect(mockNavigate).toHaveBeenCalledWith('Insights');
+  });
+});
+
+// The edit modal's category control. It used to be a free-text input writing
+// the legacy `category` field; it is now the same controlled chip group the
+// create sheet uses, bound to the new `habitCategory`. The legacy field and its
+// live readers are deliberately untouched by anything here.
+describe('HabitDetailScreen — editing the category', () => {
+  async function openEditModal() {
+    const utils = await renderScreen();
+    await act(async () => {
+      fireEvent.press(utils.getByTestId('habit-detail-edit'));
+    });
+    return utils;
+  }
+
+  it('offers the nine chips instead of a free-text field', async () => {
+    const { getByTestId, getByText, queryByPlaceholderText } = await openEditModal();
+
+    expect(getByText('What kind of habit is this?')).toBeTruthy();
+    expect(getByTestId('habit-edit-category-movement')).toBeTruthy();
+    expect(getByTestId('habit-edit-category-other')).toBeTruthy();
+    // The old input, gone: no surface can write uncontrolled values now.
+    expect(queryByPlaceholderText('e.g., Mindfulness, Health')).toBeNull();
+  });
+
+  it('preselects the habit\'s existing key', async () => {
+    mockHabit = habitFixture({ habitCategory: 'learning_growth' });
+    const { getByTestId } = await openEditModal();
+
+    expect(
+      getByTestId('habit-edit-category-learning_growth').props.accessibilityState?.selected
+    ).toBe(true);
+    expect(
+      getByTestId('habit-edit-category-movement').props.accessibilityState?.selected
+    ).toBe(false);
+  });
+
+  it('preselects nothing for a habit created before the capture', async () => {
+    mockHabit = habitFixture(); // no habitCategory at all
+    const { getByTestId } = await openEditModal();
+
+    for (const key of ['movement', 'focus_work', 'other']) {
+      expect(getByTestId(`habit-edit-category-${key}`).props.accessibilityState?.selected).toBe(
+        false
+      );
+    }
+  });
+
+  it('saves the chosen key on the new field', async () => {
+    mockUpdateHabit.mockResolvedValue(undefined);
+    const { getByTestId, getByText } = await openEditModal();
+
+    fireEvent.press(getByTestId('habit-edit-category-finances'));
+    await act(async () => {
+      fireEvent.press(getByText('Save'));
+    });
+
+    expect(mockUpdateHabit).toHaveBeenCalledTimes(1);
+    const [id, patch] = mockUpdateHabit.mock.calls[0];
+    expect(id).toBe('h1');
+    expect(patch.habitCategory).toBe('finances');
+  });
+
+  it('sends no legacy category key, so an existing value is not clobbered', async () => {
+    // updateHabit is a partial write. Omitting `category` is what preserves
+    // whatever the habit already had, including a value written by the web app.
+    mockHabit = habitFixture({ category: 'Connection', habitCategory: null });
+    mockUpdateHabit.mockResolvedValue(undefined);
+    const { getByTestId, getByText } = await openEditModal();
+
+    fireEvent.press(getByTestId('habit-edit-category-movement'));
+    await act(async () => {
+      fireEvent.press(getByText('Save'));
+    });
+
+    const [, patch] = mockUpdateHabit.mock.calls[0];
+    expect(patch).not.toHaveProperty('category');
+    expect(patch.habitCategory).toBe('movement');
+  });
+
+  it('does not require a category, so an unrelated edit still saves', async () => {
+    // Forcing a pick here would be a retroactive classification the user never
+    // asked for. Create requires one; edit does not.
+    mockHabit = habitFixture(); // pre-feature habit
+    mockUpdateHabit.mockResolvedValue(undefined);
+    const { getByText } = await openEditModal();
+
+    await act(async () => {
+      fireEvent.press(getByText('Save'));
+    });
+
+    expect(mockUpdateHabit).toHaveBeenCalledTimes(1);
+    expect(mockUpdateHabit.mock.calls[0][1].habitCategory).toBeNull();
+  });
+
+  it('renders a pre-feature habit without crashing', async () => {
+    mockHabit = habitFixture(); // no habitCategory, no legacy category
+    const { getByTestId } = await renderScreen();
+    expect(getByTestId('habit-detail-complete-today')).toBeTruthy();
+    expect(getByTestId('habit-detail-chips')).toBeTruthy();
+  });
+
+  it('renders a habit carrying both fields without crashing', async () => {
+    mockHabit = habitFixture({ category: 'Fitness', habitCategory: 'movement' });
+    const { getByTestId } = await renderScreen();
+    expect(getByTestId('habit-detail-complete-today')).toBeTruthy();
+    expect(getByTestId('habit-detail-chips')).toBeTruthy();
   });
 });

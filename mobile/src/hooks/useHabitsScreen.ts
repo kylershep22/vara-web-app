@@ -178,6 +178,11 @@ export function useHabitsScreen() {
 
       const habitData: any = {
         name: formData.name,
+        // The controlled nine-key taxonomy. Only the KEY is stored: pillar and
+        // focus-demand are derived from HABIT_CATEGORY_MAPPING at read time, so
+        // a mapping change never needs a habit migration. This is a different
+        // field from the legacy free-text `category`, which nothing here writes.
+        habitCategory: formData.category,
         type,
         frequency,
         frequencyType: formData.frequencyType,

@@ -61,6 +61,12 @@ const COPY_SOURCES = [
   'src/components/habits/habitHistory.ts',
   'src/components/habits/HabitWeekStrip.tsx',
   'src/components/habits/HabitFourWeekView.tsx',
+  // The controlled habit taxonomy. Its nine labels are permanent user-facing
+  // copy (rendered as chips on both the create sheet and the detail edit
+  // modal), so they belong under the central guard rather than relying on a
+  // local test that only knows today's rules.
+  'src/constants/habitTaxonomy.ts',
+  'src/components/habits/HabitCategorySelect.tsx',
 ];
 
 // U+2014 EM DASH, built via char code so no literal em-dash byte lives in
