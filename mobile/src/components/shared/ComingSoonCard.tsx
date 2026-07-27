@@ -5,12 +5,14 @@
 // tappable and does nothing is worse than one that plainly says it is not ready,
 // so this carries no affordance at all.
 //
-// The treatment quiets the card rather than decorating it: a Mist fill (flush
-// with the page background) and a hairline divider border, with NO shadow, so it
-// sits visually behind the live cards on the same screen instead of competing
-// with them. The one accent is a small Dew Sage "Coming soon" tag.
+// Visually a NORMAL card: same surface, radius, padding and border as the live
+// cards beside it, with the title and body at full emphasis. An earlier mist
+// fill sat flush with the mist page wash and read as faint rather than as calm.
+// The only thing marking it as not-yet-built is a "Coming soon" pill in the
+// bottom-right corner.
 //
-// No countdown, no "new", no anticipation copy. Nothing here builds a wait.
+// Quiet comes from the pill being the sole marker, not from washing the card
+// out. No countdown, no "new", no anticipation copy. Nothing here builds a wait.
 //
 // Existing coming-soon treatments were considered and not reused:
 //   - MasterclassScreen's local comingSoonCard styles are unreferenced dead
@@ -50,46 +52,46 @@ export const ComingSoonCard: React.FC<ComingSoonCardProps> = ({
     accessibilityLabel={`${title}. ${body} Coming soon.`}
     testID={testID}
   >
-    <View style={styles.headerRow}>
-      <Text style={styles.title}>{title}</Text>
-      {/* The shared Tag in its teal variant is already Dew Sage on evergreen
-          (5.6:1, clears AA), so the tag is design-system stock, not bespoke.
-          No onPress, so Tag renders a plain View and stays inert. */}
+    <Text style={styles.title}>{title}</Text>
+    <Text style={styles.body}>{body}</Text>
+    {/* Bottom-right corner marker. The shared Tag in its teal variant is
+        already Dew Sage on evergreen (5.6:1, clears AA), so the pill is
+        design-system stock, not bespoke. No onPress, so Tag renders a plain
+        View and stays inert. */}
+    <View style={styles.pillRow}>
       <Tag label="Coming soon" variant="teal" />
     </View>
-    <Text style={styles.body}>{body}</Text>
   </View>
 );
 
 const styles = StyleSheet.create({
+  // Deliberately identical to the Focus hub's secondary (rhythms) card, which is
+  // this card's peer tier: same surface, radius, padding and hairline border,
+  // and like it no shadow. Only the hero primary card carries elevation, so a
+  // shadow here would make a not-yet-built tool louder than a live one.
   card: {
     padding: Spacing.lg,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.divider,
-    // Mist, not surface white: the card sits flush with the page so it reads as
-    // quieter than the live cards above it. No shadow, for the same reason.
-    backgroundColor: Colors.mistWhite,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 2,
+    backgroundColor: Colors.surface,
   },
   title: {
-    // Matches the live rows' label size so the hub keeps one rhythm; the mist
-    // fill and missing shadow do the quieting, not a smaller title.
+    // Full emphasis, exactly as a live card's label: same size, weight, colour.
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
-    // Let a long title wrap rather than crush the tag.
-    flexShrink: 1,
-    marginRight: Spacing.sm,
+    marginBottom: 2,
   },
   body: {
     ...TextStyles.bodySmall,
     color: Colors.mutedSageGray,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    // Corner marker: pushed to the trailing edge, below the body.
+    justifyContent: 'flex-end',
+    marginTop: Spacing.md,
   },
 });
 
