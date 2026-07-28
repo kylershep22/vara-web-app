@@ -46,6 +46,7 @@ import {
   toDateSafe,
 } from '../components/habits/habitHistory';
 import { localDateKey } from '../components/dashboard/habitWeekState';
+import { habitCategoryLabel } from '../constants/habitTaxonomy';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -159,11 +160,18 @@ const HabitDetailScreen: React.FC = () => {
     [completions]
   );
 
+  // Category joins the existing attribute row rather than getting a line of its
+  // own: what kind of habit this is sits at the same level as its schedule,
+  // time of day and start date. A null category contributes nothing and is
+  // filtered out, so habits created before the capture show no gap.
   const chips = useMemo(
     () =>
-      [scheduleLabel(habit), timeOfDayLabel(habit), sinceLabel(startDate)].filter(
-        (chip): chip is string => !!chip
-      ),
+      [
+        scheduleLabel(habit),
+        timeOfDayLabel(habit),
+        sinceLabel(startDate),
+        habitCategoryLabel(habit.habitCategory),
+      ].filter((chip): chip is string => !!chip),
     [habit, startDate]
   );
 

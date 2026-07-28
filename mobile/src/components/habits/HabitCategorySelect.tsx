@@ -23,7 +23,23 @@ import {
   type HabitCategoryKey,
 } from '../../constants/habitTaxonomy';
 
+/**
+ * The prompt, kept free of the required marker.
+ *
+ * The visible label appends an asterisk (matching the "Habit Name *"
+ * convention used elsewhere), but this constant also serves as the radiogroup's
+ * spoken label, and a screen reader would read a bare "*" aloud as "asterisk".
+ * The requirement is conveyed to assistive tech as the WORD "Required" instead,
+ * composed at the usage site below.
+ *
+ * Note: React Native's AccessibilityState has no `required` member (only
+ * disabled / selected / checked / busy / expanded), so the semantic state route
+ * is not available here; the spoken label is the equivalent.
+ */
 export const HABIT_CATEGORY_PROMPT = 'What kind of habit is this?';
+
+/** The marker shown beside the visible prompt. Never spoken. */
+const REQUIRED_MARK = ' *';
 
 interface HabitCategorySelectProps {
   value: HabitCategoryKey | null;
@@ -44,11 +60,18 @@ export const HabitCategorySelect: React.FC<HabitCategorySelectProps> = ({
 
   return (
     <View>
-      <Text style={styles.prompt}>{HABIT_CATEGORY_PROMPT}</Text>
+      {/* The asterisk is visual only: the explicit accessibilityLabel keeps it
+          out of the spoken string, and the group below says "Required" in
+          words. Signalling the requirement here, before the user reaches a
+          greyed-out Save, is the whole point of the marker. */}
+      <Text style={styles.prompt} accessibilityLabel={HABIT_CATEGORY_PROMPT}>
+        {HABIT_CATEGORY_PROMPT}
+        <Text style={styles.requiredMark}>{REQUIRED_MARK}</Text>
+      </Text>
       <View
         style={styles.chipRow}
         accessibilityRole="radiogroup"
-        accessibilityLabel={HABIT_CATEGORY_PROMPT}
+        accessibilityLabel={`${HABIT_CATEGORY_PROMPT} Required.`}
       >
         {HABIT_CATEGORY_KEYS.map((key) => {
           const selected = value === key;
@@ -81,6 +104,10 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.sm,
     marginTop: Spacing.sm,
+  },
+  // Same weight and colour as the prompt itself: a marker, not an alarm.
+  requiredMark: {
+    color: Colors.textPrimary,
   },
   chipRow: {
     flexDirection: 'row',

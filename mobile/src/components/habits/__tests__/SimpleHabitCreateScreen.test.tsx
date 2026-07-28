@@ -51,8 +51,15 @@ describe('SimpleHabitCreateScreen — category is required', () => {
 
   it('asks a plain question, with no warning about skipping', () => {
     const utils = renderSheet();
-    expect(utils.getByText('What kind of habit is this?')).toBeTruthy();
-    expect(utils.queryByText(/miss|lose|won't work|required|skip/i)).toBeNull();
+    expect(utils.getByText(/What kind of habit is this\?/)).toBeTruthy();
+    // The requirement is marked, never threatened: no copy about what breaks.
+    expect(utils.queryByText(/miss|lose|won't work|skip/i)).toBeNull();
+  });
+
+  it('marks the category as required before Save is ever reached', () => {
+    const utils = renderSheet();
+    // Visible asterisk, matching the "Habit Name *" convention.
+    expect(utils.getByText(/What kind of habit is this\? \*/)).toBeTruthy();
   });
 
   it('pre-selects nothing', () => {
@@ -137,12 +144,22 @@ describe('SimpleHabitCreateScreen — what the category writes', () => {
 describe('SimpleHabitCreateScreen — category chips are accessible', () => {
   it('exposes the group as a radiogroup of radios', () => {
     const utils = renderSheet();
-    expect(utils.getByLabelText('What kind of habit is this?').props.accessibilityRole).toBe(
-      'radiogroup'
-    );
+    expect(
+      utils.getByLabelText('What kind of habit is this? Required.').props.accessibilityRole
+    ).toBe('radiogroup');
     expect(
       utils.getByTestId('habit-create-category-movement').props.accessibilityRole
     ).toBe('radio');
+  });
+
+  it('speaks "Required" as a word and never the asterisk', () => {
+    const utils = renderSheet();
+    // The visible label carries "*", but its own spoken label is clean, so no
+    // screen reader announces "asterisk".
+    expect(utils.getByLabelText('What kind of habit is this?')).toBeTruthy();
+    // And the group conveys the requirement in words instead. React Native's
+    // AccessibilityState has no `required` member, so this is the equivalent.
+    expect(utils.getByLabelText('What kind of habit is this? Required.')).toBeTruthy();
   });
 
   it('labels each chip with its lay-language name, never the raw key', () => {
