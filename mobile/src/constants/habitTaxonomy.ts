@@ -129,3 +129,20 @@ export function habitPillar(
 ): HabitPillar | null {
   return getHabitCategoryMapping(key)?.pillar ?? null;
 }
+
+/**
+ * The user-facing label for a stored key, or null when there is nothing to
+ * show.
+ *
+ * Every display surface reads the label through here rather than indexing
+ * HABIT_CATEGORY_LABELS directly, so that null (a habit created before this
+ * capture) and unknown values resolve to "render nothing" in one place. A
+ * surface must never fall back to the raw key, to the pillar, or to a
+ * placeholder like "None": absence shows nothing at all.
+ */
+export function habitCategoryLabel(
+  key: HabitCategoryKey | null | undefined
+): string | null {
+  if (!key) return null;
+  return HABIT_CATEGORY_LABELS[key] ?? null;
+}

@@ -6,9 +6,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BaseCard } from '../shared/BaseCard';
+import { Tag } from '../shared/Tag';
 import { AnimatedCheckbox } from '../../components/celebrations';
 import { Colors } from '../../constants';
 import { isCognitiveReserveCategory } from '../../constants/habitCategories';
+import { habitCategoryLabel } from '../../constants/habitTaxonomy';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Habit } from '../../types';
 
@@ -27,6 +29,9 @@ export const HabitListItem: React.FC<HabitListItemProps> = ({
 }) => {
   const habitName = habit?.name || (habit as any)?.title || 'Unnamed Habit';
   const isCR = isCognitiveReserveCategory(habit.category);
+  // The controlled taxonomy's friendly label. Null for habits created before
+  // the capture shipped, which render no chip at all rather than a blank one.
+  const categoryLabel = habitCategoryLabel(habit.habitCategory);
 
   // Build metadata line: Category . Frequency . Trigger
   const metaParts: string[] = [];
@@ -60,6 +65,13 @@ export const HabitListItem: React.FC<HabitListItemProps> = ({
                 <View style={styles.crBadge}>
                   <Text style={styles.crBadgeText}>🌿 CR</Text>
                 </View>
+              )}
+              {/* Shared Tag, default variant: Dew Sage on Soft Charcoal (8.02:1).
+                  Neutral metadata, so it never competes with a teal CTA. No
+                  onPress, so Tag renders a plain View and adds no second touch
+                  target inside the card's own tappable region. */}
+              {categoryLabel && (
+                <Tag label={categoryLabel} variant="default" testID="habit-card-category" />
               )}
             </View>
             {metaLine ? <Text style={styles.meta}>{metaLine}</Text> : null}
@@ -110,6 +122,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    // Insurance for the one case where the CR badge and the category chip can
+    // coexist: a habit given a legacy category by the web app AND a controlled
+    // key on mobile. Without wrapping, two markers plus a long name squeeze the
+    // title. Normally only one of the two renders, so this never engages.
+    flexWrap: 'wrap',
   },
   title: {
     fontSize: 16,

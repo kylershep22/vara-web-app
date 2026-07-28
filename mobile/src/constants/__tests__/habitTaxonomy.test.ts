@@ -12,6 +12,7 @@ import {
   HABIT_CATEGORY_MAPPING,
   getHabitCategoryMapping,
   habitBenefitsFromFocusWindow,
+  habitCategoryLabel,
   habitPillar,
   type HabitCategoryKey,
 } from '../habitTaxonomy';
@@ -138,6 +139,40 @@ describe('habitBenefitsFromFocusWindow', () => {
     expect(habitBenefitsFromFocusWindow(null)).toBe(false);
     expect(habitBenefitsFromFocusWindow(undefined)).toBe(false);
     expect(habitBenefitsFromFocusWindow('Fitness' as any)).toBe(false);
+  });
+});
+
+describe('habitCategoryLabel', () => {
+  it.each([
+    ['movement', 'Movement'],
+    ['sleep_rest', 'Sleep & rest'],
+    ['focus_work', 'Focus & work'],
+    ['mindfulness', 'Mindfulness'],
+    ['learning_growth', 'Learning & growth'],
+    ['health', 'Health'],
+    ['connection', 'Connection'],
+    ['finances', 'Finances'],
+    ['other', 'Other'],
+  ])('renders %s as "%s"', (key, label) => {
+    expect(habitCategoryLabel(key as HabitCategoryKey)).toBe(label);
+  });
+
+  it('returns null for a pre-feature habit, so surfaces render nothing', () => {
+    expect(habitCategoryLabel(null)).toBeNull();
+    expect(habitCategoryLabel(undefined)).toBeNull();
+  });
+
+  it('returns null for an unknown value, never the raw input', () => {
+    expect(habitCategoryLabel('Mindfulness' as any)).toBeNull();
+    expect(habitCategoryLabel('' as any)).toBeNull();
+  });
+
+  it('never leaks the stored key or the pillar as a label', () => {
+    for (const key of HABIT_CATEGORY_KEYS) {
+      const label = habitCategoryLabel(key);
+      expect(label).not.toBe(key);
+      expect(label).not.toBe(HABIT_CATEGORY_MAPPING[key].pillar);
+    }
   });
 });
 

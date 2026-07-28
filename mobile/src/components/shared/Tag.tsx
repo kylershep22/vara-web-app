@@ -33,6 +33,8 @@ interface TagProps {
   onDismiss?: () => void;
   /** Optional custom styles */
   style?: ViewStyle;
+  /** Optional test handle, so callers can assert the shared Tag is what renders. */
+  testID?: string;
 }
 
 // Variant color configurations
@@ -78,13 +80,14 @@ export const Tag: React.FC<TagProps> = ({
   dismissible = false,
   onDismiss,
   style,
+  testID,
 }) => {
   const colors = VARIANT_COLORS[variant];
   const backgroundColor = selected ? colors.selectedBg : colors.bg;
   const textColor = selected ? Colors.white : colors.text;
 
   const content = (
-    <View style={[styles.container, { backgroundColor }, style]}>
+    <View style={[styles.container, { backgroundColor }, style]} testID={testID}>
       {icon && (
         <Icon
           name={icon}

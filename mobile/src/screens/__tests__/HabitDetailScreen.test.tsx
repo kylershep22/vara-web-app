@@ -521,7 +521,7 @@ describe('HabitDetailScreen — editing the category', () => {
   it('offers the nine chips instead of a free-text field', async () => {
     const { getByTestId, getByText, queryByPlaceholderText } = await openEditModal();
 
-    expect(getByText('What kind of habit is this?')).toBeTruthy();
+    expect(getByText(/What kind of habit is this\?/)).toBeTruthy();
     expect(getByTestId('habit-edit-category-movement')).toBeTruthy();
     expect(getByTestId('habit-edit-category-other')).toBeTruthy();
     // The old input, gone: no surface can write uncontrolled values now.
@@ -596,6 +596,41 @@ describe('HabitDetailScreen — editing the category', () => {
 
     expect(mockUpdateHabit).toHaveBeenCalledTimes(1);
     expect(mockUpdateHabit.mock.calls[0][1].habitCategory).toBeNull();
+  });
+
+  it('shows the friendly label as a chip in the existing attribute row', async () => {
+    mockHabit = habitFixture({ habitCategory: 'focus_work' });
+    const { getByTestId, getByText } = await renderScreen();
+
+    // Joins schedule / time of day / start date rather than getting its own
+    // line: all four are attributes of the habit at the same level.
+    const row = getByTestId('habit-detail-chips');
+    expect(row).toBeTruthy();
+    expect(getByText('Focus & work')).toBeTruthy();
+    expect(getByText('Every day')).toBeTruthy();
+    expect(getByText('Evening')).toBeTruthy();
+  });
+
+  it('shows the label, never the stored key or the pillar', async () => {
+    mockHabit = habitFixture({ habitCategory: 'sleep_rest' });
+    const { getByText, queryByText } = await renderScreen();
+
+    expect(getByText('Sleep & rest')).toBeTruthy();
+    expect(queryByText('sleep_rest')).toBeNull();
+    expect(queryByText('energy')).toBeNull();
+  });
+
+  it('contributes no chip for a habit created before the capture', async () => {
+    mockHabit = habitFixture(); // no habitCategory
+    const { getByTestId, queryByText } = await renderScreen();
+
+    // The row still renders its other attributes; the category simply is not
+    // in it, with no blank chip and no "None".
+    expect(getByTestId('habit-detail-chips')).toBeTruthy();
+    expect(queryByText('None')).toBeNull();
+    for (const label of ['Movement', 'Focus & work', 'Other']) {
+      expect(queryByText(label)).toBeNull();
+    }
   });
 
   it('renders a pre-feature habit without crashing', async () => {
