@@ -45,6 +45,16 @@ export const FOCUS_RHYTHM_OPTIONS: FocusRhythmOption[] = [
 
 export const FOCUS_RHYTHM_KEYS = FOCUS_RHYTHM_OPTIONS.map((o) => o.key);
 
+/**
+ * The timed keys in canonical day order, `varies` removed.
+ *
+ * This is the order every surface must read windows in, so a suggestion can
+ * never contradict the reflection the Focus hub already showed the user.
+ */
+export const TIMED_RHYTHM_KEYS_IN_ORDER = FOCUS_RHYTHM_OPTIONS.map((o) => o.key).filter(
+  (key): key is TimedRhythmKey => key !== VARIES_KEY
+);
+
 /** Inclusive hour range on a 24h clock. Wraps midnight when start > end. */
 export interface RhythmHourRange {
   startHour: number;

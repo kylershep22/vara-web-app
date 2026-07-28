@@ -50,6 +50,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
     handleCreateHabit,
     handleWizardComplete,
     handleSimpleHabitSave,
+    focusRhythmWindows,
     handleToggleCompletion,
     completionSheetHabit,
     handleCompletionSheetDone,
@@ -183,6 +184,7 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
           visible={modalVisible}
           onDismiss={() => setModalVisible(false)}
           onSave={handleSimpleHabitSave}
+          focusRhythmWindows={focusRhythmWindows}
         />
       ) : (
         <WizardContainer

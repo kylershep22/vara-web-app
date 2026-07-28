@@ -27,10 +27,15 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { SimpleHabitCreateScreen } from '../SimpleHabitCreateScreen';
 import { HABIT_CATEGORY_KEYS } from '../../../constants/habitTaxonomy';
 
-function renderSheet() {
+function renderSheet(focusRhythmWindows?: string[]) {
   const onSave = jest.fn();
   const utils = render(
-    <SimpleHabitCreateScreen visible onDismiss={jest.fn()} onSave={onSave} />
+    <SimpleHabitCreateScreen
+      visible
+      onDismiss={jest.fn()}
+      onSave={onSave}
+      focusRhythmWindows={focusRhythmWindows}
+    />
   );
   return { ...utils, onSave };
 }
@@ -193,5 +198,210 @@ describe('SimpleHabitCreateScreen — category chips are accessible', () => {
 
     expect(after.backgroundColor).not.toBe(before.backgroundColor);
     expect(after.borderColor).not.toBe(before.borderColor);
+  });
+});
+
+// ── Layer 2: the rhythm-aware timeOfDay nudge ──────────────────────────────
+//
+// The nudge steers the EXISTING "When?" chips. It never pre-selects, because
+// 'anytime' is always lit and a silent slide would make an assignment look like
+// the user's own choice. Silent unless the habit benefits from a focus window
+// AND the stored rhythms point somewhere.
+
+const NUDGE = 'habit-create-rhythm-nudge';
+const ACCEPT = 'habit-create-rhythm-nudge-accept';
+
+/** Name it, then pick a category: the two gates before anything can save. */
+function fillOut(utils: ReturnType<typeof renderSheet>, category: string) {
+  fireEvent.changeText(utils.getByDisplayValue(''), 'A habit');
+  fireEvent.press(utils.getByTestId(`habit-create-category-${category}`));
+}
+
+describe('SimpleHabitCreateScreen — when the rhythm nudge appears', () => {
+  it('offers the slot for a focus-demanding habit with a mappable rhythm', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+
+    expect(utils.getByTestId(NUDGE)).toBeTruthy();
+    expect(
+      utils.getByText('You said focus comes easiest for you in the morning.')
+    ).toBeTruthy();
+    expect(utils.getByText('Aim this for Morning')).toBeTruthy();
+  });
+
+  it('also offers for the other focus-demanding category', () => {
+    const utils = renderSheet(['evening']);
+    fillOut(utils, 'learning_growth');
+    expect(utils.getByText('Aim this for Evening')).toBeTruthy();
+  });
+
+  it('stays silent for a category that does not benefit from a focus window', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'movement');
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+  });
+
+  it('stays silent before any category is picked', () => {
+    const utils = renderSheet(['early_morning']);
+    fireEvent.changeText(utils.getByDisplayValue(''), 'A habit');
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+  });
+
+  it('stays silent when no rhythms are set', () => {
+    const utils = renderSheet([]);
+    fillOut(utils, 'focus_work');
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+  });
+
+  it('stays silent when the prop is absent entirely', () => {
+    const utils = renderSheet();
+    fillOut(utils, 'focus_work');
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+  });
+
+  it('stays silent for varies-only', () => {
+    const utils = renderSheet(['varies']);
+    fillOut(utils, 'focus_work');
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+  });
+
+  it('stays silent for late-night-only', () => {
+    const utils = renderSheet(['late_night']);
+    fillOut(utils, 'focus_work');
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+  });
+
+  it('re-evaluates as the category changes', () => {
+    const utils = renderSheet(['afternoon']);
+    fillOut(utils, 'movement');
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+
+    fireEvent.press(utils.getByTestId('habit-create-category-focus_work'));
+    expect(utils.getByTestId(NUDGE)).toBeTruthy();
+
+    fireEvent.press(utils.getByTestId('habit-create-category-health'));
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+  });
+
+  it('offers the first slot in the day when windows span several', () => {
+    const utils = renderSheet(['evening', 'afternoon']);
+    fillOut(utils, 'focus_work');
+    expect(utils.getByText('Aim this for Afternoon')).toBeTruthy();
+    expect(utils.queryByText('Aim this for Evening')).toBeNull();
+  });
+});
+
+describe('SimpleHabitCreateScreen — offer, not assignment', () => {
+  it('leaves timeOfDay as anytime while the nudge sits unanswered', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+
+    // The nudge is on screen and nothing has moved: Anytime is still what saves.
+    expect(utils.getByTestId(NUDGE)).toBeTruthy();
+    fireEvent.press(saveButton(utils));
+    expect(utils.onSave.mock.calls[0][0].timeOfDay).toBe('anytime');
+  });
+
+  it('sets the slot only once the accept affordance is tapped', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    fireEvent.press(utils.getByTestId(ACCEPT));
+    fireEvent.press(saveButton(utils));
+
+    expect(utils.onSave.mock.calls[0][0].timeOfDay).toBe('morning');
+  });
+
+  it('retires the nudge once accepted, rather than restating it', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    fireEvent.press(utils.getByTestId(ACCEPT));
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+  });
+
+  it('retires the nudge when the user picks a slot themselves', () => {
+    // Answered by choosing something else. Re-offering would be nagging.
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    fireEvent.press(utils.getByText('Evening'));
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+  });
+
+  it('respects an override made after accepting', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    fireEvent.press(utils.getByTestId(ACCEPT));
+    fireEvent.press(utils.getByText('Evening'));
+    fireEvent.press(saveButton(utils));
+
+    expect(utils.onSave.mock.calls[0][0].timeOfDay).toBe('evening');
+  });
+
+  it('respects an override back to anytime', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    fireEvent.press(utils.getByTestId(ACCEPT));
+    fireEvent.press(utils.getByText('Anytime'));
+    fireEvent.press(saveButton(utils));
+
+    expect(utils.onSave.mock.calls[0][0].timeOfDay).toBe('anytime');
+  });
+
+  it('adds no second time control: accepting drives the same chips', () => {
+    const utils = renderSheet(['afternoon']);
+    fillOut(utils, 'focus_work');
+    fireEvent.press(utils.getByTestId(ACCEPT));
+
+    // The existing Afternoon chip is now the selected one; there is no parallel
+    // picker holding its own value.
+    fireEvent.press(saveButton(utils));
+    expect(utils.onSave.mock.calls[0][0].timeOfDay).toBe('afternoon');
+  });
+});
+
+describe('SimpleHabitCreateScreen — the nudge is perceivable and reachable', () => {
+  it('exposes the accept as a real button carrying the whole offer', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    const accept = utils.getByTestId(ACCEPT);
+
+    expect(accept.props.accessibilityRole).toBe('button');
+    // Rationale and offer together, so the reason is neither colour-only nor
+    // dependent on reading a neighbouring line.
+    expect(accept.props.accessibilityLabel).toBe(
+      'You said focus comes easiest for you in the morning. Aim this for Morning'
+    );
+  });
+
+  it('gives the accept a 48px target', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    const flat = Object.assign(
+      {},
+      ...[utils.getByTestId(ACCEPT).props.style].flat(Infinity).filter(Boolean)
+    );
+    expect(flat.minHeight).toBe(48);
+  });
+});
+
+describe('SimpleHabitCreateScreen — unchanged when no nudge applies', () => {
+  it('saves exactly as before for a non-focus habit', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'movement');
+    fireEvent.press(utils.getByText('Morning'));
+    fireEvent.press(saveButton(utils));
+
+    expect(utils.onSave.mock.calls[0][0]).toMatchObject({
+      name: 'A habit',
+      category: 'movement',
+      timeOfDay: 'morning',
+      frequencyType: 'daily',
+    });
+  });
+
+  it('still defaults to anytime with no rhythms at all', () => {
+    const utils = renderSheet();
+    fillOut(utils, 'focus_work');
+    fireEvent.press(saveButton(utils));
+    expect(utils.onSave.mock.calls[0][0].timeOfDay).toBe('anytime');
   });
 });

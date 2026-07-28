@@ -19,10 +19,20 @@ import Button from '../Button';
 import { EnhancedModal } from '../../components/shared/EnhancedModal';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { HabitCategorySelect } from './HabitCategorySelect';
-import type { HabitCategoryKey } from '../../constants/habitTaxonomy';
+import {
+  habitBenefitsFromFocusWindow,
+  type HabitCategoryKey,
+} from '../../constants/habitTaxonomy';
+import {
+  rhythmNudgeAcceptLabel,
+  rhythmNudgeSentence,
+  suggestedTimeOfDayFromRhythms,
+} from '../../constants/rhythmTimeOfDay';
+// The single shared definition. There used to be a local copy of this union
+// here, which could drift from the model's; do not reintroduce one.
+import type { HabitTimeOfDay } from '../../types/models';
 
 type FrequencyType = 'daily' | 'specific_days' | 'flexible';
-type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'anytime';
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -30,6 +40,12 @@ interface SimpleHabitCreateScreenProps {
   visible: boolean;
   onDismiss: () => void;
   onSave: (data: SimpleHabitFormData) => void;
+  /**
+   * The user's stored focus-rhythm windows, read by the caller (which holds the
+   * auth context) and passed in so this sheet stays presentational. Absent or
+   * empty simply means no nudge.
+   */
+  focusRhythmWindows?: string[];
 }
 
 export interface SimpleHabitFormData {
@@ -39,7 +55,7 @@ export interface SimpleHabitFormData {
   category: HabitCategoryKey;
   frequencyType: FrequencyType;
   specificDays: number[];
-  timeOfDay: TimeOfDay;
+  timeOfDay: HabitTimeOfDay;
   intention: string;
   notePromptEnabled: boolean;
 }
@@ -48,17 +64,32 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
   visible,
   onDismiss,
   onSave,
+  focusRhythmWindows,
 }) => {
   const [name, setName] = useState('');
   // No default: null until the user picks one, and save stays blocked until then.
   const [category, setCategory] = useState<HabitCategoryKey | null>(null);
   const [frequencyType, setFrequencyType] = useState<FrequencyType>('daily');
   const [specificDays, setSpecificDays] = useState<number[]>([]);
-  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('anytime');
+  const [timeOfDay, setTimeOfDay] = useState<HabitTimeOfDay>('anytime');
   const [intention, setIntention] = useState('');
   const [showIntention, setShowIntention] = useState(false);
   const [notePromptEnabled, setNotePromptEnabled] = useState(false);
   const [showCaptured, setShowCaptured] = useState(false);
+  // Once the user has touched the time control at all, the nudge retires. It
+  // has been seen and answered, whether they took it or chose something else,
+  // and re-offering after an explicit override would be nagging.
+  const [timeOfDayTouched, setTimeOfDayTouched] = useState(false);
+
+  // The suggestion is a synchronous table lookup on every render, so it tracks
+  // the category the moment it changes. Silent unless the habit is one that
+  // benefits from a focus window AND the stored rhythms point somewhere.
+  const suggestedTimeOfDay = habitBenefitsFromFocusWindow(category)
+    ? suggestedTimeOfDayFromRhythms(focusRhythmWindows ?? [])
+    : null;
+  // `anytime` can never be suggested: it is excluded from SuggestedSlot at the
+  // type level, so null is the only "nothing to offer" case to handle.
+  const showRhythmNudge = !timeOfDayTouched && suggestedTimeOfDay !== null;
 
   const resetForm = () => {
     setName('');
@@ -70,6 +101,7 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
     setShowIntention(false);
     setNotePromptEnabled(false);
     setShowCaptured(false);
+    setTimeOfDayTouched(false);
   };
 
   const handleSave = () => {
@@ -114,7 +146,15 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
     if (type !== 'specific_days') setSpecificDays([]);
   };
 
-  const selectTimeOfDay = (time: TimeOfDay) => {
+  const acceptRhythmSuggestion = () => {
+    if (!suggestedTimeOfDay) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTimeOfDay(suggestedTimeOfDay);
+    setTimeOfDayTouched(true);
+  };
+
+  const selectTimeOfDay = (time: HabitTimeOfDay) => {
+    setTimeOfDayTouched(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTimeOfDay(time);
   };
@@ -194,10 +234,10 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
           <Text style={styles.sectionLabel}>When?</Text>
           <View style={styles.chipRow}>
             {([
-              { value: 'morning' as TimeOfDay, label: 'Morning' },
-              { value: 'afternoon' as TimeOfDay, label: 'Afternoon' },
-              { value: 'evening' as TimeOfDay, label: 'Evening' },
-              { value: 'anytime' as TimeOfDay, label: 'Anytime' },
+              { value: 'morning' as HabitTimeOfDay, label: 'Morning' },
+              { value: 'afternoon' as HabitTimeOfDay, label: 'Afternoon' },
+              { value: 'evening' as HabitTimeOfDay, label: 'Evening' },
+              { value: 'anytime' as HabitTimeOfDay, label: 'Anytime' },
             ]).map((opt) => (
               <TouchableOpacity
                 key={opt.value}
@@ -211,6 +251,32 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Rhythm nudge. Sits under the control it steers, because it drives
+              the SAME chips above rather than offering a second way to set a
+              time. Offer-to-tap, never pre-select: Anytime stays lit until the
+              user acts, so an accepted suggestion is visibly their choice. */}
+          {showRhythmNudge && suggestedTimeOfDay && (
+            <View style={styles.nudge} testID="habit-create-rhythm-nudge">
+              <Text style={styles.nudgeText}>
+                {rhythmNudgeSentence(suggestedTimeOfDay)}
+              </Text>
+              <TouchableOpacity
+                style={styles.nudgeAccept}
+                onPress={acceptRhythmSuggestion}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`${rhythmNudgeSentence(suggestedTimeOfDay)} ${rhythmNudgeAcceptLabel(
+                  suggestedTimeOfDay
+                )}`}
+                testID="habit-create-rhythm-nudge-accept"
+              >
+                <Text style={styles.nudgeAcceptText}>
+                  {rhythmNudgeAcceptLabel(suggestedTimeOfDay)}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* One-line Intention */}
           {!showIntention ? (
@@ -337,6 +403,33 @@ const styles = StyleSheet.create({
   },
   dayDotTextSelected: {
     color: Colors.white,
+  },
+  // A quiet block on the sheet's own surface, not a card: it is a remark about
+  // the control above it, not a second thing to fill in.
+  nudge: {
+    marginBottom: Spacing.base,
+  },
+  nudgeText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.softCharcoal,
+    marginBottom: Spacing.xs,
+  },
+  nudgeAccept: {
+    // The 48px target. Self-aligned so it is a button-sized affordance rather
+    // than a full-width bar competing with Save.
+    minHeight: 48,
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.base,
+    borderRadius: Layout.borderRadius.pill,
+    backgroundColor: Colors.dewSage,
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+  },
+  nudgeAcceptText: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
   },
   addIntentionLink: {
     flexDirection: 'row',
