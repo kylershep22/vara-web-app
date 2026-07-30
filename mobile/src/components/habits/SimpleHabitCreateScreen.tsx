@@ -255,7 +255,12 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
           {/* Rhythm nudge. Sits under the control it steers, because it drives
               the SAME chips above rather than offering a second way to set a
               time. Offer-to-tap, never pre-select: Anytime stays lit until the
-              user acts, so an accepted suggestion is visibly their choice. */}
+              user acts, so an accepted suggestion is visibly their choice.
+
+              Contained on its own sage ground so it is legible as an offer from
+              the app. Unstyled, it stacked into the form and read as two more
+              rows, with an accept button that matched a selected time chip
+              exactly. */}
           {showRhythmNudge && suggestedTimeOfDay && (
             <View style={styles.nudge} testID="habit-create-rhythm-nudge">
               <Text style={styles.nudgeText}>
@@ -406,14 +411,33 @@ const styles = StyleSheet.create({
   },
   // A quiet block on the sheet's own surface, not a card: it is a remark about
   // the control above it, not a second thing to fill in.
+  // A soft Dew Sage ground, so the offer reads as the app saying something
+  // rather than as two more form rows. Containment and ground do the work: no
+  // border, no icon, no accent stripe. This must not read as a warning.
+  //
+  // Radius lg (12), not pill: a pill this size would read as an oversized chip,
+  // which is the exact confusion being fixed.
   nudge: {
+    backgroundColor: Colors.dewSage,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Spacing.base,
     marginBottom: Spacing.base,
   },
   nudgeText: {
     fontSize: Typography.fontSize.sm,
+    // 8.02:1 on Dew Sage. NOT mutedSageGray, which is 3.16:1 on this ground.
     color: Colors.softCharcoal,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
+  // White fill, teal label, teal edge. Deliberately unlike BOTH neighbours it
+  // was being confused with: the time chips above are sage-filled pills (a
+  // selected one was previously pixel-identical to this), and the Save button
+  // below is a teal fill. White is a treatment neither uses, and it carries
+  // less weight than Save, which is correct for an optional offer.
+  //
+  // White on Dew Sage is only 1.33:1 as a surface pair, so the 1.5px teal edge
+  // (5.6:1 against the ground) is what defines the button's shape. Do not drop
+  // it to a hairline or the button floats.
   nudgeAccept: {
     // The 48px target. Self-aligned so it is a button-sized affordance rather
     // than a full-width bar competing with Save.
@@ -421,14 +445,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.base,
-    borderRadius: Layout.borderRadius.pill,
-    backgroundColor: Colors.dewSage,
-    borderWidth: 1,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
     borderColor: Colors.evergreenTeal,
   },
   nudgeAcceptText: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
+    // 10.0:1 on white.
     color: Colors.evergreenTeal,
   },
   addIntentionLink: {

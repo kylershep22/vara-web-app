@@ -383,6 +383,100 @@ describe('SimpleHabitCreateScreen — the nudge is perceivable and reachable', (
   });
 });
 
+describe('SimpleHabitCreateScreen — the nudge is visually contained', () => {
+  const flatten = (node: any) =>
+    Object.assign({}, ...[node.props.style].flat(Infinity).filter(Boolean));
+
+  it('sits on a Dew Sage ground so it reads as an offer, not a form row', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    const flat = flatten(utils.getByTestId(NUDGE));
+
+    expect(flat.backgroundColor).toBe('#D5E3D1');
+    expect(flat.padding).toBeGreaterThan(0);
+    expect(flat.borderRadius).toBeGreaterThan(0);
+  });
+
+  it('is a calm container, not a bordered alert', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    const flat = flatten(utils.getByTestId(NUDGE));
+
+    expect(flat.borderWidth).toBeUndefined();
+    // Never the error/warning palette.
+    expect(flat.backgroundColor).not.toBe('#D97A6E');
+  });
+
+  it('is not a giant chip: its radius stays well under pill', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    expect(flatten(utils.getByTestId(NUDGE)).borderRadius).toBeLessThan(100);
+  });
+
+  it('takes the ground away with it when the nudge retires', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    fireEvent.press(utils.getByTestId(ACCEPT));
+    expect(utils.queryByTestId(NUDGE)).toBeNull();
+  });
+
+  it('reads the reflection line at AA on the sage ground', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    const line = utils.getByText('You said focus comes easiest for you in the morning.');
+
+    // softCharcoal, 8.02:1 on Dew Sage. mutedSageGray would be 3.16:1.
+    expect(flatten(line).color).toBe('#3E3E3E');
+    expect(flatten(line).color).not.toBe('#6F7F77');
+  });
+
+  it('gives the accept a white fill with a teal edge, unlike either neighbour', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    const flat = flatten(utils.getByTestId(ACCEPT));
+
+    // Not the sage fill of a selected time chip (which it used to match
+    // exactly), and not the teal fill of the primary Save button.
+    expect(flat.backgroundColor).toBe('#FFFFFF');
+    expect(flat.borderColor).toBe('#1B5E57');
+    // The edge is what defines the shape: white on sage is only 1.33:1.
+    expect(flat.borderWidth).toBeGreaterThanOrEqual(1.5);
+  });
+
+  it('labels the accept at AA on its white fill', () => {
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    const label = utils.getByText('Aim this for Morning');
+    expect(flatten(label).color).toBe('#1B5E57'); // 10.0:1 on white
+  });
+
+  it('stays distinguishable from a selected time chip', () => {
+    /** Climb to the nearest ancestor that actually carries a background. */
+    const groundOf = (node: any) => {
+      let current = node?.parent;
+      while (current) {
+        const flat = flatten(current);
+        if (flat.backgroundColor) return flat;
+        current = current.parent;
+      }
+      return {} as any;
+    };
+
+    const utils = renderSheet(['early_morning']);
+    fillOut(utils, 'focus_work');
+    const accept = flatten(utils.getByTestId(ACCEPT));
+    // Select a time chip so it renders in its selected state, then compare.
+    fireEvent.press(utils.getByText('Afternoon'));
+    const selectedChip = groundOf(utils.getByText('Afternoon'));
+
+    // Guard against a vacuous pass: confirm we really grabbed the selected
+    // chip (sage fill) before comparing against it.
+    expect(selectedChip.backgroundColor).toBe('#D5E3D1');
+    expect(accept.backgroundColor).toBe('#FFFFFF');
+    expect(accept.backgroundColor).not.toBe(selectedChip.backgroundColor);
+  });
+});
+
 describe('SimpleHabitCreateScreen — unchanged when no nudge applies', () => {
   it('saves exactly as before for a non-focus habit', () => {
     const utils = renderSheet(['early_morning']);
