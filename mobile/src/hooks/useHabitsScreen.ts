@@ -24,6 +24,7 @@ import { isCognitiveReserveCategory } from '../constants/habitCategories';
 import { HabitFormData } from '../components/habits/wizard/types';
 import { DASHBOARD_V2 } from '../constants/dashboardConfig';
 import { SimpleHabitFormData } from '../components/habits/SimpleHabitCreateScreen';
+import { getFocusRhythms } from '../services/firebase/focusRhythms.service';
 import { logger } from '../utils/logger';
 import { scheduleHabitReminder, cancelHabitReminder } from '../services/reminderScheduler.service';
 import { useHabitNotePrompt, confirmCompletionNoteLoss } from './useHabitNotePrompt';
@@ -46,8 +47,28 @@ export function useHabitsScreen() {
   const [togglingHabits, setTogglingHabits] = useState<Set<string>>(new Set());
   const [pillarInfoVisible, setPillarInfoVisible] = useState(false);
   const [completionSheetHabit, setCompletionSheetHabit] = useState<Habit | null>(null);
+  // The user's stored focus rhythms, read here rather than in the create sheet
+  // so that sheet stays presentational (no auth, no Firestore). Fetched when the
+  // sheet opens, which is the only moment it matters and keeps the read off the
+  // list's render path.
+  const [focusRhythmWindows, setFocusRhythmWindows] = useState<string[]>([]);
   const { noteTarget, promptForNote, saveNote, dismissNote } = useHabitNotePrompt();
   const today = new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    if (!modalVisible || !user) return;
+    let active = true;
+    getFocusRhythms(user.uid)
+      .then((windows) => {
+        if (active) setFocusRhythmWindows(windows);
+      })
+      // Best effort: a failed read just means no suggestion is offered, which is
+      // the same as having set no rhythms. Never blocks habit creation.
+      .catch((error) => logger.error('[useHabitsScreen] rhythms load failed:', error));
+    return () => {
+      active = false;
+    };
+  }, [modalVisible, user]);
 
   // Check which habits are completed today
   useEffect(() => {
@@ -378,6 +399,7 @@ export function useHabitsScreen() {
     handleEditHabit,
     handleWizardComplete,
     handleSimpleHabitSave,
+    focusRhythmWindows,
     handleDeleteHabit,
     handleToggleCompletion,
     // Completion sheet

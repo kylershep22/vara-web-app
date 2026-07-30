@@ -66,14 +66,21 @@ export const HabitListItem: React.FC<HabitListItemProps> = ({
                   <Text style={styles.crBadgeText}>🌿 CR</Text>
                 </View>
               )}
-              {/* Shared Tag, default variant: Dew Sage on Soft Charcoal (8.02:1).
-                  Neutral metadata, so it never competes with a teal CTA. No
-                  onPress, so Tag renders a plain View and adds no second touch
-                  target inside the card's own tappable region. */}
-              {categoryLabel && (
-                <Tag label={categoryLabel} variant="default" testID="habit-card-category" />
-              )}
             </View>
+            {/* Its own row, deliberately NOT inside titleRow. Sharing that row
+                meant the chip sat inline after a short habit name and wrapped
+                below a long one, so its position changed card to card. On its
+                own line it lands in the same place every time.
+
+                Shared Tag, default variant: Dew Sage on Soft Charcoal (8.02:1).
+                Neutral metadata, so it never competes with a teal CTA. No
+                onPress, so Tag renders a plain View and adds no second touch
+                target inside the card's own tappable region. */}
+            {categoryLabel && (
+              <View style={styles.categoryRow}>
+                <Tag label={categoryLabel} variant="default" testID="habit-card-category" />
+              </View>
+            )}
             {metaLine ? <Text style={styles.meta}>{metaLine}</Text> : null}
             {habit.valueAlignment ? (
               <View style={styles.valueTag}>
@@ -118,15 +125,20 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 14,
   },
+  // Title + the legacy CR badge only. No flexWrap: it was added when the
+  // category chip lived here, and wrapping is precisely what made the chip's
+  // position inconsistent. This is the row's original composition.
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    // Insurance for the one case where the CR badge and the category chip can
-    // coexist: a habit given a legacy category by the web app AND a controlled
-    // key on mobile. Without wrapping, two markers plus a long name squeeze the
-    // title. Normally only one of the two renders, so this never engages.
-    flexWrap: 'wrap',
+  },
+  // Hugs the chip rather than stretching it: a row is as wide as its content,
+  // so the Tag keeps its label-sized shape on its own line.
+  categoryRow: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    marginTop: 4,
   },
   title: {
     fontSize: 16,

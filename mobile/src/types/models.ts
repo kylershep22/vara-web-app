@@ -130,6 +130,27 @@ export interface HabitIntention {
 // HABIT MODELS
 // ==========================================
 
+/**
+ * The time-of-day slot a habit is aimed at.
+ *
+ * THE single definition for habits. It was previously written out twice (inline
+ * on Habit below, and again as a local union in SimpleHabitCreateScreen), so the
+ * create sheet and the model could drift apart silently. Anything that offers,
+ * stores or maps to a habit's slot imports this; do not write the union out
+ * again.
+ *
+ * NOT to be confused with `TimeOfDay` further down this file, which is the
+ * RECOMMENDER's seven-bucket vocabulary (early_morning / midday /
+ * late_afternoon / ...). Different granularity, different consumers, no shared
+ * values beyond the word "evening". Hence the distinct name rather than one
+ * union serving both.
+ *
+ * `anytime` means the user declined to aim it. The create path deliberately
+ * does not persist that value, so an unaimed habit carries no timeOfDay field
+ * at all rather than a stored "anytime".
+ */
+export type HabitTimeOfDay = 'morning' | 'afternoon' | 'evening' | 'anytime';
+
 export interface Habit {
   id: string;
   userId: string;
@@ -138,7 +159,7 @@ export interface Habit {
   frequency: number; // times per week
   frequencyType?: 'daily' | 'specific_days' | 'flexible';
   specificDays?: number[];  // 0=Sun, 1=Mon, ..., 6=Sat
-  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'anytime';
+  timeOfDay?: HabitTimeOfDay;
   streak: number;
   longestStreak: number;
   active: boolean;

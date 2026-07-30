@@ -58,6 +58,7 @@ export type {
   CompletionSource,
   IntentionCategory,
   HabitIntention,
+  HabitTimeOfDay,
   BodyFuelOption,
   GroupCategory,
   ChallengeStatus,

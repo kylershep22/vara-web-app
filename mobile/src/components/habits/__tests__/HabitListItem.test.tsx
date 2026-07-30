@@ -111,6 +111,56 @@ describe('HabitListItem — the chip is the shared Tag, used inertly', () => {
   });
 });
 
+describe('HabitListItem — the chip sits on its own line', () => {
+  // It used to live in titleRow alongside the name and the CR badge. Under
+  // flexWrap it stayed inline after a short name and wrapped below a long one,
+  // so its position changed from card to card. Its own row fixes that.
+  function findChipParent(node: any, parent: any = null): any {
+    if (!node || typeof node !== 'object') return null;
+    if (node.props?.testID === 'habit-card-category') return parent;
+    for (const child of node.children ?? []) {
+      const found = findChipParent(child, node);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  it('does not render inside the title row', () => {
+    const { getByText, toJSON } = renderCard({ habitCategory: 'movement' });
+    const parent = findChipParent(toJSON());
+
+    expect(parent).toBeTruthy();
+    // The chip's parent holds the chip alone, not the habit name beside it.
+    const parentText = JSON.stringify(parent).match(/Morning walk/);
+    expect(parentText).toBeNull();
+    expect(getByText('Morning walk')).toBeTruthy();
+  });
+
+  it('keeps the same position whether the name is short or long', () => {
+    const shortName = renderCard({ name: 'Walk', habitCategory: 'movement' });
+    const shortParent = findChipParent(shortName.toJSON());
+
+    const longName = renderCard({
+      name: 'Write the quarterly planning document every single weekday morning',
+      habitCategory: 'movement',
+    });
+    const longParent = findChipParent(longName.toJSON());
+
+    // Same wrapper style in both cases: the layout no longer depends on how
+    // much room the title left over.
+    expect(shortParent.props.style).toEqual(longParent.props.style);
+  });
+
+  it('hugs its label rather than stretching across the card', () => {
+    const { toJSON } = renderCard({ habitCategory: 'learning_growth' });
+    const flat = Object.assign(
+      {},
+      ...[findChipParent(toJSON()).props.style].flat(Infinity).filter(Boolean)
+    );
+    expect(flat.alignSelf).toBe('flex-start');
+  });
+});
+
 describe('HabitListItem — the rest of the card is undisturbed', () => {
   it('still shows the habit name alongside the chip', () => {
     const { getByText } = renderCard({ habitCategory: 'movement' });
