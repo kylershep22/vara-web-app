@@ -168,6 +168,86 @@ async function migratePreferencesToV2(
 }
 
 // ==========================================
+// STRANDED-TIME SALVAGE (V2 doc + legacy debris)
+// ==========================================
+
+/**
+ * A V2 document can carry a stray `dailyReminders` object written by the old
+ * NotificationOptInScreen, which wrote the legacy V1 shape onto V2 documents.
+ * The scheduler reads `dailyRhythm.reminderTime`, so for anyone who never set
+ * an onboarding anchor that field is still null and the time they picked was
+ * never scheduled — with no way back, because NotificationSettingsScreen only
+ * renders the time row when `dailyRhythm.reminderTime` is already truthy.
+ *
+ * This is deliberately NOT handled by widening isV1Schema. Routing these
+ * documents through migratePreferencesToV2 would be destructive: that function
+ * derives `dailyRhythm.enabled` from `dailyReminders.enabled` (absent on these
+ * writes, so it would resolve to FALSE and disable the reminder), and resets
+ * insightsLearning / socialConnection / milestonesReflection from V1 fields
+ * that a V2 document does not have. It is correct for V1 documents only.
+ *
+ * So: a narrow, idempotent copy-and-clean, applied on read.
+ */
+function hasSalvageableReminderTime(data: Record<string, any>): boolean {
+  const stranded = data.dailyReminders?.reminderTime;
+  if (!stranded || typeof stranded !== 'object') return false;
+
+  const { hour, minute } = stranded as Partial<ReminderTime>;
+  const valid =
+    typeof hour === 'number' &&
+    Number.isInteger(hour) &&
+    hour >= 0 &&
+    hour <= 23 &&
+    typeof minute === 'number' &&
+    Number.isInteger(minute) &&
+    minute >= 0 &&
+    minute <= 59;
+  if (!valid) return false;
+
+  // Only when the canonical field has nothing to lose. A document whose
+  // dailyRhythm.reminderTime is already set is left exactly as it is.
+  return data.dailyRhythm?.reminderTime == null;
+}
+
+/**
+ * Copy a stranded reminder time onto the canonical field and drop the legacy
+ * object. Preserves an explicit `dailyRhythm.enabled === false` rather than
+ * re-enabling a reminder the user turned off.
+ */
+async function salvageStrandedReminderTime(
+  userId: string,
+  data: Record<string, any>,
+): Promise<NotificationPreferences> {
+  const reminderTime: ReminderTime = {
+    hour: data.dailyReminders.reminderTime.hour,
+    minute: data.dailyReminders.reminderTime.minute,
+  };
+  const dailyRhythm = {
+    enabled: data.dailyRhythm?.enabled ?? true,
+    reminderTime,
+  };
+
+  const { dailyReminders: _dropped, ...rest } = data;
+  const salvaged = { id: userId, ...rest, dailyRhythm } as NotificationPreferences;
+
+  if (!db) return salvaged;
+
+  try {
+    await updateDoc(doc(db, 'notificationPreferences', userId), {
+      dailyRhythm,
+      dailyReminders: deleteField(),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    // The repair is idempotent and retried on the next read. Returning the
+    // salvaged value anyway means this session already behaves correctly.
+    console.error('Error salvaging stranded reminder time:', error);
+  }
+
+  return salvaged;
+}
+
+// ==========================================
 // CRUD OPERATIONS
 // ==========================================
 
@@ -196,6 +276,12 @@ export async function getNotificationPreferences(
       // Detect and migrate old schema
       if (isV1Schema(data)) {
         return await migratePreferencesToV2(userId, data);
+      }
+
+      // V2 document carrying legacy debris: recover a stranded reminder time
+      // before anyone reads dailyRhythm.reminderTime and finds it null.
+      if (hasSalvageableReminderTime(data)) {
+        return await salvageStrandedReminderTime(userId, data);
       }
 
       return { id: docSnap.id, ...data } as NotificationPreferences;
