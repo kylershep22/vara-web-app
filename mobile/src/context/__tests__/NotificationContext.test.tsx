@@ -47,6 +47,9 @@ jest.mock('../../hooks/useNotificationPreferences', () => ({
 jest.mock('../../services/notifications.service', () => ({
   setForegroundNotificationHandler: jest.fn(),
   cancelAllScheduledExceptFocusComplete: (...a: any[]) => mockCancelExceptFocus(...(a as [])),
+  // Read purely by the foreground instrumentation logging, which asserts
+  // nothing — it just must not throw.
+  getAllScheduledNotifications: jest.fn().mockResolvedValue([]),
   registerAndSaveFCMToken: jest.fn().mockResolvedValue(null),
   isServerPushEnabled: jest.fn().mockResolvedValue(false),
   addNotificationResponseListener: jest.fn(() => ({ remove: jest.fn() })),

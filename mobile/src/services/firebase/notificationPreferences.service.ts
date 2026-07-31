@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { NotificationPreferences, ReminderTime } from '../../types';
+import { logger } from '../../utils/logger';
 
 // ==========================================
 // V2 DEFAULT PREFERENCES
@@ -374,12 +375,24 @@ export async function updateNotificationPreferences(
 export async function ensureRemindersAllowed(userId: string): Promise<void> {
   try {
     const preferences = await getNotificationPreferences(userId);
-    if (preferences.allNotificationsEnabled) return;
+    if (preferences.allNotificationsEnabled) {
+      // INSTRUMENTATION (temporary, for the Slice B device walk).
+      logger.warn(`[notifPrefs] ensureRemindersAllowed NOOP (already on) userId=${userId}`);
+      return;
+    }
 
     await updateNotificationPreferences(userId, { allNotificationsEnabled: true });
+    logger.warn(`[notifPrefs] ensureRemindersAllowed FLIPPED master ON userId=${userId}`);
   } catch (error) {
-    // Non-fatal: the habit itself is already saved, and the next sync retries.
-    console.error('Error enabling notifications for habit reminder:', error);
+    // Non-fatal for the habit itself, which is already saved — but NOT harmless:
+    // if this write did not land, allNotificationsEnabled stays false, and the
+    // next foreground cancels every pending reminder and then bails out of
+    // syncAllReminders without rescheduling any of them. A silent failure here
+    // is the leading candidate for "reminders never arrive", so it is loud.
+    logger.error(
+      `[notifPrefs] ensureRemindersAllowed FAILED userId=${userId} — master flag may still be OFF; the next foreground will wipe reminders and reschedule none`,
+      error
+    );
   }
 }
 

@@ -89,6 +89,12 @@ async function hasNotificationPermission(): Promise<boolean> {
  */
 export async function scheduleHabitReminder(habit: Habit): Promise<void> {
   if (!habit.reminderEnabled || !habit.reminderTime) {
+    // INSTRUMENTATION (temporary, for the Slice B device walk). warn, not log:
+    // logger.log is gated behind __DEV__ and would be invisible in the preview
+    // build this is being walked on.
+    logger.warn(
+      `[reminderScheduler] skip: fields missing habitId=${habit.id} reminderEnabled=${habit.reminderEnabled} hasTime=${!!habit.reminderTime}`
+    );
     return;
   }
 
@@ -98,6 +104,9 @@ export async function scheduleHabitReminder(habit: Habit): Promise<void> {
     // The habit declares no usable cadence, so there is nothing to repeat on.
     // The UI hides the control in exactly these cases; this guard is what makes
     // that true for habits whose schedule changed after the reminder was set.
+    logger.warn(
+      `[reminderScheduler] skip: no plan (no frequencyType?) habitId=${habit.id} frequencyType=${String(habit.frequencyType)} specificDays=${JSON.stringify(habit.specificDays ?? null)}`
+    );
     return;
   }
 
@@ -142,8 +151,9 @@ export async function scheduleHabitReminder(habit: Habit): Promise<void> {
         });
       }
     }
-    logger.log(
-      `[reminderScheduler] Scheduled ${plan.kind} habit reminder for ${habit.id} at ${hour}:${String(minute).padStart(2, '0')}`
+    // INSTRUMENTATION: warn, not log, so it survives __DEV__ === false.
+    logger.warn(
+      `[reminderScheduler] SCHEDULED ${plan.kind} habit reminder habitId=${habit.id} at ${hour}:${String(minute).padStart(2, '0')} triggers=${plan.kind === 'daily' ? 1 : plan.weekdays.length}${plan.kind === 'weekly' ? ` weekdays=${JSON.stringify(plan.weekdays)}` : ''}`
     );
   } catch (error) {
     logger.error(`[reminderScheduler] Failed to schedule habit reminder:`, error);
@@ -317,19 +327,28 @@ function applyReminderCap(habits: Habit[]): {
  * Called on app foreground to handle habits/routines changed while app was killed.
  */
 export async function syncAllReminders(userId: string): Promise<void> {
+  // INSTRUMENTATION (temporary, for the Slice B device walk). Every branch below
+  // warns rather than logs: logger.log is gated behind __DEV__, so in a preview
+  // build these bails were effectively silent — which is exactly why the two
+  // candidate root causes were indistinguishable in the last walk.
+  logger.warn(`[reminderScheduler] SYNC ENTER userId=${userId}`);
+
   if (!(await hasNotificationPermission())) {
-    logger.log('[reminderScheduler] No notification permission, skipping sync');
+    logger.warn('[reminderScheduler] SYNC BAIL: no notification permission — nothing rescheduled');
     return;
   }
 
   try {
     const prefs = await getNotificationPreferences(userId);
     if (!prefs?.allNotificationsEnabled) {
-      logger.log('[reminderScheduler] Notifications disabled, skipping sync');
+      logger.warn(
+        `[reminderScheduler] SYNC BAIL: allNotificationsEnabled=${String(prefs?.allNotificationsEnabled)} — nothing rescheduled`
+      );
       return;
     }
-  } catch {
-    logger.warn('[reminderScheduler] Could not read preferences, skipping sync');
+  } catch (error) {
+    logger.warn('[reminderScheduler] SYNC BAIL: could not read preferences — nothing rescheduled');
+    logger.error('[reminderScheduler] preference read error was:', error);
     return;
   }
 
@@ -345,7 +364,7 @@ export async function syncAllReminders(userId: string): Promise<void> {
     for (const n of reminderNotifications) {
       await Notifications.cancelScheduledNotificationAsync(n.identifier);
     }
-    logger.log(`[reminderScheduler] Cancelled ${reminderNotifications.length} stale reminders`);
+    logger.warn(`[reminderScheduler] SYNC cancelled ${reminderNotifications.length} stale reminder(s)`);
   } catch (error) {
     logger.error('[reminderScheduler] Error cancelling stale reminders:', error);
   }
@@ -379,10 +398,17 @@ export async function syncAllReminders(userId: string): Promise<void> {
         );
       }
 
+      // INSTRUMENTATION: the fetch/filter funnel. A habit that is fetched but
+      // filtered out never reaches scheduleHabitReminder, so its skip-reason
+      // logs above would never fire — this is the only place that gap shows.
+      logger.warn(
+        `[reminderScheduler] SYNC habits fetched=${habits.length} withReminders=${withReminders.length} kept=${kept.length}`
+      );
+
       for (const habit of kept) {
         await scheduleHabitReminder(habit);
       }
-      logger.log(`[reminderScheduler] Synced ${kept.length} habit reminders`);
+      logger.warn(`[reminderScheduler] SYNC DONE scheduled ${kept.length} habit reminder(s)`);
     } catch (error) {
       logger.error('[reminderScheduler] Error syncing habit reminders:', error);
     }
