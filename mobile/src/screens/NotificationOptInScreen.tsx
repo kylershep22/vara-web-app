@@ -15,10 +15,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { Button } from '../components';
 import { Colors, Spacing, Typography, Layout } from '../constants';
-import { registerForPushNotifications, savePushTokenToUser } from '../services/notifications.service';
+import {
+  registerForPushNotifications,
+  savePushTokenToUser,
+  getPermissionsStatus,
+} from '../services/notifications.service';
 import { useAuth } from '../context/AuthContext';
 import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import { updateNotificationPreferences } from '../services/firebase/notificationPreferences.service';
+import { scheduleDailyRhythm } from '../services/notificationScheduler.service';
 
 interface NotificationOptInScreenProps {
   navigation: any;
@@ -54,21 +59,41 @@ const NotificationOptInScreen: React.FC<NotificationOptInScreenProps> = ({ navig
       // Request system permission
       const token = await registerForPushNotifications();
 
-      // Save time preference regardless of permission result
+      // Save time preference regardless of permission result.
       const hour = selectedTime.getHours();
       const minute = selectedTime.getMinutes();
 
+      // Write the CANONICAL V2 shape, matching OnboardingAnchorScreen. This
+      // previously wrote a legacy `dailyReminders` object, which nothing reads:
+      // scheduleDailyRhythm reads `dailyRhythm.reminderTime`, so every time
+      // chosen on this screen was silently discarded.
+      //
+      // Both keys are written deliberately. updateDoc replaces `dailyRhythm`
+      // wholesale rather than deep-merging, so sending `reminderTime` alone
+      // would drop `enabled` and disable the reminder it just set.
       await updateNotificationPreferences(user.uid, {
         allNotificationsEnabled: true,
-        dailyReminders: {
-          reminderTime: { hour, minute },
-          fourThreeTwoOne: true,
-          habits: true,
-        },
+        dailyRhythm: { enabled: true, reminderTime: { hour, minute } },
       });
 
       if (token) {
         await savePushTokenToUser(user.uid, token);
+      }
+
+      // Schedule now rather than waiting for a context effect to notice. This
+      // screen writes through the service, not the useNotificationPreferences
+      // hook, so NotificationContext's `preferences` stays stale and its
+      // "preferences changed" effect never re-runs — without this call the
+      // corrected write would not take effect until the app restarted.
+      //
+      // Gated on the permission STATUS, not on `token`, matching
+      // OnboardingAnchorScreen. A null token is not the same as a denial: it is
+      // also returned on a simulator and in Expo Go, where permission may well
+      // be granted. Denied simply means nothing is scheduled — the time is
+      // still saved and this is not an error.
+      const perm = await getPermissionsStatus();
+      if (perm.status === 'granted') {
+        await scheduleDailyRhythm(user.uid);
       }
 
       await markOptedIn();

@@ -79,6 +79,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const appStateRef = useRef(AppState.currentState);
   const [serverPush, setServerPush] = useState(false);
 
+  // Reminder reconciliation is cancel-then-reschedule, and two effects run it:
+  // the login effect below and the foreground handler. On a cold start they
+  // overlap (the app becomes active while auth is still resolving), and an
+  // interleaving lets one run's cancel wipe what the other just scheduled.
+  // Serializing them makes the outcome independent of that timing.
+  const reminderWorkRef = useRef<Promise<void>>(Promise.resolve());
+  const runExclusive = useCallback((work: () => Promise<void>): Promise<void> => {
+    // Chained on both settle paths, so one failure cannot stall the queue.
+    const next = reminderWorkRef.current.then(work, work);
+    reminderWorkRef.current = next.catch(() => {});
+    return next;
+  }, []);
+
   // Register foreground notification handler → route to toast
   useEffect(() => {
     setForegroundNotificationHandler(async (title: string, body: string, data?: Record<string, unknown>) => {
@@ -118,28 +131,43 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
       if (appStateRef.current !== 'active' && nextState === 'active' && user?.uid) {
-        await cancelAllScheduledExceptFocusComplete();
-        // Only reschedule locally if server push is off
-        if (preferences?.allNotificationsEnabled && !serverPush) {
-          await scheduleDailyReminder(user.uid);
-        }
+        const uid = user.uid;
+        await runExclusive(async () => {
+          await cancelAllScheduledExceptFocusComplete();
+          // Only reschedule locally if server push is off
+          if (preferences?.allNotificationsEnabled && !serverPush) {
+            await scheduleDailyReminder(uid);
+          }
+          // Habit and routine reminders are re-synced regardless of the
+          // server-push toggle, matching the login effect below: server push
+          // covers daily rhythm and insights, never reminders. Without this,
+          // the cancel above wipes every pending routine reminder — and, once
+          // they exist, every habit reminder — until the next login, so a
+          // glance at the phone silently emptied the schedule for the day.
+          // Ordered after the cancel, or it would clear what it just wrote.
+          await syncAllReminders(uid);
+        });
       }
       appStateRef.current = nextState;
     });
     return () => subscription.remove();
-  }, [user?.uid, preferences?.allNotificationsEnabled, serverPush]);
+  }, [user?.uid, preferences?.allNotificationsEnabled, serverPush, runExclusive]);
 
   // Initialize notifications when user logs in (only if master toggle is on)
   useEffect(() => {
     if (user?.uid && user?.emailVerified && preferences?.allNotificationsEnabled) {
-      if (!serverPush) {
-        // Local scheduling as fallback when server push is off
-        initializeUserNotifications(user.uid);
-      }
-      // Always sync reminders (independent of server push toggle)
-      syncAllReminders(user.uid);
+      const uid = user.uid;
+      // Serialized against the foreground handler above; see runExclusive.
+      runExclusive(async () => {
+        if (!serverPush) {
+          // Local scheduling as fallback when server push is off
+          await initializeUserNotifications(uid);
+        }
+        // Always sync reminders (independent of server push toggle)
+        await syncAllReminders(uid);
+      });
     }
-  }, [user?.uid, user?.emailVerified, preferences?.allNotificationsEnabled, serverPush]);
+  }, [user?.uid, user?.emailVerified, preferences?.allNotificationsEnabled, serverPush, runExclusive]);
 
   // Update notifications when preferences change
   useEffect(() => {

@@ -625,9 +625,24 @@ export interface NotificationCategory {
   inApp?: boolean;
 }
 
+/**
+ * The shape of a single legacy (V1) notification category, as it exists on an
+ * un-migrated document. This type describes data the V1 -> V2 migration READS
+ * off raw document data; nothing may write it.
+ *
+ * It used to carry an `[key: string]: unknown` index signature, and it used to
+ * be reachable through four optional fields on NotificationPreferences below.
+ * Together those let NotificationOptInScreen write a whole V1 `dailyReminders`
+ * object onto a V2 document and still type-check. The scheduler reads
+ * `dailyRhythm.reminderTime`, so the time the user picked was written to a
+ * field nothing reads and silently discarded. Do not reintroduce either the
+ * index signature or the fields on NotificationPreferences.
+ */
 export interface LegacyNotificationPreferences {
   enabled?: boolean;
-  [key: string]: unknown;
+  reminderTime?: ReminderTime | null;
+  connectionRequests?: boolean;
+  groupPosts?: boolean;
 }
 
 export interface NotificationPreferences {
@@ -674,11 +689,13 @@ export interface NotificationPreferences {
     sound: 'singing-bowl' | 'soft-chime' | 'nature-bell' | 'stream';
   };
 
-  // Legacy fields (kept for backward compat during migration)
-  dailyReminders?: LegacyNotificationPreferences;
-  milestones?: LegacyNotificationPreferences;
-  messages?: LegacyNotificationPreferences;
-  community?: LegacyNotificationPreferences;
+  // NO legacy V1 fields are declared here. `dailyReminders`, `milestones`,
+  // `messages` and `community` used to be optional members of this interface
+  // "for backward compat during migration" — but the migration reads them off
+  // raw document data (Record<string, any>), never off this type, so declaring
+  // them bought nothing and cost correctness: it made writing V1 debris onto a
+  // V2 document a legal, silently-ignored operation. See
+  // LegacyNotificationPreferences above.
 
   createdAt: Timestamp;
   updatedAt: Timestamp;
