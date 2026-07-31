@@ -30,7 +30,10 @@ import {
 } from '../../constants/rhythmTimeOfDay';
 // The single shared definition. There used to be a local copy of this union
 // here, which could drift from the model's; do not reintroduce one.
-import type { HabitTimeOfDay } from '../../types/models';
+import type { HabitTimeOfDay, ReminderTime } from '../../types/models';
+import { TimePickerSheet, formatReminderTime } from '../shared/TimePickerSheet';
+import { canHabitHaveReminder } from '../../utils/habitReminderPlan';
+import { scheduleLabel } from './habitHistory';
 
 type FrequencyType = 'daily' | 'specific_days' | 'flexible';
 
@@ -58,6 +61,9 @@ export interface SimpleHabitFormData {
   timeOfDay: HabitTimeOfDay;
   intention: string;
   notePromptEnabled: boolean;
+  /** Opt-in per-habit reminder. Days are inherited from the frequency above. */
+  reminderEnabled: boolean;
+  reminderTime: ReminderTime | null;
 }
 
 export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = ({
@@ -75,6 +81,11 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
   const [intention, setIntention] = useState('');
   const [showIntention, setShowIntention] = useState(false);
   const [notePromptEnabled, setNotePromptEnabled] = useState(false);
+  // Default 8:00 AM, matching the opt-in and anchor screens. Only ever written
+  // when the toggle is on.
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState<ReminderTime>({ hour: 8, minute: 0 });
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [showCaptured, setShowCaptured] = useState(false);
   // Once the user has touched the time control at all, the nudge retires. It
   // has been seen and answered, whether they took it or chose something else,
@@ -91,6 +102,14 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
   // type level, so null is the only "nothing to offer" case to handle.
   const showRhythmNudge = !timeOfDayTouched && suggestedTimeOfDay !== null;
 
+  // The reminder inherits the habit's own days rather than asking for them a
+  // second time, so it can only be offered once the frequency describes a
+  // cadence. `specific_days` with nothing picked yet describes none, so the
+  // section appears the moment a day is chosen.
+  const scheduleShape = { frequencyType, specificDays };
+  const canOfferReminder = canHabitHaveReminder(scheduleShape);
+  const inheritedDays = scheduleLabel(scheduleShape);
+
   const resetForm = () => {
     setName('');
     setCategory(null);
@@ -100,6 +119,9 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
     setIntention('');
     setShowIntention(false);
     setNotePromptEnabled(false);
+    setReminderEnabled(false);
+    setReminderTime({ hour: 8, minute: 0 });
+    setShowTimePicker(false);
     setShowCaptured(false);
     setTimeOfDayTouched(false);
   };
@@ -118,6 +140,11 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
       timeOfDay,
       intention: intention.trim(),
       notePromptEnabled,
+      // A habit whose schedule carries no usable cadence cannot hold a
+      // reminder, and its control is hidden — so never emit one from here
+      // either, even if the toggle was flipped before the frequency changed.
+      reminderEnabled: canOfferReminder && reminderEnabled,
+      reminderTime: canOfferReminder && reminderEnabled ? reminderTime : null,
     });
 
     setShowCaptured(true);
@@ -283,6 +310,57 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
             </View>
           )}
 
+          {/* Reminder. Deliberately a SEPARATE concept from "When?" above:
+              that aims the habit at a part of the day, this asks the phone to
+              say something at a clock time. The two are not coupled — choosing
+              Morning does not set a reminder, and setting 7:30 AM does not
+              change the time-of-day chip.
+
+              The DAYS are inherited, shown read-only. A second day-picker here
+              would be the same seven dots twice on one sheet, and could
+              silently contradict the frequency above. Hidden entirely when the
+              habit declares no cadence to inherit. */}
+          {canOfferReminder && (
+            <View style={styles.reminderSection} testID="habit-create-reminder">
+              <View style={styles.noteToggleRow}>
+                <View style={styles.noteToggleText}>
+                  <Text style={styles.noteToggleLabel}>Remind me</Text>
+                  <Text style={styles.noteToggleHelper}>
+                    {inheritedDays
+                      ? `On your ${inheritedDays.toLowerCase()} schedule.`
+                      : 'On this habit’s schedule.'}
+                  </Text>
+                </View>
+                <Switch
+                  value={reminderEnabled}
+                  onValueChange={setReminderEnabled}
+                  trackColor={{ false: '#D5E3D1', true: Colors.evergreenTeal }}
+                  thumbColor="#fff"
+                  accessibilityLabel="Remind me"
+                  testID="habit-create-reminder-toggle"
+                />
+              </View>
+
+              {reminderEnabled && (
+                <TouchableOpacity
+                  style={styles.reminderTimeRow}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowTimePicker(true);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Reminder time, ${formatReminderTime(reminderTime)}. Tap to change.`}
+                  testID="habit-create-reminder-time"
+                >
+                  <Text style={styles.reminderTimeLabel}>Time</Text>
+                  <Text style={styles.reminderTimeValue}>
+                    {formatReminderTime(reminderTime)}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {/* One-line Intention */}
           {!showIntention ? (
             <TouchableOpacity onPress={() => setShowIntention(true)} style={styles.addIntentionLink}>
@@ -330,6 +408,13 @@ export const SimpleHabitCreateScreen: React.FC<SimpleHabitCreateScreenProps> = (
             <Text style={styles.saveSubtext}>You can always adjust this later</Text>
           </View>
       </View>
+
+      <TimePickerSheet
+        visible={showTimePicker}
+        value={reminderTime}
+        onChange={setReminderTime}
+        onClose={() => setShowTimePicker(false)}
+      />
     </EnhancedModal>
   );
 };
@@ -472,6 +557,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 48,
     paddingVertical: Spacing.sm,
+  },
+  reminderSection: {
+    marginTop: Spacing.sm,
+  },
+  reminderTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 48,
+    paddingVertical: Spacing.sm,
+    paddingLeft: Spacing.base,
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.dewSage,
+  },
+  reminderTimeLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+  },
+  reminderTimeValue: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
   },
   noteToggleText: {
     flex: 1,

@@ -27,6 +27,7 @@ import { SimpleHabitFormData } from '../components/habits/SimpleHabitCreateScree
 import { getFocusRhythms } from '../services/firebase/focusRhythms.service';
 import { logger } from '../utils/logger';
 import { scheduleHabitReminder, cancelHabitReminder } from '../services/reminderScheduler.service';
+import { ensureRemindersAllowed } from '../services/firebase/notificationPreferences.service';
 import { useHabitNotePrompt, confirmCompletionNoteLoss } from './useHabitNotePrompt';
 
 export function useHabitsScreen() {
@@ -158,18 +159,16 @@ export function useHabitsScreen() {
         habitData.scalingPhase = 'getting_started';
       }
 
+      // NO reminder wiring here. This wizard path used to schedule a reminder
+      // off `cue.type === 'time'`, which was a second, parallel source of truth
+      // for reminders and is gone: reminders now live on reminderEnabled +
+      // reminderTime, which this form does not edit. updateHabit is a partial
+      // write, so an existing reminder survives untouched, and syncAllReminders
+      // reconciles from the habit's real fields on the next foreground.
       if (editingHabit) {
         await updateHabit(editingHabit.id, habitData);
-        // Re-schedule reminder (cancel old, schedule new if time-based cue)
-        await cancelHabitReminder(editingHabit.id);
-        if (habitData.cue?.type === 'time') {
-          await scheduleHabitReminder({ id: editingHabit.id, ...habitData } as Habit);
-        }
       } else {
-        const habitId = await createHabit(user.uid, habitData);
-        if (habitData.cue?.type === 'time') {
-          await scheduleHabitReminder({ id: habitId, ...habitData } as Habit);
-        }
+        await createHabit(user.uid, habitData);
       }
 
       setModalVisible(false);
@@ -235,7 +234,25 @@ export function useHabitsScreen() {
         habitData.notePromptEnabled = true;
       }
 
-      await createHabit(user.uid, habitData);
+      // Only written when opted in, same as the note prompt: an unset field is
+      // off, so habits created without a reminder carry no flag at all.
+      if (formData.reminderEnabled && formData.reminderTime) {
+        habitData.reminderEnabled = true;
+        habitData.reminderTime = formData.reminderTime;
+      }
+
+      // The id is captured (it used to be discarded) because the reminder's
+      // notification identifiers are derived from it.
+      const habitId = await createHabit(user.uid, habitData);
+
+      if (habitData.reminderEnabled) {
+        // Before scheduling: syncAllReminders bails when the master flag is
+        // off, and it defaults to off — so without this the reminder would be
+        // scheduled here and silently wiped on the next app foreground.
+        await ensureRemindersAllowed(user.uid);
+        await scheduleHabitReminder({ id: habitId, ...habitData } as Habit);
+      }
+
       setModalVisible(false);
     } catch (error: any) {
       logger.error('Error saving habit:', error);

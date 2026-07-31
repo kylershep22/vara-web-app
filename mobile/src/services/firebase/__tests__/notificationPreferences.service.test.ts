@@ -37,7 +37,10 @@ jest.mock('firebase/firestore', () => ({
 }));
 jest.mock('../../../config/firebase', () => ({ db: { __db: true }, firebaseError: null }));
 
-import { getNotificationPreferences } from '../notificationPreferences.service';
+import {
+  getNotificationPreferences,
+  ensureRemindersAllowed,
+} from '../notificationPreferences.service';
 
 /** A healthy, fully-migrated V2 document. */
 function v2Doc(overrides: Record<string, any> = {}) {
@@ -147,6 +150,55 @@ describe('a V2 document carrying legacy dailyReminders debris', () => {
 
     // Idempotent: retried on the next read, and this session already works.
     expect(prefs.dailyRhythm.reminderTime).toEqual({ hour: 7, minute: 30 });
+    errorSpy.mockRestore();
+  });
+});
+
+describe('ensureRemindersAllowed — the master flag a habit reminder needs', () => {
+  test('flips ONLY the master flag, leaving every other category alone', async () => {
+    resolveDoc(
+      v2Doc({
+        allNotificationsEnabled: false,
+        insightsLearning: { enabled: false, frequency: 'twice_weekly' },
+        socialConnection: {
+          directMessages: true,
+          connectionRequests: true,
+          communityDigest: false,
+        },
+        milestonesReflection: { enabled: false },
+      })
+    );
+
+    await ensureRemindersAllowed('u1');
+
+    expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
+    const patch = mockUpdateDoc.mock.calls[0][1];
+
+    expect(patch.allNotificationsEnabled).toBe(true);
+    // Asking to be reminded about one habit is not consent to brain-health
+    // tips, community digests or milestone messages.
+    expect(patch).not.toHaveProperty('insightsLearning');
+    expect(patch).not.toHaveProperty('socialConnection');
+    expect(patch).not.toHaveProperty('milestonesReflection');
+    expect(patch).not.toHaveProperty('dailyRhythm');
+    expect(patch).not.toHaveProperty('quietHours');
+  });
+
+  test('is a no-op when the master flag is already on', async () => {
+    resolveDoc(v2Doc({ allNotificationsEnabled: true }));
+
+    await ensureRemindersAllowed('u1');
+
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
+  });
+
+  test('does not throw when the write fails — the habit is already saved', async () => {
+    resolveDoc(v2Doc({ allNotificationsEnabled: false }));
+    mockUpdateDoc.mockRejectedValueOnce(new Error('offline'));
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(ensureRemindersAllowed('u1')).resolves.toBeUndefined();
+
     errorSpy.mockRestore();
   });
 });

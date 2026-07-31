@@ -58,13 +58,20 @@ import {
 } from '../services/firebase';
 import { useHabitNotePrompt, confirmCompletionNoteLoss } from '../hooks/useHabitNotePrompt';
 import { logger } from '../utils/logger';
-import { Habit, HabitCompletion, HabitIntention } from '../types';
+import { Habit, HabitCompletion, HabitIntention, ReminderTime } from '../types';
+import { TimePickerSheet, formatReminderTime } from '../components/shared/TimePickerSheet';
+import { canHabitHaveReminder } from '../utils/habitReminderPlan';
+import { scheduleHabitReminder, cancelHabitReminder } from '../services/reminderScheduler.service';
+import { ensureRemindersAllowed } from '../services/firebase/notificationPreferences.service';
 
 /** Dew Sage (#D5E3D1) @62% — the metadata chip fill. */
 const DEW_CHIP = 'rgba(213, 227, 209, 0.62)';
 
 /** Most recent notes shown in "What you noted", when any exist. */
 const MAX_NOTES = 3;
+
+/** Seed for a habit that has never had a reminder. Matches the create sheet. */
+const DEFAULT_REMINDER_TIME: ReminderTime = { hour: 8, minute: 0 };
 
 type HabitDetailRouteParams = {
   HabitDetail: {
@@ -97,8 +104,13 @@ const HabitDetailScreen: React.FC = () => {
     identity: habit.identity || '',
     identityStatement: habit.identityStatement || '',
     notePromptEnabled: !!habit.notePromptEnabled,
+    // Both halves must live here AND be re-seeded in handleEdit below, or an
+    // unrelated edit would write the form's defaults over a real reminder.
+    reminderEnabled: !!habit.reminderEnabled,
+    reminderTime: habit.reminderTime ?? DEFAULT_REMINDER_TIME,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [reminderPickerVisible, setReminderPickerVisible] = useState(false);
   const { noteTarget, promptForNote, saveNote, dismissNote } = useHabitNotePrompt();
 
   // One clock for the whole render tree, so the week strip, the four-week view
@@ -242,6 +254,10 @@ const HabitDetailScreen: React.FC = () => {
       identity: habit.identity || '',
       identityStatement: habit.identityStatement || '',
       notePromptEnabled: !!habit.notePromptEnabled,
+      // Re-seeded from the habit, not left at the form's defaults: opening the
+      // edit sheet to change a name must not quietly clear a reminder.
+      reminderEnabled: !!habit.reminderEnabled,
+      reminderTime: habit.reminderTime ?? DEFAULT_REMINDER_TIME,
     });
     setEditModalVisible(true);
   };
@@ -254,8 +270,29 @@ const HabitDetailScreen: React.FC = () => {
 
     setSubmitting(true);
     try {
-      await updateHabit(habit.id, formData);
-      setHabit({ ...habit, ...formData });
+      // A habit whose schedule carries no cadence gets no reminder, and its
+      // control is hidden — so never persist one from here either.
+      const canRemind = canHabitHaveReminder(habit);
+      const reminderEnabled = canRemind && formData.reminderEnabled;
+      const patch = {
+        ...formData,
+        reminderEnabled,
+        reminderTime: reminderEnabled ? formData.reminderTime : null,
+      };
+
+      await updateHabit(habit.id, patch);
+      const updated = { ...habit, ...patch };
+      setHabit(updated);
+
+      // Reschedule from the saved state. cancelHabitReminder clears the habit's
+      // WHOLE identifier set, so shrinking Mon/Wed/Fri to Mon/Tue cannot leave
+      // Wed and Fri firing; scheduling then writes only what the habit now says.
+      await cancelHabitReminder(habit.id);
+      if (reminderEnabled) {
+        await ensureRemindersAllowed(updated.userId);
+        await scheduleHabitReminder(updated);
+      }
+
       setEditModalVisible(false);
     } catch (error) {
       logger.error('Error updating habit:', error);
@@ -277,6 +314,10 @@ const HabitDetailScreen: React.FC = () => {
           text: 'Remove',
           onPress: async () => {
             try {
+              // Before the delete: a removed habit must not keep firing. This
+              // screen previously deleted without cancelling, which was
+              // harmless only because nothing scheduled habit reminders yet.
+              await cancelHabitReminder(habit.id);
               await deleteHabit(habit.id);
               navigation.goBack();
             } catch (error) {
@@ -533,6 +574,48 @@ const HabitDetailScreen: React.FC = () => {
           inputAccessoryViewID="habit-edit-modal"
         />
 
+        {/* Reminder. Days are inherited from the habit's own schedule and shown
+            read-only — no second day-picker, which would be able to contradict
+            the schedule chip at the top of this screen. Hidden entirely for a
+            habit that declares no cadence to inherit. */}
+        {canHabitHaveReminder(habit) && (
+          <View testID="habit-edit-reminder">
+            <View style={styles.noteToggleRow}>
+              <View style={styles.noteToggleText}>
+                <Text style={styles.noteToggleLabel}>Remind me</Text>
+                <Text style={styles.noteToggleHelper}>
+                  {scheduleLabel(habit)
+                    ? `On your ${scheduleLabel(habit)!.toLowerCase()} schedule.`
+                    : 'On this habit’s schedule.'}
+                </Text>
+              </View>
+              <Switch
+                value={formData.reminderEnabled}
+                onValueChange={(value) => setFormData({ ...formData, reminderEnabled: value })}
+                trackColor={{ false: '#D5E3D1', true: Colors.evergreenTeal }}
+                thumbColor="#fff"
+                accessibilityLabel="Remind me"
+                testID="habit-edit-reminder-toggle"
+              />
+            </View>
+
+            {formData.reminderEnabled && (
+              <TouchableOpacity
+                style={styles.reminderTimeRow}
+                onPress={() => setReminderPickerVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`Reminder time, ${formatReminderTime(formData.reminderTime)}. Tap to change.`}
+                testID="habit-edit-reminder-time"
+              >
+                <Text style={styles.reminderTimeLabel}>Time</Text>
+                <Text style={styles.reminderTimeValue}>
+                  {formatReminderTime(formData.reminderTime)}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         {/* The note prompt follows the habit, so turning it on here changes
             every surface this habit can be completed from. */}
         <View style={styles.noteToggleRow}>
@@ -549,6 +632,12 @@ const HabitDetailScreen: React.FC = () => {
             testID="habit-edit-note-prompt-toggle"
           />
         </View>
+        <TimePickerSheet
+          visible={reminderPickerVisible}
+          value={formData.reminderTime}
+          onChange={(next) => setFormData({ ...formData, reminderTime: next })}
+          onClose={() => setReminderPickerVisible(false)}
+        />
       </EnhancedModal>
 
       <IntentionEditSheet
@@ -718,6 +807,26 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingVertical: Spacing.sm,
     marginBottom: Spacing.base,
+  },
+  reminderTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 48,
+    paddingVertical: Spacing.sm,
+    paddingLeft: Spacing.base,
+    marginBottom: Spacing.base,
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.dewSage,
+  },
+  reminderTimeLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+  },
+  reminderTimeValue: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
   },
   noteToggleText: {
     flex: 1,
