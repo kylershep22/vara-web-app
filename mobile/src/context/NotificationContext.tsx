@@ -16,7 +16,6 @@ import { useToast } from './ToastContext';
 import {
   setForegroundNotificationHandler,
   cancelAllScheduledExceptFocusComplete,
-  getAllScheduledNotifications,
   registerAndSaveFCMToken,
   isServerPushEnabled,
   addNotificationResponseListener,
@@ -134,19 +133,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (appStateRef.current !== 'active' && nextState === 'active' && user?.uid) {
         const uid = user.uid;
         await runExclusive(async () => {
-          // INSTRUMENTATION (temporary, for the Slice B device walk). The three
-          // counts below are the whole question: if AFTER-CANCEL drops to ~0 and
-          // AFTER-SYNC does not climb back, the schedule was wiped and never
-          // refilled — and the reminder can never arrive regardless of what the
-          // create path did. warn, not log: __DEV__ is false in preview builds.
-          const beforeCancel = (await getAllScheduledNotifications()).length;
-          logger.warn(`[NotificationContext] FOREGROUND pending BEFORE cancel=${beforeCancel}`);
-
           await cancelAllScheduledExceptFocusComplete();
-
-          const afterCancel = (await getAllScheduledNotifications()).length;
-          logger.warn(`[NotificationContext] FOREGROUND pending AFTER cancel=${afterCancel}`);
-
           // Only reschedule locally if server push is off
           if (preferences?.allNotificationsEnabled && !serverPush) {
             await scheduleDailyReminder(uid);
@@ -159,11 +146,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           // glance at the phone silently emptied the schedule for the day.
           // Ordered after the cancel, or it would clear what it just wrote.
           await syncAllReminders(uid);
-
-          const afterSync = (await getAllScheduledNotifications()).length;
-          logger.warn(
-            `[NotificationContext] FOREGROUND pending AFTER syncAllReminders=${afterSync} (serverPush=${serverPush} prefsMaster=${String(preferences?.allNotificationsEnabled)})`
-          );
         });
       }
       appStateRef.current = nextState;

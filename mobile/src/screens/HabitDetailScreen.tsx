@@ -63,6 +63,7 @@ import { TimePickerSheet, formatReminderTime } from '../components/shared/TimePi
 import { canHabitHaveReminder } from '../utils/habitReminderPlan';
 import { scheduleHabitReminder, cancelHabitReminder } from '../services/reminderScheduler.service';
 import { ensureRemindersAllowed } from '../services/firebase/notificationPreferences.service';
+import { ensureNotificationPermission } from '../services/notifications.service';
 
 /** Dew Sage (#D5E3D1) @62% — the metadata chip fill. */
 const DEW_CHIP = 'rgba(213, 227, 209, 0.62)';
@@ -289,6 +290,15 @@ const HabitDetailScreen: React.FC = () => {
       // Wed and Fri firing; scheduling then writes only what the habit now says.
       await cancelHabitReminder(habit.id);
       if (reminderEnabled) {
+        // Same contextual permission request as the create sheet. Gated on the
+        // off->on transition rather than on `reminderEnabled` alone: this
+        // handler runs on every edit save, and re-asking on an unrelated rename
+        // of a habit whose reminder is already on would be a prompt the user
+        // did not trigger. A denial changes nothing here either — see
+        // useHabitsScreen for why the toggle is left as the user set it.
+        if (!habit.reminderEnabled) {
+          await ensureNotificationPermission();
+        }
         await ensureRemindersAllowed(updated.userId);
         await scheduleHabitReminder(updated);
       }

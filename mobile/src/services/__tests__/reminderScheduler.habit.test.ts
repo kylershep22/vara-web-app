@@ -57,6 +57,40 @@ function habit(overrides: Record<string, any> = {}): any {
   };
 }
 
+describe('the notification the user actually sees', () => {
+  test('carries a title, a body, and the habit it belongs to', async () => {
+    await scheduleHabitReminder(habit());
+
+    const { content } = mockSchedule.mock.calls[0][0] as any;
+    expect(content.title).toBe('Time for Morning walk');
+    // A title-only notification renders as a bare line with no second row; the
+    // in-app toast path receives body: '' and shows an empty slot.
+    expect(content.body).toBe('A moment for this, if now works.');
+    // The tap handler routes on data.type, and the habit id is the only thing
+    // linking a delivered notification back to what it is about.
+    expect(content.data).toEqual({ type: 'habit-reminder', habitId: 'h1' });
+  });
+
+  test('body says nothing about streaks, misses, or elapsed time', async () => {
+    await scheduleHabitReminder(habit());
+
+    const { content } = mockSchedule.mock.calls[0][0] as any;
+    // A reminder arrives on bad days too. Absence framing turns it into a
+    // reproach, which is the opposite of what a nudge is for.
+    expect(content.body).not.toMatch(/streak|missed|haven't|days? in a row|don't break/i);
+  });
+
+  test('every weekday trigger of one habit carries the same content', async () => {
+    await scheduleHabitReminder(
+      habit({ frequencyType: 'specific_days', specificDays: [1, 3, 5] })
+    );
+
+    expect(mockSchedule).toHaveBeenCalledTimes(3);
+    const bodies = mockSchedule.mock.calls.map((c: any) => c[0].content.body);
+    expect(new Set(bodies).size).toBe(1);
+  });
+});
+
 /** Identifiers currently pending, as expo would report them. */
 function pending(...identifiers: string[]) {
   mockGetAll.mockResolvedValue(identifiers.map((identifier) => ({ identifier })));

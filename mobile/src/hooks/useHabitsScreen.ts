@@ -28,6 +28,7 @@ import { getFocusRhythms } from '../services/firebase/focusRhythms.service';
 import { logger } from '../utils/logger';
 import { scheduleHabitReminder, cancelHabitReminder } from '../services/reminderScheduler.service';
 import { ensureRemindersAllowed } from '../services/firebase/notificationPreferences.service';
+import { ensureNotificationPermission } from '../services/notifications.service';
 import { useHabitNotePrompt, confirmCompletionNoteLoss } from './useHabitNotePrompt';
 
 export function useHabitsScreen() {
@@ -246,6 +247,17 @@ export function useHabitsScreen() {
       const habitId = await createHabit(user.uid, habitData);
 
       if (habitData.reminderEnabled) {
+        // Ask for the OS permission HERE, at the moment the user opted in.
+        // Nothing else in the habit flow requests it, so on a fresh install the
+        // reminder was written, never scheduled, and never explained — the user
+        // was simply never asked. Scoped to the opt-in branch so creating a
+        // habit without a reminder still prompts for nothing.
+        //
+        // A denial is not an error and is not undone: the habit and its
+        // reminder preference are saved either way, scheduleHabitReminder
+        // no-ops without permission, and syncAllReminders picks the reminder up
+        // on a later foreground if permission is granted in Settings.
+        await ensureNotificationPermission();
         // Before scheduling: syncAllReminders bails when the master flag is
         // off, and it defaults to off — so without this the reminder would be
         // scheduled here and silently wiped on the next app foreground.

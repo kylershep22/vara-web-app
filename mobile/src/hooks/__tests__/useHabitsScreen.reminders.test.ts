@@ -11,6 +11,7 @@ const mockUpdateHabit = jest.fn();
 const mockScheduleHabitReminder = jest.fn().mockResolvedValue(undefined);
 const mockCancelHabitReminder = jest.fn().mockResolvedValue(undefined);
 const mockEnsureRemindersAllowed = jest.fn().mockResolvedValue(undefined);
+const mockEnsureNotificationPermission = jest.fn().mockResolvedValue(true);
 
 /** Ordered log, so "flip before schedule" can actually be asserted. */
 const callOrder: string[] = [];
@@ -59,6 +60,12 @@ jest.mock('../../services/firebase/notificationPreferences.service', () => ({
     return mockEnsureRemindersAllowed(...a);
   },
 }));
+jest.mock('../../services/notifications.service', () => ({
+  ensureNotificationPermission: (...a: any[]) => {
+    callOrder.push('permission');
+    return mockEnsureNotificationPermission(...a);
+  },
+}));
 jest.mock('../../components/habits/SimpleHabitCreateScreen', () => ({}));
 
 import { renderHook, act } from '@testing-library/react-native';
@@ -84,6 +91,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   callOrder.length = 0;
   mockCreateHabit.mockResolvedValue('new-habit-id');
+  mockEnsureNotificationPermission.mockResolvedValue(true);
 });
 
 describe('creating a habit with a reminder', () => {
@@ -132,8 +140,10 @@ describe('creating a habit with a reminder', () => {
 
     expect(mockEnsureRemindersAllowed).toHaveBeenCalledWith('u1');
     // Ordered: syncAllReminders bails while the flag is off, so a reminder
-    // scheduled before the flip would be wiped on the next foreground.
-    expect(callOrder).toEqual(['ensureAllowed', 'schedule']);
+    // scheduled before the flip would be wiped on the next foreground. The OS
+    // permission request comes first of all — asking after scheduling would
+    // mean the first schedule always ran unpermitted.
+    expect(callOrder).toEqual(['permission', 'ensureAllowed', 'schedule']);
   });
 
   test('carries the frequency through, so the scheduler can derive the days', async () => {
@@ -154,6 +164,60 @@ describe('creating a habit with a reminder', () => {
       frequencyType: 'specific_days',
       specificDays: [1, 3, 5],
     });
+  });
+});
+
+describe('the OS permission request on reminder opt-in', () => {
+  test('asks for permission when the user enables a reminder', async () => {
+    const { result } = renderHook(() => useHabitsScreen());
+
+    await act(async () => {
+      await result.current.handleSimpleHabitSave(
+        form({ reminderEnabled: true, reminderTime: { hour: 7, minute: 30 } })
+      );
+    });
+
+    // Nothing else in the habit flow requests it. Without this the reminder is
+    // written and never scheduled on a fresh install, and the user is never
+    // asked — which is indistinguishable from the feature being broken.
+    expect(mockEnsureNotificationPermission).toHaveBeenCalledTimes(1);
+  });
+
+  test('a denial leaves the habit and its reminder preference saved', async () => {
+    mockEnsureNotificationPermission.mockResolvedValue(false);
+    const { result } = renderHook(() => useHabitsScreen());
+
+    await act(async () => {
+      await result.current.handleSimpleHabitSave(
+        form({ reminderEnabled: true, reminderTime: { hour: 7, minute: 30 } })
+      );
+    });
+
+    // The preference is the user's, not the OS's. It stays as they set it so
+    // that granting permission later in Settings makes the reminder work
+    // without them having to find and re-enable it.
+    const written = mockCreateHabit.mock.calls[0][1];
+    expect(written.reminderEnabled).toBe(true);
+    expect(written.reminderTime).toEqual({ hour: 7, minute: 30 });
+  });
+
+  test('a denial does not throw and does not abort the save', async () => {
+    mockEnsureNotificationPermission.mockResolvedValue(false);
+    const { Alert } = require('react-native');
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const { result } = renderHook(() => useHabitsScreen());
+
+    await act(async () => {
+      await result.current.handleSimpleHabitSave(
+        form({ reminderEnabled: true, reminderTime: { hour: 7, minute: 30 } })
+      );
+    });
+
+    // scheduleHabitReminder is still called and no-ops on its own permission
+    // check — one gate, not two that can disagree.
+    expect(mockScheduleHabitReminder).toHaveBeenCalledTimes(1);
+    expect(alertSpy).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
   });
 });
 
@@ -179,6 +243,8 @@ describe('creating a habit without a reminder', () => {
 
     expect(mockEnsureRemindersAllowed).not.toHaveBeenCalled();
     expect(mockScheduleHabitReminder).not.toHaveBeenCalled();
+    // And no permission prompt: creating a habit is not a reason to ask.
+    expect(mockEnsureNotificationPermission).not.toHaveBeenCalled();
   });
 
   test('a toggle with no time is not a reminder', async () => {

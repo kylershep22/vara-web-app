@@ -14,6 +14,7 @@ const mockDeleteHabit = jest.fn().mockResolvedValue(undefined);
 const mockScheduleHabitReminder = jest.fn().mockResolvedValue(undefined);
 const mockCancelHabitReminder = jest.fn().mockResolvedValue(undefined);
 const mockEnsureRemindersAllowed = jest.fn().mockResolvedValue(undefined);
+const mockEnsureNotificationPermission = jest.fn().mockResolvedValue(true);
 const mockGoBack = jest.fn();
 
 jest.mock('@react-navigation/native', () => ({
@@ -40,6 +41,9 @@ jest.mock('../../services/reminderScheduler.service', () => ({
 }));
 jest.mock('../../services/firebase/notificationPreferences.service', () => ({
   ensureRemindersAllowed: (...a: any[]) => mockEnsureRemindersAllowed(...a),
+}));
+jest.mock('../../services/notifications.service', () => ({
+  ensureNotificationPermission: (...a: any[]) => mockEnsureNotificationPermission(...a),
 }));
 jest.mock('../../hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
@@ -77,6 +81,60 @@ async function openEdit() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockHabit = habit();
+  mockEnsureNotificationPermission.mockResolvedValue(true);
+});
+
+describe('the OS permission request on reminder opt-in', () => {
+  test('asks when the user turns a reminder ON', async () => {
+    await openEdit();
+
+    fireEvent(screen.getByTestId('habit-edit-reminder-toggle'), 'valueChange', true);
+    await act(async () => {
+      fireEvent.press(screen.getByText('Save'));
+    });
+
+    expect(mockEnsureNotificationPermission).toHaveBeenCalledTimes(1);
+  });
+
+  test('does NOT re-ask on an unrelated edit to a habit whose reminder is already on', async () => {
+    mockHabit = habit({ reminderEnabled: true, reminderTime: { hour: 7, minute: 30 } });
+    await openEdit();
+
+    fireEvent.changeText(screen.getByDisplayValue('Morning walk'), 'Evening walk');
+    await act(async () => {
+      fireEvent.press(screen.getByText('Save'));
+    });
+
+    // This handler runs on every save. Gating on the off->on transition is what
+    // keeps a rename from triggering a prompt the user did not ask for.
+    expect(mockEnsureNotificationPermission).not.toHaveBeenCalled();
+    expect(mockScheduleHabitReminder).toHaveBeenCalled();
+  });
+
+  test('does not ask when saving with the reminder off', async () => {
+    await openEdit();
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Save'));
+    });
+
+    expect(mockEnsureNotificationPermission).not.toHaveBeenCalled();
+  });
+
+  test('a denial leaves the toggle on and still saves the preference', async () => {
+    mockEnsureNotificationPermission.mockResolvedValue(false);
+    await openEdit();
+
+    fireEvent(screen.getByTestId('habit-edit-reminder-toggle'), 'valueChange', true);
+    await act(async () => {
+      fireEvent.press(screen.getByText('Save'));
+    });
+
+    // Not reverted: granting permission later in Settings should make this
+    // reminder work without the user having to find and re-enable it.
+    expect(mockUpdateHabit.mock.calls[0][1]).toMatchObject({ reminderEnabled: true });
+    expect(mockScheduleHabitReminder).toHaveBeenCalled();
+  });
 });
 
 describe('when the control is offered', () => {
