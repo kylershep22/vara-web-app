@@ -688,6 +688,31 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
 
+    // ========== PRIVATE USER STORE ==========
+
+    // userPrivate (document ID is userId) — owner-only per-user singleton.
+    //
+    // Exists because `match /users/{userId}` above allows read to ANY
+    // authenticated account (privacy filtering there is deferred to the app
+    // layer). Firestore read rules are document-level, so a field on users/{uid}
+    // cannot be made private no matter how it is nested. Sensitive per-user
+    // singleton fields live in this separate document instead, where the rule
+    // can restrict reads to the owner.
+    //
+    // Ownership is carried by the document ID, matching the
+    // notificationPreferences/{userId} and sleepRoutines/{userId} convention —
+    // there is no userId field to check. Read is spelled separately from the
+    // write verbs (rather than a combined `read, write`) so that the read
+    // restriction, which is the entire reason this collection exists, is
+    // explicit and hard to relax by accident.
+    //
+    // No Cloud Function / admin carve-out: nothing server-side writes here.
+    // Admin SDK writes bypass rules anyway, so adding one would be noise.
+    match /userPrivate/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create, update, delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
     // App Configuration (feature flags, read-only for clients)
     match /config/{docId} {
       allow read: if isAuthenticated();
