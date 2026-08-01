@@ -53,38 +53,69 @@ function getUnauthContext() {
   return testEnv.unauthenticatedContext();
 }
 
-async function setupUserProfile(uid, data = {}) {
-  const adminDb = testEnv.firestore();
-  await setDoc(doc(adminDb, 'users', uid), {
-    displayName: data.displayName || `User ${uid}`,
-    email: data.email || `${uid}@test.com`,
-    privacy: data.privacy || 'public',
-    createdAt: new Date(),
-    ...data,
+/**
+ * Seed data with security rules bypassed.
+ *
+ * Replaces the removed `testEnv.firestore()`. @firebase/rules-unit-testing v5
+ * dropped that accessor; the supported way to write fixture data that the rules
+ * would otherwise reject is `testEnv.withSecurityRulesDisabled(ctx => ...)`.
+ *
+ * This wrapper exists so the v5 API appears in exactly ONE place rather than at
+ * every seed site, and so callers keep the old ergonomics — `withSecurityRulesDisabled`
+ * resolves to undefined, which would otherwise force every test that needs the
+ * created ref (for `ref.id`) to hoist a `let` above the callback. Returning the
+ * callback's value keeps those sites a one-line change and leaves every
+ * assertion untouched.
+ *
+ *   const ref = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'goals'), {...}));
+ *
+ * Seeding is deliberately rules-bypassed: these documents are preconditions for
+ * the assertion, not the thing under test. Tests that mean to exercise a write
+ * rule use an authenticated context and assertSucceeds/assertFails instead.
+ */
+async function withAdminDb(fn) {
+  let result;
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    result = await fn(ctx.firestore());
   });
+  return result;
+}
+
+async function setupUserProfile(uid, data = {}) {
+  await withAdminDb((adminDb) =>
+    setDoc(doc(adminDb, 'users', uid), {
+      displayName: data.displayName || `User ${uid}`,
+      email: data.email || `${uid}@test.com`,
+      privacy: data.privacy || 'public',
+      createdAt: new Date(),
+      ...data,
+    })
+  );
 }
 
 async function setupConnection(uidA, uidB, status = 'accepted') {
-  const adminDb = testEnv.firestore();
   const pairId = [uidA, uidB].sort().join('_');
-  await setDoc(doc(adminDb, 'connections', pairId), {
-    a: [uidA, uidB].sort()[0],
-    b: [uidA, uidB].sort()[1],
-    status,
-    createdAt: new Date(),
-  });
+  await withAdminDb((adminDb) =>
+    setDoc(doc(adminDb, 'connections', pairId), {
+      a: [uidA, uidB].sort()[0],
+      b: [uidA, uidB].sort()[1],
+      status,
+      createdAt: new Date(),
+    })
+  );
 }
 
 async function setupGroup(groupId, ownerId, members = [], visibility = 'public') {
-  const adminDb = testEnv.firestore();
-  await setDoc(doc(adminDb, 'groups', groupId), {
-    ownerId,
-    name: `Test Group ${groupId}`,
-    visibility,
-    members,
-    memberCount: members.length,
-    createdAt: new Date(),
-  });
+  await withAdminDb((adminDb) =>
+    setDoc(doc(adminDb, 'groups', groupId), {
+      ownerId,
+      name: `Test Group ${groupId}`,
+      visibility,
+      members,
+      memberCount: members.length,
+      createdAt: new Date(),
+    })
+  );
 }
 
 // ============================================
