@@ -298,3 +298,10 @@ export {
   getTodayDailyReflection,
   saveDailyReflection,
 } from './dailyReflection.service';
+
+// userPrivate.service
+export {
+  getUserPrivate,
+  setUserPrivate,
+} from './userPrivate.service';
+export type { UserPrivatePatch } from './userPrivate.service';

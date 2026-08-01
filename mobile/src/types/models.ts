@@ -69,6 +69,66 @@ export interface UserProfile {
 // See Vara_Intent_Paths.md for full spec.
 export type IntentPath = 'down_regulation' | 'sleep' | 'activation' | 'default';
 
+/**
+ * Owner-only private store (userPrivate/{uid}); extended by later
+ * re-architecture slices. Do not add public/profile fields here.
+ *
+ * WHY A SEPARATE DOCUMENT: Firestore read rules are document-level, so no field
+ * on users/{uid} can be made private — that document is readable by any
+ * authenticated account (see `match /users/{userId}` in firestore.rules, where
+ * privacy filtering is explicitly deferred to the app layer). Anything the user
+ * would not want another account to read belongs here instead, behind an
+ * owner-only rule. Moving a field out of UserProfile into this interface is
+ * therefore a privacy change, not a refactor.
+ *
+ * Uid-keyed singleton: the document ID IS the uid, matching the
+ * notificationPreferences/{userId} and sleepRoutines/{userId} convention. There
+ * is deliberately no `userId` FIELD — ownership is carried by the document ID,
+ * which is what the rule matches on. `uid` below mirrors the ID so a document
+ * read in isolation (console, export) is self-describing.
+ *
+ * Every field past `uid` is optional because this store is created empty: the
+ * foundation slice writes nothing to it. Later slices (onboarding, the
+ * weekly-capacity engine) populate them, so any reader must treat every field
+ * as absent-by-default rather than assuming a shape.
+ */
+export interface UserPrivate {
+  /** Mirrors the document ID. */
+  uid: string;
+
+  /**
+   * The smallest version of the commitment the user will still honor on a bad
+   * week. Free text, in the user's own words — never rendered back as a target
+   * or a score.
+   */
+  floorCommitment?: string;
+
+  /** Things the user has explicitly decided NOT to pursue this cycle. */
+  antiGoals?: string[];
+
+  /**
+   * The outcome the user is currently working toward. Typed as a plain string
+   * for now: the outcome enum lands in a later slice, and narrowing a string to
+   * a union later is a safe change, while a premature union that turns out
+   * wrong is not.
+   */
+  activeOutcome?: string;
+
+  /** Day the user's week starts. 0 = Sunday … 6 = Saturday, matching Date#getDay. */
+  weekStartDay?: number;
+
+  /**
+   * When the user reports having the most capacity. `bucket` is a plain string
+   * for the same reason as activeOutcome. An explicit null means asked and
+   * cleared, which is distinct from undefined (never captured).
+   */
+  energyWindow?: { bucket: string; updatedAt: Timestamp } | null;
+
+  /** Optional like everything else: absent until the first write stamps them. */
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
 // ==========================================
 // BRAIN HEALTH MODELS
 // ==========================================
