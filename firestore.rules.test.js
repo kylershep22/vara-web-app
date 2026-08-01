@@ -272,11 +272,10 @@ describe('Goals (Personal Data)', () => {
   });
 
   test('users can read their own goals', async () => {
-    const adminDb = testEnv.firestore();
-    const goalRef = await addDoc(collection(adminDb, 'goals'), {
+    const goalRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'goals'), {
       userId: ALICE_UID,
       title: 'Exercise more',
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
@@ -285,11 +284,10 @@ describe('Goals (Personal Data)', () => {
   });
 
   test('users cannot read other users goals', async () => {
-    const adminDb = testEnv.firestore();
-    const goalRef = await addDoc(collection(adminDb, 'goals'), {
+    const goalRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'goals'), {
       userId: ALICE_UID,
       title: 'Exercise more',
-    });
+    }));
 
     const context = getAuthContext(BOB_UID);
     const db = context.firestore();
@@ -298,11 +296,10 @@ describe('Goals (Personal Data)', () => {
   });
 
   test('users can update their own goals', async () => {
-    const adminDb = testEnv.firestore();
-    const goalRef = await addDoc(collection(adminDb, 'goals'), {
+    const goalRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'goals'), {
       userId: ALICE_UID,
       title: 'Exercise more',
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
@@ -313,11 +310,10 @@ describe('Goals (Personal Data)', () => {
   });
 
   test('users cannot update other users goals', async () => {
-    const adminDb = testEnv.firestore();
-    const goalRef = await addDoc(collection(adminDb, 'goals'), {
+    const goalRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'goals'), {
       userId: ALICE_UID,
       title: 'Exercise more',
-    });
+    }));
 
     const context = getAuthContext(BOB_UID);
     const db = context.firestore();
@@ -328,11 +324,10 @@ describe('Goals (Personal Data)', () => {
   });
 
   test('users can delete their own goals', async () => {
-    const adminDb = testEnv.firestore();
-    const goalRef = await addDoc(collection(adminDb, 'goals'), {
+    const goalRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'goals'), {
       userId: ALICE_UID,
       title: 'Exercise more',
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
@@ -358,11 +353,10 @@ describe('Habits (Personal Data)', () => {
   });
 
   test('users cannot read other users habits', async () => {
-    const adminDb = testEnv.firestore();
-    const habitRef = await addDoc(collection(adminDb, 'habits'), {
+    const habitRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'habits'), {
       userId: ALICE_UID,
       name: 'Meditate',
-    });
+    }));
 
     const context = getAuthContext(BOB_UID);
     const db = context.firestore();
@@ -387,11 +381,10 @@ describe('Tasks (Personal Data)', () => {
   });
 
   test('users cannot read other users tasks', async () => {
-    const adminDb = testEnv.firestore();
-    const taskRef = await addDoc(collection(adminDb, 'tasks'), {
+    const taskRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'tasks'), {
       userId: ALICE_UID,
       title: 'Task',
-    });
+    }));
 
     const context = getAuthContext(BOB_UID);
     const db = context.firestore();
@@ -416,11 +409,10 @@ describe('Journal Entries (Personal Data)', () => {
   });
 
   test('users cannot read other users journal entries', async () => {
-    const adminDb = testEnv.firestore();
-    const entryRef = await addDoc(collection(adminDb, 'journalEntries'), {
+    const entryRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'journalEntries'), {
       userId: ALICE_UID,
       content: 'Private thoughts',
-    });
+    }));
 
     const context = getAuthContext(BOB_UID);
     const db = context.firestore();
@@ -526,12 +518,11 @@ describe('Posts (Group Forum)', () => {
   test('members can read posts in public groups', async () => {
     await setupGroup('group1', ALICE_UID, [ALICE_UID], 'public');
 
-    const adminDb = testEnv.firestore();
-    const postRef = await addDoc(collection(adminDb, 'posts'), {
+    const postRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'posts'), {
       userId: ALICE_UID,
       groupId: 'group1',
       content: 'Test post',
-    });
+    }));
 
     const context = getAuthContext(BOB_UID);
     const db = context.firestore();
@@ -542,12 +533,11 @@ describe('Posts (Group Forum)', () => {
   test('post author can delete their post', async () => {
     await setupGroup('group1', ALICE_UID, [ALICE_UID], 'public');
 
-    const adminDb = testEnv.firestore();
-    const postRef = await addDoc(collection(adminDb, 'posts'), {
+    const postRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'posts'), {
       userId: ALICE_UID,
       groupId: 'group1',
       content: 'Test post',
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
@@ -632,10 +622,9 @@ describe('Messaging', () => {
   });
 
   test('participants can read their conversations', async () => {
-    const adminDb = testEnv.firestore();
-    const convRef = await addDoc(collection(adminDb, 'conversations'), {
+    const convRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'conversations'), {
       participants: [ALICE_UID, BOB_UID],
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
@@ -644,10 +633,9 @@ describe('Messaging', () => {
   });
 
   test('non-participants cannot read conversations', async () => {
-    const adminDb = testEnv.firestore();
-    const convRef = await addDoc(collection(adminDb, 'conversations'), {
+    const convRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'conversations'), {
       participants: [ALICE_UID, BOB_UID],
-    });
+    }));
 
     const context = getAuthContext(CHARLIE_UID);
     const db = context.firestore();
@@ -656,10 +644,9 @@ describe('Messaging', () => {
   });
 
   test('users cannot delete conversations', async () => {
-    const adminDb = testEnv.firestore();
-    const convRef = await addDoc(collection(adminDb, 'conversations'), {
+    const convRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'conversations'), {
       participants: [ALICE_UID, BOB_UID],
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
@@ -690,12 +677,11 @@ describe('Messaging', () => {
   });
 
   test('receivers can read messages', async () => {
-    const adminDb = testEnv.firestore();
-    const msgRef = await addDoc(collection(adminDb, 'directMessages'), {
+    const msgRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'directMessages'), {
       senderId: ALICE_UID,
       receiverId: BOB_UID,
       text: 'Hello!',
-    });
+    }));
 
     const context = getAuthContext(BOB_UID);
     const db = context.firestore();
@@ -704,12 +690,11 @@ describe('Messaging', () => {
   });
 
   test('others cannot read private messages', async () => {
-    const adminDb = testEnv.firestore();
-    const msgRef = await addDoc(collection(adminDb, 'directMessages'), {
+    const msgRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'directMessages'), {
       senderId: ALICE_UID,
       receiverId: BOB_UID,
       text: 'Private message',
-    });
+    }));
 
     const context = getAuthContext(CHARLIE_UID);
     const db = context.firestore();
@@ -718,12 +703,11 @@ describe('Messaging', () => {
   });
 
   test('messages are immutable - cannot update', async () => {
-    const adminDb = testEnv.firestore();
-    const msgRef = await addDoc(collection(adminDb, 'directMessages'), {
+    const msgRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'directMessages'), {
       senderId: ALICE_UID,
       receiverId: BOB_UID,
       text: 'Hello!',
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
@@ -734,12 +718,11 @@ describe('Messaging', () => {
   });
 
   test('messages are immutable - cannot delete', async () => {
-    const adminDb = testEnv.firestore();
-    const msgRef = await addDoc(collection(adminDb, 'directMessages'), {
+    const msgRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'directMessages'), {
       senderId: ALICE_UID,
       receiverId: BOB_UID,
       text: 'Hello!',
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
@@ -754,13 +737,12 @@ describe('Messaging', () => {
 
 describe('Notifications', () => {
   test('users can read their own notifications', async () => {
-    const adminDb = testEnv.firestore();
-    const notifRef = await addDoc(collection(adminDb, 'notifications'), {
+    const notifRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'notifications'), {
       userId: ALICE_UID,
       type: 'message',
       title: 'New message',
       read: false,
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
@@ -769,12 +751,11 @@ describe('Notifications', () => {
   });
 
   test('users cannot read other users notifications', async () => {
-    const adminDb = testEnv.firestore();
-    const notifRef = await addDoc(collection(adminDb, 'notifications'), {
+    const notifRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'notifications'), {
       userId: ALICE_UID,
       type: 'message',
       title: 'New message',
-    });
+    }));
 
     const context = getAuthContext(BOB_UID);
     const db = context.firestore();
@@ -794,12 +775,11 @@ describe('Notifications', () => {
   });
 
   test('users can update their notifications (mark as read)', async () => {
-    const adminDb = testEnv.firestore();
-    const notifRef = await addDoc(collection(adminDb, 'notifications'), {
+    const notifRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'notifications'), {
       userId: ALICE_UID,
       type: 'message',
       read: false,
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
@@ -810,11 +790,10 @@ describe('Notifications', () => {
   });
 
   test('users can delete their own notifications', async () => {
-    const adminDb = testEnv.firestore();
-    const notifRef = await addDoc(collection(adminDb, 'notifications'), {
+    const notifRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'notifications'), {
       userId: ALICE_UID,
       type: 'message',
-    });
+    }));
 
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
