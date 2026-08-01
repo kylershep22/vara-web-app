@@ -118,6 +118,24 @@ async function setupGroup(groupId, ownerId, members = [], visibility = 'public')
   );
 }
 
+/**
+ * Seed a conversation with a known ID and participant list.
+ *
+ * Required by every directMessages test: both the read and the create rule
+ * resolve `conversationId` against this collection and check membership of
+ * `participants`. A message fixture without a conversation to point at makes
+ * the rule error on an undefined property and deny unconditionally — which
+ * silently turns any assertFails test into a vacuous pass.
+ */
+async function setupConversation(conversationId, participants) {
+  await withAdminDb((adminDb) =>
+    setDoc(doc(adminDb, 'conversations', conversationId), {
+      participants,
+      createdAt: new Date(),
+    })
+  );
+}
+
 // ============================================
 // TEST SUITE: AUTHENTICATION
 // ============================================
@@ -655,10 +673,18 @@ describe('Messaging', () => {
   });
 
   test('users can send direct messages', async () => {
+    // The create rule binds a message to its conversation: it requires
+    // conversationId and checks the sender is a participant of THAT
+    // conversation. Without a seeded conversation the rule errors on the
+    // undefined property and denies, so this fixture is what lets the test
+    // reach the check it means to exercise.
+    await setupConversation('conv1', [ALICE_UID, BOB_UID]);
+
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
 
     await assertSucceeds(addDoc(collection(db, 'directMessages'), {
+      conversationId: 'conv1',
       senderId: ALICE_UID,
       receiverId: BOB_UID,
       text: 'Hello!',
@@ -677,7 +703,11 @@ describe('Messaging', () => {
   });
 
   test('receivers can read messages', async () => {
+    // Bob IS a participant, so this pins the positive direction of the read
+    // rule's participant check.
+    await setupConversation('conv1', [ALICE_UID, BOB_UID]);
     const msgRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'directMessages'), {
+      conversationId: 'conv1',
       senderId: ALICE_UID,
       receiverId: BOB_UID,
       text: 'Hello!',
@@ -690,7 +720,23 @@ describe('Messaging', () => {
   });
 
   test('others cannot read private messages', async () => {
+    // Charlie is deliberately NOT in the participant list, so the denial comes
+    // from the participant check itself.
+    //
+    // This test used to pass VACUOUSLY: with no conversationId on the message,
+    // the read rule errored on the undefined property and denied everyone. The
+    // proof is that its positive counterpart above was RED at the same time —
+    // Bob, an actual participant, was denied by the identical fixture shape. A
+    // rule that denies all comers trivially satisfies "non-participant is
+    // denied", so the green said nothing about the participant check.
+    //
+    // With the conversation seeded the pair is load-bearing in both directions:
+    // invert the clause to !(uid in participants) and Charlie's read succeeds
+    // (this test goes red) while Bob's is denied (the test above goes red).
+    // The old fixture caught neither.
+    await setupConversation('conv1', [ALICE_UID, BOB_UID]);
     const msgRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'directMessages'), {
+      conversationId: 'conv1',
       senderId: ALICE_UID,
       receiverId: BOB_UID,
       text: 'Private message',
