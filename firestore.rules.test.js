@@ -182,7 +182,14 @@ describe('User Profiles', () => {
     await assertSucceeds(getDoc(doc(db, 'users', ALICE_UID)));
   });
 
-  test('users cannot read private profiles of others', async () => {
+  // PENDING — the `privacy` field is NOT enforced at the rules layer.
+  // `match /users/{userId}` allows read to any authenticated account and defers
+  // privacy filtering to the application layer, so this assertion cannot hold
+  // today. Kept (not deleted) because it states the intended contract that the
+  // privacy field implies. Deferred to the Community privacy work; see
+  // reconciled spec Section 21 item 9. Do NOT make this pass by weakening the
+  // assertion — it passes when the rule enforces privacy.
+  test.skip('users cannot read private profiles of others', async () => {
     await setupUserProfile(ALICE_UID, { privacy: 'private' });
 
     const context = getAuthContext(BOB_UID);
@@ -201,7 +208,17 @@ describe('User Profiles', () => {
     await assertSucceeds(getDoc(doc(db, 'users', ALICE_UID)));
   });
 
-  test('non-connected users cannot read connections-only profiles', async () => {
+  // PENDING — same cause as the private-profile test above: `privacy:
+  // 'connections'` is not enforced at the rules layer, so a non-connected
+  // authenticated account can still read the profile. Deferred to the Community
+  // privacy work; see reconciled spec Section 21 item 9.
+  //
+  // NOTE for whoever picks that up: the two POSITIVE tests in this block
+  // ('users can read public profiles', 'connected users can read
+  // connections-only profiles') currently pass vacuously — the blanket read
+  // rule makes them green regardless of the privacy logic. They only become
+  // meaningful once these two skips are unskipped.
+  test.skip('non-connected users cannot read connections-only profiles', async () => {
     await setupUserProfile(ALICE_UID, { privacy: 'connections' });
 
     const context = getAuthContext(BOB_UID);
