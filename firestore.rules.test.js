@@ -948,4 +948,166 @@ describe('Subscription State Lockdown', () => {
   });
 });
 
+// ============================================
+// TEST SUITE: PRIVATE USER STORE (userPrivate/{uid})
+//
+// This collection exists ONLY to give per-user singleton fields a read
+// restriction that users/{uid} cannot provide — that document is readable by
+// any authenticated account, and Firestore read rules are document-level.
+//
+// The load-bearing assertion in this block is therefore the cross-user READ
+// denial. If that ever passes to a non-owner, the collection has no reason to
+// exist and any field moved into it has been silently un-privatized.
+//
+// Ownership is by document ID (like notificationPreferences/{userId}), so
+// these tests address documents by uid rather than filtering on a userId field.
+//
+// HARNESS NOTE: this block seeds via testEnv.withSecurityRulesDisabled(), the
+// @firebase/rules-unit-testing v5 API, NOT the file's older shared helpers
+// (setupUserProfile / setupGroup / ...) which call the removed
+// testEnv.firestore(). Those helpers are why ~40 tests in the earlier blocks of
+// this file fail on main today — a pre-existing harness-migration debt, not a
+// rules problem, and deliberately left untouched by this slice.
+// ============================================
+
+describe('Private User Store (userPrivate)', () => {
+  async function seedUserPrivate(uid, data = {}) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const adminDb = ctx.firestore();
+      await setDoc(doc(adminDb, 'userPrivate', uid), {
+        uid,
+        weekStartDay: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...data,
+      });
+    });
+  }
+
+  // ---- Owner access ----
+
+  test('owner can read their own private doc', async () => {
+    await seedUserPrivate(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'userPrivate', ALICE_UID)));
+  });
+
+  test('owner can read their own private doc before it exists (absent is a normal state)', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'userPrivate', ALICE_UID)));
+  });
+
+  test('owner can create their own private doc', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(setDoc(doc(db, 'userPrivate', ALICE_UID), {
+      uid: ALICE_UID,
+      floorCommitment: 'ten minutes',
+      weekStartDay: 1,
+    }));
+  });
+
+  test('owner can update their own private doc', async () => {
+    await seedUserPrivate(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(updateDoc(doc(db, 'userPrivate', ALICE_UID), {
+      activeOutcome: 'steadier-weeks',
+    }));
+  });
+
+  test('owner can delete their own private doc', async () => {
+    await seedUserPrivate(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(deleteDoc(doc(db, 'userPrivate', ALICE_UID)));
+  });
+
+  // ---- Cross-user denial (the reason this collection exists) ----
+
+  test('a different authenticated user CANNOT read the owner private doc', async () => {
+    await seedUserPrivate(ALICE_UID, { floorCommitment: 'ten minutes' });
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'userPrivate', ALICE_UID)));
+  });
+
+  test('a different authenticated user CANNOT create a doc under the owner uid', async () => {
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(setDoc(doc(db, 'userPrivate', ALICE_UID), {
+      uid: ALICE_UID,
+      activeOutcome: 'planted-by-bob',
+    }));
+  });
+
+  test('a different authenticated user CANNOT update the owner private doc', async () => {
+    await seedUserPrivate(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(updateDoc(doc(db, 'userPrivate', ALICE_UID), {
+      activeOutcome: 'planted-by-bob',
+    }));
+  });
+
+  test('a different authenticated user CANNOT delete the owner private doc', async () => {
+    await seedUserPrivate(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(deleteDoc(doc(db, 'userPrivate', ALICE_UID)));
+  });
+
+  test('writing a matching uid FIELD does not buy access to another uid document', async () => {
+    // Ownership is the document ID, not a field. A caller cannot self-authorize
+    // by claiming their own uid inside a document addressed to someone else.
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(setDoc(doc(db, 'userPrivate', ALICE_UID), {
+      uid: BOB_UID,
+    }));
+  });
+
+  // ---- Unauthenticated ----
+
+  test('unauthenticated users cannot read a private doc', async () => {
+    await seedUserPrivate(ALICE_UID);
+    const db = getUnauthContext().firestore();
+
+    await assertFails(getDoc(doc(db, 'userPrivate', ALICE_UID)));
+  });
+
+  test('unauthenticated users cannot write a private doc', async () => {
+    const db = getUnauthContext().firestore();
+
+    await assertFails(setDoc(doc(db, 'userPrivate', ALICE_UID), {
+      uid: ALICE_UID,
+    }));
+  });
+
+  // ---- Isolation from the public profile doc ----
+
+  test('the public users doc stays broadly readable — this block did not change it', async () => {
+    // Guards the additive claim: userPrivate exists BESIDE users/{uid}, it does
+    // not tighten it. If this ever fails, the slice stopped being additive.
+    //
+    // Seeds inline rather than via the shared setupUserProfile helper, which
+    // calls testEnv.firestore() — an API removed in @firebase/rules-unit-testing
+    // v5. That helper is why most of the older blocks in this file currently
+    // fail; see the note at the top of this describe.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', ALICE_UID), {
+        displayName: `User ${ALICE_UID}`,
+        email: `${ALICE_UID}@test.com`,
+        privacy: 'public',
+        createdAt: new Date(),
+      });
+    });
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'users', ALICE_UID)));
+  });
+});
+
 console.log('✅ All security rules tests defined. Run with: npm run test:rules');
