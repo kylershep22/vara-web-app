@@ -354,6 +354,36 @@ export async function updateNotificationPreferences(
 }
 
 /**
+ * Make sure the reminder pathway is actually allowed to run, for a user who has
+ * just switched a per-habit reminder ON.
+ *
+ * syncAllReminders bails entirely when `allNotificationsEnabled` is false, and
+ * that flag DEFAULTS to false. So without this, a user who never completed the
+ * onboarding anchor or the opt-in screen would set a reminder, watch it get
+ * scheduled, and watch it silently vanish on the next app foreground — the
+ * exact silent-drop class of bug the notification slices exist to remove.
+ *
+ * Flips the MASTER FLAG ONLY. insightsLearning, socialConnection and
+ * milestonesReflection keep whatever the user already had: asking to be
+ * reminded about one habit is not consent to brain-health tips, community
+ * digests or milestone messages. Those categories are independent and stay
+ * where they are.
+ *
+ * No-ops when the flag is already on, so it is safe to call on every save.
+ */
+export async function ensureRemindersAllowed(userId: string): Promise<void> {
+  try {
+    const preferences = await getNotificationPreferences(userId);
+    if (preferences.allNotificationsEnabled) return;
+
+    await updateNotificationPreferences(userId, { allNotificationsEnabled: true });
+  } catch (error) {
+    // Non-fatal: the habit itself is already saved, and the next sync retries.
+    console.error('Error enabling notifications for habit reminder:', error);
+  }
+}
+
+/**
  * Toggle master notifications on/off.
  */
 export async function toggleAllNotifications(

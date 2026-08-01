@@ -26,6 +26,13 @@ let mockPrefs: any = { allNotificationsEnabled: true };
 /** Ordered log of the reconciliation calls, for the ordering assertion. */
 const callLog: string[] = [];
 
+/** Navigation, for the notification-tap routing tests. */
+let mockNavReady = false;
+const mockNavigate = jest.fn();
+
+/** The notification-tap handler the provider registers. */
+let tapHandler: ((response: any) => void) | null = null;
+
 const mockCancelExceptFocus = jest.fn(async () => {
   callLog.push('cancel');
 });
@@ -49,7 +56,10 @@ jest.mock('../../services/notifications.service', () => ({
   cancelAllScheduledExceptFocusComplete: (...a: any[]) => mockCancelExceptFocus(...(a as [])),
   registerAndSaveFCMToken: jest.fn().mockResolvedValue(null),
   isServerPushEnabled: jest.fn().mockResolvedValue(false),
-  addNotificationResponseListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationResponseListener: (handler: any) => {
+    tapHandler = handler;
+    return { remove: jest.fn() };
+  },
   getLastNotificationResponse: jest.fn().mockResolvedValue(null),
 }));
 jest.mock('../../services/reminderScheduler.service', () => ({
@@ -76,7 +86,7 @@ jest.mock('../../services/firebase/habits.service', () => ({
   isHabitCompletedToday: jest.fn().mockResolvedValue(false),
 }));
 jest.mock('../../navigation/AppNavigator', () => ({
-  navigationRef: { isReady: () => false, navigate: jest.fn() },
+  navigationRef: { isReady: () => mockNavReady, navigate: (...a: any[]) => mockNavigate(...a) },
 }));
 
 import { NotificationProvider } from '../NotificationContext';
@@ -88,6 +98,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   callLog.length = 0;
   appStateHandler = null;
+  tapHandler = null;
+  mockNavReady = true;
   mockUser = { uid: 'u1', emailVerified: true };
   mockPrefs = { allNotificationsEnabled: true };
 
@@ -188,6 +200,48 @@ describe('resuming the app', () => {
 
     expect(mockCancelExceptFocus).not.toHaveBeenCalled();
     expect(mockSyncAllReminders).not.toHaveBeenCalled();
+  });
+});
+
+describe('tapping a habit reminder', () => {
+  /** A delivered habit reminder, shaped as scheduleHabitReminder writes it. */
+  function tap(data: Record<string, unknown>) {
+    tapHandler?.({ notification: { request: { content: { data } } } });
+  }
+
+  test('lands on the habits list', async () => {
+    mount();
+    await waitFor(() => expect(tapHandler).not.toBeNull());
+
+    tap({ type: 'habit-reminder', habitId: 'h1' });
+
+    // Deliberately the LIST, not a param-specific detail screen: HabitDetail
+    // requires a full Habit object in its params and the payload carries only
+    // an id, so deep-linking there needs a fetch. Tracked separately, for
+    // routines and habits together.
+    expect(mockNavigate).toHaveBeenCalledWith('Rhythms');
+  });
+
+  test('the router keys on the SAME type string the scheduler writes', async () => {
+    mount();
+    await waitFor(() => expect(tapHandler).not.toBeNull());
+
+    // Renaming the payload type without updating this branch would silently
+    // turn every reminder tap into a no-op — no crash, no log, just a tap that
+    // does nothing. This pins the two ends together.
+    tap({ type: 'habit', habitId: 'h1' });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  test('does not navigate before the navigator is ready', async () => {
+    mount();
+    await waitFor(() => expect(tapHandler).not.toBeNull());
+    mockNavReady = false;
+
+    tap({ type: 'habit-reminder', habitId: 'h1' });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });
 

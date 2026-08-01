@@ -52,6 +52,13 @@ jest.mock('../../services/firebase/focusRhythms.service', () => ({
 
 // Reminders are OUT of scope for this slice. Mocked so the tests below can
 // assert that nothing here ever reaches them.
+// Mocked because the real module pulls in expo-notifications, whose
+// EventEmitter init fails under the react-native jest preset (same reason
+// expo-haptics is mocked globally). The habit save path calls into it to
+// request notification permission.
+jest.mock('../../services/notifications.service', () => ({
+  ensureNotificationPermission: jest.fn().mockResolvedValue(true),
+}));
 jest.mock('../../services/reminderScheduler.service', () => ({
   scheduleHabitReminder: (...a: any[]) => mockScheduleHabitReminder(...a),
   cancelHabitReminder: (...a: any[]) => mockCancelHabitReminder(...a),

@@ -53,6 +53,29 @@ jest.mock('../../hooks/useReducedMotion', () => ({
   useReducedMotion: () => true, // no animation in tests
 }));
 
+// The reminder controls pull the scheduler in, which imports
+// expo-notifications; that module fails EventEmitter init under the
+// react-native preset (same reason jest.setup mocks expo-haptics).
+const mockScheduleHabitReminder = jest.fn().mockResolvedValue(undefined);
+const mockCancelHabitReminder = jest.fn().mockResolvedValue(undefined);
+const mockEnsureRemindersAllowed = jest.fn().mockResolvedValue(undefined);
+
+// Mocked because the real module pulls in expo-notifications, whose
+// EventEmitter init fails under the react-native jest preset (same reason
+// expo-haptics is mocked globally). The habit save path calls into it to
+// request notification permission.
+jest.mock('../../services/notifications.service', () => ({
+  ensureNotificationPermission: jest.fn().mockResolvedValue(true),
+}));
+jest.mock('../../services/reminderScheduler.service', () => ({
+  scheduleHabitReminder: (...args: any[]) => mockScheduleHabitReminder(...args),
+  cancelHabitReminder: (...args: any[]) => mockCancelHabitReminder(...args),
+}));
+jest.mock('../../services/firebase/notificationPreferences.service', () => ({
+  ensureRemindersAllowed: (...args: any[]) => mockEnsureRemindersAllowed(...args),
+}));
+jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+
 import React from 'react';
 import { render, waitFor, act, fireEvent } from '@testing-library/react-native';
 

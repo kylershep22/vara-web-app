@@ -53,6 +53,13 @@ jest.mock('../../services/firebase', () => ({
   getCompletionNote: (...a: any[]) => mockGetCompletionNote(...a),
 }));
 
+// Mocked because the real module pulls in expo-notifications, whose
+// EventEmitter init fails under the react-native jest preset (same reason
+// expo-haptics is mocked globally). The habit save path calls into it to
+// request notification permission.
+jest.mock('../../services/notifications.service', () => ({
+  ensureNotificationPermission: jest.fn().mockResolvedValue(true),
+}));
 jest.mock('../../services/reminderScheduler.service', () => ({
   scheduleHabitReminder: jest.fn(),
   cancelHabitReminder: jest.fn(),

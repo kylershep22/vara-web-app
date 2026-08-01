@@ -160,6 +160,20 @@ export interface Habit {
   frequencyType?: 'daily' | 'specific_days' | 'flexible';
   specificDays?: number[];  // 0=Sun, 1=Mon, ..., 6=Sat
   timeOfDay?: HabitTimeOfDay;
+
+  // Per-habit reminder. Opt-in: an absent `reminderEnabled` means off, so
+  // habits created before this shipped carry no flag at all.
+  //
+  // `reminderTime` is the canonical ReminderTime {hour, minute} — deliberately
+  // NOT a "7:00 AM" string (routines store one, and parseTimeString silently
+  // no-ops on anything it cannot read) and NOT the legacy `cue`, which is a
+  // different concept written only by the retired wizard.
+  //
+  // The reminder's DAYS are not stored: they are inherited from the habit's own
+  // frequencyType/specificDays at schedule time, so a habit's schedule and its
+  // reminder can never disagree. See utils/habitReminderPlan.
+  reminderEnabled?: boolean;
+  reminderTime?: ReminderTime | null;
   streak: number;
   longestStreak: number;
   active: boolean;

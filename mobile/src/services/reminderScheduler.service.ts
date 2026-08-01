@@ -7,6 +7,11 @@
 import * as Notifications from 'expo-notifications';
 import { logger } from '../utils/logger';
 import { Habit } from '../types';
+import {
+  habitReminderPlan,
+  habitReminderIdentifier,
+  isIdentifierForHabit,
+} from '../utils/habitReminderPlan';
 import { Routine, fetchUserRoutines, calculateTotalDuration } from './firebase/routines.service';
 import { getNotificationPreferences } from './firebase/notificationPreferences.service';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -67,17 +72,32 @@ async function hasNotificationPermission(): Promise<boolean> {
 // ─── Habit Reminders ──────────────────────────────────────────
 
 /**
- * Schedule a daily notification for a habit's time-based cue.
- * Only schedules if habit.cue?.type === 'time' and cue.value is parseable.
+ * Schedule a habit's reminder from `reminderEnabled` + `reminderTime`, on the
+ * cadence the habit itself already declares.
+ *
+ * A daily or flexible habit gets one DAILY trigger; a specific-days habit gets
+ * one WEEKLY trigger per chosen day, so a single habit can own up to seven
+ * scheduled notifications. See utils/habitReminderPlan for why the days are
+ * derived rather than stored, and for the null cases that get no reminder.
+ *
+ * QUIET HOURS ARE DELIBERATELY NOT CONSULTED HERE, and this is intended
+ * behaviour, not an oversight to be "fixed" later: quiet hours are a default
+ * window, while a per-habit reminder time is an explicit instruction the user
+ * typed into a picker for this specific habit. An explicit instruction beats a
+ * default. (isWithinQuietHours governs immediate, app-initiated notifications
+ * via sendThrottledNotification; it has never applied to scheduled triggers.)
  */
 export async function scheduleHabitReminder(habit: Habit): Promise<void> {
-  if (!habit.cue || habit.cue.type !== 'time' || !habit.cue.value) {
+  if (!habit.reminderEnabled || !habit.reminderTime) {
     return;
   }
 
-  const parsed = parseTimeString(habit.cue.value);
-  if (!parsed) {
-    logger.warn(`[reminderScheduler] Cannot parse habit cue time: "${habit.cue.value}" for habit ${habit.id}`);
+  const { hour, minute } = habit.reminderTime;
+  const plan = habitReminderPlan(habit);
+  if (!plan) {
+    // The habit declares no usable cadence, so there is nothing to repeat on.
+    // The UI hides the control in exactly these cases; this guard is what makes
+    // that true for habits whose schedule changed after the reminder was set.
     return;
   }
 
@@ -86,45 +106,77 @@ export async function scheduleHabitReminder(habit: Habit): Promise<void> {
     return;
   }
 
-  const identifier = `habit-reminder-${habit.id}`;
+  // Clear the habit's WHOLE existing set first. An exact-identifier cancel
+  // would strand triggers whenever the day set shrinks (Mon/Wed/Fri -> Mon/Tue
+  // would leave Wed and Fri firing forever).
+  await cancelHabitReminder(habit.id);
 
-  // Cancel existing before scheduling (prevents duplicates)
-  try {
-    await Notifications.cancelScheduledNotificationAsync(identifier);
-  } catch {
-    // May not exist, that's fine
-  }
+  // Body deliberately says nothing about streaks, misses, or how long it has
+  // been: a reminder arrives whether or not the day has gone well, and framing
+  // it around absence turns a nudge into a reproach. Present tense, an opening
+  // rather than an instruction, and it reads the same on a good day and a bad
+  // one. `habitId` is what makes the notification tappable back to the habit.
+  const content = {
+    title: `Time for ${habit.name}`,
+    body: 'A moment for this, if now works.',
+    sound: true,
+    data: { type: 'habit-reminder', habitId: habit.id },
+  };
 
   try {
-    await Notifications.scheduleNotificationAsync({
-      identifier,
-      content: {
-        title: `Time for ${habit.name}`,
-        body: `Your ${habit.cue.value} reminder`,
-        sound: true,
-        data: { type: 'habit-reminder', habitId: habit.id },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: parsed.hour,
-        minute: parsed.minute,
-      },
-    });
-    logger.log(`[reminderScheduler] Scheduled habit reminder: ${identifier} at ${parsed.hour}:${String(parsed.minute).padStart(2, '0')}`);
+    if (plan.kind === 'daily') {
+      await Notifications.scheduleNotificationAsync({
+        identifier: habitReminderIdentifier(habit.id),
+        content,
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour,
+          minute,
+        },
+      });
+    } else {
+      for (const weekday of plan.weekdays) {
+        await Notifications.scheduleNotificationAsync({
+          identifier: habitReminderIdentifier(habit.id, weekday),
+          content,
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+            weekday,
+            hour,
+            minute,
+          },
+        });
+      }
+    }
+    logger.log(
+      `[reminderScheduler] Scheduled ${plan.kind} habit reminder for ${habit.id} at ${hour}:${String(minute).padStart(2, '0')}`
+    );
   } catch (error) {
     logger.error(`[reminderScheduler] Failed to schedule habit reminder:`, error);
   }
 }
 
 /**
- * Cancel a scheduled habit reminder.
+ * Cancel EVERY scheduled notification belonging to a habit.
+ *
+ * Filter-then-cancel rather than a single exact-identifier cancel: a
+ * specific-days habit owns one identifier per weekday, and cancelling only the
+ * bare `habit-reminder-${id}` would leave orphaned weekly triggers firing for a
+ * habit the user deleted.
  */
 export async function cancelHabitReminder(habitId: string): Promise<void> {
   try {
-    await Notifications.cancelScheduledNotificationAsync(`habit-reminder-${habitId}`);
-    logger.log(`[reminderScheduler] Cancelled habit reminder: habit-reminder-${habitId}`);
-  } catch {
-    // May not exist, that's fine
+    const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const owned = allScheduled.filter((n) => isIdentifierForHabit(n.identifier, habitId));
+
+    for (const n of owned) {
+      await Notifications.cancelScheduledNotificationAsync(n.identifier);
+    }
+    if (owned.length > 0) {
+      logger.log(`[reminderScheduler] Cancelled ${owned.length} reminder(s) for habit ${habitId}`);
+    }
+  } catch (error) {
+    logger.error('[reminderScheduler] Error cancelling habit reminders:', error);
   }
 }
 
@@ -194,6 +246,76 @@ export async function cancelRoutineReminder(routineId: string): Promise<void> {
   }
 }
 
+// ─── Habit reminder cap ───────────────────────────────────────
+
+/**
+ * Ceiling on how many habit-reminder triggers may be pending at once.
+ *
+ * iOS allows 64 pending notifications per app and SILENTLY DISCARDS the rest —
+ * no error, no callback, the notification simply never arrives. A single
+ * specific-days habit can own seven triggers, so ten such habits would already
+ * blow past it and start evicting other categories (the daily rhythm, the focus
+ * completion notification) at the OS's discretion rather than ours.
+ *
+ * 40 is provisional: it leaves headroom for the other categories while being
+ * far above any plausible real habit count.
+ */
+export const MAX_HABIT_REMINDER_TRIGGERS = 40;
+
+/** How many scheduled notifications this habit's reminder needs. */
+function triggerCount(habit: Habit): number {
+  const plan = habitReminderPlan(habit);
+  if (!plan) return 0;
+  return plan.kind === 'daily' ? 1 : plan.weekdays.length;
+}
+
+/**
+ * Firestore Timestamp | Date | not-yet-resolved -> epoch millis.
+ * An unresolved serverTimestamp sorts LAST, which is correct: it is the newest.
+ */
+function toMillis(value: unknown): number {
+  const ts = value as { toMillis?: () => number; toDate?: () => Date } | undefined;
+  if (ts && typeof ts.toMillis === 'function') return ts.toMillis();
+  if (ts && typeof ts.toDate === 'function') return ts.toDate().getTime();
+  if (value instanceof Date) return value.getTime();
+  return Number.MAX_SAFE_INTEGER;
+}
+
+/**
+ * Keep habits in the given (oldest-first) order until the trigger budget runs
+ * out, then drop the remainder.
+ *
+ * Stops at the first habit that does not fit rather than skipping it to squeeze
+ * in a smaller later one: "the oldest N are protected" is a rule a user could
+ * be told, whereas "whichever ones happened to fit" is not. A habit is always
+ * kept whole or dropped whole — scheduling three of a habit's five days would
+ * be worse than scheduling none, because it looks like it works.
+ */
+function applyReminderCap(habits: Habit[]): {
+  kept: Habit[];
+  droppedHabits: number;
+  droppedTriggers: number;
+} {
+  const kept: Habit[] = [];
+  let used = 0;
+
+  for (let i = 0; i < habits.length; i++) {
+    const need = triggerCount(habits[i]);
+    if (used + need > MAX_HABIT_REMINDER_TRIGGERS) {
+      const dropped = habits.slice(i);
+      return {
+        kept,
+        droppedHabits: dropped.length,
+        droppedTriggers: dropped.reduce((sum, h) => sum + triggerCount(h), 0),
+      };
+    }
+    kept.push(habits[i]);
+    used += need;
+  }
+
+  return { kept, droppedHabits: 0, droppedTriggers: 0 };
+}
+
 // ─── Sync All Reminders ───────────────────────────────────────
 
 /**
@@ -245,12 +367,28 @@ export async function syncAllReminders(userId: string): Promise<void> {
       const habitsSnapshot = await getDocs(habitsQuery);
       const habits = habitsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Habit));
 
-      for (const habit of habits) {
-        if (habit.cue?.type === 'time') {
-          await scheduleHabitReminder(habit);
-        }
+      const withReminders = habits
+        .filter((h) => h.reminderEnabled && h.reminderTime && habitReminderPlan(h))
+        // Oldest first. The cap below protects established reminders and drops
+        // the marginal addition, so the order has to be deterministic — without
+        // it "which reminder stopped working" would vary run to run.
+        .sort((a, b) => toMillis(a.createdAt) - toMillis(b.createdAt));
+
+      const { kept, droppedHabits, droppedTriggers } = applyReminderCap(withReminders);
+
+      if (droppedHabits > 0) {
+        logger.warn(
+          `[reminderScheduler] REMINDER CAP EXCEEDED — scheduling ${MAX_HABIT_REMINDER_TRIGGERS} triggers ` +
+            `for ${kept.length} habit(s); DROPPED ${droppedHabits} habit(s) / ${droppedTriggers} trigger(s). ` +
+            `Newest reminders are dropped first. iOS silently discards pending notifications beyond 64, ` +
+            `so this cap is what keeps the drop deliberate and diagnosable.`
+        );
       }
-      logger.log(`[reminderScheduler] Synced ${habits.filter((h) => h.cue?.type === 'time').length} habit reminders`);
+
+      for (const habit of kept) {
+        await scheduleHabitReminder(habit);
+      }
+      logger.log(`[reminderScheduler] Synced ${kept.length} habit reminders`);
     } catch (error) {
       logger.error('[reminderScheduler] Error syncing habit reminders:', error);
     }
