@@ -1,6 +1,6 @@
 # Vara — Reconciled Product Spec
-**Version 1.3 | July 2026 | Single source of truth**
-*(v1.3: reconciled against the Step-0 diagnostic — user-doc privacy split is now the first code slice; block-is-mute gap, analytics-from-zero, and onboarding/engine coupling corrected.)*
+**Version 1.4 | July 2026 | Single source of truth**
+*(v1.4: slice-3a — added the security-load-bearing org-ID auto-ID invariant to 17.2. v1.3: reconciled against the Step-0 diagnostic — user-doc privacy split is the first code slice; block-is-mute gap, analytics-from-zero, onboarding/engine coupling, profile-privacy gap (#9).)*
 
 This document collapses two prior specs into one: **Vara's Refactor Plan** (the outcomes-led four-pillar build) and **Jen's Product Spec v1.0** (the weekly-capacity engine produced by Jen's Claude on Jul 30). Where they conflicted, this doc resolves it. Where the resolution created a new decision, it's recorded here with the reasoning.
 
@@ -319,6 +319,7 @@ The design problem is four people served by one system with zero leakage between
 - `organization_id` as a **nullable field** with rule-based enforcement (not a project per tenant — an ops nightmare for a solo founder). Direct consumers have none.
 - Coarse RBAC via membership role: member reads only their own rows; coach reads rollups for orgs where they hold `role=coach`; admin the same. Resist finer roles until a real customer forces one.
 - **Placement constraint (slice-3 build note):** the org linkage — whether a user belongs to an org, and which — must **not** live on the world-readable `users/{uid}` doc, or "who is in the AcmeCorp cohort" becomes readable by any authenticated account. It lives in the owner-only `membership` collection and/or `userPrivate/{uid}` (the slice-1 store), consistent with the split. The `user { organization_id? }` line in the schema below is logical, not a literal instruction to put the field on the public doc.
+- **Org-ID invariant (security-load-bearing, from slice 3a):** organization IDs are always **Firestore auto-IDs, never human-readable slugs.** The membership doc key is `${orgId}_${userId}` and the rules `isOrgMember` check keys off it, so if an orgId ever contained `_` the key would be ambiguous (`a_b_c` = org `a_b`/user `c` *or* org `a`/user `b_c`) and a user could match a membership for an org they don't belong to — a cross-tenant read. Auto-IDs (20-char alphanumeric, no `_`) prevent this. Whoever builds org provisioning must honor this. If readable org slugs are ever wanted, store a separate display-slug field and keep the ID an auto-ID; do not put the slug in the key. Related fragility: the rule constructs that key inline and `membershipDocId()` constructs it in TS — two languages, no shared constant — so any change to the key format must touch both or every membership check silently fails closed.
 
 ```
 organization { id, name, type (individual|coach_practice|corporate), seat_limit, billing_ref }
