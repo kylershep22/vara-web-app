@@ -1,6 +1,6 @@
 # Vara — Reconciled Product Spec
-**Version 1.4 | July 2026 | Single source of truth**
-*(v1.4: slice-3a — added the security-load-bearing org-ID auto-ID invariant to 17.2. v1.3: reconciled against the Step-0 diagnostic — user-doc privacy split is the first code slice; block-is-mute gap, analytics-from-zero, onboarding/engine coupling, profile-privacy gap (#9).)*
+**Version 1.5 | July 2026 | Single source of truth**
+*(v1.5: slices 1/2/3a shipped; 3b org entitlement resolver deferred to shortly after launch, gated on the first cohort — build order updated. v1.4: org-ID auto-ID invariant. v1.3: reconciled against the Step-0 diagnostic.)*
 
 This document collapses two prior specs into one: **Vara's Refactor Plan** (the outcomes-led four-pillar build) and **Jen's Product Spec v1.0** (the weekly-capacity engine produced by Jen's Claude on Jul 30). Where they conflicted, this doc resolves it. Where the resolution created a new decision, it's recorded here with the reasoning.
 
@@ -402,12 +402,14 @@ Retention (D1/D2/D7/D14/D28/W8); onboarding funnel by screen; core loop (weekly 
 
 ## 22. Build order
 
-**P0 — nothing ships without these** *(reordered against the diagnostic)*
+**P0 — nothing ships without these** *(reordered against the diagnostic; progress tracked inline)*
 1. ~~Read-only Step-0 diagnostic~~ — **done** (main @ 6e53f52; baseline tsc 159 / jest 1999-passing).
-2. **Private-data foundation** (Section 17.1): public/private user-doc split + owner-only rules on the private store + entitlement-resolution seam. First code slice — everything sensitive sits on it, and it closes the live world-readable-user-doc exposure. New weekly/org data goes private from day one (no migration); legacy stress-data migration is a coordinated fast-follow (Section 21 #8).
-3. Org relational schema (organization / membership / nullable org_id) on top of the private foundation (Section 17.2).
+2. ~~Private-data foundation~~ — **done, slice 1** (`userPrivate/{uid}`, owner-only rules, read-only service; main @ 979ac11). New weekly/org data goes private from day one (no migration); legacy stress-data migration is a coordinated fast-follow (Section 21 #8).
+2a. ~~Rules-test harness migration to v5~~ — **done, slice 2** (harness green for the first time; caught a false-green in messaging; profile-privacy tests marked pending → item #9; main @ 88fbcff).
+3. ~~Org relational schema~~ — **done, slice 3a** (organizations + memberships, owner-only rules with member-privacy tests asserting S17.1, read-only service; org-ID auto-ID invariant locked in 17.2; main @ d986f6e).
+3b. **Org entitlement resolver — DEFERRED to shortly after launch (Kyle, confirmed).** The CF that grants access on active membership + seat-limit enforcement + `canAccessApp` extended to org membership + a paywall device walk. Deferred because it's *dormant until org provisioning exists* (nothing creates memberships yet) and because access resolution is centralized in `useSubscription`/`canAccessApp`, so extending it later is a contained change, not a scattered retrofit. **Trigger to build:** the first real cohort landing on the app (org provisioning going live), which the B2B2C phasing puts shortly after the consumer launch. Schema + rules (3a) are already in place, so this is purely the resolution layer. Do not let this slip past the first cohort — it's the gate that turns a membership into app access.
 4. Today tab as default landing — via the existing `FOUR_PILLAR_IA`/navigator seam (Section 9).
-5. Weekly open → protocol generation (Section 6).
+5. Weekly open → protocol generation (Section 6). **← active work (weekly-engine pure module first)**
 6. Dynamic in-week re-set with continuity-against-floor (Sections 1, 7).
 7. **Analytics pipeline stood up + core-loop events wired** (Section 20) — greenfield; gates validation.
 
