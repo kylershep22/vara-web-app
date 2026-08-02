@@ -1183,4 +1183,233 @@ describe('Private User Store (userPrivate)', () => {
   });
 });
 
+// ============================================
+// TEST SUITE: ORG / ROSTER (organizations + memberships)
+//
+// The org data model (Reconciled Product Spec S17.1–17.2). Both collections are
+// provisioned server-side, so every client write must be refused and reads must
+// be scoped: an organization to its members, a membership to its owner.
+//
+// The load-bearing assertions are the two cross-user DENIALS. Everything else in
+// this block can pass while the model is still wide open; those two are what
+// prove the boundary exists. They are seeded so the denial comes from the rule
+// under test and not from an evaluation error — see the vacuous-green failure
+// mode documented in the Messaging block.
+// ============================================
+
+describe('Org / Roster (organizations + memberships)', () => {
+  const ORG_ID = 'org1';
+
+  async function seedOrg(orgId = ORG_ID, data = {}) {
+    await withAdminDb((adminDb) =>
+      setDoc(doc(adminDb, 'organizations', orgId), {
+        name: `Test Org ${orgId}`,
+        type: 'corporate',
+        seatLimit: 25,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...data,
+      })
+    );
+  }
+
+  // Mirrors membershipDocId() in mobile/src/services/firebase/org.service.ts and
+  // the isOrgMember() concatenation in firestore.rules. All three must agree.
+  async function seedMembership(orgId, userId, role = 'member') {
+    await withAdminDb((adminDb) =>
+      setDoc(doc(adminDb, 'memberships', `${orgId}_${userId}`), {
+        orgId,
+        userId,
+        role,
+        joinedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    );
+  }
+
+  // ---- Organization reads ----
+
+  test('a member can read their organization', async () => {
+    await seedOrg();
+    await seedMembership(ORG_ID, ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'organizations', ORG_ID)));
+  });
+
+  test('a non-member authenticated user CANNOT read the organization', async () => {
+    // Load-bearing. Bob is authenticated and the org exists; the ONLY thing
+    // standing between him and it is the isOrgMember() exists() check. Alice's
+    // membership is seeded so the org genuinely has a member — a rule that
+    // denied everyone would still pass this test on its own, which is why the
+    // positive test above shares the same fixture shape.
+    await seedOrg();
+    await seedMembership(ORG_ID, ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'organizations', ORG_ID)));
+  });
+
+  test('membership in one org does not grant read on another', async () => {
+    await seedOrg('org1');
+    await seedOrg('org2');
+    await seedMembership('org1', ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'organizations', 'org2')));
+  });
+
+  test('unauthenticated users cannot read an organization', async () => {
+    await seedOrg();
+    await seedMembership(ORG_ID, ALICE_UID);
+    const db = getUnauthContext().firestore();
+
+    await assertFails(getDoc(doc(db, 'organizations', ORG_ID)));
+  });
+
+  // ---- Membership reads ----
+
+  test('a user can read their own membership', async () => {
+    await seedMembership(ORG_ID, ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'memberships', `${ORG_ID}_${ALICE_UID}`)));
+  });
+
+  test('a different authenticated user CANNOT read that membership', async () => {
+    // Load-bearing. This is the roster-privacy boundary in miniature: Bob must
+    // not be able to enumerate who belongs to an org, even one he is in.
+    await seedMembership(ORG_ID, ALICE_UID);
+    await seedMembership(ORG_ID, BOB_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'memberships', `${ORG_ID}_${ALICE_UID}`)));
+  });
+
+  test('a coach cannot read another members membership row', async () => {
+    // Role does not widen reads in this slice. Coach/admin roster access is a
+    // later slice with its own rules; until then a coach is just another member.
+    await seedMembership(ORG_ID, ALICE_UID, 'member');
+    await seedMembership(ORG_ID, BOB_UID, 'coach');
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'memberships', `${ORG_ID}_${ALICE_UID}`)));
+  });
+
+  test('unauthenticated users cannot read a membership', async () => {
+    await seedMembership(ORG_ID, ALICE_UID);
+    const db = getUnauthContext().firestore();
+
+    await assertFails(getDoc(doc(db, 'memberships', `${ORG_ID}_${ALICE_UID}`)));
+  });
+
+  // ---- Client writes are refused outright (server-side provisioning only) ----
+
+  test('no authenticated client can create an organization', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(setDoc(doc(db, 'organizations', 'org-new'), {
+      name: 'Self-provisioned',
+      type: 'corporate',
+      seatLimit: 999,
+    }));
+  });
+
+  test('no authenticated client can update an organization — even as a member', async () => {
+    await seedOrg();
+    await seedMembership(ORG_ID, ALICE_UID, 'admin');
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    // Being an org admin grants READ, never write. Seat counts are billing state.
+    await assertFails(updateDoc(doc(db, 'organizations', ORG_ID), { seatLimit: 999 }));
+  });
+
+  test('no authenticated client can delete an organization', async () => {
+    await seedOrg();
+    await seedMembership(ORG_ID, ALICE_UID, 'admin');
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(deleteDoc(doc(db, 'organizations', ORG_ID)));
+  });
+
+  test('no authenticated client can create a membership — no self-joining an org', async () => {
+    // The whole seat model depends on this: if a client could write its own
+    // membership row it could grant itself org access and, via isOrgMember(),
+    // read the organization too.
+    await seedOrg();
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(setDoc(doc(db, 'memberships', `${ORG_ID}_${ALICE_UID}`), {
+      orgId: ORG_ID,
+      userId: ALICE_UID,
+      role: 'member',
+    }));
+  });
+
+  test('no authenticated client can escalate their own role', async () => {
+    await seedMembership(ORG_ID, ALICE_UID, 'member');
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(updateDoc(doc(db, 'memberships', `${ORG_ID}_${ALICE_UID}`), {
+      role: 'admin',
+    }));
+  });
+
+  test('no authenticated client can delete their own membership', async () => {
+    await seedMembership(ORG_ID, ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(deleteDoc(doc(db, 'memberships', `${ORG_ID}_${ALICE_UID}`)));
+  });
+
+  test('forging a matching userId FIELD in a membership you do not own grants nothing', async () => {
+    // Mirrors the slice-1 userPrivate forge test. Bob cannot write a membership
+    // row claiming to be Alice's, nor one addressed to Alice's document ID that
+    // names himself — the collection is not client-writable at all, so the read
+    // rule's userId check is never even reached.
+    await seedMembership(ORG_ID, ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(setDoc(doc(db, 'memberships', `${ORG_ID}_${ALICE_UID}`), {
+      orgId: ORG_ID,
+      userId: BOB_UID,
+      role: 'admin',
+    }));
+  });
+
+  // ---- Member privacy: the org grants nothing over member data ----
+
+  test('org membership does not grant read access to another members personal data', async () => {
+    // The S17.1 precondition, asserted directly: a coach in the same org is no
+    // closer to Alice's habits than a stranger is. If a later slice widens a
+    // per-user collection for roster or rollup purposes, this goes red.
+    await seedMembership(ORG_ID, ALICE_UID, 'member');
+    await seedMembership(ORG_ID, BOB_UID, 'coach');
+    const habitRef = await withAdminDb((adminDb) => addDoc(collection(adminDb, 'habits'), {
+      userId: ALICE_UID,
+      name: 'Meditate',
+    }));
+
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'habits', habitRef.id)));
+  });
+
+  test('org membership does not grant read access to another members private store', async () => {
+    await seedMembership(ORG_ID, ALICE_UID, 'member');
+    await seedMembership(ORG_ID, BOB_UID, 'coach');
+    await withAdminDb((adminDb) =>
+      setDoc(doc(adminDb, 'userPrivate', ALICE_UID), {
+        uid: ALICE_UID,
+        floorCommitment: 'ten minutes',
+      })
+    );
+
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'userPrivate', ALICE_UID)));
+  });
+});
+
 console.log('✅ All security rules tests defined. Run with: npm run test:rules');
