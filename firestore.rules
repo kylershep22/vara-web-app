@@ -28,6 +28,21 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    // Check if the caller is a member of the given organization.
+    //
+    // Keys off the deterministic membership document ID (`{orgId}_{uid}`) so this
+    // is a single exists() rather than a query — rules cannot query. The ID shape
+    // MUST stay in lockstep with membershipDocId() in
+    // mobile/src/services/firebase/org.service.ts; if one changes without the
+    // other, every membership check silently starts failing closed.
+    //
+    // Absence of the document IS the "not a member" answer, so this fails closed
+    // for unknown orgs and unprovisioned users alike.
+    function isOrgMember(orgId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/memberships/$(orgId + '_' + request.auth.uid));
+    }
+
     // Check if user is not suspended or banned (auto-unsuspend if past expiry)
     // Returns true for users without a profile doc (new users)
     function isActiveUser() {
@@ -711,6 +726,45 @@ service cloud.firestore {
     match /userPrivate/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
       allow create, update, delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ========== ORG / ROSTER ==========
+    //
+    // The org data model (Reconciled Product Spec S17.1–17.2). Both collections
+    // are provisioned SERVER-SIDE by the Admin SDK, which bypasses these rules —
+    // so every client write is refused outright rather than conditioned.
+    //
+    // MEMBER-PRIVACY PRECONDITION (S17.1): a member's individual data is as
+    // private from a coach or employer as it is from a stranger. Note what is
+    // NOT here — no rule below grants anyone read access to another user's data
+    // in ANY collection. An organization document says how many seats exist; a
+    // membership says who belongs and in what role. Neither carries member data.
+    //
+    // Coach/admin roster reads and aggregate rollups are deliberately absent.
+    // They arrive with the coach work in a later slice and need their own
+    // explicit rules — do NOT widen these two blocks to serve them, because
+    // "coach can read the roster" and "coach can read a member's behavioral
+    // data" are one careless edit apart.
+
+    // Organizations — readable only by their own members.
+    match /organizations/{orgId} {
+      allow read: if isOrgMember(orgId);
+      // Server-side provisioning only (Admin SDK bypasses rules).
+      allow write: if false;
+    }
+
+    // Memberships — a user can read ONLY their own membership rows.
+    //
+    // Ownership is the userId FIELD here, not the document ID, because
+    // getMembershipsForUser queries `where userId == uid` and a list query
+    // evaluates this rule per candidate document. Checking the field is what
+    // makes that query legal for the caller's own rows and illegal for anyone
+    // else's. Forging the field in a document you do not own buys nothing: the
+    // collection is not client-writable at all.
+    match /memberships/{membershipId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Server-side provisioning only (Admin SDK bypasses rules).
+      allow write: if false;
     }
 
     // App Configuration (feature flags, read-only for clients)
