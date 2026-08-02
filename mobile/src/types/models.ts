@@ -130,6 +130,79 @@ export interface UserPrivate {
 }
 
 // ==========================================
+// ORG MODELS
+//
+// The org/roster data model (Reconciled Product Spec S17.1–17.2). Both
+// collections are provisioned SERVER-SIDE (Admin SDK); clients are read-only and
+// the rules enforce that with `allow write: if false`. Nothing in the running app
+// reads them yet.
+//
+// THE MEMBER-PRIVACY PRECONDITION (S17.1): a member's individual data is as
+// private from a coach or employer as it is from a stranger. Nothing here grants
+// anyone read access to another user's behavioral data — an Organization says
+// how many seats exist, a Membership says who belongs and in what role. Neither
+// carries member data, and no rule added with them widens read access to any
+// per-user collection. Keep it that way: roster/aggregate surfaces for coaches
+// are a later slice and need their own rules, not a loosening of these.
+// ==========================================
+
+/**
+ * Org shape. `individual` exists so a solo user is not a special case with a
+ * null org — the same membership path serves everyone.
+ */
+export type OrgType = 'individual' | 'coach_practice' | 'corporate';
+
+/** A member's role WITHIN one organization. Carried on Membership, not on the user. */
+export type OrgRole = 'member' | 'coach' | 'admin';
+
+/**
+ * An organization. Provisioned server-side; clients read-only.
+ *
+ * Readable only by its own members (see `match /organizations/{orgId}` in
+ * firestore.rules) — deliberately not world-readable, unlike users/{uid}.
+ */
+export interface Organization {
+  /** Mirrors the document ID. */
+  id: string;
+  name: string;
+  type: OrgType;
+  /** Provisioned seat count. Enforcement lives server-side, not in this type. */
+  seatLimit: number;
+  /** Opaque pointer to the billing system. Never a card or customer PII. */
+  billingRef?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
+ * A user's membership in an organization. Provisioned server-side; clients read-only.
+ *
+ * THIS COLLECTION IS THE SINGLE SOURCE OF TRUTH FOR ORG LINKAGE. There is
+ * deliberately no `orgId` on users/{uid} (world-readable — it would leak employer
+ * or coaching-practice affiliation to any authenticated account) and none
+ * denormalized onto userPrivate yet: memberships is queryable by userId, so a
+ * copy would buy a sync burden with no caller to justify it.
+ *
+ * DOCUMENT ID IS DETERMINISTIC: `${orgId}_${userId}`. Two reasons — it makes a
+ * duplicate membership structurally impossible, and it lets a rule answer "is
+ * this caller a member of org X" with a single exists() instead of a query,
+ * which rules cannot do. Anything constructing this ID must use the same shape;
+ * see membershipDocId() in services/firebase/org.service.ts, which is the one
+ * place it is built.
+ */
+export interface Membership {
+  /** Mirrors the document ID, `${orgId}_${userId}`. */
+  id: string;
+  orgId: string;
+  userId: string;
+  role: OrgRole;
+  /** When the user joined this org, as distinct from when the row was written. */
+  joinedAt: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ==========================================
 // BRAIN HEALTH MODELS
 // ==========================================
 

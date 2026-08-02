@@ -305,3 +305,11 @@ export {
   setUserPrivate,
 } from './userPrivate.service';
 export type { UserPrivatePatch } from './userPrivate.service';
+
+// org.service (read-only; organizations + memberships are provisioned server-side)
+export {
+  membershipDocId,
+  getOrganization,
+  getMembership,
+  getMembershipsForUser,
+} from './org.service';
