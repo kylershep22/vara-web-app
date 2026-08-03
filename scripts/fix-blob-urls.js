@@ -2,10 +2,11 @@
 // Run with: node scripts/fix-blob-urls.js
 
 const admin = require('firebase-admin');
-const serviceAccount = require('../backend/serviceAccountKey.json');
 
+// Application Default Credentials. Point GOOGLE_APPLICATION_CREDENTIALS at a
+// service-account key stored OUTSIDE this repo; never save a key inside it.
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.applicationDefault()
 });
 
 const db = admin.firestore();

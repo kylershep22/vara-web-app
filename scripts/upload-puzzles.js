@@ -10,11 +10,11 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 
-// Initialize Firebase Admin
-const serviceAccount = require('../backend/serviceAccountKey.json');
-
+// Initialize Firebase Admin with Application Default Credentials. Point
+// GOOGLE_APPLICATION_CREDENTIALS at a service-account key stored OUTSIDE this
+// repo; never save a key inside it.
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.applicationDefault()
 });
 
 const db = admin.firestore();
@@ -246,7 +246,8 @@ Examples:
   node scripts/upload-puzzles.js puzzles/*.json
 
 Required:
-  - serviceAccountKey.json in project root
+  - GOOGLE_APPLICATION_CREDENTIALS set to a service-account key stored
+    OUTSIDE this repo (never save a key inside it)
   - Valid puzzle JSON file(s)
 
 For format details, see PUZZLE_UPLOAD_GUIDE.md

@@ -2,14 +2,13 @@
 // Migration script to consolidate all connection data into standardized format
 
 const admin = require('firebase-admin');
-const path = require('path');
 
-// Initialize Firebase Admin
-const serviceAccount = require(path.join(__dirname, '../backend/serviceAccountKey.json'));
-
+// Initialize Firebase Admin with Application Default Credentials. Point
+// GOOGLE_APPLICATION_CREDENTIALS at a service-account key stored OUTSIDE this
+// repo; never save a key inside it.
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.applicationDefault()
   });
 }
 

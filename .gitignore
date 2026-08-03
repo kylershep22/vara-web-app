@@ -23,7 +23,6 @@
 .env.production.local
 backend/.env
 backend/serviceAccountKey.json
-scripts/serviceAccountKey.json:1
 scripts/serviceAccountKey.json
 .env.*.local
 

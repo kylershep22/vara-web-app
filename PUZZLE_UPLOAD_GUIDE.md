@@ -247,8 +247,13 @@ npm install firebase-admin --save-dev
 2. Get Firebase service account key:
    - Go to Firebase Console → Project Settings → Service Accounts
    - Click "Generate New Private Key"
-   - Save as `serviceAccountKey.json` in project root
-   - **Add to .gitignore** (never commit this file)
+   - **Save it OUTSIDE this repo** (for example `~/.secrets/vara-admin.json`).
+     Never save a key inside the repo, even a gitignored one.
+   - Point the Admin SDK at it:
+     ```bash
+     export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/vara-admin.json
+     ```
+     The scripts use Application Default Credentials and read this variable.
 
 ### Upload Command
 

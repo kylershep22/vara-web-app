@@ -58,8 +58,10 @@ const admin = require('firebase-admin');
 // CONFIG — ⚠️ NEEDS SIGN-OFF (see report "Open decisions")
 // ===========================================================================
 
-// Service-account key. Defaults to the gitignored key already in scripts/.
-const DEFAULT_KEY_PATH = path.join(__dirname, '..', '..', 'serviceAccountKey.json');
+// Credentials: Application Default Credentials by default, which read
+// GOOGLE_APPLICATION_CREDENTIALS. Keep the key OUTSIDE this repo and never
+// commit it. `--key <path>` still overrides with an explicit key file.
+const DEFAULT_KEY_PATH = null;
 
 // --- Privileged users: EXCLUDED FROM EVERYTHING -------------------------
 // Locked decision (Phase-1 review): users on these tiers are skipped
@@ -208,6 +210,20 @@ async function promptConfirm(message) {
       resolve(answer);
     });
   });
+}
+
+// Under Application Default Credentials there is no key object in hand, but
+// GOOGLE_APPLICATION_CREDENTIALS points at the key file — read the real project
+// id from it so the confirmation prompt names the actual target. Returns null
+// when the env var is unset or the file cannot be read/parsed.
+function adcProjectId() {
+  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (!keyPath) return null;
+  try {
+    return JSON.parse(fs.readFileSync(keyPath, 'utf8')).project_id || null;
+  } catch (err) {
+    return null;
+  }
 }
 
 // Count (and optionally delete) docs in a top-level collection owned by uid.
@@ -518,16 +534,31 @@ async function main() {
   console.log(`  Target: ${args.user ? `single user ${args.user}` : 'ENTIRE cohort'}`);
   console.log('═'.repeat(72));
 
-  if (!fs.existsSync(args.keyPath)) {
-    console.error(`\n❌ Service-account key not found at:\n   ${args.keyPath}\n` +
-      `   Pass --key <path> or place the key there. (Never commit it.)`);
+  // Credentials: an explicit --key file, else Application Default Credentials
+  // (GOOGLE_APPLICATION_CREDENTIALS). Either way the key lives OUTSIDE this
+  // repo and is never committed.
+  let serviceAccount = null;
+  if (args.keyPath) {
+    if (!fs.existsSync(args.keyPath)) {
+      console.error(`\n❌ Service-account key not found at:\n   ${args.keyPath}\n` +
+        `   Pass a valid --key <path>. (Never commit it, and keep it outside the repo.)`);
+      process.exit(1);
+    }
+    serviceAccount = require(args.keyPath);
+  } else if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    console.error('\n❌ No credentials. Set GOOGLE_APPLICATION_CREDENTIALS to a\n' +
+      '   service-account key stored OUTSIDE this repo, or pass --key <path>.\n' +
+      '   (Never commit the key.)');
     process.exit(1);
   }
-  const serviceAccount = require(args.keyPath);
+  const projectLabel =
+    (serviceAccount && serviceAccount.project_id) ||
+    adcProjectId() ||
+    'the project your credentials point at';
 
   if (args.apply) {
     console.log(`\n⚠️  You are about to PERMANENTLY modify and DELETE data in project`);
-    console.log(`    "${serviceAccount.project_id}".`);
+    console.log(`    "${projectLabel}".`);
     console.log(`    This cannot be undone. Auth accounts and RevenueCat are not touched.\n`);
     const answer = await promptConfirm('    Type CONFIRM to proceed: ');
     if (answer !== 'CONFIRM') {
@@ -538,7 +569,11 @@ async function main() {
   }
 
   if (!admin.apps.length) {
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    admin.initializeApp({
+      credential: serviceAccount
+        ? admin.credential.cert(serviceAccount)
+        : admin.credential.applicationDefault(),
+    });
   }
   const db = admin.firestore();
 

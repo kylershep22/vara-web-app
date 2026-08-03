@@ -7,8 +7,13 @@ This guide will help you migrate all connection data to the new standardized for
 1. **Firebase Admin SDK Service Account Key**
    - Go to Firebase Console → Project Settings → Service Accounts
    - Click "Generate New Private Key"
-   - Save the JSON file as `serviceAccountKey.json` in the project root
-   - **DO NOT commit this file to git** (it's in .gitignore)
+   - **Save it OUTSIDE this repo** (for example `~/.secrets/vara-admin.json`).
+     Never save a key inside the repo, even a gitignored one.
+   - Point the Admin SDK at it:
+     ```bash
+     export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/vara-admin.json
+     ```
+     The scripts use Application Default Credentials and read this variable.
 
 2. **Install dependencies** (if not already installed)
    ```bash
@@ -118,8 +123,8 @@ Errors: 0
 
 ## Troubleshooting
 
-### Error: Cannot find module '../serviceAccountKey.json'
-**Solution:** Download your Firebase Admin SDK key and save it as `serviceAccountKey.json` in the project root.
+### Error: Could not load the default credentials
+**Solution:** Set `GOOGLE_APPLICATION_CREDENTIALS` to the absolute path of a service-account key stored OUTSIDE this repo. Do not place a key inside the repo.
 
 ### Error: Permission denied
 **Solution:** Make sure your service account has Firestore permissions.

@@ -61,8 +61,8 @@ node migrate.js --apply
 # REAL run on one user first
 node migrate.js --apply --user <UID>
 
-# Override the service-account key path
-node migrate.js --key /abs/path/serviceAccountKey.json
+# Override with an explicit key path (otherwise uses GOOGLE_APPLICATION_CREDENTIALS)
+node migrate.js --key /abs/path/outside/repo/vara-admin.json
 ```
 
 Pipe the dry-run to a log for review (`.gitignore` excludes `*.txt`):
@@ -78,7 +78,7 @@ node migrate.js > dry-run-$(date +%Y%m%d).txt 2>&1
 | _(none)_ | Dry-run. Reads everything, writes nothing. |
 | `--apply` | Real run. Requires typing `CONFIRM` at the interactive prompt. |
 | `--user <UID>` | Restrict to one owner's routines. Combinable with `--apply`. |
-| `--key <path>` | Service-account key path. Default: `scripts/serviceAccountKey.json`. |
+| `--key <path>` | Explicit service-account key path. Default: Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS`). |
 
 ## Safety model
 
@@ -93,13 +93,16 @@ node migrate.js > dry-run-$(date +%Y%m%d).txt 2>&1
 
 ## Credentials / environment
 
-The Admin SDK key is **not** committed (defaults to the gitignored
-`scripts/serviceAccountKey.json`, project `vara-4a99f`; override with `--key`).
+The Admin SDK key is **not** committed, and must be stored **outside this repo**.
+The script uses Application Default Credentials, so point
+`GOOGLE_APPLICATION_CREDENTIALS` at the key, or pass `--key <path>`:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/vara-admin.json
+```
 
 Known local blockers (see repo memory `reference_admin_sdk_env_blockers`):
 
-- **`scripts/serviceAccountKey.json` is revoked** (invalid JWT signature) — a
-  fresh key is required before either the dry-run or apply can authenticate.
 - **Norton TLS inspection** — export `NODE_EXTRA_CA_CERTS=<root-ca.pem>` so the
   Admin SDK trusts the intercepted chain. (`*.pem` is gitignored.)
 

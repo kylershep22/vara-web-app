@@ -1,10 +1,10 @@
 // scripts/bootstrap-admin.js
 const admin = require('firebase-admin');
 
-// Initialize with application default credentials or service account
-const serviceAccount = require('../backend/serviceAccountKey.json');
+// Application Default Credentials. Point GOOGLE_APPLICATION_CREDENTIALS at a
+// service-account key stored OUTSIDE this repo; never save a key inside it.
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.applicationDefault(),
 });
 
 const uid = process.argv[2];

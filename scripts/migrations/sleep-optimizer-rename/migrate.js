@@ -51,8 +51,9 @@
  *   node migrate.js --apply --user <uid> # REAL run, single user (prompts CONFIRM)
  *   node migrate.js --key /path/key.json # override service-account key path
  *
- * Credentials: Admin SDK key, NOT committed. Defaults to the gitignored
- * scripts/serviceAccountKey.json (project vara-4a99f). If the corporate AV does
+ * Credentials: Admin SDK, NOT committed. Defaults to Application Default
+ * Credentials, so set GOOGLE_APPLICATION_CREDENTIALS to a key stored OUTSIDE
+ * this repo (or pass --key). If the corporate AV does
  * TLS inspection (Norton), export NODE_EXTRA_CA_CERTS=<root-ca.pem> before
  * running so the Admin SDK's gRPC channel trusts the intercepted chain.
  */
@@ -66,9 +67,10 @@ const admin = require('firebase-admin');
 // CONFIG
 // ===========================================================================
 
-// Service-account key. Defaults to the gitignored key shared with the other
-// migrations in scripts/.
-const DEFAULT_KEY_PATH = path.join(__dirname, '..', '..', 'serviceAccountKey.json');
+// Credentials: Application Default Credentials by default, which read
+// GOOGLE_APPLICATION_CREDENTIALS. Keep the key OUTSIDE this repo and never
+// commit it. `--key <path>` still overrides with an explicit key file.
+const DEFAULT_KEY_PATH = null;
 
 // Top-level collection keyed by a `userId` field (routines.service.ts).
 const COLLECTION = 'routines';
@@ -118,6 +120,20 @@ async function promptConfirm(message) {
   });
 }
 
+// Under Application Default Credentials there is no key object in hand, but
+// GOOGLE_APPLICATION_CREDENTIALS points at the key file — read the real project
+// id from it so the confirmation prompt names the actual target. Returns null
+// when the env var is unset or the file cannot be read/parsed.
+function adcProjectId() {
+  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (!keyPath) return null;
+  try {
+    return JSON.parse(fs.readFileSync(keyPath, 'utf8')).project_id || null;
+  } catch (err) {
+    return null;
+  }
+}
+
 async function commitRenames(db, refs) {
   for (let i = 0; i < refs.length; i += CHUNK) {
     const batch = db.batch();
@@ -149,16 +165,31 @@ async function main() {
   console.log(`  Target: ${args.user ? `single user ${args.user}` : 'ENTIRE collection'}`);
   console.log('═'.repeat(72));
 
-  if (!fs.existsSync(args.keyPath)) {
-    console.error(`\n❌ Service-account key not found at:\n   ${args.keyPath}\n` +
-      `   Pass --key <path> or place the key there. (Never commit it.)`);
+  // Credentials: an explicit --key file, else Application Default Credentials
+  // (GOOGLE_APPLICATION_CREDENTIALS). Either way the key lives OUTSIDE this
+  // repo and is never committed.
+  let serviceAccount = null;
+  if (args.keyPath) {
+    if (!fs.existsSync(args.keyPath)) {
+      console.error(`\n❌ Service-account key not found at:\n   ${args.keyPath}\n` +
+        `   Pass a valid --key <path>. (Never commit it, and keep it outside the repo.)`);
+      process.exit(1);
+    }
+    serviceAccount = require(args.keyPath);
+  } else if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    console.error('\n❌ No credentials. Set GOOGLE_APPLICATION_CREDENTIALS to a\n' +
+      '   service-account key stored OUTSIDE this repo, or pass --key <path>.\n' +
+      '   (Never commit the key.)');
     process.exit(1);
   }
-  const serviceAccount = require(args.keyPath);
+  const projectLabel =
+    (serviceAccount && serviceAccount.project_id) ||
+    adcProjectId() ||
+    'the project your credentials point at';
 
   if (args.apply) {
     console.log(`\n⚠️  You are about to modify routine documents in project`);
-    console.log(`    "${serviceAccount.project_id}". Only the \`name\` field is changed.\n`);
+    console.log(`    "${projectLabel}". Only the \`name\` field is changed.\n`);
     const answer = await promptConfirm('    Type CONFIRM to proceed: ');
     if (answer !== 'CONFIRM') {
       console.log('\nAborted — confirmation string did not match. No changes made.');
@@ -168,7 +199,11 @@ async function main() {
   }
 
   if (!admin.apps.length) {
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    admin.initializeApp({
+      credential: serviceAccount
+        ? admin.credential.cert(serviceAccount)
+        : admin.credential.applicationDefault(),
+    });
   }
   const db = admin.firestore();
 

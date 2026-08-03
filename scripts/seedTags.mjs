@@ -1,13 +1,9 @@
 import admin from "firebase-admin";
-import fs from "fs";
 
-// Load your service account key (keep this file OUT of git)
-const serviceAccount = JSON.parse(
-  fs.readFileSync(new URL("../backend/serviceAccountKey.json", import.meta.url))
-);
-
+// Application Default Credentials. Point GOOGLE_APPLICATION_CREDENTIALS at a
+// service-account key stored OUTSIDE this repo; never save a key inside it.
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.applicationDefault(),
 });
 const db = admin.firestore();
 
