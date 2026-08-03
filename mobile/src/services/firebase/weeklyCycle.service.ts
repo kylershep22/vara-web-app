@@ -157,7 +157,56 @@ export async function getWeeklyCycleForWeek(
   return { ...(first.data() as Omit<WeeklyCycle, 'id'>), id: first.id };
 }
 
-/** Most recent cycles first. Returns [] when the user has no history. */
+/**
+ * The user's most recently started cycle, or null when they have never opened
+ * one. Null is the normal state for a new user, not an error.
+ *
+ * Filters on userId ONLY and sorts in memory, deliberately. The equivalent
+ * server-side sort (`where userId ==` + `orderBy weekStart desc`, which is what
+ * getRecentWeeklyCycles does) needs a composite index that does not exist in
+ * firestore.indexes.json — see that function's warning. One document per week
+ * makes the client-side sort cheap enough that adding an index to save it would
+ * be premature.
+ *
+ * Ties on weekStart cannot normally occur (a week is opened once), and if one
+ * ever did, either document describes the same week.
+ */
+export async function getLatestWeeklyCycle(userId: string): Promise<WeeklyCycle | null> {
+  const cycles = await getWeeklyCyclesForUser(userId);
+  if (cycles.length === 0) return null;
+  return cycles.reduce((latest, c) => (c.weekStart > latest.weekStart ? c : latest));
+}
+
+/**
+ * Every cycle the user has, unordered. Returns [] when they have none.
+ *
+ * Equality-only, so it is served by the automatic single-field index and needs
+ * no entry in firestore.indexes.json. Unbounded by design (about 52 documents a
+ * year); if that ever stops being cheap, the fix is a bounded query WITH the
+ * composite index, not a silent limit here.
+ */
+export async function getWeeklyCyclesForUser(userId: string): Promise<WeeklyCycle[]> {
+  const q = query(
+    collection(requireDb(), WEEKLY_CYCLES),
+    where('userId', '==', userId)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({
+    ...(d.data() as Omit<WeeklyCycle, 'id'>),
+    id: d.id,
+  }));
+}
+
+/**
+ * Most recent cycles first. Returns [] when the user has no history.
+ *
+ * WARNING — NEEDS AN INDEX THAT DOES NOT EXIST YET. The `where userId ==` plus
+ * `orderBy weekStart desc` combination requires a composite index, and
+ * firestore.indexes.json currently has no weeklyCycles entry at all, so this
+ * call FAILS against production. Whichever slice first needs ordered history
+ * (the weekly close / continuity) must add the index before calling it. Nothing
+ * calls it today; getLatestWeeklyCycle above is the index-free alternative.
+ */
 export async function getRecentWeeklyCycles(
   userId: string,
   max: number

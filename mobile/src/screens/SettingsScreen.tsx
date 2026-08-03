@@ -725,6 +725,29 @@ const SettingsScreen = () => {
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
             </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            {/* Weekly loop (spec 6, 9, 10.1). The intended entry is the
+                progressive onboarding (spec 18); until that exists this is the
+                only way in, which is what keeps the flow reachable without
+                touching the default landing. Delete this row when the real
+                entry lands. */}
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => navigation.navigate('WeeklyEntry' as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Dev: Weekly loop"
+              testID="settings-dev-weekly-loop"
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>Dev: Weekly loop</Text>
+                <Text style={styles.settingDescription}>
+                  Floor, weekly open and Today. Placeholder copy.
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
           </View>
         </View>
       )}

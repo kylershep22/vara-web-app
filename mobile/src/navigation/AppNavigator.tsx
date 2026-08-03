@@ -60,6 +60,10 @@ import RedeemCodeScreen from '../screens/RedeemCodeScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
 import HabitDetailScreen from '../screens/HabitDetailScreen';
 import WearableIntegrationScreen from '../screens/WearableIntegrationScreen';
+// Weekly loop (spec 6, 9, 10.1). Direct file paths, not a barrel, per the
+// Metro 0.83 convention for navigation imports.
+import { WeeklyEntryScreen } from '../screens/weekly/WeeklyEntryScreen';
+import { FloorCommitmentScreen } from '../screens/weekly/FloorCommitmentScreen';
 import {
   CommunityScreen,
   GroupsScreen,
@@ -826,6 +830,41 @@ const MainNavigator = () => {
               headerShadowVisible: false,
             })}
           />
+        )}
+        {/* Weekly loop (spec 6, 9, 10.1) — REACHABLE BUT NOT DEFAULT.
+            Gated on __DEV__ and entered only from the Developer section of
+            Settings, exactly like the dev harnesses below. Nothing about the
+            default landing changes: "Main" still mounts the pillar tabs, Home
+            is still DashboardScreen, and the daily Situation x State engine
+            still owns it. Today-as-landing is spec 22 item 4, a later slice
+            that cannot happen until the progressive onboarding replaces the
+            daily engine. WeeklyEntry is the only route anything should target;
+            it decides which of the other three the user lands on. */}
+        {__DEV__ && (
+          <>
+            <AppStack.Screen
+              name={ROUTES.WeeklyEntry}
+              component={WeeklyEntryScreen}
+              options={stackOpts({
+                ...standardHeaderOptions,
+                animation: 'slide_from_right',
+                headerShown: true,
+                title: 'Weekly loop (dev)',
+                headerShadowVisible: false,
+              })}
+            />
+            <AppStack.Screen
+              name={ROUTES.WeeklyFloor}
+              component={FloorCommitmentScreen}
+              options={stackOpts({
+                ...standardHeaderOptions,
+                animation: 'slide_from_right',
+                headerShown: true,
+                title: 'Your floor (dev)',
+                headerShadowVisible: false,
+              })}
+            />
+          </>
         )}
         {/* Phase 1 dev test harnesses — gated by __DEV__ so the routes
             (and the underlying components, via Metro tree-shaking) are
