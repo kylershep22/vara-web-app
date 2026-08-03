@@ -767,6 +767,59 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ========== WEEKLY LOOP ==========
+    //
+    // Persistence for the weekly-capacity loop (Reconciled Product Spec S6-S8).
+    // Unlike the org blocks above, these are CLIENT-WRITTEN: the user owns their
+    // own weekly cycle, daily completion state and capacity-change log.
+    //
+    // Every block is the plain owner-on-userId-FIELD pattern used by habits,
+    // goals and tasks. Ownership is the field rather than the document ID even
+    // for dailyLogs (whose ID is `${userId}_${date}`), because a list query
+    // evaluates the rule per candidate document — checking the field is what
+    // makes `where userId == uid` legal for the caller's own rows and illegal
+    // for everyone else's.
+    //
+    // MEMBER-PRIVACY PRECONDITION (S17.1) — THE LOAD-BEARING PROPERTY HERE:
+    // these are the first per-user BEHAVIORAL collections the weekly
+    // re-architecture adds, and they are exactly what coach and employer
+    // rollups will aggregate over via Cloud Function WITHOUT ever reading an
+    // individual's row. Org membership grants ZERO read below. A coach in the
+    // same org is as locked out as a stranger, and the rules tests assert that
+    // directly. Aggregate surfaces belong in a Cloud Function reading with the
+    // Admin SDK, which bypasses these rules — they are NOT a reason to widen
+    // any block here.
+    //
+    // Note what is absent: no floorMet field is written by any client yet (open
+    // item #10, deferred to the weekly-close slice), and no rule below cares
+    // about the shape of the document beyond its userId.
+
+    // Weekly cycles — one per user per week.
+    match /weeklyCycles/{cycleId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Daily logs — one per user per day; doc ID is `${userId}_${date}`.
+    match /dailyLogs/{logId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Downshift events — append-only capacity-change log (both directions).
+    //
+    // The rule is deliberately the same uniform owner pattern as its siblings;
+    // append-only is enforced in the SERVICE, which exposes no update or delete
+    // helper. Stated plainly so a future reader does not mistake the uniform
+    // rule for permission to add one.
+    match /downshiftEvents/{eventId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
     // App Configuration (feature flags, read-only for clients)
     match /config/{docId} {
       allow read: if isAuthenticated();
