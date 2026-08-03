@@ -313,3 +313,24 @@ export {
   getMembership,
   getMembershipsForUser,
 } from './org.service';
+
+// weeklyCycle.service (weekly-loop persistence: weeklyCycles + dailyLogs +
+// downshiftEvents). downshiftEvents is append-only by design — create + read
+// only, no update/delete helper.
+export {
+  dailyLogDocId,
+  createWeeklyCycle,
+  getWeeklyCycleForWeek,
+  getRecentWeeklyCycles,
+  updateWeeklyCycle,
+  upsertDailyLog,
+  getDailyLog,
+  createDownshiftEvent,
+  getDownshiftEventsForCycle,
+} from './weeklyCycle.service';
+export type {
+  CreateWeeklyCycleInput,
+  WeeklyCyclePatch,
+  DailyLogInput,
+  CreateDownshiftEventInput,
+} from './weeklyCycle.service';

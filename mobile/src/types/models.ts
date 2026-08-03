@@ -5,6 +5,9 @@
 
 import { Timestamp } from 'firebase/firestore';
 import type { HabitCategoryKey } from '../constants/habitTaxonomy';
+// Type-only import: erased at compile time, so this does NOT wire the weekly
+// engine into the running app. The engine stays unconsumed by any screen.
+import type { OutcomeKey, CapacityTier } from '../weeklyEngine';
 
 // ==========================================
 // VALUE MODELS
@@ -200,6 +203,118 @@ export interface Membership {
   joinedAt: Timestamp;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+// ==========================================
+// WEEKLY LOOP MODELS
+//
+// Persistence for the weekly-capacity loop the src/weeklyEngine module computes
+// (Reconciled Product Spec S6-S8, S17.2). Three OWNER-SCOPED BEHAVIORAL
+// collections: weeklyCycles, dailyLogs, downshiftEvents.
+//
+// MEMBER-PRIVACY PRECONDITION (S17.1), and the reason the rules gate every one
+// of these on the userId FIELD: coach and employer rollups aggregate these rows
+// via Cloud Function and MUST NEVER read them individually. Org membership
+// grants zero read here — a coach in the same org is exactly as locked out as a
+// stranger, and the rules tests assert that directly so a later coach slice
+// cannot widen it quietly.
+//
+// `floorMet` is INTENTIONALLY ABSENT. How a week's floor outcome gets recorded
+// is open item #10, deferred to the weekly-close slice. computeContinuity() in
+// src/weeklyEngine takes floorMet on its own input type; do not invent a
+// storage field for it here ahead of that decision.
+//
+// `energyRating` is likewise absent: it belongs to the derived-energy-window
+// feature (S11), not to this slice.
+// ==========================================
+
+/**
+ * One week of the weekly loop. Created at the weekly open (S6.1), updated by the
+ * in-week capacity control (S7), completed at the weekly close (S8).
+ *
+ * `capacityInitial` is kept alongside `capacityCurrent` on purpose: the gap
+ * between what the user forecast on the open and where they actually landed is
+ * the signal that tells us whether the weekly forecast is doing its job (S7's
+ * instrumentation guardrail). Overwriting the forecast would destroy it.
+ *
+ * Continuity is NOT stored here. It is derived from floor outcomes by
+ * computeContinuity(), and it is measured against the floor commitment, never
+ * against a capacity tier — which is why no tier on this document may ever feed
+ * a continuity calculation.
+ */
+export interface WeeklyCycle {
+  /** Mirrors the document ID (auto-ID). */
+  id: string;
+  userId: string;
+  /** ISO date (YYYY-MM-DD) of the user's chosen week start. Any weekday (S6.1). */
+  weekStart: string;
+  outcome: OutcomeKey;
+  /** The tier forecast at the weekly open. Never overwritten. */
+  capacityInitial: CapacityTier;
+  /** The tier in force now, after any in-week adjustment (S7). */
+  capacityCurrent: CapacityTier;
+  /** The selected protocol cell, `${outcome}-${capacity}` (see weeklyEngine). */
+  protocolId: string;
+
+  // ---- Weekly close (S8). All absent until the close is completed. ----
+  closeCompletedAt?: Timestamp;
+  /** 1-5, one tap. Weekly, never daily (S8.2). */
+  ratingFocus?: number;
+  ratingRecovery?: number;
+  ratingEnergy?: number;
+  /** Free text, skippable. The highest-value qualitative data in the product (S8.3). */
+  closeNote?: string;
+  /** The single adjustment offered for next week (S8.4). */
+  adjustmentSelected?: string;
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
+ * One day's completion state. At most one per user per day.
+ *
+ * DOCUMENT ID IS DETERMINISTIC: `${userId}_${date}`, matching the existing
+ * brainStateCheckIns / dailyReflections / fourThreeTwoOne convention. `date` is
+ * ISO YYYY-MM-DD, which contains no underscore, so the key cannot be parsed
+ * ambiguously the way a slug-bearing org ID could.
+ *
+ * Completion is BINARY (S9.2): done or not yet. Never a percentage, never a
+ * grade. Do not add a partial-completion field.
+ */
+export interface DailyLog {
+  /** Mirrors the document ID, `${userId}_${date}`. */
+  id: string;
+  userId: string;
+  /** ISO date, YYYY-MM-DD. */
+  date: string;
+  protocolCompleted: boolean;
+  /** Practices actually run that day. May be empty. */
+  practiceIds: string[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
+ * One in-week capacity change (S7). APPEND-ONLY LOG.
+ *
+ * Covers both directions despite the name: `fromCapacity`/`toCapacity` carry the
+ * direction, so an upshift is recorded here too. Kept as an event log rather
+ * than a counter because S7 requires re-set FREQUENCY to be instrumented — if
+ * people are re-setting daily, the weekly forecast is not working and we need to
+ * know it rather than guess.
+ *
+ * Recording a tier change here has no bearing on continuity. See computeContinuity().
+ */
+export interface DownshiftEvent {
+  /** Mirrors the document ID (auto-ID). */
+  id: string;
+  userId: string;
+  /** The weeklyCycle this change belongs to. */
+  weeklyCycleId: string;
+  fromCapacity: CapacityTier;
+  toCapacity: CapacityTier;
+  timestamp: Timestamp;
 }
 
 // ==========================================
