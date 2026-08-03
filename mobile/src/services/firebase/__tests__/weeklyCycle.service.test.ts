@@ -34,7 +34,10 @@ jest.mock('../../../config/firebase', () => ({
 
 import {
   dailyLogDocId,
+  countWeeklyCyclesForOutcome,
   createWeeklyCycle,
+  getLatestWeeklyCycle,
+  getWeeklyCyclesForUser,
   getWeeklyCycleForWeek,
   getRecentWeeklyCycles,
   updateWeeklyCycle,
@@ -160,6 +163,90 @@ describe('weeklyCycle.service', () => {
         userId: ALICE,
         weekStart: WEEK,
       });
+    });
+  });
+
+  describe('getWeeklyCyclesForUser', () => {
+    test('filters on userId only, so no composite index is needed', async () => {
+      // The moment an orderBy joins this query it needs an index that
+      // firestore.indexes.json does not contain. Equality-only is the point.
+      mockGetDocs.mockResolvedValue(docsSnap([]));
+      await getWeeklyCyclesForUser(ALICE);
+      expect(mockWhere).toHaveBeenCalledWith('userId', '==', ALICE);
+      expect(mockOrderBy).not.toHaveBeenCalled();
+      expect(mockLimit).not.toHaveBeenCalled();
+    });
+
+    test('returns [] when the user has no cycles', async () => {
+      mockGetDocs.mockResolvedValue(docsSnap([]));
+      expect(await getWeeklyCyclesForUser(ALICE)).toEqual([]);
+    });
+
+    test('carries the document id onto every row', async () => {
+      mockGetDocs.mockResolvedValue(
+        docsSnap([
+          { id: 'c1', data: { weekStart: '2026-08-03' } },
+          { id: 'c2', data: { weekStart: '2026-08-10' } },
+        ])
+      );
+      expect((await getWeeklyCyclesForUser(ALICE)).map((c) => c.id)).toEqual(['c1', 'c2']);
+    });
+  });
+
+  describe('getLatestWeeklyCycle', () => {
+    test('returns null when the user has never opened a week', async () => {
+      // The normal state for a new user, not an error: the entry guard routes
+      // on exactly this.
+      mockGetDocs.mockResolvedValue(docsSnap([]));
+      expect(await getLatestWeeklyCycle(ALICE)).toBeNull();
+    });
+
+    test('picks the greatest weekStart regardless of document order', async () => {
+      mockGetDocs.mockResolvedValue(
+        docsSnap([
+          { id: 'c1', data: { weekStart: '2026-07-20' } },
+          { id: 'c3', data: { weekStart: '2026-08-03' } },
+          { id: 'c2', data: { weekStart: '2026-07-27' } },
+        ])
+      );
+      expect((await getLatestWeeklyCycle(ALICE))?.id).toBe('c3');
+    });
+
+    test('compares dates correctly across a month boundary', async () => {
+      // ISO YYYY-MM-DD sorts lexicographically as it sorts chronologically,
+      // which is the property the in-memory comparison leans on.
+      mockGetDocs.mockResolvedValue(
+        docsSnap([
+          { id: 'sep', data: { weekStart: '2026-09-01' } },
+          { id: 'aug', data: { weekStart: '2026-08-31' } },
+        ])
+      );
+      expect((await getLatestWeeklyCycle(ALICE))?.id).toBe('sep');
+    });
+
+    test('returns the only cycle when there is one', async () => {
+      mockGetDocs.mockResolvedValue(docsSnap([{ id: 'c1', data: { weekStart: WEEK } }]));
+      expect((await getLatestWeeklyCycle(ALICE))?.weekStart).toBe(WEEK);
+    });
+  });
+
+  describe('countWeeklyCyclesForOutcome', () => {
+    test('filters on userId AND outcome, both equality, no index required', async () => {
+      mockGetDocs.mockResolvedValue({ ...docsSnap([]), size: 0 });
+      await countWeeklyCyclesForOutcome(ALICE, 'focus');
+      expect(mockWhere).toHaveBeenCalledWith('userId', '==', ALICE);
+      expect(mockWhere).toHaveBeenCalledWith('outcome', '==', 'focus');
+      expect(mockOrderBy).not.toHaveBeenCalled();
+    });
+
+    test('is zero for an outcome the user has never run', async () => {
+      mockGetDocs.mockResolvedValue({ ...docsSnap([]), size: 0 });
+      expect(await countWeeklyCyclesForOutcome(ALICE, 'routines')).toBe(0);
+    });
+
+    test('counts the stored cycles for that outcome', async () => {
+      mockGetDocs.mockResolvedValue({ ...docsSnap([]), size: 3 });
+      expect(await countWeeklyCyclesForOutcome(ALICE, 'focus')).toBe(3);
     });
   });
 

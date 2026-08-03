@@ -158,6 +158,36 @@ export async function getWeeklyCycleForWeek(
 }
 
 /**
+ * How many cycles the user has already run on one outcome.
+ *
+ * This is what the week-1 quick-win rule (spec 6.3) counts: the week number is
+ * PER OUTCOME, so a user switching from Focus to Routines in month three is on
+ * week 1 of Routines and gets the quick win again. Time-to-felt-effect is a
+ * property of the protocol, not of how long the user has had the app.
+ *
+ * MIND THE OFF-BY-ONE. The count is of what is already stored, so the weekly
+ * open (which has not written its cycle yet) passes `count + 1` to
+ * applyQuickWin, while Today (whose cycle is already stored) passes `count`.
+ *
+ * Two equality filters, so it is served by the automatic single-field indexes
+ * and needs no composite index. Fetch-and-length rather than an aggregation
+ * query: nothing in the app imports getCountFromServer yet, and the volume here
+ * is one document per week.
+ */
+export async function countWeeklyCyclesForOutcome(
+  userId: string,
+  outcome: OutcomeKey
+): Promise<number> {
+  const q = query(
+    collection(requireDb(), WEEKLY_CYCLES),
+    where('userId', '==', userId),
+    where('outcome', '==', outcome)
+  );
+  const snap = await getDocs(q);
+  return snap.size;
+}
+
+/**
  * The user's most recently started cycle, or null when they have never opened
  * one. Null is the normal state for a new user, not an error.
  *

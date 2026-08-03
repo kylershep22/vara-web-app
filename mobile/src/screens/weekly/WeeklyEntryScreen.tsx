@@ -14,7 +14,7 @@
 //
 // No animation here, so Reduce Motion has nothing to suppress.
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -49,17 +49,29 @@ export function WeeklyEntryScreen() {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
+  // Held in a ref and kept OUT of the effect's dependencies on purpose.
+  // useNavigation hands back a fresh object on some renders, and a navigation
+  // object in the deps means every failed routing attempt re-triggers the
+  // attempt that just failed: spinner, error, spinner, error, forever. The ref
+  // is always current because it is assigned during render.
+  const navigationRef = useRef(navigation);
+  navigationRef.current = navigation;
+
+  // Depend on the uid, not the user object: its identity can change on an
+  // auth-context re-render without the signed-in user changing.
+  const uid = user?.uid;
+
   useEffect(() => {
-    if (!user) return;
+    if (!uid) return;
     let active = true;
 
     const route = async () => {
       setFailed(false);
       try {
-        const floorCommitment = await getFloorCommitment(user.uid);
+        const floorCommitment = await getFloorCommitment(uid);
         // Skip the cycle read entirely when there is no floor: the answer is
         // already 'floor' and the read would be thrown away.
-        const latest = floorCommitment ? await getLatestWeeklyCycle(user.uid) : null;
+        const latest = floorCommitment ? await getLatestWeeklyCycle(uid) : null;
         if (!active) return;
 
         const target = resolveWeeklyEntry({
@@ -67,7 +79,7 @@ export function WeeklyEntryScreen() {
           latestCycleWeekStart: latest?.weekStart ?? null,
           todayIso: toIsoDate(new Date()),
         });
-        navigation.replace(TARGET_ROUTE[target]);
+        navigationRef.current.replace(TARGET_ROUTE[target]);
       } catch (error) {
         logger.error('[WeeklyEntry] routing failed:', error);
         // A read failure must not guess. Routing to the open on an unknown
@@ -81,7 +93,7 @@ export function WeeklyEntryScreen() {
     return () => {
       active = false;
     };
-  }, [user, navigation, attempt]);
+  }, [uid, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 

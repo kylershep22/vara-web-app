@@ -64,6 +64,8 @@ import WearableIntegrationScreen from '../screens/WearableIntegrationScreen';
 // Metro 0.83 convention for navigation imports.
 import { WeeklyEntryScreen } from '../screens/weekly/WeeklyEntryScreen';
 import { FloorCommitmentScreen } from '../screens/weekly/FloorCommitmentScreen';
+import { WeeklyOpenScreen } from '../screens/weekly/WeeklyOpenScreen';
+import { WeeklyTodayScreen } from '../screens/weekly/WeeklyTodayScreen';
 import {
   CommunityScreen,
   GroupsScreen,
@@ -861,6 +863,28 @@ const MainNavigator = () => {
                 animation: 'slide_from_right',
                 headerShown: true,
                 title: 'Your floor (dev)',
+                headerShadowVisible: false,
+              })}
+            />
+            <AppStack.Screen
+              name={ROUTES.WeeklyOpen}
+              component={WeeklyOpenScreen}
+              options={stackOpts({
+                ...standardHeaderOptions,
+                animation: 'slide_from_right',
+                headerShown: true,
+                title: 'Your week (dev)',
+                headerShadowVisible: false,
+              })}
+            />
+            <AppStack.Screen
+              name={ROUTES.WeeklyToday}
+              component={WeeklyTodayScreen}
+              options={stackOpts({
+                ...standardHeaderOptions,
+                animation: 'slide_from_right',
+                headerShown: true,
+                title: 'Today (dev)',
                 headerShadowVisible: false,
               })}
             />

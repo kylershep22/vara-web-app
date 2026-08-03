@@ -37,3 +37,62 @@ export const ENTRY_COPY = {
   retry: gap('Try again'),
   signedOut: gap('Sign in to open your week.'),
 } as const;
+
+/**
+ * Outcome labels are NOT placeholders and carry no marker. These four names are
+ * the locked taxonomy (spec 5): the same vocabulary across the weekly open, the
+ * Practices filters and the content tags. Renaming one is a spec change, not a
+ * copy pass.
+ */
+export const OUTCOME_LABELS = {
+  focus: 'Focus',
+  stress: 'Stress',
+  routines: 'Routines',
+  energy: 'Energy',
+} as const;
+
+/**
+ * Capacity labels. The tier names and the two glosses the spec supplies
+ * (normal = "full time and resources", slammed = "minimal") are spec 6.1;
+ * `limited` is given no gloss there, so it has one copy gap of its own.
+ */
+export const CAPACITY_LABELS = {
+  normal: 'Normal',
+  limited: 'Limited',
+  slammed: 'Slammed',
+} as const;
+
+export const CAPACITY_GLOSSES = {
+  normal: jen('Full time and resources'),
+  limited: gap('Less room than usual'),
+  slammed: jen('Minimal'),
+} as const;
+
+export const OPEN_COPY = {
+  // Spec 6.1 step 1, verbatim.
+  outcomeQuestion: jen("What's your focus this week?"),
+  // Spec 6.1 step 2, verbatim.
+  capacityQuestion: jen("What's your capacity this week?"),
+  // Spec 6.1 step 3 (calendar forecast) is DEFERRED, not hidden behind a
+  // disabled control. There is no string for it here because there is no
+  // affordance for it on screen.
+  confirmHeading: gap('Your week'),
+  confirm: gap('Start this week'),
+  back: gap('Back'),
+  perDay: gap('About {minutes} min a day'),
+  whyHeading: gap('Why this works'),
+  saveFailed: gap('That did not save. Check your connection and try again.'),
+} as const;
+
+export const TODAY_COPY = {
+  actionHeading: gap('Today'),
+  weekHeading: gap('This week'),
+  floorHeading: gap('Your floor'),
+  quickWinHeading: gap('Plus, once today'),
+  // The week-1 quick-win practice (spec 6.3) has no catalogue entry and so no
+  // display name. Showing the raw practice id would be worse than showing the
+  // gap, so this stands in until the practice exists.
+  quickWinPractice: gap('week-1 quick-win practice, not yet named'),
+  loadFailed: gap('We could not load your week. Try again.'),
+  retry: gap('Try again'),
+} as const;
