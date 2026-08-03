@@ -1412,4 +1412,312 @@ describe('Org / Roster (organizations + memberships)', () => {
   });
 });
 
+describe('Weekly Loop (weeklyCycles + dailyLogs + downshiftEvents)', () => {
+  const WEEK_START = '2026-08-03';
+  const ORG_ID = 'weeklyorg1';
+
+  // Mirrors dailyLogDocId() in mobile/src/services/firebase/weeklyCycle.service.ts.
+  const dailyLogId = (userId, date) => `${userId}_${date}`;
+
+  async function seedWeeklyCycle(userId, weekStart = WEEK_START) {
+    return withAdminDb((adminDb) =>
+      addDoc(collection(adminDb, 'weeklyCycles'), {
+        userId,
+        weekStart,
+        outcome: 'focus',
+        capacityInitial: 'normal',
+        capacityCurrent: 'normal',
+        protocolId: 'focus-normal',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    );
+  }
+
+  async function seedDailyLog(userId, date = WEEK_START) {
+    await withAdminDb((adminDb) =>
+      setDoc(doc(adminDb, 'dailyLogs', dailyLogId(userId, date)), {
+        userId,
+        date,
+        protocolCompleted: true,
+        practiceIds: ['exhale-90s'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    );
+  }
+
+  async function seedDownshiftEvent(userId, weeklyCycleId = 'cycle1') {
+    return withAdminDb((adminDb) =>
+      addDoc(collection(adminDb, 'downshiftEvents'), {
+        userId,
+        weeklyCycleId,
+        fromCapacity: 'normal',
+        toCapacity: 'slammed',
+        timestamp: new Date(),
+      })
+    );
+  }
+
+  // Mirrors the org seeding above; used only by the member-privacy tests.
+  async function seedMembership(orgId, userId, role = 'member') {
+    await withAdminDb((adminDb) =>
+      setDoc(doc(adminDb, 'memberships', `${orgId}_${userId}`), {
+        orgId,
+        userId,
+        role,
+        joinedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    );
+  }
+
+  // ---- weeklyCycles ----
+
+  test('a user can create their own weekly cycle', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(addDoc(collection(db, 'weeklyCycles'), {
+      userId: ALICE_UID,
+      weekStart: WEEK_START,
+      outcome: 'focus',
+      capacityInitial: 'normal',
+      capacityCurrent: 'normal',
+      protocolId: 'focus-normal',
+    }));
+  });
+
+  test('a user can read their own weekly cycle', async () => {
+    const ref = await seedWeeklyCycle(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'weeklyCycles', ref.id)));
+  });
+
+  test('a user can update their own weekly cycle', async () => {
+    const ref = await seedWeeklyCycle(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(updateDoc(doc(db, 'weeklyCycles', ref.id), {
+      capacityCurrent: 'slammed',
+    }));
+  });
+
+  test('a user can delete their own weekly cycle', async () => {
+    const ref = await seedWeeklyCycle(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(deleteDoc(doc(db, 'weeklyCycles', ref.id)));
+  });
+
+  test('a DIFFERENT authenticated user CANNOT read that weekly cycle', async () => {
+    // Load-bearing. Bob is a perfectly valid signed-in user; the only thing
+    // between him and Alice's week is the owner check on the userId field.
+    const ref = await seedWeeklyCycle(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'weeklyCycles', ref.id)));
+  });
+
+  test('a different authenticated user CANNOT update that weekly cycle', async () => {
+    const ref = await seedWeeklyCycle(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(updateDoc(doc(db, 'weeklyCycles', ref.id), {
+      capacityCurrent: 'slammed',
+    }));
+  });
+
+  test('a user cannot create a weekly cycle owned by someone else', async () => {
+    // Forge guard: create is gated on request.resource.data.userId, so writing
+    // someone else's uid into the field is refused rather than accepted.
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(addDoc(collection(db, 'weeklyCycles'), {
+      userId: ALICE_UID,
+      weekStart: WEEK_START,
+      outcome: 'focus',
+      capacityInitial: 'normal',
+      capacityCurrent: 'normal',
+      protocolId: 'focus-normal',
+    }));
+  });
+
+  test('unauthenticated users cannot read a weekly cycle', async () => {
+    const ref = await seedWeeklyCycle(ALICE_UID);
+    const db = getUnauthContext().firestore();
+
+    await assertFails(getDoc(doc(db, 'weeklyCycles', ref.id)));
+  });
+
+  test('unauthenticated users cannot create a weekly cycle', async () => {
+    const db = getUnauthContext().firestore();
+
+    await assertFails(addDoc(collection(db, 'weeklyCycles'), {
+      userId: ALICE_UID,
+      weekStart: WEEK_START,
+      outcome: 'focus',
+      capacityInitial: 'normal',
+      capacityCurrent: 'normal',
+      protocolId: 'focus-normal',
+    }));
+  });
+
+  // ---- dailyLogs ----
+
+  test('a user can create their own daily log', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(
+      setDoc(doc(db, 'dailyLogs', dailyLogId(ALICE_UID, WEEK_START)), {
+        userId: ALICE_UID,
+        date: WEEK_START,
+        protocolCompleted: true,
+        practiceIds: [],
+      })
+    );
+  });
+
+  test('a user can read and update their own daily log', async () => {
+    await seedDailyLog(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'dailyLogs', dailyLogId(ALICE_UID, WEEK_START))));
+    await assertSucceeds(
+      updateDoc(doc(db, 'dailyLogs', dailyLogId(ALICE_UID, WEEK_START)), {
+        protocolCompleted: false,
+      })
+    );
+  });
+
+  test('a DIFFERENT authenticated user CANNOT read that daily log', async () => {
+    // Load-bearing, and worth stating explicitly: the document ID contains
+    // Alice's uid, but the ID is NOT what protects it. The userId field is.
+    await seedDailyLog(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'dailyLogs', dailyLogId(ALICE_UID, WEEK_START))));
+  });
+
+  test('a user cannot create a daily log owned by someone else', async () => {
+    // Forge guard. Note Bob writes to Alice's composite ID *and* claims her
+    // userId; both are refused by the create rule.
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(
+      setDoc(doc(db, 'dailyLogs', dailyLogId(ALICE_UID, WEEK_START)), {
+        userId: ALICE_UID,
+        date: WEEK_START,
+        protocolCompleted: true,
+        practiceIds: [],
+      })
+    );
+  });
+
+  test('unauthenticated users cannot read a daily log', async () => {
+    await seedDailyLog(ALICE_UID);
+    const db = getUnauthContext().firestore();
+
+    await assertFails(getDoc(doc(db, 'dailyLogs', dailyLogId(ALICE_UID, WEEK_START))));
+  });
+
+  // ---- downshiftEvents ----
+
+  test('a user can create their own downshift event', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(addDoc(collection(db, 'downshiftEvents'), {
+      userId: ALICE_UID,
+      weeklyCycleId: 'cycle1',
+      fromCapacity: 'normal',
+      toCapacity: 'slammed',
+    }));
+  });
+
+  test('a user can read their own downshift event', async () => {
+    const ref = await seedDownshiftEvent(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'downshiftEvents', ref.id)));
+  });
+
+  test('a DIFFERENT authenticated user CANNOT read that downshift event', async () => {
+    // Load-bearing. Capacity history is behavioral data: when someone was
+    // slammed, and how often, is exactly what must not leak.
+    const ref = await seedDownshiftEvent(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'downshiftEvents', ref.id)));
+  });
+
+  test('a user cannot create a downshift event owned by someone else', async () => {
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(addDoc(collection(db, 'downshiftEvents'), {
+      userId: ALICE_UID,
+      weeklyCycleId: 'cycle1',
+      fromCapacity: 'normal',
+      toCapacity: 'slammed',
+    }));
+  });
+
+  test('unauthenticated users cannot read a downshift event', async () => {
+    const ref = await seedDownshiftEvent(ALICE_UID);
+    const db = getUnauthContext().firestore();
+
+    await assertFails(getDoc(doc(db, 'downshiftEvents', ref.id)));
+  });
+
+  // ---- MEMBER PRIVACY (S17.1) — forward defense, continuing slice 3a ----
+  //
+  // These are the tests that trip red if a later coach slice widens the weekly
+  // blocks. Being in the same organization, in ANY role, must grant exactly
+  // zero read on another member's behavioral rows. Coach rollups aggregate
+  // these via Cloud Function with the Admin SDK, which bypasses rules entirely
+  // — so there is never a reason for a client-facing rule to allow this.
+
+  test('org membership does NOT grant read access to another members weekly cycle', async () => {
+    await seedMembership(ORG_ID, ALICE_UID, 'member');
+    await seedMembership(ORG_ID, BOB_UID, 'coach');
+    const ref = await seedWeeklyCycle(ALICE_UID);
+
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'weeklyCycles', ref.id)));
+  });
+
+  test('org membership does NOT grant read access to another members daily log', async () => {
+    await seedMembership(ORG_ID, ALICE_UID, 'member');
+    await seedMembership(ORG_ID, BOB_UID, 'coach');
+    await seedDailyLog(ALICE_UID);
+
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'dailyLogs', dailyLogId(ALICE_UID, WEEK_START))));
+  });
+
+  test('org membership does NOT grant read access to another members downshift event', async () => {
+    await seedMembership(ORG_ID, ALICE_UID, 'member');
+    await seedMembership(ORG_ID, BOB_UID, 'coach');
+    const ref = await seedDownshiftEvent(ALICE_UID);
+
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'downshiftEvents', ref.id)));
+  });
+
+  test('an org ADMIN cannot read another members weekly cycle either', async () => {
+    // Admin is the highest role in the model. If any role were going to punch
+    // through, it would be this one. It does not.
+    await seedMembership(ORG_ID, ALICE_UID, 'member');
+    await seedMembership(ORG_ID, BOB_UID, 'admin');
+    const ref = await seedWeeklyCycle(ALICE_UID);
+
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'weeklyCycles', ref.id)));
+  });
+});
+
 console.log('✅ All security rules tests defined. Run with: npm run test:rules');
