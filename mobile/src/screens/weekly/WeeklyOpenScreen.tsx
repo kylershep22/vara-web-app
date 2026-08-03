@@ -36,10 +36,7 @@ import {
   type CapacityTier,
   type OutcomeKey,
 } from '../../weeklyEngine';
-import {
-  countWeeklyCyclesForOutcome,
-  createWeeklyCycle,
-} from '../../services/firebase/weeklyCycle.service';
+import { createWeeklyCycle } from '../../services/firebase/weeklyCycle.service';
 import { logger } from '../../utils/logger';
 import { toIsoDate } from '../../utils/weekStart';
 import { ROUTES } from '../../navigation/routes';
@@ -55,9 +52,7 @@ const MIN_TOUCH_TARGET = 48;
 type Step = 'outcome' | 'capacity' | 'confirm';
 
 export function WeeklyOpenScreen() {
-  const navigation = useNavigation<{
-    replace: (route: string, params?: { weekNumber: number }) => void;
-  }>();
+  const navigation = useNavigation<{ replace: (route: string) => void }>();
   const { user } = useAuth();
   const [step, setStep] = useState<Step>('outcome');
   const [outcome, setOutcome] = useState<OutcomeKey | null>(null);
@@ -93,11 +88,6 @@ export function WeeklyOpenScreen() {
     setFailed(false);
     try {
       const selected = selectProtocol(outcome, capacity);
-      // Week number is PER OUTCOME and counts what is already stored, so the
-      // week being opened right now is count + 1. Counted before the write, not
-      // after, so the new cycle is not counted as one of its own predecessors.
-      const priorWeeks = await countWeeklyCyclesForOutcome(user.uid, outcome);
-      const weekNumber = priorWeeks + 1;
 
       // capacityCurrent and userId are set by the service. Passing them would
       // be the one way to open a week whose current tier already disagrees with
@@ -109,11 +99,16 @@ export function WeeklyOpenScreen() {
         protocolId: selected.id,
       });
 
-      // Hand the week number forward rather than calling applyQuickWin here and
-      // discarding the result: the quick-win state is rendered on Today, so
-      // that is where the engine call belongs. Today recounts for itself when
-      // it is entered without this param (re-entry through the guard).
-      navigation.replace(ROUTES.WeeklyToday, { weekNumber });
+      // No week number is computed or handed forward. Today derives it, always,
+      // from the stored cycles. Deriving it here as well would mean two
+      // derivations against two different database states (this one pre-write,
+      // Today's post-write) with nothing forcing them to agree, and a re-entry
+      // in the same week could then disagree with the fresh open about whether
+      // the quick win is active. One derivation, one source.
+      //
+      // The await above is what makes that safe: the cycle is persisted before
+      // this navigation, so Today's count always includes the current week.
+      navigation.replace(ROUTES.WeeklyToday);
     } catch (error) {
       logger.error('[WeeklyOpen] cycle write failed:', error);
       // Selections are kept, so the user retries the confirm rather than

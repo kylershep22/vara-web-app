@@ -165,14 +165,19 @@ export async function getWeeklyCycleForWeek(
  * week 1 of Routines and gets the quick win again. Time-to-felt-effect is a
  * property of the protocol, not of how long the user has had the app.
  *
- * MIND THE OFF-BY-ONE. The count is of what is already stored, so the weekly
- * open (which has not written its cycle yet) passes `count + 1` to
- * applyQuickWin, while Today (whose cycle is already stored) passes `count`.
+ * THIS IS THE SINGLE SOURCE OF THE WEEK NUMBER, and Today is its only caller.
+ * The count INCLUDES the current week's cycle, which is always persisted before
+ * Today mounts, so a first week on an outcome counts 1. Do not add a second
+ * derivation anywhere: a caller counting before its own write would be reading
+ * a different database state, and the two would disagree about the same week.
  *
  * Two equality filters, so it is served by the automatic single-field indexes
- * and needs no composite index. Fetch-and-length rather than an aggregation
- * query: nothing in the app imports getCountFromServer yet, and the volume here
- * is one document per week.
+ * and needs no composite index. Fetch-and-length rather than
+ * getCountFromServer, and not merely because nothing imports that helper yet:
+ * an aggregation query is served by the SERVER and would miss a cycle written
+ * moments earlier that has not round-tripped yet, which is exactly the read
+ * this function performs on a fresh open. getDocs answers from the local cache
+ * as well, so the just-written cycle counts.
  */
 export async function countWeeklyCyclesForOutcome(
   userId: string,

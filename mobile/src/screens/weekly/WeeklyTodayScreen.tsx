@@ -30,7 +30,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
@@ -60,7 +60,6 @@ interface TodayView {
 
 export function WeeklyTodayScreen() {
   const navigation = useNavigation<{ replace: (route: string) => void }>();
-  const route = useRoute<{ key: string; name: string; params?: { weekNumber?: number } }>();
   const { user } = useAuth();
   const [view, setView] = useState<TodayView | null>(null);
   const [failed, setFailed] = useState(false);
@@ -74,7 +73,6 @@ export function WeeklyTodayScreen() {
   const navigationRef = useRef(navigation);
   navigationRef.current = navigation;
 
-  const weekNumberParam = route.params?.weekNumber;
   // Depend on the uid, not the user object: the identity of the object can
   // change on an auth-context re-render without the signed-in user changing,
   // and re-running this load on every such render would refetch the week for no
@@ -97,11 +95,21 @@ export function WeeklyTodayScreen() {
           return;
         }
 
-        // The open passes the week number it already counted; on re-entry there
-        // is no param and it is recounted. The stored cycle IS counted here,
-        // which is why this is the raw count and the open used count + 1.
-        const weekNumber =
-          weekNumberParam ?? (await countWeeklyCyclesForOutcome(uid, cycle.outcome));
+        // THE SINGLE DERIVATION OF THE WEEK NUMBER. Nothing hands one in, and
+        // nothing else computes one: a second derivation elsewhere would run
+        // against a different database state, and the two could then disagree
+        // about whether the quick win is active for the same week.
+        //
+        // The count INCLUDES the current week's cycle, which is always
+        // persisted by the time this screen mounts. On a fresh open the write
+        // is awaited before navigation; on re-entry the cycle has been stored
+        // for hours or days. So a first week on an outcome counts 1, and week 1
+        // is what activates the quick win (spec 6.3).
+        //
+        // Read through getDocs rather than an aggregation query on purpose:
+        // getCountFromServer bypasses the local cache and would miss a
+        // just-written cycle that has not yet round-tripped to the server.
+        const weekNumber = await countWeeklyCyclesForOutcome(uid, cycle.outcome);
 
         // capacityCurrent, not capacityInitial: the current tier is what the
         // user is living in. They are equal until the re-set control ships.
@@ -125,7 +133,7 @@ export function WeeklyTodayScreen() {
     return () => {
       active = false;
     };
-  }, [uid, weekNumberParam, attempt]);
+  }, [uid, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 

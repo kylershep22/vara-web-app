@@ -13,6 +13,8 @@ const mockCreateWeeklyCycle = jest.fn();
 const mockCountForOutcome = jest.fn();
 jest.mock('../../../services/firebase/weeklyCycle.service', () => ({
   createWeeklyCycle: (...a: any[]) => mockCreateWeeklyCycle(...a),
+  // Exposed only so the assertion below can prove the open NEVER calls it.
+  // The week number has exactly one derivation and it lives on Today.
   countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
 }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -104,31 +106,38 @@ describe('WeeklyOpenScreen', () => {
     });
   });
 
-  describe('the week number handed to Today', () => {
-    test('a first week on this outcome is week 1, counted before the write', async () => {
-      mockCountForOutcome.mockResolvedValue(0);
+  describe('the week number', () => {
+    test('is not computed here, and no count is read', async () => {
+      // One derivation, on Today. Counting here as well would read a different
+      // database state (pre-write) than Today does (post-write), and the two
+      // could then disagree about whether the same week gets the quick win.
       await openWeek('focus', 'normal');
 
-      expect(mockCountForOutcome).toHaveBeenCalledWith('u1', 'focus');
-      expect(mockReplace).toHaveBeenCalledWith('WeeklyToday', { weekNumber: 1 });
+      expect(mockCountForOutcome).not.toHaveBeenCalled();
     });
 
-    test('a fourth week on this outcome is week 4', async () => {
-      mockCountForOutcome.mockResolvedValue(3);
+    test('is not handed forward as a route param', async () => {
       await openWeek('focus', 'normal');
 
-      expect(mockReplace).toHaveBeenCalledWith('WeeklyToday', { weekNumber: 4 });
+      expect(mockReplace).toHaveBeenCalledWith('WeeklyToday');
+      expect(mockReplace.mock.calls[0]).toHaveLength(1);
     });
 
-    test('the count is per outcome, so a switch starts at week 1 again', async () => {
-      // Time-to-felt-effect is a property of the protocol, not of how long the
-      // user has had the app (spec 6.3).
-      mockCountForOutcome.mockImplementation((_uid: string, outcome: string) =>
-        Promise.resolve(outcome === 'focus' ? 9 : 0)
-      );
+    test('the cycle is persisted BEFORE navigating, so Today can count it', async () => {
+      // This ordering is what makes the single derivation correct: Today's
+      // count includes the current week only because the write has landed.
+      const order: string[] = [];
+      mockCreateWeeklyCycle.mockImplementation(async () => {
+        order.push('write');
+        return 'cycle-1';
+      });
+      mockReplace.mockImplementation(() => {
+        order.push('navigate');
+      });
+
       await openWeek('routines', 'normal');
 
-      expect(mockReplace).toHaveBeenCalledWith('WeeklyToday', { weekNumber: 1 });
+      expect(order).toEqual(['write', 'navigate']);
     });
   });
 

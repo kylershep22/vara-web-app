@@ -3,10 +3,8 @@
 // then stops, and the floor commitment appears only on a slammed week.
 
 const mockReplace = jest.fn();
-let mockRouteParams: { weekNumber?: number } | undefined;
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ replace: mockReplace }),
-  useRoute: () => ({ params: mockRouteParams }),
 }));
 jest.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'u1' } }),
@@ -53,7 +51,6 @@ async function renderToday() {
 describe('WeeklyTodayScreen', () => {
   beforeEach(() => {
     mockReplace.mockClear();
-    mockRouteParams = { weekNumber: 1 };
     mockGetLatestCycle.mockReset().mockResolvedValue(cycle());
     mockCountForOutcome.mockReset().mockResolvedValue(1);
     mockGetFloor.mockReset().mockResolvedValue(null);
@@ -100,37 +97,9 @@ describe('WeeklyTodayScreen', () => {
   });
 
   describe('the week-1 quick win (spec 6.3)', () => {
-    test('surfaces in week 1', async () => {
-      mockRouteParams = { weekNumber: 1 };
-      const screen = await renderToday();
-
-      expect(screen.getByTestId('weekly-today-quickwin')).toBeTruthy();
-    });
-
-    test('is gone by week 2', async () => {
-      mockRouteParams = { weekNumber: 2 };
-      const screen = await renderToday();
-
-      expect(screen.queryByTestId('weekly-today-quickwin')).toBeNull();
-    });
-
-    test('never renders the raw practice id', async () => {
-      // The practice has no catalogue entry yet, so it shows as a marked copy
-      // gap. Printing 'exhale-90s' at the user would be worse than the gap.
-      mockRouteParams = { weekNumber: 1 };
-      const screen = await renderToday();
-
-      expect(screen.getByTestId('weekly-today-quickwin')).toBeTruthy();
-      expect(screen.queryByText(/exhale-90s/)).toBeNull();
-      // Marked as a gap instead. Several strings on this screen carry the
-      // marker, so this asserts the quick-win one specifically.
-      expect(screen.getByText(/COPY GAP.*not yet named/)).toBeTruthy();
-    });
-
-    test('recounts the week number when entered without the param', async () => {
-      // Re-entry through the guard carries no param. The stored cycle IS
-      // counted, so the raw count is the week number here, not count + 1.
-      mockRouteParams = undefined;
+    // The week number has ONE derivation: the count of stored cycles for the
+    // active outcome, including the current week's. Nothing hands one in.
+    test('surfaces when the outcome has one stored cycle', async () => {
       mockCountForOutcome.mockResolvedValue(1);
       const screen = await renderToday();
 
@@ -138,12 +107,39 @@ describe('WeeklyTodayScreen', () => {
       expect(screen.getByTestId('weekly-today-quickwin')).toBeTruthy();
     });
 
-    test('a recounted third week shows no quick win', async () => {
-      mockRouteParams = undefined;
+    test('is gone once the outcome has two stored cycles', async () => {
+      mockCountForOutcome.mockResolvedValue(2);
+      const screen = await renderToday();
+
+      expect(screen.queryByTestId('weekly-today-quickwin')).toBeNull();
+    });
+
+    test('is gone in a long-running third week', async () => {
       mockCountForOutcome.mockResolvedValue(3);
       const screen = await renderToday();
 
       expect(screen.queryByTestId('weekly-today-quickwin')).toBeNull();
+    });
+
+    test("counts against the cycle's own outcome, not a fixed one", async () => {
+      mockGetLatestCycle.mockResolvedValue(cycle({ outcome: 'energy' }));
+      mockCountForOutcome.mockResolvedValue(1);
+      await renderToday();
+
+      expect(mockCountForOutcome).toHaveBeenCalledWith('u1', 'energy');
+    });
+
+    test('never renders the raw practice id', async () => {
+      // The practice has no catalogue entry yet, so it shows as a marked copy
+      // gap. Printing 'exhale-90s' at the user would be worse than the gap.
+      mockCountForOutcome.mockResolvedValue(1);
+      const screen = await renderToday();
+
+      expect(screen.getByTestId('weekly-today-quickwin')).toBeTruthy();
+      expect(screen.queryByText(/exhale-90s/)).toBeNull();
+      // Several strings on this screen carry the marker, so this asserts the
+      // quick-win one specifically.
+      expect(screen.getByText(/COPY GAP.*not yet named/)).toBeTruthy();
     });
   });
 
