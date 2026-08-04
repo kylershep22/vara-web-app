@@ -4,12 +4,21 @@
 // (outcome + capacity), the week-1 quick win when it is active, and the floor
 // commitment when capacity is slammed.
 //
+// Also on screen: the "This week changed" re-set control (spec 7), always
+// visible per spec 9. It is SECONDARY to the day's action, which stays the one
+// primary thing on the screen.
+//
 // DELIBERATELY ABSENT, each landing in its own slice: the completion CTA and
-// its dailyLog write, the "This week changed" re-set control (spec 7), the
-// daily energy ping (spec 11), the continuity indicator (open item 10, which
-// resolves at the weekly close), and the AI Coach entry. Nothing here is
-// rendered as a disabled or inert stand-in for them. A tappable that does
-// nothing teaches the user the screen is broken.
+// its dailyLog write, the daily energy ping (spec 11), the continuity indicator
+// (open item 10, which resolves at the weekly close), and the AI Coach entry.
+// Nothing here is rendered as a disabled or inert stand-in for them. A tappable
+// that does nothing teaches the user the screen is broken, which is also why an
+// unavailable re-set direction renders as a note and not as a dead button.
+//
+// The re-set RELOADS rather than patching state locally. The protocol has to
+// re-derive at the new tier AND the conditional floor read has to re-run, since
+// the floor card appears on crossing into slammed and disappears on leaving it.
+// A local patch would skip that fetch and leave the card wrong.
 //
 // Spec 9 also lists what may never appear here: no streak, badge, point,
 // leaderboard, percentage, grade, second CTA, or anything red.
@@ -36,13 +45,17 @@ import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import {
   applyQuickWin,
+  nextTierDown,
+  nextTierUp,
   selectProtocol,
+  type CapacityTier,
   type ResolvedWeeklyProtocol,
 } from '../../weeklyEngine';
 import { getFloorCommitment } from '../../services/firebase/userPrivate.service';
 import {
   countWeeklyCyclesForOutcome,
   getLatestWeeklyCycle,
+  resetWeeklyCapacity,
 } from '../../services/firebase/weeklyCycle.service';
 import type { WeeklyCycle } from '../../types/models';
 import { logger } from '../../utils/logger';
@@ -64,6 +77,12 @@ export function WeeklyTodayScreen() {
   const [view, setView] = useState<TodayView | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // A failed re-set is NOT a failed week: the cycle on screen is still valid, so
+  // this is its own inline error rather than `failed`, which replaces the whole
+  // screen. `resetting` guards the window between the tap and the reload, where
+  // a second tap would write a transition from a tier the user is no longer on.
+  const [resetFailed, setResetFailed] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // Held in a ref and kept OUT of the effect's dependencies on purpose.
   // useNavigation hands back a fresh object on some renders, and a navigation
@@ -137,6 +156,39 @@ export function WeeklyTodayScreen() {
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
+  /**
+   * Move to an adjacent tier. One tap, no confirmation (spec 7).
+   *
+   * `from` is the tier currently on screen, passed through so the event records
+   * the transition the user actually saw and tapped rather than whatever a
+   * re-read might return.
+   *
+   * On success this bumps `attempt` instead of patching `view`. That reload is
+   * load-bearing twice over: the protocol re-derives from the stored
+   * capacityCurrent, and the floor read re-runs so the floor card appears on the
+   * way into slammed and goes away on the way out.
+   *
+   * On failure nothing on screen moves. The batch is atomic, so a rejection
+   * means neither write landed and the displayed tier is still the true one.
+   */
+  const changeTier = useCallback(
+    async (from: CapacityTier, to: CapacityTier) => {
+      if (!uid || !view || resetting) return;
+      setResetting(true);
+      setResetFailed(false);
+      try {
+        await resetWeeklyCapacity(uid, view.cycle.id, from, to);
+        setAttempt((n) => n + 1);
+      } catch (error) {
+        logger.error('[WeeklyToday] capacity re-set failed:', error);
+        setResetFailed(true);
+      } finally {
+        setResetting(false);
+      }
+    },
+    [uid, view, resetting]
+  );
+
   if (failed) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -169,6 +221,12 @@ export function WeeklyTodayScreen() {
   }
 
   const { cycle, protocol, floorCommitment } = view;
+
+  // Derived from CAPACITY_TIERS through the engine helpers, which are the only
+  // place the tier order lives. Null means the ladder ends here, and that is
+  // what the edge note renders instead of a button.
+  const downTier = nextTierDown(cycle.capacityCurrent);
+  const upTier = nextTierUp(cycle.capacityCurrent);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -206,6 +264,63 @@ export function WeeklyTodayScreen() {
             <Text style={styles.floor}>{floorCommitment}</Text>
           </View>
         )}
+
+        {/* The dynamic in-week re-set (spec 7), always visible (spec 9). Last
+            on the screen and outlined rather than filled: the day's action is
+            the one primary thing here, and this is the quiet way out of a week
+            that turned out differently.
+
+            Both directions are one tap with no confirmation. Neither is framed
+            as a failure or a reward, because continuity is measured against the
+            floor commitment and never against the tier: re-setting in either
+            direction cannot break or extend a run. */}
+        <View style={styles.resetCard} testID="weekly-today-reset">
+          <Text style={styles.sectionLabel}>{TODAY_COPY.resetHeading}</Text>
+
+          {downTier && (
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => changeTier(cycle.capacityCurrent, downTier)}
+              disabled={resetting}
+              accessibilityRole="button"
+              accessibilityLabel={TODAY_COPY.resetDown}
+              accessibilityState={{ disabled: resetting }}
+              testID="weekly-today-reset-down"
+            >
+              <Text style={styles.resetLabel}>{TODAY_COPY.resetDown}</Text>
+            </TouchableOpacity>
+          )}
+
+          {upTier && (
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => changeTier(cycle.capacityCurrent, upTier)}
+              disabled={resetting}
+              accessibilityRole="button"
+              accessibilityLabel={TODAY_COPY.resetUp}
+              accessibilityState={{ disabled: resetting }}
+              testID="weekly-today-reset-up"
+            >
+              <Text style={styles.resetLabel}>{TODAY_COPY.resetUp}</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* At either end of the ladder the missing direction is stated, not
+              rendered as a button that would do nothing. */}
+          {(!downTier || !upTier) && (
+            <Text style={styles.resetEdge} testID="weekly-today-reset-edge">
+              {downTier ? TODAY_COPY.resetAtHighest : TODAY_COPY.resetAtLowest}
+            </Text>
+          )}
+
+          {/* The batch is atomic, so a failure means neither write landed and
+              the tier above is still the true one. Say so, in coral. */}
+          {resetFailed && (
+            <Text style={styles.resetError} testID="weekly-today-reset-error">
+              {TODAY_COPY.resetFailed}
+            </Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -277,6 +392,43 @@ const styles = StyleSheet.create({
   floor: {
     ...TextStyles.body,
     color: Colors.softCharcoal,
+  },
+  resetCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
+    marginTop: Spacing.lg,
+  },
+  // Outlined, not filled: secondary to the day's action, which is the one
+  // primary thing on this screen.
+  resetButton: {
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  resetLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
+    textAlign: 'center',
+  },
+  resetEdge: {
+    ...TextStyles.bodySmall,
+    color: Colors.mutedSageGray,
+  },
+  resetError: {
+    ...TextStyles.bodySmall,
+    // Soft coral, the brand's only error colour. Never red.
+    color: Colors.softCoral,
+    marginTop: Spacing.sm,
   },
   error: {
     ...TextStyles.body,

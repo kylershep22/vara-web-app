@@ -12,9 +12,11 @@ jest.mock('../../../context/AuthContext', () => ({
 const mockGetLatestCycle = jest.fn();
 const mockCountForOutcome = jest.fn();
 const mockGetFloor = jest.fn();
+const mockResetCapacity = jest.fn();
 jest.mock('../../../services/firebase/weeklyCycle.service', () => ({
   getLatestWeeklyCycle: (...a: any[]) => mockGetLatestCycle(...a),
   countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
+  resetWeeklyCapacity: (...a: any[]) => mockResetCapacity(...a),
 }));
 jest.mock('../../../services/firebase/userPrivate.service', () => ({
   getFloorCommitment: (...a: any[]) => mockGetFloor(...a),
@@ -27,7 +29,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { WeeklyTodayScreen } from '../WeeklyTodayScreen';
 import { PROTOCOL_MATRIX } from '../../../weeklyEngine';
 
@@ -54,6 +56,7 @@ describe('WeeklyTodayScreen', () => {
     mockGetLatestCycle.mockReset().mockResolvedValue(cycle());
     mockCountForOutcome.mockReset().mockResolvedValue(1);
     mockGetFloor.mockReset().mockResolvedValue(null);
+    mockResetCapacity.mockReset().mockResolvedValue(undefined);
   });
 
   describe("today's action", () => {
@@ -204,14 +207,284 @@ describe('WeeklyTodayScreen', () => {
   });
 
   describe('what spec 9 forbids on this screen', () => {
-    test('renders no completion CTA and no re-set control this slice', async () => {
-      // Both land in later slices. Until then there must be nothing tappable
-      // standing in for them.
+    test('renders no completion CTA this slice', async () => {
+      // The completion CTA lands in a later slice. Until then there must be
+      // nothing tappable standing in for it. The re-set control below IS
+      // present now, so it is no longer covered by this test.
       const screen = await renderToday();
 
       expect(screen.queryByText(/done/i)).toBeNull();
-      expect(screen.queryByText(/this week changed/i)).toBeNull();
       expect(screen.queryByText(/%/)).toBeNull();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // The dynamic in-week re-set (spec 7), always visible per spec 9
+  // -------------------------------------------------------------------------
+
+  describe('the re-set control', () => {
+    /**
+     * The screen reloads after a re-set rather than patching state locally, so
+     * a re-set test has to model the SECOND read too. This queues the cycle the
+     * batch would have written, which is what makes the floor-card assertions
+     * below real: the floor is only fetched during a load.
+     */
+    const cycleThenCycle = (first: object, second: object) => {
+      mockGetLatestCycle.mockReset();
+      mockGetLatestCycle.mockResolvedValueOnce(first).mockResolvedValue(second);
+    };
+
+    describe('presence and placement', () => {
+      test('is always visible on a normal week', async () => {
+        const screen = await renderToday();
+
+        expect(screen.getByTestId('weekly-today-reset')).toBeTruthy();
+      });
+
+      test('is always visible on a slammed week, alongside the floor card', async () => {
+        mockGetLatestCycle.mockResolvedValue(
+          cycle({ capacityInitial: 'slammed', capacityCurrent: 'slammed' })
+        );
+        mockGetFloor.mockResolvedValue('ten minutes outside');
+        const screen = await renderToday();
+
+        expect(screen.getByTestId('weekly-today-reset')).toBeTruthy();
+        expect(screen.getByTestId('weekly-today-floor')).toBeTruthy();
+      });
+
+      test('offers both directions from the middle tier', async () => {
+        mockGetLatestCycle.mockResolvedValue(
+          cycle({ capacityInitial: 'limited', capacityCurrent: 'limited' })
+        );
+        const screen = await renderToday();
+
+        expect(screen.getByTestId('weekly-today-reset-down')).toBeTruthy();
+        expect(screen.getByTestId('weekly-today-reset-up')).toBeTruthy();
+      });
+    });
+
+    describe('the edges of the ladder', () => {
+      test('at slammed there is no down action', async () => {
+        mockGetLatestCycle.mockResolvedValue(
+          cycle({ capacityInitial: 'slammed', capacityCurrent: 'slammed' })
+        );
+        const screen = await renderToday();
+
+        expect(screen.queryByTestId('weekly-today-reset-down')).toBeNull();
+        expect(screen.getByTestId('weekly-today-reset-up')).toBeTruthy();
+      });
+
+      test('at normal there is no up action', async () => {
+        const screen = await renderToday();
+
+        expect(screen.queryByTestId('weekly-today-reset-up')).toBeNull();
+        expect(screen.getByTestId('weekly-today-reset-down')).toBeTruthy();
+      });
+
+      test('an unavailable direction is absent, never a button that does nothing', async () => {
+        // A tappable that does not respond teaches the user the screen is
+        // broken. The edge renders as a note instead.
+        const screen = await renderToday();
+
+        expect(screen.queryByTestId('weekly-today-reset-up')).toBeNull();
+        expect(screen.getByTestId('weekly-today-reset-edge')).toBeTruthy();
+      });
+    });
+
+    describe('down-tiering', () => {
+      test('writes the transition it displayed, from the current tier', async () => {
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() =>
+          expect(mockResetCapacity).toHaveBeenCalledWith('u1', 'cycle-1', 'normal', 'limited')
+        );
+      });
+
+      test('re-serves the SAME outcome at the next capacity down', async () => {
+        cycleThenCycle(
+          cycle({ outcome: 'stress' }),
+          cycle({ outcome: 'stress', capacityCurrent: 'limited' })
+        );
+        const screen = await renderToday();
+        expect(screen.getByTestId('weekly-today-action').props.children).toBe(
+          PROTOCOL_MATRIX.stress.normal.dailyAction
+        );
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() =>
+          expect(screen.getByTestId('weekly-today-action').props.children).toBe(
+            PROTOCOL_MATRIX.stress.limited.dailyAction
+          )
+        );
+      });
+
+      test('steps one rung at a time, normal to limited and not to slammed', async () => {
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(mockResetCapacity).toHaveBeenCalled());
+        expect(mockResetCapacity.mock.calls[0][3]).toBe('limited');
+      });
+
+      test('crossing into slammed brings the floor card with it', async () => {
+        // The floor is read only during a load, and only when slammed. This is
+        // the assertion that fails if the re-set ever patches state locally
+        // instead of reloading.
+        cycleThenCycle(
+          cycle({ capacityCurrent: 'limited' }),
+          cycle({ capacityCurrent: 'slammed' })
+        );
+        mockGetFloor.mockResolvedValue('ten minutes outside');
+        const screen = await renderToday();
+        expect(screen.queryByTestId('weekly-today-floor')).toBeNull();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(screen.getByTestId('weekly-today-floor')).toBeTruthy());
+        expect(screen.getByText('ten minutes outside')).toBeTruthy();
+      });
+    });
+
+    describe('up-tiering', () => {
+      test('writes the transition it displayed, upwards', async () => {
+        mockGetLatestCycle.mockResolvedValue(
+          cycle({ capacityInitial: 'slammed', capacityCurrent: 'slammed' })
+        );
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-up'));
+
+        await waitFor(() =>
+          expect(mockResetCapacity).toHaveBeenCalledWith('u1', 'cycle-1', 'slammed', 'limited')
+        );
+      });
+
+      test('re-serves the same outcome at the next capacity up', async () => {
+        cycleThenCycle(
+          cycle({ outcome: 'energy', capacityCurrent: 'slammed' }),
+          cycle({ outcome: 'energy', capacityCurrent: 'limited' })
+        );
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-up'));
+
+        await waitFor(() =>
+          expect(screen.getByTestId('weekly-today-action').props.children).toBe(
+            PROTOCOL_MATRIX.energy.limited.dailyAction
+          )
+        );
+      });
+
+      test('leaving slammed takes the floor card away', async () => {
+        cycleThenCycle(
+          cycle({ capacityCurrent: 'slammed' }),
+          cycle({ capacityCurrent: 'limited' })
+        );
+        mockGetFloor.mockResolvedValue('ten minutes outside');
+        const screen = await renderToday();
+        expect(screen.getByTestId('weekly-today-floor')).toBeTruthy();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-up'));
+
+        // Wait on the POSITIVE signal that the reload landed before asserting
+        // the card is gone. Waiting only on the absence would pass on a screen
+        // that had not reloaded at all, since the card is also absent for a
+        // moment before the new view is set.
+        await waitFor(() => expect(screen.getByText(/Limited/)).toBeTruthy());
+        expect(screen.queryByTestId('weekly-today-floor')).toBeNull();
+        // The floor is read once, on the slammed load, and not again.
+        expect(mockGetFloor).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('one tap, no confirmation (spec 7)', () => {
+      test('a single press writes immediately, with no dialog in between', async () => {
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(mockResetCapacity).toHaveBeenCalledTimes(1));
+      });
+
+      test('the summary follows the new tier after the reload', async () => {
+        cycleThenCycle(cycle(), cycle({ capacityCurrent: 'limited' }));
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(screen.getByText(/Limited/)).toBeTruthy());
+      });
+    });
+
+    describe('when the batch fails', () => {
+      test('shows a supportive error instead of crashing', async () => {
+        mockResetCapacity.mockRejectedValue(new Error('permission denied'));
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(screen.getByTestId('weekly-today-reset-error')).toBeTruthy());
+      });
+
+      test('leaves the tier and the action exactly as they were', async () => {
+        mockResetCapacity.mockRejectedValue(new Error('permission denied'));
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(screen.getByTestId('weekly-today-reset-error')).toBeTruthy());
+        expect(screen.getByTestId('weekly-today-action').props.children).toBe(
+          PROTOCOL_MATRIX.focus.normal.dailyAction
+        );
+        expect(screen.getByText(/Normal/)).toBeTruthy();
+      });
+
+      test('keeps the week on screen rather than replacing it with the load error', async () => {
+        // A failed re-set is not a failed week. The screen still has a valid
+        // cycle to show, so the whole-screen error state must not take over.
+        mockResetCapacity.mockRejectedValue(new Error('permission denied'));
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(screen.getByTestId('weekly-today-reset-error')).toBeTruthy());
+        expect(screen.getByTestId('weekly-today')).toBeTruthy();
+        expect(screen.queryByTestId('weekly-today-error')).toBeNull();
+      });
+
+      test('a retry after a failure works', async () => {
+        mockResetCapacity.mockRejectedValueOnce(new Error('offline'));
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+        await waitFor(() => expect(screen.getByTestId('weekly-today-reset-error')).toBeTruthy());
+
+        mockGetLatestCycle.mockResolvedValue(cycle({ capacityCurrent: 'limited' }));
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        // Same rule as above: wait for the reload to land, then assert the
+        // error is gone. The error clearing is a state change, not a timeout.
+        await waitFor(() => expect(screen.getByText(/Limited/)).toBeTruthy());
+        expect(mockResetCapacity).toHaveBeenCalledTimes(2);
+        expect(screen.queryByTestId('weekly-today-reset-error')).toBeNull();
+      });
+    });
+
+    describe('nothing here reads or writes continuity', () => {
+      test('the re-set writes only the four arguments the service takes', async () => {
+        // Analytics on re-set frequency is P0 #7 and reads the event log in its
+        // own slice. Today writes and moves on.
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(mockResetCapacity).toHaveBeenCalled());
+        expect(mockResetCapacity.mock.calls[0]).toHaveLength(4);
+      });
     });
   });
 });
