@@ -157,7 +157,91 @@ export async function getWeeklyCycleForWeek(
   return { ...(first.data() as Omit<WeeklyCycle, 'id'>), id: first.id };
 }
 
-/** Most recent cycles first. Returns [] when the user has no history. */
+/**
+ * How many cycles the user has already run on one outcome.
+ *
+ * This is what the week-1 quick-win rule (spec 6.3) counts: the week number is
+ * PER OUTCOME, so a user switching from Focus to Routines in month three is on
+ * week 1 of Routines and gets the quick win again. Time-to-felt-effect is a
+ * property of the protocol, not of how long the user has had the app.
+ *
+ * THIS IS THE SINGLE SOURCE OF THE WEEK NUMBER, and Today is its only caller.
+ * The count INCLUDES the current week's cycle, which is always persisted before
+ * Today mounts, so a first week on an outcome counts 1. Do not add a second
+ * derivation anywhere: a caller counting before its own write would be reading
+ * a different database state, and the two would disagree about the same week.
+ *
+ * Two equality filters, so it is served by the automatic single-field indexes
+ * and needs no composite index. Fetch-and-length rather than
+ * getCountFromServer, and not merely because nothing imports that helper yet:
+ * an aggregation query is served by the SERVER and would miss a cycle written
+ * moments earlier that has not round-tripped yet, which is exactly the read
+ * this function performs on a fresh open. getDocs answers from the local cache
+ * as well, so the just-written cycle counts.
+ */
+export async function countWeeklyCyclesForOutcome(
+  userId: string,
+  outcome: OutcomeKey
+): Promise<number> {
+  const q = query(
+    collection(requireDb(), WEEKLY_CYCLES),
+    where('userId', '==', userId),
+    where('outcome', '==', outcome)
+  );
+  const snap = await getDocs(q);
+  return snap.size;
+}
+
+/**
+ * The user's most recently started cycle, or null when they have never opened
+ * one. Null is the normal state for a new user, not an error.
+ *
+ * Filters on userId ONLY and sorts in memory, deliberately. The equivalent
+ * server-side sort (`where userId ==` + `orderBy weekStart desc`, which is what
+ * getRecentWeeklyCycles does) needs a composite index that does not exist in
+ * firestore.indexes.json — see that function's warning. One document per week
+ * makes the client-side sort cheap enough that adding an index to save it would
+ * be premature.
+ *
+ * Ties on weekStart cannot normally occur (a week is opened once), and if one
+ * ever did, either document describes the same week.
+ */
+export async function getLatestWeeklyCycle(userId: string): Promise<WeeklyCycle | null> {
+  const cycles = await getWeeklyCyclesForUser(userId);
+  if (cycles.length === 0) return null;
+  return cycles.reduce((latest, c) => (c.weekStart > latest.weekStart ? c : latest));
+}
+
+/**
+ * Every cycle the user has, unordered. Returns [] when they have none.
+ *
+ * Equality-only, so it is served by the automatic single-field index and needs
+ * no entry in firestore.indexes.json. Unbounded by design (about 52 documents a
+ * year); if that ever stops being cheap, the fix is a bounded query WITH the
+ * composite index, not a silent limit here.
+ */
+export async function getWeeklyCyclesForUser(userId: string): Promise<WeeklyCycle[]> {
+  const q = query(
+    collection(requireDb(), WEEKLY_CYCLES),
+    where('userId', '==', userId)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({
+    ...(d.data() as Omit<WeeklyCycle, 'id'>),
+    id: d.id,
+  }));
+}
+
+/**
+ * Most recent cycles first. Returns [] when the user has no history.
+ *
+ * WARNING — NEEDS AN INDEX THAT DOES NOT EXIST YET. The `where userId ==` plus
+ * `orderBy weekStart desc` combination requires a composite index, and
+ * firestore.indexes.json currently has no weeklyCycles entry at all, so this
+ * call FAILS against production. Whichever slice first needs ordered history
+ * (the weekly close / continuity) must add the index before calling it. Nothing
+ * calls it today; getLatestWeeklyCycle above is the index-free alternative.
+ */
 export async function getRecentWeeklyCycles(
   userId: string,
   max: number

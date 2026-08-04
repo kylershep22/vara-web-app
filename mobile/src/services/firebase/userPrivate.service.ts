@@ -59,6 +59,47 @@ export async function getUserPrivate(uid: string): Promise<UserPrivate | null> {
 }
 
 /**
+ * Max length of the floor commitment (spec 10.1: "one free-text line, max ~100
+ * chars"). Enforced here rather than only in the TextInput so the cap holds for
+ * every caller, not just the one screen that happens to set maxLength.
+ */
+export const FLOOR_COMMITMENT_MAX_CHARS = 100;
+
+/**
+ * The user's floor commitment, or null when they have not written one.
+ *
+ * Collapses the two "no floor yet" states a caller would otherwise have to
+ * distinguish by hand — no private document at all, and a document without the
+ * field — into the single null the entry guard actually branches on. A stored
+ * value that is only whitespace is also null: it is not a commitment.
+ */
+export async function getFloorCommitment(uid: string): Promise<string | null> {
+  const priv = await getUserPrivate(uid);
+  const value = priv?.floorCommitment?.trim();
+  return value ? value : null;
+}
+
+/**
+ * Write the floor commitment. Returns the value actually stored, which is the
+ * trimmed and capped form rather than the raw input.
+ *
+ * Rejects an empty commitment instead of storing one: an empty floor reads back
+ * as "no floor" through getFloorCommitment, so writing it would put the user in
+ * a state where they have completed capture and the guard still sends them
+ * back. Callers gate their own submit button; this is the backstop.
+ */
+export async function setFloorCommitment(uid: string, text: string): Promise<string> {
+  // Trim, cap, then trim again: slicing at the cap can leave a trailing space
+  // that the first trim had no way to see.
+  const value = text.trim().slice(0, FLOOR_COMMITMENT_MAX_CHARS).trim();
+  if (!value) {
+    throw new Error('Floor commitment cannot be empty.');
+  }
+  await setUserPrivate(uid, { floorCommitment: value });
+  return value;
+}
+
+/**
  * Upsert fields onto the user's private document.
  *
  * Merges, so a patch touching one field leaves the rest intact. `updatedAt` is

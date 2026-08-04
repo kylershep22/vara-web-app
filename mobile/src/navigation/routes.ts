@@ -69,6 +69,18 @@ export const ROUTES = {
   Practices: 'Practices',
   PracticeRun: 'PracticeRun',
 
+  // --- Weekly loop (spec 6, 9, 10.1) ---
+  // Registered on the AppStack behind __DEV__ and reached only from the
+  // Developer section of Settings. Deliberately NOT default landing and not a
+  // tab: spec 22 item 4 (Today as the default landing) is a later slice, and
+  // the daily Situation x State engine still owns Home until the progressive
+  // onboarding replaces it. WeeklyEntry is the guard; it routes to the other
+  // three and is the only one anything else should target.
+  WeeklyEntry: 'WeeklyEntry',
+  WeeklyFloor: 'WeeklyFloor',
+  WeeklyOpen: 'WeeklyOpen',
+  WeeklyToday: 'WeeklyToday',
+
   // --- Dev-only AppStack screens (__DEV__) ---
   DevBreathPacer: 'DevBreathPacer',
   DevAudioLoader: 'DevAudioLoader',
