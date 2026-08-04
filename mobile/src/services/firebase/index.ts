@@ -316,7 +316,9 @@ export {
 
 // weeklyCycle.service (weekly-loop persistence: weeklyCycles + dailyLogs +
 // downshiftEvents). downshiftEvents is append-only by design — create + read
-// only, no update/delete helper.
+// only, no update/delete helper. resetWeeklyCapacity is the in-week re-set
+// (S7): it batches the event write and the capacityCurrent update into one
+// atomic commit, and is the only thing here that spans two collections.
 export {
   dailyLogDocId,
   createWeeklyCycle,
@@ -327,6 +329,7 @@ export {
   getDailyLog,
   createDownshiftEvent,
   getDownshiftEventsForCycle,
+  resetWeeklyCapacity,
 } from './weeklyCycle.service';
 export type {
   CreateWeeklyCycleInput,
