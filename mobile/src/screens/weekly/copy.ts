@@ -95,4 +95,23 @@ export const TODAY_COPY = {
   quickWinPractice: gap('week-1 quick-win practice, not yet named'),
   loadFailed: gap('We could not load your week. Try again.'),
   retry: gap('Try again'),
+
+  // The dynamic in-week re-set (spec 7). Spec 7 names the control but supplies
+  // none of its labels, so every string below is a gap rather than a [Jen]
+  // line. Two constraints Jen should know when replacing them:
+  //
+  //   1. The two actions are ONE TAP with no confirmation, so a label has to
+  //      read as the thing that happens, not as a question.
+  //   2. Neither direction is a failure or a reward. Down is not "giving up"
+  //      and up is not "earning" anything, because continuity is measured
+  //      against the floor commitment and never against the tier. A label that
+  //      implies otherwise would contradict the mechanic underneath it.
+  resetHeading: gap('This week changed'),
+  resetDown: gap('I have less time than I thought'),
+  resetUp: gap('I have more time than I thought'),
+  // Shown in place of the missing direction at either end of the ladder, so the
+  // absence reads as a state rather than a missing button.
+  resetAtLowest: gap('This is already the lightest version.'),
+  resetAtHighest: gap('This is already the fullest version.'),
+  resetFailed: gap('That did not save. Your week is unchanged. Try again.'),
 } as const;

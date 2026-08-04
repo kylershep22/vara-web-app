@@ -1,4 +1,8 @@
-const mockDoc = jest.fn((..._a: any[]) => ({ __ref: true }));
+// The ref echoes the arguments it was built from. Nothing asserts on its
+// shape, and carrying the path is what lets the batched re-set tests below tell
+// the event ref apart from the cycle ref: both are refs, and without the echo a
+// payload written to the wrong one would still match.
+const mockDoc = jest.fn((..._a: any[]) => ({ __ref: true, builtFrom: _a }));
 const mockGetDoc = jest.fn((..._a: any[]): any => undefined);
 const mockGetDocs = jest.fn((..._a: any[]): any => undefined);
 const mockCollection = jest.fn((..._a: any[]) => ({ __collection: true }));
@@ -10,6 +14,14 @@ const mockAddDoc = jest.fn((..._a: any[]): any => ({ id: 'new-id' }));
 const mockSetDoc = jest.fn((..._a: any[]): any => undefined);
 const mockUpdateDoc = jest.fn((..._a: any[]): any => undefined);
 const mockServerTimestamp = jest.fn(() => ({ __serverTimestamp: true }));
+const mockBatchSet = jest.fn((..._a: any[]) => undefined);
+const mockBatchUpdate = jest.fn((..._a: any[]) => undefined);
+const mockBatchCommit = jest.fn((): any => Promise.resolve());
+const mockWriteBatch = jest.fn((..._a: any[]) => ({
+  set: (...a: any[]) => mockBatchSet(...a),
+  update: (...a: any[]) => mockBatchUpdate(...a),
+  commit: () => mockBatchCommit(),
+}));
 
 jest.mock('firebase/firestore', () => ({
   doc: (...a: any[]) => mockDoc(...a),
@@ -24,6 +36,7 @@ jest.mock('firebase/firestore', () => ({
   setDoc: (...a: any[]) => mockSetDoc(...a),
   updateDoc: (...a: any[]) => mockUpdateDoc(...a),
   serverTimestamp: () => mockServerTimestamp(),
+  writeBatch: (...a: any[]) => mockWriteBatch(...a),
 }));
 // requireDb() reads `db` from this module, so mocking it here narrows the handle
 // for the service without needing to mock ensureDb itself.
@@ -45,6 +58,7 @@ import {
   getDailyLog,
   createDownshiftEvent,
   getDownshiftEventsForCycle,
+  resetWeeklyCapacity,
 } from '../weeklyCycle.service';
 
 const absent = { exists: () => false };
@@ -72,6 +86,11 @@ describe('weeklyCycle.service', () => {
     mockAddDoc.mockClear();
     mockSetDoc.mockClear();
     mockUpdateDoc.mockClear();
+    mockWriteBatch.mockClear();
+    mockBatchSet.mockClear();
+    mockBatchUpdate.mockClear();
+    mockBatchCommit.mockReset();
+    mockBatchCommit.mockResolvedValue(undefined);
   });
 
   describe('dailyLogDocId', () => {
@@ -457,6 +476,183 @@ describe('weeklyCycle.service', () => {
       );
       const result = await getDownshiftEventsForCycle(ALICE, 'cycle1');
       expect(result.map((e) => e.id)).toEqual(['e1', 'e2']);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // resetWeeklyCapacity — the atomic in-week re-set (spec 7)
+  // -------------------------------------------------------------------------
+
+  describe('resetWeeklyCapacity', () => {
+    /** The event ref is minted from a collection: doc() gets exactly one arg. */
+    const eventRefCall = () => mockDoc.mock.calls.find((c) => c.length === 1);
+    /** The cycle ref is addressed by id: doc(db, collection, id). */
+    const cycleRefCall = () => mockDoc.mock.calls.find((c) => c.length === 3);
+
+    describe('atomicity (the whole point of this function)', () => {
+      test('both writes go through ONE batch, committed once', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        expect(mockWriteBatch).toHaveBeenCalledTimes(1);
+        expect(mockBatchCommit).toHaveBeenCalledTimes(1);
+      });
+
+      test('the batch holds exactly two writes: the event and the cycle', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        expect(mockBatchSet).toHaveBeenCalledTimes(1);
+        expect(mockBatchUpdate).toHaveBeenCalledTimes(1);
+      });
+
+      test('neither write escapes the batch as a standalone call', async () => {
+        // If either write were still going through addDoc/updateDoc/setDoc it
+        // would land independently of the other, which is exactly the split the
+        // batch exists to prevent. This is what makes the failure test below
+        // mean something.
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        expect(mockAddDoc).not.toHaveBeenCalled();
+        expect(mockUpdateDoc).not.toHaveBeenCalled();
+        expect(mockSetDoc).not.toHaveBeenCalled();
+      });
+
+      test('a failed commit rejects and leaves NEITHER write outside the batch', async () => {
+        mockBatchCommit.mockRejectedValue(new Error('network down'));
+
+        await expect(
+          resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'slammed')
+        ).rejects.toThrow('network down');
+
+        // Firestore discards an uncommitted batch wholesale, so the guarantee
+        // that neither write lands rests on both being staged on that batch and
+        // nowhere else. Assert exactly that, rather than pretending this mock
+        // can observe server state.
+        expect(mockAddDoc).not.toHaveBeenCalled();
+        expect(mockUpdateDoc).not.toHaveBeenCalled();
+        expect(mockSetDoc).not.toHaveBeenCalled();
+      });
+
+      test('a failed commit is not retried or split into separate writes', async () => {
+        mockBatchCommit.mockRejectedValue(new Error('network down'));
+
+        await expect(
+          resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'slammed')
+        ).rejects.toThrow();
+
+        expect(mockWriteBatch).toHaveBeenCalledTimes(1);
+        expect(mockBatchCommit).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('the event write', () => {
+      test('mints its ref from the downshiftEvents collection', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        expect(mockCollection).toHaveBeenCalledWith({ __db: true }, 'downshiftEvents');
+        expect(eventRefCall()).toBeDefined();
+      });
+
+      test('is staged against the event ref, not the cycle ref', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        const [ref] = mockBatchSet.mock.calls[0];
+        expect((ref as any).builtFrom).toEqual(eventRefCall());
+      });
+
+      test('records the owner, the cycle, both tiers and a timestamp', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        const written = mockBatchSet.mock.calls[0][1];
+        expect(written).toMatchObject({
+          userId: ALICE,
+          weeklyCycleId: 'cycle1',
+          fromCapacity: 'normal',
+          toCapacity: 'limited',
+        });
+        expect(written.timestamp).toEqual({ __serverTimestamp: true });
+      });
+
+      test('records an UPSHIFT with the same shape, direction carried by from/to', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'slammed', 'limited');
+
+        expect(mockBatchSet.mock.calls[0][1]).toMatchObject({
+          fromCapacity: 'slammed',
+          toCapacity: 'limited',
+        });
+      });
+    });
+
+    describe('the cycle update', () => {
+      test('targets the cycle by id in weeklyCycles', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        expect(cycleRefCall()).toEqual([{ __db: true }, 'weeklyCycles', 'cycle1']);
+      });
+
+      test('is staged against the cycle ref, not the event ref', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        const [ref] = mockBatchUpdate.mock.calls[0];
+        expect((ref as any).builtFrom).toEqual(cycleRefCall());
+      });
+
+      test('sets capacityCurrent to the destination tier', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        expect(mockBatchUpdate.mock.calls[0][1]).toMatchObject({
+          capacityCurrent: 'limited',
+        });
+      });
+
+      test('stamps updatedAt', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        expect(mockBatchUpdate.mock.calls[0][1].updatedAt).toEqual({
+          __serverTimestamp: true,
+        });
+      });
+    });
+
+    describe('the floor-vs-tier invariant', () => {
+      // capacityInitial is the weekly forecast. The gap between it and
+      // capacityCurrent is the signal that tells us whether the forecast works,
+      // so the re-set may never touch it. WeeklyCyclePatch permits writing it,
+      // which is why the guarantee has to live in this function's shape and be
+      // asserted here rather than assumed from the type.
+      test('NEVER writes capacityInitial, in either direction', async () => {
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'slammed');
+        expect(mockBatchUpdate.mock.calls[0][1]).not.toHaveProperty('capacityInitial');
+
+        mockBatchUpdate.mockClear();
+
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'slammed', 'normal');
+        expect(mockBatchUpdate.mock.calls[0][1]).not.toHaveProperty('capacityInitial');
+      });
+
+      test('writes capacityCurrent and updatedAt and nothing else', async () => {
+        // Tighter than the negative above: a future field added to the update
+        // payload has to be a deliberate change to this test, not a silent
+        // widening of what the re-set is allowed to overwrite.
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'limited');
+
+        expect(Object.keys(mockBatchUpdate.mock.calls[0][1]).sort()).toEqual([
+          'capacityCurrent',
+          'updatedAt',
+        ]);
+      });
+
+      test('writes no continuity or floor field, in either direction', async () => {
+        // Continuity is measured against the floor commitment and never against
+        // a tier. Nothing about a re-set may reach it.
+        await resetWeeklyCapacity(ALICE, 'cycle1', 'normal', 'slammed');
+
+        const cycleWrite = mockBatchUpdate.mock.calls[0][1];
+        const eventWrite = mockBatchSet.mock.calls[0][1];
+        for (const payload of [cycleWrite, eventWrite]) {
+          expect(payload).not.toHaveProperty('floorMet');
+          expect(payload).not.toHaveProperty('continuity');
+        }
+      });
     });
   });
 });

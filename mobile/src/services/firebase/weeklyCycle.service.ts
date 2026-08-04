@@ -12,17 +12,21 @@
  * individually. Org membership grants zero read here. Do not add a helper that
  * reads another user's rows; the rules would refuse it anyway.
  *
- * APPEND-ONLY: downshiftEvents deliberately exposes only create + read. The
- * owner rule is uniform across all three collections (update/delete are allowed
- * to the owner), but an event log that can be rewritten is not an event log, and
- * S7 needs the re-set frequency to be trustworthy. The absence of an update or
- * delete helper here is the deliberate boundary; keep it.
+ * APPEND-ONLY: downshiftEvents exposes only create + read (and the batched
+ * create inside resetWeeklyCapacity). The owner rule is uniform across all three
+ * collections (update/delete are allowed to the owner), but an event log that
+ * can be rewritten is not an event log, and S7 needs the re-set frequency to be
+ * trustworthy. The absence of an update or delete helper here is the deliberate
+ * boundary; keep it.
+ *
+ * NOTHING READS THE EVENT LOG IN THE APP YET. getDownshiftEventsForCycle exists
+ * and is tested, but re-set frequency is an analytics question (P0 #7) with its
+ * own slice. capacityCurrent on the cycle is what the UI renders; the log is
+ * written for later.
  *
  * NOT HERE: floorMet (open item #10 — the weekly-close slice decides how a
  * week's floor outcome is recorded) and energyRating (belongs to the
  * derived-energy-window feature, S11). Do not invent either ahead of its slice.
- *
- * Nothing in the running app calls this yet. No screen imports it this slice.
  *
  * Uses requireDb() so the Firestore handle is narrowed to non-null, keeping this
  * module clear of the "Firestore | null is not assignable" errors the raw `db`
@@ -41,6 +45,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { requireDb } from './ensureDb';
 import type { DailyLog, DownshiftEvent, WeeklyCycle } from '../../types/models';
@@ -362,4 +367,71 @@ export async function getDownshiftEventsForCycle(
     ...(d.data() as Omit<DownshiftEvent, 'id'>),
     id: d.id,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// The in-week re-set (S7) — the one operation that spans two collections
+// ---------------------------------------------------------------------------
+
+/**
+ * Move a live cycle to a different capacity tier, in either direction.
+ *
+ * ATOMIC BY REQUIREMENT (S7), not as a nicety. The event log and
+ * `capacityCurrent` answer two different questions: the field is authoritative
+ * for "what tier am I on now", the log is the append-only trail of how the week
+ * actually went. A partial write makes them disagree permanently, and there is
+ * no reconciliation pass that would ever notice. Either both land or neither
+ * does.
+ *
+ * DELIBERATELY NOT COMPOSED from createDownshiftEvent + updateWeeklyCycle. Those
+ * two are correct and tested, but each owns its own terminal write (addDoc /
+ * updateDoc) and neither can be staged onto a caller's batch. Calling them in
+ * sequence is exactly the non-atomic version this function exists to replace, so
+ * the writes are restated here against one batch rather than the primitives
+ * being reshaped around a batch parameter. They stay as they are.
+ *
+ * WRITES capacityCurrent ONLY. `capacityInitial` is the weekly forecast and is
+ * never touched: the gap between forecast and where the user actually landed is
+ * the instrumentation S7 is built to produce, and overwriting the forecast
+ * destroys it. WeeklyCyclePatch permits writing that field, so this function's
+ * shape is what enforces the invariant. Do not route this through
+ * updateWeeklyCycle to "reuse" it; a patch object is exactly how the forecast
+ * would get clobbered later.
+ *
+ * NOTHING HERE TOUCHES CONTINUITY. Continuity is measured against the floor
+ * commitment and never against a capacity tier (see computeContinuity), which is
+ * what makes an upshift safe: a user cannot raise their capacity and thereby
+ * break a streak they were keeping. No tier field feeds that calculation, and
+ * none may be added.
+ *
+ * `fromCapacity` is supplied by the caller rather than re-read here. The caller
+ * is rendering the tier it read, and passing what it displayed keeps the event
+ * honest about the transition the user actually saw and tapped.
+ */
+export async function resetWeeklyCapacity(
+  userId: string,
+  cycleId: string,
+  fromCapacity: CapacityTier,
+  toCapacity: CapacityTier
+): Promise<void> {
+  const database = requireDb();
+  const batch = writeBatch(database);
+
+  // Minted rather than addDoc'd: a batch needs the ref up front, and addDoc
+  // would be a second, unbatched write.
+  const eventRef = doc(collection(database, DOWNSHIFT_EVENTS));
+  batch.set(eventRef, {
+    userId,
+    weeklyCycleId: cycleId,
+    fromCapacity,
+    toCapacity,
+    timestamp: serverTimestamp(),
+  });
+
+  batch.update(doc(database, WEEKLY_CYCLES, cycleId), {
+    capacityCurrent: toCapacity,
+    updatedAt: serverTimestamp(),
+  });
+
+  await batch.commit();
 }
