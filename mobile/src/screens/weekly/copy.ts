@@ -114,4 +114,106 @@ export const TODAY_COPY = {
   resetAtLowest: gap('This is already the lightest version.'),
   resetAtHighest: gap('This is already the fullest version.'),
   resetFailed: gap('That did not save. Your week is unchanged. Try again.'),
+
+  // Continuity (spec 1, surfaced below the fold per spec 9). A COUNT of
+  // unbroken weeks. Never a percentage, never a bar, never a fraction of a
+  // target, and nothing red: the number can only go up or start again, and no
+  // phrasing here may imply a user is behind. Nothing renders at all when the
+  // count is zero, so there is no string for "0 weeks".
+  continuityHeading: gap('Unbroken'),
+  continuityCount: gap('{count} weeks holding your floor'),
+  continuityCountOne: gap('1 week holding your floor'),
+
+  // Entry to the weekly close (spec 8). Reachable from Today, which itself is
+  // dev-only this slice; the real trigger is an elapsed week, and wiring that
+  // into the entry guard is a tracked follow-up.
+  closeEntry: gap('Close out this week'),
+} as const;
+
+/**
+ * The adjustment options offered at the close (spec 8.4).
+ *
+ * THE IDS ARE PERSISTED AND THE LABELS ARE NOT. `adjustmentSelected` on the
+ * weekly cycle stores an ID from this list, so an ID may never change once a
+ * user has closed a week against it: a rename would orphan every stored row.
+ * The labels below are placeholders and are expected to be rewritten; that
+ * rewrite must not touch the keys.
+ *
+ * Spec 8.4 says the app offers exactly ONE adjustment for next week, hard
+ * enforced. This slice offers a small fixed set and enforces a single choice in
+ * the UI. The app PROPOSING the one adjustment from the user's own note is the
+ * AI Coach mechanic (spec 14), a later slice.
+ */
+export const ADJUSTMENT_KEYS = [
+  'smaller-daily-action',
+  'same-again',
+  'different-time',
+  'different-outcome',
+] as const;
+
+export type AdjustmentKey = (typeof ADJUSTMENT_KEYS)[number];
+
+export const ADJUSTMENT_LABELS: Record<AdjustmentKey, string> = {
+  'smaller-daily-action': gap('Make the daily action smaller'),
+  'same-again': gap('Keep everything the same'),
+  'different-time': gap('Do it at a different time of day'),
+  'different-outcome': gap('Focus on something else'),
+};
+
+/**
+ * The weekly close (spec 8). Target under 90 seconds, so every question is one
+ * tap except the note, which is skippable.
+ *
+ * Three constraints for whoever replaces these strings:
+ *
+ *   1. NOTHING HERE IS A GRADE. The ratings are a reading, not a score; the
+ *      floor question is not a pass or a fail. No percentage, no total out of
+ *      five, no "you managed", no red.
+ *   2. THE FLOOR QUESTION IS THE ONE THAT FEEDS CONTINUITY, and a user who
+ *      answers no has to feel able to say so. Phrasing that makes no the wrong
+ *      answer produces a false yes, and a false yes is worse than a broken run:
+ *      it makes the one number in the product a lie.
+ *   3. What held, as a count of days completed (spec 8.1), is NOT on this
+ *      screen. Nothing writes daily completion yet, so the count would be zero
+ *      for everyone. Spec 8's own rule says to suppress a debrief with no data
+ *      rather than show an empty one. It returns with the completion CTA.
+ */
+export const CLOSE_COPY = {
+  heading: gap('Your week'),
+
+  // Spec 8.2. Weekly, never daily.
+  ratingsHeading: gap('How did the week feel?'),
+  ratingHint: gap('One tap each. There is no right answer.'),
+  ratingFocus: gap('Focus'),
+  ratingRecovery: gap('Recovery'),
+  ratingEnergy: gap('Energy'),
+  // The ends of the 1-5 scale, so the numbers mean something without implying
+  // that 5 is a pass and 1 is a failure.
+  ratingLow: gap('Low'),
+  ratingHigh: gap('High'),
+
+  // The floor question (spec 10.1 commitment, open item #10 Option A). Asked
+  // plainly, answered either way, and never framed as pass or fail.
+  floorHeading: gap('Your floor'),
+  floorQuestion: gap("Did you do the one thing you named, even on this week's hardest days?"),
+  floorYes: gap('Yes, I did that'),
+  floorNo: gap('No, not this week'),
+  // Shown under the no option so the answer carries no penalty.
+  floorNoReassurance: gap('Either answer is fine. This is the only thing the count follows.'),
+
+  // Spec 8.3, the brief Jen owns. The highest-value qualitative data in the
+  // product, and the one free-text field in the close.
+  noteQuestion: jen('What was the load like on the days it did not happen?'),
+  notePlaceholder: gap('A line, if you want to'),
+  noteSkip: gap('You can leave this blank.'),
+
+  // Spec 8.4. Exactly one, hard enforced.
+  adjustmentHeading: gap('One change for next week'),
+  adjustmentHint: gap('Pick one.'),
+
+  save: gap('Save and close the week'),
+  // Shown while the button is disabled, so the reason is on screen rather than
+  // implied by a greyed control.
+  required: gap('Answer the three ratings, the floor question and pick one change.'),
+  saveFailed: gap('That did not save. Your week is unchanged. Try again.'),
 } as const;
