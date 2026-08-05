@@ -1,6 +1,27 @@
 /**
- * Analytics Service
- * Event tracking for user behavior analytics
+ * Analytics Service — CONSOLE STUB. NOT THE ANALYTICS PIPELINE.
+ *
+ * THE REAL PIPE IS services/firebase/analyticsEvents.service.ts. Wire new events
+ * THERE, not here. This file emits nothing anywhere: every helper below funnels
+ * into logger.log, which is __DEV__-gated, so preview and production builds send
+ * exactly zero events. Its only remaining callers are AuthContext (trackSignup /
+ * trackLogin / setUserProperties) and the init call in App.tsx.
+ *
+ * WHY THIS WAS NOT REPOINTED AT FIRESTORE: the chokepoint below takes
+ * `eventName: string` and `params?: Record<string, string | number | boolean>`.
+ * That signature is precisely the shape the content firewall forbids — an open
+ * event name and an open string-valued map — and roughly ten of the helpers
+ * below inherit it: trackGoalCreated, trackHabitCreated, trackAIInteraction,
+ * trackPostCreated, trackTaskCompleted and friends all take a free `string`
+ * where a caller could pass a goal title, a habit name or a user's prompt, and
+ * trackSettingChanged does `String(value)` outright. trackLibraryContent even
+ * accepts a contentName and then drops it, which is the firewall implemented as
+ * discipline rather than as a type. Pointing this signature at a real collection
+ * would import all of those holes on day one.
+ *
+ * The new service starts from a closed event map with exact payloads instead.
+ * Migrating these callers means giving each a typed event, which is the wiring
+ * slice, not this one.
  *
  * Current: Logs events in dev, no-op in production on native.
  *

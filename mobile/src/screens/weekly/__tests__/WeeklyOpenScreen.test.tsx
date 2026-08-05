@@ -17,6 +17,10 @@ jest.mock('../../../services/firebase/weeklyCycle.service', () => ({
   // The week number has exactly one derivation and it lives on Today.
   countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
 }));
+const mockLogEvent = jest.fn();
+jest.mock('../../../services/firebase/analyticsEvents.service', () => ({
+  logEvent: (...a: any[]) => mockLogEvent(...a),
+}));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: any) => {
     const { View } = require('react-native');
@@ -47,6 +51,83 @@ describe('WeeklyOpenScreen', () => {
     mockReplace.mockClear();
     mockCreateWeeklyCycle.mockReset().mockResolvedValue('cycle-1');
     mockCountForOutcome.mockReset().mockResolvedValue(0);
+    mockLogEvent.mockReset();
+  });
+
+  // The one wired analytics event this slice (spec 20). Everything asserted
+  // here is behavior: which pair was chosen and which protocol it resolved to.
+  // Nothing the user typed exists on this screen, and nothing content-shaped
+  // may ever be added to this payload.
+  describe('the weekly_open event', () => {
+    test('fires once after a successful write, carrying the chosen pair', async () => {
+      await openWeek('routines', 'limited');
+
+      await waitFor(() => expect(mockLogEvent).toHaveBeenCalledTimes(1));
+      const [uid, name, params] = mockLogEvent.mock.calls[0];
+      expect(uid).toBe('u1');
+      expect(name).toBe('weekly_open');
+      expect(params).toEqual({
+        outcome: 'routines',
+        capacityInitial: 'limited',
+        protocolId: PROTOCOL_MATRIX.routines.limited.id,
+      });
+    });
+
+    test('carries behavior only, and no field beyond the three declared', async () => {
+      // The audit surface for the content firewall at the call site. A key
+      // appearing here that this test does not name is a key nobody decided to
+      // collect.
+      await openWeek('focus', 'slammed');
+
+      await waitFor(() => expect(mockLogEvent).toHaveBeenCalled());
+      const params = mockLogEvent.mock.calls[0][2];
+      expect(Object.keys(params).sort()).toEqual([
+        'capacityInitial',
+        'outcome',
+        'protocolId',
+      ]);
+    });
+
+    test('does not fire when the cycle write fails', async () => {
+      // No cycle, no open. An event for a week that was never opened would be
+      // a straightforward lie in the funnel.
+      mockCreateWeeklyCycle.mockRejectedValue(new Error('offline'));
+      const screen = await openWeek('stress', 'normal');
+      await waitFor(() => expect(screen.getByTestId('weekly-open-error')).toBeTruthy());
+
+      expect(mockLogEvent).not.toHaveBeenCalled();
+    });
+
+    test('fires after the write lands and before navigating away', async () => {
+      const order: string[] = [];
+      mockCreateWeeklyCycle.mockImplementation(async () => {
+        order.push('write');
+        return 'cycle-1';
+      });
+      mockLogEvent.mockImplementation(() => {
+        order.push('event');
+      });
+      mockReplace.mockImplementation(() => {
+        order.push('navigate');
+      });
+
+      await openWeek('energy', 'normal');
+
+      await waitFor(() => expect(order).toEqual(['write', 'event', 'navigate']));
+    });
+
+    test('a throwing analytics call still lets the user through', async () => {
+      // logEvent is built never to throw, and this asserts the call site does
+      // not depend on that promise. Telemetry must never be able to strand a
+      // user on a screen whose work is already saved.
+      mockLogEvent.mockImplementation(() => {
+        throw new Error('analytics exploded');
+      });
+
+      await openWeek('focus', 'normal');
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('WeeklyToday'));
+    });
   });
 
   describe('the cycle write', () => {

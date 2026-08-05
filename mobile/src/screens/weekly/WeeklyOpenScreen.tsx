@@ -37,6 +37,8 @@ import {
   type OutcomeKey,
 } from '../../weeklyEngine';
 import { createWeeklyCycle } from '../../services/firebase/weeklyCycle.service';
+import { logEvent } from '../../services/firebase/analyticsEvents.service';
+import { protocolIdFor } from '../../types/analyticsEvents';
 import { logger } from '../../utils/logger';
 import { toIsoDate } from '../../utils/weekStart';
 import { ROUTES } from '../../navigation/routes';
@@ -98,6 +100,32 @@ export function WeeklyOpenScreen() {
         capacityInitial: capacity,
         protocolId: selected.id,
       });
+
+      // Telemetry (spec 20), after the write lands and never before it: an
+      // event for a week that failed to open would be a lie in the funnel.
+      //
+      // Behavior only. The pair the user chose and the protocol it resolved to,
+      // and nothing else ever. Nothing on this screen is user-authored, and
+      // nothing content-shaped may be added to this payload.
+      //
+      // Its own try/catch, deliberately. logEvent is built never to throw, but
+      // the user's week is already saved by this point and no telemetry defect
+      // may be able to strand them on a screen whose work is done. The call
+      // site does not depend on a promise made elsewhere.
+      //
+      // protocolId comes from protocolIdFor rather than selected.id because the
+      // protocol object types its id as an open `string`, which is exactly the
+      // shape the event schema refuses. Same value, closed union; the two are
+      // pinned together in types/__tests__/analyticsEvents.test.ts.
+      try {
+        logEvent(user.uid, 'weekly_open', {
+          outcome,
+          capacityInitial: capacity,
+          protocolId: protocolIdFor(outcome, capacity),
+        });
+      } catch {
+        // Never the user's problem.
+      }
 
       // No week number is computed or handed forward. Today derives it, always,
       // from the stored cycles. Deriving it here as well would mean two
