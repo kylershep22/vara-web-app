@@ -524,7 +524,7 @@ describe('WeeklyCloseScreen', () => {
         ratingEnergy: 3,
         adjustmentSelected: 'different-time',
         floorMet: true,
-        continuityAtClose: 3,
+        continuityBeforeClose: 3,
       });
     });
 
@@ -545,7 +545,7 @@ describe('WeeklyCloseScreen', () => {
       const params = mockLogEvent.mock.calls[0][2];
       expect(Object.keys(params).sort()).toEqual([
         'adjustmentSelected',
-        'continuityAtClose',
+        'continuityBeforeClose',
         'floorMet',
         'ratingFocus',
         'ratingRecovery',
@@ -590,7 +590,7 @@ describe('WeeklyCloseScreen', () => {
     });
 
     test('is skipped entirely when the continuity read failed', async () => {
-      // continuityAtClose is required and has no honest stand-in. A 0 would
+      // continuityBeforeClose is required and has no honest stand-in. A 0 would
       // state something about the user that was never read, so the event is
       // dropped rather than guessed at.
       mockLoadContinuity.mockRejectedValue(new Error('offline'));

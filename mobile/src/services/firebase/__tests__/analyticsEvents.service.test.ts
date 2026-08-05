@@ -315,7 +315,7 @@ describe('analyticsEvents.service', () => {
       ratingEnergy: 3,
       adjustmentSelected: 'smaller-daily-action',
       floorMet: true,
-      continuityAtClose: 3,
+      continuityBeforeClose: 3,
     } as const;
 
     test('accepts the safe weekly_close payload', () => {

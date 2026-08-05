@@ -236,7 +236,7 @@ export function WeeklyCloseScreen() {
             ratingEnergy: ratings.energy,
             adjustmentSelected: adjustment,
             floorMet,
-            continuityAtClose: continuity,
+            continuityBeforeClose: continuity,
           });
         }
       } catch {

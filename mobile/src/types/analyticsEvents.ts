@@ -181,8 +181,11 @@ export interface AnalyticsEventMap {
    * short enough that the writer's length backstop would not catch it. This
    * declaration is the whole guard.
    *
-   * `continuityAtClose` is the run of unbroken weeks as it stood when the week
-   * was closed. A count, never a target and never a score.
+   * `continuityBeforeClose` is a count, never a target and never a score. It is
+   * named for the side of the boundary it sits on because this collection is
+   * designed to be read COLD: nobody querying it will have this file open, and
+   * a name that has to be looked up to be trusted is a name that will be
+   * guessed at instead.
    */
   weekly_close: {
     ratingFocus: WeeklyRating;
@@ -190,7 +193,8 @@ export interface AnalyticsEventMap {
     ratingEnergy: WeeklyRating;
     adjustmentSelected: AdjustmentKey;
     floorMet: boolean;
-    continuityAtClose: number;
+    /** Unbroken-week run ENTERING this week (pre-close). The post-close run is floorMet ? n+1 : 0, derived at read time — not stored. */
+    continuityBeforeClose: number;
   };
   /**
    * A close was answered in full and then failed to save.
