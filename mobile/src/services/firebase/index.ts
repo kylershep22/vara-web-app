@@ -319,12 +319,15 @@ export {
 // only, no update/delete helper. resetWeeklyCapacity is the in-week re-set
 // (S7): it batches the event write and the capacityCurrent update into one
 // atomic commit, and is the only thing here that spans two collections.
+// closeWeeklyCycle (S8) is the opposite shape: one document, one updateDoc, and
+// the only writer of floorMet.
 export {
   dailyLogDocId,
   createWeeklyCycle,
   getWeeklyCycleForWeek,
   getRecentWeeklyCycles,
   updateWeeklyCycle,
+  closeWeeklyCycle,
   upsertDailyLog,
   getDailyLog,
   createDownshiftEvent,
@@ -334,6 +337,7 @@ export {
 export type {
   CreateWeeklyCycleInput,
   WeeklyCyclePatch,
+  CloseWeeklyCycleInput,
   DailyLogInput,
   CreateDownshiftEventInput,
 } from './weeklyCycle.service';

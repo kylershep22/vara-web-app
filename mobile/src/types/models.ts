@@ -219,13 +219,14 @@ export interface Membership {
 // stranger, and the rules tests assert that directly so a later coach slice
 // cannot widen it quietly.
 //
-// `floorMet` is INTENTIONALLY ABSENT. How a week's floor outcome gets recorded
-// is open item #10, deferred to the weekly-close slice. computeContinuity() in
-// src/weeklyEngine takes floorMet on its own input type; do not invent a
-// storage field for it here ahead of that decision.
+// `floorMet` is SELF-REPORTED AT THE WEEKLY CLOSE (open item #10, resolved in
+// the weekly-close slice: Option A). The user answers whether they held their
+// floor that week and the answer is stored on the cycle; nothing derives it
+// from daily completion. That is what computeContinuity() consumes, one boolean
+// per week, and it is deliberately independent of the capacity tier.
 //
-// `energyRating` is likewise absent: it belongs to the derived-energy-window
-// feature (S11), not to this slice.
+// `energyRating` is absent: it belongs to the derived-energy-window feature
+// (S11), not to this slice.
 // ==========================================
 
 /**
@@ -264,8 +265,25 @@ export interface WeeklyCycle {
   ratingEnergy?: number;
   /** Free text, skippable. The highest-value qualitative data in the product (S8.3). */
   closeNote?: string;
-  /** The single adjustment offered for next week (S8.4). */
+  /**
+   * The single adjustment chosen for next week (S8.4). Stores the stable option
+   * ID, never the label: the labels are placeholder copy that Jen will replace,
+   * and a stored label would orphan every row written before the rewrite.
+   */
   adjustmentSelected?: string;
+  /**
+   * Did the user hold their floor commitment this week? SELF-REPORTED at the
+   * close (open item #10, Option A), never derived from daily completion.
+   *
+   * THE ONLY INPUT TO CONTINUITY. Absent on every cycle written before the
+   * close slice and on any week the user never closed, and absent reads as
+   * not-met, so continuity counts from the first closed week. That is correct,
+   * not a gap to backfill.
+   *
+   * Note what it is NOT measured against: no capacity tier feeds this, so a
+   * slammed week that held the floor counts exactly as much as a normal one.
+   */
+  floorMet?: boolean;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

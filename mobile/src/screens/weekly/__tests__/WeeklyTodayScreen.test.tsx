@@ -13,10 +13,15 @@ const mockGetLatestCycle = jest.fn();
 const mockCountForOutcome = jest.fn();
 const mockGetFloor = jest.fn();
 const mockResetCapacity = jest.fn();
+// The continuity read. Mocked here rather than left off the mock: an absent
+// export would throw inside the screen's best-effort catch and leave every
+// continuity assertion below passing for the wrong reason.
+const mockGetCyclesForUser = jest.fn();
 jest.mock('../../../services/firebase/weeklyCycle.service', () => ({
   getLatestWeeklyCycle: (...a: any[]) => mockGetLatestCycle(...a),
   countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
   resetWeeklyCapacity: (...a: any[]) => mockResetCapacity(...a),
+  getWeeklyCyclesForUser: (...a: any[]) => mockGetCyclesForUser(...a),
 }));
 jest.mock('../../../services/firebase/userPrivate.service', () => ({
   getFloorCommitment: (...a: any[]) => mockGetFloor(...a),
@@ -57,6 +62,9 @@ describe('WeeklyTodayScreen', () => {
     mockCountForOutcome.mockReset().mockResolvedValue(1);
     mockGetFloor.mockReset().mockResolvedValue(null);
     mockResetCapacity.mockReset().mockResolvedValue(undefined);
+    // No closed weeks by default, so continuity is silent unless a test says
+    // otherwise.
+    mockGetCyclesForUser.mockReset().mockResolvedValue([]);
   });
 
   describe("today's action", () => {
@@ -474,7 +482,7 @@ describe('WeeklyTodayScreen', () => {
       });
     });
 
-    describe('nothing here reads or writes continuity', () => {
+    describe('the re-set never writes continuity', () => {
       test('the re-set writes only the four arguments the service takes', async () => {
         // Analytics on re-set frequency is P0 #7 and reads the event log in its
         // own slice. Today writes and moves on.
@@ -485,6 +493,177 @@ describe('WeeklyTodayScreen', () => {
         await waitFor(() => expect(mockResetCapacity).toHaveBeenCalled());
         expect(mockResetCapacity.mock.calls[0]).toHaveLength(4);
       });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Continuity (spec 1), below the fold per spec 9
+  // -------------------------------------------------------------------------
+
+  describe('the continuity count', () => {
+    /** A stored cycle, as the continuity read returns it. */
+    const closed = (weekStart: string, floorMet?: boolean) => ({
+      ...cycle({ id: `c-${weekStart}`, weekStart }),
+      ...(floorMet === undefined ? {} : { floorMet }),
+    });
+
+    test('shows the run of unbroken weeks as a count', async () => {
+      mockGetCyclesForUser.mockResolvedValue([
+        closed('2026-07-20', true),
+        closed('2026-07-27', true),
+        closed('2026-08-03', true),
+      ]);
+      const screen = await renderToday();
+
+      await waitFor(() =>
+        expect(screen.getByTestId('weekly-today-continuity')).toBeTruthy()
+      );
+      expect(screen.getByText(/3 weeks/)).toBeTruthy();
+    });
+
+    test('counts only back to the break, not the whole history', async () => {
+      mockGetCyclesForUser.mockResolvedValue([
+        closed('2026-07-13', true),
+        closed('2026-07-20', false),
+        closed('2026-07-27', true),
+        closed('2026-08-03', true),
+      ]);
+      const screen = await renderToday();
+
+      await waitFor(() =>
+        expect(screen.getByTestId('weekly-today-continuity')).toBeTruthy()
+      );
+      expect(screen.getByText(/2 weeks/)).toBeTruthy();
+      expect(screen.queryByText(/4 weeks/)).toBeNull();
+    });
+
+    test('counts correctly when the history arrives newest first', async () => {
+      // The service does not promise an order. If the ascending sort in the
+      // mapper were dropped, this history would count 1 instead of 3.
+      mockGetCyclesForUser.mockResolvedValue([
+        closed('2026-08-03', true),
+        closed('2026-07-27', true),
+        closed('2026-07-20', true),
+        closed('2026-07-13', false),
+      ]);
+      const screen = await renderToday();
+
+      await waitFor(() =>
+        expect(screen.getByTestId('weekly-today-continuity')).toBeTruthy()
+      );
+      expect(screen.getByText(/3 weeks/)).toBeTruthy();
+    });
+
+    test('reads the singular for a single week', async () => {
+      mockGetCyclesForUser.mockResolvedValue([closed('2026-08-03', true)]);
+      const screen = await renderToday();
+
+      await waitFor(() =>
+        expect(screen.getByTestId('weekly-today-continuity')).toBeTruthy()
+      );
+      expect(screen.getByText(/1 week /)).toBeTruthy();
+    });
+
+    describe('zero is silent, never a deficit', () => {
+      test('renders nothing at all when no week has been closed', async () => {
+        mockGetCyclesForUser.mockResolvedValue([closed('2026-08-03')]);
+        const screen = await renderToday();
+
+        expect(screen.queryByTestId('weekly-today-continuity')).toBeNull();
+        expect(screen.queryByText(/0 week/)).toBeNull();
+      });
+
+      test('renders nothing when the run has just broken', async () => {
+        // The week they missed is the week they most need this screen not to
+        // score them. Spec 9 forbids anything red; a "0" is the same thing in
+        // numerals.
+        mockGetCyclesForUser.mockResolvedValue([
+          closed('2026-07-27', true),
+          closed('2026-08-03', false),
+        ]);
+        const screen = await renderToday();
+
+        expect(screen.queryByTestId('weekly-today-continuity')).toBeNull();
+      });
+
+      test('renders no percentage, bar or fraction with the count', async () => {
+        mockGetCyclesForUser.mockResolvedValue([
+          closed('2026-07-27', true),
+          closed('2026-08-03', true),
+        ]);
+        const screen = await renderToday();
+
+        await waitFor(() =>
+          expect(screen.getByTestId('weekly-today-continuity')).toBeTruthy()
+        );
+        expect(screen.queryByText(/%/)).toBeNull();
+        expect(screen.queryByText(/\d+\s*\/\s*\d+/)).toBeNull();
+      });
+    });
+
+    describe('when the continuity read fails', () => {
+      test('the week still renders', async () => {
+        // Continuity is below the fold. A failure there is a reason to show one
+        // thing less, not to replace a valid week with an error screen.
+        mockGetCyclesForUser.mockRejectedValue(new Error('offline'));
+        const screen = await renderToday();
+
+        expect(screen.getByTestId('weekly-today-action')).toBeTruthy();
+        expect(screen.queryByTestId('weekly-today-error')).toBeNull();
+      });
+
+      test('shows no count rather than a zero it never read', async () => {
+        mockGetCyclesForUser.mockRejectedValue(new Error('offline'));
+        const screen = await renderToday();
+
+        expect(screen.queryByTestId('weekly-today-continuity')).toBeNull();
+      });
+    });
+
+    test('refreshes after a re-set reload', async () => {
+      // The count comes from the same load effect as everything else, so a
+      // reload picks up a close that happened in between.
+      mockGetCyclesForUser
+        .mockResolvedValueOnce([closed('2026-08-03', true)])
+        .mockResolvedValue([closed('2026-07-27', true), closed('2026-08-03', true)]);
+      const screen = await renderToday();
+      await waitFor(() => expect(screen.getByText(/1 week /)).toBeTruthy());
+
+      fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+      await waitFor(() => expect(screen.getByText(/2 weeks/)).toBeTruthy());
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // The weekly close entry (spec 8)
+  // -------------------------------------------------------------------------
+
+  describe('the close entry', () => {
+    test('is on the screen', async () => {
+      const screen = await renderToday();
+
+      expect(screen.getByTestId('weekly-today-close-entry')).toBeTruthy();
+    });
+
+    test('opens the close', async () => {
+      const screen = await renderToday();
+
+      fireEvent.press(screen.getByTestId('weekly-today-close-entry'));
+
+      expect(mockReplace).toHaveBeenCalledWith('WeeklyClose');
+    });
+
+    test('is present whether or not there is a continuity count to show', async () => {
+      mockGetCyclesForUser.mockResolvedValue([
+        cycle({ id: 'c1', weekStart: '2026-07-27', floorMet: true }),
+      ]);
+      const screen = await renderToday();
+
+      await waitFor(() =>
+        expect(screen.getByTestId('weekly-today-continuity')).toBeTruthy()
+      );
+      expect(screen.getByTestId('weekly-today-close-entry')).toBeTruthy();
     });
   });
 });

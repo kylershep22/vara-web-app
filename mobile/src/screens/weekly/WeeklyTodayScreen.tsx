@@ -8,9 +8,13 @@
 // visible per spec 9. It is SECONDARY to the day's action, which stays the one
 // primary thing on the screen.
 //
+// Also on screen: the continuity count (spec 1, below the fold per spec 9) and
+// the entry to the weekly close (spec 8). Continuity is a COUNT of unbroken
+// weeks and renders nothing at all at zero, because "0 weeks" is a deficit and
+// this screen has no deficits on it.
+//
 // DELIBERATELY ABSENT, each landing in its own slice: the completion CTA and
-// its dailyLog write, the daily energy ping (spec 11), the continuity indicator
-// (open item 10, which resolves at the weekly close), and the AI Coach entry.
+// its dailyLog write, the daily energy ping (spec 11), and the AI Coach entry.
 // Nothing here is rendered as a disabled or inert stand-in for them. A tappable
 // that does nothing teaches the user the screen is broken, which is also why an
 // unavailable re-set direction renders as a note and not as a dead button.
@@ -61,6 +65,7 @@ import type { WeeklyCycle } from '../../types/models';
 import { logger } from '../../utils/logger';
 import { ROUTES } from '../../navigation/routes';
 import { CAPACITY_LABELS, OUTCOME_LABELS, TODAY_COPY } from './copy';
+import { loadWeeklyContinuity } from './weeklyContinuity';
 
 const MIN_TOUCH_TARGET = 48;
 
@@ -69,6 +74,11 @@ interface TodayView {
   protocol: ResolvedWeeklyProtocol;
   /** Only fetched, and only shown, when capacity is slammed. */
   floorCommitment: string | null;
+  /**
+   * Unbroken weeks (spec 1). null when the read failed, which is NOT the same
+   * as 0: zero is a claim about the user, an unreadable history is not.
+   */
+  continuity: number | null;
 }
 
 export function WeeklyTodayScreen() {
@@ -141,7 +151,24 @@ export function WeeklyTodayScreen() {
         const floorCommitment =
           cycle.capacityCurrent === 'slammed' ? await getFloorCommitment(uid) : null;
 
-        if (active) setView({ cycle, protocol, floorCommitment });
+        // Continuity is BEST EFFORT and cannot take the screen down with it.
+        // The day's action is what this screen is for; a below-the-fold count
+        // that failed to load is a reason to show one thing less, not to
+        // replace a valid week with an error. Caught here rather than folded
+        // into the outer catch for exactly that reason.
+        //
+        // This is a second read of the same cycles the latest-cycle lookup
+        // walked. Accepted: deriving both from one fetch would mean a second
+        // derivation of "latest" living in this screen, and that is the one
+        // thing the service comment on getLatestWeeklyCycle warns against.
+        let continuity: number | null = null;
+        try {
+          continuity = await loadWeeklyContinuity(uid);
+        } catch (error) {
+          logger.error('[WeeklyToday] continuity read failed:', error);
+        }
+
+        if (active) setView({ cycle, protocol, floorCommitment, continuity });
       } catch (error) {
         logger.error('[WeeklyToday] load failed:', error);
         if (active) setFailed(true);
@@ -220,7 +247,7 @@ export function WeeklyTodayScreen() {
     );
   }
 
-  const { cycle, protocol, floorCommitment } = view;
+  const { cycle, protocol, floorCommitment, continuity } = view;
 
   // Derived from CAPACITY_TIERS through the engine helpers, which are the only
   // place the tier order lives. Null means the ladder ends here, and that is
@@ -321,6 +348,42 @@ export function WeeklyTodayScreen() {
             </Text>
           )}
         </View>
+
+        {/* Continuity (spec 1), below the fold per spec 9. A COUNT of unbroken
+            weeks and nothing else: no percentage, no bar, no target, no colour.
+
+            Rendered only when there is a run to show. At zero there is no
+            "0 weeks" line, because a zero framed as a number is a deficit, and
+            a user who has just started or just missed a week is not behind.
+            null means the read failed and is likewise silent: showing 0 there
+            would state something about the user that was never read. */}
+        {continuity !== null && continuity > 0 && (
+          <View style={styles.continuityCard} testID="weekly-today-continuity">
+            <Text style={styles.sectionLabel}>{TODAY_COPY.continuityHeading}</Text>
+            <Text style={styles.continuity}>
+              {continuity === 1
+                ? TODAY_COPY.continuityCountOne
+                : TODAY_COPY.continuityCount.replace('{count}', `${continuity}`)}
+            </Text>
+          </View>
+        )}
+
+        {/* The weekly close (spec 8). Last on the screen and outlined, like the
+            re-set: the day's action stays the one primary thing here.
+
+            This is a deliberate entry, not the real trigger. The close belongs
+            to an elapsed week, and routing on that boundary is a follow-up on
+            the entry guard. Nothing checks the boundary here, so nothing here
+            pretends a week has ended. */}
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => navigation.replace(ROUTES.WeeklyClose)}
+          accessibilityRole="button"
+          accessibilityLabel={TODAY_COPY.closeEntry}
+          testID="weekly-today-close-entry"
+        >
+          <Text style={styles.closeLabel}>{TODAY_COPY.closeEntry}</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -429,6 +492,38 @@ const styles = StyleSheet.create({
     // Soft coral, the brand's only error colour. Never red.
     color: Colors.softCoral,
     marginTop: Spacing.sm,
+  },
+  continuityCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
+    marginTop: Spacing.lg,
+  },
+  continuity: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.softCharcoal,
+  },
+  // Outlined like the re-set control, for the same reason: secondary to the
+  // day's action.
+  closeButton: {
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  closeLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
+    textAlign: 'center',
   },
   error: {
     ...TextStyles.body,
