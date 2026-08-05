@@ -1720,4 +1720,143 @@ describe('Weekly Loop (weeklyCycles + dailyLogs + downshiftEvents)', () => {
   });
 });
 
+describe('Analytics Events (write-only exhaust)', () => {
+  // analyticsEvents is the one collection in this file that a client may WRITE
+  // but may never READ. It is exhaust, not user-facing data: nothing in the app
+  // reads an event back, so no client gets read access, not even the author of
+  // the row. Aggregation runs through the Admin SDK, which bypasses rules
+  // entirely and is therefore never a reason to widen anything below.
+  //
+  // The read-denial tests are the load-bearing ones. A collection of behavioral
+  // events that any authenticated account could read would be a worse leak than
+  // the weekly rows above, because it accumulates across every surface at once.
+
+  const SAFE_PARAMS = {
+    outcome: 'focus',
+    capacityInitial: 'normal',
+    protocolId: 'focus-normal',
+  };
+
+  async function seedEvent(userId) {
+    return withAdminDb((adminDb) =>
+      addDoc(collection(adminDb, 'analyticsEvents'), {
+        userId,
+        event: 'weekly_open',
+        params: SAFE_PARAMS,
+        timestamp: new Date(),
+        sessionId: 'sess1',
+        appVersion: '1.0.0',
+      })
+    );
+  }
+
+  // ---- create: owner only ----
+
+  test('a user can create their own analytics event', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(addDoc(collection(db, 'analyticsEvents'), {
+      userId: ALICE_UID,
+      event: 'weekly_open',
+      params: SAFE_PARAMS,
+      sessionId: 'sess1',
+      appVersion: '1.0.0',
+    }));
+  });
+
+  test('a user cannot create an analytics event owned by someone else', async () => {
+    // Forging another user's uid would let anyone poison a second person's
+    // behavioral record, which is both a data-integrity and a privacy problem.
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(addDoc(collection(db, 'analyticsEvents'), {
+      userId: ALICE_UID,
+      event: 'weekly_open',
+      params: SAFE_PARAMS,
+    }));
+  });
+
+  test('unauthenticated users cannot create an analytics event', async () => {
+    const db = getUnauthContext().firestore();
+
+    await assertFails(addDoc(collection(db, 'analyticsEvents'), {
+      userId: ALICE_UID,
+      event: 'weekly_open',
+      params: SAFE_PARAMS,
+    }));
+  });
+
+  // ---- read: denied to EVERY client, including the owner ----
+
+  test('a user CANNOT read back their own analytics event', async () => {
+    // Deliberate and load-bearing. Unlike every other owner-scoped collection
+    // here, write access does not imply read access: events are exhaust. If a
+    // feature ever appears to need this, it wants a different collection.
+    const ref = await seedEvent(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'analyticsEvents', ref.id)));
+  });
+
+  test('a DIFFERENT authenticated user cannot read an analytics event', async () => {
+    const ref = await seedEvent(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'analyticsEvents', ref.id)));
+  });
+
+  test('unauthenticated users cannot read an analytics event', async () => {
+    const ref = await seedEvent(ALICE_UID);
+    const db = getUnauthContext().firestore();
+
+    await assertFails(getDoc(doc(db, 'analyticsEvents', ref.id)));
+  });
+
+  test('a user cannot list the analytics events collection', async () => {
+    // Denying get() but allowing list() would hand over the whole log at once.
+    await seedEvent(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(getDocs(query(collection(db, 'analyticsEvents'), where('userId', '==', ALICE_UID))));
+  });
+
+  // ---- update / delete: denied, so the log is append-only in the rules ----
+
+  test('a user cannot update their own analytics event', async () => {
+    // Append-only is enforced HERE rather than only in the service, because an
+    // event log that can be rewritten after the fact is not an event log.
+    const ref = await seedEvent(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(updateDoc(doc(db, 'analyticsEvents', ref.id), { event: 'login' }));
+  });
+
+  test('a user cannot delete their own analytics event', async () => {
+    const ref = await seedEvent(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(deleteDoc(doc(db, 'analyticsEvents', ref.id)));
+  });
+
+  // ---- member privacy (S17.1), consistent with the weekly collections ----
+
+  test('org membership does NOT grant read access to another members analytics events', async () => {
+    await withAdminDb((adminDb) =>
+      setDoc(doc(adminDb, 'memberships', `analyticsorg1_${ALICE_UID}`), {
+        orgId: 'analyticsorg1', userId: ALICE_UID, role: 'member', joinedAt: new Date(),
+      })
+    );
+    await withAdminDb((adminDb) =>
+      setDoc(doc(adminDb, 'memberships', `analyticsorg1_${BOB_UID}`), {
+        orgId: 'analyticsorg1', userId: BOB_UID, role: 'coach', joinedAt: new Date(),
+      })
+    );
+    const ref = await seedEvent(ALICE_UID);
+
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'analyticsEvents', ref.id)));
+  });
+});
+
 console.log('✅ All security rules tests defined. Run with: npm run test:rules');

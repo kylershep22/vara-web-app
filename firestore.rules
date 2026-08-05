@@ -820,6 +820,42 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // ========== BEHAVIORAL TELEMETRY ==========
+
+    // Analytics events — owner-scoped, CREATE-ONLY exhaust.
+    //
+    // The one collection here a client may write but may NEVER read. Events are
+    // exhaust, not user-facing data: nothing in the app reads an event back, so
+    // no client gets read access, not even the account that authored the row.
+    // This is a deliberate break from the uniform owner pattern used by the
+    // weekly collections above, and it is the reason the block spells every verb
+    // out instead of using a combined `read, write`.
+    //
+    // WHY READ IS DENIED TO THE OWNER TOO: an authenticated client that can read
+    // this collection can read a running record of behavior across every surface
+    // of the app at once. Granting read to serve some future in-app "your
+    // stats" feature would be the wrong fix — that wants its own aggregated,
+    // user-facing collection, not the raw event log.
+    //
+    // APPEND-ONLY: update and delete are refused at the RULES layer, not just
+    // left out of the service. An event log that can be rewritten after the
+    // fact is not an event log, and retention is the one number the analytics
+    // work exists to measure.
+    //
+    // CONTENT FIREWALL: rules cannot see whether a param carries content, so
+    // that boundary is enforced by the TYPE at the only chokepoint that writes
+    // here (mobile/src/types/analyticsEvents.ts). This block deliberately does
+    // not validate the shape of `params`: a rule that enumerated safe keys
+    // would drift out of step with the schema and give false assurance.
+    //
+    // Aggregation and export run through the Admin SDK, which bypasses rules
+    // entirely, and are therefore never a reason to widen anything here.
+    match /analyticsEvents/{eventId} {
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow read: if false;
+      allow update, delete: if false;
+    }
+
     // App Configuration (feature flags, read-only for clients)
     match /config/{docId} {
       allow read: if isAuthenticated();
