@@ -24,9 +24,10 @@
  * own slice. capacityCurrent on the cycle is what the UI renders; the log is
  * written for later.
  *
- * NOT HERE: floorMet (open item #10 — the weekly-close slice decides how a
- * week's floor outcome is recorded) and energyRating (belongs to the
- * derived-energy-window feature, S11). Do not invent either ahead of its slice.
+ * NOT HERE: energyRating (belongs to the derived-energy-window feature, S11).
+ * Do not invent it ahead of its slice. floorMet IS here now, written by
+ * closeWeeklyCycle and by nothing else: open item #10 resolved as Option A,
+ * self-reported at the close rather than derived from daily completion.
  *
  * Uses requireDb() so the Firestore handle is narrowed to non-null, keeping this
  * module clear of the "Firestore | null is not assignable" errors the raw `db`
@@ -271,6 +272,72 @@ export async function updateWeeklyCycle(
 ): Promise<void> {
   await updateDoc(doc(requireDb(), WEEKLY_CYCLES, cycleId), {
     ...stripOwnedKeys(patch),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * What the user answers at the weekly close (S8).
+ *
+ * `closeCompletedAt` is deliberately NOT here: the service stamps it, exactly
+ * as it stamps updatedAt. A caller cannot supply a server timestamp through a
+ * field typed `Timestamp` without a cast, and a cast on a completion time is
+ * how a client clock ends up deciding when a week closed.
+ */
+export interface CloseWeeklyCycleInput {
+  /** 1-5, one tap each. Weekly, never daily (S8.2). */
+  ratingFocus: number;
+  ratingRecovery: number;
+  ratingEnergy: number;
+  /** Skippable (S8.3). Omitted from the write when blank rather than stored as ''. */
+  closeNote?: string;
+  /** The stable option ID of the one adjustment chosen (S8.4), never its label. */
+  adjustmentSelected: string;
+  /** Self-reported: did they hold their floor this week? (open item #10, Option A). */
+  floorMet: boolean;
+}
+
+/**
+ * Complete a week (S8). The ONLY writer of floorMet, and the first and only
+ * writer of the close fields.
+ *
+ * ONE updateDoc ON ONE DOCUMENT. Everything the close captures lives on the
+ * cycle, so there is nothing to batch and nothing to fan out: the write either
+ * lands whole or not at all, and a failed close leaves the week exactly as it
+ * was. Do not add a second collection here without revisiting that.
+ *
+ * Fields are listed one by one rather than spread from `input`. That is not
+ * ceremony: it is what guarantees a caller cannot smuggle `capacityCurrent`,
+ * `capacityInitial`, `outcome` or `protocolId` into the close. The close records
+ * how the week went; it never re-writes what the week WAS. `capacityInitial`
+ * especially is the weekly forecast, and the gap between it and where the user
+ * landed is the S7 instrumentation.
+ *
+ * `userId` is not a parameter. Ownership is enforced by the deployed rule on
+ * weeklyCycles, which reads the stored userId of the document being updated;
+ * passing one here would be decoration that the client could get wrong.
+ *
+ * NOTE ON floorMet AND CONTINUITY: this boolean is the whole of what continuity
+ * consumes. No tier is written alongside it and none may be added, or the
+ * invariant that continuity is measured against the floor and never against
+ * capacity stops holding at the storage layer.
+ */
+export async function closeWeeklyCycle(
+  cycleId: string,
+  input: CloseWeeklyCycleInput
+): Promise<void> {
+  const note = input.closeNote?.trim();
+
+  await updateDoc(doc(requireDb(), WEEKLY_CYCLES, cycleId), {
+    ratingFocus: input.ratingFocus,
+    ratingRecovery: input.ratingRecovery,
+    ratingEnergy: input.ratingEnergy,
+    // Skipped means absent, not empty. An '' would read back as "they answered
+    // and said nothing", which is a different fact from "they skipped it".
+    ...(note ? { closeNote: note } : {}),
+    adjustmentSelected: input.adjustmentSelected,
+    floorMet: input.floorMet,
+    closeCompletedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }

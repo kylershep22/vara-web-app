@@ -54,6 +54,7 @@ import {
   getWeeklyCycleForWeek,
   getRecentWeeklyCycles,
   updateWeeklyCycle,
+  closeWeeklyCycle,
   upsertDailyLog,
   getDailyLog,
   createDownshiftEvent,
@@ -322,6 +323,229 @@ describe('weeklyCycle.service', () => {
       expect(written).not.toHaveProperty('userId');
       expect(written).not.toHaveProperty('createdAt');
       expect(written.capacityCurrent).toBe('slammed');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // closeWeeklyCycle — the weekly close (spec 8)
+  // -------------------------------------------------------------------------
+
+  describe('closeWeeklyCycle', () => {
+    const closeInput = (over: Record<string, unknown> = {}) => ({
+      ratingFocus: 4,
+      ratingRecovery: 2,
+      ratingEnergy: 3,
+      closeNote: 'the days it slipped were the late ones',
+      adjustmentSelected: 'smaller-daily-action',
+      floorMet: true,
+      ...over,
+    });
+
+    describe('the write itself', () => {
+      test('addresses weeklyCycles/{cycleId}', async () => {
+        await closeWeeklyCycle('cycle1', closeInput());
+
+        expect(mockDoc).toHaveBeenCalledWith({ __db: true }, 'weeklyCycles', 'cycle1');
+      });
+
+      test('is ONE updateDoc on ONE document, with no batch and no second collection', async () => {
+        // The close captures five answers, and all five live on the cycle. A
+        // batch here would be ceremony; a second collection would mean the
+        // close could half-land, which is exactly what one document rules out.
+        await closeWeeklyCycle('cycle1', closeInput());
+
+        expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
+        expect(mockWriteBatch).not.toHaveBeenCalled();
+        expect(mockAddDoc).not.toHaveBeenCalled();
+        expect(mockSetDoc).not.toHaveBeenCalled();
+      });
+
+      test('writes the three ratings and the chosen adjustment', async () => {
+        await closeWeeklyCycle('cycle1', closeInput());
+
+        expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({
+          ratingFocus: 4,
+          ratingRecovery: 2,
+          ratingEnergy: 3,
+          adjustmentSelected: 'smaller-daily-action',
+        });
+      });
+
+      test('stores the adjustment ID, which a copy rewrite cannot move', async () => {
+        // adjustmentSelected holds the stable option id, never the label. The
+        // labels are placeholders Jen replaces; storing one would orphan every
+        // row written before the rewrite.
+        await closeWeeklyCycle('cycle1', closeInput({ adjustmentSelected: 'different-time' }));
+
+        expect(mockUpdateDoc.mock.calls[0][1].adjustmentSelected).toBe('different-time');
+      });
+
+      test('rejects when the write fails, leaving the week unchanged', async () => {
+        mockUpdateDoc.mockRejectedValueOnce(new Error('permission denied'));
+
+        await expect(closeWeeklyCycle('cycle1', closeInput())).rejects.toThrow(
+          'permission denied'
+        );
+      });
+    });
+
+    describe('closeCompletedAt is stamped, never supplied', () => {
+      test('is a server timestamp', async () => {
+        await closeWeeklyCycle('cycle1', closeInput());
+
+        expect(mockUpdateDoc.mock.calls[0][1].closeCompletedAt).toEqual({
+          __serverTimestamp: true,
+        });
+      });
+
+      test('refreshes updatedAt alongside it', async () => {
+        await closeWeeklyCycle('cycle1', closeInput());
+
+        expect(mockUpdateDoc.mock.calls[0][1].updatedAt).toEqual({
+          __serverTimestamp: true,
+        });
+      });
+
+      test('ignores a closeCompletedAt a caller casts past the type', async () => {
+        // The field is typed `Timestamp`, so supplying serverTimestamp() needs a
+        // cast. If one is ever written, the SERVER clock still decides when the
+        // week closed: the fields are listed one by one, not spread.
+        await closeWeeklyCycle('cycle1', closeInput({
+          closeCompletedAt: 'last tuesday',
+        }) as any);
+
+        expect(mockUpdateDoc.mock.calls[0][1].closeCompletedAt).toEqual({
+          __serverTimestamp: true,
+        });
+      });
+    });
+
+    describe('floorMet (open item #10, self-reported)', () => {
+      test('records a met floor', async () => {
+        await closeWeeklyCycle('cycle1', closeInput({ floorMet: true }));
+
+        expect(mockUpdateDoc.mock.calls[0][1].floorMet).toBe(true);
+      });
+
+      test('records a missed floor as false, not as an omission', async () => {
+        // A missed week has to be STORED as false. Omitting it would be
+        // indistinguishable from a week that was never closed, and continuity
+        // would then treat "I did not hold it" and "I never answered" the same
+        // way by accident rather than by decision.
+        await closeWeeklyCycle('cycle1', closeInput({ floorMet: false }));
+
+        const written = mockUpdateDoc.mock.calls[0][1];
+        expect(written.floorMet).toBe(false);
+        expect(written).toHaveProperty('floorMet');
+      });
+
+      test('carries no capacity tier alongside it', async () => {
+        // Continuity is judged against the floor and never against the tier.
+        // The moment a tier rides along on this write, that invariant stops
+        // holding at the storage layer.
+        await closeWeeklyCycle('cycle1', closeInput());
+
+        const written = mockUpdateDoc.mock.calls[0][1];
+        expect(written).not.toHaveProperty('capacityCurrent');
+        expect(written).not.toHaveProperty('capacityInitial');
+      });
+    });
+
+    describe('the free-text note is skippable', () => {
+      test('is written when the user answered', async () => {
+        await closeWeeklyCycle('cycle1', closeInput({ closeNote: 'mornings held, evenings did not' }));
+
+        expect(mockUpdateDoc.mock.calls[0][1].closeNote).toBe(
+          'mornings held, evenings did not'
+        );
+      });
+
+      test('is trimmed', async () => {
+        await closeWeeklyCycle('cycle1', closeInput({ closeNote: '  travel week  ' }));
+
+        expect(mockUpdateDoc.mock.calls[0][1].closeNote).toBe('travel week');
+      });
+
+      test('is ABSENT rather than empty when skipped', async () => {
+        // "They skipped it" and "they answered and said nothing" are different
+        // facts. An '' would record the second one for every skip.
+        await closeWeeklyCycle('cycle1', closeInput({ closeNote: undefined }));
+
+        expect(mockUpdateDoc.mock.calls[0][1]).not.toHaveProperty('closeNote');
+      });
+
+      test('is ABSENT when the user typed only whitespace', async () => {
+        await closeWeeklyCycle('cycle1', closeInput({ closeNote: '   ' }));
+
+        expect(mockUpdateDoc.mock.calls[0][1]).not.toHaveProperty('closeNote');
+      });
+
+      test('the rest of the close still lands when the note is skipped', async () => {
+        await closeWeeklyCycle('cycle1', closeInput({ closeNote: undefined }));
+
+        expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({
+          ratingFocus: 4,
+          floorMet: true,
+          adjustmentSelected: 'smaller-daily-action',
+        });
+      });
+    });
+
+    describe('the close records how the week went, never what the week was', () => {
+      test('writes exactly the close fields and the two stamps, and nothing else', async () => {
+        // Tighter than the negatives below: a field added to this payload has
+        // to be a deliberate change to this test rather than a silent widening
+        // of what the close is allowed to overwrite.
+        await closeWeeklyCycle('cycle1', closeInput());
+
+        expect(Object.keys(mockUpdateDoc.mock.calls[0][1]).sort()).toEqual([
+          'adjustmentSelected',
+          'closeCompletedAt',
+          'closeNote',
+          'floorMet',
+          'ratingEnergy',
+          'ratingFocus',
+          'ratingRecovery',
+          'updatedAt',
+        ]);
+      });
+
+      test('never writes the tier, the outcome or the protocol, even when cast in', async () => {
+        // capacityInitial is the weekly forecast and the gap between it and
+        // capacityCurrent is the S7 instrumentation. The close reports on the
+        // week; it does not get to rewrite what the week was.
+        await closeWeeklyCycle('cycle1', closeInput({
+          capacityInitial: 'slammed',
+          capacityCurrent: 'slammed',
+          outcome: 'stress',
+          protocolId: 'stress-slammed',
+        }) as any);
+
+        const written = mockUpdateDoc.mock.calls[0][1];
+        expect(written).not.toHaveProperty('capacityInitial');
+        expect(written).not.toHaveProperty('capacityCurrent');
+        expect(written).not.toHaveProperty('outcome');
+        expect(written).not.toHaveProperty('protocolId');
+      });
+
+      test('never writes identity or creation time, even when cast in', async () => {
+        await closeWeeklyCycle('cycle1', closeInput({
+          id: 'forged',
+          userId: 'mallory',
+          createdAt: 'forged-time',
+        }) as any);
+
+        const written = mockUpdateDoc.mock.calls[0][1];
+        expect(written).not.toHaveProperty('id');
+        expect(written).not.toHaveProperty('userId');
+        expect(written).not.toHaveProperty('createdAt');
+      });
+
+      test('stores no computed continuity, which is derived and never persisted', async () => {
+        await closeWeeklyCycle('cycle1', closeInput({ continuity: 7 }) as any);
+
+        expect(mockUpdateDoc.mock.calls[0][1]).not.toHaveProperty('continuity');
+      });
     });
   });
 
