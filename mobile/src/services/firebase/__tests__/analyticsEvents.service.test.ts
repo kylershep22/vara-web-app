@@ -13,10 +13,13 @@
 // `npx tsc --noEmit`. That is the mechanism that makes logging CONTENT
 // impossible rather than merely discouraged. Do not delete them.
 
-// jest.fn records call arguments regardless of the declared signature, so these
-// take none: the assertions below read mock.calls, not these parameters.
-const mockCollection = jest.fn(() => ({ __collection: true }));
-const mockAddDoc = jest.fn((): any => Promise.resolve({ id: 'evt-1' }));
+// The rest parameters are load-bearing even though nothing reads them: they are
+// what types mock.calls as a variadic array. Declaring these zero-arg makes
+// mock.calls a 0-tuple and every `mock.calls[0][1]` below a tsc error.
+/* eslint-disable @typescript-eslint/no-unused-vars */
+const mockCollection = jest.fn((..._a: any[]) => ({ __collection: true }));
+const mockAddDoc = jest.fn((..._a: any[]): any => Promise.resolve({ id: 'evt-1' }));
+/* eslint-enable @typescript-eslint/no-unused-vars */
 const mockServerTimestamp = jest.fn(() => ({ __serverTimestamp: true }));
 
 jest.mock('firebase/firestore', () => ({
