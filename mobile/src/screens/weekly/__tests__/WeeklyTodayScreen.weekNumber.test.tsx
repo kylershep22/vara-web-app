@@ -16,6 +16,15 @@
 
 const mockFirestoreDocs: { id: string; data: Record<string, unknown> }[] = [];
 
+// Today imports the event writer, and this suite deliberately lets the real
+// Firestore services run — so without this mock the real writer loads too and
+// drags in expo-constants, which dies on `EventEmitter` outside a native
+// runtime. Nothing here taps anything that fires an event; this is purely
+// keeping the chain under test to the one this file is about.
+jest.mock('../../../services/firebase/analyticsEvents.service', () => ({
+  logEvent: jest.fn(),
+}));
+
 jest.mock('firebase/firestore', () => ({
   collection: (_db: unknown, name: string) => ({ __collection: name }),
   where: (field: string, op: string, value: unknown) => ({ __where: { field, op, value } }),

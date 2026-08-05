@@ -61,6 +61,8 @@ import {
   getLatestWeeklyCycle,
   resetWeeklyCapacity,
 } from '../../services/firebase/weeklyCycle.service';
+import { logEvent } from '../../services/firebase/analyticsEvents.service';
+import { toFailureReason } from '../../types/analyticsEvents';
 import type { WeeklyCycle } from '../../types/models';
 import { logger } from '../../utils/logger';
 import { ROUTES } from '../../navigation/routes';
@@ -205,9 +207,35 @@ export function WeeklyTodayScreen() {
       setResetFailed(false);
       try {
         await resetWeeklyCapacity(uid, view.cycle.id, from, to);
+
+        // NO SUCCESS EVENT HERE, and that is deliberate. The batch above already
+        // writes a downshiftEvents row carrying this same from/to pair, in the
+        // same atomic commit as the tier change. A second copy in
+        // analyticsEvents would not be atomic with the write it describes, and
+        // two logs of one fact can disagree. Read the event log for re-set
+        // frequency; it is the source of truth.
         setAttempt((n) => n + 1);
       } catch (error) {
         logger.error('[WeeklyToday] capacity re-set failed:', error);
+
+        // The FAILURE is worth an event precisely because nothing else records
+        // it. The batch is atomic, so a rejection means no downshiftEvents row
+        // was written either, and logger.error is __DEV__-gated — on device this
+        // currently vanishes.
+        //
+        // toFailureReason, never error.code or error.message: a raw code is an
+        // open string, and short ones clear the writer's length backstop and
+        // land in the log verbatim.
+        try {
+          logEvent(uid, 'reset_failed', {
+            fromCapacity: from,
+            toCapacity: to,
+            reason: toFailureReason(error),
+          });
+        } catch {
+          // Never the user's problem.
+        }
+
         setResetFailed(true);
       } finally {
         setResetting(false);
@@ -215,6 +243,26 @@ export function WeeklyTodayScreen() {
     },
     [uid, view, resetting]
   );
+
+  /**
+   * The close entry (spec 8).
+   *
+   * FIRE-ON-TAP, NOT FIRE-AFTER-SUCCESS, and it must stay that way. Every other
+   * event in the weekly loop records something that landed; this one records an
+   * INTENT, and its whole value is the gap between it and `weekly_close` — a tap
+   * with no close is the abandon signal, and there is no other way to see one.
+   * Moving it after a write would delete the only thing it measures.
+   */
+  const openClose = useCallback(() => {
+    if (uid) {
+      try {
+        logEvent(uid, 'weekly_close_entry', {});
+      } catch {
+        // Never the user's problem.
+      }
+    }
+    navigation.replace(ROUTES.WeeklyClose);
+  }, [uid, navigation]);
 
   if (failed) {
     return (
@@ -377,7 +425,7 @@ export function WeeklyTodayScreen() {
             pretends a week has ended. */}
         <TouchableOpacity
           style={styles.closeButton}
-          onPress={() => navigation.replace(ROUTES.WeeklyClose)}
+          onPress={openClose}
           accessibilityRole="button"
           accessibilityLabel={TODAY_COPY.closeEntry}
           testID="weekly-today-close-entry"

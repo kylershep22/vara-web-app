@@ -31,6 +31,7 @@ import {
   FLOOR_COMMITMENT_MAX_CHARS,
   setFloorCommitment,
 } from '../../services/firebase/userPrivate.service';
+import { logEvent } from '../../services/firebase/analyticsEvents.service';
 import { logger } from '../../utils/logger';
 import { ROUTES } from '../../navigation/routes';
 import { FLOOR_COPY } from './copy';
@@ -52,6 +53,20 @@ export function FloorCommitmentScreen() {
     setFailed(false);
     try {
       await setFloorCommitment(user.uid, text);
+
+      // Telemetry (spec 20), after the write lands. EMPTY PAYLOAD, and that is
+      // the entire design: the only thing this screen produces is the user's own
+      // words, `text` is in scope one line above, and there is no length, bucket
+      // or shape of it that is a decision input. That it happened is the event.
+      //
+      // Own try/catch, nothing awaited: the floor is already saved and no
+      // telemetry defect may strand the user on a screen whose work is done.
+      try {
+        logEvent(user.uid, 'floor_set', {});
+      } catch {
+        // Never the user's problem.
+      }
+
       // Back through the entry guard rather than straight to the open: the
       // guard owns the routing rule, and it now has a floor to find.
       navigation.replace(ROUTES.WeeklyEntry);
