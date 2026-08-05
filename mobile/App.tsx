@@ -55,14 +55,16 @@ export default function App() {
     }
   }, [fontsLoaded]);
 
-  // Initialize optional services after mount
+  // Initialize optional services after mount.
+  //
+  // Analytics has no initializer any more. The event pipe writes through the
+  // Firebase JS SDK the app already configures at boot, so there is nothing to
+  // set up and no SDK handle to hold.
   useEffect(() => {
     const timer = setTimeout(async () => {
       try {
         const { initializeCrashReporting } = await import('./src/services/crashReporting.service');
-        const { initializeAnalytics } = await import('./src/services/analytics.service');
         try { initializeCrashReporting(); } catch (e) { /* non-critical */ }
-        try { initializeAnalytics(); } catch (e) { /* non-critical */ }
       } catch (e) { /* non-critical */ }
     }, 100);
     return () => clearTimeout(timer);

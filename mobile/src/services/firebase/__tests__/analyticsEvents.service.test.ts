@@ -303,5 +303,111 @@ describe('analyticsEvents.service', () => {
       // @ts-expect-error - weekly_open requires all three fields
       logEvent(ALICE, 'weekly_open', { outcome: 'focus' });
     });
+
+    // The core-loop events, each guarded at the exact place its own call site is
+    // dangerous. Every one of these payloads would clear the writer's runtime
+    // backstop untouched — none of the strings below is longer than 64
+    // characters — so the type is the entire guard.
+
+    const CLOSE_PARAMS = {
+      ratingFocus: 4,
+      ratingRecovery: 2,
+      ratingEnergy: 3,
+      adjustmentSelected: 'smaller-daily-action',
+      floorMet: true,
+      continuityBeforeClose: 3,
+    } as const;
+
+    test('accepts the safe weekly_close payload', () => {
+      expect(() => logEvent(ALICE, 'weekly_close', CLOSE_PARAMS)).not.toThrow();
+    });
+
+    test('rejects the close note on weekly_close', () => {
+      // The hazard this exists for: `note` is in scope two lines from the call
+      // site in WeeklyCloseScreen, and "bad week" is 8 characters.
+      const closeNote = 'bad week';
+
+      logEvent(ALICE, 'weekly_close', {
+        ...CLOSE_PARAMS,
+        // @ts-expect-error - the one free-text answer in the close has no slot, ever
+        closeNote,
+      });
+    });
+
+    test('rejects a rating outside the five-point scale', () => {
+      logEvent(ALICE, 'weekly_close', {
+        ...CLOSE_PARAMS,
+        // @ts-expect-error - ratings are five taps, not an arbitrary number
+        ratingFocus: 7,
+      });
+    });
+
+    test('rejects an adjustment id outside the offered set', () => {
+      logEvent(ALICE, 'weekly_close', {
+        ...CLOSE_PARAMS,
+        // @ts-expect-error - adjustmentSelected is the four-member union, not a string
+        adjustmentSelected: 'whatever they typed',
+      });
+    });
+
+    test('rejects the floor commitment text on floor_set', () => {
+      // 'ten minutes of quiet' is 20 characters and would be written verbatim
+      // if the payload admitted it.
+      logEvent(ALICE, 'floor_set', {
+        // @ts-expect-error - floor_set is empty; the user's own words have no slot
+        floorCommitment: 'ten minutes of quiet',
+      });
+    });
+
+    test('accepts the empty floor_set payload', () => {
+      expect(() => logEvent(ALICE, 'floor_set', {})).not.toThrow();
+    });
+
+    test('rejects an error message on weekly_close_failed', () => {
+      const error = new Error('offline');
+
+      logEvent(ALICE, 'weekly_close_failed', {
+        reason: 'unavailable',
+        // @ts-expect-error - a message is content; only the closed reason union may be logged
+        message: error.message,
+      });
+    });
+
+    test('rejects a raw error code in the reason slot', () => {
+      // The specific way this goes wrong: `reason: error.code` type-checks
+      // nowhere, but it LOOKS right, and 'resource-exhausted' is 18 characters
+      // so scrubParams would keep it. toFailureReason exists to make this the
+      // only spelling that compiles.
+      logEvent(ALICE, 'reset_failed', {
+        fromCapacity: 'normal',
+        toCapacity: 'limited',
+        // @ts-expect-error - reason is the three-member union, not a Firestore code
+        reason: 'resource-exhausted',
+      });
+    });
+
+    test('rejects an error message on reset_failed', () => {
+      logEvent(ALICE, 'reset_failed', {
+        fromCapacity: 'normal',
+        toCapacity: 'limited',
+        reason: 'unknown',
+        // @ts-expect-error - a message is content, on this event as on every other
+        errorMessage: 'permission denied for alice',
+      });
+    });
+
+    test('rejects a free-form route on weekly_entry', () => {
+      logEvent(ALICE, 'weekly_entry', {
+        // @ts-expect-error - route is the three-member guard-target union
+        route: 'somewhere-else',
+      });
+    });
+
+    test('rejects any payload on weekly_close_entry', () => {
+      logEvent(ALICE, 'weekly_close_entry', {
+        // @ts-expect-error - the tap event is empty; nothing about the week belongs on it
+        continuity: 3,
+      });
+    });
   });
 });

@@ -57,14 +57,114 @@ export function protocolIdFor(outcome: OutcomeKey, capacity: CapacityTier): Prot
 export type AuthMethod = 'email' | 'apple' | 'google';
 
 /**
+ * Why a write failed. Three buckets, and everything else is `unknown`.
+ *
+ * THE UNION IS THE ONLY GUARD HERE, and this is the one place that is easy to
+ * get wrong. `scrubParams` in the writer keeps any string of 1-64 characters, so
+ * a raw Firestore code like `'resource-exhausted'` — or a short `error.message`
+ * — would sail straight through the runtime backstop and land in the log. Only
+ * the closed type stops it.
+ *
+ * Which is why `toFailureReason` below LOOKS UP rather than passes through: the
+ * value it returns is always one of the three literals written in this file, and
+ * is never a string that came from the error. A mapper written as
+ * `return isKnown(code) ? code : 'unknown'` would type-check and would still be
+ * wrong the day someone widens `isKnown`.
+ */
+export type FailureReason = 'permission-denied' | 'unavailable' | 'unknown';
+
+/**
+ * An unknown thrown value to a failure bucket. Never throws, and never returns
+ * anything the caller handed in.
+ *
+ * A SWITCH, NOT A LOOKUP TABLE. Every value it can return is a literal written
+ * on the lines below, so there is no path by which an error's own string becomes
+ * the logged value. An object keyed by code would also be shorter and would also
+ * be wrong: `{ code: 'constructor' }` would index straight through to
+ * `Object.prototype.constructor` and log a function.
+ *
+ * The two named codes are deliberately the only ones. `permission-denied` means
+ * the rules refused the write, which is a bug in the rules or in the caller's
+ * ownership. `unavailable` means the device could not reach Firestore, which is
+ * the user's train tunnel and not a defect. Everything else is noise until a
+ * real failure pattern argues for its own bucket, and adding one is a schema
+ * decision made here, not a pass-through.
+ */
+export function toFailureReason(error: unknown): FailureReason {
+  if (typeof error !== 'object' || error === null) return 'unknown';
+
+  switch ((error as { code?: unknown }).code) {
+    case 'permission-denied':
+      return 'permission-denied';
+    case 'unavailable':
+      return 'unavailable';
+    default:
+      return 'unknown';
+  }
+}
+
+/**
+ * The weekly close's 1-5 scale (spec 8.2), as a closed union rather than
+ * `number`.
+ *
+ * A rating is one of five taps, not a quantity, so the tighter type costs
+ * nothing and rules out a value that was computed rather than chosen.
+ */
+export type WeeklyRating = 1 | 2 | 3 | 4 | 5;
+
+/**
+ * The adjustment ids offered at the close (spec 8.4).
+ *
+ * REDECLARED, NOT IMPORTED. The ids live in `screens/weekly/copy.ts`, and a
+ * module under `types/` reaching into `screens/` is the wrong direction — this
+ * file is imported BY screens. So the union is spelled again here and pinned to
+ * the real list by `types/__tests__/analyticsEvents.test.ts`, which is the same
+ * trade `ProtocolId` makes above: redeclare, then test the two together so they
+ * cannot drift apart unnoticed.
+ *
+ * These ids are already permanent — `copy.ts` notes that a rename would orphan
+ * every stored `adjustmentSelected` — so pinning to them costs nothing.
+ */
+export const ADJUSTMENT_IDS = [
+  'smaller-daily-action',
+  'same-again',
+  'different-time',
+  'different-outcome',
+] as const;
+
+export type AdjustmentKey = (typeof ADJUSTMENT_IDS)[number];
+
+/**
+ * Where the weekly entry guard sent the user (spec 6.1, 10.1).
+ *
+ * Redeclared for the same reason as the adjustment ids: `WeeklyEntryTarget`
+ * lives in `screens/weekly/weeklyEntry.ts`. Pinned to it by a compile-time
+ * mutual-assignability check in the schema test, so adding a fourth target
+ * without adding it here fails the build.
+ */
+export const WEEKLY_ENTRY_ROUTES = ['floor', 'open', 'today'] as const;
+
+export type WeeklyEntryRoute = (typeof WEEKLY_ENTRY_ROUTES)[number];
+
+/**
  * Every event and its exact payload.
  *
- * Small on purpose. Only `weekly_open` is wired this slice; `sign_up` and
- * `login` are declared because `AuthContext` already has the call sites the next
- * slice will point here. The rest of the core loop (in-week re-set, weekly
- * close, continuity render, funnel, navigation, failure signal) is the next
- * slice and is deliberately absent: a declared event with no caller would claim
- * coverage that does not exist.
+ * EVERY NAME HERE HAS A WIRED CALLER. That invariant is the reason the map stays
+ * honest about coverage, and the name-list test enforces the count while the
+ * per-screen wiring tests enforce the callers.
+ *
+ * WHAT IS DELIBERATELY ABSENT, each with a reason:
+ *   - a re-set SUCCESS event. `resetWeeklyCapacity` already writes a
+ *     `downshiftEvents` row carrying `{fromCapacity, toCapacity}` in the same
+ *     atomic batch as the tier change, so a second copy here would be strictly
+ *     worse: non-atomic, and a source of truth that can disagree with the first.
+ *     Only the FAILURE is recorded, because nothing else records it at all.
+ *   - a continuity event. Continuity is a pure function of the `floorMet` field
+ *     already on every stored cycle, so an aggregation job derives it exactly and
+ *     retroactively. It rides as a FIELD on `weekly_close`, where it has one
+ *     natural trigger, rather than firing on every Today load.
+ *   - `screen_view`. High volume by an order of magnitude, and route names are
+ *     open strings that would need their own closed union. Its own slice.
  */
 export interface AnalyticsEventMap {
   /** A week was opened. The pair chosen and the protocol it resolved to. */
@@ -73,6 +173,77 @@ export interface AnalyticsEventMap {
     capacityInitial: CapacityTier;
     protocolId: ProtocolId;
   };
+  /**
+   * A week was closed.
+   *
+   * `closeNote` IS NOT HERE AND MAY NEVER BE. It is the one free-text answer in
+   * the close (spec 8.3), it is in scope two lines from the call site, and it is
+   * short enough that the writer's length backstop would not catch it. This
+   * declaration is the whole guard.
+   *
+   * `continuityBeforeClose` is a count, never a target and never a score. It is
+   * named for the side of the boundary it sits on because this collection is
+   * designed to be read COLD: nobody querying it will have this file open, and
+   * a name that has to be looked up to be trusted is a name that will be
+   * guessed at instead.
+   */
+  weekly_close: {
+    ratingFocus: WeeklyRating;
+    ratingRecovery: WeeklyRating;
+    ratingEnergy: WeeklyRating;
+    adjustmentSelected: AdjustmentKey;
+    floorMet: boolean;
+    /** Unbroken-week run ENTERING this week (pre-close). The post-close run is floorMet ? n+1 : 0, derived at read time — not stored. */
+    continuityBeforeClose: number;
+  };
+  /**
+   * A close was answered in full and then failed to save.
+   *
+   * Worth its own event because the write is a single `updateDoc`: a rejection
+   * means nothing landed and the user lost five answers. Nothing else records
+   * that today — the screen's `logger.error` is `__DEV__`-gated, so on-device
+   * failures currently leave no trace anywhere.
+   */
+  weekly_close_failed: { reason: FailureReason };
+  /**
+   * An in-week capacity re-set failed.
+   *
+   * The batch is atomic, so this means neither write landed and the tier on
+   * screen is still the true one. The success case is intentionally not here;
+   * see the note above the map.
+   */
+  reset_failed: {
+    fromCapacity: CapacityTier;
+    toCapacity: CapacityTier;
+    reason: FailureReason;
+  };
+  /**
+   * A floor commitment was captured (spec 10.1).
+   *
+   * EMPTY ON PURPOSE. The only thing this screen produces is the user's own
+   * words, and there is no bucket, length or shape of it that is a decision
+   * input. The fact that it happened is the whole event.
+   */
+  floor_set: Record<string, never>;
+  /**
+   * The entry guard resolved a route.
+   *
+   * All three targets are logged, including `floor`. Note that a first-run user
+   * legitimately emits `floor` and then `open` in one continuous flow, because
+   * the floor screen replaces back through the guard — that is the funnel, not
+   * duplication, and an aggregation that reads the route distribution naively
+   * will over-count `floor`.
+   */
+  weekly_entry: { route: WeeklyEntryRoute };
+  /**
+   * The close entry on Today was tapped.
+   *
+   * FIRE-ON-TAP, not fire-after-success: this is the intent half of the pair
+   * whose other half is `weekly_close` / `weekly_close_failed`. Tap-with-no-close
+   * is the abandon signal, which is the only reason the event exists; it is
+   * close to worthless read on its own.
+   */
+  weekly_close_entry: Record<string, never>;
   /** An account was created. */
   sign_up: { method: AuthMethod };
   /** An existing account signed in. */
@@ -87,6 +258,12 @@ export type AnalyticsEventName = keyof AnalyticsEventMap;
  */
 const EVENT_NAME_SET: Record<AnalyticsEventName, true> = {
   weekly_open: true,
+  weekly_close: true,
+  weekly_close_failed: true,
+  reset_failed: true,
+  floor_set: true,
+  weekly_entry: true,
+  weekly_close_entry: true,
   sign_up: true,
   login: true,
 };

@@ -19,7 +19,7 @@ import { auth, db } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import * as SecureStore from 'expo-secure-store';
 import { setUserId as setCrashReportingUserId, setUserAttributes, clearUser as clearCrashReportingUser } from '../services/crashReporting.service';
-import { setUserId as setAnalyticsUserId, setUserProperties, trackLogin, trackSignup } from '../services/analytics.service';
+import { logEvent } from '../services/firebase/analyticsEvents.service';
 import { identifyPurchaser, clearPurchaser } from '../services/purchases.service';
 import { clearRcEntitlement } from '../services/rcEntitlement';
 import { logger } from '../utils/logger';
@@ -97,13 +97,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCrashReportingUserId(user.uid);
         setUserAttributes({ userId: user.uid });
 
-        // Set user ID in Analytics
-        setAnalyticsUserId(user.uid);
-
-        // Set user properties for Analytics
-        setUserProperties({
-          email_verified: user.emailVerified ? 'true' : 'false',
-        });
+        // No analytics identity call here. The event pipe stamps `userId` on
+        // every row by design (the rules gate the collection on ownership), so
+        // there is no separate identity to set and nothing to clear on sign-out.
 
         // Bind RevenueCat to this Firebase UID so webhook events carry
         // app_user_id === uid (the webhook routes on this to update Firestore
@@ -116,9 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Silently fail if key doesn't exist
         }
 
-        // Clear user from crash reporting and Analytics on logout
+        // Clear user from crash reporting on logout
         clearCrashReportingUser();
-        setAnalyticsUserId('');
 
         // Clear RevenueCat identity on sign-out.
         void clearPurchaser();
@@ -206,8 +201,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Send email verification
       await sendEmailVerification(userCredential.user);
 
-      // Track signup event
-      await trackSignup('email');
+      // Telemetry, after the account and its profile exist and never before: an
+      // event for a signup whose profile write failed would be a lie in the
+      // funnel. The uid comes off the credential rather than the `user` state,
+      // which onAuthStateChanged has not necessarily set yet.
+      //
+      // Its own try/catch and not awaited. logEvent is built never to throw, but
+      // the account is already created by this point and no telemetry defect may
+      // be able to fail a signup that succeeded.
+      try {
+        logEvent(userCredential.user.uid, 'sign_up', { method: 'email' });
+      } catch {
+        // Never the user's problem.
+      }
 
       logger.log('✅ Signup successful, verification email sent, user profile created');
     } catch (error: any) {
@@ -244,10 +250,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, LOGIN_TIMEOUT_MS);
       });
 
-      await Promise.race([signInPromise, timeoutPromise]);
+      // The credential is bound rather than discarded so the event below has a
+      // uid. It cannot come from the `user` state variable or from
+      // auth.currentUser: onAuthStateChanged is asynchronous relative to this
+      // line, so both still hold the pre-login value here.
+      const credential = await Promise.race([signInPromise, timeoutPromise]);
 
-      // Track login event (non-blocking, errors caught internally)
-      trackLogin('email');
+      // Telemetry, after the sign-in resolves. Own try/catch, not awaited: the
+      // user is already signed in and analytics must not be able to turn that
+      // into a thrown login.
+      try {
+        logEvent(credential.user.uid, 'login', { method: 'email' });
+      } catch {
+        // Never the user's problem.
+      }
 
       logger.log('✅ Login successful');
     } catch (error: any) {

@@ -15,6 +15,21 @@ jest.mock('../../../services/firebase/weeklyCycle.service', () => ({
   getLatestWeeklyCycle: (...a: any[]) => mockGetLatestCycle(...a),
   closeWeeklyCycle: (...a: any[]) => mockCloseCycle(...a),
 }));
+// The continuity read, mocked at the seam rather than through the service.
+// Mocked rather than left off deliberately: an absent export throws inside the
+// screen's best-effort catch, continuity stays null, and every assertion about
+// the close event's payload then passes against an event that never fired.
+const mockLoadContinuity = jest.fn();
+jest.mock('../weeklyContinuity', () => ({
+  loadWeeklyContinuity: (...a: any[]) => mockLoadContinuity(...a),
+}));
+// Mocked BEFORE the screen imports logEvent, for the reason spelled out in the
+// Today suite: the real writer would load and swallow, and the assertions would
+// pass for the wrong reason.
+const mockLogEvent = jest.fn();
+jest.mock('../../../services/firebase/analyticsEvents.service', () => ({
+  logEvent: (...a: any[]) => mockLogEvent(...a),
+}));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: any) => {
     const { View } = require('react-native');
@@ -67,6 +82,8 @@ describe('WeeklyCloseScreen', () => {
     mockReplace.mockClear();
     mockGetLatestCycle.mockReset().mockResolvedValue(cycle());
     mockCloseCycle.mockReset().mockResolvedValue(undefined);
+    mockLoadContinuity.mockReset().mockResolvedValue(3);
+    mockLogEvent.mockReset();
   });
 
   describe('the three ratings (spec 8.2)', () => {
@@ -484,6 +501,203 @@ describe('WeeklyCloseScreen', () => {
       const screen = await renderClose();
 
       expect(screen.queryByText(/group|share|post/i)).toBeNull();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Telemetry (spec 20)
+  // -------------------------------------------------------------------------
+
+  describe('the weekly_close event', () => {
+    test('fires once after a successful write, carrying every answer', async () => {
+      const screen = await renderClose();
+      answerAll(screen, { floorMet: true, adjustment: 'different-time' });
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(mockLogEvent).toHaveBeenCalledTimes(1));
+      const [uid, name, params] = mockLogEvent.mock.calls[0];
+      expect(uid).toBe('u1');
+      expect(name).toBe('weekly_close');
+      expect(params).toEqual({
+        ratingFocus: 4,
+        ratingRecovery: 2,
+        ratingEnergy: 3,
+        adjustmentSelected: 'different-time',
+        floorMet: true,
+        continuityBeforeClose: 3,
+      });
+    });
+
+    // THE MANDATORY ONE. `note` is in scope four lines from the call site, it is
+    // the only free-text answer in the close, and a short one clears the
+    // writer's 64-character backstop untouched. A key here that this test does
+    // not name is a key nobody decided to collect.
+    test('carries no field beyond the six declared, and never the note', async () => {
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.changeText(
+        screen.getByTestId('weekly-close-note'),
+        'work was brutal and I slept badly'
+      );
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(mockLogEvent).toHaveBeenCalled());
+      const params = mockLogEvent.mock.calls[0][2];
+      expect(Object.keys(params).sort()).toEqual([
+        'adjustmentSelected',
+        'continuityBeforeClose',
+        'floorMet',
+        'ratingFocus',
+        'ratingRecovery',
+        'ratingEnergy',
+      ].sort());
+      expect(params).not.toHaveProperty('closeNote');
+      expect(JSON.stringify(mockLogEvent.mock.calls[0])).not.toContain('brutal');
+    });
+
+    test('the note still reaches storage, so the omission is the event only', async () => {
+      // Guards the opposite mistake: the firewall is about what is LOGGED, not
+      // about taking the user's answer away from their own week.
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.changeText(screen.getByTestId('weekly-close-note'), 'a hard week');
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(mockCloseCycle).toHaveBeenCalled());
+      expect(mockCloseCycle.mock.calls[0][1].closeNote).toBe('a hard week');
+    });
+
+    test('carries floorMet false as readily as true', async () => {
+      const screen = await renderClose();
+      answerAll(screen, { floorMet: false });
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(mockLogEvent).toHaveBeenCalled());
+      expect(mockLogEvent.mock.calls[0][2].floorMet).toBe(false);
+    });
+
+    test('does not fire when the close write fails', async () => {
+      // An event for a week that was never closed would be a lie in the funnel.
+      mockCloseCycle.mockRejectedValue(new Error('offline'));
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(screen.getByTestId('weekly-close-error')).toBeTruthy());
+      expect(
+        mockLogEvent.mock.calls.filter((c) => c[1] === 'weekly_close')
+      ).toHaveLength(0);
+    });
+
+    test('is skipped entirely when the continuity read failed', async () => {
+      // continuityBeforeClose is required and has no honest stand-in. A 0 would
+      // state something about the user that was never read, so the event is
+      // dropped rather than guessed at.
+      mockLoadContinuity.mockRejectedValue(new Error('offline'));
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(mockCloseCycle).toHaveBeenCalled());
+      expect(mockLogEvent).not.toHaveBeenCalled();
+    });
+
+    test('a failed continuity read still lets the user close their week', async () => {
+      // Telemetry may never be the reason a close does not happen.
+      mockLoadContinuity.mockRejectedValue(new Error('offline'));
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('WeeklyToday'));
+    });
+
+    test('fires after the write lands and before navigating away', async () => {
+      const order: string[] = [];
+      mockCloseCycle.mockImplementation(async () => {
+        order.push('write');
+      });
+      mockLogEvent.mockImplementation(() => {
+        order.push('event');
+      });
+      mockReplace.mockImplementation(() => {
+        order.push('navigate');
+      });
+
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(order).toEqual(['write', 'event', 'navigate']));
+    });
+
+    test('a throwing analytics call still lets the user through', async () => {
+      mockLogEvent.mockImplementation(() => {
+        throw new Error('analytics exploded');
+      });
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('WeeklyToday'));
+    });
+  });
+
+  describe('the weekly_close_failed event', () => {
+    test('fires once on a failed save, with a bucketed reason', async () => {
+      mockCloseCycle.mockRejectedValue(
+        Object.assign(new Error('nope'), { code: 'permission-denied' })
+      );
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(mockLogEvent).toHaveBeenCalledTimes(1));
+      const [uid, name, params] = mockLogEvent.mock.calls[0];
+      expect(uid).toBe('u1');
+      expect(name).toBe('weekly_close_failed');
+      expect(params).toEqual({ reason: 'permission-denied' });
+    });
+
+    test('never carries the error message, however short', async () => {
+      // 'offline' is 7 characters and would clear the writer's length backstop
+      // untouched. toFailureReason is the only thing that stops it.
+      mockCloseCycle.mockRejectedValue(new Error('offline'));
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(mockLogEvent).toHaveBeenCalled());
+      const params = mockLogEvent.mock.calls[0][2];
+      expect(Object.keys(params)).toEqual(['reason']);
+      expect(params.reason).toBe('unknown');
+      expect(JSON.stringify(params)).not.toContain('offline');
+    });
+
+    test('carries none of the answers the user gave', async () => {
+      // A failed close's ratings say something about the user, not about the
+      // failure, and the note is in scope at the catch too.
+      mockCloseCycle.mockRejectedValue(new Error('offline'));
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.changeText(screen.getByTestId('weekly-close-note'), 'rough one');
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(mockLogEvent).toHaveBeenCalled());
+      expect(JSON.stringify(mockLogEvent.mock.calls[0])).not.toContain('rough one');
+      expect(mockLogEvent.mock.calls[0][2]).not.toHaveProperty('ratingFocus');
+    });
+
+    test('a throwing analytics call still shows the user the error', async () => {
+      mockCloseCycle.mockRejectedValue(new Error('offline'));
+      mockLogEvent.mockImplementation(() => {
+        throw new Error('analytics exploded');
+      });
+      const screen = await renderClose();
+      answerAll(screen);
+      fireEvent.press(screen.getByTestId('weekly-close-save'));
+
+      await waitFor(() => expect(screen.getByTestId('weekly-close-error')).toBeTruthy());
     });
   });
 });

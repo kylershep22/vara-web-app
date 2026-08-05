@@ -26,6 +26,14 @@ jest.mock('../../../services/firebase/weeklyCycle.service', () => ({
 jest.mock('../../../services/firebase/userPrivate.service', () => ({
   getFloorCommitment: (...a: any[]) => mockGetFloor(...a),
 }));
+// Mocked BEFORE the screen imports logEvent. Left off, the real writer would
+// load here and reach for firebase/firestore and expo-constants, and every
+// assertion below about what was logged would pass against a service that
+// silently swallowed its own failure.
+const mockLogEvent = jest.fn();
+jest.mock('../../../services/firebase/analyticsEvents.service', () => ({
+  logEvent: (...a: any[]) => mockLogEvent(...a),
+}));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: any) => {
     const { View } = require('react-native');
@@ -65,6 +73,7 @@ describe('WeeklyTodayScreen', () => {
     // No closed weeks by default, so continuity is silent unless a test says
     // otherwise.
     mockGetCyclesForUser.mockReset().mockResolvedValue([]);
+    mockLogEvent.mockReset();
   });
 
   describe("today's action", () => {
@@ -484,8 +493,9 @@ describe('WeeklyTodayScreen', () => {
 
     describe('the re-set never writes continuity', () => {
       test('the re-set writes only the four arguments the service takes', async () => {
-        // Analytics on re-set frequency is P0 #7 and reads the event log in its
-        // own slice. Today writes and moves on.
+        // Re-set FREQUENCY is read off the downshiftEvents log the service
+        // batches atomically with the tier change, not off anything this screen
+        // passes. Today writes and moves on.
         const screen = await renderToday();
 
         fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
@@ -493,6 +503,138 @@ describe('WeeklyTodayScreen', () => {
         await waitFor(() => expect(mockResetCapacity).toHaveBeenCalled());
         expect(mockResetCapacity.mock.calls[0]).toHaveLength(4);
       });
+    });
+
+    describe('the reset_failed event', () => {
+      test('a successful re-set logs NOTHING', async () => {
+        // The deliberate absence. downshiftEvents already carries the from/to
+        // pair, atomically with the tier change; a second non-atomic copy could
+        // disagree with it. If this test ever needs changing, that decision is
+        // what is being reversed.
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(mockResetCapacity).toHaveBeenCalled());
+        expect(mockLogEvent).not.toHaveBeenCalled();
+      });
+
+      test('fires once on failure, carrying the transition the user tapped', async () => {
+        mockResetCapacity.mockRejectedValue(
+          Object.assign(new Error('nope'), { code: 'permission-denied' })
+        );
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(mockLogEvent).toHaveBeenCalledTimes(1));
+        const [uid, name, params] = mockLogEvent.mock.calls[0];
+        expect(uid).toBe('u1');
+        expect(name).toBe('reset_failed');
+        expect(params).toEqual({
+          fromCapacity: 'normal',
+          toCapacity: 'limited',
+          reason: 'permission-denied',
+        });
+      });
+
+      test('an unrecognised failure is bucketed, never passed through', async () => {
+        // The content hazard on this event: 'offline' is 7 characters, so the
+        // writer's length backstop would keep it. Only the mapper stops it.
+        mockResetCapacity.mockRejectedValue(new Error('offline'));
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(mockLogEvent).toHaveBeenCalled());
+        const params = mockLogEvent.mock.calls[0][2];
+        expect(params.reason).toBe('unknown');
+        expect(JSON.stringify(params)).not.toContain('offline');
+      });
+
+      test('carries no field beyond the three declared', async () => {
+        mockResetCapacity.mockRejectedValue(new Error('offline'));
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() => expect(mockLogEvent).toHaveBeenCalled());
+        expect(Object.keys(mockLogEvent.mock.calls[0][2]).sort()).toEqual([
+          'fromCapacity',
+          'reason',
+          'toCapacity',
+        ]);
+      });
+
+      test('a throwing analytics call still shows the user the error', async () => {
+        mockResetCapacity.mockRejectedValue(new Error('offline'));
+        mockLogEvent.mockImplementation(() => {
+          throw new Error('analytics exploded');
+        });
+        const screen = await renderToday();
+
+        fireEvent.press(screen.getByTestId('weekly-today-reset-down'));
+
+        await waitFor(() =>
+          expect(screen.getByTestId('weekly-today-reset-error')).toBeTruthy()
+        );
+      });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // The close entry (spec 8)
+  // -------------------------------------------------------------------------
+
+  describe('the weekly_close_entry event', () => {
+    test('fires once on the tap, with an empty payload', async () => {
+      const screen = await renderToday();
+
+      fireEvent.press(screen.getByTestId('weekly-today-close-entry'));
+
+      expect(mockLogEvent).toHaveBeenCalledTimes(1);
+      const [uid, name, params] = mockLogEvent.mock.calls[0];
+      expect(uid).toBe('u1');
+      expect(name).toBe('weekly_close_entry');
+      expect(params).toEqual({});
+    });
+
+    test('fires on the TAP, not after any write', async () => {
+      // This event is an INTENT, and its value is entirely the gap between it
+      // and weekly_close: a tap with no close is the abandon signal. Nothing
+      // must ever move it behind a success branch to match the other events.
+      const order: string[] = [];
+      mockLogEvent.mockImplementation(() => {
+        order.push('event');
+      });
+      mockReplace.mockImplementation(() => {
+        order.push('navigate');
+      });
+      const screen = await renderToday();
+
+      fireEvent.press(screen.getByTestId('weekly-today-close-entry'));
+
+      expect(order).toEqual(['event', 'navigate']);
+    });
+
+    test('a throwing analytics call still navigates to the close', async () => {
+      mockLogEvent.mockImplementation(() => {
+        throw new Error('analytics exploded');
+      });
+      const screen = await renderToday();
+
+      fireEvent.press(screen.getByTestId('weekly-today-close-entry'));
+
+      expect(mockReplace).toHaveBeenCalledWith('WeeklyClose');
+    });
+
+    test('does not fire on a plain render of Today', async () => {
+      // No render-fired events anywhere on this screen. Continuity in
+      // particular rides on the close, not on this mount, precisely so the log
+      // is not dominated by Today re-entries.
+      await renderToday();
+
+      expect(mockLogEvent).not.toHaveBeenCalled();
     });
   });
 

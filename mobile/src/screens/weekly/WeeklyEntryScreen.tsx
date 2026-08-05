@@ -29,6 +29,7 @@ import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { getFloorCommitment } from '../../services/firebase/userPrivate.service';
 import { getLatestWeeklyCycle } from '../../services/firebase/weeklyCycle.service';
+import { logEvent } from '../../services/firebase/analyticsEvents.service';
 import { logger } from '../../utils/logger';
 import { toIsoDate } from '../../utils/weekStart';
 import { ROUTES } from '../../navigation/routes';
@@ -79,6 +80,26 @@ export function WeeklyEntryScreen() {
           latestCycleWeekStart: latest?.weekStart ?? null,
           todayIso: toIsoDate(new Date()),
         });
+
+        // Telemetry (spec 20): the entry funnel. The route only, which is a
+        // closed three-member union — `floorCommitment` is the user's own words
+        // and is in scope ten lines above, and even `!!floorCommitment` is
+        // already implied by `target === 'floor'`.
+        //
+        // ALL THREE TARGETS ARE LOGGED, including 'floor'. Note that a first-run
+        // user legitimately emits 'floor' and then 'open' in one continuous
+        // flow, because the floor screen replaces back through this guard. That
+        // is the funnel working, not duplication — but an aggregation that reads
+        // the route distribution naively will over-count 'floor'.
+        //
+        // Own try/catch: the routing decision is made and must not be blocked by
+        // telemetry.
+        try {
+          logEvent(uid, 'weekly_entry', { route: target });
+        } catch {
+          // Never the user's problem.
+        }
+
         navigationRef.current.replace(TARGET_ROUTE[target]);
       } catch (error) {
         logger.error('[WeeklyEntry] routing failed:', error);
