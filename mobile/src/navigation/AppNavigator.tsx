@@ -880,77 +880,78 @@ const MainNavigator = () => {
             })}
           />
         )}
-        {/* Weekly loop (spec 6, 9, 10.1) — REACHABLE BUT NOT DEFAULT.
-            Gated on __DEV__ and entered only from the Developer section of
-            Settings, exactly like the dev harnesses below. Nothing about the
-            default landing changes: "Main" still mounts the pillar tabs, Home
-            is still DashboardScreen, and the daily Situation x State engine
-            still owns it. Today-as-landing is spec 22 item 4, a later slice
-            that cannot happen until the progressive onboarding replaces the
-            daily engine. WeeklyEntry is the only route anything should target;
-            it decides which of the other three the user lands on. */}
-        {__DEV__ && (
-          <>
-            <AppStack.Screen
-              name={ROUTES.WeeklyEntry}
-              component={WeeklyEntryScreen}
-              options={stackOpts({
-                ...standardHeaderOptions,
-                animation: 'slide_from_right',
-                headerShown: true,
-                title: 'Weekly loop (dev)',
-                headerShadowVisible: false,
-              })}
-            />
-            <AppStack.Screen
-              name={ROUTES.WeeklyFloor}
-              component={FloorCommitmentScreen}
-              options={stackOpts({
-                ...standardHeaderOptions,
-                animation: 'slide_from_right',
-                headerShown: true,
-                title: 'Your floor (dev)',
-                headerShadowVisible: false,
-              })}
-            />
-            <AppStack.Screen
-              name={ROUTES.WeeklyOpen}
-              component={WeeklyOpenScreen}
-              options={stackOpts({
-                ...standardHeaderOptions,
-                animation: 'slide_from_right',
-                headerShown: true,
-                title: 'Your week (dev)',
-                headerShadowVisible: false,
-              })}
-            />
-            <AppStack.Screen
-              name={ROUTES.WeeklyToday}
-              component={WeeklyTodayScreen}
-              options={stackOpts({
-                ...standardHeaderOptions,
-                animation: 'slide_from_right',
-                headerShown: true,
-                title: 'Today (dev)',
-                headerShadowVisible: false,
-              })}
-            />
-            {/* The weekly close (spec 8). Entered from Today rather than from
-                the guard: the real trigger is an elapsed week, and faking a
-                week boundary to reach it would be worse than not having one. */}
-            <AppStack.Screen
-              name={ROUTES.WeeklyClose}
-              component={WeeklyCloseScreen}
-              options={stackOpts({
-                ...standardHeaderOptions,
-                animation: 'slide_from_right',
-                headerShown: true,
-                title: 'Close your week (dev)',
-                headerShadowVisible: false,
-              })}
-            />
-          </>
-        )}
+        {/* Weekly loop (spec 6, 8, 9, 10.1) — LIVE IN PRODUCTION.
+            Un-gated by the landing slice. Home (DashboardScreen) now resolves
+            resolveWeeklyEntry inline and pushes WeeklyFloor / WeeklyOpen over
+            the tab when the user has no floor or no current cycle; the 'today'
+            target is served by Home itself rather than by a route.
+
+            WeeklyToday remains registered and is NOT dead: WeeklyOpenScreen
+            replaces to it on confirm, and it is still the only entry to the
+            weekly close. Collapsing it into Home is a later slice, not this one.
+
+            The screens carry placeholder [Jen] / [COPY GAP] copy, which now
+            renders in production builds. That is intended and known. */}
+        <AppStack.Screen
+          name={ROUTES.WeeklyEntry}
+          component={WeeklyEntryScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            // Suffix stripped only. "Weekly loop" is internal vocabulary and is
+            // a copy gap for Jen, not a rename to make here.
+            title: 'Weekly loop',
+            headerShadowVisible: false,
+          })}
+        />
+        <AppStack.Screen
+          name={ROUTES.WeeklyFloor}
+          component={FloorCommitmentScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: 'Your floor',
+            headerShadowVisible: false,
+          })}
+        />
+        <AppStack.Screen
+          name={ROUTES.WeeklyOpen}
+          component={WeeklyOpenScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: 'Your week',
+            headerShadowVisible: false,
+          })}
+        />
+        <AppStack.Screen
+          name={ROUTES.WeeklyToday}
+          component={WeeklyTodayScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: 'Today',
+            headerShadowVisible: false,
+          })}
+        />
+        {/* The weekly close (spec 8). Entered from Today rather than from
+            the guard: the real trigger is an elapsed week, and faking a
+            week boundary to reach it would be worse than not having one. */}
+        <AppStack.Screen
+          name={ROUTES.WeeklyClose}
+          component={WeeklyCloseScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: 'Close your week',
+            headerShadowVisible: false,
+          })}
+        />
         {/* Phase 1 dev test harnesses — gated by __DEV__ so the routes
             (and the underlying components, via Metro tree-shaking) are
             never reachable in release builds. */}
