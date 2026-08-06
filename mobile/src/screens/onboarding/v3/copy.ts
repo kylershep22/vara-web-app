@@ -102,6 +102,10 @@ export const REMINDER_COPY = {
   /** Label above the display-only echo of the floor the user just wrote. */
   floorEchoLabel: gap('We will nudge you toward:'),
   primary: gap('Continue'),
+  /** Shown once when the system permission sheet is declined. No penalty framing. */
+  permissionDenied: gap(
+    'Your time is saved. You can turn reminders on anytime in Settings.'
+  ),
 } as const;
 
 export const DONE_COPY = {
@@ -110,4 +114,5 @@ export const DONE_COPY = {
     'That is everything we needed. You can change any of it from Settings whenever you want.'
   ),
   primary: gap('Go to Vara'),
+  saveFailed: gap('That did not save. Check your connection and try again.'),
 } as const;

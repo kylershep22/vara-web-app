@@ -110,12 +110,32 @@ export interface UserPrivate {
   antiGoals?: string[];
 
   /**
-   * The outcome the user is currently working toward. Typed as a plain string
-   * for now: the outcome enum lands in a later slice, and narrowing a string to
-   * a union later is a safe change, while a premature union that turns out
-   * wrong is not.
+   * The outcome the user is currently working toward.
+   *
+   * Narrowed from `string` to `OutcomeKey` by the progressive onboarding slice,
+   * which is the first thing that actually writes it. That was always the plan
+   * (the previous comment said the enum lands in a later slice); this is that
+   * slice. Nothing read the field while it was a plain string, so the narrowing
+   * cost nothing to reconcile.
+   *
+   * DURABLE and user-level, as distinct from `weeklyCycles.outcome`, which
+   * records what a SPECIFIC week was opened on. Onboarding sets this once; a
+   * user switching outcomes later updates it. Nothing derives one from the
+   * other yet.
    */
-  activeOutcome?: string;
+  activeOutcome?: OutcomeKey;
+
+  /**
+   * Why this outcome matters, in the user's own words. Captured at onboarding,
+   * skippable, and shown back on hard weeks.
+   *
+   * FLAT AND SINGLE-VALUED on purpose. An edit history is a real product
+   * question (where it renders, whether an old reason is ever surfaced) and
+   * belongs to its own slice; a premature array would have to be migrated once
+   * that question is answered. Absent means never captured or skipped, which
+   * are the same thing to every reader today.
+   */
+  whyNote?: string;
 
   /** Day the user's week starts. 0 = Sunday … 6 = Saturday, matching Date#getDay. */
   weekStartDay?: number;

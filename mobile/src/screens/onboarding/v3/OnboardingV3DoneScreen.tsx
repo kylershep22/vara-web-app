@@ -1,23 +1,80 @@
 /**
- * Step 8 of 8 — Terminal.
+ * Step 8 of 8 — Terminal. The only screen in the arc that writes what the arc
+ * collected.
  *
- * SUB-STEP 1 SCOPE: screens only. This screen renders and its CTA is inert on
- * purpose. The persistence (sub-step 2) and the first weekly-cycle write
- * (sub-step 3) land here, in that order, and nothing before them should write
- * anything: an arc that half-persists is worse to debug than one that does not
- * persist at all.
+ * ORDER IS LOAD-BEARING: everything else lands BEFORE completeOnboarding.
+ * Flipping hasCompletedOnboarding re-renders AppNavigator away from the
+ * onboarding stack, so any write still in flight at that moment is racing an
+ * unmount. This is the same sequencing OnboardingAnchorScreen uses for the same
+ * reason.
  *
- * No back affordance. Everything behind it has been answered, and the writes
- * that will live here are not re-runnable.
+ * The private-doc patch is ONE setUserPrivate call, not three. It merges, so a
+ * single write carries every answer and a partial failure cannot leave the
+ * document half-populated.
+ *
+ * SKIPPED FIELDS ARE OMITTED, NOT NULLED. UserPrivate types these as optional
+ * strings, and getFloorCommitment already reads absent and empty the same way.
+ * Writing null would mean storing "they answered nothing", which is a different
+ * fact from "they never answered" and is not one any reader wants.
+ *
+ * No back affordance: everything behind it has been answered, and these writes
+ * are not meant to be re-run.
  */
-import React from 'react';
+import React, { useCallback, useState } from 'react';
+import { StyleSheet, Text } from 'react-native';
 import { CheckCircle2 } from 'lucide-react-native';
 
 import { OnboardingScaffold } from '../../../components/onboarding/OnboardingScaffold';
+import { Colors, Spacing, Typography } from '../../../constants';
+import { useAuth } from '../../../context/AuthContext';
+import { completeOnboarding } from '../../../services/firebase/onboarding.service';
+import {
+  setUserPrivate,
+  type UserPrivatePatch,
+} from '../../../services/firebase/userPrivate.service';
+import { logger } from '../../../utils/logger';
 import { DONE_COPY } from './copy';
+import { useOnboardingV3 } from './OnboardingV3Context';
 import { V3_ROUTES, V3_TOTAL_STEPS, v3StepNumber } from './routes';
 
 export const OnboardingV3DoneScreen: React.FC = () => {
+  const { user } = useAuth();
+  const { outcome, whyNote, capacity, floorCommitment } = useOnboardingV3();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const finish = useCallback(async () => {
+    if (busy || !user?.uid) return;
+    setBusy(true);
+    setFailed(false);
+
+    try {
+      // Built conditionally so a skipped answer is absent rather than null.
+      const patch: UserPrivatePatch = {};
+      if (outcome) patch.activeOutcome = outcome;
+      if (whyNote) patch.whyNote = whyNote;
+      if (floorCommitment) patch.floorCommitment = floorCommitment;
+
+      // A user who skipped both free-text steps still has an outcome, so the
+      // patch is never empty in practice. Guarded anyway: an empty merge would
+      // be a write that only stamps timestamps.
+      if (Object.keys(patch).length > 0) {
+        await setUserPrivate(user.uid, patch);
+      }
+
+      // LAST. This flips hasCompletedOnboarding, and the navigator re-renders
+      // off the onboarding stack the moment it lands.
+      await completeOnboarding(user.uid);
+    } catch (error) {
+      logger.error('[OnboardingV3Done] completion failed:', error);
+      // Stay put with a retry rather than dropping the user into the app with
+      // nothing saved. Everything is still in context, so a retry re-sends the
+      // same patch.
+      setFailed(true);
+      setBusy(false);
+    }
+  }, [busy, user?.uid, outcome, whyNote, floorCommitment]);
+
   return (
     <OnboardingScaffold
       currentStep={v3StepNumber(V3_ROUTES.Done)}
@@ -25,12 +82,29 @@ export const OnboardingV3DoneScreen: React.FC = () => {
       title={DONE_COPY.title}
       subtitle={DONE_COPY.subtitle}
       primaryLabel={DONE_COPY.primary}
-      // Inert in sub-step 1. Wired in sub-steps 2 and 3.
-      onPrimary={() => {}}
+      primaryDisabled={busy}
+      onPrimary={finish}
       decorativeIcon={CheckCircle2}
       centerContent
-    />
+    >
+      {failed && (
+        <Text style={styles.error} testID="v3-done-error">
+          {DONE_COPY.saveFailed}
+        </Text>
+      )}
+    </OnboardingScaffold>
   );
 };
+
+const styles = StyleSheet.create({
+  error: {
+    marginTop: Spacing.base,
+    textAlign: 'center',
+    // Soft coral, the brand's only error colour. Never red.
+    color: Colors.softCoral,
+    fontSize: Typography.fontSize.sm,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
+  },
+});
 
 export default OnboardingV3DoneScreen;
