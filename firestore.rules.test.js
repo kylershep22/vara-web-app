@@ -1718,6 +1718,169 @@ describe('Weekly Loop (weeklyCycles + dailyLogs + downshiftEvents)', () => {
 
     await assertFails(getDoc(doc(db, 'weeklyCycles', ref.id)));
   });
+
+  // ---- absent-document reads ----
+  //
+  // WHY THESE EXIST. Every other read test in this file seeds its document
+  // first, so the suite was green while the app was broken: `resource` is null
+  // on a get for a document that does not exist, `resource.data.userId` against
+  // null ERRORS, and the client receives "Missing or insufficient permissions".
+  // dailyLogs hit that every morning, because no log exists until a day is
+  // completed. A green suite that cannot see the state the app is actually in
+  // is not evidence of anything.
+  //
+  // Each collection gets three assertions, and the last two are what stop this
+  // guard from having widened anything: the absent-doc get must SUCCEED, a get
+  // of another user's EXISTING document must still FAIL, and a list must still
+  // be owner-scoped through the userId field.
+
+  describe('absent-document gets (the guard) and what it must NOT widen', () => {
+    const MISSING_DATE = '2026-08-06';
+
+    test('dailyLogs: a user CAN get their own non-existent daily log', async () => {
+      // The exact call getDailyLog makes on Home before any day is completed,
+      // and the one upsertDailyLog makes before its first write of the day.
+      const db = getAuthContext(ALICE_UID).firestore();
+
+      await assertSucceeds(
+        getDoc(doc(db, 'dailyLogs', dailyLogId(ALICE_UID, MISSING_DATE)))
+      );
+    });
+
+    test('dailyLogs: the guard does NOT expose another users EXISTING log', async () => {
+      await seedDailyLog(ALICE_UID);
+      const db = getAuthContext(BOB_UID).firestore();
+
+      await assertFails(
+        getDoc(doc(db, 'dailyLogs', dailyLogId(ALICE_UID, WEEK_START)))
+      );
+    });
+
+    test('dailyLogs: a list is still owner-scoped through the userId field', async () => {
+      await seedDailyLog(ALICE_UID);
+
+      const alice = getAuthContext(ALICE_UID).firestore();
+      const bob = getAuthContext(BOB_UID).firestore();
+
+      // Alice's own rows: legal.
+      await assertSucceeds(
+        getDocs(query(collection(alice, 'dailyLogs'), where('userId', '==', ALICE_UID)))
+      );
+      // Unfiltered: illegal, because the rule cannot be satisfied for every
+      // candidate document.
+      await assertFails(getDocs(collection(alice, 'dailyLogs')));
+      // Bob asking for Alice's rows: illegal. This is the assertion that would
+      // break first if the null guard were ever moved onto list.
+      await assertFails(
+        getDocs(query(collection(bob, 'dailyLogs'), where('userId', '==', ALICE_UID)))
+      );
+    });
+
+    test('weeklyCycles: a user CAN get a non-existent cycle', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+
+      await assertSucceeds(getDoc(doc(db, 'weeklyCycles', 'no-such-cycle')));
+    });
+
+    test('weeklyCycles: the guard does NOT expose another users EXISTING cycle', async () => {
+      const ref = await seedWeeklyCycle(ALICE_UID);
+      const db = getAuthContext(BOB_UID).firestore();
+
+      await assertFails(getDoc(doc(db, 'weeklyCycles', ref.id)));
+    });
+
+    test('weeklyCycles: a list is still owner-scoped through the userId field', async () => {
+      await seedWeeklyCycle(ALICE_UID);
+
+      const alice = getAuthContext(ALICE_UID).firestore();
+      const bob = getAuthContext(BOB_UID).firestore();
+
+      // This is the query getLatestWeeklyCycle and countWeeklyCyclesForOutcome
+      // actually issue.
+      await assertSucceeds(
+        getDocs(query(collection(alice, 'weeklyCycles'), where('userId', '==', ALICE_UID)))
+      );
+      await assertFails(getDocs(collection(alice, 'weeklyCycles')));
+      await assertFails(
+        getDocs(query(collection(bob, 'weeklyCycles'), where('userId', '==', ALICE_UID)))
+      );
+    });
+
+    test('downshiftEvents: a user CAN get a non-existent event', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+
+      await assertSucceeds(getDoc(doc(db, 'downshiftEvents', 'no-such-event')));
+    });
+
+    test('downshiftEvents: the guard does NOT expose another users EXISTING event', async () => {
+      const ref = await seedDownshiftEvent(ALICE_UID);
+      const db = getAuthContext(BOB_UID).firestore();
+
+      await assertFails(getDoc(doc(db, 'downshiftEvents', ref.id)));
+    });
+
+    test('downshiftEvents: a list is still owner-scoped through the userId field', async () => {
+      await seedDownshiftEvent(ALICE_UID);
+
+      const alice = getAuthContext(ALICE_UID).firestore();
+      const bob = getAuthContext(BOB_UID).firestore();
+
+      await assertSucceeds(
+        getDocs(query(collection(alice, 'downshiftEvents'), where('userId', '==', ALICE_UID)))
+      );
+      await assertFails(getDocs(collection(alice, 'downshiftEvents')));
+      await assertFails(
+        getDocs(query(collection(bob, 'downshiftEvents'), where('userId', '==', ALICE_UID)))
+      );
+    });
+
+    test('the upsertDailyLog SEQUENCE works end to end on a fresh day', async () => {
+      // upsertDailyLog reads before it writes, so it stamps createdAt exactly
+      // once. Both halves of that sequence were denied before the guard: the
+      // pre-read errored on null resource, and the function threw before ever
+      // reaching the create. This asserts the whole sequence rather than the
+      // two rules separately, because it is the sequence the app performs and
+      // the reason completion was broken.
+      const db = getAuthContext(ALICE_UID).firestore();
+      const ref = doc(db, 'dailyLogs', dailyLogId(ALICE_UID, MISSING_DATE));
+
+      await assertSucceeds(getDoc(ref));
+      await assertSucceeds(
+        setDoc(
+          ref,
+          {
+            userId: ALICE_UID,
+            date: MISSING_DATE,
+            protocolCompleted: true,
+            practiceIds: [],
+          },
+          { merge: true }
+        )
+      );
+      // The idempotent second tap on the same day is an update, not a create.
+      await assertSucceeds(
+        setDoc(ref, { userId: ALICE_UID, protocolCompleted: true }, { merge: true })
+      );
+    });
+
+    test('DOCUMENTED EXPOSURE: a non-existent doc is gettable by any authenticated user', async () => {
+      // Pinning the accepted tradeoff rather than leaving it unstated. The
+      // guard allows a get on a document that does not exist to ANY signed-in
+      // caller, so with a guessable ID (`${userId}_${date}`) presence is
+      // observable: an existing log denies, an absent one returns empty. No
+      // CONTENT leaks. The eight already-guarded collections in this ruleset
+      // carry the same exposure.
+      //
+      // If a later slice closes this by keying get off the document ID path
+      // instead of the userId field, THIS TEST SHOULD FAIL and be deleted
+      // deliberately. It is a description of today, not a requirement.
+      const db = getAuthContext(BOB_UID).firestore();
+
+      await assertSucceeds(
+        getDoc(doc(db, 'dailyLogs', dailyLogId(ALICE_UID, MISSING_DATE)))
+      );
+    });
+  });
 });
 
 describe('Analytics Events (write-only exhaust)', () => {

@@ -794,16 +794,58 @@ service cloud.firestore {
     // item #10, deferred to the weekly-close slice), and no rule below cares
     // about the shape of the document beyond its userId.
 
+    // WHY ALL THREE BLOCKS BELOW SPLIT get FROM list.
+    //
+    // `resource` is NULL on a get for a document that does not exist, and
+    // `resource.data.userId` against null does not evaluate to false — it
+    // ERRORS, which the client receives as "Missing or insufficient
+    // permissions". A combined `allow read` therefore denies every
+    // check-before-create read and every read of a day that has not happened
+    // yet. dailyLogs hit this on Home every morning: no log exists until the
+    // day is completed, and upsertDailyLog's own pre-read hit the same denial,
+    // so completion was broken too.
+    //
+    // The guard belongs on GET ONLY. `resource` is never null when a rule is
+    // evaluated per candidate document in a list, so a null guard on list would
+    // be dead code at best; keeping list on the FIELD is what makes
+    // `where userId == uid` legal for the caller's own rows and illegal for
+    // everyone else's. Do not move the guard onto list, and do not collapse
+    // these back into a single `allow read`.
+    //
+    // Same split and same reason as habits/{habitId}/completions above. The
+    // combined `(resource == null || isOwner(...))` form used by
+    // fourThreeTwoOne, brainStateCheckIns and their siblings is functionally
+    // equivalent for these collections; the split is spelled out because these
+    // three are queried as well as fetched, and the distinction is the whole
+    // point.
+    //
+    // KNOWN AND ACCEPTED CONSEQUENCE: a get on a non-existent document is
+    // allowed to ANY authenticated caller, so presence/absence is observable by
+    // someone who can guess a document ID. dailyLogs IDs are `${userId}_${date}`
+    // and therefore guessable, which makes "did user X complete day Y" a
+    // distinguishable outcome (existing doc denies, absent doc returns empty).
+    // Nothing about the document's CONTENT leaks. This is the same exposure the
+    // eight already-guarded collections above carry, several of which also use
+    // `${userId}_${date}` IDs. Closing it means keying get off the document ID
+    // path instead of the field, which is a different design and is not what
+    // this fix changes.
+
     // Weekly cycles — one per user per week.
     match /weeklyCycles/{cycleId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      // Allow read if document doesn't exist (for checking before create) OR if user owns it
+      allow get: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      // List enforces ownership through the userId FIELD, never through resource.
+      allow list: if isAuthenticated() && isOwner(resource.data.userId);
       allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
     // Daily logs — one per user per day; doc ID is `${userId}_${date}`.
     match /dailyLogs/{logId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      // Allow read if document doesn't exist (for checking before create) OR if user owns it
+      allow get: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      // List enforces ownership through the userId FIELD, never through resource.
+      allow list: if isAuthenticated() && isOwner(resource.data.userId);
       allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
@@ -815,7 +857,10 @@ service cloud.firestore {
     // helper. Stated plainly so a future reader does not mistake the uniform
     // rule for permission to add one.
     match /downshiftEvents/{eventId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      // Allow read if document doesn't exist (for checking before create) OR if user owns it
+      allow get: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      // List enforces ownership through the userId FIELD, never through resource.
+      allow list: if isAuthenticated() && isOwner(resource.data.userId);
       allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
