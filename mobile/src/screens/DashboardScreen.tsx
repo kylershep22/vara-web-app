@@ -4,8 +4,9 @@
  * Thin UI shell that delegates state/handlers to useDashboard.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, RefreshControl, TouchableOpacity, Text } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Animated from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -40,6 +41,8 @@ const homeHeader = require('../../assets/images/homeHeader.webp');
 // — matches Focus/Energy so the overlap reads identically across heroes.
 const CARD_OVERLAP = Spacing.xl;
 import { useDashboard } from '../hooks/useDashboard';
+import { useWeeklyLanding } from '../hooks/useWeeklyLanding';
+import { ROUTES } from '../navigation/routes';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebase';
 import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
@@ -103,6 +106,61 @@ const DashboardScreen: React.FC = () => {
     });
     return () => unsubscribe();
   }, [user?.uid]);
+
+  // ---- Weekly landing (landing slice, sub-step 1) ----
+  //
+  // Home answers the entry guard's question itself, because it is a TAB and
+  // cannot be `replace`d into the way WeeklyEntryScreen replaces between routes.
+  // The RULE is untouched and shared: useWeeklyLanding calls resolveWeeklyEntry.
+  //
+  // 'today' is served by rendering (the Today hero lands in sub-step 2). The
+  // other two targets are pushed OVER the tab, so the tab bar stays and the user
+  // keeps their place.
+  const weeklyLanding = useWeeklyLanding(user?.uid);
+
+  // Re-resolve whenever Home regains focus, so returning from the floor or open
+  // flow reflects the week the user just started rather than the stale answer
+  // from mount.
+  useFocusEffect(
+    useCallback(() => {
+      weeklyLanding.refresh();
+      // refresh is stable (useCallback over a setState updater); depending on
+      // the whole landing object here would re-run this on every resolve and
+      // loop.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+  );
+
+  // ONE PUSH PER DISTINCT TARGET, deliberately. Pushing on every focus would
+  // trap a user who backs out of the weekly open: they would land on Home, be
+  // pushed straight back, and have no way to reach the rest of the app. Backing
+  // out now leaves them on Home for the rest of the session, and the next launch
+  // (a fresh mount) offers it again.
+  //
+  // A standing affordance for a user who declined is a sub-step 2 concern: it
+  // only bites once Home IS Today and therefore has nothing to show without a
+  // cycle. Noting it here rather than half-solving it now.
+  const pushedForRef = useRef<'floor' | 'open' | null>(null);
+  useEffect(() => {
+    const target = weeklyLanding.target;
+    if (target === 'today' || target === null) {
+      // Resolved into the app: clear the latch so a later week boundary can
+      // push again without a remount.
+      pushedForRef.current = null;
+      return;
+    }
+    if (pushedForRef.current === target) return;
+    pushedForRef.current = target;
+    // Navigates directly rather than through the `go` helper below: that helper
+    // is declared later in this component, and an effect that depends on
+    // declaration order is a trap for the next edit.
+    (navigation as unknown as { navigate: (s: string) => void }).navigate(
+      target === 'floor' ? ROUTES.WeeklyFloor : ROUTES.WeeklyOpen
+    );
+    // The latch above is what makes this effect idempotent, not the dependency
+    // list; `navigation` is stable for the life of the screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weeklyLanding.target]);
 
   // System prompts that survive the rework, rendered after the spec content
   // cards. NotificationOptIn / EventCode are left as-is pending the live-entry
