@@ -7,6 +7,21 @@ export const DASHBOARD_V2 = true;
 export const ONBOARDING_V2 = true;
 
 /**
+ * ONBOARDING_V3 — the progressive onboarding arc. DEFAULT TRUE: this is the
+ * LIVE, MOUNTED first run, not a hidden branch.
+ *
+ * It takes precedence over ONBOARDING_V2 in OnboardingNavigator. The V2 branch
+ * is retained for ONE transition cycle as a one-line revert lever (flip this to
+ * false and the stress-recovery arc is restored byte-for-byte); it is not a
+ * long-lived fork. V2, its screens and this flag are deleted in the cleanup
+ * slice.
+ *
+ * There are zero live users, so reversibility here is a convenience during the
+ * device walk, not a production safety mechanism.
+ */
+export const ONBOARDING_V3 = true;
+
+/**
  * FOUR_PILLAR_IA — Four-Pillar IA navigator switch (Phase B-3a).
  *
  * When true, MainNavigator mounts the five-tab pillar navigator
