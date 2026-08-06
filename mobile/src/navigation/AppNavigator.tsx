@@ -14,7 +14,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { stackOpts, tabOpts } from './types';
 import { OfflineIndicator } from '../components/shared/OfflineIndicator';
 import { useSubscription } from '../hooks/useSubscription';
-import { ONBOARDING_V2, FOUR_PILLAR_IA } from '../constants/dashboardConfig';
+import { ONBOARDING_V2, ONBOARDING_V3, FOUR_PILLAR_IA } from '../constants/dashboardConfig';
 import { ROUTES } from './routes';
 import { linking } from './linking';
 
@@ -107,6 +107,19 @@ import {
 import { resolveInitialStep } from '../services/firebase/onboardingStressRecovery.service';
 import type { OnboardingSrStep } from '../constants/onboardingStressRecovery';
 
+// Progressive onboarding arc (V3) — the mounted default. Direct file paths, not
+// a barrel, per the navigation import convention.
+import { OnboardingV3Provider } from '../screens/onboarding/v3/OnboardingV3Context';
+import { V3_ROUTES } from '../screens/onboarding/v3/routes';
+import { OnboardingV3ColdOpenScreen } from '../screens/onboarding/v3/OnboardingV3ColdOpenScreen';
+import { OnboardingV3OutcomeScreen } from '../screens/onboarding/v3/OnboardingV3OutcomeScreen';
+import { OnboardingV3WhyScreen } from '../screens/onboarding/v3/OnboardingV3WhyScreen';
+import { OnboardingV3CapacityScreen } from '../screens/onboarding/v3/OnboardingV3CapacityScreen';
+import { OnboardingV3FloorScreen } from '../screens/onboarding/v3/OnboardingV3FloorScreen';
+import { OnboardingV3FirstWinScreen } from '../screens/onboarding/v3/OnboardingV3FirstWinScreen';
+import { OnboardingV3ReminderScreen } from '../screens/onboarding/v3/OnboardingV3ReminderScreen';
+import { OnboardingV3DoneScreen } from '../screens/onboarding/v3/OnboardingV3DoneScreen';
+
 // Discover content screens. The legacy DiscoverNavigator/DiscoverScreen hub was
 // retired in B-3d.5; these content screens are now registered solely in the
 // AppStack below (and reached via the Energy pillar under the four-pillar IA).
@@ -157,6 +170,39 @@ const PaywallStack = createNativeStackNavigator();
  * Flow: Welcome → Check-in → Insight (aha!) → Activity → Values → Personalized Entry → Home
  */
 const OnboardingNavigator = ({ initialStep }: { initialStep?: OnboardingSrStep }) => {
+  // V3 — the mounted default. Returned early rather than folded into the ternary
+  // below so the V1/V2 expression stays byte-for-byte what it was: flipping
+  // ONBOARDING_V3 to false restores the previous behavior exactly, which is the
+  // whole point of keeping V2 for one transition cycle.
+  //
+  // Its own Navigator because the two arcs share nothing. V3 has no persisted
+  // step, so it takes no `initialStep`: resume mid-flow is a V2 affordance
+  // (Edge Case 4) built on a stored onboardingStep, and V3 writes nothing until
+  // its terminal. A part-way user starts over, which is correct while there is
+  // nothing saved to return to.
+  if (ONBOARDING_V3) {
+    return (
+      <OnboardingV3Provider>
+        <OnboardingStack.Navigator
+          initialRouteName={V3_ROUTES.ColdOpen}
+          screenOptions={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        >
+          <OnboardingStack.Screen name={V3_ROUTES.ColdOpen} component={OnboardingV3ColdOpenScreen} />
+          <OnboardingStack.Screen name={V3_ROUTES.Outcome} component={OnboardingV3OutcomeScreen} />
+          <OnboardingStack.Screen name={V3_ROUTES.Why} component={OnboardingV3WhyScreen} />
+          <OnboardingStack.Screen name={V3_ROUTES.Capacity} component={OnboardingV3CapacityScreen} />
+          <OnboardingStack.Screen name={V3_ROUTES.Floor} component={OnboardingV3FloorScreen} />
+          <OnboardingStack.Screen name={V3_ROUTES.FirstWin} component={OnboardingV3FirstWinScreen} />
+          <OnboardingStack.Screen name={V3_ROUTES.Reminder} component={OnboardingV3ReminderScreen} />
+          <OnboardingStack.Screen name={V3_ROUTES.Done} component={OnboardingV3DoneScreen} />
+        </OnboardingStack.Navigator>
+      </OnboardingV3Provider>
+    );
+  }
+
   return (
     <OnboardingStack.Navigator
       // Resume mid-flow (Edge Case 4): start on the persisted step. Legacy V1

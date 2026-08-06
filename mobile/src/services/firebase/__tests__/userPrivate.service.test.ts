@@ -98,10 +98,10 @@ describe('userPrivate.service', () => {
 
     test('stamps createdAt and updatedAt on the first write', async () => {
       mockGetDoc.mockResolvedValue(absent);
-      await setUserPrivate('u1', { activeOutcome: 'steadier-weeks' });
+      await setUserPrivate('u1', { activeOutcome: 'routines' });
       expect(mockSetDoc.mock.calls[0][1]).toEqual({
         uid: 'u1',
-        activeOutcome: 'steadier-weeks',
+        activeOutcome: 'routines',
         createdAt: '__ts__',
         updatedAt: '__ts__',
       });
@@ -109,7 +109,7 @@ describe('userPrivate.service', () => {
 
     test('stamps only updatedAt on a subsequent write, never resetting createdAt', async () => {
       mockGetDoc.mockResolvedValue(present({ createdAt: 'original' }));
-      await setUserPrivate('u1', { activeOutcome: 'steadier-weeks' });
+      await setUserPrivate('u1', { activeOutcome: 'routines' });
       const written = mockSetDoc.mock.calls[0][1];
       expect(written).toHaveProperty('updatedAt', '__ts__');
       expect(written).not.toHaveProperty('createdAt');
@@ -120,7 +120,7 @@ describe('userPrivate.service', () => {
       await setUserPrivate('u1', {
         floorCommitment: 'ten minutes',
         antiGoals: ['side projects', 'early alarms'],
-        activeOutcome: 'steadier-weeks',
+        activeOutcome: 'routines',
         weekStartDay: 0,
         energyWindow: null,
       });
@@ -128,7 +128,7 @@ describe('userPrivate.service', () => {
         expect.objectContaining({
           floorCommitment: 'ten minutes',
           antiGoals: ['side projects', 'early alarms'],
-          activeOutcome: 'steadier-weeks',
+          activeOutcome: 'routines',
           weekStartDay: 0,
           energyWindow: null,
         })
