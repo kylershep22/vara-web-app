@@ -14,7 +14,6 @@ import { LoadingSpinner } from '../components';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
 import { ActiveRoutinePlayer } from './Time/ActiveRoutinePlayer';
 import { NAV_TARGETS } from '../navigation/navTargets';
-import { SlimResetAffordance } from '../components/dashboard/SlimResetAffordance';
 import { InsightCard } from '../components/dashboard/InsightCard';
 import { RoutineCard } from '../components/dashboard/RoutineCard';
 import { WeeklyHabitGrid } from '../components/dashboard/WeeklyHabitGrid';
@@ -294,9 +293,11 @@ const DashboardScreen: React.FC = () => {
               />
             )}
 
-            {/* Slim 2-minute reset — present in both phases, quiet (not a card),
-                reusing the locked overwhelm entry. */}
-            <SlimResetAffordance />
+            {/* NOTE: the slim 2-minute reset row is no longer rendered here
+                (landing slice, sub-step 4). It pointed into the deleted check-in
+                flow, and it wedged between the hero and the content block. The
+                component and its test are deliberately RETAINED as the seam the
+                need-something-now fast-follow re-points at a live target. */}
 
             {/* Content cards, subordinate to the Today hero above, in fixed
                 order: Insight → This week → Routine. The habit grid sits above
