@@ -1,4 +1,4 @@
-// InsightCard — the calm "reflects your day" education slot (both phases).
+// InsightCard — the calm "reflects your day" education slot.
 //
 // Replaces the correlation-stats WeekInsightCard on Home. Shows one curated,
 // daily-rotating insight from getDashboardInsight() (a static launch set behind
@@ -7,8 +7,8 @@
 //
 // No eyebrow cap (Voice & Tone v2.2 §4): "A small insight" diminished the
 // insight before it spoke, and the uppercase cap treatment read as a button —
-// it was the one thing this card visually shared with the actionable
-// SuggestedActionCard directly above it. The insight leads with its own title.
+// it was the one thing this card visually shared with the actionable card that
+// used to sit directly above it. The insight leads with its own title.
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';

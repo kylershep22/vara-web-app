@@ -537,9 +537,6 @@ export function useDashboard() {
     return getProtocolById(normalized);
   }, [brainStateCheckIn]);
 
-  // Dashboard phase: pre-checkin or checked-in
-  const dashboardPhase: 'pre-checkin' | 'checked-in' = brainStateCheckIn ? 'checked-in' : 'pre-checkin';
-
   // Card order based on brain state
   const cardOrder = useMemo((): DashboardCardId[] => {
     const state = brainStateCheckIn?.brainState ?? null;
@@ -794,8 +791,6 @@ export function useDashboard() {
     dismissNudge,
     markFeatureVisited,
 
-    // Dashboard phase
-    dashboardPhase,
     cardOrder,
 
     // Routines (dashboard card)

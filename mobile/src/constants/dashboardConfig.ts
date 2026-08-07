@@ -53,9 +53,7 @@ export const DASHBOARD_SUPPRESS = {
   // components only.
   eventCode: true,
   notifOptIn: true,
-  // NudgeCard: it IS live-gated (renders only when a suggestion exists), but it
-  // is an algorithmic cross-feature nudge, NOT a user-opted-in nudge — so per the
-  // decision it is suppressed (the "leave it" carve-out was only for an
-  // opted-in, live nudge). Flip to false to restore.
-  nudge: true,
+  // NOTE: the `nudge` flag was retired with NudgeCard itself in the landing
+  // slice (sub-step 3). Home no longer has an algorithmic cross-feature nudge
+  // surface, so there is nothing left to suppress.
 } as const;
