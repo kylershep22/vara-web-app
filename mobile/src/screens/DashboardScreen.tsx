@@ -14,18 +14,13 @@ import { LoadingSpinner } from '../components';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
 import { ActiveRoutinePlayer } from './Time/ActiveRoutinePlayer';
 import { NAV_TARGETS } from '../navigation/navTargets';
-import { CheckInInvite } from '../components/dashboard/CheckInInvite';
 import { SlimResetAffordance } from '../components/dashboard/SlimResetAffordance';
-import { RightNowAcknowledgment } from '../components/dashboard/RightNowAcknowledgment';
-import { SuggestedActionCard } from '../components/dashboard/SuggestedActionCard';
 import { InsightCard } from '../components/dashboard/InsightCard';
 import { RoutineCard } from '../components/dashboard/RoutineCard';
 import { WeeklyHabitGrid } from '../components/dashboard/WeeklyHabitGrid';
 import { HabitNoteSheet } from '../components/habits/HabitNoteSheet';
 import { InsightsLookbackCard } from '../components/dashboard/InsightsLookbackCard';
-import { suggestedAction } from '../components/dashboard/suggestedAction';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
-import NudgeCard from '../components/dashboard/NudgeCard';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
@@ -60,8 +55,6 @@ const DashboardScreen: React.FC = () => {
     greeting,
     formattedDate,
     handleRefresh,
-    brainStateCheckIn,
-    todaysProtocol,
     notifOptInCard,
     handleNotifOptIn,
     handleNotifDismiss,
@@ -70,9 +63,6 @@ const DashboardScreen: React.FC = () => {
     setEventCodeSheetVisible,
     handleEventCodeDismiss,
     handleEventCodeSuccess,
-    nudgeSuggestion,
-    dismissNudge,
-    markFeatureVisited,
     dashboardRoutines,
     routineCompletions,
     activePlayerRoutine,
@@ -80,7 +70,6 @@ const DashboardScreen: React.FC = () => {
     handleBeginRoutine,
     handleCloseRoutinePlayer,
     handleRoutineComplete,
-    dashboardPhase,
     habits,
     allCompletions,
     weeklyCompletions,
@@ -172,13 +161,11 @@ const DashboardScreen: React.FC = () => {
 
   // System prompts that survive the rework, rendered after the spec content
   // cards. NotificationOptIn / EventCode are left as-is pending the live-entry
-  // confirm; the nudge is kept because it's already live-gated (transient).
-  const renderSystemPrompt = (cardId: 'notifOptIn' | 'eventCode' | 'nudge') => {
+  // confirm.
+  const renderSystemPrompt = (cardId: 'notifOptIn' | 'eventCode') => {
     switch (cardId) {
       case 'notifOptIn':
         if (DASHBOARD_SUPPRESS.notifOptIn) return null;
-        // Skip in pre-checkin; it renders separately there (above) as a setting.
-        if (dashboardPhase === 'pre-checkin') return null;
         return notifOptInCard ? (
           <View key="notifOptIn" style={{ paddingHorizontal: Spacing.base }}>
             <NotificationOptInCard
@@ -198,39 +185,8 @@ const DashboardScreen: React.FC = () => {
             />
           </View>
         ) : null;
-      case 'nudge':
-        if (DASHBOARD_SUPPRESS.nudge) return null;
-        return nudgeSuggestion ? (
-          <NudgeCard
-            key="nudge"
-            suggestion={nudgeSuggestion}
-            onAction={() => {
-              markFeatureVisited(nudgeSuggestion.feature);
-              navigation.navigate(nudgeSuggestion.screenName as never);
-            }}
-            onDismiss={dismissNudge}
-          />
-        ) : null;
     }
   };
-
-  // The standing capacity practice for the post-check-in surface — time-of-day
-  // driven, independent of any just-completed plan.
-  const suggestion = suggestedAction();
-
-  // Post-check-in acknowledgment: name what the user DID (a completed catalog
-  // practice), never the state they reported. Renders only when a practice
-  // actually completed today — a pointer hand-off / zero-slot / not-yet-started
-  // check-in leaves protocolCompleted false, so the slot collapses and the
-  // SuggestedActionCard below is the forward-pointing element. completedAt drives
-  // the "done this morning/afternoon/evening" variant; sourced from the daily
-  // marker's updatedAt (no dedicated completion timestamp exists — a same-day
-  // same-state re-check would move it).
-  const practiceCompleted =
-    brainStateCheckIn?.protocolCompleted === true && todaysProtocol != null;
-  const completedAt = practiceCompleted
-    ? brainStateCheckIn?.updatedAt?.toDate?.() ?? null
-    : null;
 
   // Locally-typed navigate for the rework's new destinations. The hook's
   // navigation is untyped, so the legacy blocks fall back to `as never` casts
@@ -258,12 +214,12 @@ const DashboardScreen: React.FC = () => {
               <Text style={styles.dateText}>{formattedDate}</Text>
             </View>
             <View style={styles.headerActions}>
-              {/* Docked Guide pill, left of Settings. Hidden pre-check-in so the
-                  check-in invite stays the single focus (matches the FAB's old
-                  pre-check-in hide); returns once the user has checked in. */}
-              {dashboardPhase === 'checked-in' && (
-                <GuidePill context={{ screen: 'home' }} testID="home-guide" />
-              )}
+              {/* Docked Guide pill, left of Settings. Unconditional: the
+                  pre-check-in hide existed to keep the check-in invite the
+                  single focus, and that invite is gone. Session-hiding is
+                  structural (session surfaces never mount the pill), so it does
+                  NOT depend on this gate. */}
+              <GuidePill context={{ screen: 'home' }} testID="home-guide" />
               <TouchableOpacity
                 onPress={() => navigation.navigate('ProfileStack' as never, { screen: 'Settings' } as never)}
                 style={styles.settingsButton}
@@ -301,9 +257,9 @@ const DashboardScreen: React.FC = () => {
 
         {(
           <>
-            {/* ---- The consolidated Today surface (landing slice, sub-step 2).
-                Rendered ABOVE the legacy cards, which stay until sub-step 3
-                de-engines them. The two coexist on purpose for one sub-step. */}
+            {/* ---- The consolidated Today surface (landing slice). The old
+                daily-engine check-in cards were removed in sub-step 3, so this
+                hero is now the top of Home, not a layer above legacy cards. */}
 
             {/* The day's action, from the current cycle. Only when the guard
                 actually resolved 'today' — never from a stale cycle. */}
@@ -329,21 +285,6 @@ const DashboardScreen: React.FC = () => {
               <OpenYourWeekCard onOpen={() => go(ROUTES.WeeklyOpen)} />
             )}
 
-            {/* ---- Legacy dashboard cards below. Removed in sub-step 3. ---- */}
-
-            {/* Post-checkin: acknowledge what the user DID (a completed
-                practice), never the state they reported. Self-collapses when no
-                practice completed — see practiceCompleted above. */}
-            {dashboardPhase === 'checked-in' && (
-              <RightNowAcknowledgment
-                practiceName={practiceCompleted ? todaysProtocol!.name : null}
-                completedAt={completedAt}
-              />
-            )}
-
-            {/* Pre-checkin: the ONE bright check-in invite (the priority). */}
-            {dashboardPhase === 'pre-checkin' && <CheckInInvite />}
-
             {/* First-shift footer — suppressed on the reworked Home (not in the
                 spec set). Reversible via DASHBOARD_SUPPRESS. */}
             {!DASHBOARD_SUPPRESS.firstShiftFooter && (
@@ -357,40 +298,12 @@ const DashboardScreen: React.FC = () => {
                 reusing the locked overwhelm entry. */}
             <SlimResetAffordance />
 
-            {/* Notification opt-in: treated as a setting, accessible in every
-                phase. In post-checkin / returning it renders inside cardOrder
-                after protocol. In pre-checkin it renders here, above the
-                muted wrapper, so it stays fully interactive. */}
-            {!DASHBOARD_SUPPRESS.notifOptIn &&
-              dashboardPhase === 'pre-checkin' &&
-              notifOptInCard && (
-                <View style={{ paddingHorizontal: Spacing.base }}>
-                  <NotificationOptInCard
-                    category={notifOptInCard}
-                    onOptIn={() => handleNotifOptIn(notifOptInCard)}
-                    onDismiss={() => handleNotifDismiss(notifOptInCard)}
-                  />
-                </View>
-              )}
-
-            {/* Spec content cards — explicit, fixed order (no longer
-                brain-state-ordered): Suggested action (post only) → Insight →
-                This week → Routine. The habit grid sits above the routine card:
-                it is the surface a returning user comes to check, so it should
-                not sit below a card they may have already acted on. */}
+            {/* Content cards, subordinate to the Today hero above, in fixed
+                order: Insight → This week → Routine. The habit grid sits above
+                the routine card: it is the surface a returning user comes to
+                check, so it should not sit below a card they may have already
+                acted on. */}
             <View>
-              {dashboardPhase === 'checked-in' && suggestion && (
-                <SuggestedActionCard
-                  protocol={suggestion.protocol}
-                  onStart={() =>
-                    go('PracticeRun', {
-                      protocolId: suggestion.protocol.id,
-                      stateBefore: brainStateCheckIn?.brainState ?? 'steady',
-                    })
-                  }
-                />
-              )}
-
               <InsightCard />
 
               {/* This week's habits — the user's own consistency, shown back to
@@ -421,7 +334,7 @@ const DashboardScreen: React.FC = () => {
               />
 
               {/* Surviving system prompts (live-gated), after the content. */}
-              {(['notifOptIn', 'eventCode', 'nudge'] as const).map((id) => (
+              {(['notifOptIn', 'eventCode'] as const).map((id) => (
                 <React.Fragment key={id}>{renderSystemPrompt(id)}</React.Fragment>
               ))}
 
