@@ -40,8 +40,11 @@ const homeHeader = require('../../assets/images/homeHeader.webp');
 // How far the first content block rides up onto the header's bottom (mist) seam
 // — matches Focus/Energy so the overlap reads identically across heroes.
 const CARD_OVERLAP = Spacing.xl;
+import { TodayHeroCard } from '../components/dashboard/TodayHeroCard';
+import { OpenYourWeekCard } from '../components/dashboard/OpenYourWeekCard';
 import { useDashboard } from '../hooks/useDashboard';
 import { useWeeklyLanding } from '../hooks/useWeeklyLanding';
+import { useTodayCard } from '../hooks/useTodayCard';
 import { ROUTES } from '../navigation/routes';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebase';
@@ -117,6 +120,11 @@ const DashboardScreen: React.FC = () => {
   // other two targets are pushed OVER the tab, so the tab bar stays and the user
   // keeps their place.
   const weeklyLanding = useWeeklyLanding(user?.uid);
+
+  // The day's action, sourced from the cycle the landing hook resolved. No-ops
+  // to an empty card when there is no cycle, so it is safe to call
+  // unconditionally.
+  const todayCard = useTodayCard(user?.uid, weeklyLanding.cycle);
 
   // Re-resolve whenever Home regains focus, so returning from the floor or open
   // flow reflects the week the user just started rather than the stale answer
@@ -293,6 +301,36 @@ const DashboardScreen: React.FC = () => {
 
         {(
           <>
+            {/* ---- The consolidated Today surface (landing slice, sub-step 2).
+                Rendered ABOVE the legacy cards, which stay until sub-step 3
+                de-engines them. The two coexist on purpose for one sub-step. */}
+
+            {/* The day's action, from the current cycle. Only when the guard
+                actually resolved 'today' — never from a stale cycle. */}
+            {weeklyLanding.target === 'today' &&
+              weeklyLanding.cycle &&
+              todayCard.protocol && (
+                <TodayHeroCard
+                  cycle={weeklyLanding.cycle}
+                  protocol={todayCard.protocol}
+                  floorCommitment={todayCard.floorCommitment}
+                  completed={todayCard.completed}
+                  saving={todayCard.saving}
+                  saveFailed={todayCard.saveFailed}
+                  onMarkDone={todayCard.markDone}
+                />
+              )}
+
+            {/* Standing entry for the user who declined the pushed open. Home
+                pushes once per target so backing out cannot trap them, and this
+                card is what stops that latch from turning Home into a dead end
+                with no week. */}
+            {weeklyLanding.target === 'open' && (
+              <OpenYourWeekCard onOpen={() => go(ROUTES.WeeklyOpen)} />
+            )}
+
+            {/* ---- Legacy dashboard cards below. Removed in sub-step 3. ---- */}
+
             {/* Post-checkin: acknowledge what the user DID (a completed
                 practice), never the state they reported. Self-collapses when no
                 practice completed — see practiceCompleted above. */}
