@@ -316,7 +316,14 @@ const DashboardScreen: React.FC = () => {
                   {/* Self-hides at 0 and on a failed read; see ContinuityCard. */}
                   <ContinuityCard continuity={todayCard.continuity} />
 
-                  <CloseWeekEntry onPress={openClose} />
+                  {/* Replaced by a plain acknowledgment once the week has been
+                      closed. closeCompletedAt rides in on the cycle already
+                      (getWeeklyCyclesForUser spreads the document), and this is
+                      the first place in the app that reads it. */}
+                  <CloseWeekEntry
+                    closed={!!weeklyLanding.cycle.closeCompletedAt}
+                    onPress={openClose}
+                  />
                 </>
               )}
 

@@ -2,9 +2,18 @@
 // adjustment is genuinely single-choice, the note is genuinely skippable, and
 // the floor answer the user gave is the boolean that reaches storage.
 
+// TWO NAVIGATION VERBS, and which one is used carries meaning.
+//
+//   replace  the no-cycle bail-out, which hands the decision back to the entry
+//            guard. Still a stack-to-stack move.
+//   navigate the post-close terminal. Home is a TAB, not a stack screen, so it
+//            is reached through its navigator (Main -> Home) and cannot be
+//            replaced into. `replace(Main)` would push a second Main on top of
+//            the one already at the root.
 const mockReplace = jest.fn();
+const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ replace: mockReplace }),
+  useNavigation: () => ({ replace: mockReplace, navigate: mockNavigate }),
 }));
 jest.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'u1' } }),
@@ -80,6 +89,7 @@ function answerAll(
 describe('WeeklyCloseScreen', () => {
   beforeEach(() => {
     mockReplace.mockClear();
+    mockNavigate.mockClear();
     mockGetLatestCycle.mockReset().mockResolvedValue(cycle());
     mockCloseCycle.mockReset().mockResolvedValue(undefined);
     mockLoadContinuity.mockReset().mockResolvedValue(3);
@@ -315,7 +325,7 @@ describe('WeeklyCloseScreen', () => {
       answerAll(screen);
       fireEvent.press(screen.getByTestId('weekly-close-save'));
 
-      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('WeeklyToday'));
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: 'Home' }));
     });
   });
 
@@ -336,7 +346,7 @@ describe('WeeklyCloseScreen', () => {
       answerAll(screen);
       fireEvent.press(screen.getByTestId('weekly-close-save'));
 
-      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('WeeklyToday'));
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: 'Home' }));
     });
   });
 
@@ -429,6 +439,7 @@ describe('WeeklyCloseScreen', () => {
       fireEvent.press(screen.getByTestId('weekly-close-save'));
 
       await waitFor(() => expect(screen.getByTestId('weekly-close-error')).toBeTruthy());
+      expect(mockNavigate).not.toHaveBeenCalled();
       expect(mockReplace).not.toHaveBeenCalled();
     });
 
@@ -442,7 +453,7 @@ describe('WeeklyCloseScreen', () => {
 
       fireEvent.press(screen.getByTestId('weekly-close-save'));
 
-      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('WeeklyToday'));
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: 'Home' }));
       expect(mockCloseCycle).toHaveBeenCalledTimes(2);
       expect(mockCloseCycle.mock.calls[1][1]).toMatchObject({
         ratingFocus: 4,
@@ -609,7 +620,7 @@ describe('WeeklyCloseScreen', () => {
       answerAll(screen);
       fireEvent.press(screen.getByTestId('weekly-close-save'));
 
-      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('WeeklyToday'));
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: 'Home' }));
     });
 
     test('fires after the write lands and before navigating away', async () => {
@@ -620,7 +631,7 @@ describe('WeeklyCloseScreen', () => {
       mockLogEvent.mockImplementation(() => {
         order.push('event');
       });
-      mockReplace.mockImplementation(() => {
+      mockNavigate.mockImplementation(() => {
         order.push('navigate');
       });
 
@@ -639,7 +650,7 @@ describe('WeeklyCloseScreen', () => {
       answerAll(screen);
       fireEvent.press(screen.getByTestId('weekly-close-save'));
 
-      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('WeeklyToday'));
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: 'Home' }));
     });
   });
 

@@ -86,7 +86,14 @@ const RATINGS = [
 type RatingKey = (typeof RATINGS)[number]['key'];
 
 export function WeeklyCloseScreen() {
-  const navigation = useNavigation<{ replace: (route: string) => void }>();
+  // Two verbs, and which one is used carries meaning. `replace` is the no-cycle
+  // bail-out back to the entry guard, a stack-to-stack move. `navigate` is the
+  // post-close terminal: Home is a TAB, so it is reached through its navigator
+  // and cannot be replaced into.
+  const navigation = useNavigation<{
+    replace: (route: string) => void;
+    navigate: (route: string, params?: object) => void;
+  }>();
   const { user } = useAuth();
 
   const [cycle, setCycle] = useState<WeeklyCycle | null>(null);
@@ -243,10 +250,20 @@ export function WeeklyCloseScreen() {
         // Never the user's problem.
       }
 
-      // Back to Today, which re-reads the cycles and so picks up the new
-      // continuity count. replace, not push: the close is done and leaving it
-      // on the stack would put a completed ritual behind the back gesture.
-      navigation.replace(ROUTES.WeeklyToday);
+      // Back to HOME, which is the Today surface. There is one Today, and
+      // landing on the standalone screen instead put the user on a second copy
+      // of it that they could then back out of into the first.
+      //
+      // navigate, not replace, and not push: Home is a tab inside Main, which
+      // is already the root beneath this stack. navigate pops back to that
+      // existing Main rather than stacking a second one, which also drops this
+      // completed ritual off the back gesture.
+      //
+      // Home re-resolves its week on focus, and the continuity count follows
+      // the close through useTodayCard's isClosed dependency. Home is already
+      // mounted when this lands, so unlike the Today screen it does NOT re-read
+      // for free; that dependency is what replaces the free remount.
+      navigation.navigate(ROUTES.Main, { screen: ROUTES.Home });
     } catch (error) {
       logger.error('[WeeklyClose] close write failed:', error);
 

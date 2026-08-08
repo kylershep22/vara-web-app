@@ -126,6 +126,17 @@ export function useTodayCard(
   const cycleId = cycle?.id;
   const outcome = cycle?.outcome;
   const capacityCurrent = cycle?.capacityCurrent;
+  // A BOOLEAN, never `closeCompletedAt` itself. The close writes floorMet,
+  // which is the only input to continuity, and it changes none of the three
+  // fields above — so without this the count below would never refresh after a
+  // close now that Home, rather than a freshly mounted Today screen, is where
+  // the close returns to.
+  //
+  // The Timestamp cannot be the dependency: Firestore rebuilds it as a new
+  // object on every read, so depending on it would refetch on every focus
+  // resolve and defeat the memoization the three lines above exist for. This
+  // flips false -> true at most once per cycle, which is once per week.
+  const isClosed = !!cycle?.closeCompletedAt;
 
   useEffect(() => {
     activeRef.current = true;
@@ -199,7 +210,7 @@ export function useTodayCard(
     return () => {
       activeRef.current = false;
     };
-  }, [uid, cycleId, outcome, capacityCurrent]);
+  }, [uid, cycleId, outcome, capacityCurrent, isClosed]);
 
   /**
    * Mark today done. One direction only: there is no un-complete.

@@ -128,6 +128,19 @@ export const TODAY_COPY = {
   // dev-only this slice; the real trigger is an elapsed week, and wiring that
   // into the entry guard is a tracked follow-up.
   closeEntry: gap('Close out this week'),
+
+  // Shown IN PLACE OF the entry above once the week has been closed, so the
+  // close reads as something that finished rather than a loop with no end.
+  //
+  // Two constraints for whoever replaces this line:
+  //
+  //   1. IT IS A STATEMENT, NOT A REWARD. A week closed with the floor missed
+  //      is closed exactly as much as one where it held, and this line is shown
+  //      identically in both cases. No congratulation, no "streak saved", no
+  //      score, nothing that would read as praise the user has to earn.
+  //   2. It is not tappable and must not become an instruction to do anything.
+  //      The one action on this surface is today's completion control.
+  weekClosed: gap('This week is closed.'),
 } as const;
 
 /**

@@ -160,6 +160,72 @@ describe('useTodayCard continuity', () => {
     expect(mockGetCyclesForUser).not.toHaveBeenCalled();
   });
 
+  describe('refreshing after the weekly close', () => {
+    // WHY THIS EXISTS. The close writes floorMet, which is the only input to
+    // continuity, and it used to land the user on WeeklyTodayScreen — a fresh
+    // MOUNT, so the count re-read for free. Home is already mounted when the
+    // close returns to it, so nothing re-reads unless the effect is told to.
+    //
+    // A close changes neither the cycle id, the outcome, nor the capacity
+    // tier, so the original dependency list could not see it happen.
+
+    /** A distinct Timestamp-shaped object, as Firestore rebuilds per read. */
+    const stamp = (seconds: number) => ({ seconds, nanoseconds: 0 });
+
+    test('re-reads when the cycle goes from open to closed', async () => {
+      mockGetCyclesForUser
+        .mockResolvedValueOnce([closed('2026-08-03')])
+        .mockResolvedValue([closed('2026-07-27', true), closed('2026-08-03', true)]);
+      const { result, rerender } = renderHook(
+        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c, jest.fn()),
+        { initialProps: { c: cycle() } }
+      );
+      await waitFor(() => expect(result.current.continuity).toBe(0));
+
+      rerender({ c: cycle({ closeCompletedAt: stamp(1) } as Partial<WeeklyCycle>) });
+
+      await waitFor(() => expect(result.current.continuity).toBe(2));
+    });
+
+    test('does NOT re-read on a focus that changes nothing', async () => {
+      // useWeeklyLanding hands back a NEW cycle object on every focus resolve.
+      // Re-reading on object identity would refetch on every return to Home.
+      const { result, rerender } = renderHook(
+        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c, jest.fn()),
+        { initialProps: { c: cycle() } }
+      );
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1);
+
+      rerender({ c: cycle() });
+      rerender({ c: cycle() });
+
+      expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1);
+    });
+
+    test('does NOT re-read when an already-closed week is re-resolved', async () => {
+      // THE TIMESTAMP TRAP. Firestore rebuilds closeCompletedAt as a fresh
+      // object on every read, so a dependency on the Timestamp itself refetches
+      // on every focus while looking correct in a test that reuses one object.
+      // These two stamps are equal in meaning and distinct in identity.
+      const { result, rerender } = renderHook(
+        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c, jest.fn()),
+        {
+          initialProps: {
+            c: cycle({ closeCompletedAt: stamp(1) } as Partial<WeeklyCycle>),
+          },
+        }
+      );
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1);
+
+      rerender({ c: cycle({ closeCompletedAt: stamp(1) } as Partial<WeeklyCycle>) });
+      rerender({ c: cycle({ closeCompletedAt: stamp(2) } as Partial<WeeklyCycle>) });
+
+      expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1);
+    });
+  });
+
   test('re-reads when the capacity tier changes, so a re-set reload refreshes it', async () => {
     mockGetCyclesForUser
       .mockResolvedValueOnce([closed('2026-08-03', true)])
