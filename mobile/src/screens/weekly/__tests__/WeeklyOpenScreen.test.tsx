@@ -2,9 +2,11 @@
 // written at confirm carries the pair the user chose, the protocol the engine
 // resolved for that pair, and a capacityCurrent equal to the forecast.
 
-const mockReplace = jest.fn();
+// `navigate`, not `replace`: the confirmation lands on Home, a TAB inside Main,
+// which cannot be replaced into.
+const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ replace: mockReplace }),
+  useNavigation: () => ({ navigate: mockNavigate }),
 }));
 jest.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'u1' } }),
@@ -48,7 +50,7 @@ async function openWeek(
 
 describe('WeeklyOpenScreen', () => {
   beforeEach(() => {
-    mockReplace.mockClear();
+    mockNavigate.mockClear();
     mockCreateWeeklyCycle.mockReset().mockResolvedValue('cycle-1');
     mockCountForOutcome.mockReset().mockResolvedValue(0);
     mockLogEvent.mockReset();
@@ -107,7 +109,7 @@ describe('WeeklyOpenScreen', () => {
       mockLogEvent.mockImplementation(() => {
         order.push('event');
       });
-      mockReplace.mockImplementation(() => {
+      mockNavigate.mockImplementation(() => {
         order.push('navigate');
       });
 
@@ -126,7 +128,9 @@ describe('WeeklyOpenScreen', () => {
 
       await openWeek('focus', 'normal');
 
-      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('WeeklyToday'));
+      await waitFor(() =>
+        expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: 'Home' })
+      );
     });
   });
 
@@ -200,8 +204,10 @@ describe('WeeklyOpenScreen', () => {
     test('is not handed forward as a route param', async () => {
       await openWeek('focus', 'normal');
 
-      expect(mockReplace).toHaveBeenCalledWith('WeeklyToday');
-      expect(mockReplace.mock.calls[0]).toHaveLength(1);
+      expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: 'Home' });
+      // The params carry the tab and nothing else. A week number smuggled in
+      // here would be the second derivation this rule exists to prevent.
+      expect(mockNavigate.mock.calls[0][1]).toEqual({ screen: 'Home' });
     });
 
     test('the cycle is persisted BEFORE navigating, so Today can count it', async () => {
@@ -212,7 +218,7 @@ describe('WeeklyOpenScreen', () => {
         order.push('write');
         return 'cycle-1';
       });
-      mockReplace.mockImplementation(() => {
+      mockNavigate.mockImplementation(() => {
         order.push('navigate');
       });
 
@@ -228,7 +234,7 @@ describe('WeeklyOpenScreen', () => {
       const screen = await openWeek('stress', 'normal');
 
       await waitFor(() => expect(screen.getByTestId('weekly-open-error')).toBeTruthy());
-      expect(mockReplace).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     test('the confirm stays available so the write can be retried', async () => {
@@ -239,7 +245,7 @@ describe('WeeklyOpenScreen', () => {
       // Second attempt, same selections: no re-answering the two questions.
       mockCreateWeeklyCycle.mockResolvedValue('cycle-1');
       fireEvent.press(screen.getByTestId('weekly-open-confirm'));
-      await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
       expect(mockCreateWeeklyCycle).toHaveBeenCalledTimes(2);
     });
   });

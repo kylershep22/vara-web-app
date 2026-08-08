@@ -65,7 +65,6 @@ import WearableIntegrationScreen from '../screens/WearableIntegrationScreen';
 import { WeeklyEntryScreen } from '../screens/weekly/WeeklyEntryScreen';
 import { FloorCommitmentScreen } from '../screens/weekly/FloorCommitmentScreen';
 import { WeeklyOpenScreen } from '../screens/weekly/WeeklyOpenScreen';
-import { WeeklyTodayScreen } from '../screens/weekly/WeeklyTodayScreen';
 import { WeeklyCloseScreen } from '../screens/weekly/WeeklyCloseScreen';
 import {
   CommunityScreen,
@@ -881,14 +880,14 @@ const MainNavigator = () => {
           />
         )}
         {/* Weekly loop (spec 6, 8, 9, 10.1) — LIVE IN PRODUCTION.
-            Un-gated by the landing slice. Home (DashboardScreen) now resolves
-            resolveWeeklyEntry inline and pushes WeeklyFloor / WeeklyOpen over
-            the tab when the user has no floor or no current cycle; the 'today'
-            target is served by Home itself rather than by a route.
+            Home (DashboardScreen) resolves resolveWeeklyEntry inline and pushes
+            WeeklyFloor / WeeklyOpen over the tab when the user has no floor or
+            no current cycle. The 'today' target is served by Home itself.
 
-            WeeklyToday remains registered and is NOT dead: WeeklyOpenScreen
-            replaces to it on confirm, and it is still the only entry to the
-            weekly close. Collapsing it into Home is a later slice, not this one.
+            THERE IS NO WeeklyToday SCREEN. Every flow below that used to land on
+            one now returns to Home, which is the Today surface. Registering a
+            second one would put the same content under a second title with a
+            back gesture between them, which is the bug this collapse removed.
 
             The screens carry placeholder [Jen] / [COPY GAP] copy, which now
             renders in production builds. That is intended and known. */}
@@ -927,20 +926,11 @@ const MainNavigator = () => {
             headerShadowVisible: false,
           })}
         />
-        <AppStack.Screen
-          name={ROUTES.WeeklyToday}
-          component={WeeklyTodayScreen}
-          options={stackOpts({
-            ...standardHeaderOptions,
-            animation: 'slide_from_right',
-            headerShown: true,
-            title: 'Today',
-            headerShadowVisible: false,
-          })}
-        />
-        {/* The weekly close (spec 8). Entered from Today rather than from
+        {/* The weekly close (spec 8). Entered from Home rather than from
             the guard: the real trigger is an elapsed week, and faking a
-            week boundary to reach it would be worse than not having one. */}
+            week boundary to reach it would be worse than not having one.
+            Returns to Home, which gates the entry on closeCompletedAt so the
+            close reads as finished rather than repeatable. */}
         <AppStack.Screen
           name={ROUTES.WeeklyClose}
           component={WeeklyCloseScreen}

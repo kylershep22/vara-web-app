@@ -1,9 +1,9 @@
 /**
  * The day's action for Home, sourced from the user's current weekly cycle.
  *
- * Mirrors the read path WeeklyTodayScreen performs (WeeklyTodayScreen.tsx:118-155)
- * because both surfaces must resolve the SAME protocol for the same week. The
- * derivation is deliberately identical:
+ * THIS IS THE ONLY TODAY SURFACE. It began as a mirror of the standalone
+ * WeeklyTodayScreen's read path; that screen was deleted once Home took the
+ * surface over, and this is now the sole place the day's protocol is resolved:
  *
  *   week number  <- countWeeklyCyclesForOutcome (the single source; do not add
  *                   a second derivation, it would run against a different
