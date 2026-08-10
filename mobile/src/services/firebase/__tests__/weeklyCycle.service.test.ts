@@ -73,6 +73,8 @@ const docsSnap = (docs: { id: string; data: Record<string, unknown> }[]) => ({
 
 const ALICE = 'alice123';
 const WEEK = '2026-08-03';
+/** The week's inclusive last day. Stored on the cycle, never re-derived. */
+const WEEK_END = '2026-08-09';
 
 describe('weeklyCycle.service', () => {
   beforeEach(() => {
@@ -117,6 +119,7 @@ describe('weeklyCycle.service', () => {
     test('addresses the weeklyCycles collection', async () => {
       await createWeeklyCycle(ALICE, {
         weekStart: WEEK,
+        weekEnd: WEEK_END,
         outcome: 'focus',
         capacityInitial: 'normal',
         protocolId: 'focus-normal',
@@ -127,6 +130,7 @@ describe('weeklyCycle.service', () => {
     test('initializes capacityCurrent to capacityInitial', async () => {
       await createWeeklyCycle(ALICE, {
         weekStart: WEEK,
+        weekEnd: WEEK_END,
         outcome: 'stress',
         capacityInitial: 'limited',
         protocolId: 'stress-limited',
@@ -139,6 +143,7 @@ describe('weeklyCycle.service', () => {
     test('stamps the owner and both timestamps', async () => {
       await createWeeklyCycle(ALICE, {
         weekStart: WEEK,
+        weekEnd: WEEK_END,
         outcome: 'focus',
         capacityInitial: 'normal',
         protocolId: 'focus-normal',
@@ -149,10 +154,29 @@ describe('weeklyCycle.service', () => {
       expect(written.updatedAt).toEqual({ __serverTimestamp: true });
     });
 
+    test('persists the week boundary, so nothing has to re-derive it', async () => {
+      // The whole point of storing weekEnd: a cycle is not always seven days
+      // (the first one is a partial stub), and a boundary re-derived at read
+      // time would move under a user who later changes their start day.
+      await createWeeklyCycle(ALICE, {
+        weekStart: WEEK,
+        weekEnd: '2026-08-05',
+        outcome: 'focus',
+        capacityInitial: 'normal',
+        protocolId: 'focus-normal',
+      });
+      const written = mockAddDoc.mock.calls[0][1];
+      expect(written.weekStart).toBe(WEEK);
+      // A stub, deliberately shorter than a week — a hardcoded weekStart + 6
+      // anywhere in the write path fails here.
+      expect(written.weekEnd).toBe('2026-08-05');
+    });
+
     test('returns the new document id', async () => {
       expect(
         await createWeeklyCycle(ALICE, {
           weekStart: WEEK,
+          weekEnd: WEEK_END,
           outcome: 'focus',
           capacityInitial: 'normal',
           protocolId: 'focus-normal',

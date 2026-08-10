@@ -13,11 +13,20 @@ jest.mock('../../../context/AuthContext', () => ({
 }));
 const mockCreateWeeklyCycle = jest.fn();
 const mockCountForOutcome = jest.fn();
+const mockGetLatestCycle = jest.fn();
 jest.mock('../../../services/firebase/weeklyCycle.service', () => ({
   createWeeklyCycle: (...a: any[]) => mockCreateWeeklyCycle(...a),
   // Exposed only so the assertion below can prove the open NEVER calls it.
   // The week number has exactly one derivation and it lives on Today.
   countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
+  // Read to decide whether this open is the user's SETUP week (no prior cycle,
+  // so it may be a partial stub) or a recurring one anchored to their start
+  // day, and to keep the new week off days the previous one still covers.
+  getLatestWeeklyCycle: (...a: any[]) => mockGetLatestCycle(...a),
+}));
+const mockGetUserPrivate = jest.fn();
+jest.mock('../../../services/firebase/userPrivate.service', () => ({
+  getUserPrivate: (...a: any[]) => mockGetUserPrivate(...a),
 }));
 const mockLogEvent = jest.fn();
 jest.mock('../../../services/firebase/analyticsEvents.service', () => ({
@@ -34,16 +43,27 @@ import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { WeeklyOpenScreen } from '../WeeklyOpenScreen';
 import { PROTOCOL_MATRIX } from '../../../weeklyEngine';
+import { addDaysIso, isoWeekday, toIsoDate } from '../../../utils/weekStart';
 
-/** Walk the three steps: outcome, capacity, confirm. */
-async function openWeek(
-  outcome: 'focus' | 'stress' | 'routines' | 'energy',
-  capacity: 'normal' | 'limited' | 'slammed'
-) {
+// The screen reads the real clock, so boundary expectations are built relative
+// to today through the same helpers rather than hardcoded.
+const TODAY = toIsoDate(new Date());
+
+type Outcome = 'focus' | 'stress' | 'routines' | 'energy';
+type Capacity = 'normal' | 'limited' | 'slammed';
+
+/** Walk the three steps and press confirm. Does not wait for the write. */
+function renderConfirm(outcome: Outcome, capacity: Capacity) {
   const screen = render(<WeeklyOpenScreen />);
   fireEvent.press(screen.getByTestId(`weekly-open-outcome-${outcome}`));
   fireEvent.press(screen.getByTestId(`weekly-open-capacity-${capacity}`));
   fireEvent.press(screen.getByTestId('weekly-open-confirm'));
+  return screen;
+}
+
+/** Walk the three steps: outcome, capacity, confirm. */
+async function openWeek(outcome: Outcome, capacity: Capacity) {
+  const screen = renderConfirm(outcome, capacity);
   await waitFor(() => expect(mockCreateWeeklyCycle).toHaveBeenCalled());
   return screen;
 }
@@ -53,6 +73,11 @@ describe('WeeklyOpenScreen', () => {
     mockNavigate.mockClear();
     mockCreateWeeklyCycle.mockReset().mockResolvedValue('cycle-1');
     mockCountForOutcome.mockReset().mockResolvedValue(0);
+    // The default is the pre-picker state every user is in today: no chosen
+    // start day and no prior cycle, which anchors the week on the open date
+    // exactly as this screen always did.
+    mockGetUserPrivate.mockReset().mockResolvedValue(null);
+    mockGetLatestCycle.mockReset().mockResolvedValue(null);
     mockLogEvent.mockReset();
   });
 
@@ -159,18 +184,67 @@ describe('WeeklyOpenScreen', () => {
         'capacityInitial',
         'outcome',
         'protocolId',
+        'weekEnd',
         'weekStart',
       ]);
     });
 
-    test('weekStart is today, as an ISO calendar date', async () => {
+    test('with no chosen start day, weekStart is today — the pre-picker behavior', async () => {
       await openWeek('energy', 'normal');
 
       const { weekStart } = mockCreateWeeklyCycle.mock.calls[0][1];
       expect(weekStart).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      const now = new Date();
-      const today = `${now.getFullYear()}-${`${now.getMonth() + 1}`.padStart(2, '0')}-${`${now.getDate()}`.padStart(2, '0')}`;
-      expect(weekStart).toBe(today);
+      expect(weekStart).toBe(TODAY);
+    });
+
+    test('with no chosen start day, the week still runs a full seven days', async () => {
+      await openWeek('energy', 'normal');
+
+      const { weekStart, weekEnd } = mockCreateWeeklyCycle.mock.calls[0][1];
+      expect(weekEnd).toBe(addDaysIso(weekStart, 6));
+    });
+
+    test('a chosen start day anchors the week to it rather than to the open date', async () => {
+      // THE DEFECT 2 REGRESSION. The old write stamped the open date whatever
+      // day it was, so the anchor drifted a little further every late open and
+      // a chosen start day could never take hold. A recurring open (there is a
+      // prior, finished cycle) must land on the start day.
+      mockGetUserPrivate.mockResolvedValue({ weekStartDay: isoWeekday(TODAY) });
+      mockGetLatestCycle.mockResolvedValue({
+        weekStart: addDaysIso(TODAY, -10),
+        weekEnd: addDaysIso(TODAY, -4),
+      });
+
+      await openWeek('focus', 'normal');
+
+      const { weekStart, weekEnd } = mockCreateWeeklyCycle.mock.calls[0][1];
+      expect(isoWeekday(weekStart)).toBe(isoWeekday(TODAY));
+      expect(weekEnd).toBe(addDaysIso(weekStart, 6));
+    });
+
+    test('a setup opened mid-week is a stub ending the day before the next start day', async () => {
+      // No prior cycle, so this is the user's setup week. Start day is three
+      // days out, making cycle 1 a three-day stub rather than a full week.
+      mockGetUserPrivate.mockResolvedValue({
+        weekStartDay: isoWeekday(addDaysIso(TODAY, 3)),
+      });
+      mockGetLatestCycle.mockResolvedValue(null);
+
+      await openWeek('focus', 'normal');
+
+      const { weekStart, weekEnd } = mockCreateWeeklyCycle.mock.calls[0][1];
+      expect(weekStart).toBe(TODAY);
+      expect(weekEnd).toBe(addDaysIso(TODAY, 2));
+    });
+
+    test('a failed anchor read does not write a wrongly anchored week', async () => {
+      // The plan cannot be built without these reads, and a week anchored on a
+      // guess is not something a later pass would ever notice and correct.
+      mockGetUserPrivate.mockRejectedValue(new Error('offline'));
+      const screen = await renderConfirm('focus', 'normal');
+
+      await waitFor(() => expect(screen.getByTestId('weekly-open-error')).toBeTruthy());
+      expect(mockCreateWeeklyCycle).not.toHaveBeenCalled();
     });
 
     test('every outcome and capacity pair writes the matching protocol id', async () => {

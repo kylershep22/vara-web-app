@@ -6,9 +6,17 @@
 // close felt like a loop with no completion, and there was no way to tell
 // whether it had landed.
 //
-// Everything below the gate is stubbed. useWeeklyLanding and useTodayCard are
-// mocked precisely so the CYCLE'S CLOSED-STATE is the only variable, and the
-// swap is the only real logic under test.
+// THE REAL GUARD RUNS IN THIS FILE. useWeeklyLanding used to be mocked here,
+// which meant the tests asserted what Home draws for a target rather than
+// whether Home can ever REACH that target — and during the boundary rework
+// that gap briefly hid a real regression: a closed cycle resolved to 'open',
+// making the acknowledgment below unreachable on a device while every test
+// here stayed green. The hook and resolveWeeklyEntry now run for real, and the
+// Firestore reads underneath them are what is stubbed instead. useTodayCard
+// stays mocked: the day's action is not what these cover.
+//
+// So a closed cycle reaching the acknowledgment is now evidence about the app,
+// not about the mock.
 
 const mockUseFocusEffect = jest.fn();
 jest.mock('@react-navigation/native', () => ({
@@ -94,10 +102,20 @@ jest.mock('../../hooks/useDashboard', () => ({
   }),
 }));
 
-const mockLanding = jest.fn();
-jest.mock('../../hooks/useWeeklyLanding', () => ({
-  useWeeklyLanding: () => mockLanding(),
+// The two reads useWeeklyLanding performs. Mocking HERE rather than mocking the
+// hook is what keeps the real guard in the loop.
+const mockGetFloor = jest.fn();
+jest.mock('../../services/firebase/userPrivate.service', () => ({
+  getFloorCommitment: (...a: any[]) => mockGetFloor(...a),
 }));
+const mockGetLatestCycle = jest.fn();
+jest.mock('../../services/firebase/weeklyCycle.service', () => ({
+  getLatestWeeklyCycle: (...a: any[]) => mockGetLatestCycle(...a),
+}));
+jest.mock('../../utils/logger', () => ({
+  logger: { log: jest.fn(), warn: jest.fn(), error: jest.fn() },
+}));
+
 const mockTodayCard = jest.fn();
 jest.mock('../../hooks/useTodayCard', () => ({
   useTodayCard: () => mockTodayCard(),
@@ -108,15 +126,22 @@ jest.mock('../../services/firebase/analyticsEvents.service', () => ({
 }));
 
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import DashboardScreen from '../DashboardScreen';
 import { PROTOCOL_MATRIX } from '../../weeklyEngine';
+import { addDaysIso, toIsoDate } from '../../utils/weekStart';
+
+// The guard reads the real clock, so windows are built relative to today.
+const TODAY = toIsoDate(new Date());
+const day = (offset: number) => addDaysIso(TODAY, offset);
 
 const cycle = (over: Record<string, unknown> = {}) => ({
   id: 'cycle-1',
   userId: 'u1',
-  weekStart: '2026-08-03',
+  // A live window by default: started two days ago, ends in four.
+  weekStart: day(-2),
+  weekEnd: day(4),
   outcome: 'focus',
   capacityInitial: 'normal',
   capacityCurrent: 'normal',
@@ -124,15 +149,12 @@ const cycle = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-/** Render Home on a resolved 'today' week, open or closed. */
-function renderHome(over: Record<string, unknown> = {}) {
-  mockLanding.mockReturnValue({
-    target: 'today',
-    cycle: cycle(over),
-    loading: false,
-    failed: false,
-    refresh: jest.fn(),
-  });
+/**
+ * Render Home and let the real guard resolve. Async because the two reads it
+ * makes are, which is itself part of what this now covers.
+ */
+async function renderHome(over: Record<string, unknown> = {}) {
+  mockGetLatestCycle.mockResolvedValue(cycle(over));
   mockTodayCard.mockReturnValue({
     protocol: { ...PROTOCOL_MATRIX.focus.normal, quickWinActive: false },
     floorCommitment: null,
@@ -147,62 +169,108 @@ function renderHome(over: Record<string, unknown> = {}) {
     resetting: false,
     resetFailed: false,
   });
-  return render(<DashboardScreen />);
+  const screen = render(<DashboardScreen />);
+  // The weekly surface only mounts once the guard has answered.
+  await waitFor(() => expect(mockGetLatestCycle).toHaveBeenCalled());
+  return screen;
 }
+
+const CLOSED_AT = { seconds: 1, nanoseconds: 0 };
 
 describe('Home — the weekly-close entry', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
     mockLogEvent.mockReset();
     mockUseFocusEffect.mockReset();
+    mockGetFloor.mockReset().mockResolvedValue('ten minutes outside');
+    mockGetLatestCycle.mockReset();
   });
 
   describe('while the week is open', () => {
-    test('offers the close as a tappable entry', () => {
-      const screen = renderHome();
+    test('offers the close as a tappable entry', async () => {
+      const screen = await renderHome();
 
-      expect(screen.getByTestId('home-close-entry')).toBeTruthy();
+      expect(await screen.findByTestId('home-close-entry')).toBeTruthy();
       expect(screen.queryByTestId('home-week-closed')).toBeNull();
     });
 
-    test('opening it fires the intent event and then navigates', () => {
+    test('opening it fires the intent event and then navigates', async () => {
       const order: string[] = [];
       mockLogEvent.mockImplementation(() => order.push('event'));
       mockNavigate.mockImplementation(() => order.push('navigate'));
-      const screen = renderHome();
+      const screen = await renderHome();
 
-      fireEvent.press(screen.getByTestId('home-close-entry'));
+      fireEvent.press(await screen.findByTestId('home-close-entry'));
 
       expect(order).toEqual(['event', 'navigate']);
       expect(mockNavigate).toHaveBeenCalledWith('WeeklyClose');
     });
   });
 
-  describe('once the week is closed', () => {
-    const closedAt = { seconds: 1, nanoseconds: 0 };
+  describe('once the week is closed, still inside its window', () => {
+    test('the real guard still resolves Today, so the acknowledgment is reachable', async () => {
+      // The assertion the mocked version could not make. Home renders
+      // CloseWeekEntry only under target === 'today', so this passing means
+      // resolveWeeklyEntry genuinely returned 'today' for a CLOSED cycle.
+      const screen = await renderHome({ closeCompletedAt: CLOSED_AT });
 
-    test('the entry is replaced by an acknowledgment', () => {
-      const screen = renderHome({ closeCompletedAt: closedAt });
-
-      expect(screen.getByTestId('home-week-closed')).toBeTruthy();
+      expect(await screen.findByTestId('home-week-closed')).toBeTruthy();
       expect(screen.queryByTestId('home-close-entry')).toBeNull();
     });
 
-    test('the week cannot be closed a second time from Home', () => {
+    test('does NOT push the user into the weekly open', async () => {
+      // Home's focus latch (DashboardScreen.tsx) navigates on any non-'today'
+      // target. Closing must not trip it: the user would be shoved into next
+      // week's setup the instant they finished reviewing this one.
+      await renderHome({ closeCompletedAt: CLOSED_AT });
+
+      await waitFor(() => expect(mockGetLatestCycle).toHaveBeenCalled());
+      expect(mockNavigate).not.toHaveBeenCalledWith('WeeklyOpen');
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    test('the week cannot be closed a second time from Home', async () => {
       // A second close is a legal re-updateDoc that overwrites the first with a
       // fresh closeCompletedAt. Nothing on Home may offer it.
-      const screen = renderHome({ closeCompletedAt: closedAt });
+      const screen = await renderHome({ closeCompletedAt: CLOSED_AT });
 
+      await screen.findByTestId('home-week-closed');
       expect(screen.queryByTestId('home-close-entry')).toBeNull();
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
-    test('the day is still completable, so the closed week is not a dead end', () => {
+    test('the day is still completable, so the closed week is not a dead end', async () => {
       // The close is a weekly ritual; today's action is a daily one and does
       // not stop because the week has been reviewed.
-      const screen = renderHome({ closeCompletedAt: closedAt });
+      const screen = await renderHome({ closeCompletedAt: CLOSED_AT });
 
-      expect(screen.getByTestId('home-today-complete')).toBeTruthy();
+      expect(await screen.findByTestId('home-today-complete')).toBeTruthy();
+    });
+  });
+
+  describe('once the week has EXPIRED', () => {
+    test('a closed, expired week offers the open instead of the acknowledgment', async () => {
+      // The other half of the split: expiry is what routes the user onward.
+      const screen = await renderHome({
+        weekStart: day(-9),
+        weekEnd: day(-1),
+        closeCompletedAt: CLOSED_AT,
+      });
+
+      await waitFor(() =>
+        expect(mockNavigate).toHaveBeenCalledWith('WeeklyOpen')
+      );
+      expect(screen.queryByTestId('home-week-closed')).toBeNull();
+      expect(screen.queryByTestId('home-close-entry')).toBeNull();
+    });
+
+    test('an unclosed, expired week behaves identically', async () => {
+      // Closed-ness changes nothing once the window has passed.
+      await renderHome({ weekStart: day(-9), weekEnd: day(-1) });
+
+      await waitFor(() =>
+        expect(mockNavigate).toHaveBeenCalledWith('WeeklyOpen')
+      );
     });
   });
 });
