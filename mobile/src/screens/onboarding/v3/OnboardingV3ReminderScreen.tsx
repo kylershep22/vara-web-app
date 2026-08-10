@@ -27,8 +27,8 @@ import {
   updateNotificationPreferences,
 } from '../../../services/firebase/notificationPreferences.service';
 import {
-  getPermissionsStatus,
-  registerForPushNotifications,
+  registerPushToken,
+  requestNotificationPermission,
 } from '../../../services/notifications.service';
 import { scheduleDailyRhythm } from '../../../services/notificationScheduler.service';
 import { logger } from '../../../utils/logger';
@@ -63,10 +63,24 @@ export const OnboardingV3ReminderScreen: React.FC = () => {
   }, []);
 
   /**
-   * Writes the reminder and requests permission IN CONTEXT, mirroring
+   * Requests permission and writes the reminder IN CONTEXT, mirroring
    * OnboardingAnchorScreen. This is the first and only place the arc asks for
    * notifications, and it asks AFTER the first win, at the moment the user has
    * just chosen a time, rather than cold-prompting at launch.
+   *
+   * THE PERMISSION SHEET IS THE FIRST AWAITED THING, DELIBERATELY. It is a pure
+   * native call with no network in it, so it can appear on the same tick as the
+   * tap; every millisecond between the two would be something we chose to await
+   * first. This handler used to open with getNotificationPreferences and
+   * updateNotificationPreferences, and on a stalled connection those two
+   * Firestore round-trips held the sheet back by some thirty seconds. Nothing
+   * network-bound may move back above this line.
+   *
+   * BOTH BRANCHES STILL WRITE. Granted or refused, the time is saved: the
+   * refusal copy promises exactly that, and NotificationSettingsScreen only
+   * offers the time row once `dailyRhythm.reminderTime` exists, so dropping the
+   * write on refusal would strand anyone who later turns notifications on in
+   * iOS Settings. Only the scheduling is conditional.
    *
    * Writes the canonical V2 `dailyRhythm` field, which is what
    * scheduleDailyRhythm actually reads. getNotificationPreferences first because
@@ -100,28 +114,41 @@ export const OnboardingV3ReminderScreen: React.FC = () => {
 
     setBusy(true);
 
-    if (user?.uid) {
-      try {
-        await getNotificationPreferences(user.uid);
-        await updateNotificationPreferences(user.uid, {
-          allNotificationsEnabled: true,
-          dailyRhythm: { enabled: true, reminderTime: { hour, minute } },
-        });
-
-        await registerForPushNotifications();
-        const perm = await getPermissionsStatus();
-        if (perm.status === 'granted') {
-          await scheduleDailyRhythm(user.uid);
-        } else {
-          // Time saved, nothing scheduled, no penalty copy.
-          setDeniedNote(true);
-          setBusy(false);
-          return;
-        }
-      } catch (error) {
-        logger.error('[OnboardingV3Reminder] reminder setup failed:', error);
-      }
+    // No signed-in user means nothing to write and nothing to ask for.
+    if (!user?.uid) {
+      setBusy(false);
+      navigation.navigate(V3_ROUTES.Done);
+      return;
     }
+
+    // THE SHEET. Local, native, first.
+    const granted = await requestNotificationPermission();
+
+    try {
+      await getNotificationPreferences(user.uid);
+      await updateNotificationPreferences(user.uid, {
+        allNotificationsEnabled: true,
+        dailyRhythm: { enabled: true, reminderTime: { hour, minute } },
+      });
+
+      if (granted) {
+        await scheduleDailyRhythm(user.uid);
+      }
+    } catch (error) {
+      logger.error('[OnboardingV3Reminder] reminder setup failed:', error);
+    }
+
+    if (!granted) {
+      // Time saved, nothing scheduled, no penalty copy.
+      setDeniedNote(true);
+      setBusy(false);
+      return;
+    }
+
+    // Deliberately NOT awaited. The push token is a network round-trip that
+    // says nothing about the local daily reminder, and awaiting it here would
+    // let a slow APNs handshake hold the user on this screen for no benefit.
+    void registerPushToken();
 
     setBusy(false);
     navigation.navigate(V3_ROUTES.Done);

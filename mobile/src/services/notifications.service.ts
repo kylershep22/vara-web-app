@@ -72,31 +72,52 @@ try {
 }
 
 /**
- * Request notification permissions from the user
+ * Ask the OS for notification permission, showing the system sheet if we have
+ * not asked before. Returns whether we ended up granted.
+ *
+ * SPLIT OUT FROM registerForPushNotifications SO CALLERS CAN PUT THE SHEET
+ * FIRST. This half is a pure native call with no network in it: whatever delay
+ * a user sees between their tap and the sheet is delay the CALLER introduced by
+ * awaiting something else first. The onboarding reminder step used to await two
+ * Firestore round-trips ahead of it, and on a stalled connection the sheet
+ * arrived some thirty seconds after the tap. Anything network-bound belongs on
+ * the far side of this call.
+ *
+ * Keeps the physical-device guard, so a simulator still declines to prompt
+ * exactly as it did when this lived inside registerForPushNotifications.
  */
-export async function registerForPushNotifications(): Promise<string | null> {
+export async function requestNotificationPermission(): Promise<boolean> {
   if (!Device.isDevice) {
     console.log('Must use physical device for Push Notifications');
-    return null;
+    return false;
   }
 
   try {
-    // Check existing permissions
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+    if (existingStatus === 'granted') return true;
 
-    // Request permissions if not granted
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
+    const { status } = await Notifications.requestPermissionsAsync();
+    return status === 'granted';
+  } catch (error) {
+    console.log('Notification permission request failed (non-fatal):', error);
+    return false;
+  }
+}
 
-    if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
-      return null;
-    }
+/**
+ * Fetch the Expo push token. THE OTHER HALF OF THE SPLIT, and the network-bound
+ * one: it registers with APNs/FCM and round-trips the Expo push service, so it
+ * can hang for a long time on a poor connection. It decides nothing about
+ * locally scheduled reminders, so callers on a user-facing path should not
+ * block navigation on it.
+ *
+ * Assumes permission was already granted; call requestNotificationPermission
+ * first (registerForPushNotifications does both in order).
+ */
+export async function registerPushToken(): Promise<string | null> {
+  if (!Device.isDevice) return null;
 
-    // Get the Expo push token
+  try {
     const token = (
       await Notifications.getExpoPushTokenAsync({
         projectId: '63c2515a-00f1-454c-8400-2514781cade6',
@@ -118,6 +139,23 @@ export async function registerForPushNotifications(): Promise<string | null> {
     console.log('Push notification token unavailable (expected in Expo Go):', error);
     return null;
   }
+}
+
+/**
+ * Request notification permissions from the user, then fetch the push token.
+ * Unchanged contract: the token, or null if permission was refused or the fetch
+ * failed. Callers that need the sheet to appear promptly should use the two
+ * halves directly instead.
+ */
+export async function registerForPushNotifications(): Promise<string | null> {
+  const granted = await requestNotificationPermission();
+
+  if (!granted) {
+    console.log('Failed to get push token for push notification!');
+    return null;
+  }
+
+  return await registerPushToken();
 }
 
 /**
