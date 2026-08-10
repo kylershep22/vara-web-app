@@ -142,31 +142,34 @@ describe('CheckInFlowScreen — pointer hand-off navigation', () => {
     expect(mockGoBack).not.toHaveBeenCalled();
   });
 
-  it('plan pointer navigates to the planning tab (routines), flag-aware', async () => {
-    // NAV_TARGETS.plan resolves to 'Rhythms' (legacy IA) or 'PillarTime'
-    // (four-pillar IA), so this assertion holds under either FOUR_PILLAR_IA.
+  it('plan pointer replaces with the planning surface (routines)', async () => {
+    // IA restructure step 2: the planning surface stopped being a TAB and became
+    // a pushed AppStack screen, so this branch names it directly instead of
+    // navigating to Main with a nested `screen`. The nested form addressed a
+    // child of Main, and Main no longer has this child — an unhandled nested
+    // navigate is a silent no-op, which would have left the user parked on the
+    // last screen of a finished check-in.
+    //
+    // replace, not navigate, and for the same reason as the focus-session branch
+    // above: it drops the spent CheckInFlow frame so back lands on the launching
+    // surface rather than a blank check-in.
     await complete(pointerOnly('plan'));
     await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('Main', {
-        screen: NAV_TARGETS.plan,
-        params: { tab: 'routines' },
-      })
+      expect(mockReplace).toHaveBeenCalledWith(NAV_TARGETS.plan, { tab: 'routines' })
     );
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('plan pointer names the Routines sub-tab explicitly (never PlanScreen\'s habits default)', async () => {
     // The pointer's promise is "we'll take you to your routines". PlanScreen
     // defaults activeTab to 'habits' when no `tab` param arrives, so omitting
-    // the nested params silently lands the user on Habits. Pin the param.
+    // the param silently lands the user on Habits. Pin it.
     await complete(pointerOnly('plan'));
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledTimes(1));
 
-    const [, options] = mockNavigate.mock.calls[0] as [
-      string,
-      { screen: string; params?: { tab?: string } },
-    ];
-    expect(options.params).toEqual({ tab: 'routines' });
-    expect(options.params?.tab).not.toBe('habits');
+    const [, params] = mockReplace.mock.calls[0] as [string, { tab?: string }];
+    expect(params).toEqual({ tab: 'routines' });
+    expect(params.tab).not.toBe('habits');
   });
 
   it('practice that launched a pointer hands off to FocusTimer', async () => {

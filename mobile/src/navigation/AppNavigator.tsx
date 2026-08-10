@@ -45,7 +45,11 @@ import {
 // App screens
 import DashboardScreen from '../screens/DashboardScreen';
 import PlanScreen from '../screens/PlanScreen';
-import { FocusScreen, FocusHubScreen, FocusRhythmsScreen } from '../screens/Focus';
+// FocusHubScreen is deliberately NOT imported here. The IA restructure (step 2)
+// dropped the Focus tab, and nothing navigates to ROUTES.PillarFocus, so there is
+// nothing to register. The screen file and its tests are untouched; step 4
+// re-imports it as a card under Practices.
+import { FocusScreen, FocusRhythmsScreen } from '../screens/Focus';
 import JournalScreen from '../screens/JournalScreen';
 import InsightsScreen from '../screens/InsightsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -147,12 +151,19 @@ import { VideoPlayerTestScreen } from '../screens/_dev/VideoPlayerTestScreen';
 import { PracticesIndexScreen } from '../screens/practices/PracticesIndexScreen';
 import { PracticeRunScreen } from '../screens/practices/PracticeRunScreen';
 
-// Four-Pillar IA Phase B-3b — Energy hub + browse list (flag-gated).
+// Four-Pillar IA Phase B-3b — Energy hub + browse list. The hub was the Energy
+// TAB; step 2 re-registered it as a pushed AppStack screen (the browse list is
+// still flag-gated).
 import { EnergyHubScreen } from '../screens/Energy/EnergyHubScreen';
 import { EnergyBrowseListScreen } from '../screens/Energy/EnergyBrowseListScreen';
 
 // Phase 2 sub-step 2.5 — production CheckInFlow screen wrapper.
 import { CheckInFlowScreen } from '../screens/checkin/CheckInFlowScreen';
+
+// IA restructure step 2 — the two new tab roots. Shells: no logic, no data,
+// nothing tappable. Content lands in steps 3-5.
+import { PracticesHubScreen } from '../screens/practices/PracticesHubScreen';
+import { LearnHubScreen } from '../screens/learn/LearnHubScreen';
 
 // Create navigators
 const AuthStack = createNativeStackNavigator();
@@ -489,30 +500,37 @@ const BottomTabsNavigator = () => {
 };
 
 /**
- * Five-Pillar Tabs Navigator — Four-Pillar IA Phase B-3a (flag-gated).
+ * The bottom tab navigator — IA restructure step 2 (nav skeleton).
  *
- * Mounted in place of BottomTabsNavigator only when FOUR_PILLAR_IA is on.
- * This slice proves ROUTING, not hubs: each tab lands on an EXISTING screen as
- * a placeholder destination. No content is re-homed and nothing is deleted —
- * re-homing the Wellness items (Insights/Journal/Breathwork/Sleep/Masterclass/
- * Connected Apps) is B-3b/d. Under this flag those items have no tab yet; they
- * stay registered in AppStack and Settings stays reachable via the dashboard
- * gear, so flag-ON is usable. (Known, accepted B-3a gap — do not add a stopgap
- * Wellness tab here.)
+ * FOUR tabs, in this order (order is load-bearing: the navigator sets no
+ * `initialRouteName`, so the FIRST child is the surface the app opens on, and
+ * that must stay Home):
  *
- * Tabs / placeholder destinations:
- *   Home      → DashboardScreen     (unchanged)
- *   Focus     → FocusHubScreen      (B-3c hub; primary card opens FocusTimer)
- *   Energy    → EnergyHubPlaceholder (scaffold stub; real hub is B-3b)
- *   Time      → PlanScreen          (existing habits + routines, for now)
+ *   Home      → DashboardScreen     (Today; unchanged)
+ *   Practices → PracticesHubScreen  (SHELL; content in steps 3-5)
+ *   Learn     → LearnHubScreen      (SHELL; content in a later step)
  *   Community → CommunityNavigator  (unchanged)
  *
- * AI Guide: a docked pill mounted per pillar hub (components/ai/GuidePill.tsx),
- * top-right on all five pillar screens. It is no longer a global FAB threaded
- * through screen options; session surfaces hide it by not mounting it.
+ * WHAT CHANGED. This was five tabs (Home / Focus / Energy / Time / Community).
+ * Focus, Energy and Time are no longer TABS. Their screens are not deleted and
+ * not orphaned:
+ *   - PlanScreen (Time) and EnergyHubScreen (Energy) are re-registered on
+ *     AppStack below under their existing ROUTES.PillarTime / ROUTES.PillarEnergy
+ *     names, so every existing CTA still resolves to the real screen. It pushes
+ *     now instead of switching a tab. That is why navTargets.ts needed no edit.
+ *   - FocusHubScreen has no caller at all, so it is registered nowhere. Step 4
+ *     re-homes it under Practices.
  *
- * Icons for Focus/Energy/Time are approximate scaffold placeholders
- * (timer-outline / lightning-bolt / clock-outline) — refine in B-3b.
+ * NAME RETAINED ON PURPOSE. `FivePillarTabs` now renders four tabs, which reads
+ * wrong. It is left alone because navTargets.ts:6 and useWeeklyLanding.ts:6 both
+ * name this navigator in prose explaining WHY they are shaped the way they are,
+ * and navTargets.ts is required to stay byte-unchanged in this slice. Rename it
+ * and those two comments in one later cleanup, not here.
+ *
+ * AI Guide: a docked pill mounted per hub (components/ai/GuidePill.tsx). The two
+ * shells do not mount it — there is no surface for it to describe yet.
+ *
+ * Icons for the two new tabs are first-pass choices, not final.
  */
 const FivePillarTabs = () => {
   return (
@@ -546,32 +564,22 @@ const FivePillarTabs = () => {
         })}
       />
       <BottomTabs.Screen
-        name={ROUTES.PillarFocus}
-        component={FocusHubScreen}
+        name={ROUTES.PillarPractices}
+        component={PracticesHubScreen}
         options={tabOpts({
-          tabBarLabel: 'Focus',
+          tabBarLabel: 'Practices',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="timer-outline" size={size} color={color} />
+            <Icon name="leaf" size={size} color={color} />
           ),
         })}
       />
       <BottomTabs.Screen
-        name={ROUTES.PillarEnergy}
-        component={EnergyHubScreen}
+        name={ROUTES.PillarLearn}
+        component={LearnHubScreen}
         options={tabOpts({
-          tabBarLabel: 'Energy',
+          tabBarLabel: 'Learn',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="lightning-bolt" size={size} color={color} />
-          ),
-        })}
-      />
-      <BottomTabs.Screen
-        name={ROUTES.PillarTime}
-        component={PlanScreen}
-        options={tabOpts({
-          tabBarLabel: 'Time',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="clock-outline" size={size} color={color} />
+            <Icon name="book-open-variant" size={size} color={color} />
           ),
         })}
       />
@@ -841,12 +849,61 @@ const MainNavigator = () => {
             headerShown: false,
           }}
         />
+        {/* IA restructure step 2 — the two hubs that lost their tab but kept
+            their callers.
+
+            PlanScreen and EnergyHubScreen were tab roots. They are re-registered
+            here under the SAME route names they had as tabs, so navTargets.ts
+            needs no edit and every CTA that names NAV_TARGETS.plan /
+            NAV_TARGETS.browseContent still resolves to the real screen. The only
+            behavioural difference is that they now PUSH over the tab bar instead
+            of switching a tab.
+
+            headerShown is true precisely because these were tabs: a tab root has
+            no back affordance of its own, so pushed with a hidden header they
+            would be one-way screens. The native header supplies the back gesture
+            and chevron.
+
+            title is deliberately EMPTY. Both screens render their own h1 ("Time",
+            "Energy") as the first thing in their layout, so setting a header title
+            would print the page name twice, one above the other. Leaving `title`
+            off entirely is not the same thing: React Navigation would then fall
+            back to the route name and print "PillarTime" / "PillarEnergy" in the
+            header.
+
+            Neither carries a headerBackTitle override: unlike EnergyBrowse and
+            FocusRhythms below, these have several parents (dashboard CTAs, the
+            check-in hand-off, a reminder tap), so the generic 'Back' from
+            standardHeaderOptions is the honest label. */}
+        <AppStack.Screen
+          name={ROUTES.PillarTime}
+          component={PlanScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: '',
+            headerShadowVisible: false,
+          })}
+        />
+        <AppStack.Screen
+          name={ROUTES.PillarEnergy}
+          component={EnergyHubScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: '',
+            headerShadowVisible: false,
+          })}
+        />
         {/* Four-Pillar IA Phase B-3b — Energy hub browse list. Flag-gated so
             the old four-tab IA never registers it (flag OFF = byte-identical).
-            The Energy tab (PillarEnergy → EnergyHubScreen) navigates here; this
-            screen launches the existing player via PracticeRun. Title is set
-            per-category in-screen. No Guide pill here: it lives on the Energy
-            hub, not its browse lists. */}
+            Reached from EnergyHubScreen, which is registered just above (it was
+            the Energy TAB until step 2; it is a pushed AppStack screen now, so
+            this list still has its parent). This screen launches the existing
+            player via PracticeRun. Title is set per-category in-screen. No Guide
+            pill here: it lives on the Energy hub, not its browse lists. */}
         {FOUR_PILLAR_IA && (
           <AppStack.Screen
             name={ROUTES.EnergyBrowse}
@@ -862,8 +919,15 @@ const MainNavigator = () => {
           />
         )}
         {/* Four-Pillar IA Phase B-3c — Focus rhythms. Flag-gated like the Energy
-            hub browse list. The Focus tab (PillarFocus → FocusHubScreen)
-            navigates here; it is a quiet opt-in capture, no Guide pill. */}
+            hub browse list. A quiet opt-in capture, no Guide pill.
+
+            CURRENTLY UNREACHABLE, and knowingly so. Its only entry point is
+            FocusHubScreen (FocusHubScreen.tsx: the "when focus comes easiest"
+            row), and step 2 dropped the Focus tab without re-registering that
+            hub, because nothing navigates to ROUTES.PillarFocus by name. So the
+            Focus hub and this screen go dark together until step 4 re-homes the
+            hub under Practices, which restores both in one move. Registration is
+            left in place so that step is a one-line re-parent, not a rebuild. */}
         {FOUR_PILLAR_IA && (
           <AppStack.Screen
             name={ROUTES.FocusRhythms}

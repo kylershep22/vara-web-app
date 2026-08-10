@@ -37,7 +37,6 @@ import {
   readMarkerForRecoveryOffer,
 } from '../../utils/flowSessionMarker';
 import { getProtocolById } from '../../constants/brainStateProtocols';
-import { ROUTES } from '../../navigation/routes';
 import { NAV_TARGETS } from '../../navigation/navTargets';
 
 // Route params — discriminated by the same union shape as FlowInit
@@ -56,31 +55,40 @@ type RouteParams = RouteProp<
   'CheckInFlow'
 >;
 
-type Nav = NativeStackNavigationProp<{
-  Practices: {
-    slot: Slot;
-    state: BrainState;
-    timeWindow?: ProtocolTimeWindow;
-    fromCheckInFlow?: boolean;
-    intentPath?: IntentPath;
-  };
-  PracticeRun: { protocolId: string; stateBefore: BrainState };
-  // Focus-session pointer hand-off (Pomodoro screen). `fromCheckIn` closes the
-  // loop: a focus session launched from the check-in returns to the Focus
-  // reflection on "Done for now". A directly-started Pomodoro omits it.
-  // `durationMinutes` is the budget-derived prefill length so the timer opens at
-  // the user's chosen budget instead of the 25-min default.
-  FocusTimer: { fromCheckIn: true; durationMinutes?: number } | undefined;
-  // Plan pointer hand-off targets the planning tab (routines live there).
-  // B-3d.1: flag-aware — `Rhythms` under the legacy IA, `PillarTime` under the
-  // four-pillar IA. Typed off NAV_TARGETS.plan so the flip needs no edit here.
-  // The nested `params` carry PlanScreen's sub-tab: that screen defaults to
-  // 'habits' when no `tab` arrives, so the pointer has to name 'routines'
-  // explicitly (matching the dashboard / notification callers' `{ tab }` shape).
-  Main:
-    | { screen: typeof NAV_TARGETS.plan; params: { tab: 'routines' } }
-    | undefined;
-}>;
+// Plan pointer hand-off targets the planning surface (routines live there). It
+// is keyed off NAV_TARGETS.plan rather than a literal so this file never has to
+// know which route name that resolves to.
+//
+// IA restructure step 2: this used to be `Main: { screen; params }` — a NESTED
+// navigate, because the planning surface was a TAB inside Main. It is now a
+// pushed AppStack screen, a SIBLING of Main, so it is named directly. Keeping
+// the nested form would have addressed a child of Main that no longer exists,
+// and an unhandled nested navigate does nothing at all: the check-in would have
+// sat there undismissed on the last screen of the flow.
+//
+// `tab` carries PlanScreen's sub-tab: that screen defaults to 'habits' when no
+// `tab` arrives, so the pointer has to name 'routines' explicitly (matching the
+// dashboard / notification callers' `{ tab }` shape).
+type PlanTarget = { [K in typeof NAV_TARGETS.plan]: { tab: 'routines' } };
+
+type Nav = NativeStackNavigationProp<
+  {
+    Practices: {
+      slot: Slot;
+      state: BrainState;
+      timeWindow?: ProtocolTimeWindow;
+      fromCheckInFlow?: boolean;
+      intentPath?: IntentPath;
+    };
+    PracticeRun: { protocolId: string; stateBefore: BrainState };
+    // Focus-session pointer hand-off (Pomodoro screen). `fromCheckIn` closes the
+    // loop: a focus session launched from the check-in returns to the Focus
+    // reflection on "Done for now". A directly-started Pomodoro omits it.
+    // `durationMinutes` is the budget-derived prefill length so the timer opens at
+    // the user's chosen budget instead of the 25-min default.
+    FocusTimer: { fromCheckIn: true; durationMinutes?: number } | undefined;
+  } & PlanTarget
+>;
 
 // Sub-step 2.7 round 5 (Bug B fix) — until Phase 3 wires real intent
 // paths through, both CheckInFlow.intentPath and the params passed
@@ -206,17 +214,20 @@ export function CheckInFlowScreen() {
               : {}),
           });
         } else {
-          // plan pointer → routines on the planning tab. Navigating to Main
-          // (already below CheckInFlow in the stack) pops the flow. NAV_TARGETS
-          // resolves the tab name for the active IA (Rhythms / PillarTime), and
-          // the nested params select PlanScreen's Routines sub-tab — without
-          // them the screen falls back to its own 'habits' default, which
-          // contradicts the "we'll take you to your routines" promise the user
-          // just accepted.
-          navigation.navigate(ROUTES.Main, {
-            screen: NAV_TARGETS.plan,
-            params: { tab: 'routines' },
-          });
+          // plan pointer → routines on the planning surface. Same shape as the
+          // focus-session branch above, and for the same reason: replace drops
+          // the spent CheckInFlow frame so back from the planning screen lands
+          // on the launching surface, not a blank check-in.
+          //
+          // IA restructure step 2 turned the planning surface from a tab into a
+          // pushed AppStack screen, which is what makes the two branches
+          // symmetric — before, this branch had to navigate to Main to pop the
+          // flow, because a tab cannot be replaced into.
+          //
+          // The `tab` param selects PlanScreen's Routines sub-tab; without it
+          // the screen falls back to its own 'habits' default, which contradicts
+          // the "we'll take you to your routines" promise the user just accepted.
+          navigation.replace(NAV_TARGETS.plan, { tab: 'routines' });
         }
         return;
       }
