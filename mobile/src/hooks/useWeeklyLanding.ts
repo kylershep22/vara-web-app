@@ -86,9 +86,20 @@ export function useWeeklyLanding(uid: string | undefined): WeeklyLanding {
         const latest = floorCommitment ? await getLatestWeeklyCycle(uid) : null;
         if (!activeRef.current) return;
 
+        // The cycle's own boundary and closed-ness, not just its start date.
+        // `weekEnd` is absent on cycles written before boundaries were stored
+        // and the rule falls back for them; `closeCompletedAt` is what makes a
+        // finished week resolve to 'open' rather than stranding the user on a
+        // week they have already answered for.
         const resolved = resolveWeeklyEntry({
           floorCommitment,
-          latestCycleWeekStart: latest?.weekStart ?? null,
+          latestCycle: latest
+            ? {
+                weekStart: latest.weekStart,
+                weekEnd: latest.weekEnd,
+                closed: !!latest.closeCompletedAt,
+              }
+            : null,
           todayIso: toIsoDate(new Date()),
         });
 

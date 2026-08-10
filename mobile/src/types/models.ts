@@ -269,6 +269,25 @@ export interface WeeklyCycle {
   userId: string;
   /** ISO date (YYYY-MM-DD) of the user's chosen week start. Any weekday (S6.1). */
   weekStart: string;
+  /**
+   * ISO date (YYYY-MM-DD) of the week's last day, INCLUSIVE. Stored rather than
+   * derived, for two reasons.
+   *
+   * A cycle is not always seven days: the first one is a partial "stub" running
+   * from setup day to the day before the user's next chosen start day, so its
+   * length cannot be recovered from `weekStart` alone.
+   *
+   * And a live week's boundary must be a FACT ON THE DOCUMENT. Deriving it from
+   * `userPrivate.weekStartDay` at read time would let a later change to that
+   * preference retroactively move the end of a week already in progress, which
+   * the semantics forbid.
+   *
+   * OPTIONAL, and absent on every cycle written before this field existed.
+   * Readers must go through `resolveWeekEnd`, which falls back to
+   * `weekStart + 6` — exactly the fixed-length behavior those rows already had.
+   * That fallback is why this needs no backfill.
+   */
+  weekEnd?: string;
   outcome: OutcomeKey;
   /** The tier forecast at the weekly open. Never overwritten. */
   capacityInitial: CapacityTier;

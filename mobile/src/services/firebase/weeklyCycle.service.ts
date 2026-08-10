@@ -69,9 +69,20 @@ export function dailyLogDocId(userId: string, date: string): string {
   return `${userId}_${date}`;
 }
 
-/** The fields a caller supplies when opening a week. */
+/**
+ * The fields a caller supplies when opening a week.
+ *
+ * `weekStart` and `weekEnd` travel together and are both REQUIRED, because they
+ * are one decision: a week is a span, and the caller that knows where it starts
+ * is the only one that knows whether it is a full seven days or a partial stub.
+ * Both come from `planWeek`, which is the single place that decision is made.
+ * Accepting a start without an end would put the length back in this module's
+ * hands, which is exactly the fixed-seven assumption this slice removed.
+ */
 export interface CreateWeeklyCycleInput {
   weekStart: string;
+  /** Inclusive last day. */
+  weekEnd: string;
   outcome: OutcomeKey;
   capacityInitial: CapacityTier;
   protocolId: string;
@@ -133,6 +144,9 @@ export async function createWeeklyCycle(
   const ref = await addDoc(collection(requireDb(), WEEKLY_CYCLES), {
     userId,
     weekStart: input.weekStart,
+    // Stored, never re-derived. A later change to the user's chosen start day
+    // must not be able to move the end of a week already in progress.
+    weekEnd: input.weekEnd,
     outcome: input.outcome,
     capacityInitial: input.capacityInitial,
     capacityCurrent: input.capacityInitial,

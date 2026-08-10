@@ -36,11 +36,15 @@ import {
   type CapacityTier,
   type OutcomeKey,
 } from '../../weeklyEngine';
-import { createWeeklyCycle } from '../../services/firebase/weeklyCycle.service';
+import {
+  createWeeklyCycle,
+  getLatestWeeklyCycle,
+} from '../../services/firebase/weeklyCycle.service';
+import { getUserPrivate } from '../../services/firebase/userPrivate.service';
 import { logEvent } from '../../services/firebase/analyticsEvents.service';
 import { protocolIdFor } from '../../types/analyticsEvents';
 import { logger } from '../../utils/logger';
-import { toIsoDate } from '../../utils/weekStart';
+import { planWeek, resolveWeekEnd, toIsoDate } from '../../utils/weekStart';
 import { ROUTES } from '../../navigation/routes';
 import {
   CAPACITY_GLOSSES,
@@ -95,11 +99,44 @@ export function WeeklyOpenScreen() {
     try {
       const selected = selectProtocol(outcome, capacity);
 
+      // WHERE THE WEEK BEGINS AND ENDS, decided by planWeek rather than by the
+      // clock. The old write stamped toIsoDate(new Date()) as weekStart on
+      // every open, so a user who opened a day late moved their week a day
+      // later — permanently, since nothing ever re-anchored it. A chosen start
+      // day could never take effect.
+      //
+      // Two reads, in parallel because neither needs the other:
+      //   weekStartDay  <- the durable anchor. Absent until the setup picker
+      //                    ships, and planWeek falls back to open-date
+      //                    anchoring when it is, which is the old behavior
+      //                    exactly.
+      //   priorWeekEnd  <- null ONLY when the user has no cycle at all, which
+      //                    is what marks this open as their setup week and so
+      //                    lets it be a partial stub. It also keeps the new
+      //                    week from overlapping a week closed early.
+      //
+      // Awaited before the write and NOT best-effort: a plan built on a failed
+      // read would anchor the week wrongly and there is no later pass that
+      // would notice. A throw here lands in the catch below, which keeps the
+      // user's selections and offers the retry.
+      const [priv, latest] = await Promise.all([
+        getUserPrivate(user.uid),
+        getLatestWeeklyCycle(user.uid),
+      ]);
+      const { weekStart, weekEnd } = planWeek({
+        todayIso: toIsoDate(new Date()),
+        weekStartDay: priv?.weekStartDay,
+        priorWeekEnd: latest
+          ? resolveWeekEnd(latest.weekStart, latest.weekEnd)
+          : null,
+      });
+
       // capacityCurrent and userId are set by the service. Passing them would
       // be the one way to open a week whose current tier already disagrees with
       // its forecast, so the input type does not accept them.
       await createWeeklyCycle(user.uid, {
-        weekStart: toIsoDate(new Date()),
+        weekStart,
+        weekEnd,
         outcome,
         capacityInitial: capacity,
         protocolId: selected.id,

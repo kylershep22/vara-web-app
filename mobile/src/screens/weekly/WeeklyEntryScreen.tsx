@@ -97,9 +97,19 @@ export function WeeklyEntryScreen() {
         const latest = floorCommitment ? await getLatestWeeklyCycle(uid) : null;
         if (!active) return;
 
+        // The cycle's stored boundary and closed-ness, matching what Home hands
+        // the same rule through useWeeklyLanding. The two producers must agree
+        // about which facts the rule sees, or the tab and the route start
+        // disagreeing about which week the user is in.
         const target = resolveWeeklyEntry({
           floorCommitment,
-          latestCycleWeekStart: latest?.weekStart ?? null,
+          latestCycle: latest
+            ? {
+                weekStart: latest.weekStart,
+                weekEnd: latest.weekEnd,
+                closed: !!latest.closeCompletedAt,
+              }
+            : null,
           todayIso: toIsoDate(new Date()),
         });
 

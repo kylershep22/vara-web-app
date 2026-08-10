@@ -32,6 +32,7 @@ import { Colors, Spacing, Typography } from '../../../constants';
 import { useAuth } from '../../../context/AuthContext';
 import { completeOnboarding } from '../../../services/firebase/onboarding.service';
 import {
+  getUserPrivate,
   setUserPrivate,
   type UserPrivatePatch,
 } from '../../../services/firebase/userPrivate.service';
@@ -40,7 +41,7 @@ import {
   getWeeklyCycleForWeek,
 } from '../../../services/firebase/weeklyCycle.service';
 import { selectProtocol } from '../../../weeklyEngine';
-import { toIsoDate } from '../../../utils/weekStart';
+import { planWeek, toIsoDate } from '../../../utils/weekStart';
 import { logger } from '../../../utils/logger';
 import { DONE_COPY } from './copy';
 import { useOnboardingV3 } from './OnboardingV3Context';
@@ -75,17 +76,39 @@ export const OnboardingV3DoneScreen: React.FC = () => {
       // are present here; the guard covers the impossible case rather than
       // trapping the user in onboarding over it.
       if (outcome && capacity) {
-        const weekStart = toIsoDate(new Date());
+        // THE SETUP WEEK, always. `priorWeekEnd: null` is passed literally
+        // rather than read from the user's cycles, and that is load-bearing for
+        // the dedup below: on a retry the first cycle DOES exist, so deriving
+        // this would flip the plan from "stub starting today" to "the next
+        // anchored week", the dedup key would no longer match what was written,
+        // and the retry would create the duplicate this whole block exists to
+        // prevent. Onboarding opens a setup week or it opens nothing.
+        //
+        // Read after setUserPrivate above, so a start day captured during this
+        // same run is already stored and is the one planned against. Absent
+        // until the setup picker ships, and planWeek then anchors on today,
+        // which is the behavior this screen had before.
+        const priv = await getUserPrivate(user.uid);
+        const { weekStart, weekEnd } = planWeek({
+          todayIso: toIsoDate(new Date()),
+          weekStartDay: priv?.weekStartDay,
+          priorWeekEnd: null,
+        });
 
         // A week is opened once, and the whole weekly model assumes it. Without
         // this read a retry after a failed completeOnboarding would write a
         // SECOND cycle for the same week, and so would a user who force-quit
         // between the cycle write and the flag flip and started the arc over.
+        //
+        // The key is the PLANNED weekStart, not today's date. The two are the
+        // same only while a setup week starts today; keeping the lookup tied to
+        // the plan is what stops them drifting apart in a later slice.
         const existing = await getWeeklyCycleForWeek(user.uid, weekStart);
         if (!existing) {
           const selected = selectProtocol(outcome, capacity);
           await createWeeklyCycle(user.uid, {
             weekStart,
+            weekEnd,
             outcome,
             capacityInitial: capacity,
             protocolId: selected.id,
