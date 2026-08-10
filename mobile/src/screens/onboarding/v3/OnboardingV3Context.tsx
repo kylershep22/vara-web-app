@@ -1,8 +1,8 @@
 /**
  * In-memory state for the progressive onboarding arc (V3).
  *
- * WHY A CONTEXT RATHER THAN THREADED ROUTE PARAMS. The arc is eight screens
- * long, four of them skippable, and everything the user answers is written ONCE
+ * WHY A CONTEXT RATHER THAN THREADED ROUTE PARAMS. The arc is nine screens
+ * long, five of them skippable, and everything the user answers is written ONCE
  * at the terminal. Threading params forward means every screen restates
  * `{...route.params, myAnswer}`, and a single omission silently drops an answer
  * that only surfaces as a missing Firestore field much later. Holding it here
@@ -34,6 +34,12 @@ export interface OnboardingV3State {
   capacity: CapacityTier | null;
   /** Free text, skippable. Null means skipped. */
   floorCommitment: string | null;
+  /**
+   * 0 = Sunday … 6 = Saturday, matching userPrivate.weekStartDay. Skippable:
+   * null means no answer, and the week then anchors on the day it is opened,
+   * which is what the app did before the question existed.
+   */
+  weekStartDay: number | null;
   /** Null until the user confirms the reminder screen (or skips it). */
   reminderTime: V3ReminderTime | null;
 }
@@ -43,6 +49,7 @@ export interface OnboardingV3Value extends OnboardingV3State {
   setWhyNote: (note: string | null) => void;
   setCapacity: (capacity: CapacityTier) => void;
   setFloorCommitment: (floor: string | null) => void;
+  setWeekStartDay: (day: number | null) => void;
   setReminderTime: (time: V3ReminderTime | null) => void;
 }
 
@@ -51,6 +58,7 @@ const EMPTY: OnboardingV3State = {
   whyNote: null,
   capacity: null,
   floorCommitment: null,
+  weekStartDay: null,
   reminderTime: null,
 };
 
@@ -69,6 +77,7 @@ export const OnboardingV3Provider: React.FC<{ children: React.ReactNode }> = ({
       setCapacity: (capacity) => setState((s) => ({ ...s, capacity })),
       setFloorCommitment: (floorCommitment) =>
         setState((s) => ({ ...s, floorCommitment })),
+      setWeekStartDay: (weekStartDay) => setState((s) => ({ ...s, weekStartDay })),
       setReminderTime: (reminderTime) => setState((s) => ({ ...s, reminderTime })),
     }),
     [state]

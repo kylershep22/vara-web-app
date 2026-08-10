@@ -82,6 +82,7 @@ describe('OnboardingV3DoneScreen — the setup week', () => {
       capacity: 'normal',
       whyNote: 'because',
       floorCommitment: 'ten minutes outside',
+      weekStartDay: null,
     });
   });
 
@@ -135,6 +136,46 @@ describe('OnboardingV3DoneScreen — the setup week', () => {
       await finish();
 
       expect(order).toEqual(['write', 'read']);
+    });
+  });
+
+  describe('the week-start preference', () => {
+    test('carries a chosen start day into the private-doc patch', async () => {
+      mockContext.mockReturnValue({
+        outcome: 'focus',
+        capacity: 'normal',
+        whyNote: null,
+        floorCommitment: null,
+        weekStartDay: 3,
+      });
+
+      await finish();
+
+      expect(mockSetUserPrivate.mock.calls[0][1].weekStartDay).toBe(3);
+    });
+
+    test('carries SUNDAY, which is 0 and would be eaten by a truthiness guard', async () => {
+      // The one value a `if (weekStartDay)` bug would silently drop, leaving
+      // the user on open-date anchoring having explicitly chosen Sunday.
+      mockContext.mockReturnValue({
+        outcome: 'focus',
+        capacity: 'normal',
+        whyNote: null,
+        floorCommitment: null,
+        weekStartDay: 0,
+      });
+
+      await finish();
+
+      expect(mockSetUserPrivate.mock.calls[0][1].weekStartDay).toBe(0);
+    });
+
+    test('omits the field entirely when the step was skipped', async () => {
+      // Absent, never null. planWeek then falls back to open-date anchoring,
+      // which is what the app did before the question existed.
+      await finish();
+
+      expect(mockSetUserPrivate.mock.calls[0][1]).not.toHaveProperty('weekStartDay');
     });
   });
 

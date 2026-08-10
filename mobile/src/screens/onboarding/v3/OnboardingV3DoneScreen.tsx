@@ -49,7 +49,8 @@ import { V3_ROUTES, V3_TOTAL_STEPS, v3StepNumber } from './routes';
 
 export const OnboardingV3DoneScreen: React.FC = () => {
   const { user } = useAuth();
-  const { outcome, whyNote, capacity, floorCommitment } = useOnboardingV3();
+  const { outcome, whyNote, capacity, floorCommitment, weekStartDay } =
+    useOnboardingV3();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -64,6 +65,9 @@ export const OnboardingV3DoneScreen: React.FC = () => {
       if (outcome) patch.activeOutcome = outcome;
       if (whyNote) patch.whyNote = whyNote;
       if (floorCommitment) patch.floorCommitment = floorCommitment;
+      // `!== null` rather than a truthiness check: Sunday is 0, and a falsy
+      // guard here would silently drop the answer of every user who picks it.
+      if (weekStartDay !== null) patch.weekStartDay = weekStartDay;
 
       // A user who skipped both free-text steps still has an outcome, so the
       // patch is never empty in practice. Guarded anyway: an empty merge would
@@ -131,7 +135,7 @@ export const OnboardingV3DoneScreen: React.FC = () => {
       setFailed(true);
       setBusy(false);
     }
-  }, [busy, user?.uid, outcome, whyNote, capacity, floorCommitment]);
+  }, [busy, user?.uid, outcome, whyNote, capacity, floorCommitment, weekStartDay]);
 
   return (
     <OnboardingScaffold

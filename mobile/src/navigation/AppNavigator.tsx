@@ -119,6 +119,7 @@ import { OnboardingV3OutcomeScreen } from '../screens/onboarding/v3/OnboardingV3
 import { OnboardingV3WhyScreen } from '../screens/onboarding/v3/OnboardingV3WhyScreen';
 import { OnboardingV3CapacityScreen } from '../screens/onboarding/v3/OnboardingV3CapacityScreen';
 import { OnboardingV3FloorScreen } from '../screens/onboarding/v3/OnboardingV3FloorScreen';
+import { OnboardingV3WeekStartScreen } from '../screens/onboarding/v3/OnboardingV3WeekStartScreen';
 import { OnboardingV3FirstWinScreen } from '../screens/onboarding/v3/OnboardingV3FirstWinScreen';
 import { OnboardingV3ReminderScreen } from '../screens/onboarding/v3/OnboardingV3ReminderScreen';
 import { OnboardingV3DoneScreen } from '../screens/onboarding/v3/OnboardingV3DoneScreen';
@@ -205,6 +206,7 @@ const OnboardingNavigator = ({ initialStep }: { initialStep?: OnboardingSrStep }
           <OnboardingStack.Screen name={V3_ROUTES.Why} component={OnboardingV3WhyScreen} />
           <OnboardingStack.Screen name={V3_ROUTES.Capacity} component={OnboardingV3CapacityScreen} />
           <OnboardingStack.Screen name={V3_ROUTES.Floor} component={OnboardingV3FloorScreen} />
+          <OnboardingStack.Screen name={V3_ROUTES.WeekStart} component={OnboardingV3WeekStartScreen} />
           <OnboardingStack.Screen name={V3_ROUTES.FirstWin} component={OnboardingV3FirstWinScreen} />
           <OnboardingStack.Screen name={V3_ROUTES.Reminder} component={OnboardingV3ReminderScreen} />
           <OnboardingStack.Screen name={V3_ROUTES.Done} component={OnboardingV3DoneScreen} />

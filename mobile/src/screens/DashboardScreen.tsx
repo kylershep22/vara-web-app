@@ -306,12 +306,22 @@ const DashboardScreen: React.FC = () => {
                       Gated on the same three conditions as the hero: a load
                       that failed shows no controls for a week it could not
                       read, which is how the Today screen behaves too. */}
-                  <CapacityResetCard
-                    capacityCurrent={weeklyLanding.cycle.capacityCurrent}
-                    resetting={todayCard.resetting}
-                    resetFailed={todayCard.resetFailed}
-                    onChangeTier={todayCard.changeTier}
-                  />
+                  {/* RETIRES ON CLOSE. Re-planning a week the user has already
+                      reviewed is the one control that contradicts "closed": the
+                      close records how the week went, and changing its capacity
+                      afterwards would rewrite the thing just reported on. The
+                      day's action below is untouched by this — doing today is
+                      not re-planning the week, and a closed week is not a dead
+                      end. Render gate only; the re-set write path in
+                      useTodayCard is unchanged and simply stops being reachable. */}
+                  {!weeklyLanding.cycle.closeCompletedAt && (
+                    <CapacityResetCard
+                      capacityCurrent={weeklyLanding.cycle.capacityCurrent}
+                      resetting={todayCard.resetting}
+                      resetFailed={todayCard.resetFailed}
+                      onChangeTier={todayCard.changeTier}
+                    />
+                  )}
 
                   {/* Self-hides at 0 and on a failed read; see ContinuityCard. */}
                   <ContinuityCard continuity={todayCard.continuity} />
@@ -322,6 +332,7 @@ const DashboardScreen: React.FC = () => {
                       the first place in the app that reads it. */}
                   <CloseWeekEntry
                     closed={!!weeklyLanding.cycle.closeCompletedAt}
+                    cycle={weeklyLanding.cycle}
                     onPress={openClose}
                   />
                 </>

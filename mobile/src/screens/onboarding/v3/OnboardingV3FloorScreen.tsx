@@ -1,5 +1,5 @@
 /**
- * Step 5 of 8 — The floor. Stemmed free text, SKIPPABLE.
+ * Step 5 of 9 — The floor. Stemmed free text, SKIPPABLE.
  *
  * The stem ("Even on my worst week, I will") is DISPLAY ONLY and is never
  * stored or concatenated. What persists is the user's own words, exactly as
@@ -42,7 +42,7 @@ export const OnboardingV3FloorScreen: React.FC = () => {
   const advance = useCallback(
     (floor: string | null) => {
       setFloorCommitment(floor);
-      navigation.navigate(V3_ROUTES.FirstWin);
+      navigation.navigate(V3_ROUTES.WeekStart);
     },
     [setFloorCommitment, navigation]
   );
