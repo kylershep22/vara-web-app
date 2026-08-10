@@ -90,6 +90,8 @@ jest.mock('../../navigation/AppNavigator', () => ({
 }));
 
 import { NotificationProvider } from '../NotificationContext';
+import { NAV_TARGETS } from '../../navigation/navTargets';
+import { ROUTES } from '../../navigation/routes';
 
 /** The AppState handler the provider registers, so tests can drive resumes. */
 let appStateHandler: ((state: AppStateStatus) => void) | null = null;
@@ -219,7 +221,27 @@ describe('tapping a habit reminder', () => {
     // requires a full Habit object in its params and the payload carries only
     // an id, so deep-linking there needs a fetch. Tracked separately, for
     // routines and habits together.
-    expect(mockNavigate).toHaveBeenCalledWith('Rhythms');
+    //
+    // Asserted against NAV_TARGETS.plan, not a hardcoded name. The previous
+    // version pinned the literal 'Rhythms' — a route registered only on the
+    // legacy tab navigator, unmounted since FOUR_PILLAR_IA went true. The test
+    // passed the whole time because it checked that navigate was CALLED, not
+    // that it was called with somewhere you can actually get to. Keying off the
+    // shared resolver is what stops this tap drifting away from every other
+    // caller of the planning surface again.
+    expect(mockNavigate).toHaveBeenCalledWith(NAV_TARGETS.plan);
+    expect(Object.values(ROUTES)).toContain(mockNavigate.mock.calls[0][0]);
+  });
+
+  test('a routine reminder lands on the same surface, Routines sub-tab', async () => {
+    mount();
+    await waitFor(() => expect(tapHandler).not.toBeNull());
+
+    tap({ type: 'routine-reminder', routineId: 'r1' });
+
+    // PlanScreen defaults to its 'habits' sub-tab, so a routine reminder that
+    // omitted the param would drop the user on habits.
+    expect(mockNavigate).toHaveBeenCalledWith(NAV_TARGETS.plan, { tab: 'routines' });
   });
 
   test('the router keys on the SAME type string the scheduler writes', async () => {

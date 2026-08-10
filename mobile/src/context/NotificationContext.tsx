@@ -32,6 +32,7 @@ import { syncAllReminders } from '../services/reminderScheduler.service';
 import { isHabitCompletedToday } from '../services/firebase/habits.service';
 import { navigationRef } from '../navigation/AppNavigator';
 import { ROUTES } from '../navigation/routes';
+import { NAV_TARGETS } from '../navigation/navTargets';
 import {
   initializeUserNotifications,
   updateNotificationsFromPreferences,
@@ -182,12 +183,24 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const data = response.notification.request.content.data;
       if (!data?.type || !navigationRef.isReady()) return;
 
+      // Same one-cast-at-the-boundary idiom as navigateToFocusTimer above:
+      // navigationRef is untyped, and casting the function once beats casting
+      // every argument to `never`, which is what previously let a route name
+      // that no longer existed type-check.
+      const navigate = navigationRef.navigate as (
+        name: string,
+        params?: object
+      ) => void;
+
+      // Habits and routines both live on the planning surface. This used to name
+      // ROUTES.Rhythms, which is registered ONLY on the legacy BottomTabsNavigator
+      // — a navigator that has not been mounted since FOUR_PILLAR_IA went true.
+      // Both taps were therefore already landing nowhere before this slice.
+      // NAV_TARGETS.plan resolves to the surface that is actually registered.
       if (data.type === 'habit-reminder') {
-        navigationRef.navigate(ROUTES.Rhythms as never);
+        navigate(NAV_TARGETS.plan);
       } else if (data.type === 'routine-reminder') {
-        // Routines live on the Rhythms tab (the focus-timer route is `FocusTimer`,
-        // not `Focus`; the old `Focus` target was dead).
-        navigationRef.navigate(ROUTES.Rhythms as never, { tab: 'routines' } as never);
+        navigate(NAV_TARGETS.plan, { tab: 'routines' });
       } else if (data.type === 'focus-complete') {
         // Warm/background tap: the block's row was finalized by the live
         // foreground reconcile; land the completion surface bound to it so the

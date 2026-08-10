@@ -26,14 +26,39 @@ export const ROUTES = {
   Rhythms: 'Rhythms',
   Community: 'Community',
 
-  // --- Five-pillar tabs (FivePillarTabs, mounted when FOUR_PILLAR_IA is on) ---
-  // Phase B-3a scaffold. Home and Community reuse the existing bottom-tab route
-  // names above (same destinations) so routing parity holds under the flag. The
-  // three new pillar tabs get `Pillar`-prefixed names, deliberately namespaced
-  // away from the BrainPillar content taxonomy literals (growth / energy /
-  // focus / resilience / connection in src/types/models.ts) — there is no bare
-  // `Focus` / `Energy` / `Time` route name, mirroring why the focus session is
-  // `FocusTimer`, not `Focus`.
+  // --- Tab roots (FivePillarTabs) ---
+  // Home and Community reuse the existing bottom-tab route names above (same
+  // destinations). Every other tab root gets a `Pillar`-prefixed name,
+  // deliberately namespaced away from the BrainPillar content taxonomy literals
+  // (growth / energy / focus / resilience / connection in src/types/models.ts)
+  // — there is no bare `Focus` / `Energy` / `Time` route name, mirroring why the
+  // focus session is `FocusTimer`, not `Focus`.
+  //
+  // IA restructure step 2: the live tab set is Home / PillarPractices /
+  // PillarLearn / Community. The prefix also buys the collision-avoidance this
+  // step needed twice over:
+  //   - `Practices` was already taken by the check-in "Other options" AppStack
+  //     screen below (params-carrying, three callers), so the TAB is
+  //     `PillarPractices`.
+  //   - `Learn` is already the visible TITLE of the Masterclass AppStack screen
+  //     (AppNavigator.tsx), so the TAB is `PillarLearn` — the route id and the
+  //     header string can never be confused for each other.
+  PillarPractices: 'PillarPractices',
+  PillarLearn: 'PillarLearn',
+
+  // --- Former pillar tabs, now AppStack screens (IA restructure step 2) ---
+  // Focus / Energy / Time stopped being tabs when the tab set collapsed to four.
+  // Their SCREENS survive unchanged and are re-parented under Practices in steps
+  // 3-5, so these keys are deliberately retained:
+  //   - PillarTime  → PlanScreen        registered on AppStack (pushed, not a tab)
+  //   - PillarEnergy → EnergyHubScreen  registered on AppStack (pushed, not a tab)
+  //     Both stay registered under these exact names so NAV_TARGETS (navTargets.ts)
+  //     keeps resolving live: every dashboard / check-in / nudge CTA still lands
+  //     on the real screen, it just pushes instead of switching a tab.
+  //   - PillarFocus → FocusHubScreen    NOT registered anywhere right now. It has
+  //     no caller (nothing navigates to this key), so registering it would create
+  //     an unreachable screen rather than preserve a reachable one. The key is
+  //     kept for step 4, which re-homes the hub under Practices.
   PillarFocus: 'PillarFocus',
   PillarEnergy: 'PillarEnergy',
   PillarTime: 'PillarTime',
