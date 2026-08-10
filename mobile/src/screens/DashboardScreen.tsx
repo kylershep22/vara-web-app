@@ -36,9 +36,13 @@ const homeHeader = require('../../assets/images/homeHeader.webp');
 const CARD_OVERLAP = Spacing.xl;
 import { TodayHeroCard } from '../components/dashboard/TodayHeroCard';
 import { OpenYourWeekCard } from '../components/dashboard/OpenYourWeekCard';
+import { CapacityResetCard } from '../components/dashboard/CapacityResetCard';
+import { ContinuityCard } from '../components/dashboard/ContinuityCard';
+import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
 import { useDashboard } from '../hooks/useDashboard';
 import { useWeeklyLanding } from '../hooks/useWeeklyLanding';
 import { useTodayCard } from '../hooks/useTodayCard';
+import { useWeeklyCloseEntry } from '../hooks/useWeeklyCloseEntry';
 import { ROUTES } from '../navigation/routes';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebase';
@@ -112,7 +116,24 @@ const DashboardScreen: React.FC = () => {
   // The day's action, sourced from the cycle the landing hook resolved. No-ops
   // to an empty card when there is no cycle, so it is safe to call
   // unconditionally.
-  const todayCard = useTodayCard(user?.uid, weeklyLanding.cycle);
+  //
+  // `refresh` is handed in as the re-set's RELOAD. The capacity write changes
+  // the stored cycle, which this screen does not own — useWeeklyLanding does —
+  // so re-reading it there is what re-derives the protocol and re-runs the
+  // conditional floor read. It is stable (useCallback over a setState updater),
+  // so it does not re-arm the hook's effect.
+  const todayCard = useTodayCard(user?.uid, weeklyLanding.cycle, weeklyLanding.refresh);
+
+  // The weekly close (spec 8). `navigate`, not `replace`: Home is a tab, so the
+  // close is pushed OVER it exactly as the floor and open flows are below.
+  const goToClose = useCallback(() => {
+    (navigation as unknown as { navigate: (s: string) => void }).navigate(
+      ROUTES.WeeklyClose
+    );
+    // navigation is stable for the life of the screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const openClose = useWeeklyCloseEntry(user?.uid, goToClose);
 
   // Re-resolve whenever Home regains focus, so returning from the floor or open
   // flow reflects the week the user just started rather than the stale answer
@@ -265,15 +286,45 @@ const DashboardScreen: React.FC = () => {
             {weeklyLanding.target === 'today' &&
               weeklyLanding.cycle &&
               todayCard.protocol && (
-                <TodayHeroCard
-                  cycle={weeklyLanding.cycle}
-                  protocol={todayCard.protocol}
-                  floorCommitment={todayCard.floorCommitment}
-                  completed={todayCard.completed}
-                  saving={todayCard.saving}
-                  saveFailed={todayCard.saveFailed}
-                  onMarkDone={todayCard.markDone}
-                />
+                <>
+                  <TodayHeroCard
+                    cycle={weeklyLanding.cycle}
+                    protocol={todayCard.protocol}
+                    floorCommitment={todayCard.floorCommitment}
+                    completed={todayCard.completed}
+                    saving={todayCard.saving}
+                    saveFailed={todayCard.saveFailed}
+                    onMarkDone={todayCard.markDone}
+                  />
+
+                  {/* Everything below the hero is SECONDARY, in the order it
+                      carries on the weekly Today screen: re-set, continuity,
+                      close. Spec 9 allows Home one primary action and that is
+                      the completion control inside the hero above, so none of
+                      these is filled and none of them competes with it.
+
+                      Gated on the same three conditions as the hero: a load
+                      that failed shows no controls for a week it could not
+                      read, which is how the Today screen behaves too. */}
+                  <CapacityResetCard
+                    capacityCurrent={weeklyLanding.cycle.capacityCurrent}
+                    resetting={todayCard.resetting}
+                    resetFailed={todayCard.resetFailed}
+                    onChangeTier={todayCard.changeTier}
+                  />
+
+                  {/* Self-hides at 0 and on a failed read; see ContinuityCard. */}
+                  <ContinuityCard continuity={todayCard.continuity} />
+
+                  {/* Replaced by a plain acknowledgment once the week has been
+                      closed. closeCompletedAt rides in on the cycle already
+                      (getWeeklyCyclesForUser spreads the document), and this is
+                      the first place in the app that reads it. */}
+                  <CloseWeekEntry
+                    closed={!!weeklyLanding.cycle.closeCompletedAt}
+                    onPress={openClose}
+                  />
+                </>
               )}
 
             {/* Standing entry for the user who declined the pushed open. Home

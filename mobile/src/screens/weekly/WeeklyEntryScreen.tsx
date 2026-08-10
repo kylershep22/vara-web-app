@@ -5,12 +5,19 @@
 // to the weekly open, otherwise Today. The rule itself lives in weeklyEntry.ts
 // so it can be tested without a navigator.
 //
+// TODAY IS HOME. There is no standalone Today screen: Home renders the day's
+// action, the capacity re-set, the continuity count and the close entry, and it
+// resolves this same rule inline through useWeeklyLanding because a tab cannot
+// be replaced into. This guard still exists for the flows that reach it from
+// inside the weekly stack, and it now sends 'today' to the tab.
+//
 // THIS IS THE REUSABLE SEAM. The progressive onboarding in spec 18 will satisfy
 // the same two preconditions in its own arc; when it does, it replaces the
 // screens this guard routes to, not the rule.
 //
-// Every navigation is a replace, never a push: this screen is a decision, and
-// leaving it on the stack would put a blank router behind the back gesture.
+// Never a push: this screen is a decision, and leaving it on the stack would
+// put a blank router behind the back gesture. See TARGET_NAV for why that means
+// `replace` for two targets and `navigate` for the third.
 //
 // No animation here, so Reduce Motion has nothing to suppress.
 
@@ -38,14 +45,29 @@ import { resolveWeeklyEntry, type WeeklyEntryTarget } from './weeklyEntry';
 
 const MIN_TOUCH_TARGET = 48;
 
-const TARGET_ROUTE: Record<WeeklyEntryTarget, string> = {
-  floor: ROUTES.WeeklyFloor,
-  open: ROUTES.WeeklyOpen,
-  today: ROUTES.WeeklyToday,
+interface Navigator {
+  replace: (route: string) => void;
+  navigate: (route: string, params?: object) => void;
+}
+
+/**
+ * How each target is reached. A Record over the target union, so adding a
+ * fourth target is a compile error here rather than a silently unrouted state.
+ *
+ * NOT a map of route names any more, because the three targets no longer share
+ * a verb. 'floor' and 'open' are stack screens and are replaced into, which is
+ * what keeps this decision screen off the back gesture. 'today' is HOME, a tab
+ * inside Main, and a tab cannot be replaced into: `replace(Main)` would stack a
+ * second Main on top of the one already at the root. navigate pops back to it.
+ */
+const TARGET_NAV: Record<WeeklyEntryTarget, (nav: Navigator) => void> = {
+  floor: (nav) => nav.replace(ROUTES.WeeklyFloor),
+  open: (nav) => nav.replace(ROUTES.WeeklyOpen),
+  today: (nav) => nav.navigate(ROUTES.Main, { screen: ROUTES.Home }),
 };
 
 export function WeeklyEntryScreen() {
-  const navigation = useNavigation<{ replace: (route: string) => void }>();
+  const navigation = useNavigation<Navigator>();
   const { user } = useAuth();
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -100,7 +122,7 @@ export function WeeklyEntryScreen() {
           // Never the user's problem.
         }
 
-        navigationRef.current.replace(TARGET_ROUTE[target]);
+        TARGET_NAV[target](navigationRef.current);
       } catch (error) {
         logger.error('[WeeklyEntry] routing failed:', error);
         // A read failure must not guess. Routing to the open on an unknown

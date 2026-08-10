@@ -5,9 +5,13 @@
 // are recorded, that the user's floor text cannot ride along, and that a read
 // failure records nothing rather than guessing.
 
+// TWO VERBS. 'floor' and 'open' are stack screens and are replaced into;
+// 'today' is Home, a tab, and is navigated to. Which verb a target uses is part
+// of what this suite pins.
 const mockReplace = jest.fn();
+const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ replace: mockReplace }),
+  useNavigation: () => ({ replace: mockReplace, navigate: mockNavigate }),
 }));
 jest.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'u1' } }),
@@ -46,13 +50,16 @@ const TODAY = toIsoDate(new Date());
 
 async function route() {
   const screen = render(<WeeklyEntryScreen />);
-  await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+  await waitFor(() =>
+    expect(mockReplace.mock.calls.length + mockNavigate.mock.calls.length).toBeGreaterThan(0)
+  );
   return screen;
 }
 
 describe('WeeklyEntryScreen', () => {
   beforeEach(() => {
     mockReplace.mockReset();
+    mockNavigate.mockReset();
     mockGetFloor.mockReset().mockResolvedValue(FLOOR_TEXT);
     mockGetLatestCycle.mockReset().mockResolvedValue({ weekStart: TODAY });
     mockLogEvent.mockReset();
@@ -115,7 +122,7 @@ describe('WeeklyEntryScreen', () => {
       mockLogEvent.mockImplementation(() => {
         order.push('event');
       });
-      mockReplace.mockImplementation(() => {
+      mockNavigate.mockImplementation(() => {
         order.push('navigate');
       });
 
@@ -134,6 +141,7 @@ describe('WeeklyEntryScreen', () => {
       await waitFor(() => expect(screen.getByTestId('weekly-entry-error')).toBeTruthy());
       expect(mockLogEvent).not.toHaveBeenCalled();
       expect(mockReplace).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     test('a throwing analytics call still routes the user', async () => {
@@ -143,7 +151,7 @@ describe('WeeklyEntryScreen', () => {
 
       await route();
 
-      expect(mockReplace).toHaveBeenCalledWith('WeeklyToday');
+      expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: 'Home' });
     });
   });
 });

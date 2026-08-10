@@ -84,17 +84,26 @@ export const OPEN_COPY = {
   saveFailed: gap('That did not save. Check your connection and try again.'),
 } as const;
 
+/**
+ * The Today surface, which is HOME. There is no standalone Today screen: these
+ * strings are read by the dashboard components (TodayHeroCard,
+ * CapacityResetCard, ContinuityCard, CloseWeekEntry) and they live here rather
+ * than beside those components so the weekly-loop copy stays in one file for
+ * the copy pass.
+ *
+ * Three keys were deleted with that screen: `weekHeading`, `loadFailed` and
+ * `retry`. Home has no section heading above the week summary, and it renders
+ * nothing rather than an error-with-retry when the read fails, so none of the
+ * three has a surface to appear on any more.
+ */
 export const TODAY_COPY = {
   actionHeading: gap('Today'),
-  weekHeading: gap('This week'),
   floorHeading: gap('Your floor'),
   quickWinHeading: gap('Plus, once today'),
   // The week-1 quick-win practice (spec 6.3) has no catalogue entry and so no
   // display name. Showing the raw practice id would be worse than showing the
   // gap, so this stands in until the practice exists.
   quickWinPractice: gap('week-1 quick-win practice, not yet named'),
-  loadFailed: gap('We could not load your week. Try again.'),
-  retry: gap('Try again'),
 
   // The dynamic in-week re-set (spec 7). Spec 7 names the control but supplies
   // none of its labels, so every string below is a gap rather than a [Jen]
@@ -124,10 +133,22 @@ export const TODAY_COPY = {
   continuityCount: gap('{count} weeks holding your floor'),
   continuityCountOne: gap('1 week holding your floor'),
 
-  // Entry to the weekly close (spec 8). Reachable from Today, which itself is
-  // dev-only this slice; the real trigger is an elapsed week, and wiring that
-  // into the entry guard is a tracked follow-up.
+  // Entry to the weekly close (spec 8), on Home. The real trigger is an elapsed
+  // week, and wiring that into the entry guard is a tracked follow-up.
   closeEntry: gap('Close out this week'),
+
+  // Shown IN PLACE OF the entry above once the week has been closed, so the
+  // close reads as something that finished rather than a loop with no end.
+  //
+  // Two constraints for whoever replaces this line:
+  //
+  //   1. IT IS A STATEMENT, NOT A REWARD. A week closed with the floor missed
+  //      is closed exactly as much as one where it held, and this line is shown
+  //      identically in both cases. No congratulation, no "streak saved", no
+  //      score, nothing that would read as praise the user has to earn.
+  //   2. It is not tappable and must not become an instruction to do anything.
+  //      The one action on this surface is today's completion control.
+  weekClosed: gap('This week is closed.'),
 } as const;
 
 /**

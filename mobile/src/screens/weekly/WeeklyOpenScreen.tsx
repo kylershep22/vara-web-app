@@ -54,7 +54,11 @@ const MIN_TOUCH_TARGET = 48;
 type Step = 'outcome' | 'capacity' | 'confirm';
 
 export function WeeklyOpenScreen() {
-  const navigation = useNavigation<{ replace: (route: string) => void }>();
+  // `navigate`, not `replace`: the confirmation lands on Home, which is a TAB
+  // inside Main and cannot be replaced into. See the confirm handler.
+  const navigation = useNavigation<{
+    navigate: (route: string, params?: object) => void;
+  }>();
   const { user } = useAuth();
   const [step, setStep] = useState<Step>('outcome');
   const [outcome, setOutcome] = useState<OutcomeKey | null>(null);
@@ -127,16 +131,23 @@ export function WeeklyOpenScreen() {
         // Never the user's problem.
       }
 
-      // No week number is computed or handed forward. Today derives it, always,
+      // No week number is computed or handed forward. Home derives it, always,
       // from the stored cycles. Deriving it here as well would mean two
       // derivations against two different database states (this one pre-write,
-      // Today's post-write) with nothing forcing them to agree, and a re-entry
+      // Home's post-write) with nothing forcing them to agree, and a re-entry
       // in the same week could then disagree with the fresh open about whether
       // the quick win is active. One derivation, one source.
       //
       // The await above is what makes that safe: the cycle is persisted before
-      // this navigation, so Today's count always includes the current week.
-      navigation.replace(ROUTES.WeeklyToday);
+      // this navigation, so Home's count always includes the current week.
+      //
+      // HOME IS THE TODAY SURFACE. There is one Today, and this used to land on
+      // a standalone copy of it that the user could then back out of into the
+      // real one. navigate, not replace: Home is a tab inside Main, which is
+      // already the root beneath this stack, so navigate pops back to it rather
+      // than stacking a second Main, and drops this finished flow off the back
+      // gesture in the process.
+      navigation.navigate(ROUTES.Main, { screen: ROUTES.Home });
     } catch (error) {
       logger.error('[WeeklyOpen] cycle write failed:', error);
       // Selections are kept, so the user retries the confirm rather than

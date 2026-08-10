@@ -70,20 +70,26 @@ export const ROUTES = {
   PracticeRun: 'PracticeRun',
 
   // --- Weekly loop (spec 6, 8, 9, 10.1) ---
-  // Registered on the AppStack behind __DEV__ and reached only from the
-  // Developer section of Settings. Deliberately NOT default landing and not a
-  // tab: spec 22 item 4 (Today as the default landing) is a later slice, and
-  // the daily Situation x State engine still owns Home until the progressive
-  // onboarding replaces it. WeeklyEntry is the guard; it routes to the other
-  // three and is the only one anything else should target.
+  // LIVE IN PRODUCTION. These are the flows either side of the daily surface,
+  // not the daily surface itself.
   //
-  // WeeklyClose is the exception, and only for now: the guard does not route to
-  // it yet because the real trigger is an elapsed week, so it is reached from a
-  // deliberate entry on Today. Wiring it into the guard is a tracked follow-up.
+  // THERE IS NO WeeklyToday ROUTE, deliberately. Today is Home (the tab above),
+  // which renders the day's action, the capacity re-set, the continuity count
+  // and the close entry. A standalone Today screen existed while Home was still
+  // the daily Situation x State engine; it was deleted once Home took the
+  // surface over, because two Todays meant the same content under two titles
+  // and a back gesture between them. Do not re-add one: Home resolves the entry
+  // rule inline through useWeeklyLanding precisely because a tab cannot be
+  // replaced into.
+  //
+  // WeeklyEntry is the guard for the flows that reach it from inside this
+  // stack; it routes to the floor, the open, or back out to Home.
+  //
+  // WeeklyClose is entered from Home and returns to it. The real trigger is an
+  // elapsed week, and wiring that into the guard is a tracked follow-up.
   WeeklyEntry: 'WeeklyEntry',
   WeeklyFloor: 'WeeklyFloor',
   WeeklyOpen: 'WeeklyOpen',
-  WeeklyToday: 'WeeklyToday',
   WeeklyClose: 'WeeklyClose',
 
   // --- Dev-only AppStack screens (__DEV__) ---
