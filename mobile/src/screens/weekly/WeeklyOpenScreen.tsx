@@ -15,7 +15,7 @@
 //
 // No animation between steps, so Reduce Motion has nothing to suppress.
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -40,12 +40,16 @@ import {
   createWeeklyCycle,
   getLatestWeeklyCycle,
 } from '../../services/firebase/weeklyCycle.service';
-import { getUserPrivate } from '../../services/firebase/userPrivate.service';
+import {
+  getUserPrivate,
+  setUserPrivate,
+} from '../../services/firebase/userPrivate.service';
 import { logEvent } from '../../services/firebase/analyticsEvents.service';
 import { protocolIdFor } from '../../types/analyticsEvents';
 import { logger } from '../../utils/logger';
 import { planWeek, resolveWeekEnd, toIsoDate } from '../../utils/weekStart';
 import { ROUTES } from '../../navigation/routes';
+import { WeekStartPicker } from '../../components/shared/WeekStartPicker';
 import {
   CAPACITY_GLOSSES,
   CAPACITY_LABELS,
@@ -55,7 +59,13 @@ import {
 
 const MIN_TOUCH_TARGET = 48;
 
-type Step = 'outcome' | 'capacity' | 'confirm';
+/**
+ * A STRING UNION, not an index, which is what makes the conditional week-start
+ * step cheap: every transition is an explicit handoff between two named steps,
+ * so inserting one is a matter of repointing two of them rather than shifting
+ * arithmetic that other steps depend on.
+ */
+type Step = 'outcome' | 'capacity' | 'weekStart' | 'confirm';
 
 export function WeeklyOpenScreen() {
   // `navigate`, not `replace`: the confirmation lands on Home, which is a TAB
@@ -70,6 +80,46 @@ export function WeeklyOpenScreen() {
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  // THE WEEK-START CAPTURE, for users who onboarded before the question
+  // existed. Read on mount rather than at confirm (where 3a-i reads it) because
+  // whether the step EXISTS has to be known before the wizard can route into
+  // it.
+  //
+  // Three states, and they are not interchangeable: `undefined` is still
+  // loading, `null` is loaded and unset (ask), a number is loaded and set (do
+  // not ask). A failed read stays undefined and therefore never asks, which is
+  // the right way to fail — a user who already has an anchor must not be
+  // re-asked because a read blipped, and one who has none simply keeps the
+  // open-date anchoring they already had.
+  const [storedStartDay, setStoredStartDay] = useState<number | null | undefined>(
+    undefined
+  );
+  // What the user picked on the step, held locally and written at confirm. Not
+  // written on tap: a user who backs out of the open should not have silently
+  // changed their week shape.
+  const [chosenStartDay, setChosenStartDay] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    (async () => {
+      try {
+        const priv = await getUserPrivate(user.uid);
+        if (active) setStoredStartDay(priv?.weekStartDay ?? null);
+      } catch (error) {
+        // Best effort. The confirm does its own authoritative read, so this
+        // failing costs the user the question, never the week.
+        logger.error('[WeeklyOpen] week-start read failed:', error);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  /** Ask only when the read landed AND said there is no anchor. */
+  const asksWeekStart = storedStartDay === null;
+
   // The protocol the pair resolves to, shown before the user commits. Pure
   // lookup, no clock and no week number: the quick win is week-dependent and
   // belongs to Today, not to this preview.
@@ -83,14 +133,25 @@ export function WeeklyOpenScreen() {
     setStep('capacity');
   }, []);
 
-  const pickCapacity = useCallback((tier: CapacityTier) => {
-    setCapacity(tier);
-    setStep('confirm');
-  }, []);
+  // Into the week-start step only when it exists; otherwise straight to confirm,
+  // which is the unchanged three-step wizard every user with an anchor sees.
+  const pickCapacity = useCallback(
+    (tier: CapacityTier) => {
+      setCapacity(tier);
+      setStep(asksWeekStart ? 'weekStart' : 'confirm');
+    },
+    [asksWeekStart]
+  );
+
+  const pickStartDay = useCallback((day: number) => setChosenStartDay(day), []);
 
   const goBack = useCallback(() => {
-    setStep((current) => (current === 'confirm' ? 'capacity' : 'outcome'));
-  }, []);
+    setStep((current) => {
+      if (current === 'confirm') return asksWeekStart ? 'weekStart' : 'capacity';
+      if (current === 'weekStart') return 'capacity';
+      return 'outcome';
+    });
+  }, [asksWeekStart]);
 
   const confirm = useCallback(async () => {
     if (!user || !outcome || !capacity || saving) return;
@@ -123,9 +184,19 @@ export function WeeklyOpenScreen() {
         getUserPrivate(user.uid),
         getLatestWeeklyCycle(user.uid),
       ]);
+
+      // A start day answered on the step this run takes precedence over the
+      // stored one, so the anchor the user just chose shapes THIS week rather
+      // than only the next. Persisted before planning and awaited: if the
+      // preference does not land, the week must not be anchored to it either,
+      // or the following open would silently re-anchor to something else.
+      if (chosenStartDay !== null) {
+        await setUserPrivate(user.uid, { weekStartDay: chosenStartDay });
+      }
+
       const { weekStart, weekEnd } = planWeek({
         todayIso: toIsoDate(new Date()),
-        weekStartDay: priv?.weekStartDay,
+        weekStartDay: chosenStartDay ?? priv?.weekStartDay,
         priorWeekEnd: latest
           ? resolveWeekEnd(latest.weekStart, latest.weekEnd)
           : null,
@@ -192,7 +263,7 @@ export function WeeklyOpenScreen() {
       setFailed(true);
       setSaving(false);
     }
-  }, [user, outcome, capacity, saving, navigation]);
+  }, [user, outcome, capacity, saving, navigation, chosenStartDay]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -237,6 +308,41 @@ export function WeeklyOpenScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+            <BackLink onPress={goBack} />
+          </>
+        )}
+
+        {/* Only ever rendered for a user with no stored anchor; a user who has
+            one never reaches this step at all (pickCapacity routes past it). */}
+        {step === 'weekStart' && (
+          <>
+            <Text style={styles.question}>{OPEN_COPY.weekStartQuestion}</Text>
+            <Text style={styles.help}>{OPEN_COPY.weekStartHelp}</Text>
+            <View style={styles.options}>
+              <WeekStartPicker
+                value={chosenStartDay}
+                onChange={pickStartDay}
+                testIDPrefix="weekly-open-weekstart"
+              />
+            </View>
+
+            {/* Continue is available with or without an answer. Skipping keeps
+                open-date anchoring, which is what this user already had, so the
+                question must not become a wall in front of their week. */}
+            <TouchableOpacity
+              style={styles.confirmButton}
+              onPress={() => setStep('confirm')}
+              accessibilityRole="button"
+              accessibilityLabel={
+                chosenStartDay === null ? OPEN_COPY.weekStartSkip : OPEN_COPY.confirm
+              }
+              testID="weekly-open-weekstart-continue"
+            >
+              <Text style={styles.confirmLabel}>
+                {chosenStartDay === null ? OPEN_COPY.weekStartSkip : OPEN_COPY.confirm}
+              </Text>
+            </TouchableOpacity>
+
             <BackLink onPress={goBack} />
           </>
         )}
@@ -319,6 +425,12 @@ const styles = StyleSheet.create({
   },
   options: {
     gap: Spacing.sm,
+  },
+  help: {
+    ...TextStyles.bodySmall,
+    color: Colors.mutedSageGray,
+    marginTop: -Spacing.md,
+    marginBottom: Spacing.lg,
   },
   option: {
     minHeight: MIN_TOUCH_TARGET,

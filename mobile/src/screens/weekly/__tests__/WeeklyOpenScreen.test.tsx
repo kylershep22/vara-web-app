@@ -25,8 +25,10 @@ jest.mock('../../../services/firebase/weeklyCycle.service', () => ({
   getLatestWeeklyCycle: (...a: any[]) => mockGetLatestCycle(...a),
 }));
 const mockGetUserPrivate = jest.fn();
+const mockSetUserPrivate = jest.fn();
 jest.mock('../../../services/firebase/userPrivate.service', () => ({
   getUserPrivate: (...a: any[]) => mockGetUserPrivate(...a),
+  setUserPrivate: (...a: any[]) => mockSetUserPrivate(...a),
 }));
 const mockLogEvent = jest.fn();
 jest.mock('../../../services/firebase/analyticsEvents.service', () => ({
@@ -43,7 +45,12 @@ import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { WeeklyOpenScreen } from '../WeeklyOpenScreen';
 import { PROTOCOL_MATRIX } from '../../../weeklyEngine';
-import { addDaysIso, isoWeekday, toIsoDate } from '../../../utils/weekStart';
+import {
+  addDaysIso,
+  isoWeekday,
+  nextWeekStartAfter,
+  toIsoDate,
+} from '../../../utils/weekStart';
 
 // The screen reads the real clock, so boundary expectations are built relative
 // to today through the same helpers rather than hardcoded.
@@ -68,6 +75,108 @@ async function openWeek(outcome: Outcome, capacity: Capacity) {
   return screen;
 }
 
+/**
+ * Render, WAIT for the mount-time week-start read to land, then walk to the
+ * capacity answer. The wait is load-bearing: whether the week-start step exists
+ * is decided by that read, and pressing through before it resolves is exactly
+ * the case where the screen deliberately does not ask.
+ */
+async function walkToAfterCapacity(outcome: Outcome = 'focus', capacity: Capacity = 'normal') {
+  const screen = render(<WeeklyOpenScreen />);
+  await waitFor(() => expect(mockGetUserPrivate).toHaveBeenCalled());
+  fireEvent.press(screen.getByTestId(`weekly-open-outcome-${outcome}`));
+  fireEvent.press(screen.getByTestId(`weekly-open-capacity-${capacity}`));
+  return screen;
+}
+
+describe('WeeklyOpenScreen — the week-start step', () => {
+  beforeEach(() => {
+    mockNavigate.mockClear();
+    mockCreateWeeklyCycle.mockReset().mockResolvedValue('cycle-1');
+    mockCountForOutcome.mockReset().mockResolvedValue(0);
+    mockGetUserPrivate.mockReset().mockResolvedValue(null);
+    mockSetUserPrivate.mockReset().mockResolvedValue(undefined);
+    mockGetLatestCycle.mockReset().mockResolvedValue(null);
+    mockLogEvent.mockReset();
+  });
+
+  test('is offered to a user who has never chosen a start day', async () => {
+    const screen = await walkToAfterCapacity();
+
+    expect(screen.getByTestId('weekly-open-weekstart-0')).toBeTruthy();
+  });
+
+  test('is ABSENT for a user who already has one, leaving the wizard at three steps', async () => {
+    // The whole point of the condition: this is capture, not editing. A user
+    // with an anchor must never be re-asked.
+    mockGetUserPrivate.mockResolvedValue({ weekStartDay: 2 });
+
+    const screen = await walkToAfterCapacity();
+
+    expect(screen.queryByTestId('weekly-open-weekstart-0')).toBeNull();
+    expect(screen.getByTestId('weekly-open-confirm')).toBeTruthy();
+  });
+
+  test('persists the chosen day and anchors THIS week to it', async () => {
+    const screen = await walkToAfterCapacity();
+
+    fireEvent.press(screen.getByTestId('weekly-open-weekstart-4'));
+    fireEvent.press(screen.getByTestId('weekly-open-weekstart-continue'));
+    fireEvent.press(screen.getByTestId('weekly-open-confirm'));
+    await waitFor(() => expect(mockCreateWeeklyCycle).toHaveBeenCalled());
+
+    expect(mockSetUserPrivate).toHaveBeenCalledWith('u1', { weekStartDay: 4 });
+    // Answered this run, so it must shape this week rather than only the next.
+    const { weekStart, weekEnd } = mockCreateWeeklyCycle.mock.calls[0][1];
+    expect(weekEnd).toBe(addDaysIso(nextWeekStartAfter(weekStart, 4), -1));
+  });
+
+  test('persists SUNDAY, which is 0 and would be dropped by a truthiness guard', async () => {
+    const screen = await walkToAfterCapacity();
+
+    fireEvent.press(screen.getByTestId('weekly-open-weekstart-0'));
+    fireEvent.press(screen.getByTestId('weekly-open-weekstart-continue'));
+    fireEvent.press(screen.getByTestId('weekly-open-confirm'));
+    await waitFor(() => expect(mockCreateWeeklyCycle).toHaveBeenCalled());
+
+    expect(mockSetUserPrivate).toHaveBeenCalledWith('u1', { weekStartDay: 0 });
+  });
+
+  test('skipping the step writes no preference and keeps open-date anchoring', async () => {
+    const screen = await walkToAfterCapacity();
+
+    fireEvent.press(screen.getByTestId('weekly-open-weekstart-continue'));
+    fireEvent.press(screen.getByTestId('weekly-open-confirm'));
+    await waitFor(() => expect(mockCreateWeeklyCycle).toHaveBeenCalled());
+
+    expect(mockSetUserPrivate).not.toHaveBeenCalled();
+    const { weekStart, weekEnd } = mockCreateWeeklyCycle.mock.calls[0][1];
+    expect(weekStart).toBe(TODAY);
+    expect(weekEnd).toBe(addDaysIso(TODAY, 6));
+  });
+
+  test('a failed week-start read does not ask, and the week still opens', async () => {
+    // Failing by not asking is the right direction: the user keeps the
+    // anchoring they already had rather than being interrogated over a blip.
+    mockGetUserPrivate.mockRejectedValue(new Error('offline'));
+
+    const screen = render(<WeeklyOpenScreen />);
+    await waitFor(() => expect(mockGetUserPrivate).toHaveBeenCalled());
+    fireEvent.press(screen.getByTestId('weekly-open-outcome-focus'));
+    fireEvent.press(screen.getByTestId('weekly-open-capacity-normal'));
+
+    expect(screen.queryByTestId('weekly-open-weekstart-0')).toBeNull();
+  });
+
+  test('back from the step returns to capacity, not past it', async () => {
+    const screen = await walkToAfterCapacity();
+
+    fireEvent.press(screen.getByTestId('weekly-open-back'));
+
+    expect(screen.getByTestId('weekly-open-capacity-normal')).toBeTruthy();
+  });
+});
+
 describe('WeeklyOpenScreen', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
@@ -77,6 +186,7 @@ describe('WeeklyOpenScreen', () => {
     // start day and no prior cycle, which anchors the week on the open date
     // exactly as this screen always did.
     mockGetUserPrivate.mockReset().mockResolvedValue(null);
+    mockSetUserPrivate.mockReset().mockResolvedValue(undefined);
     mockGetLatestCycle.mockReset().mockResolvedValue(null);
     mockLogEvent.mockReset();
   });

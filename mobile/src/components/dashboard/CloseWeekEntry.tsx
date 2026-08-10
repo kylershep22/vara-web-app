@@ -30,20 +30,50 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
-import { TODAY_COPY } from '../../screens/weekly/copy';
+import { OUTCOME_LABELS, TODAY_COPY } from '../../screens/weekly/copy';
+import type { WeeklyCycle } from '../../types/models';
+import { addDaysIso, resolveWeekEnd } from '../../utils/weekStart';
+import { weekdayNameForIso } from '../../utils/weekdayLabels';
 
 const MIN_TOUCH_TARGET = 48;
 
 export interface CloseWeekEntryProps {
   /** The week has been closed: `closeCompletedAt` is set on the cycle. */
   closed: boolean;
+  /** The week being closed. Read only for the closed summary. */
+  cycle: WeeklyCycle;
   onPress: () => void;
 }
 
-export const CloseWeekEntry: React.FC<CloseWeekEntryProps> = ({ closed, onPress }) =>
+export const CloseWeekEntry: React.FC<CloseWeekEntryProps> = ({
+  closed,
+  cycle,
+  onPress,
+}) =>
   closed ? (
     <View style={styles.closedNote} testID="home-week-closed">
       <Text style={styles.closedLabel}>{TODAY_COPY.weekClosed}</Text>
+
+      {/* What the week WAS, so the acknowledgment names the thing being closed
+          rather than closing an anonymous seven days. */}
+      <Text style={styles.closedDetail} testID="home-week-closed-outcome">
+        {OUTCOME_LABELS[cycle.outcome]}
+      </Text>
+
+      {/* Where the next one begins. Gated on a REAL stored boundary for the
+          same reason the end-date clause is: without one, resolveWeekEnd falls
+          back to weekStart + 6 and this would name a weekday the user never
+          chose. weekEnd + 1 IS the next start by construction — a full week ends
+          the day before its own anchor recurs, and a stub ends the day before
+          the first one. */}
+      {!!cycle.weekEnd && (
+        <Text style={styles.closedDetail} testID="home-week-closed-next">
+          {TODAY_COPY.nextWeekStarts.replace(
+            '{day}',
+            weekdayNameForIso(addDaysIso(resolveWeekEnd(cycle.weekStart, cycle.weekEnd), 1))
+          )}
+        </Text>
+      )}
     </View>
   ) : (
     <TouchableOpacity
@@ -81,6 +111,12 @@ const styles = StyleSheet.create({
   closedNote: {
     paddingVertical: Spacing.md,
     marginBottom: Spacing.base,
+  },
+  closedDetail: {
+    marginTop: Spacing.xs,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
   },
   closedLabel: {
     fontSize: Typography.fontSize.sm,

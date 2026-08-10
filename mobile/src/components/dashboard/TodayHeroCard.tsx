@@ -10,6 +10,15 @@
  * Spec 9 constrains what may appear here: no streak, badge, point, leaderboard,
  * percentage, grade, second CTA, or anything red. The completion control is the
  * ONE action; the week summary and floor are context, not competing CTAs.
+ *
+ * THE END DATE IS GATED ON A REAL STORED BOUNDARY, deliberately. A cycle written
+ * before boundaries were stored has no `weekEnd`, and `resolveWeekEnd` falls
+ * back to `weekStart + 6` — which lands on whatever weekday that user happened
+ * to open on, a day they never chose and would not recognise. Telling them their
+ * week "runs through Tuesday" because of an implementation fallback is worse
+ * than telling them nothing, so those cycles get no clause at all. The gate is
+ * on `cycle.weekEnd`; the VALUE still goes through resolveWeekEnd, so display
+ * and the entry guard can never read the boundary differently.
  */
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -19,6 +28,8 @@ import { Colors, Layout, Spacing, Typography } from '../../constants';
 import type { ResolvedWeeklyProtocol } from '../../weeklyEngine';
 import { CAPACITY_LABELS, OUTCOME_LABELS, TODAY_COPY } from '../../screens/weekly/copy';
 import type { WeeklyCycle } from '../../types/models';
+import { resolveWeekEnd } from '../../utils/weekStart';
+import { weekdayNameForIso } from '../../utils/weekdayLabels';
 import { CardHeading } from './CardHeading';
 
 const MIN_TOUCH_TARGET = 48;
@@ -100,9 +111,16 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
       </Text>
     )}
 
-    {/* Context below the action: what this week is. Never a second CTA. */}
+    {/* Context below the action: what this week is, and when it runs to. Never
+        a second CTA.
+
+        The boundary clause is APPENDED to this existing line rather than given
+        its own element: the card is a doorway, and a date deserves no more
+        weight than the outcome/capacity pair it qualifies. */}
     <Text style={styles.weekSummary} testID="home-today-summary">
       {OUTCOME_LABELS[cycle.outcome]} / {CAPACITY_LABELS[cycle.capacityCurrent]}
+      {!!cycle.weekEnd &&
+        ` · ${TODAY_COPY.runsThrough.replace('{day}', weekdayNameForIso(resolveWeekEnd(cycle.weekStart, cycle.weekEnd)))}`}
     </Text>
     <Text style={styles.protocolName}>{protocol.name}</Text>
 

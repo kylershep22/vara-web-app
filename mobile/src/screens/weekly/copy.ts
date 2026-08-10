@@ -79,6 +79,14 @@ export const OPEN_COPY = {
   confirmHeading: gap('Your week'),
   confirm: gap('Start this week'),
   back: gap('Back'),
+  // The week-start step, shown ONLY to a user who has never chosen one. Asked
+  // here rather than in Settings because every user reaches the weekly open,
+  // and nobody goes looking in Settings for a question they have not been asked.
+  weekStartQuestion: gap('When does your week start?'),
+  weekStartHelp: gap(
+    'From now on your week will run seven days from this day. This first one may be shorter.'
+  ),
+  weekStartSkip: gap('Not now'),
   perDay: gap('About {minutes} min a day'),
   whyHeading: gap('Why this works'),
   saveFailed: gap('That did not save. Check your connection and try again.'),
@@ -149,6 +157,14 @@ export const TODAY_COPY = {
   //   2. It is not tappable and must not become an instruction to do anything.
   //      The one action on this surface is today's completion control.
   weekClosed: gap('This week is closed.'),
+  // CALM ORIENTATION, NEVER A COUNTDOWN. This says when the week ends, not how
+  // little of it is left: "3 days left" turns a container into a deadline, and
+  // the weekly model exists to remove that pressure rather than add it. Appended
+  // to the week-summary line, so it must read as a clause and not a sentence.
+  runsThrough: gap('runs through {day}'),
+  // The closed card. Same rule: where the next week begins, not a countdown to
+  // it, and never an instruction to go and open it.
+  nextWeekStarts: gap('Next week starts {day}.'),
 } as const;
 
 /**

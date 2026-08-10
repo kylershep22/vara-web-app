@@ -84,6 +84,17 @@ export const FLOOR_COPY = {
   primary: gap('Continue'),
 } as const;
 
+export const WEEK_START_COPY = {
+  title: gap('When does your week start?'),
+  subtitle: gap(
+    'Your week runs seven days from this day. Pick the one that already feels like a fresh start.'
+  ),
+  // SKIPPABLE. Without an answer the week simply starts on the day the user
+  // opens it, which is what the app did before this question existed, so
+  // skipping costs the user nothing and the label should not imply otherwise.
+  primary: gap('Continue'),
+} as const;
+
 export const FIRST_WIN_COPY = {
   title: gap('Try one now'),
   subtitle: gap(

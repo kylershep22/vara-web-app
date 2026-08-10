@@ -194,6 +194,15 @@ describe('Home — the weekly-close entry', () => {
       expect(screen.queryByTestId('home-week-closed')).toBeNull();
     });
 
+    test('offers the capacity re-set', async () => {
+      // The control for the retirement assertion below: the re-set is present
+      // on an open week, so its absence on a closed one is the close acting and
+      // not the card failing to render.
+      const screen = await renderHome();
+
+      expect(await screen.findByTestId('home-reset')).toBeTruthy();
+    });
+
     test('opening it fires the intent event and then navigates', async () => {
       const order: string[] = [];
       mockLogEvent.mockImplementation(() => order.push('event'));
@@ -237,6 +246,16 @@ describe('Home — the weekly-close entry', () => {
       await screen.findByTestId('home-week-closed');
       expect(screen.queryByTestId('home-close-entry')).toBeNull();
       expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    test('the capacity re-set RETIRES', async () => {
+      // Re-planning a week the user has already reviewed is the one control
+      // that contradicts "closed": the close records how the week went, and
+      // changing its capacity afterwards rewrites the thing just reported on.
+      const screen = await renderHome({ closeCompletedAt: CLOSED_AT });
+
+      await screen.findByTestId('home-week-closed');
+      expect(screen.queryByTestId('home-reset')).toBeNull();
     });
 
     test('the day is still completable, so the closed week is not a dead end', async () => {
