@@ -32,7 +32,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   CAPACITY_TIERS,
   OUTCOME_KEYS,
-  selectProtocol,
+  representativeProtocol,
   type CapacityTier,
   type OutcomeKey,
 } from '../../weeklyEngine';
@@ -123,8 +123,13 @@ export function WeeklyOpenScreen() {
   // The protocol the pair resolves to, shown before the user commits. Pure
   // lookup, no clock and no week number: the quick win is week-dependent and
   // belongs to Today, not to this preview.
+  //
+  // representativeProtocol, NOT the time-aware selectProtocol (roadmap 3b-ii-a).
+  // The open happens before any daily time answer exists, so there is no window
+  // to filter by and inventing one would let a fabricated daily answer decide
+  // what the WEEK previews and records.
   const protocol = useMemo(
-    () => (outcome && capacity ? selectProtocol(outcome, capacity) : null),
+    () => (outcome && capacity ? representativeProtocol(outcome, capacity) : null),
     [outcome, capacity]
   );
 
@@ -158,7 +163,7 @@ export function WeeklyOpenScreen() {
     setSaving(true);
     setFailed(false);
     try {
-      const selected = selectProtocol(outcome, capacity);
+      const selected = representativeProtocol(outcome, capacity);
 
       // WHERE THE WEEK BEGINS AND ENDS, decided by planWeek rather than by the
       // clock. The old write stamped toIsoDate(new Date()) as weekStart on

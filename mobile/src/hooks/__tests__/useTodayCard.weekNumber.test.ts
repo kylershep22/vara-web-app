@@ -130,7 +130,7 @@ describe('useTodayCard week number, derived from stored cycles', () => {
 
     expect(result.current.protocol?.quickWinActive).toBe(true);
     expect(result.current.protocol?.dailyAction).toBe(
-      PROTOCOL_MATRIX.focus.normal.dailyAction
+      PROTOCOL_MATRIX.focus.normal[0].dailyAction
     );
   });
 
@@ -170,7 +170,7 @@ describe('useTodayCard week number, derived from stored cycles', () => {
     // Routines has exactly one stored cycle, so week 1 of routines.
     expect(result.current.protocol?.quickWinActive).toBe(true);
     expect(result.current.protocol?.dailyAction).toBe(
-      PROTOCOL_MATRIX.routines.normal.dailyAction
+      PROTOCOL_MATRIX.routines.normal[0].dailyAction
     );
   });
 

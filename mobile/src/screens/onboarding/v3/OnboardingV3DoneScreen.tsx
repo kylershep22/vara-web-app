@@ -40,7 +40,7 @@ import {
   createWeeklyCycle,
   getWeeklyCycleForWeek,
 } from '../../../services/firebase/weeklyCycle.service';
-import { selectProtocol } from '../../../weeklyEngine';
+import { representativeProtocol } from '../../../weeklyEngine';
 import { planWeek, toIsoDate } from '../../../utils/weekStart';
 import { logger } from '../../../utils/logger';
 import { DONE_COPY } from './copy';
@@ -109,7 +109,7 @@ export const OnboardingV3DoneScreen: React.FC = () => {
         // the plan is what stops them drifting apart in a later slice.
         const existing = await getWeeklyCycleForWeek(user.uid, weekStart);
         if (!existing) {
-          const selected = selectProtocol(outcome, capacity);
+          const selected = representativeProtocol(outcome, capacity);
           await createWeeklyCycle(user.uid, {
             weekStart,
             weekEnd,

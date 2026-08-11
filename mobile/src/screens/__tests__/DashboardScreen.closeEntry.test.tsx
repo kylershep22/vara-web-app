@@ -156,7 +156,7 @@ const cycle = (over: Record<string, unknown> = {}) => ({
 async function renderHome(over: Record<string, unknown> = {}) {
   mockGetLatestCycle.mockResolvedValue(cycle(over));
   mockTodayCard.mockReturnValue({
-    protocol: { ...PROTOCOL_MATRIX.focus.normal, quickWinActive: false },
+    protocol: { ...PROTOCOL_MATRIX.focus.normal[0], quickWinActive: false },
     floorCommitment: null,
     completed: false,
     loading: false,

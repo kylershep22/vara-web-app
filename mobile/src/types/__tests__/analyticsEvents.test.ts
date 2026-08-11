@@ -125,7 +125,7 @@ describe('analytics event schema', () => {
       for (const outcome of OUTCOME_KEYS) {
         for (const capacity of CAPACITY_TIERS) {
           expect(protocolIdFor(outcome, capacity)).toBe(
-            PROTOCOL_MATRIX[outcome][capacity].id
+            PROTOCOL_MATRIX[outcome][capacity][0].id
           );
         }
       }
