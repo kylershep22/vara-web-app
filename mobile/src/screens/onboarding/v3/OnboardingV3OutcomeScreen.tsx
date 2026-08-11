@@ -18,7 +18,7 @@ import { OUTCOME_KEYS, type OutcomeKey } from '../../../weeklyEngine';
 import { OUTCOME_BLURBS, OUTCOME_COPY, OUTCOME_LABELS } from './copy';
 import { useOnboardingV3 } from './OnboardingV3Context';
 import { V3_ROUTES, V3_TOTAL_STEPS, v3StepNumber } from './routes';
-import { V3OptionRow } from './V3OptionRow';
+import { OptionRow } from '../../../components/shared/OptionRow';
 
 export const OnboardingV3OutcomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -41,7 +41,7 @@ export const OnboardingV3OutcomeScreen: React.FC = () => {
     >
       <View>
         {OUTCOME_KEYS.map((key) => (
-          <V3OptionRow
+          <OptionRow
             key={key}
             label={OUTCOME_LABELS[key]}
             description={OUTCOME_BLURBS[key]}

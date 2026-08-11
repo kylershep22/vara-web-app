@@ -7,7 +7,7 @@ import { Timestamp } from 'firebase/firestore';
 import type { HabitCategoryKey } from '../constants/habitTaxonomy';
 // Type-only import: erased at compile time, so this does NOT wire the weekly
 // engine into the running app. The engine stays unconsumed by any screen.
-import type { OutcomeKey, CapacityTier } from '../weeklyEngine';
+import type { OutcomeKey, CapacityTier, TimeClass } from '../weeklyEngine';
 
 // ==========================================
 // VALUE MODELS
@@ -369,6 +369,31 @@ export interface DailyLog {
    * go through that fallback rather than treating absence as a tier.
    */
   dailyCapacity?: CapacityTier;
+
+  /**
+   * How much time the user said they had for THIS DAY (roadmap 3b-ii-b).
+   *
+   * Stored as an INPUT beside `dailyCapacity`, for the same reason: the served
+   * protocol is a pure function of (outcome, capacity, time) and recomputing it
+   * can never disagree with itself, while a stored copy would.
+   *
+   * A TIME CLASS, NOT MINUTES. The name echoes the practice engine's
+   * `ResolveInput.timeBudget`, which IS a number of minutes and is an unrelated
+   * concept; this one is the picker's three-window bucket. Do not do arithmetic
+   * on it.
+   *
+   * ALSO THE "DID THEY PICK TODAY" SIGNAL, which is the load-bearing part.
+   * Nothing writes this except an explicit confirm in the picker, so its
+   * presence means the user answered rather than merely having been served a
+   * default. Read it through `hasPickedToday` and never directly; the coupling
+   * is documented there.
+   *
+   * CURRENTLY INERT FOR DISPLAY (Path C). It is passed to `selectProtocol`
+   * honestly, but every matrix cell holds one variant until the off-diagonal is
+   * authored, so the served protocol is capacity-driven. Storing it now is what
+   * makes the content pass able to light it up without a migration.
+   */
+  dailyTimeBudget?: TimeClass;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

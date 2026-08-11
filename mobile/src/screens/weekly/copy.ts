@@ -68,6 +68,65 @@ export const CAPACITY_GLOSSES = {
   slammed: jen('Minimal'),
 } as const;
 
+/**
+ * Time-window labels for the daily picker (roadmap 3b-ii-b).
+ *
+ * These describe what the USER HAS, which is why they read as windows rather
+ * than as durations: the matching `TIME_CLASS_MAX_MINUTES` in the engine
+ * describes what a PROTOCOL COSTS, and the two are different questions.
+ *
+ * The glosses deliberately say nothing about what will be served. Time is
+ * collected and stored but does not change the protocol until the off-diagonal
+ * content exists, and copy that promised otherwise would be a lie the app
+ * cannot currently keep.
+ */
+export const TIME_LABELS = {
+  short: gap('5 minutes or less'),
+  medium: gap('10 to 15 minutes'),
+  long: gap('15 minutes or more'),
+} as const;
+
+export const TIME_GLOSSES = {
+  short: gap('A short window today'),
+  medium: gap('Some room today'),
+  long: gap('A good stretch today'),
+} as const;
+
+/**
+ * The daily picker (roadmap 3b-ii-b). Two questions, one confirm.
+ *
+ * THE PROMPT COPY IS AN ALL-DAY RESTING STATE, not a pre-modal flash. Skipping
+ * is a first-class answer ("not now"), so the pre-pick hero can sit on Home
+ * from morning to bedtime. It therefore has to read the same at 4pm as it does
+ * at 8am: a standing invitation, never an outstanding task.
+ *
+ * WHAT THAT RULES OUT, concretely, because each was in the first draft:
+ *   - "Set today" as a heading. An imperative reads as a to-do left undone.
+ *     The heading is now the same word the answered hero uses, so the slot
+ *     keeps its identity instead of changing character when the day is set.
+ *   - "Two quick questions and today is ready." It says today is NOT ready,
+ *     which is a status report on the user's inaction. By the afternoon that
+ *     is a nag.
+ * Nothing here counts, hurries, or notices a gap. There is no streak to break
+ * by not answering, and the copy may never imply one.
+ */
+export const PICKER_COPY = {
+  promptHeading: gap('Today'),
+  promptBody: gap('Ready when you are.'),
+  promptCta: gap("Set today's capacity"),
+  title: gap('Today'),
+  capacityQuestion: gap('How much are you up for today?'),
+  timeQuestion: gap('How much time do you have?'),
+  confirm: gap('Confirm'),
+  /**
+   * SKIP, not "Close". The distinction is the point: closing implies the task
+   * is still pending somewhere, skipping is a complete answer that happens to
+   * be "not now". It writes nothing and returns to the resting state.
+   */
+  skip: gap('Skip for now'),
+  saveFailed: gap('That did not save. Try again.'),
+} as const;
+
 export const OPEN_COPY = {
   // Spec 6.1 step 1, verbatim.
   outcomeQuestion: jen("What's your focus this week?"),

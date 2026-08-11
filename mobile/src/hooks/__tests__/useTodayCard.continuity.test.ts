@@ -16,12 +16,17 @@ const mockCountForOutcome = jest.fn();
 const mockGetDailyLog = jest.fn();
 const mockUpsertDailyLog = jest.fn();
 const mockGetCyclesForUser = jest.fn();
-jest.mock('../../services/firebase/weeklyCycle.service', () => ({
-  countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
-  getDailyLog: (...a: any[]) => mockGetDailyLog(...a),
-  upsertDailyLog: (...a: any[]) => mockUpsertDailyLog(...a),
-  getWeeklyCyclesForUser: (...a: any[]) => mockGetCyclesForUser(...a),
-}));
+jest.mock('../../services/firebase/weeklyCycle.service', () => {
+  const actual = jest.requireActual('../../services/firebase/weeklyCycle.service');
+  return {
+    // The real predicate, so this suite cannot drift from the one definition.
+    hasPickedToday: actual.hasPickedToday,
+    countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
+    getDailyLog: (...a: any[]) => mockGetDailyLog(...a),
+    upsertDailyLog: (...a: any[]) => mockUpsertDailyLog(...a),
+    getWeeklyCyclesForUser: (...a: any[]) => mockGetCyclesForUser(...a),
+  };
+});
 const mockGetFloor = jest.fn();
 jest.mock('../../services/firebase/userPrivate.service', () => ({
   getFloorCommitment: (...a: any[]) => mockGetFloor(...a),

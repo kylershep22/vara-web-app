@@ -25,12 +25,17 @@ const mockCountForOutcome = jest.fn();
 const mockGetDailyLog = jest.fn();
 const mockUpsertDailyLog = jest.fn();
 const mockGetCyclesForUser = jest.fn();
-jest.mock('../../services/firebase/weeklyCycle.service', () => ({
-  countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
-  getDailyLog: (...a: any[]) => mockGetDailyLog(...a),
-  upsertDailyLog: (...a: any[]) => mockUpsertDailyLog(...a),
-  getWeeklyCyclesForUser: (...a: any[]) => mockGetCyclesForUser(...a),
-}));
+jest.mock('../../services/firebase/weeklyCycle.service', () => {
+  const actual = jest.requireActual('../../services/firebase/weeklyCycle.service');
+  return {
+    // The real predicate, so this suite cannot drift from the one definition.
+    hasPickedToday: actual.hasPickedToday,
+    countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
+    getDailyLog: (...a: any[]) => mockGetDailyLog(...a),
+    upsertDailyLog: (...a: any[]) => mockUpsertDailyLog(...a),
+    getWeeklyCyclesForUser: (...a: any[]) => mockGetCyclesForUser(...a),
+  };
+});
 const mockGetFloor = jest.fn();
 jest.mock('../../services/firebase/userPrivate.service', () => ({
   getFloorCommitment: (...a: any[]) => mockGetFloor(...a),
@@ -160,9 +165,12 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
   });
 
   describe('completion', () => {
-    test("marking the day done records the capacity that day was run at", async () => {
-      // Written on the day's own row so the day is self-describing: what was
-      // done, and what the user was working with when they did it.
+    test('marking the day done writes completion and NOTHING about capacity', async () => {
+      // This case used to assert the opposite. markDone carried a capacity
+      // seed-write while it was the only writer of the field; the daily picker
+      // (3b-ii-b) made the pick always precede completion, so that write became
+      // a second writer of one field and was removed. The picker's confirm is
+      // now the sole writer, which useTodayCard.dailyPick.test.ts pins.
       const { result } = await renderToday(cycle({ capacityInitial: 'limited' }));
 
       act(() => result.current.markDone());
@@ -171,7 +179,6 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
       expect(mockUpsertDailyLog.mock.calls[0][2]).toEqual({
         protocolCompleted: true,
         practiceIds: [],
-        dailyCapacity: 'limited',
       });
     });
   });

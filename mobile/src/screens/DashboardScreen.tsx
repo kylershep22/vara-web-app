@@ -35,6 +35,8 @@ const homeHeader = require('../../assets/images/homeHeader.webp');
 // — matches Focus/Energy so the overlap reads identically across heroes.
 const CARD_OVERLAP = Spacing.xl;
 import { TodayHeroCard } from '../components/dashboard/TodayHeroCard';
+import { SetTodayCard } from '../components/dashboard/SetTodayCard';
+import { DailyPickerSheet } from '../components/dashboard/DailyPickerSheet';
 import { OpenYourWeekCard } from '../components/dashboard/OpenYourWeekCard';
 import { ContinuityCard } from '../components/dashboard/ContinuityCard';
 import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
@@ -121,6 +123,12 @@ const DashboardScreen: React.FC = () => {
   // the re-set gone nothing in the card mutates the cycle, so the hook no longer
   // takes the callback at all.
   const todayCard = useTodayCard(user?.uid, weeklyLanding.cycle);
+
+  // The daily picker's visibility, and nothing else. Opening the sheet writes
+  // NOTHING: `hasPickedToday` keys on the stored time field, so a write on open
+  // would mark the day answered because the user looked at it. The only write
+  // is behind the sheet's confirm, in useTodayCard.confirmPick.
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // The weekly close (spec 8). `navigate`, not `replace`: Home is a tab, so the
   // close is pushed OVER it exactly as the floor and open flows are below.
@@ -279,21 +287,34 @@ const DashboardScreen: React.FC = () => {
                 daily-engine check-in cards were removed in sub-step 3, so this
                 hero is now the top of Home, not a layer above legacy cards. */}
 
-            {/* The day's action, from the current cycle. Only when the guard
-                actually resolved 'today' — never from a stale cycle. */}
-            {weeklyLanding.target === 'today' &&
-              weeklyLanding.cycle &&
-              todayCard.protocol && (
+            {/* The day's surface, from the current cycle. Only when the guard
+                actually resolved 'today' — never from a stale cycle.
+
+                `todayCard.protocol` IS NO LONGER PART OF THIS GATE. It used to
+                be, and a null protocol blanked the continuity count and the
+                close entry along with the hero. Those answer to the week, not
+                to whether today has been picked, so they stay up in both
+                states now. The hero alone swaps below. */}
+            {weeklyLanding.target === 'today' && weeklyLanding.cycle && (
                 <>
-                  <TodayHeroCard
-                    cycle={weeklyLanding.cycle}
-                    protocol={todayCard.protocol}
-                    floorCommitment={todayCard.floorCommitment}
-                    completed={todayCard.completed}
-                    saving={todayCard.saving}
-                    saveFailed={todayCard.saveFailed}
-                    onMarkDone={todayCard.markDone}
-                  />
+                  {/* THE ONLY THING THE PICK GATES. Unpicked, the whole hero is
+                      the prompt: no protocol title, no quick win, no completion
+                      control, because there is no day's action to complete
+                      until the user says what today is. Picked, the hero is
+                      exactly what it has always been. */}
+                  {todayCard.picked && todayCard.protocol ? (
+                    <TodayHeroCard
+                      cycle={weeklyLanding.cycle}
+                      protocol={todayCard.protocol}
+                      floorCommitment={todayCard.floorCommitment}
+                      completed={todayCard.completed}
+                      saving={todayCard.saving}
+                      saveFailed={todayCard.saveFailed}
+                      onMarkDone={todayCard.markDone}
+                    />
+                  ) : (
+                    <SetTodayCard onPress={() => setPickerOpen(true)} />
+                  )}
 
                   {/* Everything below the hero is SECONDARY, in the order it
                       carries on the weekly Today screen: continuity, then
@@ -325,6 +346,24 @@ const DashboardScreen: React.FC = () => {
                     cycle={weeklyLanding.cycle}
                     onPress={openClose}
                   />
+
+                  {/* Mounted only while open, so its local answer state starts
+                      from the pre-fill each time rather than from whatever the
+                      user tapped and abandoned yesterday. */}
+                  {pickerOpen && (
+                    <DailyPickerSheet
+                      visible
+                      initialCapacity={todayCard.prefillCapacity}
+                      initialTime={todayCard.prefillTime}
+                      saving={todayCard.pickSaving}
+                      saveFailed={todayCard.pickFailed}
+                      onConfirm={async (capacity, time) => {
+                        await todayCard.confirmPick(capacity, time);
+                        setPickerOpen(false);
+                      }}
+                      onDismiss={() => setPickerOpen(false)}
+                    />
+                  )}
                 </>
               )}
 
