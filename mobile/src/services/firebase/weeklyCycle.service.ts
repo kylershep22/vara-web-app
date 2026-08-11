@@ -52,7 +52,7 @@ import { requireDb } from './ensureDb';
 import type { DailyLog, DownshiftEvent, WeeklyCycle } from '../../types/models';
 // Type-only import from the engine barrel: erased at compile time, so this does
 // NOT wire the weekly engine into the running app.
-import type { CapacityTier, OutcomeKey } from '../../weeklyEngine';
+import type { CapacityTier, OutcomeKey, TimeClass } from '../../weeklyEngine';
 
 const WEEKLY_CYCLES = 'weeklyCycles';
 const DAILY_LOGS = 'dailyLogs';
@@ -100,17 +100,48 @@ export type WeeklyCyclePatch = Partial<
 /**
  * The per-day state a caller supplies.
  *
- * `dailyCapacity` is OPTIONAL because the two writers answer different
- * questions: completion says the day was done, and the capacity read says what
- * the day was run at. A caller with only one of those must not be forced to
- * invent the other, and `merge: true` means an omitted field leaves whatever is
- * already stored alone rather than clearing it.
+ * EVERY FIELD IS OPTIONAL, because the writers answer different questions and
+ * must not be forced to invent each other's answers. The daily pick writes
+ * capacity and time; completion writes the boolean and the practices. `merge:
+ * true` means an omitted field leaves whatever is stored alone rather than
+ * clearing it, which is what lets the two coexist on one row.
+ *
+ * `protocolCompleted` in particular MUST stay optional: a pick that had to send
+ * `false` would silently un-complete a day the user had already finished, the
+ * first time anything re-opened the picker after completion.
  */
 export interface DailyLogInput {
-  protocolCompleted: boolean;
-  practiceIds: string[];
+  protocolCompleted?: boolean;
+  practiceIds?: string[];
   /** The tier in force for this day (roadmap 3b-i). Omit to leave unchanged. */
   dailyCapacity?: CapacityTier;
+  /** The window the user said they had (roadmap 3b-ii-b). Omit to leave unchanged. */
+  dailyTimeBudget?: TimeClass;
+}
+
+/**
+ * Did the user answer the daily picker for this day?
+ *
+ * THE ONE DEFINITION. Nothing else may re-derive this: the card gate, the
+ * picker's own guard and any later reader all come through here, so the rule
+ * lives in exactly one place and changes in exactly one place.
+ *
+ * KEYED ON THE TIME FIELD, and that is not arbitrary. `dailyCapacity` cannot
+ * serve, because 3b-i's completion write stamps a capacity SEEDED from
+ * `capacityInitial` (see useTodayCard.markDone): every day completed since then
+ * carries a tier the user never chose, and keying on it would report those days
+ * as picked and suppress the morning prompt forever. Only an explicit confirm
+ * writes a time budget.
+ *
+ * THE COUPLING, STATED SO IT CANNOT SURPRISE ANYONE: this is correct only while
+ * the time question is MANDATORY in the picker. If a later slice lets the user
+ * skip it, or makes the field optional on the write, this predicate silently
+ * starts reporting "nobody has ever picked" and the prompt never clears. The
+ * fix at that point is an explicit marker (a `pickedAt` timestamp), not a
+ * second field checked here.
+ */
+export function hasPickedToday(log: DailyLog | null | undefined): boolean {
+  return !!log?.dailyTimeBudget;
 }
 
 /** The capacity change a caller records. Direction is carried by from/to. */

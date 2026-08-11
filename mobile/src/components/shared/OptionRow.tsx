@@ -1,24 +1,31 @@
 /**
- * Single-select option row with a supporting line, for the outcome and capacity
- * steps of the V3 arc.
+ * Single-select option row with a supporting line.
  *
  * NOT SelectionRow. That component is deliberately label-only ("Descriptors are
- * not used here"), and both V3 selection steps carry a required second line: the
- * outcome blurbs and the capacity glosses are what make the choice answerable
- * without guessing. Widening SelectionRow to serve this would change a shipped
- * component used by the V2 arc, so the two-line variant lives here instead and
- * mirrors its visual contract: white default, Silver Sage border, teal border
- * plus a Dew Sage wash when selected, 22px circular radio.
+ * not used here"), and every caller here carries a required second line: the
+ * outcome blurbs, the capacity glosses and the picker's time windows are what
+ * make each choice answerable without guessing. Widening SelectionRow to serve
+ * this would change a shipped component used by the V2 arc, so the two-line
+ * variant lives here instead and mirrors its visual contract: white default,
+ * Silver Sage border, teal border plus a Dew Sage wash when selected, 22px
+ * circular radio.
+ *
+ * PROMOTED from `screens/onboarding/v3/V3OptionRow` when the daily picker
+ * (roadmap 3b-ii-b) needed the same control on a dashboard surface. It never
+ * depended on onboarding (constants and a colour helper are its only imports),
+ * and `components/shared/WeekStartPicker` had already had to mirror its visual
+ * contract by hand rather than reach into a screens folder. One more mirror was
+ * the alternative to this move.
  */
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, Typography, Layout } from '../../../constants';
-import { withAlpha } from '../../../components/dashboard/brainStateCheckin/colorUtils';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { withAlpha } from '../dashboard/brainStateCheckin/colorUtils';
 
 const CONTROL_SIZE = 22;
 const MIN_TOUCH_TARGET = 48;
 
-interface V3OptionRowProps {
+interface OptionRowProps {
   label: string;
   /** The supporting line under the label. Always present for these steps. */
   description: string;
@@ -27,7 +34,7 @@ interface V3OptionRowProps {
   testID?: string;
 }
 
-export const V3OptionRow: React.FC<V3OptionRowProps> = ({
+export const OptionRow: React.FC<OptionRowProps> = ({
   label,
   description,
   selected,

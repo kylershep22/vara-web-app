@@ -68,6 +68,49 @@ export const CAPACITY_GLOSSES = {
   slammed: jen('Minimal'),
 } as const;
 
+/**
+ * Time-window labels for the daily picker (roadmap 3b-ii-b).
+ *
+ * These describe what the USER HAS, which is why they read as windows rather
+ * than as durations: the matching `TIME_CLASS_MAX_MINUTES` in the engine
+ * describes what a PROTOCOL COSTS, and the two are different questions.
+ *
+ * The glosses deliberately say nothing about what will be served. Time is
+ * collected and stored but does not change the protocol until the off-diagonal
+ * content exists, and copy that promised otherwise would be a lie the app
+ * cannot currently keep.
+ */
+export const TIME_LABELS = {
+  short: gap('5 minutes or less'),
+  medium: gap('10 to 15 minutes'),
+  long: gap('15 minutes or more'),
+} as const;
+
+export const TIME_GLOSSES = {
+  short: gap('A short window today'),
+  medium: gap('Some room today'),
+  long: gap('A good stretch today'),
+} as const;
+
+/**
+ * The daily picker (roadmap 3b-ii-b). Two questions, one confirm.
+ *
+ * `prompt` is the whole pre-pick hero, so it has to read as an open door rather
+ * than a gate: nothing below it is blocked, and the user has not failed to do
+ * anything by not having answered yet.
+ */
+export const PICKER_COPY = {
+  promptHeading: gap('Set today'),
+  promptBody: gap('Two quick questions and today is ready.'),
+  promptCta: gap("Set today's capacity"),
+  title: gap('Today'),
+  capacityQuestion: gap('How much are you up for today?'),
+  timeQuestion: gap('How much time do you have?'),
+  confirm: gap('Confirm'),
+  dismiss: gap('Close'),
+  saveFailed: gap('That did not save. Try again.'),
+} as const;
+
 export const OPEN_COPY = {
   // Spec 6.1 step 1, verbatim.
   outcomeQuestion: jen("What's your focus this week?"),

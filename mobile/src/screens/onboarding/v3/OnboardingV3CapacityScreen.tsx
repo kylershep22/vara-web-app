@@ -17,7 +17,7 @@ import { CAPACITY_TIERS, type CapacityTier } from '../../../weeklyEngine';
 import { CAPACITY_COPY, CAPACITY_GLOSSES, CAPACITY_LABELS } from './copy';
 import { useOnboardingV3 } from './OnboardingV3Context';
 import { V3_ROUTES, V3_TOTAL_STEPS, v3StepNumber } from './routes';
-import { V3OptionRow } from './V3OptionRow';
+import { OptionRow } from '../../../components/shared/OptionRow';
 
 export const OnboardingV3CapacityScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -38,7 +38,7 @@ export const OnboardingV3CapacityScreen: React.FC = () => {
     >
       <View>
         {CAPACITY_TIERS.map((tier) => (
-          <V3OptionRow
+          <OptionRow
             key={tier}
             label={CAPACITY_LABELS[tier]}
             description={CAPACITY_GLOSSES[tier]}

@@ -153,9 +153,20 @@ const cycle = (over: Record<string, unknown> = {}) => ({
  * Render Home and let the real guard resolve. Async because the two reads it
  * makes are, which is itself part of what this now covers.
  */
-async function renderHome(over: Record<string, unknown> = {}) {
+async function renderHome(
+  over: Record<string, unknown> = {},
+  todayOver: Record<string, unknown> = {}
+) {
   mockGetLatestCycle.mockResolvedValue(cycle(over));
-  mockTodayCard.mockReturnValue({
+  mockTodayCard.mockReturnValue(todayCardState(todayOver));
+  const screen = render(<DashboardScreen />);
+  // The weekly surface only mounts once the guard has answered.
+  await waitFor(() => expect(mockGetLatestCycle).toHaveBeenCalled());
+  return screen;
+}
+
+function todayCardState(over: Record<string, unknown> = {}) {
+  return {
     protocol: { ...PROTOCOL_MATRIX.focus.normal[0], quickWinActive: false },
     floorCommitment: null,
     completed: false,
@@ -165,11 +176,17 @@ async function renderHome(over: Record<string, unknown> = {}) {
     saving: false,
     saveFailed: false,
     continuity: 0,
-  });
-  const screen = render(<DashboardScreen />);
-  // The weekly surface only mounts once the guard has answered.
-  await waitFor(() => expect(mockGetLatestCycle).toHaveBeenCalled());
-  return screen;
+    // Every case in this suite is about a day that has been answered: it is
+    // the close entry under test, not the picker. The pre-pick state has its
+    // own suite.
+    picked: true,
+    prefillCapacity: 'normal',
+    prefillTime: 'medium',
+    confirmPick: jest.fn(),
+    pickSaving: false,
+    pickFailed: false,
+    ...over,
+  };
 }
 
 const CLOSED_AT = { seconds: 1, nanoseconds: 0 };

@@ -46,16 +46,18 @@ import {
   DEFAULT_TIME_CLASS,
   type CapacityTier,
   type ResolvedWeeklyProtocol,
+  type TimeClass,
 } from '../weeklyEngine';
 import {
   countWeeklyCyclesForOutcome,
   getDailyLog,
+  hasPickedToday,
   upsertDailyLog,
 } from '../services/firebase/weeklyCycle.service';
 import { getFloorCommitment } from '../services/firebase/userPrivate.service';
 import { loadWeeklyContinuity } from '../screens/weekly/weeklyContinuity';
 import type { WeeklyCycle } from '../types/models';
-import { toIsoDate } from '../utils/weekStart';
+import { addDaysIso, toIsoDate } from '../utils/weekStart';
 import { logger } from '../utils/logger';
 
 export interface TodayCard {
@@ -79,9 +81,27 @@ export interface TodayCard {
    * render silences both, and has to be able to tell them apart anyway.
    */
   continuity: number | null;
+
+  /**
+   * Has the user answered today's picker? Read through `hasPickedToday`, which
+   * is the ONE definition; nothing here re-derives it.
+   *
+   * The pre-pick hero is gated on this, so it decides whether Home shows the
+   * day's action or the prompt that opens the sheet.
+   */
+  picked: boolean;
+  /** What the sheet opens with. Yesterday's answers, else the week's seed. */
+  prefillCapacity: CapacityTier;
+  prefillTime: TimeClass;
+  /** Write today's answer. The ONLY thing in this flow that writes. */
+  confirmPick: (capacity: CapacityTier, time: TimeClass) => Promise<void>;
+  /** The confirm write is in flight. */
+  pickSaving: boolean;
+  /** The confirm write failed; the day is still unpicked. */
+  pickFailed: boolean;
 }
 
-const EMPTY: Omit<TodayCard, 'markDone'> = {
+const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
   protocol: null,
   floorCommitment: null,
   completed: false,
@@ -90,6 +110,11 @@ const EMPTY: Omit<TodayCard, 'markDone'> = {
   saving: false,
   saveFailed: false,
   continuity: null,
+  picked: false,
+  prefillCapacity: 'normal',
+  prefillTime: DEFAULT_TIME_CLASS,
+  pickSaving: false,
+  pickFailed: false,
 };
 
 /**
@@ -110,9 +135,15 @@ export function useTodayCard(
   const [saving, setSaving] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
   const [continuity, setContinuity] = useState<number | null>(null);
-  // The tier today resolved to, seeded or picked. Held so the completion write
-  // can record what the day was actually run at without re-deriving it.
-  const [capacity, setCapacity] = useState<CapacityTier | null>(null);
+  const [picked, setPicked] = useState(false);
+  const [prefillCapacity, setPrefillCapacity] = useState<CapacityTier>('normal');
+  const [prefillTime, setPrefillTime] = useState<TimeClass>(DEFAULT_TIME_CLASS);
+  const [pickSaving, setPickSaving] = useState(false);
+  const [pickFailed, setPickFailed] = useState(false);
+  // Bumped by a successful confirm to re-run the load below. The protocol and
+  // the conditional floor read both derive from the stored capacity, so a local
+  // patch would leave one of them wrong; re-reading is what keeps them together.
+  const [reloadToken, setReloadToken] = useState(0);
 
   const activeRef = useRef(true);
 
@@ -186,7 +217,7 @@ export function useTodayCard(
       setFloorCommitment(null);
       setCompleted(false);
       setContinuity(null);
-      setCapacity(null);
+      setPicked(false);
       setLoading(false);
       return () => {
         activeRef.current = false;
@@ -235,15 +266,28 @@ export function useTodayCard(
         // Absent means NOT PICKED, so the day falls back to the week's forecast.
         // Nothing is written back: an inferred tier is not an answer.
         const todaysCapacity = log?.dailyCapacity ?? capacitySeed;
+        const todaysTime = log?.dailyTimeBudget ?? DEFAULT_TIME_CLASS;
+        const answered = hasPickedToday(log);
 
-        // DEFAULT_TIME_CLASS until the picker stores a real answer (3b-ii-b).
-        // Every cell currently holds exactly one variant, so the fallback in
-        // selectProtocol resolves to it whatever class is asked: this renders
-        // precisely what the pre-reshape lookup did.
+        // THE PICKED TIME IS PASSED HONESTLY, and it currently changes nothing.
+        // Every matrix cell holds one variant until the off-diagonal content is
+        // authored, so selectProtocol resolves to the same protocol whatever
+        // class it is handed and the result is capacity-driven. It is passed
+        // rather than withheld so that the day the content lands, this line
+        // already does the right thing.
         const resolved = applyQuickWin(
-          selectProtocol(outcome, todaysCapacity, DEFAULT_TIME_CLASS),
+          selectProtocol(outcome, todaysCapacity, todaysTime),
           weekNumber
         );
+
+        // Yesterday's answers, for the sheet to open with. Read ONLY when the
+        // day is unpicked, matching the conditional floor read below: a picked
+        // day has no sheet to fill. This is a read and stays a read; writing a
+        // pre-fill would set the time field and mark the day answered before
+        // the user answered it.
+        const prior = answered
+          ? null
+          : await getDailyLog(uid, addDaysIso(todayIso, -1));
 
         // Read the floor only when it will be shown, and off the DAY's tier.
         const floor =
@@ -251,9 +295,11 @@ export function useTodayCard(
 
         if (!activeRef.current) return;
         setProtocol(resolved);
-        setCapacity(todaysCapacity);
         setFloorCommitment(floor);
         setCompleted(log?.protocolCompleted === true);
+        setPicked(answered);
+        setPrefillCapacity(prior?.dailyCapacity ?? capacitySeed);
+        setPrefillTime(prior?.dailyTimeBudget ?? DEFAULT_TIME_CLASS);
         setLoading(false);
       } catch (error) {
         logger.error('[useTodayCard] load failed:', error);
@@ -267,7 +313,7 @@ export function useTodayCard(
     return () => {
       activeRef.current = false;
     };
-  }, [uid, cycleId, outcome, capacitySeed, isClosed, todayIso]);
+  }, [uid, cycleId, outcome, capacitySeed, isClosed, todayIso, reloadToken]);
 
   /**
    * Mark today done. One direction only: there is no un-complete.
@@ -296,11 +342,6 @@ export function useTodayCard(
           // run, so nothing goes here. Practices logged from the player are a
           // separate write.
           practiceIds: [],
-          // The tier the day was actually run at, recorded on the same row as
-          // the completion it qualifies. Omitted when the load never resolved
-          // one, because `merge: true` treats an absent field as "leave alone"
-          // and a guess is worse here than a gap.
-          ...(capacity ? { dailyCapacity: capacity } : {}),
         });
         if (!activeRef.current) return;
         setSaving(false);
@@ -314,9 +355,50 @@ export function useTodayCard(
         setSaving(false);
       }
     })();
-  }, [uid, todayIso, completed, saving, capacity]);
+  }, [uid, todayIso, completed, saving]);
 
-  if (!cycle) return { ...EMPTY, markDone };
+  /**
+   * Write today's answer. THE ONLY WRITE IN THE PICKER FLOW.
+   *
+   * Opening the sheet, seeing the pre-fill and tapping between options all stay
+   * local to the sheet; nothing reaches Firestore until this runs. That is what
+   * keeps `hasPickedToday` honest, since it keys on the time field and would
+   * otherwise report a day as answered because it was merely looked at.
+   *
+   * Writes the two inputs and nothing else. `protocolCompleted` is deliberately
+   * absent rather than false: completion is a separate answer on the same row,
+   * and sending false here would un-complete a finished day.
+   *
+   * Reloads rather than patching state, for the reason the retired re-set did:
+   * the protocol re-derives from the stored capacity and the conditional floor
+   * read re-runs, so a local patch would leave the floor card wrong.
+   */
+  const confirmPick = useCallback(
+    async (nextCapacity: CapacityTier, nextTime: TimeClass) => {
+      if (!uid || pickSaving) return;
+      setPickSaving(true);
+      setPickFailed(false);
+      try {
+        await upsertDailyLog(uid, todayIso, {
+          dailyCapacity: nextCapacity,
+          dailyTimeBudget: nextTime,
+        });
+        if (!activeRef.current) return;
+        setReloadToken((n) => n + 1);
+      } catch (error) {
+        logger.error('[useTodayCard] daily pick write failed:', error);
+        if (!activeRef.current) return;
+        // The day stays unpicked and the prompt stays on screen, which is the
+        // truthful state: nothing was recorded.
+        setPickFailed(true);
+      } finally {
+        if (activeRef.current) setPickSaving(false);
+      }
+    },
+    [uid, todayIso, pickSaving]
+  );
+
+  if (!cycle) return { ...EMPTY, markDone, confirmPick };
 
   return {
     protocol,
@@ -328,5 +410,11 @@ export function useTodayCard(
     saving,
     saveFailed,
     continuity,
+    picked,
+    prefillCapacity,
+    prefillTime,
+    confirmPick,
+    pickSaving,
+    pickFailed,
   };
 }
