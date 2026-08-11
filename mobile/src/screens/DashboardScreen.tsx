@@ -36,7 +36,6 @@ const homeHeader = require('../../assets/images/homeHeader.webp');
 const CARD_OVERLAP = Spacing.xl;
 import { TodayHeroCard } from '../components/dashboard/TodayHeroCard';
 import { OpenYourWeekCard } from '../components/dashboard/OpenYourWeekCard';
-import { CapacityResetCard } from '../components/dashboard/CapacityResetCard';
 import { ContinuityCard } from '../components/dashboard/ContinuityCard';
 import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
 import { useDashboard } from '../hooks/useDashboard';
@@ -117,12 +116,11 @@ const DashboardScreen: React.FC = () => {
   // to an empty card when there is no cycle, so it is safe to call
   // unconditionally.
   //
-  // `refresh` is handed in as the re-set's RELOAD. The capacity write changes
-  // the stored cycle, which this screen does not own — useWeeklyLanding does —
-  // so re-reading it there is what re-derives the protocol and re-runs the
-  // conditional floor read. It is stable (useCallback over a setState updater),
-  // so it does not re-arm the hook's effect.
-  const todayCard = useTodayCard(user?.uid, weeklyLanding.cycle, weeklyLanding.refresh);
+  // No reload is handed in any more. `weeklyLanding.refresh` used to be the
+  // retired re-set's way of re-reading a cycle this screen does not own; with
+  // the re-set gone nothing in the card mutates the cycle, so the hook no longer
+  // takes the callback at all.
+  const todayCard = useTodayCard(user?.uid, weeklyLanding.cycle);
 
   // The weekly close (spec 8). `navigate`, not `replace`: Home is a tab, so the
   // close is pushed OVER it exactly as the floor and open flows are below.
@@ -298,30 +296,22 @@ const DashboardScreen: React.FC = () => {
                   />
 
                   {/* Everything below the hero is SECONDARY, in the order it
-                      carries on the weekly Today screen: re-set, continuity,
+                      carries on the weekly Today screen: continuity, then
                       close. Spec 9 allows Home one primary action and that is
-                      the completion control inside the hero above, so none of
-                      these is filled and none of them competes with it.
+                      the completion control inside the hero above, so neither
+                      of these is filled and neither competes with it.
 
                       Gated on the same three conditions as the hero: a load
                       that failed shows no controls for a week it could not
-                      read, which is how the Today screen behaves too. */}
-                  {/* RETIRES ON CLOSE. Re-planning a week the user has already
-                      reviewed is the one control that contradicts "closed": the
-                      close records how the week went, and changing its capacity
-                      afterwards would rewrite the thing just reported on. The
-                      day's action below is untouched by this — doing today is
-                      not re-planning the week, and a closed week is not a dead
-                      end. Render gate only; the re-set write path in
-                      useTodayCard is unchanged and simply stops being reachable. */}
-                  {!weeklyLanding.cycle.closeCompletedAt && (
-                    <CapacityResetCard
-                      capacityCurrent={weeklyLanding.cycle.capacityCurrent}
-                      resetting={todayCard.resetting}
-                      resetFailed={todayCard.resetFailed}
-                      onChangeTier={todayCard.changeTier}
-                    />
-                  )}
+                      read, which is how the Today screen behaves too.
+
+                      THE CAPACITY RE-SET USED TO SIT HERE, between the hero and
+                      the continuity count, under its own `!closeCompletedAt`
+                      gate. It is retired (roadmap 3b-i): capacity is answered
+                      per day now, so there is no weekly tier to re-plan. Its
+                      gate went with it; the close acknowledgment below has
+                      always been a sibling with its own `closed` prop and is
+                      untouched by the removal. */}
 
                   {/* Self-hides at 0 and on a failed read; see ContinuityCard. */}
                   <ContinuityCard continuity={todayCard.continuity} />

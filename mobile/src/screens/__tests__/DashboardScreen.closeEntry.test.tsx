@@ -165,9 +165,6 @@ async function renderHome(over: Record<string, unknown> = {}) {
     saving: false,
     saveFailed: false,
     continuity: 0,
-    changeTier: jest.fn(),
-    resetting: false,
-    resetFailed: false,
   });
   const screen = render(<DashboardScreen />);
   // The weekly surface only mounts once the guard has answered.
@@ -192,15 +189,6 @@ describe('Home — the weekly-close entry', () => {
 
       expect(await screen.findByTestId('home-close-entry')).toBeTruthy();
       expect(screen.queryByTestId('home-week-closed')).toBeNull();
-    });
-
-    test('offers the capacity re-set', async () => {
-      // The control for the retirement assertion below: the re-set is present
-      // on an open week, so its absence on a closed one is the close acting and
-      // not the card failing to render.
-      const screen = await renderHome();
-
-      expect(await screen.findByTestId('home-reset')).toBeTruthy();
     });
 
     test('opening it fires the intent event and then navigates', async () => {
@@ -248,13 +236,18 @@ describe('Home — the weekly-close entry', () => {
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
-    test('the capacity re-set RETIRES', async () => {
-      // Re-planning a week the user has already reviewed is the one control
-      // that contradicts "closed": the close records how the week went, and
-      // changing its capacity afterwards rewrites the thing just reported on.
+    test('the closed summary survives the re-set control being removed', async () => {
+      // The re-set card used to sit between the hero and this acknowledgment,
+      // under its own `!closeCompletedAt` gate, and it was deleted wholesale
+      // with the weekly capacity lock (roadmap 3b-i). CloseWeekEntry has always
+      // been a SIBLING with its own `closed` prop, so nothing about the closed
+      // summary rode on that gate. This is what proves it: the full Model-2
+      // summary is still here, and the re-set card is not.
       const screen = await renderHome({ closeCompletedAt: CLOSED_AT });
 
-      await screen.findByTestId('home-week-closed');
+      expect(await screen.findByTestId('home-week-closed')).toBeTruthy();
+      expect(screen.getByTestId('home-week-closed-outcome')).toBeTruthy();
+      expect(screen.getByTestId('home-week-closed-next')).toBeTruthy();
       expect(screen.queryByTestId('home-reset')).toBeNull();
     });
 

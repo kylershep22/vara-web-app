@@ -15,13 +15,11 @@
 const mockCountForOutcome = jest.fn();
 const mockGetDailyLog = jest.fn();
 const mockUpsertDailyLog = jest.fn();
-const mockResetCapacity = jest.fn();
 const mockGetCyclesForUser = jest.fn();
 jest.mock('../../services/firebase/weeklyCycle.service', () => ({
   countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
   getDailyLog: (...a: any[]) => mockGetDailyLog(...a),
   upsertDailyLog: (...a: any[]) => mockUpsertDailyLog(...a),
-  resetWeeklyCapacity: (...a: any[]) => mockResetCapacity(...a),
   getWeeklyCyclesForUser: (...a: any[]) => mockGetCyclesForUser(...a),
 }));
 const mockGetFloor = jest.fn();
@@ -62,7 +60,7 @@ const closed = (weekStart: string, floorMet?: boolean) =>
   } as Partial<WeeklyCycle>);
 
 const renderToday = (c: WeeklyCycle | null = cycle()) =>
-  renderHook(() => useTodayCard('u1', c, jest.fn()));
+  renderHook(() => useTodayCard('u1', c));
 
 describe('useTodayCard continuity', () => {
   beforeEach(() => {
@@ -70,7 +68,6 @@ describe('useTodayCard continuity', () => {
     mockGetFloor.mockReset().mockResolvedValue(null);
     mockGetDailyLog.mockReset().mockResolvedValue(null);
     mockUpsertDailyLog.mockReset().mockResolvedValue(undefined);
-    mockResetCapacity.mockReset().mockResolvedValue(undefined);
     mockGetCyclesForUser.mockReset().mockResolvedValue([]);
     mockLogEvent.mockReset();
   });
@@ -177,7 +174,7 @@ describe('useTodayCard continuity', () => {
         .mockResolvedValueOnce([closed('2026-08-03')])
         .mockResolvedValue([closed('2026-07-27', true), closed('2026-08-03', true)]);
       const { result, rerender } = renderHook(
-        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c, jest.fn()),
+        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c),
         { initialProps: { c: cycle() } }
       );
       await waitFor(() => expect(result.current.continuity).toBe(0));
@@ -191,7 +188,7 @@ describe('useTodayCard continuity', () => {
       // useWeeklyLanding hands back a NEW cycle object on every focus resolve.
       // Re-reading on object identity would refetch on every return to Home.
       const { result, rerender } = renderHook(
-        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c, jest.fn()),
+        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c),
         { initialProps: { c: cycle() } }
       );
       await waitFor(() => expect(result.current.loading).toBe(false));
@@ -209,7 +206,7 @@ describe('useTodayCard continuity', () => {
       // on every focus while looking correct in a test that reuses one object.
       // These two stamps are equal in meaning and distinct in identity.
       const { result, rerender } = renderHook(
-        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c, jest.fn()),
+        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c),
         {
           initialProps: {
             c: cycle({ closeCompletedAt: stamp(1) } as Partial<WeeklyCycle>),
@@ -226,17 +223,23 @@ describe('useTodayCard continuity', () => {
     });
   });
 
-  test('re-reads when the capacity tier changes, so a re-set reload refreshes it', async () => {
+  test('re-reads when the capacity SEED changes', async () => {
+    // Was "when the capacity tier changes, so a re-set reload refreshes it".
+    // The re-set is retired (roadmap 3b-i) and `capacityCurrent` is frozen, so
+    // the tier this pins is now `capacityInitial` — the seed the day falls back
+    // to, and a live effect dependency because it is what the protocol derives
+    // from when nothing has been picked. Dropping it from the dep array would
+    // leave the day's action stale against the cycle on screen.
     mockGetCyclesForUser
       .mockResolvedValueOnce([closed('2026-08-03', true)])
       .mockResolvedValue([closed('2026-07-27', true), closed('2026-08-03', true)]);
     const { result, rerender } = renderHook(
-      ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c, jest.fn()),
+      ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c),
       { initialProps: { c: cycle() } }
     );
     await waitFor(() => expect(result.current.continuity).toBe(1));
 
-    rerender({ c: cycle({ capacityCurrent: 'limited' }) });
+    rerender({ c: cycle({ capacityInitial: 'limited' }) });
 
     await waitFor(() => expect(result.current.continuity).toBe(2));
   });

@@ -154,11 +154,10 @@ export type WeeklyEntryRoute = (typeof WEEKLY_ENTRY_ROUTES)[number];
  * per-screen wiring tests enforce the callers.
  *
  * WHAT IS DELIBERATELY ABSENT, each with a reason:
- *   - a re-set SUCCESS event. `resetWeeklyCapacity` already writes a
- *     `downshiftEvents` row carrying `{fromCapacity, toCapacity}` in the same
- *     atomic batch as the tier change, so a second copy here would be strictly
- *     worse: non-atomic, and a source of truth that can disagree with the first.
- *     Only the FAILURE is recorded, because nothing else records it at all.
+ *   - anything about the in-week capacity re-set, in either direction. That
+ *     control is retired (roadmap 3b-i): capacity is answered per day now, so
+ *     there is no weekly tier to move, no transition to log and no write to
+ *     fail. Its `reset_failed` event went with it.
  *   - a continuity event. Continuity is a pure function of the `floorMet` field
  *     already on every stored cycle, so an aggregation job derives it exactly and
  *     retroactively. It rides as a FIELD on `weekly_close`, where it has one
@@ -205,18 +204,13 @@ export interface AnalyticsEventMap {
    * failures currently leave no trace anywhere.
    */
   weekly_close_failed: { reason: FailureReason };
-  /**
-   * An in-week capacity re-set failed.
-   *
-   * The batch is atomic, so this means neither write landed and the tier on
-   * screen is still the true one. The success case is intentionally not here;
-   * see the note above the map.
+  /*
+   * RETIRED: `reset_failed`. It recorded a failed in-week capacity re-set, and
+   * that control no longer exists (roadmap 3b-i) — capacity is answered per day
+   * now, so there is no weekly tier to move and no write to fail. Removed
+   * rather than left declared: an event nothing can emit reads as coverage the
+   * product does not have.
    */
-  reset_failed: {
-    fromCapacity: CapacityTier;
-    toCapacity: CapacityTier;
-    reason: FailureReason;
-  };
   /**
    * A floor commitment was captured (spec 10.1).
    *
@@ -260,7 +254,6 @@ const EVENT_NAME_SET: Record<AnalyticsEventName, true> = {
   weekly_open: true,
   weekly_close: true,
   weekly_close_failed: true,
-  reset_failed: true,
   floor_set: true,
   weekly_entry: true,
   weekly_close_entry: true,

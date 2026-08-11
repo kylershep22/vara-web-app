@@ -68,6 +68,24 @@ describe('TodayHeroCard', () => {
       expect(summary).toContain(CAPACITY_LABELS.normal);
     });
 
+    test('takes the tier from the PROTOCOL, not from the cycle', () => {
+      // Capacity is a daily read now (roadmap 3b-i), so the cycle's own tier is
+      // no longer what the day was derived at. Rendering it would label the
+      // card with a tier the action underneath does not match. The protocol
+      // carries the capacity it resolved, which makes the two the same fact
+      // rather than two values that have to agree.
+      const screen = renderCard(
+        { capacityInitial: 'normal', capacityCurrent: 'normal' },
+        {
+          protocol: { ...PROTOCOL_MATRIX.routines.slammed, quickWinActive: false },
+        }
+      );
+      const summary = textOf(screen.getByTestId('home-today-summary'));
+
+      expect(summary).toContain(CAPACITY_LABELS.slammed);
+      expect(summary).not.toContain(CAPACITY_LABELS.normal);
+    });
+
     test('appends the day the week runs through', () => {
       // Saturday 2026-08-22 is the stored inclusive boundary.
       const screen = renderCard();

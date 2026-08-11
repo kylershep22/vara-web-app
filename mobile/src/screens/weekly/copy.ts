@@ -94,10 +94,9 @@ export const OPEN_COPY = {
 
 /**
  * The Today surface, which is HOME. There is no standalone Today screen: these
- * strings are read by the dashboard components (TodayHeroCard,
- * CapacityResetCard, ContinuityCard, CloseWeekEntry) and they live here rather
- * than beside those components so the weekly-loop copy stays in one file for
- * the copy pass.
+ * strings are read by the dashboard components (TodayHeroCard, ContinuityCard,
+ * CloseWeekEntry) and they live here rather than beside those components so the
+ * weekly-loop copy stays in one file for the copy pass.
  *
  * Three keys were deleted with that screen: `weekHeading`, `loadFailed` and
  * `retry`. Home has no section heading above the week summary, and it renders
@@ -113,24 +112,9 @@ export const TODAY_COPY = {
   // gap, so this stands in until the practice exists.
   quickWinPractice: gap('week-1 quick-win practice, not yet named'),
 
-  // The dynamic in-week re-set (spec 7). Spec 7 names the control but supplies
-  // none of its labels, so every string below is a gap rather than a [Jen]
-  // line. Two constraints Jen should know when replacing them:
-  //
-  //   1. The two actions are ONE TAP with no confirmation, so a label has to
-  //      read as the thing that happens, not as a question.
-  //   2. Neither direction is a failure or a reward. Down is not "giving up"
-  //      and up is not "earning" anything, because continuity is measured
-  //      against the floor commitment and never against the tier. A label that
-  //      implies otherwise would contradict the mechanic underneath it.
-  resetHeading: gap('This week changed'),
-  resetDown: gap('I have less time than I thought'),
-  resetUp: gap('I have more time than I thought'),
-  // Shown in place of the missing direction at either end of the ladder, so the
-  // absence reads as a state rather than a missing button.
-  resetAtLowest: gap('This is already the lightest version.'),
-  resetAtHighest: gap('This is already the fullest version.'),
-  resetFailed: gap('That did not save. Your week is unchanged. Try again.'),
+  // The in-week capacity re-set copy that lived here is RETIRED (roadmap
+  // 3b-i): capacity is answered per day now, so there is no weekly tier to
+  // re-plan and no ladder to sit at the end of.
 
   // Continuity (spec 1, surfaced below the fold per spec 9). A COUNT of
   // unbroken weeks. Never a percentage, never a bar, never a fraction of a
