@@ -2,7 +2,7 @@ import { applyQuickWin } from '../quickWin';
 import { selectProtocol } from '../selectProtocol';
 import type { WeeklyProtocol } from '../types';
 
-const base = (): WeeklyProtocol => selectProtocol('routines', 'normal');
+const base = (): WeeklyProtocol => selectProtocol('routines', 'normal', 'medium');
 
 describe('applyQuickWin (spec 6.3)', () => {
   it('marks the quick win active in week 1', () => {
@@ -35,7 +35,7 @@ describe('applyQuickWin (spec 6.3)', () => {
 
   it('activates for every outcome, not just the slow-payoff ones', () => {
     for (const outcome of ['focus', 'stress', 'routines', 'energy'] as const) {
-      expect(applyQuickWin(selectProtocol(outcome, 'slammed'), 1).quickWinActive).toBe(true);
+      expect(applyQuickWin(selectProtocol(outcome, 'slammed', 'medium'), 1).quickWinActive).toBe(true);
     }
   });
 

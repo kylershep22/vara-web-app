@@ -9,7 +9,7 @@
  *                   a second derivation, it would run against a different
  *                   database state and could disagree about the quick win)
  *   capacity     <- today's dailyLog, falling back to the cycle's capacityInitial
- *   protocol     <- applyQuickWin(selectProtocol(outcome, capacity), weekNo)
+ *   protocol     <- applyQuickWin(selectProtocol(outcome, capacity, time), weekNo)
  *   floor        <- read ONLY when THAT capacity is 'slammed' (spec 9, 10.1)
  *
  * CAPACITY IS A DAILY READ (roadmap 3b-i). It used to be locked for the week on
@@ -42,6 +42,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   applyQuickWin,
   selectProtocol,
+  DEFAULT_TIME_CLASS,
   type CapacityTier,
   type ResolvedWeeklyProtocol,
 } from '../weeklyEngine';
@@ -192,8 +193,12 @@ export function useTodayCard(
         // Nothing is written back: an inferred tier is not an answer.
         const todaysCapacity = log?.dailyCapacity ?? capacitySeed;
 
+        // DEFAULT_TIME_CLASS until the picker stores a real answer (3b-ii-b).
+        // Every cell currently holds exactly one variant, so the fallback in
+        // selectProtocol resolves to it whatever class is asked: this renders
+        // precisely what the pre-reshape lookup did.
         const resolved = applyQuickWin(
-          selectProtocol(outcome, todaysCapacity),
+          selectProtocol(outcome, todaysCapacity, DEFAULT_TIME_CLASS),
           weekNumber
         );
 

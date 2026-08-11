@@ -13,6 +13,7 @@
 export type {
   OutcomeKey,
   CapacityTier,
+  TimeClass,
   WeeklyProtocol,
   ResolvedWeeklyProtocol,
   WeeklyRecord,
@@ -22,11 +23,18 @@ export {
   PROTOCOL_MATRIX,
   OUTCOME_KEYS,
   CAPACITY_TIERS,
+  TIME_CLASSES,
+  TIME_CLASS_MAX_MINUTES,
+  DEFAULT_TIME_CLASS,
   DEFAULT_QUICK_WIN_PRACTICE_ID,
+  timeClassForMinutes,
   allProtocols,
+  unauthoredVariants,
 } from './protocolMatrix';
-export type { WeeklyProtocolMatrix } from './protocolMatrix';
-export { selectProtocol } from './selectProtocol';
+export type { WeeklyProtocolMatrix, UnauthoredVariant } from './protocolMatrix';
+// selectProtocol takes a time class; representativeProtocol deliberately does
+// not (week-level callers have no daily answer to give it).
+export { selectProtocol, representativeProtocol } from './selectProtocol';
 export { applyQuickWin, QUICK_WIN_WEEK } from './quickWin';
 export { computeContinuity } from './continuity';
 // RETIRED with the in-week re-set (roadmap 3b-i): `nextTierDown` / `nextTierUp`

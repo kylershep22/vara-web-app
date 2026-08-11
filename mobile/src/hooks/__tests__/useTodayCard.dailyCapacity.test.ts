@@ -94,7 +94,7 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
       const { result } = await renderToday(cycle({ capacityInitial: 'limited' }));
 
       expect(result.current.protocol?.dailyAction).toBe(
-        PROTOCOL_MATRIX.focus.limited.dailyAction
+        PROTOCOL_MATRIX.focus.limited[0].dailyAction
       );
       expect(result.current.protocol?.capacity).toBe('limited');
     });
@@ -106,7 +106,7 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
       const { result } = await renderToday(cycle({ capacityInitial: 'slammed' }));
 
       expect(result.current.protocol?.dailyAction).toBe(
-        PROTOCOL_MATRIX.focus.slammed.dailyAction
+        PROTOCOL_MATRIX.focus.slammed[0].dailyAction
       );
       expect(result.current.completed).toBe(true);
     });
@@ -118,7 +118,7 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
       const { result } = await renderToday(cycle({ capacityInitial: 'normal' }));
 
       expect(result.current.protocol?.dailyAction).toBe(
-        PROTOCOL_MATRIX.focus.slammed.dailyAction
+        PROTOCOL_MATRIX.focus.slammed[0].dailyAction
       );
     });
 
@@ -154,7 +154,7 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
       );
 
       expect(result.current.protocol?.dailyAction).toBe(
-        PROTOCOL_MATRIX.focus.normal.dailyAction
+        PROTOCOL_MATRIX.focus.normal[0].dailyAction
       );
     });
   });

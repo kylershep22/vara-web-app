@@ -206,7 +206,7 @@ describe('WeeklyOpenScreen', () => {
       expect(params).toEqual({
         outcome: 'routines',
         capacityInitial: 'limited',
-        protocolId: PROTOCOL_MATRIX.routines.limited.id,
+        protocolId: PROTOCOL_MATRIX.routines.limited[0].id,
       });
     });
 
@@ -278,7 +278,7 @@ describe('WeeklyOpenScreen', () => {
       expect(uid).toBe('u1');
       expect(input.outcome).toBe('routines');
       expect(input.capacityInitial).toBe('limited');
-      expect(input.protocolId).toBe(PROTOCOL_MATRIX.routines.limited.id);
+      expect(input.protocolId).toBe(PROTOCOL_MATRIX.routines.limited[0].id);
     });
 
     test('does not pass capacityCurrent or userId in the payload', async () => {
@@ -369,7 +369,7 @@ describe('WeeklyOpenScreen', () => {
         mockCreateWeeklyCycle.mockClear();
         await openWeek(outcome, capacity);
         expect(mockCreateWeeklyCycle.mock.calls[0][1].protocolId).toBe(
-          PROTOCOL_MATRIX[outcome][capacity].id
+          PROTOCOL_MATRIX[outcome][capacity][0].id
         );
       }
     });

@@ -19,10 +19,33 @@
 export type OutcomeKey = 'focus' | 'stress' | 'routines' | 'energy';
 
 /**
- * The three capacity tiers set at the weekly open (spec 6.1) and adjustable
- * in-week in either direction (spec Section 7).
+ * The three capacity tiers.
+ *
+ * CAPACITY IS READINESS, NOT DURATION (roadmap 3b-ii-a). It is how much demand
+ * the user can bring today: `slammed` means gentler and more restorative, NOT
+ * merely shorter. Duration is the separate `TimeClass` axis below, and the two
+ * are orthogonal on purpose. A user who is slammed but has forty minutes is a
+ * real and common state, and the grid has to be able to say something to them.
+ *
+ * This was not always true: capacity used to be the time PROXY, which is why
+ * the 12 shipped protocols still read as a duration ladder. Re-authoring them
+ * along the readiness axis is a content pass, not a code change.
  */
 export type CapacityTier = 'normal' | 'limited' | 'slammed';
+
+/**
+ * How much of the user's day a protocol costs, bucketed to the three windows
+ * the daily picker offers (roadmap 3b-ii).
+ *
+ *   short   <= 5 minutes
+ *   medium  6 to 15 minutes
+ *   long    more than 15 minutes
+ *
+ * These describe the protocol's COST, while the picker asks what the user HAS.
+ * The bounds are exclusive of each other so a variant belongs to exactly one
+ * class; `TIME_CLASS_MAX_MINUTES` in `protocolMatrix.ts` is where they live.
+ */
+export type TimeClass = 'short' | 'medium' | 'long';
 
 /**
  * One cell of the 4 x 3 protocol matrix (spec 6.2).
@@ -31,10 +54,29 @@ export type CapacityTier = 'normal' | 'limited' | 'slammed';
  * Content is data, not logic: swapping copy never touches a code path.
  */
 export interface WeeklyProtocol {
-  /** Stable cell id, by convention `${outcome}-${capacity}`. */
+  /**
+   * Stable CELL id, by convention `${outcome}-${capacity}`.
+   *
+   * DELIBERATELY NOT UNIQUE PER VARIANT. Every variant in a cell carries the
+   * same id, because this value is persisted on `WeeklyCycle.protocolId` and is
+   * typed as a closed 12-member union in `types/analyticsEvents`. Widening it to
+   * identify a variant would mean a migration of rows already written and a
+   * change to an event schema designed to be read cold. Use `variantKey` to tell
+   * variants apart; use `id` to say which cell they belong to.
+   */
   id: string;
+  /**
+   * Unique per variant, by convention `${outcome}-${capacity}-${timeClass}`.
+   *
+   * Not persisted anywhere and not an analytics value: the daily variant is
+   * DERIVED from the stored (outcome, capacity, time) inputs, so this exists to
+   * disambiguate objects in code and tests, not to be written down.
+   */
+  variantKey: string;
   outcome: OutcomeKey;
   capacity: CapacityTier;
+  /** Which of the picker's three windows this variant fits. */
+  timeClass: TimeClass;
   /** PLACEHOLDER [Jen] — protocol name shown on Today. */
   name: string;
   /** PLACEHOLDER [Jen] — the one line the user acts on each day. */
