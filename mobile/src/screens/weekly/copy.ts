@@ -95,19 +95,35 @@ export const TIME_GLOSSES = {
 /**
  * The daily picker (roadmap 3b-ii-b). Two questions, one confirm.
  *
- * `prompt` is the whole pre-pick hero, so it has to read as an open door rather
- * than a gate: nothing below it is blocked, and the user has not failed to do
- * anything by not having answered yet.
+ * THE PROMPT COPY IS AN ALL-DAY RESTING STATE, not a pre-modal flash. Skipping
+ * is a first-class answer ("not now"), so the pre-pick hero can sit on Home
+ * from morning to bedtime. It therefore has to read the same at 4pm as it does
+ * at 8am: a standing invitation, never an outstanding task.
+ *
+ * WHAT THAT RULES OUT, concretely, because each was in the first draft:
+ *   - "Set today" as a heading. An imperative reads as a to-do left undone.
+ *     The heading is now the same word the answered hero uses, so the slot
+ *     keeps its identity instead of changing character when the day is set.
+ *   - "Two quick questions and today is ready." It says today is NOT ready,
+ *     which is a status report on the user's inaction. By the afternoon that
+ *     is a nag.
+ * Nothing here counts, hurries, or notices a gap. There is no streak to break
+ * by not answering, and the copy may never imply one.
  */
 export const PICKER_COPY = {
-  promptHeading: gap('Set today'),
-  promptBody: gap('Two quick questions and today is ready.'),
+  promptHeading: gap('Today'),
+  promptBody: gap('Ready when you are.'),
   promptCta: gap("Set today's capacity"),
   title: gap('Today'),
   capacityQuestion: gap('How much are you up for today?'),
   timeQuestion: gap('How much time do you have?'),
   confirm: gap('Confirm'),
-  dismiss: gap('Close'),
+  /**
+   * SKIP, not "Close". The distinction is the point: closing implies the task
+   * is still pending somewhere, skipping is a complete answer that happens to
+   * be "not now". It writes nothing and returns to the resting state.
+   */
+  skip: gap('Skip for now'),
   saveFailed: gap('That did not save. Try again.'),
 } as const;
 

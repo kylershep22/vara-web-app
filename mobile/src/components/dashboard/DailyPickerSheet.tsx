@@ -103,14 +103,19 @@ export const DailyPickerSheet: React.FC<DailyPickerSheetProps> = ({
             <Text style={styles.confirmLabel}>{PICKER_COPY.confirm}</Text>
           </TouchableOpacity>
 
+          {/* SKIP WRITES NOTHING, exactly like opening the sheet. It is the
+              same handler as the scrim and the back button: a pure dismiss.
+              The day stays unpicked, the hero returns to its resting state,
+              and the sheet is re-openable for the rest of the day with the
+              same pre-fill, because nothing about the skip touched it. */}
           <TouchableOpacity
-            style={styles.dismiss}
+            style={styles.skip}
             onPress={onDismiss}
             accessibilityRole="button"
-            accessibilityLabel={PICKER_COPY.dismiss}
-            testID="daily-pick-dismiss"
+            accessibilityLabel={PICKER_COPY.skip}
+            testID="daily-pick-skip"
           >
-            <Text style={styles.dismissLabel}>{PICKER_COPY.dismiss}</Text>
+            <Text style={styles.skipLabel}>{PICKER_COPY.skip}</Text>
           </TouchableOpacity>
         </View>
       }
@@ -168,14 +173,15 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.white,
   },
-  // Outlined-less and quiet: dismissing is always available but is never the
-  // thing being asked for.
-  dismiss: {
+  // Quiet and unbordered: skipping is always available and is never the thing
+  // being asked for, but it is also not a failure state and gets no warning
+  // colour. Muted Sage Gray, the same weight as any other secondary label.
+  skip: {
     minHeight: MIN_TOUCH_TARGET,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dismissLabel: {
+  skipLabel: {
     fontSize: Typography.fontSize.sm,
     color: Colors.mutedSageGray,
   },

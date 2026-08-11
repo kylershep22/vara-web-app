@@ -236,12 +236,12 @@ describe('Home — before the day is answered', () => {
       expect(confirmPick).not.toHaveBeenCalled();
     });
 
-    test('dismissing closes it and still writes nothing', async () => {
+    test('skipping closes it and still writes nothing', async () => {
       const screen = await renderHome({ picked: false });
       fireEvent.press(await screen.findByTestId('home-set-today-open'));
       await screen.findByTestId('daily-pick-confirm');
 
-      fireEvent.press(screen.getByTestId('daily-pick-dismiss'));
+      fireEvent.press(screen.getByTestId('daily-pick-skip'));
 
       await waitFor(() => expect(screen.queryByTestId('daily-pick-confirm')).toBeNull());
       expect(confirmPick).not.toHaveBeenCalled();
@@ -258,6 +258,70 @@ describe('Home — before the day is answered', () => {
       await waitFor(() => expect(confirmPick).toHaveBeenCalledTimes(1));
       // The pre-fill, accepted in one tap.
       expect(confirmPick).toHaveBeenCalledWith('normal', 'medium');
+    });
+
+    test('skipping leaves the day unpicked and the prompt standing', async () => {
+      // SKIP IS A RESTING STATE, NOT A DEAD END. Nothing is written, nothing is
+      // guessed, and the card that invited the answer is still there to invite
+      // it again. It is also not a failure: no error affordance appears.
+      const screen = await renderHome({ picked: false });
+      fireEvent.press(await screen.findByTestId('home-set-today-open'));
+
+      fireEvent.press(await screen.findByTestId('daily-pick-skip'));
+
+      await waitFor(() => expect(screen.queryByTestId('daily-pick-confirm')).toBeNull());
+      expect(confirmPick).not.toHaveBeenCalled();
+      expect(screen.getByTestId('home-set-today')).toBeTruthy();
+      expect(screen.getByTestId('home-set-today-open')).toBeTruthy();
+      expect(screen.queryByTestId('home-today-hero')).toBeNull();
+    });
+
+    test('reopens after a skip, still pre-filled, and confirms normally', async () => {
+      // RE-ENGAGEMENT IS FRICTIONLESS. Skipping touched nothing, so the
+      // fast-path pre-fill is exactly what it was: the second visit is the
+      // same one-tap confirm the first would have been.
+      const screen = await renderHome({
+        picked: false,
+        prefillCapacity: 'limited',
+        prefillTime: 'long',
+      });
+
+      fireEvent.press(await screen.findByTestId('home-set-today-open'));
+      fireEvent.press(await screen.findByTestId('daily-pick-skip'));
+      await waitFor(() => expect(screen.queryByTestId('daily-pick-confirm')).toBeNull());
+
+      // Straight back in.
+      fireEvent.press(screen.getByTestId('home-set-today-open'));
+      const reopened = await screen.findByTestId('daily-pick-capacity-limited');
+      expect(reopened.props.accessibilityState.selected).toBe(true);
+      expect(
+        screen.getByTestId('daily-pick-time-long').props.accessibilityState.selected
+      ).toBe(true);
+
+      fireEvent.press(screen.getByTestId('daily-pick-confirm'));
+
+      await waitFor(() => expect(confirmPick).toHaveBeenCalledTimes(1));
+      expect(confirmPick).toHaveBeenCalledWith('limited', 'long');
+    });
+
+    test('a skipped, reopened sheet forgets what was tapped and abandoned', async () => {
+      // The sheet unmounts on skip, so a stray tap the user walked away from
+      // does not become the answer they confirm hours later. Reopening always
+      // starts from the pre-fill.
+      const screen = await renderHome({
+        picked: false,
+        prefillCapacity: 'normal',
+        prefillTime: 'medium',
+      });
+
+      fireEvent.press(await screen.findByTestId('home-set-today-open'));
+      fireEvent.press(await screen.findByTestId('daily-pick-capacity-slammed'));
+      fireEvent.press(screen.getByTestId('daily-pick-skip'));
+      await waitFor(() => expect(screen.queryByTestId('daily-pick-confirm')).toBeNull());
+
+      fireEvent.press(screen.getByTestId('home-set-today-open'));
+      const reopened = await screen.findByTestId('daily-pick-capacity-normal');
+      expect(reopened.props.accessibilityState.selected).toBe(true);
     });
 
     test('opens pre-filled with what the hook resolved', async () => {

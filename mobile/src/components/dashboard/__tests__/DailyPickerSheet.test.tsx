@@ -15,7 +15,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { DailyPickerSheet } from '../DailyPickerSheet';
-import { CAPACITY_LABELS, TIME_LABELS } from '../../../screens/weekly/copy';
+import { CAPACITY_LABELS, PICKER_COPY, TIME_LABELS } from '../../../screens/weekly/copy';
 
 const onConfirm = jest.fn();
 const onDismiss = jest.fn();
@@ -122,13 +122,44 @@ describe('DailyPickerSheet', () => {
       expect(onConfirm).not.toHaveBeenCalled();
     });
 
-    test('dismissing after tapping around reports nothing but the dismiss', () => {
+    test('skipping after tapping around reports nothing but the dismiss', () => {
       renderSheet();
 
       fireEvent.press(screen.getByTestId('daily-pick-time-short'));
-      fireEvent.press(screen.getByTestId('daily-pick-dismiss'));
+      fireEvent.press(screen.getByTestId('daily-pick-skip'));
 
       expect(onConfirm).not.toHaveBeenCalled();
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('skip', () => {
+    test('is offered, and says skip rather than close', () => {
+      // "Close" would imply the question is still pending somewhere. Skipping
+      // is a complete answer that happens to be "not now".
+      renderSheet();
+
+      expect(screen.getByText(PICKER_COPY.skip)).toBeTruthy();
+    });
+
+    test('is the SAME pure dismiss as the scrim, carrying no answer with it', () => {
+      // The distinction that matters: skip must not quietly submit the
+      // pre-fill. A skipped day is unanswered, not answered-with-a-guess.
+      renderSheet({ initialCapacity: 'limited', initialTime: 'long' });
+
+      fireEvent.press(screen.getByTestId('daily-pick-skip'));
+
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+    });
+
+    test('stays available while a confirm is in flight', () => {
+      // Only the confirm is held during a write. A user who changes their mind
+      // mid-save is not trapped in the sheet.
+      renderSheet({ saving: true });
+
+      fireEvent.press(screen.getByTestId('daily-pick-skip'));
+
       expect(onDismiss).toHaveBeenCalledTimes(1);
     });
   });
