@@ -116,9 +116,16 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
 
         The boundary clause is APPENDED to this existing line rather than given
         its own element: the card is a doorway, and a date deserves no more
-        weight than the outcome/capacity pair it qualifies. */}
+        weight than the outcome/capacity pair it qualifies.
+
+        THE TIER COMES OFF THE PROTOCOL, not off the cycle (roadmap 3b-i).
+        Capacity is a daily read now, so the cycle's own tier is no longer what
+        the day was derived at and rendering it would state a tier the action
+        below does not match. `selectProtocol` stamps the capacity it resolved
+        onto the protocol, so reading it back from there makes the label and the
+        action the same fact by construction rather than by agreement. */}
     <Text style={styles.weekSummary} testID="home-today-summary">
-      {OUTCOME_LABELS[cycle.outcome]} / {CAPACITY_LABELS[cycle.capacityCurrent]}
+      {OUTCOME_LABELS[cycle.outcome]} / {CAPACITY_LABELS[protocol.capacity]}
       {!!cycle.weekEnd &&
         ` · ${TODAY_COPY.runsThrough.replace('{day}', weekdayNameForIso(resolveWeekEnd(cycle.weekStart, cycle.weekEnd)))}`}
     </Text>

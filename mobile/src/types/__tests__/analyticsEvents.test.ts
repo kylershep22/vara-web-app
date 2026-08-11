@@ -42,7 +42,6 @@ describe('analytics event schema', () => {
       expect([...ANALYTICS_EVENT_NAMES].sort()).toEqual([
         'floor_set',
         'login',
-        'reset_failed',
         'sign_up',
         'weekly_close',
         'weekly_close_entry',

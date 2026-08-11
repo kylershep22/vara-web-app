@@ -29,4 +29,6 @@ export type { WeeklyProtocolMatrix } from './protocolMatrix';
 export { selectProtocol } from './selectProtocol';
 export { applyQuickWin, QUICK_WIN_WEEK } from './quickWin';
 export { computeContinuity } from './continuity';
-export { nextTierDown, nextTierUp } from './tierSteps';
+// RETIRED with the in-week re-set (roadmap 3b-i): `nextTierDown` / `nextTierUp`
+// walked the capacity ladder one rung for that control and had no other caller.
+// CAPACITY_TIERS above is still the single place the order lives.

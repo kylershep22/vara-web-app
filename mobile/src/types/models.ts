@@ -338,6 +338,10 @@ export interface WeeklyCycle {
  *
  * Completion is BINARY (S9.2): done or not yet. Never a percentage, never a
  * grade. Do not add a partial-completion field.
+ *
+ * THIS ROW IS ALSO WHERE THE DAY'S INPUTS LIVE (roadmap 3b). Capacity used to be
+ * locked for the week on the cycle; it is answered per day now, and the answer
+ * belongs on the day it was given rather than on the week it fell inside.
  */
 export interface DailyLog {
   /** Mirrors the document ID, `${userId}_${date}`. */
@@ -348,6 +352,24 @@ export interface DailyLog {
   protocolCompleted: boolean;
   /** Practices actually run that day. May be empty. */
   practiceIds: string[];
+
+  /**
+   * The capacity tier in force for THIS DAY (roadmap 3b-i).
+   *
+   * STORED AS AN INPUT, NOT AS A DERIVED PROTOCOL. `selectProtocol` is a pure
+   * function of its inputs, so a stored `protocolId` would be a second copy of
+   * an answer that can already be recomputed, and the two would disagree the
+   * first time the matrix content changed. The inputs are the durable fact; the
+   * protocol is a view of them. The next slices add a time input alongside this
+   * one and an explicit override, and both are only expressible this way.
+   *
+   * OPTIONAL, and absent on every row written before this field existed and on
+   * every day the user has not answered for. Absent means NOT PICKED and falls
+   * back to the cycle's `capacityInitial`, which is the day-1 seed; readers must
+   * go through that fallback rather than treating absence as a tier.
+   */
+  dailyCapacity?: CapacityTier;
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

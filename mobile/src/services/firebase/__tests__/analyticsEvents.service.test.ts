@@ -378,18 +378,18 @@ describe('analyticsEvents.service', () => {
       // nowhere, but it LOOKS right, and 'resource-exhausted' is 18 characters
       // so scrubParams would keep it. toFailureReason exists to make this the
       // only spelling that compiles.
-      logEvent(ALICE, 'reset_failed', {
-        fromCapacity: 'normal',
-        toCapacity: 'limited',
+      //
+      // Re-homed onto weekly_close_failed when `reset_failed` retired with the
+      // in-week capacity re-set (roadmap 3b-i). The rule is about the reason
+      // SLOT, not about that one event, so it needs a live event to ride on.
+      logEvent(ALICE, 'weekly_close_failed', {
         // @ts-expect-error - reason is the three-member union, not a Firestore code
         reason: 'resource-exhausted',
       });
     });
 
-    test('rejects an error message on reset_failed', () => {
-      logEvent(ALICE, 'reset_failed', {
-        fromCapacity: 'normal',
-        toCapacity: 'limited',
+    test('rejects an error message alongside a bucketed reason', () => {
+      logEvent(ALICE, 'weekly_close_failed', {
         reason: 'unknown',
         // @ts-expect-error - a message is content, on this event as on every other
         errorMessage: 'permission denied for alice',

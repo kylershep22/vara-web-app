@@ -114,7 +114,7 @@ const resolved = (over: Partial<WeeklyCycle> = {}): WeeklyCycle =>
   }) as WeeklyCycle;
 
 async function renderToday(cycle: WeeklyCycle = resolved()) {
-  const view = renderHook(() => useTodayCard('u1', cycle, jest.fn()));
+  const view = renderHook(() => useTodayCard('u1', cycle));
   await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
   return view;
 }
