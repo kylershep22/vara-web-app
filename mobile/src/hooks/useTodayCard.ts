@@ -38,6 +38,7 @@
  * and may never block it.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import {
   applyQuickWin,
@@ -115,6 +116,48 @@ export function useTodayCard(
 
   const activeRef = useRef(true);
 
+  /**
+   * TODAY, AS STATE, so the day can roll over under a running app.
+   *
+   * This used to be `toIsoDate(new Date())` read inside the effect below, whose
+   * dependencies contain nothing date-derived. An app left open past midnight
+   * therefore kept reading yesterday's row: a day completed on Monday still
+   * reported done on Tuesday, and under the daily picker the morning prompt
+   * would never return. Making the date a dependency is the fix; the two
+   * effects under it are what keep the dependency current.
+   */
+  const [todayIso, setTodayIso] = useState(() => toIsoDate(new Date()));
+
+  // Re-sync, and re-render, only when the calendar date has ACTUALLY moved. The
+  // functional updater returning `prev` unchanged is what makes this safe to
+  // call on every render: React bails out of an identical state, so there is no
+  // loop and no refetch on an ordinary re-render.
+  const syncToday = useCallback(() => {
+    setTodayIso((prev) => {
+      const current = toIsoDate(new Date());
+      return prev === current ? prev : current;
+    });
+  }, []);
+
+  // TWO TRIGGERS, AND NEITHER COVERS THE OTHER.
+  //
+  // The listener is the real overnight path: the app is backgrounded on Monday
+  // night and foregrounded on Tuesday with no navigation and no re-render in
+  // between, so nothing else would notice. AppState is already the house
+  // mechanism for this (AuthContext, NotificationContext, useTimer).
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') syncToday();
+    });
+    return () => subscription.remove();
+  }, [syncToday]);
+
+  // The render sync catches the other path: Home refocusing. The landing hook's
+  // refresh re-renders with a fresh cycle object whose primitives are identical,
+  // so the load effect would not re-arm on its own. Deliberately has no
+  // dependency array; the equality guard above is what makes that cheap.
+  useEffect(syncToday);
+
   // The cycle id is the dependency, not the cycle object: the object identity
   // changes on every resolve of the landing hook, and depending on it would
   // refetch the protocol on every Home focus. `capacityInitial` is included
@@ -187,7 +230,7 @@ export function useTodayCard(
         // THIS READ NOW GATES THE DERIVATION, so it moved ahead of the protocol
         // and the floor rather than trailing them as it did when capacity was
         // a weekly fact already in hand.
-        const log = await getDailyLog(uid, toIsoDate(new Date()));
+        const log = await getDailyLog(uid, todayIso);
 
         // Absent means NOT PICKED, so the day falls back to the week's forecast.
         // Nothing is written back: an inferred tier is not an answer.
@@ -224,7 +267,7 @@ export function useTodayCard(
     return () => {
       activeRef.current = false;
     };
-  }, [uid, cycleId, outcome, capacitySeed, isClosed]);
+  }, [uid, cycleId, outcome, capacitySeed, isClosed, todayIso]);
 
   /**
    * Mark today done. One direction only: there is no un-complete.
@@ -247,7 +290,7 @@ export function useTodayCard(
 
     (async () => {
       try {
-        await upsertDailyLog(uid, toIsoDate(new Date()), {
+        await upsertDailyLog(uid, todayIso, {
           protocolCompleted: true,
           // The day's action is the protocol itself, not a catalog practice
           // run, so nothing goes here. Practices logged from the player are a
@@ -271,7 +314,7 @@ export function useTodayCard(
         setSaving(false);
       }
     })();
-  }, [uid, completed, saving, capacity]);
+  }, [uid, todayIso, completed, saving, capacity]);
 
   if (!cycle) return { ...EMPTY, markDone };
 
