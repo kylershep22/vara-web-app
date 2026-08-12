@@ -42,6 +42,11 @@ const COPY_SOURCES = [
   // the pillar rollout can't reintroduce an em dash / optim* in these strings.
   'src/screens/Focus/FocusHubScreen.tsx',
   'src/screens/Focus/FocusRhythmsScreen.tsx',
+  // IA restructure step 4a. The Practices hub's pillar card labels and
+  // descriptors, guarded on the same terms as the pillar hubs they open. The
+  // strings are [COPY GAP] placeholders today, which is exactly why the guard
+  // goes on now: it is Jen's replacement copy that most needs it.
+  'src/screens/practices/PracticesHubScreen.tsx',
   'src/screens/Focus/components/CenterFirstToggle.tsx',
   'src/constants/focusRhythms.ts',
   'src/constants/focusContent.ts',
