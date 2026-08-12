@@ -61,21 +61,49 @@ jest.mock('../../../components/ai/GuidePill', () => ({
 }));
 
 import React from 'react';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+import { Text } from 'react-native';
 
 import { PracticesHubScreen } from '../PracticesHubScreen';
 import { FocusHubScreen } from '../../Focus/FocusHubScreen';
 import { FocusRhythmsScreen } from '../../Focus/FocusRhythmsScreen';
 import { EnergyHubScreen } from '../../Energy/EnergyHubScreen';
 import { ROUTES } from '../../../navigation/routes';
+import { NAV_TARGETS } from '../../../navigation/navTargets';
 
 const Stack = createNativeStackNavigator();
 
+// Stand-in for the routine builder's host screen (PlanScreen, registered as
+// ROUTES.PillarTime). The real one pulls HabitsScreen, RoutinesTab, the routine
+// migration and the whole Firestore chain, which is the same reason FocusTimer
+// is not registered in this stack either.
+//
+// The stub is not a weaker assertion than mounting the real screen, because
+// what this file tests is ARRIVAL: that pressing the card lands on that route
+// carrying the param that selects the routines sub-tab. What the destination
+// then renders for `{ tab: 'routines' }` is PlanScreen's own contract, already
+// held by screens/__tests__/PlanScreen.tabParam.test.tsx, and that the route is
+// one AppNavigator really registers is held by navigation/__tests__/
+// pillarRoutes.test.ts. Three legs, no overlap, nothing assumed.
+function PlanStub({ route }: any) {
+  return (
+    <Text testID="plan-stub">{JSON.stringify(route.params ?? null)}</Text>
+  );
+}
+
 function renderStack() {
-  return render(
-    <NavigationContainer>
+  // A container ref alongside the render result. Under jest this native stack
+  // renders only the FOCUSED screen, so "is the hub still mounted" says nothing
+  // about whether the push left a back path. The navigation state does.
+  const navRef = createNavigationContainerRef();
+  const utils = render(
+    <NavigationContainer ref={navRef}>
       <Stack.Navigator initialRouteName={ROUTES.PillarPractices}>
         <Stack.Screen
           name={ROUTES.PillarPractices}
@@ -100,9 +128,17 @@ function renderStack() {
           component={FocusRhythmsScreen}
           options={{ headerShown: true, title: 'Focus rhythms' }}
         />
+        {/* The routine builder's host, step 4b-i. Same pushed-with-a-header
+            shape the other former tab roots carry in AppNavigator. */}
+        <Stack.Screen
+          name={NAV_TARGETS.plan}
+          component={PlanStub}
+          options={{ headerShown: true, title: '' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
+  return { ...utils, navRef };
 }
 
 beforeEach(() => {
@@ -123,6 +159,7 @@ describe('Practices → Focus: the step-4a restore path', () => {
     expect(queryByTestId('focus-hub')).toBeNull();
     expect(queryByTestId('energy-hub')).toBeNull();
     expect(queryByTestId('focus-rhythms')).toBeNull();
+    expect(queryByTestId('plan-stub')).toBeNull();
   });
 
   it('opens the Focus hub from the Focus & Time card', async () => {
@@ -172,5 +209,60 @@ describe('Practices → Focus: the step-4a restore path', () => {
     // not that it lands — landing is AppNavigator's contract, guarded in
     // pillarRoutes.test.ts.
     expect(getByTestId('focus-hub-card-primary')).toBeTruthy();
+  });
+});
+
+describe('Practices → Routines: the step-4b-i wiring', () => {
+  it('opens the routine builder from the Routines card', async () => {
+    const { getByTestId, queryByTestId } = renderStack();
+
+    expect(queryByTestId('plan-stub')).toBeNull();
+
+    fireEvent.press(getByTestId('practices-hub-card-routines'));
+
+    await waitFor(() => expect(getByTestId('plan-stub')).toBeTruthy());
+  });
+
+  it('arrives carrying the param that selects the routines sub-tab', async () => {
+    const { getByTestId } = renderStack();
+
+    fireEvent.press(getByTestId('practices-hub-card-routines'));
+
+    // Not the same assertion as the unit test's `navigate` spy. This one proves
+    // the param SURVIVES the navigator and is readable off `route.params` at the
+    // destination — the half a spy cannot see. Without it the user lands on the
+    // habits sub-tab from a card labelled Routines.
+    const stub = await waitFor(() => getByTestId('plan-stub'));
+    expect(JSON.parse(stub.props.children)).toEqual({ tab: 'routines' });
+  });
+
+  it('pushes the builder over the hub, leaving a back path to Practices', async () => {
+    const { getByTestId, navRef } = renderStack();
+
+    fireEvent.press(getByTestId('practices-hub-card-routines'));
+    await waitFor(() => expect(getByTestId('plan-stub')).toBeTruthy());
+
+    // PUSHED, not replaced. A card that swapped the tab root would strand the
+    // user on the builder with no way back to Practices, and the header would
+    // have no chevron to render.
+    expect(navRef.canGoBack()).toBe(true);
+    expect(navRef.getRootState().routes.map((r) => r.name)).toEqual([
+      ROUTES.PillarPractices,
+      NAV_TARGETS.plan,
+    ]);
+  });
+
+  it('lands back on Practices when the back path is taken', async () => {
+    const { getByTestId, navRef } = renderStack();
+
+    fireEvent.press(getByTestId('practices-hub-card-routines'));
+    await waitFor(() => expect(getByTestId('plan-stub')).toBeTruthy());
+
+    // The other half of the assertion above: not just that a back path exists,
+    // but that walking it arrives somewhere. This is the device-walk step
+    // written down.
+    act(() => navRef.goBack());
+
+    await waitFor(() => expect(getByTestId('practices-hub')).toBeTruthy());
   });
 });

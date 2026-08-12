@@ -169,6 +169,13 @@ const OUTCOMES_LED_SURFACES = [
   // The habit detail screen. It led with brain health in two places before the
   // rebuild; both are gone and neither may come back.
   'src/screens/HabitDetailScreen.tsx',
+  // The Practices hub (IA step 4b-i). It sits ABOVE the pillar hubs already
+  // listed here and its card descriptors are the same class of copy, so it holds
+  // to the same rule. Added with the Routines card, whose destination subtitle
+  // ("Build routines that support your brain", focusContent.ts:44) is exactly
+  // the framing this guard exists to keep off hub surfaces — the card
+  // deliberately does not echo it, and this is what keeps it that way.
+  'src/screens/practices/PracticesHubScreen.tsx',
 ];
 
 const RETIRED_POSITIONING_PATTERNS = [
