@@ -46,19 +46,19 @@ export const ROUTES = {
   PillarPractices: 'PillarPractices',
   PillarLearn: 'PillarLearn',
 
-  // --- Former pillar tabs, now AppStack screens (IA restructure step 2) ---
+  // --- Former pillar tabs, now AppStack screens (IA restructure steps 2 + 4a) ---
   // Focus / Energy / Time stopped being tabs when the tab set collapsed to four.
-  // Their SCREENS survive unchanged and are re-parented under Practices in steps
-  // 3-5, so these keys are deliberately retained:
-  //   - PillarTime  → PlanScreen        registered on AppStack (pushed, not a tab)
-  //   - PillarEnergy → EnergyHubScreen  registered on AppStack (pushed, not a tab)
-  //     Both stay registered under these exact names so NAV_TARGETS (navTargets.ts)
-  //     keeps resolving live: every dashboard / check-in / nudge CTA still lands
-  //     on the real screen, it just pushes instead of switching a tab.
-  //   - PillarFocus → FocusHubScreen    NOT registered anywhere right now. It has
-  //     no caller (nothing navigates to this key), so registering it would create
-  //     an unreachable screen rather than preserve a reachable one. The key is
-  //     kept for step 4, which re-homes the hub under Practices.
+  // Their SCREENS survive unchanged, registered on AppStack under these exact
+  // names (pushed, not tabs):
+  //   - PillarTime  → PlanScreen        (step 2)
+  //   - PillarEnergy → EnergyHubScreen  (step 2)
+  //     Keeping these names is what let NAV_TARGETS (navTargets.ts) go on
+  //     resolving live: every dashboard / check-in / nudge CTA still lands on the
+  //     real screen, it just pushes instead of switching a tab.
+  //   - PillarFocus → FocusHubScreen    (step 4a) Held unregistered through step
+  //     2 because it had no caller, and an unreachable route is worse than an
+  //     absent one. The Practices hub's "Focus & Time" card is that caller, so it
+  //     is registered now — which also un-darkened FocusRhythms behind it.
   PillarFocus: 'PillarFocus',
   PillarEnergy: 'PillarEnergy',
   PillarTime: 'PillarTime',
@@ -66,9 +66,9 @@ export const ROUTES = {
   // EnergyHubScreen). Parameterized by browseCategory (regulate/rest/fuel).
   // Registered in the flag-ON AppStack path only.
   EnergyBrowse: 'EnergyBrowse',
-  // Focus hub (B-3c) secondary entry, reached from the Focus tab (PillarFocus →
-  // FocusHubScreen). A quiet capture of when focus comes easiest; no scores.
-  // Registered in the flag-ON AppStack path only.
+  // Focus hub (B-3c) secondary entry, reached from the Focus hub (PillarFocus →
+  // FocusHubScreen) and from nowhere else. A quiet capture of when focus comes
+  // easiest; no scores. Registered in the flag-ON AppStack path only.
   FocusRhythms: 'FocusRhythms',
 
   // --- Root / AppStack (MainNavigator) ---
