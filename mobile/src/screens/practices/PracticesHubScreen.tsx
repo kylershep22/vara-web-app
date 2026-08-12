@@ -1,21 +1,39 @@
-// Practices tab root — IA restructure step 4a.
+// Practices tab root — IA restructure steps 4a + 4b-i.
 //
-// A LAUNCHER, not a page: one card per pillar, each opening a pillar hub that
-// already exists and already works as a pushed screen. It holds no state, reads
-// no data, and renders nothing of its own beyond the cards. A doorway, not a
-// destination.
+// A LAUNCHER, not a page: one card per pillar, each opening a surface that
+// already exists and already works. It holds no state, reads no data, and
+// renders nothing of its own beyond the cards. A doorway, not a destination.
 //
-// TWO cards this slice, both live:
-//   Focus & Time → ROUTES.PillarFocus  (FocusHubScreen)
-//   Energy       → ROUTES.PillarEnergy (EnergyHubScreen)
+// THREE cards, all live:
+//   Focus & Time → ROUTES.PillarFocus     (FocusHubScreen)
+//   Energy       → ROUTES.PillarEnergy    (EnergyHubScreen)
+//   Routines     → NAV_TARGETS.plan       (the existing routine builder)   [4b-i]
 //
-// Routines & Systems and Stress Recovery are the remaining two pillars in the
-// designed order. They are deliberately ABSENT rather than present-and-inert:
-// their pages do not exist yet, and a card that opens nothing is a dead end.
-// ComingSoonCard was considered and rejected here — it is the right answer for a
-// planned tool sitting among live ones on a pillar page (see FocusHubScreen),
-// and the wrong answer for a launcher whose entire promise is that every card
-// goes somewhere. The two land in 4b when their pages do.
+// Stress Recovery is the one remaining pillar. It is deliberately ABSENT rather
+// than present-and-inert: its page does not exist yet, and a card that opens
+// nothing is a dead end. ComingSoonCard was considered and rejected here — it is
+// the right answer for a planned tool sitting among live ones on a pillar page
+// (see FocusHubScreen), and the wrong answer for a launcher whose entire promise
+// is that every card goes somewhere. It lands in 4b-ii, card and page together.
+//
+// THE ROUTINES CARD IS WIRING, NOT A NEW PAGE (4b-i). It points at the surface
+// the dashboard's "Today's routine" card already opens — NAV_TARGETS.plan with
+// `{ tab: 'routines' }` — so both entry points land on the same builder, in the
+// same state, with no second implementation to keep in sync. Nothing about that
+// destination changes in this slice.
+//
+// Worth stating plainly, because the routing reads as indirect: NAV_TARGETS.plan
+// resolves to ROUTES.PillarTime, which AppNavigator registers as PlanScreen
+// (AppNavigator.tsx:881). PlanScreen hosts the routine builder on its `routines`
+// sub-tab (PlanScreen.tsx:301 → RoutinesTab → RoutineEditor). The builder is NOT
+// a separate screen, and this card does not make it one.
+//
+// Why NAV_TARGETS.plan and not ROUTES.PillarTime directly, when the two cards
+// above name their ROUTES entries: every other caller that deep-links into
+// routines goes through NAV_TARGETS.plan (8 sites: the dashboard CTAs, the
+// check-in hand-off, the routine-reminder tap). Naming the alias keeps this card
+// in lockstep with them if that destination ever moves, which is the whole
+// reason navTargets.ts exists. Focus and Energy have no alias to name.
 //
 // RESTORES FOCUS. FocusHubScreen and FocusRhythmsScreen have been unreachable
 // since step 2 dropped the Focus tab: nothing navigated to ROUTES.PillarFocus,
@@ -43,55 +61,98 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
+import { NAV_TARGETS } from '../../navigation/navTargets';
 
 // [COPY GAP] markers render ON SCREEN, per the weekly-loop convention: nobody
 // should mistake a walkthrough build for finished product. Removing a marker is
 // a copy decision and belongs to Jen. Card LABELS carry the marker too: "Focus &
-// Time" and "Energy" are the roadmap's working pillar names, which is not the
-// same thing as approved user-facing copy.
+// Time", "Energy" and "Routines" are the roadmap's working pillar names, which is
+// not the same thing as approved user-facing copy.
 const gap = (text: string) => `[COPY GAP] ${text}`;
 
 const MIN_TOUCH_TARGET = 48;
 
+// All three destinations are AppStack screens, siblings of the tab navigator
+// rather than children of it, so these navigate calls bubble up out of the tab
+// context and PUSH. Same mechanism as the Energy hub's Journal / Masterclass
+// rows. Pushing is what gives every card a working back path to Practices.
+//
+// The Routines entry is written as a MAPPED type keyed off NAV_TARGETS.plan
+// rather than as a literal `PillarTime:` key. The alias is flag-dependent
+// (navTargets.ts:34), so hardcoding one side of it here would silently stop
+// type-checking the other. Same idiom, same reason, as CheckInFlowScreen.tsx:72.
+type NavigationProp = NativeStackNavigationProp<
+  {
+    PillarFocus: undefined;
+    PillarEnergy: undefined;
+  } & { [K in typeof NAV_TARGETS.plan]: { tab: 'routines' } }
+>;
+
 interface PillarCardConfig {
   id: string;
-  route: typeof ROUTES.PillarFocus | typeof ROUTES.PillarEnergy;
   label: string;
   descriptor: string;
   icon: string;
+  /**
+   * Where the card goes. A thunk rather than a bare route name because Routines
+   * needs a param (`{ tab: 'routines' }`) the other two do not, and a single
+   * `navigate(route, params)` call over a union of route names does not
+   * type-check — React Navigation's overloads cannot pair the right params with
+   * the right name once the name is a union. The alternative was one cast at the
+   * boundary (the NotificationContext.tsx:190 idiom); a thunk was preferred here
+   * because it keeps every destination's params checked against its own route
+   * with no cast at all.
+   */
+  go: (navigation: NavigationProp) => void;
 }
 
 // Order is the designed pillar order, not alphabetical and not arbitrary: Focus
-// & Time first, Energy second. Routines & Systems and Stress Recovery are third
-// and fourth when their pages land, so this array is appended to, never resorted.
+// & Time first, Energy second, Routines third. Stress Recovery is fourth when
+// its page lands, so this array is appended to, never resorted.
 //
-// Each descriptor echoes its destination's own intro line, so the card promises
-// what the page then says rather than introducing a second description of the
-// same pillar.
+// Each descriptor echoes what its destination actually offers, so the card
+// promises what the surface then delivers rather than introducing a second
+// description of the same pillar. All three are noun phrases in the same
+// register, deliberately: a card that switched to an imperative would read as
+// the loudest one on the page.
+//
+// Routines' descriptor does NOT echo its destination's own subtitle, which is
+// the one exception. FocusCopy.routinesSubtitle reads "Build routines that
+// support your brain" — brain-led framing, which the v2 outcomes-led sweep
+// retired from hub and headline copy (see brandCopyGuard's
+// RETIRED_POSITIONING_PATTERNS). Fixing that string is a copy change inside
+// PlanScreen's surface and belongs to Jen, not to this wiring slice; the card
+// simply does not repeat it.
 const PILLARS: PillarCardConfig[] = [
   {
     id: 'focus-time',
-    route: ROUTES.PillarFocus,
     label: gap('Focus & Time'),
     descriptor: gap('Protected time for one thing at a time.'),
     icon: 'target',
+    go: (navigation) => navigation.navigate(ROUTES.PillarFocus),
   },
   {
     id: 'energy',
-    route: ROUTES.PillarEnergy,
     label: gap('Energy'),
     descriptor: gap('Ways to shift how you feel.'),
     icon: 'white-balance-sunny',
+    go: (navigation) => navigation.navigate(ROUTES.PillarEnergy),
+  },
+  {
+    id: 'routines',
+    label: gap('Routines'),
+    descriptor: gap('The sequences your days run on.'),
+    // Echoes the dashboard routine card's own icon (RoutineCard.tsx:45), so the
+    // same concept carries the same mark on both surfaces that open it.
+    icon: 'clipboard-check-outline',
+    // The `tab` param is load-bearing: PlanScreen defaults to its habits
+    // sub-tab, so a card labelled Routines that omitted it would land the user
+    // on habits. Same param, same reason, as the dashboard routine CTA
+    // (DashboardScreen.tsx:424) and the routine-reminder tap
+    // (NotificationContext.tsx:203).
+    go: (navigation) => navigation.navigate(NAV_TARGETS.plan, { tab: 'routines' }),
   },
 ];
-
-// Both destinations are AppStack screens, siblings of the tab navigator rather
-// than children of it, so these navigate calls bubble up out of the tab context
-// and PUSH. Same mechanism as the Energy hub's Journal / Masterclass rows.
-type NavigationProp = NativeStackNavigationProp<{
-  PillarFocus: undefined;
-  PillarEnergy: undefined;
-}>;
 
 export function PracticesHubScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -109,7 +170,7 @@ export function PracticesHubScreen() {
             <TouchableOpacity
               key={p.id}
               style={styles.card}
-              onPress={() => navigation.navigate(p.route)}
+              onPress={() => p.go(navigation)}
               accessibilityRole="button"
               accessibilityLabel={`${p.label}. ${p.descriptor}`}
               testID={`practices-hub-card-${p.id}`}
