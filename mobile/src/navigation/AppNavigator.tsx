@@ -158,6 +158,7 @@ import { PracticeRunScreen } from '../screens/practices/PracticeRunScreen';
 // still flag-gated).
 import { EnergyHubScreen } from '../screens/Energy/EnergyHubScreen';
 import { EnergyBrowseListScreen } from '../screens/Energy/EnergyBrowseListScreen';
+import { StressRecoveryScreen } from '../screens/StressRecovery/StressRecoveryScreen';
 
 // Phase 2 sub-step 2.5 — production CheckInFlow screen wrapper.
 import { CheckInFlowScreen } from '../screens/checkin/CheckInFlowScreen';
@@ -919,6 +920,32 @@ const MainNavigator = () => {
         <AppStack.Screen
           name={ROUTES.PillarFocus}
           component={FocusHubScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            headerBackTitle: 'Practices',
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: '',
+            headerShadowVisible: false,
+          })}
+        />
+        {/* IA restructure step 4b-ii-a — the Stress Recovery pillar page, the
+            fourth and last card on the Practices hub.
+
+            Registered on the same terms as PillarFocus above, and for the same
+            reason: exactly one parent (the Practices hub), so headerBackTitle
+            names it rather than falling back to the generic 'Back'. title is
+            empty because the screen renders its own heading as the list's
+            header, the way the Focus and Energy hubs render theirs.
+
+            NOT flag-gated, unlike EnergyBrowse / FocusRhythms below. Those two
+            predate the four-tab IA and had to stay invisible under the legacy
+            flag; this screen's only entry point is the Practices hub, which
+            exists only in the four-tab IA, so there is no flag-OFF path that
+            could reach it. */}
+        <AppStack.Screen
+          name={ROUTES.PillarStressRecovery}
+          component={StressRecoveryScreen}
           options={stackOpts({
             ...standardHeaderOptions,
             headerBackTitle: 'Practices',

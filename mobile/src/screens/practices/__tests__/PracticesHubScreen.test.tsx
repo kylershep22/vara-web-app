@@ -1,14 +1,16 @@
-// Practices tab root — IA restructure steps 4a + 4b-i.
+// Practices tab root — IA restructure steps 4a + 4b-i + 4b-ii-a.
 //
 // The step-2 version of this suite asserted the shell had NOTHING tappable, as a
 // tripwire that would fire the moment content arrived without a destination to
 // match. It has fired, and this is its replacement: the same guarantee stated
 // positively. Everything tappable on this hub goes to a route that exists.
 //
-// The count assertion is still the load-bearing one, now at THREE. 4b-i adds the
-// Routines card; Stress Recovery has no page yet, and this suite fails if a
-// fourth card appears before one does. That is the no-dead-ends rule with teeth,
-// not a comment.
+// The count assertion is still the load-bearing one, now at FOUR — the complete
+// pillar set. It has done its job twice: it held at two until Routines had a
+// destination, then at three until Stress Recovery had a page. Now that the set
+// is closed it changes meaning slightly, from "nothing has shipped early" to
+// "nothing has been added without a page", and a FIFTH card must not appear
+// without one. That is the no-dead-ends rule with teeth, not a comment.
 
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
@@ -23,11 +25,12 @@ import { PracticesHubScreen } from '../PracticesHubScreen';
 import { ROUTES } from '../../../navigation/routes';
 import { NAV_TARGETS } from '../../../navigation/navTargets';
 
-// The three cards, in the order the hub is designed to render them.
+// The four cards, in the order the hub is designed to render them.
 const CARD_IDS = [
   'practices-hub-card-focus-time',
   'practices-hub-card-energy',
   'practices-hub-card-routines',
+  'practices-hub-card-stress-recovery',
 ];
 
 beforeEach(() => {
@@ -42,7 +45,7 @@ describe('PracticesHubScreen — pillar launcher', () => {
     expect(getByText('Practices')).toBeTruthy();
   });
 
-  it('renders the three live pillar cards, in the designed order', () => {
+  it('renders the four live pillar cards, in the designed order', () => {
     const { UNSAFE_getAllByType } = render(<PracticesHubScreen />);
 
     // Order is designed, not incidental: Focus & Time, Energy, Routines.
@@ -96,7 +99,7 @@ describe('PracticesHubScreen — pillar launcher', () => {
     expect(params).toEqual({ tab: 'routines' });
   });
 
-  it('has exactly three tappable cards, and every one of them navigates', () => {
+  it('has exactly four tappable cards, and every one of them navigates', () => {
     const { UNSAFE_getAllByType } = render(<PracticesHubScreen />);
 
     // By component type, not by scanning props: a TouchableOpacity renders
@@ -104,9 +107,9 @@ describe('PracticesHubScreen — pillar launcher', () => {
     // props scan counts one card twice.
     const cards = UNSAFE_getAllByType(TouchableOpacity);
 
-    // Three cards, no more. A fourth appearing here means a pillar card shipped
+    // Four cards, no more. A fifth appearing here means a pillar card shipped
     // ahead of its page — the dead end this hub is not allowed to have.
-    expect(cards).toHaveLength(3);
+    expect(cards).toHaveLength(4);
 
     for (const card of cards) {
       mockNavigate.mockClear();
@@ -126,21 +129,38 @@ describe('PracticesHubScreen — pillar launcher', () => {
     }
   });
 
-  it('does not ship a Stress Recovery card ahead of its page', () => {
-    const { queryByTestId } = render(<PracticesHubScreen />);
+  it('routes Stress Recovery to its page', () => {
+    const { getByTestId } = render(<PracticesHubScreen />);
 
-    // 4b-ii adds the card and the page together. Until then a Stress Recovery
-    // card would open nothing. Stated positively here as well as by the count
-    // above, so the failure message names the actual rule that was broken.
-    expect(queryByTestId('practices-hub-card-stress-recovery')).toBeNull();
+    fireEvent.press(getByTestId('practices-hub-card-stress-recovery'));
+
+    // The inverse of the assertion this replaces. Until 4b-ii-a this test read
+    // `expect(...).toBeNull()`, guarding against the card shipping ahead of its
+    // page; the page landed in the same commit as the card, so the guard is
+    // retired by being turned around rather than deleted.
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.PillarStressRecovery);
+  });
+
+  it('sends Stress Recovery somewhere other than Energy, despite sharing its practices', () => {
+    const { getByTestId } = render(<PracticesHubScreen />);
+
+    fireEvent.press(getByTestId('practices-hub-card-stress-recovery'));
+
+    // Stress Recovery cross-lists Energy's settle practices, so "just point it
+    // at Energy" is a plausible-looking shortcut that would destroy the point
+    // of the pillar: the framing around the practices IS the feature. Pinned
+    // so that shortcut cannot be taken quietly.
+    expect(mockNavigate).not.toHaveBeenCalledWith(ROUTES.PillarEnergy);
   });
 
   it('still marks its copy as a gap', () => {
     const { getAllByText } = render(<PracticesHubScreen />);
 
     // The marker renders ON SCREEN, per the weekly-loop convention: a
-    // walkthrough build must never be mistaken for finished product. All three
-    // cards carry it on both their label and their descriptor.
+    // walkthrough build must never be mistaken for finished product. Every card
+    // carries it on both its label and its descriptor, plus one on the page
+    // intro — hence the arithmetic, which scales with CARD_IDS rather than
+    // needing a hand-edit each time a pillar lands.
     expect(getAllByText(/^\[COPY GAP\]/)).toHaveLength(CARD_IDS.length * 2 + 1);
   });
 });

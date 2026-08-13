@@ -47,6 +47,9 @@ const COPY_SOURCES = [
   // strings are [COPY GAP] placeholders today, which is exactly why the guard
   // goes on now: it is Jen's replacement copy that most needs it.
   'src/screens/practices/PracticesHubScreen.tsx',
+  // IA restructure step 4b-ii-a. The Stress Recovery page's title + intro, on
+  // the same terms as the Energy browse list it cross-lists from.
+  'src/screens/StressRecovery/StressRecoveryScreen.tsx',
   'src/screens/Focus/components/CenterFirstToggle.tsx',
   'src/constants/focusRhythms.ts',
   'src/constants/focusContent.ts',
@@ -176,6 +179,12 @@ const OUTCOMES_LED_SURFACES = [
   // the framing this guard exists to keep off hub surfaces — the card
   // deliberately does not echo it, and this is what keeps it that way.
   'src/screens/practices/PracticesHubScreen.tsx',
+  // The Stress Recovery page (4b-ii-a). Its intro is the highest-risk copy on
+  // the pillar pages: a page about relief from stress is exactly where a
+  // nervous-system / brain-health explanation wants to creep back in as
+  // justification. The page's job is to name the MOMENT, not teach the
+  // mechanism, and every practice it lists is already explained on Energy.
+  'src/screens/StressRecovery/StressRecoveryScreen.tsx',
 ];
 
 const RETIRED_POSITIONING_PATTERNS = [

@@ -11,18 +11,22 @@
 // Items are ordered shortest-first for a gentle progression.
 
 import React, { useLayoutEffect, useMemo } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, Spacing } from '../../constants';
 import { getAllProtocols } from '../../constants/brainStateProtocols';
-import { formatProtocolDuration } from '../../utils/protocolDisplay';
 import { ROUTES } from '../../navigation/routes';
+import { ProtocolListItem } from '../../components/protocol/ProtocolListItem';
 import type { Protocol, ProtocolBrowseCategory } from '../../types/models';
 
-const MIN_TOUCH_TARGET = 48;
+// The list row moved to components/protocol/ProtocolListItem in step 4b-ii-a so
+// the Stress Recovery page could render the same row instead of a second copy.
+// A pure move: the prefix below is the testID this screen always emitted, so
+// what renders here is unchanged.
+const TEST_ID_PREFIX = 'energy-browse-card';
 
 const CATEGORY_LABEL: Record<ProtocolBrowseCategory, string> = {
   regulate: 'Regulate',
@@ -69,6 +73,7 @@ export function EnergyBrowseListScreen() {
         renderItem={({ item }) => (
           <ProtocolListItem
             protocol={item}
+            testIDPrefix={TEST_ID_PREFIX}
             onPress={() =>
               // True browse pick: no pre-protocol state was captured.
               navigation.navigate(ROUTES.PracticeRun, {
@@ -85,31 +90,7 @@ export function EnergyBrowseListScreen() {
   );
 }
 
-interface ProtocolListItemProps {
-  protocol: Protocol;
-  onPress: () => void;
-}
-
-function ProtocolListItem({ protocol, onPress }: ProtocolListItemProps) {
-  return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Start ${protocol.name}, ${formatProtocolDuration(protocol)}`}
-      testID={`energy-browse-card-${protocol.id}`}
-    >
-      <View style={styles.cardHeaderRow}>
-        <Text style={styles.cardName}>{protocol.name}</Text>
-        <Text style={styles.cardDuration}>{formatProtocolDuration(protocol)}</Text>
-      </View>
-      <Text style={styles.cardDescription} numberOfLines={2}>
-        {protocol.description}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
+// Only the page-level styles remain here. The card styles moved with the row.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -119,37 +100,5 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: Spacing.xl,
-  },
-  card: {
-    minHeight: MIN_TOUCH_TARGET,
-    padding: Spacing.lg,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    backgroundColor: Colors.surface,
-    marginBottom: Spacing.md,
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
-  },
-  cardName: {
-    flex: 1,
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.softCharcoal,
-    marginRight: Spacing.sm,
-  },
-  cardDuration: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.evergreenTeal,
-  },
-  cardDescription: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.mutedSageGray,
-    lineHeight: 22,
   },
 });

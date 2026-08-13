@@ -48,14 +48,19 @@ function isRegistered(routeKey: keyof typeof ROUTES): boolean {
 
 describe('pillar routes are registered, not just named', () => {
   // Every pillar destination something navigates to today.
-  //   PillarFocus  ← the Practices hub's "Focus & Time" card (step 4a)
-  //   PillarEnergy ← the Practices hub's "Energy" card, and NAV_TARGETS.browseContent
-  //   PillarTime   ← NAV_TARGETS.plan (8 call sites)
-  //   FocusRhythms ← the Focus hub's secondary row, and nowhere else
+  //   PillarFocus          ← the Practices hub's "Focus & Time" card (step 4a)
+  //   PillarEnergy         ← the Practices hub's "Energy" card, and
+  //                          NAV_TARGETS.browseContent
+  //   PillarTime           ← NAV_TARGETS.plan (8 call sites), reached from the
+  //                          hub's "Routines" card since 4b-i
+  //   PillarStressRecovery ← the Practices hub's fourth card, and nowhere else
+  //                          (step 4b-ii-a)
+  //   FocusRhythms         ← the Focus hub's secondary row, and nowhere else
   it.each([
     ['PillarFocus'],
     ['PillarEnergy'],
     ['PillarTime'],
+    ['PillarStressRecovery'],
     ['FocusRhythms'],
   ] as const)('AppNavigator registers %s', (routeKey) => {
     expect(isRegistered(routeKey)).toBe(true);
@@ -73,10 +78,24 @@ describe('pillar routes are registered, not just named', () => {
     expect(NAVIGATOR_SOURCE).toMatch(/import \{[^}]*FocusHubScreen[^}]*\} from/);
   });
 
-  it('does not register a Routines or Stress Recovery pillar route yet', () => {
-    // 4a ships a two-card hub. These pillars land in 4b, with their pages. If a
-    // route key for either appears before then, the no-dead-ends rule slipped.
+  it('imports the Stress Recovery screen it registers', () => {
+    // Same guard as the Focus one above, for the same failure mode: a
+    // registration whose component import went missing is the step-2 state that
+    // cost a whole slice.
+    expect(NAVIGATOR_SOURCE).toMatch(
+      /import \{[^}]*StressRecoveryScreen[^}]*\} from/
+    );
+  });
+
+  it('never grew a PillarRoutines route', () => {
+    // The other half of the old "no Routines or Stress Recovery route yet"
+    // guard, and the half that is still true. Routines is reached by REUSING
+    // PillarTime (NAV_TARGETS.plan) because the routine builder already lives
+    // there — a pillar card does not imply a new route key, and inventing
+    // PillarRoutines would mean a second home for the same builder.
+    //
+    // Stress Recovery's half of that guard was retired in 4b-ii-a: its key now
+    // exists, asserted registered in the it.each above.
     expect(Object.keys(ROUTES)).not.toContain('PillarRoutines');
-    expect(Object.keys(ROUTES)).not.toContain('PillarStressRecovery');
   });
 });

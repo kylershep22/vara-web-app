@@ -256,6 +256,60 @@ describe('BRAIN_STATE_PROTOCOLS — Phase 1 launch library', () => {
     });
   });
 
+  describe("the Stress Recovery settle set (IA step 4b-ii-a)", () => {
+    // StressRecoveryScreen is a CROSS-LIST: it filters the catalog on
+    // `regulationDirection === 'settle'` and shows exactly what Energy already
+    // shows under Regulate + Rest. Nothing was moved, so the page has no content
+    // of its own to protect — what needs protecting is the INVARIANT that makes
+    // the cross-list honest. These assertions live here, next to the data,
+    // because a retag of any protocol is what would break them.
+    const settle = () =>
+      getAllProtocols().filter((p) => p.regulationDirection === 'settle');
+
+    it('is exactly the seven practices the page was designed around', () => {
+      // Hardcoded on purpose, unlike the browseCategory counts above. If a new
+      // settle practice is authored, or an existing one is retagged, that is a
+      // content decision that should surface as a failing test naming the page
+      // it changes — not appear silently on a screen nobody re-reviewed.
+      expect(settle().map((p) => p.id).sort()).toEqual([
+        'box-breathing-2',
+        'coherence-breathing-5',
+        'cyclic-sighing-2',
+        'extended-exhale-2',
+        'nsdr-10',
+        'nsdr-20',
+        'sensory-reset-2',
+      ]);
+    });
+
+    it('is exactly Energy regulate + rest, so the cross-list has zero unique content', () => {
+      // The claim the whole 4b-ii-a design rests on. If this ever fails, Stress
+      // Recovery has stopped being a second doorway onto Energy's practices and
+      // has quietly become a page with content of its own — at which point the
+      // duplicate-vs-move decision needs revisiting, not patching.
+      const settleIds = settle().map((p) => p.id).sort();
+      const regulateOrRest = getAllProtocols()
+        .filter((p) => p.browseCategory === 'regulate' || p.browseCategory === 'rest')
+        .map((p) => p.id)
+        .sort();
+
+      expect(settleIds).toEqual(regulateOrRest);
+    });
+
+    it('excludes Cold Water Reset, which the engine-side settle rule would admit', () => {
+      // The strict-vs-directionMatches fork, pinned. engine/slotFilter.ts's
+      // directionMatches('settle', …) accepts `settle` OR `both`, and the only
+      // `both` practice is cold water — a poor answer for someone already
+      // activated. StressRecoveryScreen uses strict `=== 'settle'` deliberately;
+      // this fails if anyone "simplifies" it to the engine helper.
+      expect(settle().map((p) => p.id)).not.toContain('cold-water-reset-5');
+      expect(
+        getAllProtocols().find((p) => p.id === 'cold-water-reset-5')
+          ?.regulationDirection
+      ).toBe('both');
+    });
+  });
+
   describe('getProtocolById', () => {
     it('returns null for unknown id', () => {
       expect(getProtocolById('not-a-protocol')).toBeNull();
