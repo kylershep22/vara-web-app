@@ -45,6 +45,7 @@ import {
   LABEL_WHAT,
   NO_RHYTHMS_INVITATION,
   PLACE_IT_THERE,
+  missingFieldsHint,
   PROTECT_TOGGLE,
   SAVE_BLOCK,
   SAVE_FAILED,
@@ -65,16 +66,18 @@ export const DURATION_OPTIONS = [30, 60, 90];
 const DEMAND_OPTIONS: Demand[] = ['light', 'medium', 'heavy'];
 
 /**
- * Default demand.
+ * DEMAND HAS NO DEFAULT, DELIBERATELY.
  *
- * OPEN FOR JEN. The mockup's own question is whether the tag is required at
- * capture, and it leans required on the grounds that it is one tap and it is
- * the whole model. That reasoning is about Tasks capture (screen D); here the
- * field is required by the DayBlock type, so the choice is between a neutral
- * default and a primary button disabled with no explanation. Neutral default
- * wins for now because it keeps exactly one live primary action.
+ * "How much does this take out of you?" is a felt question. Pre-selecting an
+ * answer assigns the user a state rather than acknowledging one, which is the
+ * same reason the mockup leans toward requiring the tag at capture: it is one
+ * tap and it is the whole model. An earlier pass defaulted this to 'medium' to
+ * keep the primary always live; that traded the model away for a convenience
+ * nobody asked for. Do not reintroduce a default here.
+ *
+ * Duration is the deliberate contrast: 30/60/90 is logistics, not a felt state,
+ * so it keeps its default below.
  */
-const DEFAULT_DEMAND: Demand = 'medium';
 
 /**
  * Default duration.
@@ -143,9 +146,13 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
   const hasSuggestion = suggestion.kind === 'ok';
 
   const [title, setTitle] = useState('');
-  const [demand, setDemand] = useState<Demand>(DEFAULT_DEMAND);
+  // Null until the user answers. See the note above on why there is no default.
+  const [demand, setDemand] = useState<Demand | null>(null);
   const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION);
   const [isProtected, setIsProtected] = useState(false);
+  // Set by tapping the primary before the block is complete, and never shown
+  // once it is: the hint answers a question the user just asked by tapping.
+  const [hintRequested, setHintRequested] = useState(false);
 
   // Manual mode is the only mode when there is nothing to suggest. When there
   // IS a suggestion, "I'll choose a time" is what flips this on, and it never
@@ -175,9 +182,33 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
   }, [now, manualTime]);
 
   const startAt = manual || !suggestedStart ? manualStart : suggestedStart;
-  const canSave = title.trim().length > 0 && !saving;
+
+  const needsTitle = title.trim().length === 0;
+  const needsDemand = demand === null;
+  const isComplete = !needsTitle && !needsDemand;
+  const canSave = isComplete && !saving;
+  const showHint = hintRequested && !isComplete;
+
+  /**
+   * The primary stays TAPPABLE while it looks disabled.
+   *
+   * A truly disabled TouchableOpacity swallows the press, and a button that
+   * dims with no explanation is the exact dead end the hint exists to prevent.
+   * So the press is always handled: it either saves or says what is missing.
+   * `saving` is the one case that genuinely blocks, so one tap stays one write.
+   */
+  const handlePrimary = () => {
+    if (saving) return;
+    if (!isComplete) {
+      setHintRequested(true);
+      return;
+    }
+    handleConfirm();
+  };
 
   const handleConfirm = () => {
+    // Narrowing only; handlePrimary is the sole caller and gates on isComplete.
+    if (demand === null) return;
     onConfirm({
       title: title.trim(),
       demand,
@@ -211,13 +242,30 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
               {SAVE_FAILED}
             </Text>
           )}
+          {showHint && (
+            <Text style={styles.hint} testID="add-block-hint">
+              {missingFieldsHint(needsTitle, needsDemand)}
+            </Text>
+          )}
           <TouchableOpacity
             style={[styles.primary, !canSave && styles.primaryDisabled]}
-            onPress={handleConfirm}
-            disabled={!canSave}
+            onPress={handlePrimary}
+            // NEITHER `disabled` NOR accessibilityState.disabled, DELIBERATELY,
+            // and the two are the same decision: assistive tech refuses to
+            // ACTIVATE a control it has been told is disabled, which would make
+            // tap-to-learn-what-is-missing a sighted-only affordance. The
+            // button is dimmed to 40% but remains genuinely activatable, and it
+            // always answers. Never announce an activatable control as disabled.
+            //
+            // The incomplete state reaches screen readers through the hint
+            // below instead, which is read on focus and needs no tap at all.
+            // `saving` is guarded inside handlePrimary, so one tap is still one
+            // write.
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityState={{ disabled: !canSave }}
+            accessibilityHint={
+              isComplete ? undefined : missingFieldsHint(needsTitle, needsDemand)
+            }
             testID="add-block-confirm"
           >
             <Text style={styles.primaryLabel}>
@@ -477,7 +525,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.md,
   },
+  // Teal at 40% per the standards' disabled treatment, matching
+  // DailyPickerSheet's confirm. Visual only: the press still lands.
   primaryDisabled: { opacity: 0.4 },
+  // Brief hint at the standards' 11.5px caption size. Muted, never the error
+  // coral: nothing has gone wrong, something is just not filled in yet.
+  hint: {
+    marginBottom: Spacing.sm,
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
+  },
   primaryLabel: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,

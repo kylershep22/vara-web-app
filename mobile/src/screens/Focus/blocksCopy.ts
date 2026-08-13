@@ -148,6 +148,21 @@ export const PROTECT_TOGGLE = gap('Protect this block');
 /** [new] Mirrors DailyPickerSheet's saveFailed treatment. */
 export const SAVE_FAILED = gap("That didn't save. Try again?");
 
+/**
+ * [new] What is still missing, shown when the primary is tapped before the
+ * block is complete.
+ *
+ * Names the gap rather than scolding: no "required", no "you must", no error
+ * colour. Demand has no default because "how much does this take out of you?"
+ * is a felt question and pre-filling it would assign the user a state instead
+ * of acknowledging one, so the hint has to carry the ask instead.
+ */
+export function missingFieldsHint(needsTitle: boolean, needsDemand: boolean): string {
+  if (needsTitle && needsDemand) return gap('Add a name and pick how much it takes.');
+  if (needsTitle) return gap('Give it a name first.');
+  return gap('Pick how much it takes out of you.');
+}
+
 // ---- shared formatting ----
 
 /**

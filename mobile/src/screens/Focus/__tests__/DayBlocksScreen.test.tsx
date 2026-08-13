@@ -79,6 +79,7 @@ import {
   SAVE_BLOCK,
   SUFFICIENCY_LINE,
   VARIES_LINE,
+  missingFieldsHint,
 } from '../blocksCopy';
 
 /** A DayBlock whose startAt behaves like a Firestore Timestamp. */
@@ -303,24 +304,69 @@ describe('creating a block', () => {
     return utils;
   }
 
-  it('holds the primary until a title is typed', async () => {
+  it('starts with NO demand selected', async () => {
+    // "How much does this take out of you?" is a felt question, so nothing may
+    // pre-answer it. A default would assign the user a state rather than
+    // acknowledge one.
     const { getByTestId } = await openSheetWith(['afternoon']);
 
-    expect(getByTestId('add-block-confirm').props.accessibilityState.disabled).toBe(true);
+    for (const option of ['light', 'medium', 'heavy']) {
+      expect(
+        getByTestId(`add-block-demand-${option}`).props.accessibilityState.selected
+      ).toBe(false);
+    }
+  });
+
+  it('will not save until BOTH a title and a demand are given', async () => {
+    // Asserted BEHAVIOURALLY rather than on style. The 40% dim is real but the
+    // flattened style RNTL exposes for a TouchableOpacity is not a trustworthy
+    // read of it, and "does the button actually save yet" is the stronger
+    // claim regardless. The dim itself is on the device walk.
+    const { getByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.press(getByTestId('add-block-confirm'));
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+
     fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
-    expect(getByTestId('add-block-confirm').props.accessibilityState.disabled).toBe(false);
+    fireEvent.press(getByTestId('add-block-confirm'));
+    // Title alone is not enough any more.
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalledTimes(1));
+  });
+
+  it('never announces the dimmed primary as disabled', async () => {
+    // The load-bearing absence. If this becomes `{ disabled: true }`, screen
+    // readers stop being able to activate it and the hint becomes unreachable
+    // for exactly the users who most need it.
+    const { getByTestId } = await openSheetWith(['afternoon']);
+
+    const state = getByTestId('add-block-confirm').props.accessibilityState;
+    expect(state?.disabled).toBeFalsy();
+  });
+
+  it('keeps the 60 minute duration default, which is logistics not a feeling', async () => {
+    const { getByTestId } = await openSheetWith(['afternoon']);
+
+    expect(getByTestId('add-block-duration-60').props.accessibilityState.selected).toBe(
+      true
+    );
   });
 
   it('persists suggestedFrom when the suggestion is accepted', async () => {
     const { getByTestId } = await openSheetWith(['afternoon']);
 
     fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
     fireEvent.press(getByTestId('add-block-confirm'));
 
     await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
     const [, draft] = mockCreateBlock.mock.calls[0];
     expect(draft.suggestedFrom).toBe('afternoon');
     expect(draft.title).toBe('Q3 board deck');
+    expect(draft.demand).toBe('heavy');
     expect(draft.startAt).toBeInstanceOf(Date);
   });
 
@@ -328,6 +374,7 @@ describe('creating a block', () => {
     const { getByTestId } = await openSheetWith(['afternoon']);
 
     fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
     fireEvent.press(getByTestId('add-block-choose-time'));
     fireEvent.press(getByTestId('add-block-confirm'));
 
@@ -341,6 +388,7 @@ describe('creating a block', () => {
     const { getByTestId } = await openSheetWith([]);
 
     fireEvent.changeText(getByTestId('add-block-title'), 'Inbox');
+    fireEvent.press(getByTestId('add-block-demand-light'));
     fireEvent.press(getByTestId('add-block-confirm'));
 
     await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
@@ -353,12 +401,62 @@ describe('creating a block', () => {
     const { getByTestId, findByTestId } = await openSheetWith(['afternoon']);
 
     fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
     fireEvent.press(getByTestId('add-block-confirm'));
 
     expect(await findByTestId('add-block-error')).toBeTruthy();
     // Still open, with the draft intact: retry costs one tap.
     expect(getByTestId('add-block-sheet')).toBeTruthy();
     expect(getByTestId('add-block-title').props.value).toBe('Q3 board deck');
+  });
+
+  it('says what is missing when the dimmed primary is tapped, and writes nothing', async () => {
+    const { getByTestId, queryByTestId, getByText } = await openSheetWith(['afternoon']);
+
+    // No hint until asked for: it answers a question the tap just posed.
+    expect(queryByTestId('add-block-hint')).toBeNull();
+
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    expect(getByText(missingFieldsHint(true, true))).toBeTruthy();
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+  });
+
+  it('names only the part still missing', async () => {
+    const { getByTestId, getByText } = await openSheetWith(['afternoon']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    // Title is done, so the hint asks only for the demand.
+    expect(getByText(missingFieldsHint(false, true))).toBeTruthy();
+  });
+
+  it('clears the hint once the block is complete', async () => {
+    const { getByTestId, queryByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.press(getByTestId('add-block-confirm'));
+    expect(getByTestId('add-block-hint')).toBeTruthy();
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+
+    expect(queryByTestId('add-block-hint')).toBeNull();
+  });
+
+  it('carries the missing-fields hint to assistive tech without a tap', async () => {
+    // A control announced as dimmed may not be activatable by a screen reader,
+    // so the hint cannot be tap-only.
+    const { getByTestId } = await openSheetWith(['afternoon']);
+
+    expect(getByTestId('add-block-confirm').props.accessibilityHint).toBe(
+      missingFieldsHint(true, true)
+    );
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+
+    expect(getByTestId('add-block-confirm').props.accessibilityHint).toBeUndefined();
   });
 
   it('the sheet itself writes nothing before confirm', async () => {
