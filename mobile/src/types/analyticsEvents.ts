@@ -31,7 +31,7 @@
  * `services/firebase/analyticsEvents.service.ts`.
  */
 
-import type { CapacityTier, OutcomeKey } from '../weeklyEngine';
+import type { CapacityTier, OutcomeKey } from '../protocolEngine';
 
 /**
  * The 12 protocol ids, as a closed union.
@@ -42,7 +42,7 @@ import type { CapacityTier, OutcomeKey } from '../weeklyEngine';
  * buys a 12-member union that arbitrary text cannot satisfy.
  *
  * The derivation mirrors the single place the matrix builds its ids
- * (`weeklyEngine/protocolMatrix.ts`, the `protocol()` factory), and
+ * (`protocolEngine/protocolMatrix.ts`, the `protocol()` factory), and
  * `types/__tests__/analyticsEvents.test.ts` pins the two together across all 12
  * cells so they cannot drift apart unnoticed.
  */

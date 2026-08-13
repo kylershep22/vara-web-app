@@ -17,7 +17,7 @@
  * V2 arc cannot see it and nothing outside onboarding can reach it.
  */
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import type { CapacityTier, OutcomeKey } from '../../../weeklyEngine';
+import type { CapacityTier, OutcomeKey } from '../../../protocolEngine';
 
 /** A reminder time, matching the ReminderTime shape the notif prefs store uses. */
 export interface V3ReminderTime {

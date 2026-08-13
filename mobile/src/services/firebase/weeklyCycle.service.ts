@@ -1,7 +1,7 @@
 /**
  * weeklyCycles / dailyLogs / downshiftEvents — the weekly-loop persistence layer.
  *
- * Stores what the pure src/weeklyEngine module computes (Reconciled Product Spec
+ * Stores what the pure src/protocolEngine module computes (Reconciled Product Spec
  * S6-S8). Three owner-scoped behavioral collections, each gated by the rules on
  * the userId FIELD rather than the document ID, which is what makes the
  * `where userId ==` queries below legal for the caller's own rows and illegal
@@ -52,7 +52,7 @@ import { requireDb } from './ensureDb';
 import type { DailyLog, DownshiftEvent, WeeklyCycle } from '../../types/models';
 // Type-only import from the engine barrel: erased at compile time, so this does
 // NOT wire the weekly engine into the running app.
-import type { CapacityTier, OutcomeKey, TimeClass } from '../../weeklyEngine';
+import type { CapacityTier, OutcomeKey, TimeClass } from '../../protocolEngine';
 
 const WEEKLY_CYCLES = 'weeklyCycles';
 const DAILY_LOGS = 'dailyLogs';

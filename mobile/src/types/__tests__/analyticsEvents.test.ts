@@ -19,7 +19,7 @@ import {
   type AdjustmentKey,
   type WeeklyEntryRoute,
 } from '../analyticsEvents';
-import { CAPACITY_TIERS, OUTCOME_KEYS, PROTOCOL_MATRIX } from '../../weeklyEngine';
+import { CAPACITY_TIERS, OUTCOME_KEYS, PROTOCOL_MATRIX } from '../../protocolEngine';
 import { ADJUSTMENT_KEYS, type AdjustmentKey as CopyAdjustmentKey } from '../../screens/weekly/copy';
 import type { WeeklyEntryTarget } from '../../screens/weekly/weeklyEntry';
 

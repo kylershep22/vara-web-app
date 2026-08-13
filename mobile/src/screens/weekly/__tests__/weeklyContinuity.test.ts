@@ -8,7 +8,7 @@ jest.mock('../../../services/firebase/weeklyCycle.service', () => ({
 }));
 
 import { loadWeeklyContinuity, toWeeklyRecords } from '../weeklyContinuity';
-import { computeContinuity } from '../../../weeklyEngine';
+import { computeContinuity } from '../../../protocolEngine';
 import type { WeeklyCycle } from '../../../types/models';
 
 /** A stored cycle. Only the two fields the mapper reads are meaningful. */

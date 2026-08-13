@@ -13,7 +13,7 @@ import { View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { OnboardingScaffold } from '../../../components/onboarding/OnboardingScaffold';
-import { CAPACITY_TIERS, type CapacityTier } from '../../../weeklyEngine';
+import { CAPACITY_TIERS, type CapacityTier } from '../../../protocolEngine';
 import { CAPACITY_COPY, CAPACITY_GLOSSES, CAPACITY_LABELS } from './copy';
 import { useOnboardingV3 } from './OnboardingV3Context';
 import { V3_ROUTES, V3_TOTAL_STEPS, v3StepNumber } from './routes';

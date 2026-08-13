@@ -1,6 +1,10 @@
 /**
- * Weekly protocol engine — public surface
+ * Protocol engine — public surface
  * (Vara_Weekly_Engine_Contract.md v1.0).
+ *
+ * Named for what it owns — the protocol selection matrix and its rules — not
+ * for a cadence: selection is daily, while the quick-win week rule and
+ * continuity below are genuinely weekly. See `types.ts` for the full note.
  *
  * Pure module: every function here is a function of its arguments, with no
  * React, no Firebase, and no clock read. The weekly open, the Today screen and

@@ -116,7 +116,7 @@ import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import DashboardScreen from '../DashboardScreen';
-import { PROTOCOL_MATRIX } from '../../weeklyEngine';
+import { PROTOCOL_MATRIX } from '../../protocolEngine';
 
 /** A live, unclosed week inside its window, so the guard resolves 'today'. */
 function day(offset: number) {

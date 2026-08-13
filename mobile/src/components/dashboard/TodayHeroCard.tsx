@@ -25,7 +25,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Check } from 'lucide-react-native';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
-import type { ResolvedProtocolVariant } from '../../weeklyEngine';
+import type { ResolvedProtocolVariant } from '../../protocolEngine';
 import { CAPACITY_LABELS, OUTCOME_LABELS, TODAY_COPY } from '../../screens/weekly/copy';
 import type { WeeklyCycle } from '../../types/models';
 import { resolveWeekEnd } from '../../utils/weekStart';

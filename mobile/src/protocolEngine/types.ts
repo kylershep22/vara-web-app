@@ -1,5 +1,11 @@
 /**
- * Weekly protocol engine — core types (Vara_Weekly_Engine_Contract.md v1.0).
+ * Protocol engine — core types (Vara_Weekly_Engine_Contract.md v1.0).
+ *
+ * Named for what it owns — the protocol selection matrix and its rules — and
+ * deliberately not for a cadence, because BOTH cadences live here. Selection is
+ * daily: capacity and time are daily reads, so the variant served changes day to
+ * day. The quick-win week rule and continuity are genuinely weekly. A name
+ * picked from either half would misdescribe the other.
  *
  * Pure and dependency-light: no React, no Firebase, no system-clock reads.
  * Time enters as a parameter (week number, week-start date), never by reading

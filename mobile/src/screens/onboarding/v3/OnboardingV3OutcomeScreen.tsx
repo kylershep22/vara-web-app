@@ -14,7 +14,7 @@ import { View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { OnboardingScaffold } from '../../../components/onboarding/OnboardingScaffold';
-import { OUTCOME_KEYS, type OutcomeKey } from '../../../weeklyEngine';
+import { OUTCOME_KEYS, type OutcomeKey } from '../../../protocolEngine';
 import { OUTCOME_BLURBS, OUTCOME_COPY, OUTCOME_LABELS } from './copy';
 import { useOnboardingV3 } from './OnboardingV3Context';
 import { V3_ROUTES, V3_TOTAL_STEPS, v3StepNumber } from './routes';

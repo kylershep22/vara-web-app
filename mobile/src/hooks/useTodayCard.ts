@@ -47,7 +47,7 @@ import {
   type CapacityTier,
   type ResolvedProtocolVariant,
   type TimeClass,
-} from '../weeklyEngine';
+} from '../protocolEngine';
 import {
   countWeeklyCyclesForOutcome,
   getDailyLog,

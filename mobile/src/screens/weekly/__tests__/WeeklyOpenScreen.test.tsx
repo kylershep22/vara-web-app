@@ -44,7 +44,7 @@ jest.mock('react-native-safe-area-context', () => ({
 import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { WeeklyOpenScreen } from '../WeeklyOpenScreen';
-import { PROTOCOL_MATRIX } from '../../../weeklyEngine';
+import { PROTOCOL_MATRIX } from '../../../protocolEngine';
 import {
   addDaysIso,
   isoWeekday,
