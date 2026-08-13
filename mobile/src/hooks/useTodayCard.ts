@@ -45,7 +45,7 @@ import {
   selectProtocol,
   DEFAULT_TIME_CLASS,
   type CapacityTier,
-  type ResolvedWeeklyProtocol,
+  type ResolvedProtocolVariant,
   type TimeClass,
 } from '../weeklyEngine';
 import {
@@ -61,7 +61,7 @@ import { addDaysIso, toIsoDate } from '../utils/weekStart';
 import { logger } from '../utils/logger';
 
 export interface TodayCard {
-  protocol: ResolvedWeeklyProtocol | null;
+  protocol: ResolvedProtocolVariant | null;
   /** Only read, and only shown, when the DAY's capacity is 'slammed'. */
   floorCommitment: string | null;
   /** True once today's log records the action as done. */
@@ -127,7 +127,7 @@ export function useTodayCard(
   uid: string | undefined,
   cycle: WeeklyCycle | null
 ): TodayCard {
-  const [protocol, setProtocol] = useState<ResolvedWeeklyProtocol | null>(null);
+  const [protocol, setProtocol] = useState<ResolvedProtocolVariant | null>(null);
   const [floorCommitment, setFloorCommitment] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(false);

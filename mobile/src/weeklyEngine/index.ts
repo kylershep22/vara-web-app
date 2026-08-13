@@ -14,8 +14,8 @@ export type {
   OutcomeKey,
   CapacityTier,
   TimeClass,
-  WeeklyProtocol,
-  ResolvedWeeklyProtocol,
+  ProtocolVariant,
+  ResolvedProtocolVariant,
   WeeklyRecord,
 } from './types';
 
@@ -31,7 +31,7 @@ export {
   allProtocols,
   unauthoredVariants,
 } from './protocolMatrix';
-export type { WeeklyProtocolMatrix, UnauthoredVariant } from './protocolMatrix';
+export type { ProtocolVariantMatrix, UnauthoredVariant } from './protocolMatrix';
 // selectProtocol takes a time class; representativeProtocol deliberately does
 // not (week-level callers have no daily answer to give it).
 export { selectProtocol, representativeProtocol } from './selectProtocol';

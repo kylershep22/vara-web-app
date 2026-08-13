@@ -25,7 +25,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Check } from 'lucide-react-native';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
-import type { ResolvedWeeklyProtocol } from '../../weeklyEngine';
+import type { ResolvedProtocolVariant } from '../../weeklyEngine';
 import { CAPACITY_LABELS, OUTCOME_LABELS, TODAY_COPY } from '../../screens/weekly/copy';
 import type { WeeklyCycle } from '../../types/models';
 import { resolveWeekEnd } from '../../utils/weekStart';
@@ -46,7 +46,7 @@ const COMPLETION_COPY = {
 
 export interface TodayHeroCardProps {
   cycle: WeeklyCycle;
-  protocol: ResolvedWeeklyProtocol;
+  protocol: ResolvedProtocolVariant;
   /** Rendered only when present; the hook reads it only on slammed weeks. */
   floorCommitment: string | null;
   completed: boolean;

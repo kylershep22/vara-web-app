@@ -15,13 +15,13 @@
  * Pure: `weekNumber` is injected, never derived from the clock, and the input
  * protocol is never mutated.
  */
-import type { ResolvedWeeklyProtocol, WeeklyProtocol } from './types';
+import type { ResolvedProtocolVariant, ProtocolVariant } from './types';
 
 export const QUICK_WIN_WEEK = 1;
 
 export function applyQuickWin(
-  protocol: WeeklyProtocol,
+  protocol: ProtocolVariant,
   weekNumber: number
-): ResolvedWeeklyProtocol {
+): ResolvedProtocolVariant {
   return { ...protocol, quickWinActive: weekNumber === QUICK_WIN_WEEK };
 }

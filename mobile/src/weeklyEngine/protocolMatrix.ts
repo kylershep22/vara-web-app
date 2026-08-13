@@ -9,7 +9,7 @@
  *
  * WHY A CELL IS AN ARRAY. Time is now its own question, and a cell has to be
  * able to answer it. An array was chosen over explicit time keys
- * (`Record<TimeClass, WeeklyProtocol>`) because that shape leaves exactly ONE
+ * (`Record<TimeClass, ProtocolVariant>`) because that shape leaves exactly ONE
  * protocol after the time filter, and the "see other options" rotation that
  * follows in 3b-iii would have nothing to rotate through. An array supports two
  * or more variants sharing a time class, which is what rotation needs, and it
@@ -29,7 +29,7 @@
  *
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
-import type { CapacityTier, OutcomeKey, TimeClass, WeeklyProtocol } from './types';
+import type { CapacityTier, OutcomeKey, TimeClass, ProtocolVariant } from './types';
 
 /**
  * Placeholder quick-win practice: the short extended exhale appended to every
@@ -92,9 +92,9 @@ export function timeClassForMinutes(minutes: number): TimeClass {
 const protocol = (
   outcome: OutcomeKey,
   capacity: CapacityTier,
-  fields: Pick<WeeklyProtocol, 'name' | 'dailyAction' | 'estMinutes' | 'whyItWorks'> &
-    Partial<Pick<WeeklyProtocol, 'quickWinPracticeId' | 'supportingPracticeIds'>>
-): WeeklyProtocol => {
+  fields: Pick<ProtocolVariant, 'name' | 'dailyAction' | 'estMinutes' | 'whyItWorks'> &
+    Partial<Pick<ProtocolVariant, 'quickWinPracticeId' | 'supportingPracticeIds'>>
+): ProtocolVariant => {
   // Derived, never passed in: a hand-written class could disagree with the
   // minutes beside it, and the whole point of the class is to describe them.
   const timeClass = timeClassForMinutes(fields.estMinutes);
@@ -110,9 +110,9 @@ const protocol = (
   };
 };
 
-export type WeeklyProtocolMatrix = Record<
+export type ProtocolVariantMatrix = Record<
   OutcomeKey,
-  Record<CapacityTier, WeeklyProtocol[]>
+  Record<CapacityTier, ProtocolVariant[]>
 >;
 
 /**
@@ -137,7 +137,7 @@ export type WeeklyProtocolMatrix = Record<
  * question cannot change what a given cell serves. The picker in 3b-ii-b will
  * ask it and the answer will resolve to the same protocol.
  */
-export const PROTOCOL_MATRIX: WeeklyProtocolMatrix = {
+export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
   focus: {
     normal: [
       protocol('focus', 'normal', {
@@ -265,7 +265,7 @@ export const OUTCOME_KEYS: readonly OutcomeKey[] = ['focus', 'stress', 'routines
 export const CAPACITY_TIERS: readonly CapacityTier[] = ['normal', 'limited', 'slammed'];
 
 /** Every variant in the matrix, outcome-major then capacity then time order. */
-export function allProtocols(): WeeklyProtocol[] {
+export function allProtocols(): ProtocolVariant[] {
   return OUTCOME_KEYS.flatMap((outcome) =>
     CAPACITY_TIERS.flatMap((capacity) => PROTOCOL_MATRIX[outcome][capacity])
   );
