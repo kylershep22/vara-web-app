@@ -87,6 +87,8 @@ import {
   CHOOSE_START_TIME_ROW,
   startsAtRow,
   TIME_PICKER_TITLE,
+  EARLIER_TODAY,
+  placedForTomorrow,
 } from '../blocksCopy';
 
 /** Drive the underlying picker as an iOS spinner scroll would. */
@@ -124,6 +126,12 @@ beforeEach(() => {
   mockGetRhythms.mockResolvedValue([]);
   mockCreateBlock.mockResolvedValue('new-id');
   mockDeleteBlock.mockResolvedValue(undefined);
+});
+
+afterEach(() => {
+  // Several tests spy on Date.prototype.getHours to drive the rollover. Restore
+  // so a mocked clock cannot leak into the next test in the file.
+  jest.restoreAllMocks();
 });
 
 describe('the day view', () => {
@@ -205,6 +213,35 @@ describe('past blocks fade, and never gain a done state', () => {
       ? Object.assign({}, ...card.props.style.flat().filter(Boolean))
       : card.props.style;
     expect(flat.opacity).toBeLessThan(1);
+  });
+
+  it('captions a faded card so the fade reads as meaning, not a glitch', async () => {
+    // Round-2 walk: a block created already-past faded instantly and was
+    // reported as a rendering bug by the person who specced the fade. Opacity
+    // alone carries no semantics.
+    const longAgo = new Date();
+    longAgo.setHours(0, 30, 0, 0);
+    mockListBlocks.mockResolvedValue([
+      makeBlock({ id: 'past', start: longAgo, durationMinutes: 30 }),
+    ]);
+
+    const { findByTestId, getByText } = render(<DayBlocksScreen />);
+
+    await findByTestId('block-past-past');
+    expect(getByText(EARLIER_TODAY)).toBeTruthy();
+  });
+
+  it('does NOT caption a block still ahead', async () => {
+    const soon = new Date();
+    soon.setHours(23, 30, 0, 0);
+    mockListBlocks.mockResolvedValue([
+      makeBlock({ id: 'later', start: soon, durationMinutes: 30 }),
+    ]);
+
+    const { findByTestId, queryByTestId } = render(<DayBlocksScreen />);
+
+    await findByTestId('block-card-later');
+    expect(queryByTestId('block-past-later')).toBeNull();
   });
 
   it('renders no checkmark or completed affordance on any card', async () => {
@@ -528,6 +565,38 @@ describe('creating a block', () => {
     expect(queryByTestId('add-block-confirm')).toBeNull();
   });
 
+  it('takes the sheet over entirely: no form content behind the picker', async () => {
+    // Round-2 walk: the picker rendered as a SECOND sheet stacked on the first,
+    // with the duration chips visible bleeding through between the two layers.
+    // The form must not be rendered at all while the picker is up.
+    const { getByTestId, queryByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.press(getByTestId('add-block-choose-time'));
+
+    expect(getByTestId('time-picker-sheet')).toBeTruthy();
+    for (const id of [
+      'add-block-title',
+      'add-block-demand-heavy',
+      'add-block-duration-60',
+      'add-block-duration-90',
+      'add-block-suggestion',
+      'add-block-protect',
+      'add-block-time-row',
+    ]) {
+      expect(queryByTestId(id)).toBeNull();
+    }
+  });
+
+  it('restores the form when the picker closes', async () => {
+    const { getByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.press(getByTestId('add-block-choose-time'));
+    fireEvent.press(getByTestId('time-picker-cancel'));
+
+    expect(getByTestId('add-block-duration-60')).toBeTruthy();
+    expect(getByTestId('add-block-confirm')).toBeTruthy();
+  });
+
   it('renders the committed time as a row that reopens the picker', async () => {
     const { getByTestId, getByText, queryByTestId } = await openSheetWith(['afternoon']);
 
@@ -600,6 +669,60 @@ describe('creating a block', () => {
     // Back on the accept path, provenance and all.
     expect(draft.suggestedFrom).toBe('afternoon');
     expect(draft.startAt.getHours()).toBe(12);
+  });
+
+  it("writes TOMORROW's real date when the rollover suggestion is accepted", async () => {
+    // suggestPlacement rolls over once every window has passed. At 23:00 with
+    // only a mid-morning window, the suggestion is mid-morning TOMORROW, and
+    // the stored instant has to be tomorrow's date carrying tomorrow's hour.
+    // Writing today's date with tomorrow's hour would be a silent data bug;
+    // this is the pin either way.
+    jest.spyOn(Date.prototype, 'getHours').mockReturnValue(23);
+    const { getByTestId } = await openSheetWith(['mid_morning']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
+    const [, draft] = mockCreateBlock.mock.calls[0];
+
+    const today = new Date();
+    const expected = new Date(today);
+    expected.setDate(expected.getDate() + 1);
+
+    expect(draft.startAt.getDate()).toBe(expected.getDate());
+    expect(draft.startAt.getMonth()).toBe(expected.getMonth());
+    expect(draft.startAt.getFullYear()).toBe(expected.getFullYear());
+    // And it is genuinely a different calendar day from today.
+    expect(draft.startAt.getDate()).not.toBe(today.getDate());
+  });
+
+  it('confirms a tomorrow placement, which this today-only view cannot show', async () => {
+    // The block is created correctly and is simply out of range for this list
+    // until TB-1c adds the Tomorrow view. Without the notice the save reads as
+    // a silent failure.
+    jest.spyOn(Date.prototype, 'getHours').mockReturnValue(23);
+    const { getByTestId, findByTestId, getByText } = await openSheetWith(['mid_morning']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await findByTestId('day-blocks-tomorrow-notice');
+    expect(getByText(placedForTomorrow('Mid-morning'))).toBeTruthy();
+  });
+
+  it('shows no tomorrow notice for a block placed today', async () => {
+    jest.spyOn(Date.prototype, 'getHours').mockReturnValue(9);
+    const { getByTestId, queryByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
+    expect(queryByTestId('day-blocks-tomorrow-notice')).toBeNull();
   });
 
   it('the sheet itself writes nothing before confirm', async () => {

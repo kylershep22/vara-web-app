@@ -32,6 +32,10 @@ import {
   listDayBlocksBetween,
 } from '../../services/firebase/dayBlocks.service';
 import { getFocusRhythms } from '../../services/firebase/focusRhythms.service';
+import {
+  FOCUS_RHYTHM_OPTIONS,
+  type FocusRhythmKey,
+} from '../../constants/focusRhythms';
 import type { DayBlock } from '../../types/models';
 import { suggestPlacement } from './suggestPlacement';
 import { DayShapeStrip } from './components/DayShapeStrip';
@@ -43,6 +47,7 @@ import {
   DAY_TITLE,
   EMPTY_LINE,
   SUFFICIENCY_LINE,
+  placedForTomorrow,
 } from './blocksCopy';
 
 const MIN_TOUCH_TARGET = 48;
@@ -66,6 +71,20 @@ type NavigationProp = NativeStackNavigationProp<{
   FocusRhythms: undefined;
 }>;
 
+/** Same local calendar day. */
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+/** The rhythm zone's display label, when the suggestion was accepted. */
+function zoneLabel(key?: FocusRhythmKey): string | undefined {
+  return key ? FOCUS_RHYTHM_OPTIONS.find((o) => o.key === key)?.label : undefined;
+}
+
 /** Local midnight today, and local midnight tomorrow. */
 function todayBounds(now: Date): { start: Date; end: Date } {
   const start = new Date(now);
@@ -85,6 +104,9 @@ export function DayBlocksScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
+  // Set only when a saved block lands on a day this view cannot show. Cleared
+  // when the sheet reopens, so it never lingers as stale reassurance.
+  const [tomorrowNotice, setTomorrowNotice] = useState<string | null>(null);
 
   /**
    * Bumped every time the sheet opens, and used as its `key` so it REMOUNTS.
@@ -156,10 +178,25 @@ export function DayBlocksScreen() {
       if (!uid) return;
       setSaving(true);
       setSaveFailed(false);
+      // Computed BEFORE the write, because load() below re-reads the clock.
+      //
+      // VERIFIED ON THE ROUND-2 WALK: this is not a data bug. The sheet's
+      // dateAtHour advances the DATE before setting the hour, so an accepted
+      // tomorrow suggestion stores tomorrow's real instant, exactly as calendar
+      // export will need it. What it cannot do is appear in this list, which
+      // covers today only. The block is right; the view is narrow.
+      //
+      // So the invisibility is acknowledged rather than hidden, and is
+      // TEMPORARY: TB-1c adds the Tomorrow view, at which point this notice
+      // stops being the only evidence the block exists and can go.
+      const landsTomorrow = !isSameDay(draft.startAt, new Date());
       try {
         await createDayBlock(uid, draft);
         setSheetOpen(false);
         await load();
+        setTomorrowNotice(
+          landsTomorrow ? placedForTomorrow(zoneLabel(draft.suggestedFrom)) : null
+        );
       } catch (error) {
         logger.error('[DayBlocks] create failed:', error);
         // The sheet stays open with the draft intact; retry costs one tap.
@@ -221,6 +258,12 @@ export function DayBlocksScreen() {
               ))
             )}
 
+            {tomorrowNotice && (
+              <Text style={styles.tomorrowNotice} testID="day-blocks-tomorrow-notice">
+                {tomorrowNotice}
+              </Text>
+            )}
+
             {atCap ? (
               <Text style={styles.sufficiency} testID="day-blocks-sufficiency">
                 {SUFFICIENCY_LINE}
@@ -230,6 +273,7 @@ export function DayBlocksScreen() {
                 style={styles.cta}
                 onPress={() => {
                   setSaveFailed(false);
+                  setTomorrowNotice(null);
                   setSheetSession((n) => n + 1);
                   setSheetOpen(true);
                 }}
@@ -290,6 +334,14 @@ const styles = StyleSheet.create({
     ...TextStyles.body,
     color: Colors.mutedSageGray,
     marginBottom: Spacing.lg,
+  },
+  // Calm and informational, never an error: the save succeeded. Sits directly
+  // above the CTA, where the user's attention already is after confirming.
+  tomorrowNotice: {
+    ...TextStyles.bodySmall,
+    color: Colors.mutedSageGray,
+    textAlign: 'center',
+    marginTop: Spacing.md,
   },
   sufficiency: {
     ...TextStyles.bodySmall,

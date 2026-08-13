@@ -327,6 +327,34 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
         )
       }
     >
+      {/* THE PICKER IS A FULL TAKEOVER, not a second sheet. It replaces the
+          form in place, in the same sheet, so nothing from the form is visible
+          behind it. The first attempt layered TimePickerSheet's own scrimmed
+          overlay inside this already-open modal, which left the duration chips
+          bleeding through between the two layers and read as two competing
+          sheets. Rendering the form at all while the picker is up is what
+          caused that, so it is not rendered.
+
+          Commit semantics are unchanged by the presentation swap: Done calls
+          onChange, the only thing in this component that can set a manual time,
+          and Cancel calls onClose alone and leaves the committed state exactly
+          as it was. The title override matters because the component defaults
+          to "Reminder time" for the per-habit reminder path, and blocks have no
+          reminders of any kind. */}
+      {pickerOpen ? (
+        <TimePickerSheet
+          visible
+          presentation="inline"
+          value={pickerSeed}
+          title={TIME_PICKER_TITLE}
+          onChange={(next) => {
+            setCommittedTime(next);
+            setPickerOpen(false);
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      ) : (
+      <>
       <Text style={styles.fieldLabel}>{LABEL_WHAT}</Text>
       <TextInput
         style={styles.input}
@@ -462,21 +490,8 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
         />
       </View>
 
-      {/* THE ONE COMMIT PATH. Done calls onChange, which is the only thing in
-          this component that can set a manual time; Cancel calls onClose only
-          and leaves the committed state exactly as it was. The title override
-          matters: the component defaults to "Reminder time" for the per-habit
-          reminder path, and blocks have no reminders of any kind. */}
-      <TimePickerSheet
-        visible={pickerOpen}
-        value={pickerSeed}
-        title={TIME_PICKER_TITLE}
-        onChange={(next) => {
-          setCommittedTime(next);
-          setPickerOpen(false);
-        }}
-        onClose={() => setPickerOpen(false)}
-      />
+      </>
+      )}
     </EnhancedModal>
   );
 };

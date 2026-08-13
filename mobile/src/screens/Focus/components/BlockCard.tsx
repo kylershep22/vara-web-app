@@ -35,6 +35,7 @@ import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import type { DayBlock } from '../../../types/models';
 import {
   DEMAND_LABELS,
+  EARLIER_TODAY,
   PROTECTED_CHIP,
   REMOVE_ACTION,
   REMOVE_A11Y_HINT,
@@ -122,6 +123,12 @@ export const BlockCard: React.FC<BlockCardProps> = ({ block, now, onRemove }) =>
           <Text style={styles.meta}>
             {formatTimeRange(startAt, block.durationMinutes)}
           </Text>
+          {/* Only on faded cards, and only to explain the fade. */}
+          {isPast && (
+            <Text style={styles.pastCaption} testID={`block-past-${block.id}`}>
+              {EARLIER_TODAY}
+            </Text>
+          )}
           <View style={styles.chipRow}>
             <Tag
               label={DEMAND_LABELS[block.demand]}
@@ -153,13 +160,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
+  // NEUTRAL DESTRUCTIVE, NOT AN ERROR COLOUR. Soft Coral (#D97A6E) is reserved
+  // for genuine error states across the app, and removing a block the user
+  // themselves placed is routine housekeeping, not something going wrong. This
+  // pane was coral until the round-2 device walk called it out. Muted Sage Gray
+  // carries the "this is the destructive one" weight without borrowing the
+  // error signal. Do not reach for coral here.
+  //
+  // Open for Jen alongside the swipe gesture itself.
   action: {
     width: ACTION_WIDTH,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.softCoral,
+    backgroundColor: Colors.mutedSageGray,
   },
   actionLabel: {
     fontSize: Typography.fontSize.sm,
@@ -188,6 +203,13 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     color: Colors.mutedSageGray,
     marginTop: 4,
+  },
+  // Caption type, Muted Sage Gray. Sits under the time range so the fade and
+  // its explanation read as one unit.
+  pastCaption: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.mutedSageGray,
+    marginTop: 2,
   },
   chipRow: {
     flexDirection: 'row',

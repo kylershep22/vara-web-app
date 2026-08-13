@@ -52,6 +52,18 @@ export const SUFFICIENCY_LINE = gap('Three blocks is a full day of intent. The r
 export const PROTECTED_CHIP = gap('Protected');
 
 /**
+ * [new] Caption on a faded card, so the fade reads as meaning rather than as a
+ * rendering fault.
+ *
+ * The round-2 device walk found a block created already-past faded instantly
+ * and was reported as a bug BY THE PERSON WHO SPECCED THE FADE. Opacity alone
+ * carries no semantics; this names what it means. Still no done state, no
+ * checkmark, and no past tense that implies the block was completed: it says
+ * WHEN, not whether.
+ */
+export const EARLIER_TODAY = gap('Earlier today');
+
+/**
  * [new] The single destructive action on a card, revealed by swipe.
  *
  * "Remove", never "Delete forever", per the UI standards' language rule. The
@@ -147,6 +159,20 @@ export const PROTECT_TOGGLE = gap('Protect this block');
 
 /** [new] Mirrors DailyPickerSheet's saveFailed treatment. */
 export const SAVE_FAILED = gap("That didn't save. Try again?");
+
+/**
+ * [new] Confirmation after a block lands on TOMORROW.
+ *
+ * suggestPlacement rolls over to tomorrow once every window has passed, so an
+ * evening user accepting the suggestion creates a block the today-only day view
+ * cannot show. The block is correct; the list simply does not cover that day
+ * yet. Without this line the save looks like it silently failed.
+ *
+ * Temporary by design: TB-1c adds the Tomorrow view and this stops being the
+ * only evidence the block exists.
+ */
+export const placedForTomorrow = (zoneLabel?: string) =>
+  gap(zoneLabel ? `Placed for tomorrow ${zoneLabel.toLowerCase()}` : 'Placed for tomorrow');
 
 /**
  * [new] What is still missing, shown when the primary is tapped before the
