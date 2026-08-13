@@ -40,7 +40,7 @@ import {
   createWeeklyCycle,
   getWeeklyCycleForWeek,
 } from '../../../services/firebase/weeklyCycle.service';
-import { representativeProtocol } from '../../../weeklyEngine';
+import { representativeProtocol } from '../../../protocolEngine';
 import { planWeek, toIsoDate } from '../../../utils/weekStart';
 import { logger } from '../../../utils/logger';
 import { DONE_COPY } from './copy';

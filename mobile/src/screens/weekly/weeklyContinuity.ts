@@ -28,7 +28,7 @@
  *
  * Pure except for `loadWeeklyContinuity`, which is the one-line read path.
  */
-import { computeContinuity, type WeeklyRecord } from '../../weeklyEngine';
+import { computeContinuity, type WeeklyRecord } from '../../protocolEngine';
 import { getWeeklyCyclesForUser } from '../../services/firebase/weeklyCycle.service';
 import type { WeeklyCycle } from '../../types/models';
 

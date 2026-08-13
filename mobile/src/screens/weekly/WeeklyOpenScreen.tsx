@@ -35,7 +35,7 @@ import {
   representativeProtocol,
   type CapacityTier,
   type OutcomeKey,
-} from '../../weeklyEngine';
+} from '../../protocolEngine';
 import {
   createWeeklyCycle,
   getLatestWeeklyCycle,

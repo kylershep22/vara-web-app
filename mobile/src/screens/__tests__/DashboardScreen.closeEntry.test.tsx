@@ -129,7 +129,7 @@ import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import DashboardScreen from '../DashboardScreen';
-import { PROTOCOL_MATRIX } from '../../weeklyEngine';
+import { PROTOCOL_MATRIX } from '../../protocolEngine';
 import { addDaysIso, toIsoDate } from '../../utils/weekStart';
 
 // The guard reads the real clock, so windows are built relative to today.

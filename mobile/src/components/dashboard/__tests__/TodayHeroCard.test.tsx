@@ -10,7 +10,7 @@ import { render } from '@testing-library/react-native';
 
 import { TodayHeroCard } from '../TodayHeroCard';
 import { CAPACITY_LABELS, OUTCOME_LABELS, TODAY_COPY } from '../../../screens/weekly/copy';
-import { PROTOCOL_MATRIX } from '../../../weeklyEngine';
+import { PROTOCOL_MATRIX } from '../../../protocolEngine';
 import type { WeeklyCycle } from '../../../types/models';
 
 // 2026-08-16 is a SUNDAY; 2026-08-22 is the Saturday that ends that week.

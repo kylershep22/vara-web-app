@@ -7,7 +7,7 @@ import { Timestamp } from 'firebase/firestore';
 import type { HabitCategoryKey } from '../constants/habitTaxonomy';
 // Type-only import: erased at compile time, so this does NOT wire the weekly
 // engine into the running app. The engine stays unconsumed by any screen.
-import type { OutcomeKey, CapacityTier, TimeClass } from '../weeklyEngine';
+import type { OutcomeKey, CapacityTier, TimeClass } from '../protocolEngine';
 
 // ==========================================
 // VALUE MODELS
@@ -228,7 +228,7 @@ export interface Membership {
 // ==========================================
 // WEEKLY LOOP MODELS
 //
-// Persistence for the weekly-capacity loop the src/weeklyEngine module computes
+// Persistence for the weekly-capacity loop the src/protocolEngine module computes
 // (Reconciled Product Spec S6-S8, S17.2). Three OWNER-SCOPED BEHAVIORAL
 // collections: weeklyCycles, dailyLogs, downshiftEvents.
 //
@@ -293,7 +293,7 @@ export interface WeeklyCycle {
   capacityInitial: CapacityTier;
   /** The tier in force now, after any in-week adjustment (S7). */
   capacityCurrent: CapacityTier;
-  /** The selected protocol cell, `${outcome}-${capacity}` (see weeklyEngine). */
+  /** The selected protocol cell, `${outcome}-${capacity}` (see protocolEngine). */
   protocolId: string;
 
   // ---- Weekly close (S8). All absent until the close is completed. ----

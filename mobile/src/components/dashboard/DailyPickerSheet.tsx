@@ -33,7 +33,7 @@ import {
   TIME_CLASSES,
   type CapacityTier,
   type TimeClass,
-} from '../../weeklyEngine';
+} from '../../protocolEngine';
 import {
   CAPACITY_GLOSSES,
   CAPACITY_LABELS,

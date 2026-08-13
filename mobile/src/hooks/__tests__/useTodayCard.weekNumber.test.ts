@@ -75,7 +75,7 @@ jest.mock('../../config/firebase', () => ({
 import { renderHook, waitFor } from '@testing-library/react-native';
 
 import { useTodayCard } from '../useTodayCard';
-import { PROTOCOL_MATRIX } from '../../weeklyEngine';
+import { PROTOCOL_MATRIX } from '../../protocolEngine';
 import type { WeeklyCycle } from '../../types/models';
 
 /** Persist one weekly cycle, exactly as createWeeklyCycle would have. */
