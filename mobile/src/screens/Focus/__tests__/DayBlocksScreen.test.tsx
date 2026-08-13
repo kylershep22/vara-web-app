@@ -31,6 +31,9 @@ jest.mock('react-native-gesture-handler', () => {
   };
 });
 
+// Same stub the existing TimePickerSheet suite uses.
+jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');
   const { View } = require('react-native');
@@ -68,7 +71,8 @@ jest.mock('../../../services/firebase/focusRhythms.service', () => ({
 }));
 
 import React from 'react';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { Platform } from 'react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { DayBlocksScreen, MAX_BLOCKS_PER_DAY } from '../DayBlocksScreen';
 import type { DayBlock } from '../../../types/models';
@@ -80,7 +84,17 @@ import {
   SUFFICIENCY_LINE,
   VARIES_LINE,
   missingFieldsHint,
+  CHOOSE_START_TIME_ROW,
+  startsAtRow,
+  TIME_PICKER_TITLE,
 } from '../blocksCopy';
+
+/** Drive the underlying picker as an iOS spinner scroll would. */
+function scrollPickerTo(hour: number, minute: number) {
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  fireEvent(screen.UNSAFE_getByType('DateTimePicker' as any), 'change', { type: 'set' }, d);
+}
 
 /** A DayBlock whose startAt behaves like a Firestore Timestamp. */
 function makeBlock(overrides: Partial<DayBlock> & { id: string; start: Date }): DayBlock {
@@ -102,6 +116,9 @@ const TODAY_9AM = new Date(2026, 7, 13, 9, 0, 0);
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // The picker's Cancel/Done header is the iOS path; Android defers to the
+  // system dialog and has no second commit button to disambiguate.
+  Platform.OS = 'ios';
   mockUseAuth.mockReturnValue({ user: { uid: 'u1' } });
   mockListBlocks.mockResolvedValue([]);
   mockGetRhythms.mockResolvedValue([]);
@@ -376,6 +393,8 @@ describe('creating a block', () => {
     fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
     fireEvent.press(getByTestId('add-block-demand-heavy'));
     fireEvent.press(getByTestId('add-block-choose-time'));
+    scrollPickerTo(15, 45);
+    fireEvent.press(getByTestId('time-picker-done'));
     fireEvent.press(getByTestId('add-block-confirm'));
 
     await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
@@ -389,6 +408,9 @@ describe('creating a block', () => {
 
     fireEvent.changeText(getByTestId('add-block-title'), 'Inbox');
     fireEvent.press(getByTestId('add-block-demand-light'));
+    fireEvent.press(getByTestId('add-block-time-row'));
+    scrollPickerTo(10, 0);
+    fireEvent.press(getByTestId('time-picker-done'));
     fireEvent.press(getByTestId('add-block-confirm'));
 
     await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
@@ -457,6 +479,127 @@ describe('creating a block', () => {
     fireEvent.press(getByTestId('add-block-demand-heavy'));
 
     expect(getByTestId('add-block-confirm').props.accessibilityHint).toBeUndefined();
+  });
+
+  it('writes the time PICKED in the picker, never the suggestion behind it', async () => {
+    // THE DEVICE-WALK BUG, pinned. Manual mode used to carry a pre-seeded time
+    // taken from the suggestion, so Save had something plausible to write from
+    // the moment the picker opened and the user could not tell whether Done or
+    // Save owned their choice. The suggestion here is 'afternoon' (12:00); the
+    // picked time is 15:45, and only one of them may reach the service.
+    const { getByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-choose-time'));
+    scrollPickerTo(15, 45);
+    fireEvent.press(getByTestId('time-picker-done'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
+    const [, draft] = mockCreateBlock.mock.calls[0];
+    expect(draft.startAt.getHours()).toBe(15);
+    expect(draft.startAt.getMinutes()).toBe(45);
+    // The suggestion's own hour must not survive anywhere.
+    expect(draft.startAt.getHours()).not.toBe(12);
+  });
+
+  it('will not save in manual mode until a time has been committed', async () => {
+    const { getByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-choose-time'));
+    // Back out of the picker without committing.
+    fireEvent.press(getByTestId('time-picker-cancel'));
+
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+    expect(getByTestId('add-block-hint')).toBeTruthy();
+  });
+
+  it('hides the footer while the picker is open, so Done and Save are never both live', async () => {
+    const { getByTestId, queryByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.press(getByTestId('add-block-choose-time'));
+
+    expect(getByTestId('time-picker-done')).toBeTruthy();
+    expect(queryByTestId('add-block-confirm')).toBeNull();
+  });
+
+  it('renders the committed time as a row that reopens the picker', async () => {
+    const { getByTestId, getByText, queryByTestId } = await openSheetWith(['afternoon']);
+
+    // Before committing, the row invites rather than asserting a value.
+    fireEvent.press(getByTestId('add-block-choose-time'));
+    fireEvent.press(getByTestId('time-picker-cancel'));
+    expect(getByText(CHOOSE_START_TIME_ROW)).toBeTruthy();
+
+    fireEvent.press(getByTestId('add-block-time-row'));
+    scrollPickerTo(15, 45);
+    fireEvent.press(getByTestId('time-picker-done'));
+
+    expect(getByText(startsAtRow('3:45 PM'))).toBeTruthy();
+    expect(queryByTestId('time-picker-sheet')).toBeNull();
+
+    // And the row is the way back in.
+    fireEvent.press(getByTestId('add-block-time-row'));
+    expect(getByTestId('time-picker-sheet')).toBeTruthy();
+  });
+
+  it('Cancel leaves an already-committed time exactly as it was', async () => {
+    const { getByTestId, getByText } = await openSheetWith(['afternoon']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-choose-time'));
+    scrollPickerTo(15, 45);
+    fireEvent.press(getByTestId('time-picker-done'));
+
+    // Reopen, scroll somewhere else, then back out.
+    fireEvent.press(getByTestId('add-block-time-row'));
+    scrollPickerTo(18, 30);
+    fireEvent.press(getByTestId('time-picker-cancel'));
+
+    expect(getByText(startsAtRow('3:45 PM'))).toBeTruthy();
+
+    fireEvent.press(getByTestId('add-block-confirm'));
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
+    const [, draft] = mockCreateBlock.mock.calls[0];
+    expect(draft.startAt.getHours()).toBe(15);
+    expect(draft.startAt.getMinutes()).toBe(45);
+  });
+
+  it('titles the picker for blocks, never "Reminder time"', async () => {
+    // The shared component defaults to the per-habit reminder wording. Blocks
+    // have no reminders, so that default would misdescribe what happens next.
+    const { getByTestId, getByText, queryByText } = await openSheetWith(['afternoon']);
+
+    fireEvent.press(getByTestId('add-block-choose-time'));
+
+    expect(getByText(TIME_PICKER_TITLE)).toBeTruthy();
+    expect(queryByText('Reminder time')).toBeNull();
+  });
+
+  it('lets the user fall back to the suggestion after going manual', async () => {
+    const { getByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-choose-time'));
+    fireEvent.press(getByTestId('time-picker-cancel'));
+
+    // The card is still there, de-emphasized, naming the way back.
+    expect(getByTestId('add-block-suggestion-reselect')).toBeTruthy();
+    fireEvent.press(getByTestId('add-block-suggestion'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
+    const [, draft] = mockCreateBlock.mock.calls[0];
+    // Back on the accept path, provenance and all.
+    expect(draft.suggestedFrom).toBe('afternoon');
+    expect(draft.startAt.getHours()).toBe(12);
   });
 
   it('the sheet itself writes nothing before confirm', async () => {

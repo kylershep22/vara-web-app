@@ -157,11 +157,46 @@ export const SAVE_FAILED = gap("That didn't save. Try again?");
  * is a felt question and pre-filling it would assign the user a state instead
  * of acknowledging one, so the hint has to carry the ask instead.
  */
-export function missingFieldsHint(needsTitle: boolean, needsDemand: boolean): string {
+export function missingFieldsHint(
+  needsTitle: boolean,
+  needsDemand: boolean,
+  needsTime = false
+): string {
   if (needsTitle && needsDemand) return gap('Add a name and pick how much it takes.');
   if (needsTitle) return gap('Give it a name first.');
-  return gap('Pick how much it takes out of you.');
+  if (needsDemand) return gap('Pick how much it takes out of you.');
+  return gap('Choose a start time.');
 }
+
+// ---- the manual time path ----
+
+/**
+ * [new] The committed start time, shown as a row once Done is pressed.
+ *
+ * Uses a meridiem ("9:00 AM"), unlike the card meta and suggestion slot, which
+ * follow the mockup's bare "9:00 to 10:30". A time the user just chose out of a
+ * 24-hour spinner is the one place ambiguity would be indefensible, and the
+ * mockup draws no manual-time row to be consistent with.
+ */
+export const startsAtRow = (time: string) => gap(`Starts at ${time}`);
+
+/** [new] The same row before anything has been committed. Opens the picker. */
+export const CHOOSE_START_TIME_ROW = gap('Choose a start time');
+
+/**
+ * [new] Header for the shared TimePickerSheet in this context.
+ *
+ * The component defaults to "Reminder time" for the per-habit reminder path it
+ * was built for. Blocks have no reminders of any kind, so that default would be
+ * an outright lie about what the app is about to do.
+ */
+export const TIME_PICKER_TITLE = gap('Start time');
+
+/**
+ * [new] Sits on the de-emphasized suggestion card once the user has gone
+ * manual, naming the way back.
+ */
+export const SUGGESTION_RESELECT = gap('Use this instead');
 
 // ---- shared formatting ----
 

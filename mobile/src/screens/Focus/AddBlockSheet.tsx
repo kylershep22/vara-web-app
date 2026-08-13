@@ -29,7 +29,10 @@ import { StyleSheet, Text, TextInput, TouchableOpacity, View, Switch } from 'rea
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import { EnhancedModal } from '../../components/shared/EnhancedModal';
 import { SelectChip } from '../../components/shared/SelectChip';
-import { TimePickerSheet } from '../../components/shared/TimePickerSheet';
+import {
+  TimePickerSheet,
+  formatReminderTime,
+} from '../../components/shared/TimePickerSheet';
 import type { Demand } from '../../types/models';
 import type { ReminderTime } from '../../types/models';
 import type { TimedRhythmKey } from '../../constants/focusRhythms';
@@ -37,6 +40,10 @@ import { FOCUS_RHYTHM_OPTIONS } from '../../constants/focusRhythms';
 import type { PlacementSuggestion } from './suggestPlacement';
 import {
   CHOOSE_A_TIME,
+  CHOOSE_START_TIME_ROW,
+  SUGGESTION_RESELECT,
+  TIME_PICKER_TITLE,
+  startsAtRow,
   DEMAND_LABELS,
   DURATION_LABELS,
   LABEL_DEMAND,
@@ -161,11 +168,23 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
   const [manual, setManual] = useState(!hasSuggestion);
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  /**
+   * The manual start time, and NULL UNTIL THE USER PRESSES DONE.
+   *
+   * This nullability is the whole fix for the commit-semantics bug found on the
+   * device walk. It used to be a pre-seeded ReminderTime, which meant Save had
+   * something plausible to write from the moment manual mode opened — so
+   * pressing Save while the picker was still up wrote the seed rather than the
+   * value on the spinner, and nothing on screen said which one owned the
+   * choice. There is now exactly one commit path: the picker's Done.
+   *
+   * The seed below is a DISPLAY starting point for the spinner only. It is
+   * never a committed value and is never written.
+   */
+  const [committedTime, setCommittedTime] = useState<ReminderTime | null>(null);
+
   const seedHour = suggestion.kind === 'ok' ? suggestion.startHour : FALLBACK_START_HOUR;
-  const [manualTime, setManualTime] = useState<ReminderTime>({
-    hour: seedHour,
-    minute: 0,
-  });
+  const pickerSeed: ReminderTime = committedTime ?? { hour: seedHour, minute: 0 };
 
   const suggestedStart = useMemo(
     () =>
@@ -175,19 +194,25 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
     [suggestion, now]
   );
 
+  // Null until a time has been committed. There is no fallback: an uncommitted
+  // manual block is incomplete and cannot be saved at all.
   const manualStart = useMemo(() => {
+    if (!committedTime) return null;
     const d = new Date(now);
-    d.setHours(manualTime.hour, manualTime.minute, 0, 0);
+    d.setHours(committedTime.hour, committedTime.minute, 0, 0);
     return d;
-  }, [now, manualTime]);
+  }, [now, committedTime]);
 
-  const startAt = manual || !suggestedStart ? manualStart : suggestedStart;
+  const startAt = manual ? manualStart : suggestedStart;
 
   const needsTitle = title.trim().length === 0;
   const needsDemand = demand === null;
-  const isComplete = !needsTitle && !needsDemand;
+  // Manual mode has nothing to write until Done has been pressed once.
+  const needsTime = startAt === null;
+  const isComplete = !needsTitle && !needsDemand && !needsTime;
   const canSave = isComplete && !saving;
   const showHint = hintRequested && !isComplete;
+  const hintText = missingFieldsHint(needsTitle, needsDemand, needsTime);
 
   /**
    * The primary stays TAPPABLE while it looks disabled.
@@ -208,7 +233,7 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
 
   const handleConfirm = () => {
     // Narrowing only; handlePrimary is the sole caller and gates on isComplete.
-    if (demand === null) return;
+    if (demand === null || startAt === null) return;
     onConfirm({
       title: title.trim(),
       demand,
@@ -233,9 +258,19 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
       inputAccessoryViewID={INPUT_ACCESSORY_ID}
       showKeyboardToolbar
       showCloseButton={false}
-      maxHeightPercent="auto"
+      // Raised from "auto" after the device walk: all five content rows have to
+      // be on screen at once, so the primary's referent is visible when the
+      // primary is. Paired with the tightened vertical rhythm in the styles
+      // below; "auto" subtracts the safe areas plus 40 and came up short on a
+      // smaller viewport.
+      maxHeightPercent={0.95}
       testID="add-block-sheet"
+      // THE FOOTER IS GONE WHILE THE PICKER IS UP. Done and Save must never be
+      // live at the same time: that ambiguity is the commit-semantics bug this
+      // slice fixes, and removing the footer is what makes it structurally
+      // impossible rather than merely unlikely.
       footer={
+        pickerOpen ? undefined : (
         <View>
           {saveFailed && (
             <Text style={styles.error} testID="add-block-error">
@@ -244,7 +279,7 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
           )}
           {showHint && (
             <Text style={styles.hint} testID="add-block-hint">
-              {missingFieldsHint(needsTitle, needsDemand)}
+              {hintText}
             </Text>
           )}
           <TouchableOpacity
@@ -263,9 +298,7 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
             // write.
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityHint={
-              isComplete ? undefined : missingFieldsHint(needsTitle, needsDemand)
-            }
+            accessibilityHint={isComplete ? undefined : hintText}
             testID="add-block-confirm"
           >
             <Text style={styles.primaryLabel}>
@@ -277,7 +310,13 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
           {!manual && hasSuggestion && (
             <TouchableOpacity
               style={styles.textButton}
-              onPress={() => setManual(true)}
+              // Enters manual mode AND opens the picker in one move. Landing in
+              // manual mode with no picker and no committed time would leave
+              // the user staring at a dimmed Save with nothing obviously to do.
+              onPress={() => {
+                setManual(true);
+                setPickerOpen(true);
+              }}
               accessibilityRole="button"
               testID="add-block-choose-time"
             >
@@ -285,6 +324,7 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
             </TouchableOpacity>
           )}
         </View>
+        )
       }
     >
       <Text style={styles.fieldLabel}>{LABEL_WHAT}</Text>
@@ -329,8 +369,22 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
 
       {/* ---- the rhythm area, three states keyed to suggestPlacement ---- */}
 
-      {suggestion.kind === 'ok' && !manual && (
-        <View style={styles.rhythmCard} testID="add-block-suggestion">
+      {suggestion.kind === 'ok' && (
+        // In manual mode the card stays, DE-EMPHASIZED and tappable, so going
+        // manual is not a one-way door. It is dead as a placement until tapped:
+        // `manual` alone decides what gets written, never this card's presence.
+        <TouchableOpacity
+          style={[styles.rhythmCard, manual && styles.rhythmCardMuted]}
+          disabled={!manual}
+          onPress={() => setManual(false)}
+          accessibilityRole={manual ? 'button' : 'text'}
+          accessibilityLabel={
+            manual
+              ? `${suggestionText(phraseFor(suggestion.zoneKey))} ${SUGGESTION_RESELECT}`
+              : undefined
+          }
+          testID="add-block-suggestion"
+        >
           <Text style={styles.rhythmLabel}>{LABEL_RHYTHMS}</Text>
           <Text style={styles.rhythmText}>
             {suggestionText(phraseFor(suggestion.zoneKey))}
@@ -347,7 +401,12 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
               )}
             </Text>
           </View>
-        </View>
+          {manual && (
+            <Text style={styles.reselect} testID="add-block-suggestion-reselect">
+              {SUGGESTION_RESELECT}
+            </Text>
+          )}
+        </TouchableOpacity>
       )}
 
       {suggestion.kind === 'no-rhythms' && (
@@ -369,17 +428,25 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
         </Text>
       )}
 
-      {/* The plain time picker, revealed whenever the user is choosing. */}
+      {/* The committed manual time, or the invitation to commit one. Either
+          way it is the ONLY way back into the picker, and tapping it reopens
+          the picker seeded from whatever is already committed. */}
       {manual && (
         <TouchableOpacity
           style={styles.timeRow}
           onPress={() => setPickerOpen(true)}
           accessibilityRole="button"
-          accessibilityLabel={formatTimeRange(manualStart, durationMinutes)}
+          accessibilityLabel={
+            committedTime
+              ? startsAtRow(formatReminderTime(committedTime))
+              : CHOOSE_START_TIME_ROW
+          }
           testID="add-block-time-row"
         >
-          <Text style={styles.timeValue}>
-            {formatTimeRange(manualStart, durationMinutes)}
+          <Text style={[styles.timeValue, !committedTime && styles.timeValueEmpty]}>
+            {committedTime
+              ? startsAtRow(formatReminderTime(committedTime))
+              : CHOOSE_START_TIME_ROW}
           </Text>
         </TouchableOpacity>
       )}
@@ -395,11 +462,17 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
         />
       </View>
 
+      {/* THE ONE COMMIT PATH. Done calls onChange, which is the only thing in
+          this component that can set a manual time; Cancel calls onClose only
+          and leaves the committed state exactly as it was. The title override
+          matters: the component defaults to "Reminder time" for the per-habit
+          reminder path, and blocks have no reminders of any kind. */}
       <TimePickerSheet
         visible={pickerOpen}
-        value={manualTime}
+        value={pickerSeed}
+        title={TIME_PICKER_TITLE}
         onChange={(next) => {
-          setManualTime(next);
+          setCommittedTime(next);
           setPickerOpen(false);
         }}
         onClose={() => setPickerOpen(false)}
@@ -415,7 +488,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     color: Colors.mutedSageGray,
     marginBottom: Spacing.xs,
-    marginTop: Spacing.md,
+    // Tightened from md after the device walk. Every marginTop in this sheet
+    // was cut a step so the five content rows clear a standard viewport
+    // together; do not loosen one in isolation.
+    marginTop: Spacing.sm,
   },
   input: {
     borderWidth: 1.5,
@@ -432,7 +508,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   rhythmCard: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     backgroundColor: Colors.dewSageLight,
     borderLeftWidth: 4,
     borderLeftColor: Colors.evergreenTeal,
@@ -470,13 +546,24 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: Colors.sunriseAmber,
   },
+  // Manual mode: the suggestion is no longer what will be written, so it steps
+  // back visually. Still legible, still tappable, just not the answer any more.
+  rhythmCardMuted: {
+    opacity: 0.55,
+  },
+  reselect: {
+    marginTop: Spacing.sm,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
+  },
   slotLabel: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.evergreenTeal,
   },
   invitationRow: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
   },
@@ -486,13 +573,13 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   variesText: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     fontSize: Typography.fontSize.sm,
     lineHeight: 20,
     color: Colors.mutedSageGray,
   },
   timeRow: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
     minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
     paddingHorizontal: Spacing.sm,
@@ -505,8 +592,12 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     color: Colors.softCharcoal,
   },
+  // Nothing committed yet: reads as a prompt rather than as a value.
+  timeValueEmpty: {
+    color: Colors.mutedSageGray,
+  },
   toggleRow: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     minHeight: MIN_TOUCH_TARGET,
     flexDirection: 'row',
     alignItems: 'center',
