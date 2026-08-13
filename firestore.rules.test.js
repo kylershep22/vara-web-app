@@ -12,7 +12,7 @@ const {
   assertSucceeds,
   assertFails,
 } = require('@firebase/rules-unit-testing');
-const { setDoc, getDoc, doc, updateDoc, deleteDoc, collection, addDoc, query, where, getDocs } = require('firebase/firestore');
+const { setDoc, getDoc, doc, updateDoc, deleteDoc, collection, addDoc, query, where, orderBy, getDocs } = require('firebase/firestore');
 const fs = require('fs');
 
 let testEnv;
@@ -2019,6 +2019,176 @@ describe('Analytics Events (write-only exhaust)', () => {
     const db = getAuthContext(BOB_UID).firestore();
 
     await assertFails(getDoc(doc(db, 'analyticsEvents', ref.id)));
+  });
+});
+
+describe('Day Blocks (Time Blocking)', () => {
+  const DAY_START = new Date(2026, 7, 13, 0, 0, 0);
+  const DAY_END = new Date(2026, 7, 13, 23, 59, 59);
+
+  async function seedDayBlock(userId, startAt = new Date(2026, 7, 13, 9, 0, 0)) {
+    return withAdminDb((adminDb) =>
+      addDoc(collection(adminDb, 'dayBlocks'), {
+        userId,
+        title: 'Deep work',
+        demand: 'heavy',
+        durationMinutes: 90,
+        startAt,
+        isProtected: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    );
+  }
+
+  // ---- owner CRUD ----
+
+  test('a user can create their own day block', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(
+      addDoc(collection(db, 'dayBlocks'), {
+        userId: ALICE_UID,
+        title: 'Deep work',
+        demand: 'heavy',
+        durationMinutes: 90,
+        startAt: new Date(2026, 7, 13, 9, 0, 0),
+        isProtected: true,
+      })
+    );
+  });
+
+  test('a user can read and update their own day block', async () => {
+    const ref = await seedDayBlock(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'dayBlocks', ref.id)));
+    // No update path exists in the service at MVP, but the rule permits the
+    // owner: append-only is not a security property for this collection.
+    await assertSucceeds(
+      updateDoc(doc(db, 'dayBlocks', ref.id), { isProtected: false })
+    );
+  });
+
+  test('a user can delete their own day block', async () => {
+    // Delete is the ONLY way to change a block at MVP, so this path is the
+    // whole edit story and has to work.
+    const ref = await seedDayBlock(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(deleteDoc(doc(db, 'dayBlocks', ref.id)));
+  });
+
+  // ---- cross-user denial ----
+
+  test('a DIFFERENT authenticated user CANNOT read that day block', async () => {
+    const ref = await seedDayBlock(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'dayBlocks', ref.id)));
+  });
+
+  test('a DIFFERENT authenticated user CANNOT delete that day block', async () => {
+    const ref = await seedDayBlock(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(deleteDoc(doc(db, 'dayBlocks', ref.id)));
+  });
+
+  test('a user cannot create a day block owned by someone else', async () => {
+    // Forge guard: Bob claiming Alice's userId is refused by the create rule.
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(
+      addDoc(collection(db, 'dayBlocks'), {
+        userId: ALICE_UID,
+        title: 'Deep work',
+        demand: 'heavy',
+        durationMinutes: 90,
+        startAt: new Date(2026, 7, 13, 9, 0, 0),
+        isProtected: true,
+      })
+    );
+  });
+
+  test('unauthenticated users cannot read a day block', async () => {
+    const ref = await seedDayBlock(ALICE_UID);
+    const db = getUnauthContext().firestore();
+
+    await assertFails(getDoc(doc(db, 'dayBlocks', ref.id)));
+  });
+
+  // ---- the absent-document guard, and what it must NOT widen ----
+
+  test('dayBlocks: a user CAN get their own non-existent day block', async () => {
+    // The path a delete-then-confirm hits once the block is already gone.
+    // Without the null guard this returns "Missing or insufficient permissions"
+    // instead of an empty snapshot.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'dayBlocks', 'no-such-block')));
+  });
+
+  test('dayBlocks: the guard does NOT expose another users EXISTING block', async () => {
+    const ref = await seedDayBlock(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'dayBlocks', ref.id)));
+  });
+
+  test('dayBlocks: a list is still owner-scoped through the userId field', async () => {
+    await seedDayBlock(ALICE_UID);
+
+    const alice = getAuthContext(ALICE_UID).firestore();
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    // Alice's own rows: legal.
+    await assertSucceeds(
+      getDocs(query(collection(alice, 'dayBlocks'), where('userId', '==', ALICE_UID)))
+    );
+    // Unfiltered: illegal, because the rule cannot be satisfied for every
+    // candidate document.
+    await assertFails(getDocs(collection(alice, 'dayBlocks')));
+    // Bob asking for Alice's rows: illegal. This is the assertion that would
+    // break first if the null guard were ever moved onto list.
+    await assertFails(
+      getDocs(query(collection(bob, 'dayBlocks'), where('userId', '==', ALICE_UID)))
+    );
+  });
+
+  test('dayBlocks: the exact day-view range query is legal for its owner', async () => {
+    // Mirrors listDayBlocksBetween in
+    // mobile/src/services/firebase/dayBlocks.service.ts. The range predicates
+    // are irrelevant to authorization; this pins that adding them does not
+    // accidentally make the ownership filter insufficient.
+    await seedDayBlock(ALICE_UID);
+
+    const alice = getAuthContext(ALICE_UID).firestore();
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(alice, 'dayBlocks'),
+          where('userId', '==', ALICE_UID),
+          where('startAt', '>=', DAY_START),
+          where('startAt', '<=', DAY_END),
+          orderBy('startAt', 'asc')
+        )
+      )
+    );
+    // The same query, aimed at someone else's day: still refused.
+    await assertFails(
+      getDocs(
+        query(
+          collection(bob, 'dayBlocks'),
+          where('userId', '==', ALICE_UID),
+          where('startAt', '>=', DAY_START),
+          where('startAt', '<=', DAY_END),
+          orderBy('startAt', 'asc')
+        )
+      )
+    );
   });
 });
 

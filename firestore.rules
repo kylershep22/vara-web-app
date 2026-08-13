@@ -865,6 +865,39 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // ========== TIME BLOCKING ==========
+
+    // Day blocks — the user's own protected stretches of a day (TB-1a).
+    //
+    // Same uniform owner-on-userId-FIELD pattern as the weekly collections
+    // above, and the SAME get/list split, for the same reason spelled out at
+    // length there: `resource` is null on a get of a document that does not
+    // exist and `resource.data.userId` against null ERRORS rather than
+    // returning false. Do not collapse these into a combined `allow read`.
+    //
+    // The split matters here even though the day view reads by RANGE rather
+    // than by ID: delete-then-confirm and any future get-before-edit both hit
+    // the absent-document path the moment a block has already been removed.
+    //
+    // The list rule is what makes the day-view query legal — it filters on the
+    // userId field, so the caller's own rows pass and nobody else's can. The
+    // range predicates on startAt are irrelevant to authorization; only the
+    // ownership filter is load-bearing.
+    //
+    // NO UPDATE PATH EXISTS IN THE SERVICE at MVP (editing is delete + re-add),
+    // but update is allowed here rather than denied: the rule describes who may
+    // touch the row, and refusing a verb at the rules layer to enforce a
+    // product decision would misplace it. Contrast analyticsEvents below, where
+    // append-only IS the security property and update is refused outright.
+    match /dayBlocks/{blockId} {
+      // Allow read if document doesn't exist (for checking before create) OR if user owns it
+      allow get: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      // List enforces ownership through the userId FIELD, never through resource.
+      allow list: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
     // ========== BEHAVIORAL TELEMETRY ==========
 
     // Analytics events — owner-scoped, CREATE-ONLY exhaust.
