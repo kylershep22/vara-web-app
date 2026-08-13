@@ -54,9 +54,15 @@ const PRIMARY_BODY_DEFAULT =
 const PRIMARY_BODY_IN_WINDOW =
   "Now's usually an easier time to focus. Protect a little of it?";
 
+// The live Time blocking row's descriptor. Carried over verbatim from the
+// coming-soon card it replaced, so the swap changed the affordance and not the
+// promise. Draft like the rest of the Blocks copy; see screens/Focus/blocksCopy.
+const TIME_BLOCKING_BODY = 'Shape the day into a few protected blocks.';
+
 type NavigationProp = NativeStackNavigationProp<{
   FocusTimer: { fromHub?: boolean } | undefined;
   FocusRhythms: undefined;
+  FocusDayBlocks: undefined;
 }>;
 
 export function FocusHubScreen() {
@@ -153,15 +159,24 @@ export function FocusHubScreen() {
           <Icon name="chevron-right" size={24} color={Colors.mutedSageGray} />
         </TouchableOpacity>
 
-        {/* Planned focus tools. Inert placeholders, not dead buttons: they hold
-            their place in the launcher so the shape of the pillar is honest,
-            without implying a tap does something. See ComingSoonCard. */}
+        {/* Focus tools. Time blocking went live in TB-1b and is now a real row
+            on the rhythms card's tier; Task batching is still an inert
+            placeholder, holding its place so the shape of the pillar stays
+            honest without implying a tap does something. See ComingSoonCard. */}
         <View style={styles.plannedGroup}>
-          <ComingSoonCard
-            title="Time blocking"
-            body="Shape the day into a few protected blocks."
+          <TouchableOpacity
+            style={styles.secondaryCard}
+            onPress={() => navigation.navigate(ROUTES.FocusDayBlocks)}
+            accessibilityRole="button"
+            accessibilityLabel={`Time blocking. ${TIME_BLOCKING_BODY}`}
             testID="focus-hub-card-time-blocking"
-          />
+          >
+            <View style={styles.secondaryText}>
+              <Text style={styles.secondaryLabel}>Time blocking</Text>
+              <Text style={styles.secondaryDescriptor}>{TIME_BLOCKING_BODY}</Text>
+            </View>
+            <Icon name="chevron-right" size={24} color={Colors.mutedSageGray} />
+          </TouchableOpacity>
           <ComingSoonCard
             title="Task batching"
             body="Group similar work so you switch less."

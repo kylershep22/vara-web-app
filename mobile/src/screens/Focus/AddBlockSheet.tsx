@@ -1,0 +1,505 @@
+/**
+ * Add a block (TB-1b, mockup B). The demand row is mockup D's, because B draws
+ * the task arriving from Tasks with its tag already on and TB-1b has no Tasks
+ * screen to arrive from.
+ *
+ * PRESENTATIONAL, AND THAT IS THE SAFETY PROPERTY, exactly as DailyPickerSheet
+ * states it: this component owns no write and no service call. It holds the
+ * draft in local state and hands it upward once, on confirm. The screen owns
+ * createDayBlock. Keeping the write on the far side of `onConfirm` is what makes
+ * a half-built block impossible to persist rather than merely unlikely.
+ *
+ * ONE PRIMARY ACTION. With a suggestion that is "Place it there"; without one it
+ * is "Save". The no-rhythms invitation is a text LINK, never a second button,
+ * and "I'll choose a time" is a text button per the mockup's note that it is a
+ * first-class exit rather than a buried link.
+ *
+ * THE CLOCK IS INJECTED (`now`). The sheet turns a zone suggestion into a
+ * concrete Date, so it needs today's date; reading it internally would make
+ * every test time-dependent.
+ *
+ * Built on EnhancedModal, the shared shell. Unlike DailyPickerSheet this one
+ * passes hasInputs — there is a text field here — which is a path
+ * DailyPickerSheet does not exercise. Keyboard behaviour on device is on the
+ * walk plan for exactly that reason.
+ */
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, Switch } from 'react-native';
+
+import { Colors, Layout, Spacing, Typography } from '../../constants';
+import { EnhancedModal } from '../../components/shared/EnhancedModal';
+import { SelectChip } from '../../components/shared/SelectChip';
+import { TimePickerSheet } from '../../components/shared/TimePickerSheet';
+import type { Demand } from '../../types/models';
+import type { ReminderTime } from '../../types/models';
+import type { TimedRhythmKey } from '../../constants/focusRhythms';
+import { FOCUS_RHYTHM_OPTIONS } from '../../constants/focusRhythms';
+import type { PlacementSuggestion } from './suggestPlacement';
+import {
+  CHOOSE_A_TIME,
+  DEMAND_LABELS,
+  DURATION_LABELS,
+  LABEL_DEMAND,
+  LABEL_HOW_LONG,
+  LABEL_RHYTHMS,
+  LABEL_WHAT,
+  NO_RHYTHMS_INVITATION,
+  PLACE_IT_THERE,
+  PROTECT_TOGGLE,
+  SAVE_BLOCK,
+  SAVE_FAILED,
+  SHEET_INTRO,
+  SHEET_TITLE,
+  TITLE_PLACEHOLDER,
+  VARIES_LINE,
+  formatTimeRange,
+  suggestionSlot,
+  suggestionText,
+} from './blocksCopy';
+
+const MIN_TOUCH_TARGET = 48;
+const INPUT_ACCESSORY_ID = 'add-block-title';
+
+/** The durations offered at MVP. Stored as a plain number on the block. */
+export const DURATION_OPTIONS = [30, 60, 90];
+const DEMAND_OPTIONS: Demand[] = ['light', 'medium', 'heavy'];
+
+/**
+ * Default demand.
+ *
+ * OPEN FOR JEN. The mockup's own question is whether the tag is required at
+ * capture, and it leans required on the grounds that it is one tap and it is
+ * the whole model. That reasoning is about Tasks capture (screen D); here the
+ * field is required by the DayBlock type, so the choice is between a neutral
+ * default and a primary button disabled with no explanation. Neutral default
+ * wins for now because it keeps exactly one live primary action.
+ */
+const DEFAULT_DEMAND: Demand = 'medium';
+
+/**
+ * Default duration.
+ *
+ * The mockup shows 90 selected, but that is its filled-in example for a heavy
+ * task rather than a stated default. 60 is the neutral middle. Open for Jen.
+ */
+const DEFAULT_DURATION = 60;
+
+/** Fallback manual start when there is no suggestion to seed from. */
+const FALLBACK_START_HOUR = 9;
+
+/** What the sheet hands up. The screen turns this into a createDayBlock call. */
+export interface NewBlockDraft {
+  title: string;
+  demand: Demand;
+  durationMinutes: number;
+  startAt: Date;
+  isProtected: boolean;
+  /** Present only when the rhythm suggestion was accepted unchanged. */
+  suggestedFrom?: TimedRhythmKey;
+}
+
+export interface AddBlockSheetProps {
+  visible: boolean;
+  /** Already computed by the screen from the user's stored windows. */
+  suggestion: PlacementSuggestion;
+  /** Injected clock, so the concrete date is deterministic under test. */
+  now: Date;
+  saving: boolean;
+  saveFailed: boolean;
+  onConfirm: (draft: NewBlockDraft) => void;
+  onDismiss: () => void;
+  /** Opens FocusRhythms. Only reachable from the no-rhythms invitation. */
+  onOpenRhythms: () => void;
+}
+
+/** The zone's sentence fragment, e.g. "in the mid-morning". */
+function phraseFor(zoneKey: TimedRhythmKey): string {
+  return FOCUS_RHYTHM_OPTIONS.find((o) => o.key === zoneKey)?.phrase ?? '';
+}
+
+/** The zone's standalone label, e.g. "Mid-morning". */
+function labelFor(zoneKey: TimedRhythmKey): string {
+  return FOCUS_RHYTHM_OPTIONS.find((o) => o.key === zoneKey)?.label ?? '';
+}
+
+/** A concrete Date on `now`'s day (or the next one) at the given hour. */
+function dateAtHour(now: Date, hour: number, tomorrow: boolean): Date {
+  const d = new Date(now);
+  d.setDate(d.getDate() + (tomorrow ? 1 : 0));
+  d.setHours(hour, 0, 0, 0);
+  return d;
+}
+
+export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
+  visible,
+  suggestion,
+  now,
+  saving,
+  saveFailed,
+  onConfirm,
+  onDismiss,
+  onOpenRhythms,
+}) => {
+  const hasSuggestion = suggestion.kind === 'ok';
+
+  const [title, setTitle] = useState('');
+  const [demand, setDemand] = useState<Demand>(DEFAULT_DEMAND);
+  const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION);
+  const [isProtected, setIsProtected] = useState(false);
+
+  // Manual mode is the only mode when there is nothing to suggest. When there
+  // IS a suggestion, "I'll choose a time" is what flips this on, and it never
+  // flips back: having overridden once, re-offering the suggestion as the
+  // primary would quietly undo the user's choice.
+  const [manual, setManual] = useState(!hasSuggestion);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const seedHour = suggestion.kind === 'ok' ? suggestion.startHour : FALLBACK_START_HOUR;
+  const [manualTime, setManualTime] = useState<ReminderTime>({
+    hour: seedHour,
+    minute: 0,
+  });
+
+  const suggestedStart = useMemo(
+    () =>
+      suggestion.kind === 'ok'
+        ? dateAtHour(now, suggestion.startHour, suggestion.day === 'tomorrow')
+        : null,
+    [suggestion, now]
+  );
+
+  const manualStart = useMemo(() => {
+    const d = new Date(now);
+    d.setHours(manualTime.hour, manualTime.minute, 0, 0);
+    return d;
+  }, [now, manualTime]);
+
+  const startAt = manual || !suggestedStart ? manualStart : suggestedStart;
+  const canSave = title.trim().length > 0 && !saving;
+
+  const handleConfirm = () => {
+    onConfirm({
+      title: title.trim(),
+      demand,
+      durationMinutes,
+      startAt,
+      isProtected,
+      // Provenance is recorded ONLY when the suggestion was taken as offered. A
+      // hand-picked time is not a rhythm placement, so it carries no zone.
+      ...(!manual && suggestion.kind === 'ok'
+        ? { suggestedFrom: suggestion.zoneKey }
+        : {}),
+    });
+  };
+
+  return (
+    <EnhancedModal
+      visible={visible}
+      onDismiss={onDismiss}
+      title={SHEET_TITLE}
+      subtitle={SHEET_INTRO}
+      hasInputs
+      inputAccessoryViewID={INPUT_ACCESSORY_ID}
+      showKeyboardToolbar
+      showCloseButton={false}
+      maxHeightPercent="auto"
+      testID="add-block-sheet"
+      footer={
+        <View>
+          {saveFailed && (
+            <Text style={styles.error} testID="add-block-error">
+              {SAVE_FAILED}
+            </Text>
+          )}
+          <TouchableOpacity
+            style={[styles.primary, !canSave && styles.primaryDisabled]}
+            onPress={handleConfirm}
+            disabled={!canSave}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canSave }}
+            testID="add-block-confirm"
+          >
+            <Text style={styles.primaryLabel}>
+              {manual ? SAVE_BLOCK : PLACE_IT_THERE}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Only offered while the suggestion is still on the table. */}
+          {!manual && hasSuggestion && (
+            <TouchableOpacity
+              style={styles.textButton}
+              onPress={() => setManual(true)}
+              accessibilityRole="button"
+              testID="add-block-choose-time"
+            >
+              <Text style={styles.textButtonLabel}>{CHOOSE_A_TIME}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      }
+    >
+      <Text style={styles.fieldLabel}>{LABEL_WHAT}</Text>
+      <TextInput
+        style={styles.input}
+        value={title}
+        onChangeText={setTitle}
+        placeholder={TITLE_PLACEHOLDER}
+        placeholderTextColor={Colors.mutedSageGray}
+        inputAccessoryViewID={INPUT_ACCESSORY_ID}
+        accessibilityLabel={LABEL_WHAT}
+        testID="add-block-title"
+      />
+
+      <Text style={styles.fieldLabel}>{LABEL_DEMAND}</Text>
+      <View style={styles.chipRow}>
+        {DEMAND_OPTIONS.map((option) => (
+          <SelectChip
+            key={option}
+            layout="row"
+            label={DEMAND_LABELS[option]}
+            selected={demand === option}
+            onPress={() => setDemand(option)}
+            testID={`add-block-demand-${option}`}
+          />
+        ))}
+      </View>
+
+      <Text style={styles.fieldLabel}>{LABEL_HOW_LONG}</Text>
+      <View style={styles.chipRow}>
+        {DURATION_OPTIONS.map((option) => (
+          <SelectChip
+            key={option}
+            layout="row"
+            label={DURATION_LABELS[option]}
+            selected={durationMinutes === option}
+            onPress={() => setDurationMinutes(option)}
+            testID={`add-block-duration-${option}`}
+          />
+        ))}
+      </View>
+
+      {/* ---- the rhythm area, three states keyed to suggestPlacement ---- */}
+
+      {suggestion.kind === 'ok' && !manual && (
+        <View style={styles.rhythmCard} testID="add-block-suggestion">
+          <Text style={styles.rhythmLabel}>{LABEL_RHYTHMS}</Text>
+          <Text style={styles.rhythmText}>
+            {suggestionText(phraseFor(suggestion.zoneKey))}
+          </Text>
+          <View style={styles.slot}>
+            {/* The one accent in the sheet: a single amber dot, per the
+                mockup's note that the suggestion gets the whole accent budget. */}
+            <View style={styles.slotDot} />
+            <Text style={styles.slotLabel}>
+              {suggestionSlot(
+                labelFor(suggestion.zoneKey),
+                formatTimeRange(suggestedStart!, durationMinutes),
+                suggestion.day === 'tomorrow'
+              )}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {suggestion.kind === 'no-rhythms' && (
+        // A LINK, not a button: the sheet keeps one primary action.
+        <TouchableOpacity
+          onPress={onOpenRhythms}
+          accessibilityRole="link"
+          style={styles.invitationRow}
+          testID="add-block-rhythms-invitation"
+        >
+          <Text style={styles.invitationText}>{NO_RHYTHMS_INVITATION}</Text>
+        </TouchableOpacity>
+      )}
+
+      {suggestion.kind === 'varies' && (
+        // Neutral, and deliberately no link: they already answered.
+        <Text style={styles.variesText} testID="add-block-varies">
+          {VARIES_LINE}
+        </Text>
+      )}
+
+      {/* The plain time picker, revealed whenever the user is choosing. */}
+      {manual && (
+        <TouchableOpacity
+          style={styles.timeRow}
+          onPress={() => setPickerOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={formatTimeRange(manualStart, durationMinutes)}
+          testID="add-block-time-row"
+        >
+          <Text style={styles.timeValue}>
+            {formatTimeRange(manualStart, durationMinutes)}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      <View style={styles.toggleRow}>
+        <Text style={styles.toggleLabel}>{PROTECT_TOGGLE}</Text>
+        <Switch
+          value={isProtected}
+          onValueChange={setIsProtected}
+          trackColor={{ false: Colors.silverSage, true: Colors.evergreenTeal }}
+          accessibilityLabel={PROTECT_TOGGLE}
+          testID="add-block-protect"
+        />
+      </View>
+
+      <TimePickerSheet
+        visible={pickerOpen}
+        value={manualTime}
+        onChange={(next) => {
+          setManualTime(next);
+          setPickerOpen(false);
+        }}
+        onClose={() => setPickerOpen(false)}
+      />
+    </EnhancedModal>
+  );
+};
+
+const styles = StyleSheet.create({
+  fieldLabel: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.medium,
+    letterSpacing: 0.4,
+    color: Colors.mutedSageGray,
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.md,
+  },
+  input: {
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.sm,
+    minHeight: MIN_TOUCH_TARGET,
+    fontSize: Typography.fontSize.base,
+    color: Colors.softCharcoal,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  rhythmCard: {
+    marginTop: Spacing.lg,
+    backgroundColor: Colors.dewSageLight,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.evergreenTeal,
+    borderRadius: Layout.borderRadius.md,
+    padding: Spacing.md,
+  },
+  rhythmLabel: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.medium,
+    letterSpacing: 0.4,
+    color: Colors.mutedSageGray,
+    marginBottom: Spacing.xs,
+  },
+  rhythmText: {
+    fontSize: Typography.fontSize.base,
+    lineHeight: 22,
+    color: Colors.softCharcoal,
+    marginBottom: Spacing.sm,
+  },
+  slot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: Spacing.xs,
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.evergreenTeal,
+    borderRadius: Layout.borderRadius.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  slotDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.sunriseAmber,
+  },
+  slotLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
+  },
+  invitationRow: {
+    marginTop: Spacing.lg,
+    minHeight: MIN_TOUCH_TARGET,
+    justifyContent: 'center',
+  },
+  invitationText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.evergreenTeal,
+    textDecorationLine: 'underline',
+  },
+  variesText: {
+    marginTop: Spacing.lg,
+    fontSize: Typography.fontSize.sm,
+    lineHeight: 20,
+    color: Colors.mutedSageGray,
+  },
+  timeRow: {
+    marginTop: Spacing.md,
+    minHeight: MIN_TOUCH_TARGET,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    borderWidth: 1.5,
+    borderColor: Colors.silverSage,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.surface,
+  },
+  timeValue: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.softCharcoal,
+  },
+  toggleRow: {
+    marginTop: Spacing.lg,
+    minHeight: MIN_TOUCH_TARGET,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleLabel: {
+    flex: 1,
+    fontSize: Typography.fontSize.base,
+    color: Colors.softCharcoal,
+  },
+  primary: {
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: Layout.borderRadius.lg,
+    backgroundColor: Colors.evergreenTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+  },
+  primaryDisabled: { opacity: 0.4 },
+  primaryLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+  },
+  textButton: {
+    minHeight: MIN_TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textButtonLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
+  },
+  error: {
+    marginBottom: Spacing.sm,
+    // Soft coral, the brand's only error colour. Never red.
+    color: Colors.softCoral,
+    fontSize: Typography.fontSize.sm,
+    textAlign: 'center',
+  },
+});
+
+export default AddBlockSheet;

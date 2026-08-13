@@ -56,12 +56,15 @@ describe('pillar routes are registered, not just named', () => {
   //   PillarStressRecovery ← the Practices hub's fourth card, and nowhere else
   //                          (step 4b-ii-a)
   //   FocusRhythms         ← the Focus hub's secondary row, and nowhere else
+  //   FocusDayBlocks       ← the Focus hub's "Time blocking" card, which stopped
+  //                          being a coming-soon placeholder in TB-1b
   it.each([
     ['PillarFocus'],
     ['PillarEnergy'],
     ['PillarTime'],
     ['PillarStressRecovery'],
     ['FocusRhythms'],
+    ['FocusDayBlocks'],
   ] as const)('AppNavigator registers %s', (routeKey) => {
     expect(isRegistered(routeKey)).toBe(true);
   });
@@ -76,6 +79,33 @@ describe('pillar routes are registered, not just named', () => {
     // place. If that ever recurs, the registration above would not compile —
     // but this states the intent directly, next to the route it belongs to.
     expect(NAVIGATOR_SOURCE).toMatch(/import \{[^}]*FocusHubScreen[^}]*\} from/);
+  });
+
+  it('imports the day-view screen it registers', () => {
+    // Same guard as the two below, for the same failure mode. TB-1b makes the
+    // Focus hub's Time blocking card live, so an absent import here is a card
+    // that navigates to a route no navigator mounts.
+    expect(NAVIGATOR_SOURCE).toMatch(/import \{[^}]*DayBlocksScreen[^}]*\} from/);
+  });
+
+  it('registers the day view UNGATED, on the Stress Recovery precedent', () => {
+    // FocusRhythms and EnergyBrowse sit inside `{FOUR_PILLAR_IA && (...)}`
+    // because they predate the four-tab IA. This one does not: its only parent
+    // chain exists solely in that IA, so a gate would be dead code. Asserted
+    // because "copy the neighbouring registration" is the obvious way to add a
+    // screen here, and the nearest neighbour is gated.
+    const at = NAVIGATOR_SOURCE.indexOf('name={ROUTES.FocusDayBlocks}');
+    expect(at).toBeGreaterThan(-1);
+
+    const before = NAVIGATOR_SOURCE.slice(0, at);
+    const lastGateOpen = before.lastIndexOf('{FOUR_PILLAR_IA && (');
+    // Either nothing before us opens a gate, or whichever one did has already
+    // closed. A registration sitting INSIDE a gate would have an open one with
+    // no `)}` between it and this Screen, which is what fails here.
+    const gateIsClosed =
+      lastGateOpen === -1 || before.slice(lastGateOpen).includes(')}');
+
+    expect(gateIsClosed).toBe(true);
   });
 
   it('imports the Stress Recovery screen it registers', () => {
