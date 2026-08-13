@@ -46,7 +46,8 @@
           "fieldPath": "date",
           "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "challengeCheckIns",
@@ -92,6 +93,21 @@
         },
         {
           "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "challenges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isGlobal",
           "order": "ASCENDING"
         },
         {
@@ -528,6 +544,40 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "habitId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dateISO",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "habitCompletions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dateISO",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "habitCompletions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
           "fieldPath": "userId",
           "order": "ASCENDING"
         },
@@ -633,6 +683,25 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "moderationQueue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "severity",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
       "collectionGroup": "natureExposure",
       "queryScope": "COLLECTION",
       "fields": [
@@ -703,6 +772,55 @@
         {
           "fieldPath": "date",
           "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "notificationPreferences",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "allNotificationsEnabled",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dailyRhythm.enabled",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dailyRhythm.reminderTime.hour",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "notificationPreferences",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "allNotificationsEnabled",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "insightsLearning.enabled",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "notificationPreferences",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "allNotificationsEnabled",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "milestonesReflection.enabled",
+          "order": "ASCENDING"
         }
       ],
       "density": "SPARSE_ALL"
@@ -998,6 +1116,21 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lastActiveAt",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
           "fieldPath": "interestsSlugs",
           "arrayConfig": "CONTAINS"
         },
@@ -1038,55 +1171,6 @@
         {
           "fieldPath": "assessmentDate",
           "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "notificationPreferences",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "allNotificationsEnabled",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "dailyRhythm.enabled",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "dailyRhythm.reminderTime.hour",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "notificationPreferences",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "allNotificationsEnabled",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "insightsLearning.enabled",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "notificationPreferences",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "allNotificationsEnabled",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "milestonesReflection.enabled",
-          "order": "ASCENDING"
         }
       ],
       "density": "SPARSE_ALL"
