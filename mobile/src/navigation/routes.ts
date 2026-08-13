@@ -62,6 +62,13 @@ export const ROUTES = {
   PillarFocus: 'PillarFocus',
   PillarEnergy: 'PillarEnergy',
   PillarTime: 'PillarTime',
+  // --- Net-new pillar page (IA restructure step 4b-ii-a) ---
+  // Stress Recovery. Unlike the three above, this was never a tab: it is a new
+  // screen (StressRecoveryScreen), so the `Pillar` prefix here is naming a
+  // pillar page rather than preserving a tab-era name. Reached ONLY from the
+  // Practices hub's fourth card, and registered in the same commit as that card
+  // — the no-dead-ends rule, which is why this key did not exist until now.
+  PillarStressRecovery: 'PillarStressRecovery',
   // Energy hub browse list (B-3b), reached from the Energy tab (PillarEnergy →
   // EnergyHubScreen). Parameterized by browseCategory (regulate/rest/fuel).
   // Registered in the flag-ON AppStack path only.

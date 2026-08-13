@@ -1,20 +1,27 @@
-// Practices tab root — IA restructure steps 4a + 4b-i.
+// Practices tab root — IA restructure steps 4a + 4b-i + 4b-ii-a. COMPLETE.
 //
 // A LAUNCHER, not a page: one card per pillar, each opening a surface that
 // already exists and already works. It holds no state, reads no data, and
 // renders nothing of its own beyond the cards. A doorway, not a destination.
 //
-// THREE cards, all live:
-//   Focus & Time → ROUTES.PillarFocus     (FocusHubScreen)
-//   Energy       → ROUTES.PillarEnergy    (EnergyHubScreen)
-//   Routines     → NAV_TARGETS.plan       (the existing routine builder)   [4b-i]
+// FOUR cards, all live — the full pillar set:
+//   Focus & Time    → ROUTES.PillarFocus          (FocusHubScreen)
+//   Energy          → ROUTES.PillarEnergy         (EnergyHubScreen)
+//   Routines        → NAV_TARGETS.plan            (the routine builder)  [4b-i]
+//   Stress Recovery → ROUTES.PillarStressRecovery (net-new)          [4b-ii-a]
 //
-// Stress Recovery is the one remaining pillar. It is deliberately ABSENT rather
-// than present-and-inert: its page does not exist yet, and a card that opens
-// nothing is a dead end. ComingSoonCard was considered and rejected here — it is
-// the right answer for a planned tool sitting among live ones on a pillar page
-// (see FocusHubScreen), and the wrong answer for a launcher whose entire promise
-// is that every card goes somewhere. It lands in 4b-ii, card and page together.
+// Every card was held back until its destination existed, which is why the set
+// arrived over three slices rather than one. ComingSoonCard was considered and
+// rejected for the waiting pillars each time — it is the right answer for a
+// planned tool sitting among live ones on a pillar page (see FocusHubScreen),
+// and the wrong answer for a launcher whose entire promise is that every card
+// goes somewhere.
+//
+// STRESS RECOVERY IS A CROSS-LIST (4b-ii-a). Its page lists the same practices
+// Energy already offers under Regulate and Rest — nothing moved, and Energy is
+// unchanged. The card's descriptor is doing the real work: it names the moment
+// (stress spiking, now) where Energy names the mechanism. See
+// StressRecoveryScreen's header comment for why that framing is the feature.
 //
 // THE ROUTINES CARD IS WIRING, NOT A NEW PAGE (4b-i). It points at the surface
 // the dashboard's "Today's routine" card already opens — NAV_TARGETS.plan with
@@ -43,14 +50,23 @@
 //
 // CARD PATTERN. EnergyHubScreen's category list (config array → icon + label +
 // descriptor + chevron row), which is also the shape of the Focus hub's own
-// secondary row. Copied locally rather than extracted to a shared component:
-// extraction would mean editing both pillar hubs, and this slice re-homes them
-// as-is. That cleanup belongs to a later pass with all four cards in place.
+// secondary row. Still copied locally rather than extracted.
+//
+// 4a said that cleanup "belongs to a later pass with all four cards in place",
+// and the four cards are now in place — so, explicitly: STILL DEFERRED, and no
+// longer waiting on the card count. Extracting this row means editing
+// EnergyHubScreen, which 4b-ii-a is fenced out of (Energy stays unchanged while
+// Stress Recovery cross-lists its practices). It is a standalone tidy-up now,
+// not a milestone. The list ROW on the pillar pages did get extracted this
+// slice — components/protocol/ProtocolListItem — because a second surface
+// genuinely needed it; this hub row still has only the one implementation
+// worth sharing with.
 //
 // No Guide pill. The step-2 shell left it off because there was no surface to
-// describe; a two-card doorway is still not one, and each pillar hub carries its
-// own pill on arrival. Revisit when the hub has four cards and content of its
-// own, not before.
+// describe, and a doorway still is not one however many cards it holds — each
+// pillar hub carries its own pill on arrival. 4a said "revisit when the hub has
+// four cards and content of its own": the cards are here, the content of its
+// own is not, so the answer is unchanged.
 
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -65,14 +81,16 @@ import { NAV_TARGETS } from '../../navigation/navTargets';
 
 // [COPY GAP] markers render ON SCREEN, per the weekly-loop convention: nobody
 // should mistake a walkthrough build for finished product. Removing a marker is
-// a copy decision and belongs to Jen. Card LABELS carry the marker too: "Focus &
-// Time", "Energy" and "Routines" are the roadmap's working pillar names, which is
-// not the same thing as approved user-facing copy.
+// a copy decision and belongs to Jen. Card LABELS carry the marker too: all four
+// are the roadmap's working pillar names, which is not the same thing as
+// approved user-facing copy. "Stress Recovery" especially — the roadmap flags it
+// as a feature-set label that must not read as a return to
+// stress-recovery-as-a-category.
 const gap = (text: string) => `[COPY GAP] ${text}`;
 
 const MIN_TOUCH_TARGET = 48;
 
-// All three destinations are AppStack screens, siblings of the tab navigator
+// All four destinations are AppStack screens, siblings of the tab navigator
 // rather than children of it, so these navigate calls bubble up out of the tab
 // context and PUSH. Same mechanism as the Energy hub's Journal / Masterclass
 // rows. Pushing is what gives every card a working back path to Practices.
@@ -85,6 +103,7 @@ type NavigationProp = NativeStackNavigationProp<
   {
     PillarFocus: undefined;
     PillarEnergy: undefined;
+    PillarStressRecovery: undefined;
   } & { [K in typeof NAV_TARGETS.plan]: { tab: 'routines' } }
 >;
 
@@ -151,6 +170,18 @@ const PILLARS: PillarCardConfig[] = [
     // (DashboardScreen.tsx:424) and the routine-reminder tap
     // (NotificationContext.tsx:203).
     go: (navigation) => navigation.navigate(NAV_TARGETS.plan, { tab: 'routines' }),
+  },
+  {
+    id: 'stress-recovery',
+    label: gap('Stress Recovery'),
+    // The one descriptor that has to work harder than the others. Every
+    // practice behind this card also sits under Energy, so the descriptor is
+    // what tells someone why they would tap here instead — it names the MOMENT
+    // (activated, now) rather than the mechanism (regulation), which is the
+    // whole basis of the cross-list. See StressRecoveryScreen's header comment.
+    descriptor: gap('Something to reach for when stress spikes.'),
+    icon: 'lifebuoy',
+    go: (navigation) => navigation.navigate(ROUTES.PillarStressRecovery),
   },
 ];
 

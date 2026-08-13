@@ -74,6 +74,7 @@ import { PracticesHubScreen } from '../PracticesHubScreen';
 import { FocusHubScreen } from '../../Focus/FocusHubScreen';
 import { FocusRhythmsScreen } from '../../Focus/FocusRhythmsScreen';
 import { EnergyHubScreen } from '../../Energy/EnergyHubScreen';
+import { StressRecoveryScreen } from '../../StressRecovery/StressRecoveryScreen';
 import { ROUTES } from '../../../navigation/routes';
 import { NAV_TARGETS } from '../../../navigation/navTargets';
 
@@ -135,6 +136,14 @@ function renderStack() {
           component={PlanStub}
           options={{ headerShown: true, title: '' }}
         />
+        {/* The Stress Recovery page, step 4b-ii-a. The REAL screen, not a stub
+            like the builder above: it pulls only the catalog constants, so
+            there is no reason to weaken the assertion. */}
+        <Stack.Screen
+          name={ROUTES.PillarStressRecovery}
+          component={StressRecoveryScreen}
+          options={{ headerShown: true, title: '' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -160,6 +169,7 @@ describe('Practices → Focus: the step-4a restore path', () => {
     expect(queryByTestId('energy-hub')).toBeNull();
     expect(queryByTestId('focus-rhythms')).toBeNull();
     expect(queryByTestId('plan-stub')).toBeNull();
+    expect(queryByTestId('stress-recovery-list')).toBeNull();
   });
 
   it('opens the Focus hub from the Focus & Time card', async () => {
@@ -261,6 +271,49 @@ describe('Practices → Routines: the step-4b-i wiring', () => {
     // The other half of the assertion above: not just that a back path exists,
     // but that walking it arrives somewhere. This is the device-walk step
     // written down.
+    act(() => navRef.goBack());
+
+    await waitFor(() => expect(getByTestId('practices-hub')).toBeTruthy());
+  });
+});
+
+describe('Practices → Stress Recovery: the step-4b-ii-a page', () => {
+  it('opens the Stress Recovery page from the fourth card', async () => {
+    const { getByTestId, queryByTestId } = renderStack();
+
+    expect(queryByTestId('stress-recovery-list')).toBeNull();
+
+    fireEvent.press(getByTestId('practices-hub-card-stress-recovery'));
+
+    await waitFor(() => expect(getByTestId('stress-recovery-list')).toBeTruthy());
+  });
+
+  it('arrives on a page that carries its own framing, not a bare list', async () => {
+    const { getByTestId, findAllByText } = renderStack();
+
+    fireEvent.press(getByTestId('practices-hub-card-stress-recovery'));
+    await waitFor(() => expect(getByTestId('stress-recovery-list')).toBeTruthy());
+
+    // The framing is the entire reason this pillar exists as a page rather than
+    // a fourth Energy category — every practice behind it is already on Energy.
+    // Asserted by shape (both framing slots are present and marked) rather than
+    // by exact words, because the words are Jen's to replace: a title and an
+    // intro, which is precisely what the Energy browse lists do not have.
+    expect(await findAllByText(/^\[COPY GAP\]/)).toHaveLength(2);
+  });
+
+  it('pushes over the hub, leaving a back path to Practices', async () => {
+    const { getByTestId, navRef } = renderStack();
+
+    fireEvent.press(getByTestId('practices-hub-card-stress-recovery'));
+    await waitFor(() => expect(getByTestId('stress-recovery-list')).toBeTruthy());
+
+    expect(navRef.canGoBack()).toBe(true);
+    expect(navRef.getRootState().routes.map((r) => r.name)).toEqual([
+      ROUTES.PillarPractices,
+      ROUTES.PillarStressRecovery,
+    ]);
+
     act(() => navRef.goBack());
 
     await waitFor(() => expect(getByTestId('practices-hub')).toBeTruthy());
