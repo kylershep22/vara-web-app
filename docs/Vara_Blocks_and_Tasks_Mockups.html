@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vara — Time-Blocking &amp; Task-Batching Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#1B5E57;
+  --mist:#FAFAF6;
+  --white:#FFFFFF;
+  --silver-sage:#B8CDBA;
+  --dew-sage:#D5E3D1;
+  --sunrise-amber:#F4C542;
+  --golden-apricot:#F5B971;
+  --charcoal:#3E3E3E;
+  --muted:#6F7F77;
+  --coral:#D97A6E;
+  --annot-open:#9A7B2E;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,-apple-system,sans-serif;background:#F2F1EC;color:var(--charcoal);padding:40px 24px 80px}
+.wrap{max-width:1560px;margin:0 auto}
+h1.page{font-size:26px;font-weight:600;color:var(--teal);margin-bottom:8px}
+.lede{max-width:760px;font-size:15px;line-height:1.6;color:var(--charcoal);margin-bottom:6px}
+.lede.small{font-size:13px;color:var(--muted);margin-bottom:28px}
+.decisions{max-width:760px;background:var(--white);border:1px solid #E4E2D8;border-radius:12px;padding:20px 24px;margin-bottom:44px}
+.decisions h2{font-size:15px;font-weight:600;color:var(--teal);margin-bottom:10px}
+.decisions li{font-size:13.5px;line-height:1.55;margin:0 0 7px 18px}
+.decisions b{font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:44px;align-items:flex-start}
+.col{width:340px}
+.tag{display:inline-block;font-size:12px;font-weight:600;color:var(--teal);background:var(--dew-sage);border-radius:4px;padding:3px 10px;margin-bottom:10px}
+.annots{margin-top:14px;font-size:12.5px;line-height:1.5}
+.annots div{display:flex;gap:8px;margin-bottom:6px}
+.annots .c{flex:0 0 14px;font-weight:600}
+.ok .c{color:var(--teal)}
+.open .c{color:var(--annot-open)}
+.open span:last-child{color:var(--annot-open)}
+
+/* phone frame */
+.phone{background:var(--mist);border-radius:34px;border:1px solid #DCDAD0;box-shadow:0 8px 30px rgba(0,0,0,.07);overflow:hidden;width:340px}
+.status{display:flex;justify-content:space-between;align-items:center;padding:14px 22px 4px;font:600 13px Inter;color:var(--charcoal)}
+.status .ico{display:flex;gap:5px;align-items:center}
+.bars{display:flex;gap:2px;align-items:flex-end;height:11px}
+.bars i{width:3px;background:var(--charcoal);border-radius:1px}
+.bars i:nth-child(1){height:5px}.bars i:nth-child(2){height:7px}
+.bars i:nth-child(3){height:9px}.bars i:nth-child(4){height:11px}
+.batt{width:22px;height:11px;border:1px solid var(--charcoal);border-radius:3px;position:relative}
+.batt::after{content:"";position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:10px;background:var(--charcoal);border-radius:1px}
+.screen{padding:0 20px 20px;min-height:600px;display:flex;flex-direction:column}
+.navrow{display:flex;align-items:center;gap:8px;padding:12px 0 16px}
+.chev{font-size:20px;color:var(--teal)}
+.navlbl{font-size:14px;font-weight:500;color:var(--teal)}
+.h1{font-size:26px;font-weight:600;color:var(--teal);line-height:1.3;margin-bottom:6px}
+.h2{font-size:22px;font-weight:600;color:var(--teal);line-height:1.3;margin-bottom:6px}
+.sub{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:20px}
+.spacer{flex:1}
+.btn{display:block;width:100%;text-align:center;padding:15px;border-radius:12px;background:var(--teal);color:#fff;font:500 16px Inter;border:none;margin-top:16px}
+.txtbtn{display:block;width:100%;text-align:center;padding:12px;color:var(--teal);font:500 15px Inter;margin-top:4px}
+
+/* cards */
+.card{background:var(--white);border-radius:12px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.04);margin-bottom:12px}
+.card .ttl{font-size:16px;font-weight:500;line-height:1.4}
+.card .meta{font-size:14px;color:var(--muted);margin-top:4px}
+.chiprow{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:500;color:var(--charcoal);background:rgba(213,227,209,.6);border-radius:4px;padding:3px 10px}
+.chip.protected{background:transparent;border:1px solid var(--silver-sage)}
+.hint{font-size:13px;color:var(--muted);line-height:1.5;text-align:center;padding:14px 8px 0}
+
+/* rhythm suggestion */
+.rhythm{background:rgba(213,227,209,.5);border-left:4px solid var(--teal);border-radius:12px;padding:18px 20px;margin-bottom:12px}
+.rhythm .lbl{font-size:12px;font-weight:500;letter-spacing:.02em;color:var(--muted);margin-bottom:6px}
+.rhythm .txt{font-size:15px;line-height:1.5;margin-bottom:12px}
+.slot{display:inline-flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--teal);border-radius:8px;padding:10px 14px;font-size:15px;font-weight:500;color:var(--teal)}
+.slot .sun{width:16px;height:16px;border-radius:9999px;background:var(--sunrise-amber);display:inline-block}
+
+/* inputs */
+.field{background:var(--white);border:1.5px solid var(--silver-sage);border-radius:8px;padding:13px 12px;font-size:16px;margin-bottom:16px}
+.field.ph{color:var(--muted)}
+.field.focus{border-color:var(--teal)}
+.flabel{font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px}
+.durrow{display:flex;gap:8px;margin-bottom:16px}
+.dur{flex:1;text-align:center;padding:12px 0;border-radius:8px;border:1.5px solid var(--silver-sage);background:var(--white);font-size:15px;font-weight:500}
+.dur.sel{border-color:var(--teal);background:rgba(213,227,209,.45);color:var(--teal)}
+.demrow{display:flex;gap:8px;margin-bottom:8px}
+.dem{flex:1;text-align:center;padding:12px 0;border-radius:8px;border:1.5px solid var(--silver-sage);background:var(--white);font-size:15px;font-weight:500}
+.dem.sel{border-color:var(--teal);background:rgba(213,227,209,.45);color:var(--teal)}
+.demhint{font-size:12px;color:var(--muted);margin-bottom:4px}
+
+/* task list */
+.ghead{font-size:12px;font-weight:500;letter-spacing:.02em;color:var(--muted);margin:18px 0 8px}
+.task{background:var(--white);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,.04);margin-bottom:8px;min-height:48px}
+.task .nm{font-size:15px;line-height:1.4}
+.task .st{font-size:12px;font-weight:500;color:var(--teal);white-space:nowrap;margin-left:12px}
+.task .st.q{color:var(--muted)}
+
+/* day-shape strip */
+.shape{background:var(--white);border-radius:12px;padding:14px 16px 12px;box-shadow:0 1px 3px rgba(0,0,0,.04);margin-bottom:16px}
+.zlbls{display:flex;font-size:10.5px;font-weight:500;letter-spacing:.03em;color:var(--muted);margin-bottom:6px}
+.zlbls span{flex:1;text-align:center}
+.track{position:relative;height:36px;background:var(--mist);border-radius:8px;overflow:hidden}
+.zdiv{position:absolute;top:0;bottom:0;width:1px;background:#E9E7DD}
+.rwin{position:absolute;top:0;bottom:0;background:rgba(213,227,209,.65);border-radius:8px}
+.bpill{position:absolute;top:7px;height:22px;background:var(--teal);border-radius:6px}
+.shapecap{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.4}
+
+/* sheet look */
+.sheet{background:var(--white);border-radius:16px 16px 0 0;margin:0 -20px -20px;padding:0 20px 24px;box-shadow:0 -4px 16px rgba(0,0,0,.08);flex:1;display:flex;flex-direction:column}
+.handle{width:40px;height:4px;background:var(--silver-sage);border-radius:9999px;margin:12px auto 20px}
+.dim{height:44px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1 class="page">Focus &amp; Time — Blocks and Tasks</h1>
+<p class="lede">First rendered pass at the two unbuilt Focus &amp; Time sections, built as one loop: capture tasks and tag each by demand, then place the heavy ones into a block when your focus rhythm runs strongest. Every screen is written to the north star from the design direction: this helps you put your day down, not do more of it.</p>
+<p class="lede small">All copy is draft for Jen to react to. Icons are placeholders for Vara's rounded 1.5px line set. Tokens and components follow Vara_Mobile_UI_Standards v1.0.</p>
+
+<div class="decisions">
+<h2>Decisions embodied here (open items marked ? under each screen)</h2>
+<ul>
+<li><b>Batch axis: energy demand only.</b> Light / Medium / Heavy, the same readiness language as the daily picker. Cognitive-type batching is cut.</li>
+<li><b>A task is a name plus a demand tag. Nothing else.</b> No due dates, projects, priorities, subtasks, or reminders. This fence is what keeps Tasks from becoming a to-do app.</li>
+<li><b>No calendar grid at MVP.</b> An hour timeline renders empty hours (deficit framing) and, without calendar sync, falsely implies the rest of the day is free. Weekly view is deferred with sync to Phase 2. The open fork is A vs A2: a plain list, or the list plus a three-zone day-shape strip that shows placement without rendering a single empty hour.</li>
+<li><b>Focus Rhythms suggests, never places.</b> The suggestion is a pre-filled invitation the user accepts or overrides. Nothing lands on the day without a tap.</li>
+<li><b>Deep work is a block type, not a feature.</b> A protected block is just a block marked protected.</li>
+<li><b>Up to 3 blocks a day.</b> The cap is framed as sufficiency, never scarcity.</li>
+</ul>
+</div>
+
+<div class="row">
+
+<!-- ============ SCREEN A: TODAY'S BLOCKS ============ -->
+<div class="col">
+<span class="tag">A · Your blocks (day view)</span>
+<div class="phone">
+  <div class="status"><span>9:41</span><span class="ico"><span class="bars"><i></i><i></i><i></i><i></i></span><span>&#9787;</span><span class="batt"></span></span></div>
+  <div class="screen">
+    <div class="navrow"><span class="chev">&#8249;</span><span class="navlbl">Focus &amp; Time</span></div>
+    <div class="h1">Today's blocks</div>
+    <div class="sub">Decide when it happens. Then put it down until then.</div>
+
+    <div class="card">
+      <div class="ttl">Q3 board deck</div>
+      <div class="meta">9:00 to 10:30</div>
+      <div class="chiprow"><span class="chip">Heavy</span><span class="chip protected">Protected</span></div>
+    </div>
+
+    <div class="card">
+      <div class="ttl">Email and admin sweep</div>
+      <div class="meta">2:00 to 2:30</div>
+      <div class="chiprow"><span class="chip">Light</span></div>
+    </div>
+
+    <div class="hint">Two blocks is plenty. The rest of the day is yours.</div>
+
+    <div class="spacer"></div>
+    <button class="btn">Add a block</button>
+  </div>
+</div>
+<div class="annots">
+  <div class="ok"><span class="c">&#10003;</span><span>List, not timeline. No empty hours rendered, so nothing reads as unfilled.</span></div>
+  <div class="ok"><span class="c">&#10003;</span><span>Sufficiency copy under the list carries the cap without ever saying "limit."</span></div>
+  <div class="ok"><span class="c">&#10003;</span><span>One primary action. Block cards are informational, not tappable-plus-buttoned.</span></div>
+  <div class="open"><span class="c">?</span><span>Past blocks: fade them, or drop them off the list? Leaning fade, no checkmark, no done state. A block is an appointment, not a habit.</span></div>
+</div>
+</div>
+
+<!-- ============ SCREEN A2: DAY SHAPE VARIANT ============ -->
+<div class="col">
+<span class="tag">A2 · Day view with day-shape strip (alternative to A)</span>
+<div class="phone">
+  <div class="status"><span>9:41</span><span class="ico"><span class="bars"><i></i><i></i><i></i><i></i></span><span>&#9787;</span><span class="batt"></span></span></div>
+  <div class="screen">
+    <div class="navrow"><span class="chev">&#8249;</span><span class="navlbl">Focus &amp; Time</span></div>
+    <div class="h1">Today's blocks</div>
+    <div class="sub">Decide when it happens. Then put it down until then.</div>
+
+    <div class="shape">
+      <div class="zlbls"><span>MORNING</span><span>AFTERNOON</span><span>EVENING</span></div>
+      <div class="track">
+        <div class="rwin" style="left:0;width:33%"></div>
+        <div class="zdiv" style="left:33.3%"></div>
+        <div class="zdiv" style="left:66.6%"></div>
+        <div class="bpill" style="left:5%;width:18%"></div>
+        <div class="bpill" style="left:46%;width:7%"></div>
+      </div>
+      <div class="shapecap">The shaded stretch is when your focus tends to run strongest.</div>
+    </div>
+
+    <div class="card">
+      <div class="ttl">Q3 board deck</div>
+      <div class="meta">9:00 to 10:30</div>
+      <div class="chiprow"><span class="chip">Heavy</span><span class="chip protected">Protected</span></div>
+    </div>
+
+    <div class="card">
+      <div class="ttl">Email and admin sweep</div>
+      <div class="meta">2:00 to 2:30</div>
+      <div class="chiprow"><span class="chip">Light</span></div>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn">Add a block</button>
+  </div>
+</div>
+<div class="annots">
+  <div class="ok"><span class="c">&#10003;</span><span>Placement without an hour grid: three zones, no empty hours rendered, nothing reads as unfilled or fillable.</span></div>
+  <div class="ok"><span class="c">&#10003;</span><span>The rhythm window is visible, so a heavy block sitting inside the shaded stretch shows the whole loop in one glance.</span></div>
+  <div class="ok"><span class="c">&#10003;</span><span>Makes no claim about the rest of the day. Meetings live in the real calendar; a full timeline would falsely imply free time.</span></div>
+  <div class="open"><span class="c">?</span><span>A or A2? The strip replaces the sufficiency line, trading a sentence for a picture. Both stay calm; pick one, not a toggle.</span></div>
+  <div class="open"><span class="c">?</span><span>If A2: does the strip earn its place on a day with one block, or should it appear only from the second block on?</span></div>
+</div>
+</div>
+
+<!-- ============ SCREEN B: ADD A BLOCK ============ -->
+<div class="col">
+<span class="tag">B · Add a block + rhythm suggestion</span>
+<div class="phone">
+  <div class="status"><span>9:41</span><span class="ico"><span class="bars"><i></i><i></i><i></i><i></i></span><span>&#9787;</span><span class="batt"></span></span></div>
+  <div class="screen">
+    <div class="dim"></div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="h2">Add a block</div>
+      <div class="sub">One thing, one window.</div>
+
+      <div class="flabel">WHAT</div>
+      <div class="field">Q3 board deck &nbsp;<span class="chip">Heavy</span></div>
+
+      <div class="flabel">HOW LONG</div>
+      <div class="durrow">
+        <div class="dur">30 min</div>
+        <div class="dur">60 min</div>
+        <div class="dur sel">90 min</div>
+      </div>
+
+      <div class="rhythm">
+        <div class="lbl">FOCUS RHYTHMS</div>
+        <div class="txt">Your focus tends to run strongest in the morning. A heavy block fits well there.</div>
+        <span class="slot"><span class="sun"></span>Morning · 9:00 to 10:30</span>
+      </div>
+
+      <div class="spacer"></div>
+      <button class="btn">Place it there</button>
+      <div class="txtbtn">I'll choose a time</div>
+    </div>
+  </div>
+</div>
+<div class="annots">
+  <div class="ok"><span class="c">&#10003;</span><span>The task arrives from Tasks with its demand tag already on. Typing a fresh one here also works.</span></div>
+  <div class="ok"><span class="c">&#10003;</span><span>The rhythm suggestion is the differentiator and gets the accent budget: one amber dot, nothing else.</span></div>
+  <div class="ok"><span class="c">&#10003;</span><span>Suggestion is an invitation. Primary accepts it; "I'll choose a time" is a first-class exit, not a buried link.</span></div>
+  <div class="open"><span class="c">?</span><span>Suggestion source copy: how explicitly do we say "because your rhythms say so"? Current line implies it. Jen's call on how much mechanism to surface.</span></div>
+  <div class="open"><span class="c">?</span><span>Duration set: 30/60/90 shown. Should a protected block unlock a longer option, or is 90 the ceiling?</span></div>
+</div>
+</div>
+
+<!-- ============ SCREEN C: TASKS ============ -->
+<div class="col">
+<span class="tag">C · Tasks (batched by demand)</span>
+<div class="phone">
+  <div class="status"><span>9:41</span><span class="ico"><span class="bars"><i></i><i></i><i></i><i></i></span><span>&#9787;</span><span class="batt"></span></span></div>
+  <div class="screen">
+    <div class="navrow"><span class="chev">&#8249;</span><span class="navlbl">Focus &amp; Time</span></div>
+    <div class="h1">Tasks</div>
+    <div class="sub">Jot it down, tag what it takes, and get back to what you were doing.</div>
+
+    <div class="field ph">Jot it down...</div>
+
+    <div class="ghead">HEAVY · WANTS A HIGH-CAPACITY WINDOW</div>
+    <div class="task"><span class="nm">Q3 board deck</span><span class="st">Blocked · 9:00</span></div>
+    <div class="task"><span class="nm">Strategy memo draft</span><span class="st q">Block it</span></div>
+
+    <div class="ghead">LIGHT · CLEARS EASILY WHEN YOU'RE RUNNING LOW</div>
+    <div class="task"><span class="nm">Expense report</span><span class="st q">Block it</span></div>
+    <div class="task"><span class="nm">Reply to Sam</span><span class="st q">Block it</span></div>
+    <div class="task"><span class="nm">Book dentist</span><span class="st q">Block it</span></div>
+
+    <div class="spacer"></div>
+  </div>
+</div>
+<div class="annots">
+  <div class="ok"><span class="c">&#10003;</span><span>Capture field is the primary action of this screen. No big CTA competing with it.</span></div>
+  <div class="ok"><span class="c">&#10003;</span><span>Group headers teach the model in one line each: heavy wants capacity, light fits depletion.</span></div>
+  <div class="ok"><span class="c">&#10003;</span><span>"Blocked · 9:00" on a task is the batch-to-block bridge made visible.</span></div>
+  <div class="open"><span class="c">?</span><span>"Block it" per row is three tappables per group. Alternative: tap a task, act from a sheet. Quieter, one more step. Which way?</span></div>
+  <div class="open"><span class="c">?</span><span>Done tasks: swipe to clear with no history, or a soft "cleared" section? Leaning swipe-and-gone. Tasks are not a record.</span></div>
+</div>
+</div>
+
+<!-- ============ SCREEN D: QUICK CAPTURE ============ -->
+<div class="col">
+<span class="tag">D · Quick capture (the whole form)</span>
+<div class="phone">
+  <div class="status"><span>9:41</span><span class="ico"><span class="bars"><i></i><i></i><i></i><i></i></span><span>&#9787;</span><span class="batt"></span></span></div>
+  <div class="screen">
+    <div class="dim"></div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="h2">Jot it down</div>
+      <div class="sub">Get it out of your head. It will be here when you have room for it.</div>
+
+      <div class="field focus">Draft investor update</div>
+
+      <div class="demhint">How much does this take out of you?</div>
+      <div class="demrow">
+        <div class="dem">Light</div>
+        <div class="dem">Medium</div>
+        <div class="dem sel">Heavy</div>
+      </div>
+
+      <div class="spacer"></div>
+      <button class="btn">Save and get back</button>
+    </div>
+  </div>
+</div>
+<div class="annots">
+  <div class="ok"><span class="c">&#10003;</span><span>This is the entire capture form. Name plus demand. The absence of every other field is the design.</span></div>
+  <div class="ok"><span class="c">&#10003;</span><span>"Save and get back" names the payoff: the point of capture is returning to what you were doing.</span></div>
+  <div class="ok"><span class="c">&#10003;</span><span>Demand question is felt language, not estimation. No time estimates, no priority ranks.</span></div>
+  <div class="open"><span class="c">?</span><span>Is the demand tag required at capture, or skippable with an "untagged" holding group? Leaning required: it is one tap and it is the whole model.</span></div>
+</div>
+</div>
+
+</div>
+</div>
+</body>
+</html>
