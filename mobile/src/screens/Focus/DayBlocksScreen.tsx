@@ -53,8 +53,13 @@ import {
 const MIN_TOUCH_TARGET = 48;
 
 /**
- * The daily cap, from the mockup's decisions block: "Up to 3 blocks a day. The
- * cap is framed as sufficiency, never scarcity."
+ * The daily cap. The mockup's decisions block said three; the round-3 device
+ * walk raised it to six. Its framing is unchanged: "sufficiency, never
+ * scarcity."
+ *
+ * The number lives HERE ONLY. SUFFICIENCY_LINE is deliberately count-agnostic
+ * so moving this constant again is a one-line change and cannot leave the copy
+ * asserting a number that is no longer true.
  *
  * Enforced softly and only in the UI: at the cap the Add CTA is REPLACED by the
  * sufficiency line rather than disabled, so nothing reads as a locked door and
@@ -65,7 +70,7 @@ const MIN_TOUCH_TARGET = 48;
  * See the report: whether to enforce this at all in A2 is the largest judgement
  * call in the slice, because A2 drops the sufficiency line the cap lives on in A.
  */
-export const MAX_BLOCKS_PER_DAY = 3;
+export const MAX_BLOCKS_PER_DAY = 6;
 
 type NavigationProp = NativeStackNavigationProp<{
   FocusRhythms: undefined;
@@ -85,13 +90,38 @@ function zoneLabel(key?: FocusRhythmKey): string | undefined {
   return key ? FOCUS_RHYTHM_OPTIONS.find((o) => o.key === key)?.label : undefined;
 }
 
-/** Local midnight today, and local midnight tomorrow. */
-function todayBounds(now: Date): { start: Date; end: Date } {
-  const start = new Date(now);
+/** Local midnight on `day`, and local midnight the day after. */
+function dayBounds(day: Date): { start: Date; end: Date } {
+  const start = new Date(day);
   start.setHours(0, 0, 0, 0);
   const end = new Date(start);
   end.setDate(end.getDate() + 1);
   return { start, end };
+}
+
+/**
+ * The first block whose window intersects [start, start + minutes), or null.
+ *
+ * HALF-OPEN INTERVALS, which is what makes exact adjacency legal: a block
+ * ending at 6:00 and one starting at 6:00 do not overlap, and refusing that
+ * would make back-to-back blocks impossible. Strict `<` on both sides is the
+ * whole rule.
+ */
+function findOverlap(
+  existing: DayBlock[],
+  start: Date,
+  durationMinutes: number
+): DayBlock | null {
+  const startMs = start.getTime();
+  const endMs = startMs + durationMinutes * 60_000;
+
+  return (
+    existing.find((block) => {
+      const otherStart = block.startAt.toDate().getTime();
+      const otherEnd = otherStart + block.durationMinutes * 60_000;
+      return startMs < otherEnd && otherStart < endMs;
+    }) ?? null
+  );
 }
 
 export function DayBlocksScreen() {
@@ -107,6 +137,8 @@ export function DayBlocksScreen() {
   // Set only when a saved block lands on a day this view cannot show. Cleared
   // when the sheet reopens, so it never lingers as stale reassurance.
   const [tomorrowNotice, setTomorrowNotice] = useState<string | null>(null);
+  // Title of the block a refused save collided with. Null when there is none.
+  const [overlapWith, setOverlapWith] = useState<string | null>(null);
 
   /**
    * Bumped every time the sheet opens, and used as its `key` so it REMOUNTS.
@@ -140,7 +172,7 @@ export function DayBlocksScreen() {
     }
     const current = new Date();
     setNow(current);
-    const { start, end } = todayBounds(current);
+    const { start, end } = dayBounds(current);
     try {
       const [todaysBlocks, storedWindows] = await Promise.all([
         listDayBlocksBetween(uid, start, end),
@@ -191,6 +223,30 @@ export function DayBlocksScreen() {
       // stops being the only evidence the block exists and can go.
       const landsTomorrow = !isSameDay(draft.startAt, new Date());
       try {
+        // OVERLAP CHECK, against the day actually being written to. For today
+        // that is the list already on screen; for a rollover suggestion it is
+        // tomorrow's, which this view has never loaded, so it is fetched. Doing
+        // it here rather than in the sheet keeps the sheet writeless and keeps
+        // the rule next to the only code that can create a block.
+        //
+        // NOT a data invariant: the service has no such rule and the rules
+        // layer cannot express one. Two devices racing can still interleave.
+        // This is a UI guard against the mistake a person actually makes.
+        const targetDay = landsTomorrow
+          ? await (async () => {
+              const { start, end } = dayBounds(draft.startAt);
+              return listDayBlocksBetween(uid, start, end);
+            })()
+          : blocks;
+
+        const conflict = findOverlap(targetDay, draft.startAt, draft.durationMinutes);
+        if (conflict) {
+          setOverlapWith(conflict.title);
+          setSaving(false);
+          return;
+        }
+        setOverlapWith(null);
+
         await createDayBlock(uid, draft);
         setSheetOpen(false);
         await load();
@@ -205,7 +261,7 @@ export function DayBlocksScreen() {
         setSaving(false);
       }
     },
-    [uid, load]
+    [uid, load, blocks]
   );
 
   const handleRemove = useCallback(
@@ -274,6 +330,7 @@ export function DayBlocksScreen() {
                 onPress={() => {
                   setSaveFailed(false);
                   setTomorrowNotice(null);
+                  setOverlapWith(null);
                   setSheetSession((n) => n + 1);
                   setSheetOpen(true);
                 }}
@@ -296,6 +353,7 @@ export function DayBlocksScreen() {
         now={now}
         saving={saving}
         saveFailed={saveFailed}
+        overlapWith={overlapWith}
         onConfirm={handleConfirm}
         onDismiss={() => setSheetOpen(false)}
         onOpenRhythms={() => {

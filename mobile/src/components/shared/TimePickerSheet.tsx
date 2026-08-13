@@ -53,6 +53,8 @@ interface TimePickerSheetProps {
   title?: string;
   /** Defaults to 'overlay', the original presentation. */
   presentation?: TimePickerPresentation;
+  /** Label for the inline presentation's bottom primary. Ignored by overlay. */
+  commitLabel?: string;
 }
 
 /**
@@ -86,6 +88,7 @@ export const TimePickerSheet: React.FC<TimePickerSheetProps> = ({
   onClose,
   title = 'Reminder time',
   presentation = 'overlay',
+  commitLabel = 'Use this time',
 }) => {
   const [draft, setDraft] = useState<ReminderTime>(value);
 
@@ -119,6 +122,11 @@ export const TimePickerSheet: React.FC<TimePickerSheetProps> = ({
 
   // Identical in both presentations: same draft, same single commit on Done,
   // same discard on Cancel. Only the chrome around it differs.
+  const commit = () => {
+    onChange(draft);
+    onClose();
+  };
+
   const body = (
     <View style={inline ? styles.inlineContainer : styles.container}>
       <View style={inline ? styles.inlineHeader : styles.header}>
@@ -134,18 +142,25 @@ export const TimePickerSheet: React.FC<TimePickerSheetProps> = ({
 
         <Text style={inline ? styles.inlineTitle : styles.title}>{title}</Text>
 
-        <TouchableOpacity
-          onPress={() => {
-            onChange(draft);
-            onClose();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Done, use this time"
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          testID="time-picker-done"
-        >
-          <Text style={inline ? styles.inlineTertiary : styles.done}>Done</Text>
-        </TouchableOpacity>
+        {/* THE HEADER COMMIT EXISTS ONLY IN THE OVERLAY PRESENTATION. Inline
+            moves it to a real primary below the wheel: a header text link is
+            not weight-matched to the decision it commits, and the round-3 walk
+            wanted the commit to look like the commit. Cancel stays here in both
+            presentations, so there is still exactly one way out and one way
+            forward. */}
+        {inline ? (
+          <View style={styles.inlineHeaderSpacer} />
+        ) : (
+          <TouchableOpacity
+            onPress={commit}
+            accessibilityRole="button"
+            accessibilityLabel="Done, use this time"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            testID="time-picker-done"
+          >
+            <Text style={styles.done}>Done</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <DateTimePicker
@@ -158,6 +173,20 @@ export const TimePickerSheet: React.FC<TimePickerSheetProps> = ({
         }}
         style={styles.picker}
       />
+
+      {/* Inline only: the sole commit, as a full-width brand primary. */}
+      {inline && (
+        <TouchableOpacity
+          style={styles.inlinePrimary}
+          onPress={commit}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={commitLabel}
+          testID="time-picker-commit"
+        >
+          <Text style={styles.inlinePrimaryLabel}>{commitLabel}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -252,6 +281,25 @@ const styles = StyleSheet.create({
   // Cancel and Done are deliberately the SAME weight here. Done is the only
   // commit, but making it louder would re-create the "which one owns my
   // choice" ambiguity the takeover exists to remove.
+  // Holds the Cancel/title layout symmetrical now that Done has moved out.
+  inlineHeaderSpacer: {
+    width: 56,
+  },
+  // Full-width brand primary, 48px, per standards 7.1.
+  inlinePrimary: {
+    minHeight: 48,
+    marginTop: Spacing.lg,
+    borderRadius: Layout.borderRadius.lg,
+    backgroundColor: Colors.evergreenTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+  },
+  inlinePrimaryLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+  },
   inlineTertiary: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,

@@ -89,6 +89,8 @@ import {
   TIME_PICKER_TITLE,
   EARLIER_TODAY,
   placedForTomorrow,
+  overlapMessage,
+  USE_THIS_TIME,
 } from '../blocksCopy';
 
 /** Drive the underlying picker as an iOS spinner scroll would. */
@@ -197,9 +199,10 @@ describe('the day view', () => {
   });
 });
 
-describe('past blocks fade, and never gain a done state', () => {
-  it('fades a block whose end is behind us', async () => {
-    // 00:30 for 30 minutes, read against a clock that is well past it.
+describe('past blocks are captioned, never faded, and never gain a done state', () => {
+  it('leaves a past card at FULL opacity', async () => {
+    // Round 3 removed the fade outright: it was misread as a rendering glitch
+    // in two consecutive walks. The caption below is the entire treatment now.
     const longAgo = new Date();
     longAgo.setHours(0, 30, 0, 0);
     mockListBlocks.mockResolvedValue([
@@ -209,16 +212,16 @@ describe('past blocks fade, and never gain a done state', () => {
     const { findByTestId } = render(<DayBlocksScreen />);
     const card = await findByTestId('block-card-past');
 
-    const flat = Array.isArray(card.props.style)
-      ? Object.assign({}, ...card.props.style.flat().filter(Boolean))
-      : card.props.style;
-    expect(flat.opacity).toBeLessThan(1);
+    const parts = (Array.isArray(card.props.style)
+      ? card.props.style.flat(Infinity)
+      : [card.props.style]
+    ).filter(Boolean);
+    expect(parts.some((part: any) => typeof part?.opacity === 'number' && part.opacity < 1)).toBe(
+      false
+    );
   });
 
-  it('captions a faded card so the fade reads as meaning, not a glitch', async () => {
-    // Round-2 walk: a block created already-past faded instantly and was
-    // reported as a rendering bug by the person who specced the fade. Opacity
-    // alone carries no semantics.
+  it('captions a past card, which is the only mark it carries', async () => {
     const longAgo = new Date();
     longAgo.setHours(0, 30, 0, 0);
     mockListBlocks.mockResolvedValue([
@@ -242,6 +245,46 @@ describe('past blocks fade, and never gain a done state', () => {
 
     await findByTestId('block-card-later');
     expect(queryByTestId('block-past-later')).toBeNull();
+  });
+
+  it('distinguishes a 5 AM block from a 5 PM one', async () => {
+    // THE ROUND-3 ROOT CAUSE, pinned. formatTimeRange rendered bare 12-hour
+    // times, so an already-past morning block and a live evening block showed
+    // the SAME string. One captioned and one not, side by side, read as the
+    // past treatment being broken. The predicate was correct all along; the
+    // display was ambiguous. Drop the meridiem again and this fails.
+    const am = new Date();
+    am.setHours(5, 0, 0, 0);
+    const pm = new Date();
+    pm.setHours(17, 0, 0, 0);
+    mockListBlocks.mockResolvedValue([
+      makeBlock({ id: 'am', start: am, durationMinutes: 60 }),
+      makeBlock({ id: 'pm', start: pm, durationMinutes: 60 }),
+    ]);
+
+    const { findByTestId, queryAllByText } = render(<DayBlocksScreen />);
+
+    await findByTestId('block-card-am');
+    // The two cards must not be able to render the same label.
+    expect(queryAllByText('5:00 to 6:00')).toHaveLength(0);
+    expect(queryAllByText('5:00 AM to 6:00 AM')).toHaveLength(1);
+    expect(queryAllByText('5:00 PM to 6:00 PM')).toHaveLength(1);
+  });
+
+  it('captions strictly by end time, not by start', async () => {
+    // The other half of the root cause: confirm the predicate itself is right,
+    // so the fix above cannot be mistaken for papering over a bad comparison.
+    // A block that STARTED in the past but has not ENDED is not past.
+    const now = new Date();
+    const startedButRunning = new Date(now.getTime() - 10 * 60_000);
+    mockListBlocks.mockResolvedValue([
+      makeBlock({ id: 'running', start: startedButRunning, durationMinutes: 60 }),
+    ]);
+
+    const { findByTestId, queryByTestId } = render(<DayBlocksScreen />);
+
+    await findByTestId('block-card-running');
+    expect(queryByTestId('block-past-running')).toBeNull();
   });
 
   it('renders no checkmark or completed affordance on any card', async () => {
@@ -269,6 +312,31 @@ describe('the daily cap, framed as sufficiency', () => {
     expect(getByTestId('day-blocks-sufficiency').props.children).toBe(SUFFICIENCY_LINE);
     // Replaced, not disabled: no locked door.
     expect(queryByTestId('day-blocks-add')).toBeNull();
+  });
+
+  it('caps at six, and says so without naming a number', async () => {
+    expect(MAX_BLOCKS_PER_DAY).toBe(6);
+    // Count-agnostic on purpose: the cap moved 3 -> 6 in round 3 and the copy
+    // must survive the next move too.
+    expect(SUFFICIENCY_LINE).not.toMatch(/\b(three|six|3|6)\b/i);
+  });
+
+  it('draws all six pills on the strip at the cap without crashing', async () => {
+    // No overlap handling on the strip by design; this only confirms six
+    // legal, non-overlapping blocks all render.
+    mockListBlocks.mockResolvedValue(
+      Array.from({ length: MAX_BLOCKS_PER_DAY }, (_, i) => {
+        const start = new Date(2026, 7, 13, 9 + i, 0, 0);
+        return makeBlock({ id: `b${i}`, start, durationMinutes: 30 });
+      })
+    );
+
+    const { findByTestId } = render(<DayBlocksScreen />);
+
+    await findByTestId('day-shape-strip');
+    for (let i = 0; i < MAX_BLOCKS_PER_DAY; i++) {
+      expect(await findByTestId(`day-shape-pill-b${i}`)).toBeTruthy();
+    }
   });
 
   it('still offers the CTA one block below the cap', async () => {
@@ -431,7 +499,7 @@ describe('creating a block', () => {
     fireEvent.press(getByTestId('add-block-demand-heavy'));
     fireEvent.press(getByTestId('add-block-choose-time'));
     scrollPickerTo(15, 45);
-    fireEvent.press(getByTestId('time-picker-done'));
+    fireEvent.press(getByTestId('time-picker-commit'));
     fireEvent.press(getByTestId('add-block-confirm'));
 
     await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
@@ -447,7 +515,7 @@ describe('creating a block', () => {
     fireEvent.press(getByTestId('add-block-demand-light'));
     fireEvent.press(getByTestId('add-block-time-row'));
     scrollPickerTo(10, 0);
-    fireEvent.press(getByTestId('time-picker-done'));
+    fireEvent.press(getByTestId('time-picker-commit'));
     fireEvent.press(getByTestId('add-block-confirm'));
 
     await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
@@ -530,7 +598,7 @@ describe('creating a block', () => {
     fireEvent.press(getByTestId('add-block-demand-heavy'));
     fireEvent.press(getByTestId('add-block-choose-time'));
     scrollPickerTo(15, 45);
-    fireEvent.press(getByTestId('time-picker-done'));
+    fireEvent.press(getByTestId('time-picker-commit'));
     fireEvent.press(getByTestId('add-block-confirm'));
 
     await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
@@ -556,12 +624,13 @@ describe('creating a block', () => {
     expect(getByTestId('add-block-hint')).toBeTruthy();
   });
 
-  it('hides the footer while the picker is open, so Done and Save are never both live', async () => {
+  it('hides the footer while the picker is open, so the two commits are never both live', async () => {
     const { getByTestId, queryByTestId } = await openSheetWith(['afternoon']);
 
     fireEvent.press(getByTestId('add-block-choose-time'));
 
-    expect(getByTestId('time-picker-done')).toBeTruthy();
+    // The picker's own commit is present; the sheet's is not.
+    expect(getByTestId('time-picker-commit')).toBeTruthy();
     expect(queryByTestId('add-block-confirm')).toBeNull();
   });
 
@@ -607,7 +676,7 @@ describe('creating a block', () => {
 
     fireEvent.press(getByTestId('add-block-time-row'));
     scrollPickerTo(15, 45);
-    fireEvent.press(getByTestId('time-picker-done'));
+    fireEvent.press(getByTestId('time-picker-commit'));
 
     expect(getByText(startsAtRow('3:45 PM'))).toBeTruthy();
     expect(queryByTestId('time-picker-sheet')).toBeNull();
@@ -624,7 +693,7 @@ describe('creating a block', () => {
     fireEvent.press(getByTestId('add-block-demand-heavy'));
     fireEvent.press(getByTestId('add-block-choose-time'));
     scrollPickerTo(15, 45);
-    fireEvent.press(getByTestId('time-picker-done'));
+    fireEvent.press(getByTestId('time-picker-commit'));
 
     // Reopen, scroll somewhere else, then back out.
     fireEvent.press(getByTestId('add-block-time-row'));
@@ -723,6 +792,147 @@ describe('creating a block', () => {
 
     await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
     expect(queryByTestId('day-blocks-tomorrow-notice')).toBeNull();
+  });
+
+  it('refuses a save that overlaps an existing block, and names it', async () => {
+    jest.spyOn(Date.prototype, 'getHours').mockReturnValue(9);
+    // Existing: 12:00 to 13:00. The afternoon suggestion starts at 12:00.
+    mockListBlocks.mockResolvedValue([
+      makeBlock({
+        id: 'existing',
+        start: new Date(new Date().setHours(12, 0, 0, 0)),
+        durationMinutes: 60,
+        title: 'Q3 board deck',
+      }),
+    ]);
+    const { getByTestId, findByTestId, getByText } = await openSheetWith(['afternoon']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Strategy memo');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await findByTestId('add-block-overlap');
+    // Naming the conflict is the requirement: "overlaps something" is a hunt.
+    expect(getByText(overlapMessage('Q3 board deck'))).toBeTruthy();
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+  });
+
+  it('allows EXACT adjacency, which is not an overlap', async () => {
+    jest.spyOn(Date.prototype, 'getHours').mockReturnValue(9);
+    // Existing ends exactly at 12:00; the suggestion starts exactly at 12:00.
+    mockListBlocks.mockResolvedValue([
+      makeBlock({
+        id: 'existing',
+        start: new Date(new Date().setHours(11, 0, 0, 0)),
+        durationMinutes: 60,
+        title: 'Standup',
+      }),
+    ]);
+    const { getByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Strategy memo');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    // Back-to-back blocks must remain possible.
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalledTimes(1));
+  });
+
+  it('refuses a containing block as well as a partial straddle', async () => {
+    jest.spyOn(Date.prototype, 'getHours').mockReturnValue(9);
+    // 11:00 to 15:00 fully contains the 12:00 suggestion window.
+    mockListBlocks.mockResolvedValue([
+      makeBlock({
+        id: 'existing',
+        start: new Date(new Date().setHours(11, 0, 0, 0)),
+        durationMinutes: 240,
+        title: 'Offsite',
+      }),
+    ]);
+    const { getByTestId, findByTestId } = await openSheetWith(['afternoon']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Strategy memo');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await findByTestId('add-block-overlap');
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+  });
+
+  it("checks TOMORROW's list when the block lands tomorrow", async () => {
+    jest.spyOn(Date.prototype, 'getHours').mockReturnValue(23);
+    // Today's load is empty; tomorrow already holds a 9:00 block, which is
+    // exactly where the rollover suggestion wants to go. Checking today's list
+    // would wrongly allow it.
+    const tomorrow9 = new Date();
+    tomorrow9.setDate(tomorrow9.getDate() + 1);
+    tomorrow9.setHours(9, 0, 0, 0);
+    mockListBlocks
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        makeBlock({ id: 'tmr', start: tomorrow9, durationMinutes: 60, title: 'Deep work' }),
+      ]);
+
+    const { getByTestId, findByTestId, getByText } = await openSheetWith(['mid_morning']);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Strategy memo');
+    fireEvent.press(getByTestId('add-block-demand-heavy'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await findByTestId('add-block-overlap');
+    expect(getByText(overlapMessage('Deep work'))).toBeTruthy();
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+    // And the day it queried was tomorrow, not today.
+    const [, queriedStart] = mockListBlocks.mock.calls[1];
+    expect(queriedStart.getDate()).toBe(tomorrow9.getDate());
+  });
+
+  it('offers an explicit close, and closing discards the draft', async () => {
+    // Standards 7.5: swipe/overlay dismissal is not an exit on its own.
+    const first = await openSheetWith(['afternoon']);
+    fireEvent.changeText(first.getByTestId('add-block-title'), 'Q3 board deck');
+    fireEvent.press(first.getByTestId('add-block-demand-heavy'));
+
+    fireEvent.press(first.getByLabelText('Close'));
+
+    await waitFor(() => expect(first.queryByTestId('add-block-sheet')).toBeNull());
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+
+    // Reopening starts clean: the keyed remount is what guarantees it.
+    fireEvent.press(first.getByTestId('day-blocks-add'));
+    await first.findByTestId('add-block-sheet');
+    expect(first.getByTestId('add-block-title').props.value).toBe('');
+    for (const option of ['light', 'medium', 'heavy']) {
+      expect(
+        first.getByTestId(`add-block-demand-${option}`).props.accessibilityState.selected
+      ).toBe(false);
+    }
+  });
+
+  it('hides the close X while the picker has taken the sheet over', async () => {
+    // One exit at a time: the takeover's Cancel, not an X that would close the
+    // whole sheet from underneath it.
+    const { getByTestId, queryByLabelText } = await openSheetWith(['afternoon']);
+
+    fireEvent.press(getByTestId('add-block-choose-time'));
+
+    expect(queryByLabelText('Close')).toBeNull();
+    expect(getByTestId('time-picker-cancel')).toBeTruthy();
+  });
+
+  it('commits the picker from a bottom primary, not a header link', async () => {
+    const { getByTestId, queryByTestId, getByText } = await openSheetWith(['afternoon']);
+
+    fireEvent.press(getByTestId('add-block-choose-time'));
+
+    // Done is gone from the header in the takeover.
+    expect(queryByTestId('time-picker-done')).toBeNull();
+    expect(getByText(USE_THIS_TIME)).toBeTruthy();
+
+    scrollPickerTo(15, 45);
+    fireEvent.press(getByTestId('time-picker-commit'));
+
+    expect(getByText(startsAtRow('3:45 PM'))).toBeTruthy();
   });
 
   it('the sheet itself writes nothing before confirm', async () => {

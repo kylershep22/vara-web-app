@@ -39,14 +39,17 @@ export const EMPTY_LINE = gap('Nothing placed yet. Pick one thing and give it a 
 /**
  * [new] Shown in place of the Add CTA once the day holds MAX_BLOCKS_PER_DAY.
  *
- * The decisions block in the mockup states "Up to 3 blocks a day. The cap is
- * framed as sufficiency, never scarcity." Screen A carries that framing in its
- * "Two blocks is plenty" line, but A2 REPLACES that line with the strip, so the
- * cap has no drawn copy surface in the variant being built. This is that
- * surface, written to the stated framing. Open for Jen, and see the report:
- * enforcing the cap at all is the single largest judgement call in this slice.
+ * The decisions block in the mockup states the cap "is framed as sufficiency,
+ * never scarcity." Screen A carries that framing in its "Two blocks is plenty"
+ * line, but A2 REPLACES that line with the strip, so the cap has no drawn copy
+ * surface in the variant being built. This is that surface.
+ *
+ * COUNT-AGNOSTIC ON PURPOSE. It said "Three blocks..." while the cap was three;
+ * the round-3 walk moved the cap to six and the copy would have silently
+ * started lying. No number here, so the next cap change is a one-line constant
+ * edit and nothing else. Open for Jen.
  */
-export const SUFFICIENCY_LINE = gap('Three blocks is a full day of intent. The rest is yours.');
+export const SUFFICIENCY_LINE = gap("That's a full day of intent. The rest is yours.");
 
 /** [mockup] A2 card chip, shown when isProtected. */
 export const PROTECTED_CHIP = gap('Protected');
@@ -55,11 +58,14 @@ export const PROTECTED_CHIP = gap('Protected');
  * [new] Caption on a faded card, so the fade reads as meaning rather than as a
  * rendering fault.
  *
- * The round-2 device walk found a block created already-past faded instantly
- * and was reported as a bug BY THE PERSON WHO SPECCED THE FADE. Opacity alone
- * carries no semantics; this names what it means. Still no done state, no
- * checkmark, and no past tense that implies the block was completed: it says
- * WHEN, not whether.
+ * THIS IS NOW THE ENTIRE PAST TREATMENT. Round 2 added it alongside an opacity
+ * fade; round 3 removed the fade outright, because it was misread as a
+ * rendering glitch in two consecutive walks including by the person who
+ * specced it. Past blocks render at full opacity with this caption and nothing
+ * else.
+ *
+ * Still no done state, no checkmark, and no past tense implying the block was
+ * completed: it says WHEN, not whether.
  */
 export const EARLIER_TODAY = gap('Earlier today');
 
@@ -227,13 +233,21 @@ export const SUGGESTION_RESELECT = gap('Use this instead');
 // ---- shared formatting ----
 
 /**
- * "9:00 to 10:30", matching the mockup's card meta and suggestion slot.
+ * "9:00 AM to 10:30 AM", for the card meta and the suggestion slot.
  *
- * TWELVE-HOUR WITHOUT AM/PM, exactly as drawn. Note the drawing's own afternoon
- * card reads "2:00 to 2:30", which is ambiguous read alone; on the day view the
- * strip and the today-only scope disambiguate it. Flagged in the report as an
- * open item, and deliberately confined to this one function so adding a
- * meridiem later is a single edit.
+ * THE MERIDIEM IS LOAD-BEARING, and its absence caused a phantom bug.
+ *
+ * This followed the mockup exactly and rendered bare 12-hour times ("5:00 to
+ * 6:00"). That makes a 5 AM block and a 5 PM block VISUALLY IDENTICAL. On the
+ * round-3 walk a genuinely-past morning block sat next to a live evening block
+ * showing the same string, one captioned and one not, and the whole past-ness
+ * treatment was reported as broken. It was not: the predicate and the clock
+ * behind it were correct, and a probe confirmed both. The display was lying.
+ *
+ * The ambiguity was flagged as an open copy item when this function was first
+ * written and deferred. Deferring it cost a walk round. Do not remove the
+ * meridiem to match the drawing again; take it to Jen as a copy change if the
+ * drawing is to win.
  */
 export function formatTimeRange(start: Date, durationMinutes: number): string {
   const end = new Date(start.getTime() + durationMinutes * 60_000);
@@ -244,5 +258,19 @@ function formatClock(date: Date): string {
   const hours24 = date.getHours();
   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
   const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours12}:${minutes}`;
+  const meridiem = hours24 >= 12 ? 'PM' : 'AM';
+  return `${hours12}:${minutes} ${meridiem}`;
 }
+
+/**
+ * [new] Refusal shown when the chosen window collides with an existing block.
+ *
+ * Names the conflicting block, because "that overlaps something" leaves the
+ * user hunting. Soft Coral IS correct here, unlike the Remove pane: this is a
+ * genuine needs-attention state that blocks the action (standards 11.4).
+ */
+export const overlapMessage = (conflictTitle: string) =>
+  gap(`That window overlaps ${conflictTitle}. Pick a clear stretch.`);
+
+/** [new] The picker takeover's commit, now a real primary rather than a header link. */
+export const USE_THIS_TIME = gap('Use this time');

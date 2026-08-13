@@ -52,6 +52,8 @@ import {
   LABEL_WHAT,
   NO_RHYTHMS_INVITATION,
   PLACE_IT_THERE,
+  USE_THIS_TIME,
+  overlapMessage,
   missingFieldsHint,
   PROTECT_TOGGLE,
   SAVE_BLOCK,
@@ -116,6 +118,11 @@ export interface AddBlockSheetProps {
   now: Date;
   saving: boolean;
   saveFailed: boolean;
+  /**
+   * Title of an existing block the chosen window collides with, set by the
+   * screen when a save is refused. Null when there is no conflict.
+   */
+  overlapWith: string | null;
   onConfirm: (draft: NewBlockDraft) => void;
   onDismiss: () => void;
   /** Opens FocusRhythms. Only reachable from the no-rhythms invitation. */
@@ -146,6 +153,7 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
   now,
   saving,
   saveFailed,
+  overlapWith,
   onConfirm,
   onDismiss,
   onOpenRhythms,
@@ -257,7 +265,15 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
       hasInputs
       inputAccessoryViewID={INPUT_ACCESSORY_ID}
       showKeyboardToolbar
-      showCloseButton={false}
+      // Standards 7.5: an explicit exit, not swipe/overlay dismiss alone. This
+      // is EnhancedModal's built-in X, which is what most callers use (only
+      // three surfaces opt out). Hidden while the picker has taken the sheet
+      // over, so the takeover's Cancel is the single exit at that moment rather
+      // than competing with an X that would close the whole sheet.
+      //
+      // Closing discards the draft. Nothing persists it, and the keyed remount
+      // on reopen guarantees the next open starts clean.
+      showCloseButton={!pickerOpen}
       // Raised from "auto" after the device walk: all five content rows have to
       // be on screen at once, so the primary's referent is visible when the
       // primary is. Paired with the tightened vertical rhythm in the styles
@@ -275,6 +291,14 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
           {saveFailed && (
             <Text style={styles.error} testID="add-block-error">
               {SAVE_FAILED}
+            </Text>
+          )}
+          {/* Soft Coral IS right here, unlike the Remove pane: a refused save
+              is a genuine needs-attention state (standards 11.4). It names the
+              block in the way so the fix is obvious rather than a hunt. */}
+          {overlapWith && (
+            <Text style={styles.error} testID="add-block-overlap">
+              {overlapMessage(overlapWith)}
             </Text>
           )}
           {showHint && (
@@ -347,6 +371,7 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
           presentation="inline"
           value={pickerSeed}
           title={TIME_PICKER_TITLE}
+          commitLabel={USE_THIS_TIME}
           onChange={(next) => {
             setCommittedTime(next);
             setPickerOpen(false);

@@ -5,10 +5,13 @@
  * cards are "informational, not tappable-plus-buttoned" — the screen has one
  * primary action and it is Add. The card carries no onPress and no chevron.
  *
- * NO DONE STATE. A past block fades and nothing else: no checkmark, no tick, no
- * completed styling. The mockup's open question leans exactly this way ("A block
- * is an appointment, not a habit") and DayBlock has no `completed` field to
- * render even if we wanted one.
+ * NO DONE STATE, AND AS OF ROUND 3 NO FADE EITHER. A past block is marked by
+ * one caption and nothing else: full opacity, no checkmark, no tick, no
+ * completed styling. The opacity fade was misread as a rendering glitch in two
+ * consecutive device walks, including by the person who specced it, so it is
+ * gone rather than tuned. The mockup's open question leans this way anyway ("A
+ * block is an appointment, not a habit") and DayBlock has no `completed` field
+ * to render even if we wanted one.
  *
  * REMOVAL IS THE ONLY EDIT. There is no update path at MVP, so a swipe reveals
  * a single Remove action. OPEN FOR JEN: swipe-to-reveal is inherited from
@@ -44,8 +47,6 @@ import {
 
 const ACTION_WIDTH = 88;
 const REVEAL_THRESHOLD = ACTION_WIDTH / 2;
-/** Past blocks fade to this. Legible, clearly secondary, never struck through. */
-const PAST_OPACITY = 0.45;
 
 export interface BlockCardProps {
   block: DayBlock;
@@ -116,14 +117,14 @@ export const BlockCard: React.FC<BlockCardProps> = ({ block, now, onRemove }) =>
 
       <GestureDetector gesture={pan}>
         <Animated.View
-          style={[styles.card, isPast && styles.cardPast, cardStyle]}
+          style={[styles.card, cardStyle]}
           testID={`block-card-${block.id}`}
         >
           <Text style={styles.title}>{block.title}</Text>
           <Text style={styles.meta}>
             {formatTimeRange(startAt, block.durationMinutes)}
           </Text>
-          {/* Only on faded cards, and only to explain the fade. */}
+          {/* The whole past treatment. No fade, no strikethrough, no tick. */}
           {isPast && (
             <Text style={styles.pastCaption} testID={`block-past-${block.id}`}>
               {EARLIER_TODAY}
@@ -189,10 +190,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
   },
-  // Fade only. No strikethrough, no checkmark, no "done" treatment.
-  cardPast: {
-    opacity: PAST_OPACITY,
-  },
   title: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,
@@ -204,8 +201,8 @@ const styles = StyleSheet.create({
     color: Colors.mutedSageGray,
     marginTop: 4,
   },
-  // Caption type, Muted Sage Gray. Sits under the time range so the fade and
-  // its explanation read as one unit.
+  // Caption type, Muted Sage Gray. Sits under the time range: the card is at
+  // full opacity, so this line is the only thing marking the block as past.
   pastCaption: {
     fontSize: Typography.fontSize.xs,
     color: Colors.mutedSageGray,
