@@ -5,6 +5,7 @@
 
 import { Timestamp } from 'firebase/firestore';
 import type { HabitCategoryKey } from '../constants/habitTaxonomy';
+import type { TimedRhythmKey } from '../constants/focusRhythms';
 // Type-only import: erased at compile time, so this does NOT wire the weekly
 // engine into the running app. The engine stays unconsumed by any screen.
 import type { OutcomeKey, CapacityTier, TimeClass } from '../protocolEngine';
@@ -654,6 +655,70 @@ export interface Task {
   completed: boolean;
   dueDate?: Timestamp;
   completedAt?: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ==========================================
+// DAY BLOCK MODELS (Time-Blocking, TB-1a)
+// ==========================================
+
+/**
+ * How much of the user's attention a piece of work asks for.
+ *
+ * Exported on its own because TB-2's batched tasks share this exact axis: a
+ * task and the block it becomes must be sortable against each other, which a
+ * second parallel enum would quietly prevent.
+ *
+ * NOT the same thing as `Task.priority` ('low' | 'medium' | 'high'), which is
+ * importance, not cognitive load. Same cardinality, different question. Do not
+ * alias one onto the other.
+ */
+export type Demand = 'light' | 'medium' | 'heavy';
+
+/**
+ * One protected stretch of the day.
+ *
+ * EXPORT-CLEAN BY CONSTRUCTION, and this is the load-bearing property of the
+ * whole type: a block carries a real instant (`startAt`) plus a numeric
+ * `durationMinutes`, which is exactly what a calendar event needs. Phase 2
+ * sync therefore reads these two fields directly and re-derives nothing.
+ *
+ * A rhythm zone key is NEVER the time. `suggestedFrom` is provenance only —
+ * see its own note below.
+ *
+ * NO `completed` FIELD, DELIBERATELY. Blocks have no done state: a past block
+ * simply fades. There is nothing to tick, so there is nothing to store, and the
+ * absence is designed rather than missing. A service test pins it.
+ */
+export interface DayBlock {
+  id: string;
+  userId: string;
+  title: string;
+  demand: Demand;
+  /**
+   * Length in minutes. 30 / 60 / 90 at MVP, but a plain number rather than a
+   * union: the durations are a UI affordance and are expected to widen, and a
+   * union here would make widening them a data-model migration.
+   */
+  durationMinutes: number;
+  /** The real instant the block starts. Never a zone label. */
+  startAt: Timestamp;
+  isProtected: boolean;
+  /**
+   * Which rhythm zone the accepted placement suggestion came from, when one
+   * was accepted at all.
+   *
+   * PROVENANCE ONLY. Nothing may derive a time from this — `startAt` is the
+   * only source of when a block happens. It exists so we can later ask whether
+   * suggested placements survive better than hand-picked ones.
+   *
+   * TimedRhythmKey, NOT the wider FocusRhythmKey: `varies` maps to no clock
+   * range, so suggestPlacement can never propose it and it can never be the
+   * provenance of an accepted suggestion. The narrower type makes that
+   * unrepresentable rather than merely unlikely.
+   */
+  suggestedFrom?: TimedRhythmKey;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
