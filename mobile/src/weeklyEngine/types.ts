@@ -5,10 +5,16 @@
  * Time enters as a parameter (week number, week-start date), never by reading
  * the clock, so every function here is a pure function of its inputs.
  *
- * Naming note: the weekly protocol type is `WeeklyProtocol`, deliberately not
+ * Naming note: the matrix entry type is `ProtocolVariant`, deliberately not
  * `Protocol`, to avoid colliding with the practice-level `Protocol` in
  * `src/types/models` consumed by `src/engine`. Different concept, and the two
  * modules never import each other.
+ *
+ * It is not `WeeklyProtocol` either, which is what it used to be called. The
+ * object is one variant entry in a matrix cell — it carries `variantKey` and
+ * `timeClass` — and the cadence it is served at lives in the selection call,
+ * not in the object. The genuinely weekly things in this module (`WeeklyRecord`,
+ * the quick-win week rule) keep their names on purpose.
  */
 
 /**
@@ -48,12 +54,12 @@ export type CapacityTier = 'normal' | 'limited' | 'slammed';
 export type TimeClass = 'short' | 'medium' | 'long';
 
 /**
- * One cell of the 4 x 3 protocol matrix (spec 6.2).
+ * One variant within a cell of the 4 x 3 protocol matrix (spec 6.2).
  *
  * Every user-facing string is PLACEHOLDER [Jen] and lives in `protocolMatrix.ts`.
  * Content is data, not logic: swapping copy never touches a code path.
  */
-export interface WeeklyProtocol {
+export interface ProtocolVariant {
   /**
    * Stable CELL id, by convention `${outcome}-${capacity}`.
    *
@@ -95,23 +101,23 @@ export interface WeeklyProtocol {
    *
    * This list means optional extras and nothing else. The week-1 quick win is a
    * mandatory same-session step and is carried by `quickWinActive` on
-   * `ResolvedWeeklyProtocol`, never by appending to this list.
+   * `ResolvedProtocolVariant`, never by appending to this list.
    */
   supportingPracticeIds: string[];
 }
 
 /**
- * A weekly protocol resolved for a specific week (spec 6.3).
+ * A protocol variant resolved for a specific week (spec 6.3).
  *
  * The matrix in `protocolMatrix.ts` is static content, so the week-dependent
- * quick-win state lives here rather than on `WeeklyProtocol`. `quickWinActive`
+ * quick-win state lives here rather than on `ProtocolVariant`. `quickWinActive`
  * is always present and explicit: never undefined, never inferred from the
  * shape of another field.
  *
  * When active, the caller surfaces `quickWinPracticeId` as an in-session step
  * alongside the daily action.
  */
-export interface ResolvedWeeklyProtocol extends WeeklyProtocol {
+export interface ResolvedProtocolVariant extends ProtocolVariant {
   quickWinActive: boolean;
 }
 

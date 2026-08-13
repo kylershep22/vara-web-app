@@ -11,7 +11,7 @@
  * is what holds it to that. Do not add a return path that can be undefined.
  */
 import { PROTOCOL_MATRIX, TIME_CLASSES } from './protocolMatrix';
-import type { CapacityTier, OutcomeKey, TimeClass, WeeklyProtocol } from './types';
+import type { CapacityTier, OutcomeKey, TimeClass, ProtocolVariant } from './types';
 
 /**
  * THE FALLBACK LADDER, in order:
@@ -38,9 +38,9 @@ import type { CapacityTier, OutcomeKey, TimeClass, WeeklyProtocol } from './type
  * `variants` must be non-empty; callers hold that (a matrix test pins it).
  */
 export function pickVariant(
-  variants: WeeklyProtocol[],
+  variants: ProtocolVariant[],
   time: TimeClass
-): WeeklyProtocol {
+): ProtocolVariant {
   // Walk from the asked class downwards through shorter ones. Slicing to the
   // asked index and reversing gives exactly that order without restating it.
   const asked = TIME_CLASSES.indexOf(time);
@@ -56,7 +56,7 @@ export function selectProtocol(
   outcome: OutcomeKey,
   capacity: CapacityTier,
   time: TimeClass
-): WeeklyProtocol {
+): ProtocolVariant {
   return pickVariant(PROTOCOL_MATRIX[outcome][capacity], time);
 }
 
@@ -78,6 +78,6 @@ export function selectProtocol(
 export function representativeProtocol(
   outcome: OutcomeKey,
   capacity: CapacityTier
-): WeeklyProtocol {
+): ProtocolVariant {
   return PROTOCOL_MATRIX[outcome][capacity][0];
 }

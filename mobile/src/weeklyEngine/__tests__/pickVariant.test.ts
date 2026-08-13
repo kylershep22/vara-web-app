@@ -12,11 +12,11 @@
 // yet.
 
 import { pickVariant } from '../selectProtocol';
-import type { TimeClass, WeeklyProtocol } from '../types';
+import type { TimeClass, ProtocolVariant } from '../types';
 
 /** A variant carrying only what the ladder looks at. */
-const v = (timeClass: TimeClass, tag: string): WeeklyProtocol =>
-  ({ timeClass, variantKey: tag, name: tag }) as WeeklyProtocol;
+const v = (timeClass: TimeClass, tag: string): ProtocolVariant =>
+  ({ timeClass, variantKey: tag, name: tag }) as ProtocolVariant;
 
 const SHORT = v('short', 's');
 const MEDIUM = v('medium', 'm');
@@ -24,7 +24,7 @@ const LONG = v('long', 'l');
 
 describe('pickVariant — the time-class fallback ladder', () => {
   describe('step 1: an exact match wins', () => {
-    it.each<[TimeClass, WeeklyProtocol]>([
+    it.each<[TimeClass, ProtocolVariant]>([
       ['short', SHORT],
       ['medium', MEDIUM],
       ['long', LONG],
@@ -81,7 +81,7 @@ describe('pickVariant — the time-class fallback ladder', () => {
   });
 
   it('is total for every class on any non-empty cell', () => {
-    const cells: WeeklyProtocol[][] = [
+    const cells: ProtocolVariant[][] = [
       [SHORT],
       [MEDIUM],
       [LONG],

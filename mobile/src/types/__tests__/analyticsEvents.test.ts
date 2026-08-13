@@ -5,7 +5,7 @@
 // `protocolIdFor` cannot drift away from the ids actually stored on a weekly
 // cycle. That second one is load-bearing in a quiet way: the analytics
 // protocolId is DERIVED from the outcome/capacity pair rather than read off the
-// protocol object, because `WeeklyProtocol.id` is typed `string` and a `string`
+// protocol object, because `ProtocolVariant.id` is typed `string` and a `string`
 // slot in an event payload is exactly the hole the firewall exists to close.
 // Deriving it buys the closed union, and this test is what keeps the derivation
 // honest against the matrix.

@@ -36,7 +36,7 @@ import type { CapacityTier, OutcomeKey } from '../weeklyEngine';
 /**
  * The 12 protocol ids, as a closed union.
  *
- * `WeeklyProtocol.id` is typed `string`, and a `string` slot in an event payload
+ * `ProtocolVariant.id` is typed `string`, and a `string` slot in an event payload
  * is precisely the hole this module exists to close. So the id is DERIVED from
  * the outcome/capacity pair rather than read off the protocol object, which
  * buys a 12-member union that arbitrary text cannot satisfy.

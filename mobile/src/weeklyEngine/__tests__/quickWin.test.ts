@@ -1,8 +1,8 @@
 import { applyQuickWin } from '../quickWin';
 import { selectProtocol } from '../selectProtocol';
-import type { WeeklyProtocol } from '../types';
+import type { ProtocolVariant } from '../types';
 
-const base = (): WeeklyProtocol => selectProtocol('routines', 'normal', 'medium');
+const base = (): ProtocolVariant => selectProtocol('routines', 'normal', 'medium');
 
 describe('applyQuickWin (spec 6.3)', () => {
   it('marks the quick win active in week 1', () => {
@@ -69,7 +69,7 @@ describe('applyQuickWin leaves supportingPracticeIds alone', () => {
   });
 
   it('preserves a non-empty supporting list exactly, without appending', () => {
-    const protocol: WeeklyProtocol = {
+    const protocol: ProtocolVariant = {
       ...base(),
       supportingPracticeIds: ['nsdr-10', 'walk-15'],
     };
