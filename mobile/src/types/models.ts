@@ -5,7 +5,7 @@
 
 import { Timestamp } from 'firebase/firestore';
 import type { HabitCategoryKey } from '../constants/habitTaxonomy';
-import type { FocusRhythmKey } from '../constants/focusRhythms';
+import type { TimedRhythmKey } from '../constants/focusRhythms';
 // Type-only import: erased at compile time, so this does NOT wire the weekly
 // engine into the running app. The engine stays unconsumed by any screen.
 import type { OutcomeKey, CapacityTier, TimeClass } from '../protocolEngine';
@@ -712,8 +712,13 @@ export interface DayBlock {
    * PROVENANCE ONLY. Nothing may derive a time from this — `startAt` is the
    * only source of when a block happens. It exists so we can later ask whether
    * suggested placements survive better than hand-picked ones.
+   *
+   * TimedRhythmKey, NOT the wider FocusRhythmKey: `varies` maps to no clock
+   * range, so suggestPlacement can never propose it and it can never be the
+   * provenance of an accepted suggestion. The narrower type makes that
+   * unrepresentable rather than merely unlikely.
    */
-  suggestedFrom?: FocusRhythmKey;
+  suggestedFrom?: TimedRhythmKey;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

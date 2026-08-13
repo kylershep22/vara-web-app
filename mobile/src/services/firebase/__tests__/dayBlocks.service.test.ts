@@ -124,6 +124,24 @@ describe('createDayBlock', () => {
     expect('suggestedFrom' in payload).toBe(false);
   });
 
+  it("rejects 'varies' as provenance at compile time", async () => {
+    await createDayBlock(ALICE, {
+      title: 'Deep work',
+      demand: 'medium',
+      durationMinutes: 60,
+      startAt: START_AT,
+      isProtected: false,
+      // @ts-expect-error 'varies' maps to no clock range, so suggestPlacement
+      // can never propose it and it can never be the provenance of an accepted
+      // suggestion. If this directive ever reports as UNUSED, suggestedFrom was
+      // widened back to FocusRhythmKey and tsc will fail here.
+      suggestedFrom: 'varies',
+    });
+
+    // The guard is the type, not a runtime check — the call itself still runs.
+    expect(mockAddDoc).toHaveBeenCalledTimes(1);
+  });
+
   it('writes no completed field — blocks have no done state by design', async () => {
     // Past blocks fade; they are never ticked off. Treat this absence as
     // designed, not missing, and do not "restore" it.

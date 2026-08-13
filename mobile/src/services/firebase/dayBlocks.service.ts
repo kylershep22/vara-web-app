@@ -35,7 +35,7 @@ import {
 
 import { requireDb } from './ensureDb';
 import type { DayBlock, Demand } from '../../types/models';
-import type { FocusRhythmKey } from '../../constants/focusRhythms';
+import type { TimedRhythmKey } from '../../constants/focusRhythms';
 
 const DAY_BLOCKS = 'dayBlocks';
 
@@ -50,8 +50,12 @@ export interface CreateDayBlockInput {
   /** The real start instant. Firestore stores a Date as a Timestamp. */
   startAt: Date;
   isProtected: boolean;
-  /** Set only when the user accepted a rhythm suggestion. Provenance only. */
-  suggestedFrom?: FocusRhythmKey;
+  /**
+   * Set only when the user accepted a rhythm suggestion. Provenance only, and
+   * narrowed to the TIMED keys — `varies` has no clock range, so it can never
+   * be what a suggestion was placed from.
+   */
+  suggestedFrom?: TimedRhythmKey;
 }
 
 /** Create a block. Returns the new document id. */
