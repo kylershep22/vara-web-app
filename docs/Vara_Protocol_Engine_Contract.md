@@ -1,10 +1,12 @@
-# Vara — Weekly Protocol Engine Contract
+# Vara — Protocol Engine Contract
 
 **Version 1.0 | Engine spec for the weekly spine (D1) | Status: pure module built, wired into nothing**
 
-This is the implementation contract for Vara's weekly protocol engine: protocol selection, the week-1 quick-win rule, and the continuity calculation. It formalizes Sections 1, 6, and 7 of `Vara_Reconciled_Product_Spec.md`.
+This is the implementation contract for Vara's protocol engine: protocol selection, the week-1 quick-win rule, and the continuity calculation. It formalizes Sections 1, 6, and 7 of `Vara_Reconciled_Product_Spec.md`.
 
-It is the weekly sibling of `Vara_Engine_Contract.md`, which covers the per-session recommendation engine (situation × state → plan). The two are separate modules and never import each other.
+The module is named for what it owns rather than for a cadence, because it holds both: selection is **daily** (capacity and time are daily reads, so the variant served changes day to day), while the quick-win week rule and continuity are genuinely **weekly**.
+
+It is the sibling of `Vara_Engine_Contract.md`, which covers the per-session recommendation engine (situation × state → plan). The two are separate modules and never import each other.
 
 ---
 
@@ -14,7 +16,7 @@ It is the weekly sibling of `Vara_Engine_Contract.md`, which covers the per-sess
 
 **Out of scope (later slices):** persistence of the weekly record, the weekly open UI, the Today screen, the in-week "This week changed" control, the weekly close, floor-commitment capture, and instrumentation. This module has no persistence, no UI, no Firestore, and no production caller.
 
-**Location:** `mobile/src/weeklyEngine/`. Public surface is `mobile/src/weeklyEngine/index.ts`. That barrel is deliberately not re-exported from any app barrel while the module is unconsumed.
+**Location:** `mobile/src/protocolEngine/`. Public surface is `mobile/src/protocolEngine/index.ts`. That barrel is deliberately not re-exported from any app barrel while the module is unconsumed.
 
 ---
 
@@ -48,7 +50,7 @@ This is the single vocabulary across the weekly open, the Practices filters, and
 type OutcomeKey   = 'focus' | 'stress' | 'routines' | 'energy';
 type CapacityTier = 'normal' | 'limited' | 'slammed';
 
-interface WeeklyProtocol {
+interface ProtocolVariant {
   id: string;                      // convention: `${outcome}-${capacity}`
   outcome: OutcomeKey;
   capacity: CapacityTier;
@@ -61,7 +63,7 @@ interface WeeklyProtocol {
 }
 
 // A protocol resolved for a specific week (Section 7).
-interface ResolvedWeeklyProtocol extends WeeklyProtocol {
+interface ResolvedProtocolVariant extends ProtocolVariant {
   quickWinActive: boolean;
 }
 
@@ -71,7 +73,7 @@ interface WeeklyRecord {
 }
 ```
 
-**Naming note.** The weekly protocol type is `WeeklyProtocol`, deliberately **not** `Protocol`. `src/types/models` already exports a `Protocol`, which is a *practice* (a breathwork session, an NSDR track) consumed by `src/engine`. Different concepts, different modules, no shared imports, and now no name collision either. The practice-level `Protocol` is untouched.
+**Naming note.** The matrix entry type is `ProtocolVariant`, deliberately **not** `Protocol`, and no longer `WeeklyProtocol` — the object is one variant entry in a cell (it carries `variantKey` and `timeClass`), and the cadence it is served at lives in the selection call, not in the object. `src/types/models` already exports a `Protocol`, which is a *practice* (a breathwork session, an NSDR track) consumed by `src/engine`. Different concepts, different modules, no shared imports, and now no name collision either. The practice-level `Protocol` is untouched.
 
 ---
 
@@ -104,7 +106,7 @@ A unit test asserts `estMinutes` never rises as capacity drops, which is product
 selectProtocol(outcome: OutcomeKey, capacity: CapacityTier): Protocol
 ```
 
-A pure lookup into the matrix. Total by construction: the matrix is a `Record<OutcomeKey, Record<CapacityTier, WeeklyProtocol>>`, so every cell exists and the function cannot fail or return undefined. It returns the matrix object itself, not a copy.
+A pure lookup into the matrix. The matrix is a `Record<OutcomeKey, Record<CapacityTier, ProtocolVariant[]>>`, so every cell exists — but a cell is an ORDERED SET of time variants (reshaped per roadmap 3b-ii-a), not a single protocol, so totality is no longer a property of the type. It is held by the fallback ladder in `selectProtocol.ts` and by the tests over it.
 
 The in-week control (spec Section 7) is expressed as re-calling this with the same outcome and the adjacent tier. This module does not own the tier-stepping or the event logging.
 
@@ -113,7 +115,7 @@ The in-week control (spec Section 7) is expressed as re-calling this with the sa
 ## 7. Week-1 quick-win rule (spec 6.3)
 
 ```ts
-applyQuickWin(protocol: WeeklyProtocol, weekNumber: number): ResolvedWeeklyProtocol
+applyQuickWin(protocol: ProtocolVariant, weekNumber: number): ResolvedProtocolVariant
 ```
 
 Time-to-felt-effect varies enormously: an extended exhale lands in minutes, a routine takes weeks. A user who picks Routines has no felt payoff for two weeks, which is the worst retention curve there is. So **every week-1 protocol appends one same-session physical practice regardless of outcome** (default: the 90-second extended exhale, `quickWinPracticeId` = `'exhale-90s'`). Get the nervous system to prove the app works before the calendar has to.
@@ -131,7 +133,7 @@ When the flag is true, the caller surfaces the practice referenced by `quickWinP
 
 `supportingPracticeIds` means **optional supporting practices, and nothing else.** The week-1 quick win is a *mandatory same-session step*. Appending the quick win to that list would flatten two different things into one array, and the Today screen has to render them differently, so the distinction is made explicit in the type instead.
 
-`quickWinActive` therefore lives on `ResolvedWeeklyProtocol`, not on `WeeklyProtocol`: the matrix is static content, and this is per-week state. The flag is required rather than optional so there is no third "undefined" case to reason about at call sites.
+`quickWinActive` therefore lives on `ResolvedProtocolVariant`, not on `ProtocolVariant`: the matrix is static content, and this is per-week state. The flag is required rather than optional so there is no third "undefined" case to reason about at call sites.
 
 Tests assert that `supportingPracticeIds` comes back as the **same array reference** in every week, and that a non-empty supporting list is preserved exactly with nothing appended.
 
@@ -169,12 +171,12 @@ Product principle 3 ("continuity beats intensity") and spec Section 9 ("slammed 
 
 ## 9. Public surface
 
-From `mobile/src/weeklyEngine`:
+From `mobile/src/protocolEngine`:
 
 | Export | Kind | Purpose |
 |---|---|---|
-| `OutcomeKey`, `CapacityTier`, `WeeklyProtocol`, `ResolvedWeeklyProtocol`, `WeeklyRecord` | types | Section 4 |
-| `WeeklyProtocolMatrix` | type | Shape of the matrix |
+| `OutcomeKey`, `CapacityTier`, `ProtocolVariant`, `ResolvedProtocolVariant`, `WeeklyRecord` | types | Section 4 |
+| `ProtocolVariantMatrix` | type | Shape of the matrix |
 | `PROTOCOL_MATRIX` | data | The 12 protocols |
 | `OUTCOME_KEYS`, `CAPACITY_TIERS` | data | Iteration order |
 | `DEFAULT_QUICK_WIN_PRACTICE_ID` | data | `'exhale-90s'` placeholder |

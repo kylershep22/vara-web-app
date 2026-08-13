@@ -1,5 +1,5 @@
 /**
- * Protocol engine — core types (Vara_Weekly_Engine_Contract.md v1.0).
+ * Protocol engine — core types (Vara_Protocol_Engine_Contract.md v1.0).
  *
  * Named for what it owns — the protocol selection matrix and its rules — and
  * deliberately not for a cadence, because BOTH cadences live here. Selection is
