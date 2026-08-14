@@ -22,14 +22,18 @@
  * once; createCapturedTask is called here. Same split as DayBlocksScreen, and
  * it is what keeps an abandoned sheet from leaving anything behind.
  *
- * NO CLEARING AFFORDANCE AT TB-2b. Swipe-to-clear is TB-2c and is still an open
- * design decision — blocks removed swipe as undiscoverable, and whether a task
- * is different enough to re-introduce it is a human call. Nothing here should
- * be shaped around the assumption that it lands.
+ * EDITING AND CLEARING ARE A TAP, NOT A SWIPE (TB-2c). The Step-0 question was
+ * answered by the device walk: swipe stays dead app-wide, so gesture-handler
+ * and reanimated are not reintroduced. Tapping a row opens the same sheet in
+ * edit mode, and clearing lives inside it behind a confirm. That keeps exactly
+ * one primary action on the screen — capture — with every change to an existing
+ * task one level down, and it means blocks and tasks now answer the destructive
+ * action question the same way.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -44,7 +48,9 @@ import { useAuth } from '../../context/AuthContext';
 import { logger } from '../../utils/logger';
 import {
   createCapturedTask,
+  deleteCapturedTask,
   listCapturedTasks,
+  updateCapturedTask,
 } from '../../services/firebase/capturedTasks.service';
 import type { CapturedTask } from '../../types/models';
 import { groupTasksByDemand } from './groupTasks';
@@ -53,6 +59,11 @@ import { CaptureTaskSheet, type NewTaskDraft } from './CaptureTaskSheet';
 import {
   CAPTURE_A11Y_HINT,
   CAPTURE_TARGET,
+  CLEAR_CONFIRM_ACCEPT,
+  CLEAR_CONFIRM_BODY,
+  CLEAR_CONFIRM_CANCEL,
+  CLEAR_CONFIRM_TITLE,
+  CLEAR_FAILED,
   EMPTY_LINE,
   GROUP_HEADERS,
   TASKS_INTRO,
@@ -69,6 +80,8 @@ export function CapturedTasksScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
+  /** The task the sheet is open on, or null when capturing a new one. */
+  const [editing, setEditing] = useState<CapturedTask | null>(null);
 
   /**
    * Bumped every time the sheet opens, and used as its `key` so it REMOUNTS.
@@ -121,6 +134,15 @@ export function CapturedTasksScreen() {
 
   const openSheet = useCallback(() => {
     setSaveFailed(false);
+    setEditing(null);
+    setSheetSession((n) => n + 1);
+    setSheetOpen(true);
+  }, []);
+
+  /** Opens the sheet on an existing task. */
+  const handleEdit = useCallback((task: CapturedTask) => {
+    setSaveFailed(false);
+    setEditing(task);
     setSheetSession((n) => n + 1);
     setSheetOpen(true);
   }, []);
@@ -128,21 +150,71 @@ export function CapturedTasksScreen() {
   const handleConfirm = useCallback(
     async (draft: NewTaskDraft) => {
       if (!uid) return;
+      const original = editing;
       setSaving(true);
       setSaveFailed(false);
       try {
-        await createCapturedTask(uid, draft);
+        if (original) {
+          // Both fields every time. The sheet cannot express "leave this one
+          // alone" — it has two inputs and both are always populated in edit
+          // mode — so sending both is honest about what the user just saw and
+          // approved. The service still constructs its payload from an
+          // allowlist, so nothing beyond these two can reach Firestore.
+          await updateCapturedTask(original.id, {
+            title: draft.title,
+            demand: draft.demand,
+          });
+        } else {
+          await createCapturedTask(uid, draft);
+        }
         setSheetOpen(false);
+        setEditing(null);
         await load();
       } catch (error) {
-        logger.error('[CapturedTasks] create failed:', error);
+        logger.error('[CapturedTasks] save failed:', error);
         // The sheet stays open with the draft intact; retry costs one tap.
         setSaveFailed(true);
       } finally {
         setSaving(false);
       }
     },
-    [uid, load]
+    [uid, load, editing]
+  );
+
+  /**
+   * Clear, behind the codebase's existing destructive confirm.
+   *
+   * Mirrors the block-removal Alert from TB-1c, including its deliberate
+   * omission of `style: 'destructive'`: clearing a task you captured yourself
+   * is an intentional act, not an error, which is the same reasoning that makes
+   * the button Muted Sage Gray rather than coral.
+   *
+   * A task is cheaper to lose than a block — the recovery cost is retyping a
+   * line — but it still confirms, because the delete is real and keeps no
+   * history. Cheap-to-redo is a reason for gentle wording, not for skipping the
+   * question.
+   */
+  const handleClear = useCallback(
+    (task: CapturedTask) => {
+      Alert.alert(CLEAR_CONFIRM_TITLE, CLEAR_CONFIRM_BODY, [
+        { text: CLEAR_CONFIRM_CANCEL, style: 'cancel' },
+        {
+          text: CLEAR_CONFIRM_ACCEPT,
+          onPress: async () => {
+            try {
+              await deleteCapturedTask(task.id);
+              setSheetOpen(false);
+              setEditing(null);
+              await load();
+            } catch (error) {
+              logger.error('[CapturedTasks] clear failed:', error);
+              Alert.alert(CLEAR_CONFIRM_TITLE, CLEAR_FAILED);
+            }
+          },
+        },
+      ]);
+    },
+    [load]
   );
 
   return (
@@ -196,6 +268,7 @@ export function CapturedTasksScreen() {
                 <TaskRow
                   key={task.id}
                   task={task}
+                  onEdit={handleEdit}
                   testID={`captured-tasks-row-${task.id}`}
                 />
               ))}
@@ -209,8 +282,13 @@ export function CapturedTasksScreen() {
         visible={sheetOpen}
         saving={saving}
         saveFailed={saveFailed}
+        initialTask={editing}
+        onClear={editing ? () => handleClear(editing) : undefined}
         onConfirm={handleConfirm}
-        onDismiss={() => setSheetOpen(false)}
+        onDismiss={() => {
+          setSheetOpen(false);
+          setEditing(null);
+        }}
       />
     </SafeAreaView>
   );

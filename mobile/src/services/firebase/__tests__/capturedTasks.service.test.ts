@@ -12,6 +12,7 @@ const mockWhere = jest.fn((...a: any[]) => ({ __where: a }));
 const mockOrderBy = jest.fn((...a: any[]) => ({ __orderBy: a }));
 const mockAddDoc = jest.fn((..._a: any[]): any => ({ id: 'new-task-id' }));
 const mockDeleteDoc = jest.fn((..._a: any[]): any => undefined);
+const mockUpdateDoc = jest.fn((..._a: any[]): any => undefined);
 const mockServerTimestamp = jest.fn(() => ({ __serverTimestamp: true }));
 
 jest.mock('firebase/firestore', () => ({
@@ -25,6 +26,7 @@ jest.mock('firebase/firestore', () => ({
   orderBy: (...a: any[]) => mockOrderBy(...a),
   addDoc: (...a: any[]) => mockAddDoc(...a),
   deleteDoc: (...a: any[]) => mockDeleteDoc(...a),
+  updateDoc: (...a: any[]) => mockUpdateDoc(...a),
   serverTimestamp: () => mockServerTimestamp(),
 }));
 // requireDb() reads `db` from this module, so mocking it here narrows the
@@ -37,6 +39,7 @@ jest.mock('../../../config/firebase', () => ({
 import {
   createCapturedTask,
   listCapturedTasks,
+  updateCapturedTask,
   deleteCapturedTask,
 } from '../capturedTasks.service';
 // Namespace import for the surface test at the bottom. A dynamic import() there
@@ -198,6 +201,85 @@ describe('listCapturedTasks', () => {
   });
 });
 
+describe('updateCapturedTask', () => {
+  it('patches the allowlisted fields', async () => {
+    await updateCapturedTask('task-1', { title: 'Renamed', demand: 'light' });
+
+    expect(mockDoc).toHaveBeenCalledWith({ __db: true }, 'capturedTasks', 'task-1');
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(payload).toMatchObject({ title: 'Renamed', demand: 'light' });
+  });
+
+  it('stamps updatedAt', async () => {
+    await updateCapturedTask('task-1', { title: 'Renamed' });
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(payload.updatedAt).toEqual({ __serverTimestamp: true });
+  });
+
+  it('retags without touching the title', async () => {
+    // The common edit: the words were right, the weight was wrong. A patch that
+    // rewrote the title here would silently undo an edit made moments earlier.
+    await updateCapturedTask('task-1', { demand: 'heavy' });
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(Object.keys(payload).sort()).toEqual(['demand', 'updatedAt']);
+  });
+
+  it('omits every field the caller did not supply', async () => {
+    await updateCapturedTask('task-1', { title: 'Renamed' });
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(Object.keys(payload).sort()).toEqual(['title', 'updatedAt']);
+  });
+
+  it('STRIPS identity and ownership fields rather than patching them', async () => {
+    // THE FORBIDDEN-KEYS PIN, and the same hard guard TB-1a wrote for blocks.
+    // The payload is CONSTRUCTED from an allowlist rather than spread from the
+    // input, so these cannot reach Firestore even from an untyped caller.
+    // Stripping, not throwing: construction-from-allowlist inherently drops
+    // unknown keys, and the patch type already refuses them at compile time.
+    await updateCapturedTask('task-1', {
+      title: 'Renamed',
+      userId: 'someone-else',
+      id: 'other-id',
+      createdAt: { __forged: true },
+    } as any);
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect('userId' in payload).toBe(false);
+    expect('id' in payload).toBe(false);
+    expect('createdAt' in payload).toBe(false);
+    expect(payload.title).toBe('Renamed');
+  });
+
+  it('strips the fields the entity does not have at all', async () => {
+    // Scheduling is what a DayBlock is for, and `completed` does not exist
+    // because clearing DELETES. An untyped caller reaching for either gets
+    // nothing written rather than a silently extended schema.
+    await updateCapturedTask('task-1', {
+      demand: 'light',
+      dueDate: new Date(),
+      completed: true,
+      priority: 'high',
+    } as any);
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(Object.keys(payload).sort()).toEqual(['demand', 'updatedAt']);
+  });
+
+  it('refuses the legacy importance axis at compile time', async () => {
+    await updateCapturedTask('task-1', {
+      // @ts-expect-error `priority` belongs to the frozen web Task, not this
+      // entity. If this directive ever reports UNUSED, CapturedTaskPatch was
+      // widened to accept it and tsc fails here — which is the point.
+      priority: 'high',
+    });
+
+    expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('deleteCapturedTask', () => {
   it('deletes the row outright — clearing keeps no history', async () => {
     await deleteCapturedTask('task-1');
@@ -208,17 +290,16 @@ describe('deleteCapturedTask', () => {
 });
 
 describe('the service surface', () => {
-  it('exposes no update path at MVP', () => {
-    // Retagging today is clear-and-recapture. When a real need arrives, the
-    // patch function belongs here and must be CONSTRUCTED FROM AN ALLOWLIST
-    // rather than spread from caller input, the way updateDayBlock is — writing
-    // that down before the function exists is what made the dayBlocks update
-    // path safe when it landed. This asserts the gap is still a gap, so adding
-    // one is a deliberate act with a test to update.
+  it('is exactly the four operations the feature needs', () => {
+    // Was "exposes no update path at MVP" until TB-2c closed that gap. Kept as
+    // a surface pin rather than deleted: the fence on this entity is that it
+    // has no scheduling, no completion and no history, so a fifth function
+    // appearing here should be a deliberate act with a test to update.
     expect(Object.keys(capturedTasksService).sort()).toEqual([
       'createCapturedTask',
       'deleteCapturedTask',
       'listCapturedTasks',
+      'updateCapturedTask',
     ]);
   });
 });

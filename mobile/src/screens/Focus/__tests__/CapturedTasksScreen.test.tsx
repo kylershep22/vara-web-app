@@ -25,11 +25,18 @@ jest.mock('../../../context/AuthContext', () => ({
 
 const mockListTasks = jest.fn();
 const mockCreateTask = jest.fn();
+const mockUpdateTask = jest.fn();
+const mockDeleteTask = jest.fn();
 jest.mock('../../../services/firebase/capturedTasks.service', () => ({
   listCapturedTasks: (...a: any[]) => mockListTasks(...a),
   createCapturedTask: (...a: any[]) => mockCreateTask(...a),
-  deleteCapturedTask: jest.fn(),
+  updateCapturedTask: (...a: any[]) => mockUpdateTask(...a),
+  deleteCapturedTask: (...a: any[]) => mockDeleteTask(...a),
 }));
+
+// Clearing goes through the codebase's destructive-confirm Alert. Spied rather
+// than module-mocked, the same way DayBlocksScreen's removal tests do it:
+// replacing the Alert module leaves the `Alert` the screen imported undefined.
 
 // The real useFocusEffect needs a navigation container; the screen only uses it
 // to re-read on focus, so running the callback once on mount is the honest stub.
@@ -41,13 +48,21 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 import React from 'react';
+import { Alert } from 'react-native';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { CapturedTasksScreen } from '../CapturedTasksScreen';
 import {
   CAPTURE_TARGET,
+  CLEAR_CONFIRM_ACCEPT,
+  CLEAR_CONFIRM_BODY,
+  CLEAR_CONFIRM_CANCEL,
+  CLEAR_CONFIRM_TITLE,
+  EDIT_TITLE,
   EMPTY_LINE,
   GROUP_HEADERS,
+  ROW_A11Y_HINT,
+  SAVE_CHANGES,
   SAVE_CTA,
   TASKS_TITLE,
 } from '../tasksCopy';
@@ -63,11 +78,29 @@ const task = (id: string, title: string, demand: string, createdMs = 1000) => ({
   updatedAt: ts(createdMs),
 });
 
+let mockAlert: jest.SpyInstance;
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockListTasks.mockResolvedValue([]);
   mockCreateTask.mockResolvedValue('new-id');
+  mockUpdateTask.mockResolvedValue(undefined);
+  mockDeleteTask.mockResolvedValue(undefined);
+  mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 });
+
+afterEach(() => {
+  mockAlert.mockRestore();
+});
+
+/** Presses the confirm button of the most recent Alert. */
+async function confirmAlert() {
+  const buttons = mockAlert.mock.calls[mockAlert.mock.calls.length - 1][2] as any[];
+  const accept = buttons.find((b: any) => b.style !== 'cancel');
+  await act(async () => {
+    await accept.onPress();
+  });
+}
 
 describe('CapturedTasksScreen — the list', () => {
   it('renders the title block and the capture target', async () => {
@@ -273,6 +306,208 @@ describe('CapturedTasksScreen — capture', () => {
     expect(await findByTestId('capture-task-error')).toBeTruthy();
     // The draft survives, so retry costs one tap.
     expect(getByTestId('capture-task-title').props.value).toBe('Q3 board deck');
+  });
+});
+
+describe('CapturedTasksScreen — edit (TB-2c)', () => {
+  const withOneTask = (demand = 'medium') => {
+    mockListTasks.mockResolvedValue([task('t1', 'Strategy memo', demand)]);
+  };
+
+  const openRow = async () => {
+    const utils = render(<CapturedTasksScreen />);
+    await utils.findByTestId('captured-tasks-row-t1');
+    fireEvent.press(utils.getByTestId('captured-tasks-row-t1'));
+    await utils.findByTestId('capture-task-sheet');
+    return utils;
+  };
+
+  it('opens the sheet in edit mode from a row tap', async () => {
+    withOneTask();
+    const { getByText } = await openRow();
+
+    expect(getByText(EDIT_TITLE)).toBeTruthy();
+    expect(getByText(SAVE_CHANGES)).toBeTruthy();
+  });
+
+  it('announces the row as a button that says what the tap does', async () => {
+    // Tap, NOT swipe — the walk's answer. The row carries no chevron, so the
+    // hint is the only way a screen-reader user learns it opens anything.
+    withOneTask();
+    const { findByTestId } = render(<CapturedTasksScreen />);
+
+    const row = await findByTestId('captured-tasks-row-t1');
+    expect(row.props.accessibilityRole).toBe('button');
+    expect(row.props.accessibilityHint).toBe(ROW_A11Y_HINT);
+    expect(row.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it('pre-fills the title and the recorded demand', async () => {
+    withOneTask('medium');
+    const { getByTestId } = await openRow();
+
+    expect(getByTestId('capture-task-title').props.value).toBe('Strategy memo');
+    expect(
+      getByTestId('capture-task-demand-medium').props.accessibilityState.selected
+    ).toBe(true);
+  });
+
+  it('retags medium to heavy, and the task lands in the new group', async () => {
+    // THE ROUND TRIP. Retagging is the edit this feature exists to allow, and
+    // the proof is the row moving groups after the refresh.
+    withOneTask('medium');
+    const { getByTestId, findByTestId, queryByTestId } = await openRow();
+
+    fireEvent.press(getByTestId('capture-task-demand-heavy'));
+
+    mockListTasks.mockResolvedValue([task('t1', 'Strategy memo', 'heavy')]);
+    await act(async () => {
+      fireEvent.press(getByTestId('capture-task-confirm'));
+    });
+
+    expect(mockUpdateTask).toHaveBeenCalledWith('t1', {
+      title: 'Strategy memo',
+      demand: 'heavy',
+    });
+    expect(await findByTestId('captured-tasks-group-heavy')).toBeTruthy();
+    expect(queryByTestId('captured-tasks-group-medium')).toBeNull();
+  });
+
+  it('patches, never re-creates, when editing', async () => {
+    withOneTask();
+    const { getByTestId } = await openRow();
+
+    fireEvent.changeText(getByTestId('capture-task-title'), 'Strategy memo v2');
+    await act(async () => {
+      fireEvent.press(getByTestId('capture-task-confirm'));
+    });
+
+    expect(mockUpdateTask).toHaveBeenCalledTimes(1);
+    expect(mockCreateTask).not.toHaveBeenCalled();
+  });
+
+  it('sends only title and demand — the allowlist pin at the call site', async () => {
+    // The service constructs from an allowlist regardless, but the screen must
+    // not be the thing that starts handing it identity or scheduling fields.
+    withOneTask();
+    const { getByTestId } = await openRow();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('capture-task-confirm'));
+    });
+
+    const [, patch] = mockUpdateTask.mock.calls[0];
+    expect(Object.keys(patch).sort()).toEqual(['demand', 'title']);
+  });
+
+  it('keeps the same gate in edit mode: an emptied title cannot be saved', async () => {
+    withOneTask();
+    const { getByTestId, findByTestId } = await openRow();
+
+    fireEvent.changeText(getByTestId('capture-task-title'), '');
+    fireEvent.press(getByTestId('capture-task-confirm'));
+
+    expect(await findByTestId('capture-task-hint')).toBeTruthy();
+    expect(mockUpdateTask).not.toHaveBeenCalled();
+  });
+
+  it('returns to capture mode after an edit', async () => {
+    // The sheet is shared, so a stale `editing` would turn the next capture
+    // into a patch of whatever was last tapped.
+    withOneTask();
+    const { getByTestId, findByTestId, queryByTestId, getByText } = await openRow();
+
+    fireEvent(getByTestId('capture-task-sheet'), 'requestClose');
+    await waitFor(() => expect(queryByTestId('capture-task-sheet')).toBeNull());
+
+    fireEvent.press(getByTestId('captured-tasks-capture'));
+    await findByTestId('capture-task-sheet');
+
+    expect(getByText(SAVE_CTA)).toBeTruthy();
+    expect(getByTestId('capture-task-title').props.value).toBe('');
+    expect(queryByTestId('capture-task-clear')).toBeNull();
+  });
+});
+
+describe('CapturedTasksScreen — clear (TB-2c)', () => {
+  const openRow = async () => {
+    mockListTasks.mockResolvedValue([task('t1', 'Book dentist', 'light')]);
+    const utils = render(<CapturedTasksScreen />);
+    await utils.findByTestId('captured-tasks-row-t1');
+    fireEvent.press(utils.getByTestId('captured-tasks-row-t1'));
+    await utils.findByTestId('capture-task-sheet');
+    return utils;
+  };
+
+  it('offers Clear only in edit mode', async () => {
+    const { getByTestId } = await openRow();
+    expect(getByTestId('capture-task-clear')).toBeTruthy();
+  });
+
+  it('asks before clearing, and deletes nothing until confirmed', async () => {
+    const { getByTestId } = await openRow();
+
+    fireEvent.press(getByTestId('capture-task-clear'));
+
+    expect(mockAlert).toHaveBeenCalledTimes(1);
+    const [title, body] = mockAlert.mock.calls[0];
+    expect(title).toBe(CLEAR_CONFIRM_TITLE);
+    expect(body).toBe(CLEAR_CONFIRM_BODY);
+    expect(mockDeleteTask).not.toHaveBeenCalled();
+  });
+
+  it('removes the row once confirmed', async () => {
+    const { getByTestId, findByTestId, queryByTestId } = await openRow();
+
+    fireEvent.press(getByTestId('capture-task-clear'));
+    mockListTasks.mockResolvedValue([]);
+    await confirmAlert();
+
+    expect(mockDeleteTask).toHaveBeenCalledWith('t1');
+    expect(await findByTestId('captured-tasks-empty')).toBeTruthy();
+    expect(queryByTestId('captured-tasks-row-t1')).toBeNull();
+    // The sheet closes with it — there is nothing left to edit.
+    await waitFor(() => expect(queryByTestId('capture-task-sheet')).toBeNull());
+  });
+
+  it('leaves the list untouched when the confirm is declined', async () => {
+    const { getByTestId, queryByTestId } = await openRow();
+
+    fireEvent.press(getByTestId('capture-task-clear'));
+    const buttons = mockAlert.mock.calls[0][2];
+    const cancel = buttons.find((b: any) => b.style === 'cancel');
+
+    // The cancel button carries no handler at all — declining is the absence of
+    // an action, which is what makes it impossible to get wrong.
+    expect(cancel.text).toBe(CLEAR_CONFIRM_CANCEL);
+    expect(cancel.onPress).toBeUndefined();
+    expect(mockDeleteTask).not.toHaveBeenCalled();
+    expect(queryByTestId('captured-tasks-row-t1')).toBeTruthy();
+  });
+
+  it('does not style the confirm as destructive', async () => {
+    // Mirrors the TB-1c block-removal Alert, deliberately: clearing a task you
+    // captured yourself is housekeeping, not an error. Same reasoning as the
+    // Muted Sage Gray button.
+    const { getByTestId } = await openRow();
+
+    fireEvent.press(getByTestId('capture-task-clear'));
+
+    const buttons = mockAlert.mock.calls[0][2];
+    const accept = buttons.find((b: any) => b.text === CLEAR_CONFIRM_ACCEPT);
+    expect(accept.style).toBeUndefined();
+  });
+
+  it('surfaces a failed clear rather than pretending it worked', async () => {
+    mockDeleteTask.mockRejectedValue(new Error('offline'));
+    const { getByTestId } = await openRow();
+
+    fireEvent.press(getByTestId('capture-task-clear'));
+    await confirmAlert();
+
+    // A second Alert, carrying the failure.
+    expect(mockAlert).toHaveBeenCalledTimes(2);
+    expect(mockAlert.mock.calls[1][0]).toBe(CLEAR_CONFIRM_TITLE);
   });
 });
 

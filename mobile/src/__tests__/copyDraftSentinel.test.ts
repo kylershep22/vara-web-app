@@ -37,7 +37,7 @@ import * as path from 'path';
  *
  * Read the contract in this file's header before changing it.
  */
-const EXPECTED_SENTINELS = 174;
+const EXPECTED_SENTINELS = 186;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');
