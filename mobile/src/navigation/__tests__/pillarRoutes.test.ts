@@ -58,6 +58,8 @@ describe('pillar routes are registered, not just named', () => {
   //   FocusRhythms         ← the Focus hub's secondary row, and nowhere else
   //   FocusDayBlocks       ← the Focus hub's "Time blocking" card, which stopped
   //                          being a coming-soon placeholder in TB-1b
+  //   FocusTasks           ← the Focus hub's "Task batching" card, the LAST
+  //                          coming-soon placeholder, swapped in TB-2b
   it.each([
     ['PillarFocus'],
     ['PillarEnergy'],
@@ -65,6 +67,7 @@ describe('pillar routes are registered, not just named', () => {
     ['PillarStressRecovery'],
     ['FocusRhythms'],
     ['FocusDayBlocks'],
+    ['FocusTasks'],
   ] as const)('AppNavigator registers %s', (routeKey) => {
     expect(isRegistered(routeKey)).toBe(true);
   });
@@ -86,6 +89,30 @@ describe('pillar routes are registered, not just named', () => {
     // Focus hub's Time blocking card live, so an absent import here is a card
     // that navigates to a route no navigator mounts.
     expect(NAVIGATOR_SOURCE).toMatch(/import \{[^}]*DayBlocksScreen[^}]*\} from/);
+  });
+
+  it('imports the tasks screen it registers', () => {
+    // Same guard, same failure mode: TB-2b makes the Focus hub's Task batching
+    // card live, so an absent import here is a card that navigates to a route
+    // no navigator mounts.
+    expect(NAVIGATOR_SOURCE).toMatch(/import \{[^}]*CapturedTasksScreen[^}]*\} from/);
+  });
+
+  it('registers the tasks screen UNGATED, on the same precedent', () => {
+    // Identical reasoning to the day view below: the only parent chain exists
+    // solely in the four-tab IA, so a FOUR_PILLAR_IA gate would be dead code.
+    // Asserted separately because the nearest neighbouring registrations
+    // (FocusRhythms, EnergyBrowse) ARE gated, and copying a neighbour is the
+    // obvious way to add a screen here.
+    const at = NAVIGATOR_SOURCE.indexOf('name={ROUTES.FocusTasks}');
+    expect(at).toBeGreaterThan(-1);
+
+    const before = NAVIGATOR_SOURCE.slice(0, at);
+    const lastGateOpen = before.lastIndexOf('{FOUR_PILLAR_IA && (');
+    const gateIsClosed =
+      lastGateOpen === -1 || before.slice(lastGateOpen).includes(')}');
+
+    expect(gateIsClosed).toBe(true);
   });
 
   it('registers the day view UNGATED, on the Stress Recovery precedent', () => {

@@ -3,9 +3,9 @@
 // Replaces FocusScreen as the PillarFocus tab root. A calm home with a single
 // primary action: set a focus, which opens the existing Pomodoro timer
 // (FocusTimer stack screen). A quieter secondary entry captures when focus
-// comes easiest (FocusRhythmsScreen). Below those, the planned focus tools sit
-// as inert coming-soon cards so the shape of the pillar is visible without
-// anything pretending to be tappable.
+// comes easiest (FocusRhythmsScreen). Below those, the two focus tools — Time
+// blocking (TB-1b) and Task batching (TB-2b) — both of which arrived as inert
+// coming-soon cards and were swapped for live rows as their screens landed.
 //
 // Built to the EnergyHubScreen precedent. No streaks, no counts, no stats: the
 // only outcome is a felt one, surfaced by the post-timer reflection, never a
@@ -21,7 +21,6 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../../components/shared/ScreenHeader';
-import { ComingSoonCard } from '../../components/shared/ComingSoonCard';
 import { GuidePill } from '../../components/ai/GuidePill';
 import { useAuth } from '../../context/AuthContext';
 import { getFocusRhythms } from '../../services/firebase/focusRhythms.service';
@@ -59,10 +58,21 @@ const PRIMARY_BODY_IN_WINDOW =
 // promise. Draft like the rest of the Blocks copy; see screens/Focus/blocksCopy.
 const TIME_BLOCKING_BODY = 'Shape the day into a few protected blocks.';
 
+// The live Task batching row's descriptor, carried over verbatim from the
+// coming-soon card it replaced in TB-2b — same rule as TIME_BLOCKING_BODY
+// above, and it renders exactly the words that shipped as the placeholder body.
+//
+// NOTE, and it applies to both constants: these two are unapproved copy that
+// renders WITHOUT the drafted-copy sentinel, because they predate the gate as
+// ComingSoonCard props. Neither is newly drafted here, so neither is counted;
+// bringing them under the gate is a copy-accounting decision of its own.
+const TASK_BATCHING_BODY = 'Group similar work so you switch less.';
+
 type NavigationProp = NativeStackNavigationProp<{
   FocusTimer: { fromHub?: boolean } | undefined;
   FocusRhythms: undefined;
   FocusDayBlocks: undefined;
+  FocusTasks: undefined;
 }>;
 
 export function FocusHubScreen() {
@@ -159,10 +169,10 @@ export function FocusHubScreen() {
           <Icon name="chevron-right" size={24} color={Colors.mutedSageGray} />
         </TouchableOpacity>
 
-        {/* Focus tools. Time blocking went live in TB-1b and is now a real row
-            on the rhythms card's tier; Task batching is still an inert
-            placeholder, holding its place so the shape of the pillar stays
-            honest without implying a tap does something. See ComingSoonCard. */}
+        {/* Focus tools. Both live now: Time blocking went live in TB-1b, Task
+            batching in TB-2b. The group no longer holds a placeholder, so
+            ComingSoonCard has zero call sites — it is kept, not deleted, as the
+            honest treatment for the next planned tool. */}
         <View style={styles.plannedGroup}>
           <TouchableOpacity
             style={styles.secondaryCard}
@@ -177,11 +187,23 @@ export function FocusHubScreen() {
             </View>
             <Icon name="chevron-right" size={24} color={Colors.mutedSageGray} />
           </TouchableOpacity>
-          <ComingSoonCard
-            title="Task batching"
-            body="Group similar work so you switch less."
+          {/* The body survives the swap verbatim, exactly as Time blocking's
+              did: this slice changed the affordance, not the promise. The
+              testID is unchanged for the same reason — it identifies the card,
+              not its state. */}
+          <TouchableOpacity
+            style={styles.secondaryCard}
+            onPress={() => navigation.navigate(ROUTES.FocusTasks)}
+            accessibilityRole="button"
+            accessibilityLabel={`Task batching. ${TASK_BATCHING_BODY}`}
             testID="focus-hub-card-task-batching"
-          />
+          >
+            <View style={styles.secondaryText}>
+              <Text style={styles.secondaryLabel}>Task batching</Text>
+              <Text style={styles.secondaryDescriptor}>{TASK_BATCHING_BODY}</Text>
+            </View>
+            <Icon name="chevron-right" size={24} color={Colors.mutedSageGray} />
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
