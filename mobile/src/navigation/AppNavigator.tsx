@@ -55,6 +55,7 @@ import {
   FocusHubScreen,
   FocusRhythmsScreen,
   DayBlocksScreen,
+  CapturedTasksScreen,
 } from '../screens/Focus';
 import JournalScreen from '../screens/JournalScreen';
 import InsightsScreen from '../screens/InsightsScreen';
@@ -947,6 +948,26 @@ const MainNavigator = () => {
         <AppStack.Screen
           name={ROUTES.FocusDayBlocks}
           component={DayBlocksScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            headerBackTitle: 'Focus',
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: '',
+            headerShadowVisible: false,
+          })}
+        />
+        {/* TB-2b — Tasks, reached from the Focus hub's "Task batching" card,
+            which stopped being a coming-soon placeholder in this slice. That
+            card was the LAST ComingSoonCard call site in the app; the component
+            stays, deliberately, for the next planned tool.
+
+            Ungated and headerBackTitle'd on exactly the same terms as the day
+            view above: one parent, and that parent exists only in the four-tab
+            IA. */}
+        <AppStack.Screen
+          name={ROUTES.FocusTasks}
+          component={CapturedTasksScreen}
           options={stackOpts({
             ...standardHeaderOptions,
             headerBackTitle: 'Focus',

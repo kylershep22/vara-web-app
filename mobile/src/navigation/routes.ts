@@ -82,6 +82,12 @@ export const ROUTES = {
   // precedent: its only parent is a screen that exists solely in the four-tab
   // IA, so there is no flag-OFF path that could reach it.
   FocusDayBlocks: 'FocusDayBlocks',
+  // Captured tasks (TB-2b), reached from the Focus hub's "Task batching" card
+  // and from nowhere else. Ungated for the same reason as FocusDayBlocks above:
+  // its only parent exists solely in the four-tab IA, so a flag would be dead
+  // code. NOT a home for the legacy web `tasks` collection — this screen reads
+  // capturedTasks only.
+  FocusTasks: 'FocusTasks',
 
   // --- Root / AppStack (MainNavigator) ---
   Main: 'Main',

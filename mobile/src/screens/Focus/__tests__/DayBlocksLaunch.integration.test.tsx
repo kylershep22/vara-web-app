@@ -62,6 +62,16 @@ jest.mock('../../../services/firebase/dayBlocks.service', () => ({
   updateDayBlock: jest.fn(),
 }));
 
+// TB-2b registers the tasks screen in this stack too, so the swapped Task
+// batching card has somewhere real to land. Its service is stubbed for the same
+// reason the blocks one is: this file tests navigation, not persistence.
+const mockListTasks = jest.fn();
+jest.mock('../../../services/firebase/capturedTasks.service', () => ({
+  listCapturedTasks: (...a: any[]) => mockListTasks(...a),
+  createCapturedTask: jest.fn(),
+  deleteCapturedTask: jest.fn(),
+}));
+
 import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -69,6 +79,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { FocusHubScreen } from '../FocusHubScreen';
 import { DayBlocksScreen } from '../DayBlocksScreen';
+import { CapturedTasksScreen } from '../CapturedTasksScreen';
 import { ROUTES } from '../../../navigation/routes';
 
 const Stack = createNativeStackNavigator();
@@ -89,6 +100,11 @@ function renderFocusNav() {
           component={DayBlocksScreen}
           options={{ headerShown: true, title: '' }}
         />
+        <Stack.Screen
+          name={ROUTES.FocusTasks}
+          component={CapturedTasksScreen}
+          options={{ headerShown: true, title: '' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -98,6 +114,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockGetRhythms.mockResolvedValue([]);
   mockListBlocks.mockResolvedValue([]);
+  mockListTasks.mockResolvedValue([]);
 });
 
 describe('Focus hub → Time blocking → day view', () => {
@@ -146,15 +163,23 @@ describe('Focus hub → Time blocking → day view', () => {
     expect(mockDeleteBlock).not.toHaveBeenCalled();
   });
 
-  it('keeps Task batching inert on the way past', async () => {
-    // The other card in the group is untouched by this slice. If a future
-    // swap wires it up by accident, the day view is where it would land.
+  it('sends Task batching to the tasks screen, NOT to the day view', async () => {
+    // INVERTED IN TB-2b. The original premise was that the neighbouring card
+    // navigates nowhere, which stopped being true when Task batching went live.
+    // The thing worth guarding survived the inversion: two markup twins one
+    // line apart, where a copied onPress sends the wrong card here.
+    //
+    // FocusTasks IS registered in this stack on purpose. Asserting only "the
+    // day view did not open" against an unregistered route would pass no matter
+    // what the onPress said — a card that navigates nowhere satisfies it just
+    // as well as a correct one. Landing somewhere specific is what makes this
+    // a real tripwire rather than a vacuous green.
     const { findByTestId, queryByTestId } = renderFocusNav();
 
     await findByTestId('focus-hub');
     fireEvent.press(await findByTestId('focus-hub-card-task-batching'));
 
+    expect(await findByTestId('captured-tasks')).toBeTruthy();
     expect(queryByTestId('day-blocks')).toBeNull();
-    expect(await findByTestId('focus-hub')).toBeTruthy();
   });
 });

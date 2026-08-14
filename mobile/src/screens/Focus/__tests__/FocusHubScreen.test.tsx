@@ -92,8 +92,8 @@ describe('FocusHubScreen', () => {
   it('shows both focus tools, in order after rhythms', () => {
     const { getByText, getByTestId } = render(<FocusHubScreen />);
     expect(getByText('Time blocking')).toBeTruthy();
-    // The body survived the coming-soon swap verbatim: TB-1b changed the
-    // affordance, not the promise.
+    // Both bodies survived their coming-soon swaps verbatim: TB-1b and TB-2b
+    // changed the affordance, not the promise.
     expect(getByText('Shape the day into a few protected blocks.')).toBeTruthy();
     expect(getByText('Task batching')).toBeTruthy();
     expect(getByText('Group similar work so you switch less.')).toBeTruthy();
@@ -101,6 +101,15 @@ describe('FocusHubScreen', () => {
     expect(getByTestId('focus-hub-card-rhythms')).toBeTruthy();
     expect(getByTestId('focus-hub-card-time-blocking')).toBeTruthy();
     expect(getByTestId('focus-hub-card-task-batching')).toBeTruthy();
+  });
+
+  it('renders no coming-soon placeholder left on the hub', () => {
+    // TB-2b swapped the last one. The pill is the ONLY thing that ever marked a
+    // card as not-yet-built, so its absence is the whole assertion — and this
+    // fails loudly if a future slice reintroduces a placeholder here without
+    // deciding to.
+    const { queryByText } = render(<FocusHubScreen />);
+    expect(queryByText('Coming soon')).toBeNull();
   });
 
   it('routes Time blocking to the day view, and nowhere else', () => {
@@ -118,23 +127,42 @@ describe('FocusHubScreen', () => {
     expect(mockNavigate).not.toHaveBeenCalledWith('FocusTimer', expect.anything());
   });
 
-  it('leaves Task batching navigating nowhere when pressed', () => {
+  it('routes Task batching to the tasks screen, and nowhere else', () => {
+    // The TB-2b card-swap tripwire, and the same shape as the Time blocking one
+    // above. The live card copies the rhythms row's markup exactly, and the day
+    // view is now its nearest live neighbour, so a stray paste of either
+    // onPress is the realistic regression.
     const { getByTestId } = render(<FocusHubScreen />);
+
     fireEvent.press(getByTestId('focus-hub-card-task-batching'));
-    expect(mockNavigate).not.toHaveBeenCalled();
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('FocusTasks');
+    expect(mockNavigate).not.toHaveBeenCalledWith('FocusDayBlocks');
+    expect(mockNavigate).not.toHaveBeenCalledWith('FocusRhythms');
+    expect(mockNavigate).not.toHaveBeenCalledWith('FocusTimer', expect.anything());
   });
 
-  it('keeps Task batching inert to assistive tech, and Time blocking actionable', () => {
+  it('makes both tool cards real buttons to assistive tech', () => {
+    // Was the inverse assertion until TB-2b: Task batching used to be role
+    // "text", because an inert card that navigates would be the worst of both.
+    // Now that it navigates, announcing it as static content would be the same
+    // mistake in the other direction.
+    //
+    // Role and enabled-ness are what a screen reader actually announces, so
+    // they are what this asserts. It deliberately does NOT check `props.onPress`
+    // — RNTL does not expose a Touchable's handler on the host element, so that
+    // assertion reads `undefined` for a live button and is worthless in either
+    // direction. That the press ACTIVATES is proven behaviourally by the
+    // routing test above, which is the honest form of the same question.
     const { getByTestId } = render(<FocusHubScreen />);
 
-    const comingSoon = getByTestId('focus-hub-card-task-batching');
-    expect(comingSoon.props.accessibilityRole).toBe('text');
-    expect(comingSoon.props.onPress).toBeUndefined();
+    const tasks = getByTestId('focus-hub-card-task-batching');
+    expect(tasks.props.accessibilityRole).toBe('button');
+    expect(tasks.props.accessibilityState?.disabled).toBeFalsy();
 
-    // The swapped card is a real button now, which is the whole point of the
-    // swap: an inert card that navigates would be the worst of both.
-    const live = getByTestId('focus-hub-card-time-blocking');
-    expect(live.props.accessibilityRole).toBe('button');
+    const blocks = getByTestId('focus-hub-card-time-blocking');
+    expect(blocks.props.accessibilityRole).toBe('button');
   });
 
   describe('rhythms recall', () => {
@@ -331,9 +359,8 @@ describe('FocusHubScreen', () => {
       await findByText(IN_WINDOW_BODY);
       expect(getByText('Deep work')).toBeTruthy();
       expect(getByText('Set a focus')).toBeTruthy();
-      // Both tool cards still render in-window. Time blocking is live as of
-      // TB-1b, Task batching is still a placeholder; the in-window state
-      // changes neither.
+      // Both tool cards still render in-window. Both are live as of TB-2b;
+      // the in-window state changes neither.
       expect(getByTestId('focus-hub-card-time-blocking')).toBeTruthy();
       expect(getByTestId('focus-hub-card-task-batching')).toBeTruthy();
       fireEvent.press(getByTestId('focus-hub-card-rhythms'));
