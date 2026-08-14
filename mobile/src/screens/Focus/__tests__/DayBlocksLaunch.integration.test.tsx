@@ -69,6 +69,7 @@ const mockListTasks = jest.fn();
 jest.mock('../../../services/firebase/capturedTasks.service', () => ({
   listCapturedTasks: (...a: any[]) => mockListTasks(...a),
   createCapturedTask: jest.fn(),
+  updateCapturedTask: jest.fn(),
   deleteCapturedTask: jest.fn(),
 }));
 

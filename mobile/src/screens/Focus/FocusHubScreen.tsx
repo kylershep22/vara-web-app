@@ -53,19 +53,21 @@ const PRIMARY_BODY_DEFAULT =
 const PRIMARY_BODY_IN_WINDOW =
   "Now's usually an easier time to focus. Protect a little of it?";
 
+// COPY: draft, not from guidelines doc - pending Jen
 // The live Time blocking row's descriptor. Carried over verbatim from the
-// coming-soon card it replaced, so the swap changed the affordance and not the
-// promise. Draft like the rest of the Blocks copy; see screens/Focus/blocksCopy.
+// coming-soon card it replaced in TB-1b, so the swap changed the affordance and
+// not the promise.
 const TIME_BLOCKING_BODY = 'Shape the day into a few protected blocks.';
 
+// COPY: draft, not from guidelines doc - pending Jen
 // The live Task batching row's descriptor, carried over verbatim from the
-// coming-soon card it replaced in TB-2b — same rule as TIME_BLOCKING_BODY
-// above, and it renders exactly the words that shipped as the placeholder body.
+// coming-soon card it replaced in TB-2b.
 //
-// NOTE, and it applies to both constants: these two are unapproved copy that
-// renders WITHOUT the drafted-copy sentinel, because they predate the gate as
-// ComingSoonCard props. Neither is newly drafted here, so neither is counted;
-// bringing them under the gate is a copy-accounting decision of its own.
+// BOTH OF THESE CAME UNDER THE GATE IN TB-2c. They are live card copy that
+// predates it: they shipped as ComingSoonCard props before the sentinel
+// convention existed, and stayed uncounted through two card swaps only because
+// neither was ever newly written. Being old is not the same as being signed
+// off, and the gate is where unapproved copy is supposed to be visible.
 const TASK_BATCHING_BODY = 'Group similar work so you switch less.';
 
 type NavigationProp = NativeStackNavigationProp<{

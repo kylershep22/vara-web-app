@@ -12,15 +12,11 @@
  * Nothing here reads, writes, or migrates it. See the CapturedTask note in
  * types/models.ts for why the two must never be unified.
  *
- * NO UPDATE PATH AT MVP, and this one is a real gap rather than a decision that
- * closes the question. A captured task is a name plus a tag; retagging today
- * means clearing it and capturing it again, which is two taps on a two-field
- * entity. The moment there is a real need — an inline retag on the list, or a
- * title fix — the patch function belongs here, and it should be built the way
- * updateDayBlock was: CONSTRUCTED FROM AN ALLOWLIST, never spread from the
- * caller's input, so `userId`, `id` and `createdAt` are unreachable from any
- * patch. Writing that note before the function exists is what made the dayBlocks
- * update path safe when it finally landed in TB-1c.
+ * THE UPDATE PATH LANDED IN TB-2c, closing the gap this header logged in TB-2a.
+ * It is built exactly as that note required: CONSTRUCTED FROM AN ALLOWLIST,
+ * never spread from the caller's input, so `userId`, `id` and `createdAt` are
+ * unreachable from any patch. Writing the requirement down before the function
+ * existed is what made both this and the dayBlocks update path safe on arrival.
  *
  * Uses requireDb() throughout, not the raw `if (!db)` guards of the older
  * tasks.service.ts: a write that silently no-ops because Firebase failed to
@@ -35,6 +31,7 @@ import {
   getDocs,
   query,
   serverTimestamp,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 
@@ -107,6 +104,45 @@ export async function listCapturedTasks(userId: string): Promise<CapturedTask[]>
     ...(d.data() as Omit<CapturedTask, 'id'>),
     id: d.id,
   }));
+}
+
+/**
+ * A patch. Only these two fields exist, and that is the entity.
+ *
+ * There is no `createdAt`, no ownership and no scheduling here because there is
+ * nothing else on a CapturedTask to change. If a third key ever appears, check
+ * it against the "deliberately absent" list on the type first.
+ */
+export interface CapturedTaskPatch {
+  title?: string;
+  demand?: Demand;
+}
+
+/**
+ * Patch a task.
+ *
+ * THE PAYLOAD IS CONSTRUCTED FROM AN ALLOWLIST, NEVER SPREAD FROM THE INPUT.
+ * That is the whole guard, and it is structural rather than typed: `userId`,
+ * `id` and `createdAt` are not READ from `patch` anywhere below, so no caller —
+ * typed or not, careless or hostile — can reach them. Spreading `...patch`
+ * would undo it in one character, which is why this reads as tediously
+ * explicit. Keep it that way. Same reasoning, same shape as updateDayBlock.
+ *
+ * Only keys the caller actually supplied are written, so retagging a task
+ * cannot silently rewrite its title.
+ */
+export async function updateCapturedTask(
+  taskId: string,
+  patch: CapturedTaskPatch
+): Promise<void> {
+  const payload: Record<string, unknown> = {};
+
+  if (patch.title !== undefined) payload.title = patch.title;
+  if (patch.demand !== undefined) payload.demand = patch.demand;
+
+  payload.updatedAt = serverTimestamp();
+
+  await updateDoc(doc(requireDb(), CAPTURED_TASKS, taskId), payload);
 }
 
 /**

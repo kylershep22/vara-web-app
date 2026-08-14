@@ -54,10 +54,12 @@ jest.mock('../../../services/firebase/focusRhythms.service', () => ({
 
 const mockListTasks = jest.fn();
 const mockCreateTask = jest.fn();
+const mockUpdateTask = jest.fn();
 const mockDeleteTask = jest.fn();
 jest.mock('../../../services/firebase/capturedTasks.service', () => ({
   listCapturedTasks: (...a: any[]) => mockListTasks(...a),
   createCapturedTask: (...a: any[]) => mockCreateTask(...a),
+  updateCapturedTask: (...a: any[]) => mockUpdateTask(...a),
   deleteCapturedTask: (...a: any[]) => mockDeleteTask(...a),
 }));
 
@@ -192,10 +194,11 @@ describe('Focus hub → Task batching → tasks', () => {
     expect(mockDeleteTask).not.toHaveBeenCalled();
   });
 
-  it('offers no clearing affordance yet', async () => {
-    // TB-2c owns clearing, and whether it is a swipe at all is still an open
-    // design call. Nothing in this slice may delete a task, so nothing here
-    // should look like it can.
+  it('opens a task for editing on tap, across the real navigator', async () => {
+    // UPDATED IN TB-2c. This test used to assert the row was inert, because
+    // clearing had not been designed yet. The walk answered that question with
+    // TAP — swipe stays dead app-wide — so the row is now the affordance, and
+    // what is worth proving end to end is that tapping it reaches the sheet.
     mockListTasks.mockResolvedValue([
       {
         id: 't1',
@@ -213,12 +216,43 @@ describe('Focus hub → Task batching → tasks', () => {
     fireEvent.press(await findByTestId('focus-hub-card-task-batching'));
     await findByTestId('captured-tasks-group-light');
 
-    // Role is what a screen reader announces, and "text" is the claim: static
-    // content, not an actionable control. Checking props.onPress would prove
-    // nothing either way — RNTL does not expose a Touchable's handler on the
-    // host element, so it reads undefined for a live button too.
     const row = getByTestId('captured-tasks-row-t1');
-    expect(row.props.accessibilityRole).toBe('text');
+    expect(row.props.accessibilityRole).toBe('button');
+    fireEvent.press(row);
+
+    expect(await findByTestId('capture-task-sheet')).toBeTruthy();
+    // Opening is not clearing: nothing is written by looking.
     expect(mockDeleteTask).not.toHaveBeenCalled();
+    expect(mockUpdateTask).not.toHaveBeenCalled();
+  });
+
+  it('reintroduces no swipe gesture anywhere on this screen', async () => {
+    // The Step-0 question, answered and pinned. Swipe was deleted app-wide in
+    // TB-1c after two device walks found it undiscoverable, and TB-2c chose tap
+    // rather than re-running that experiment. This suite mocks no
+    // gesture-handler and no reanimated — if either is ever imported by this
+    // screen's tree, this file stops running rather than quietly passing, which
+    // is the real guard. The assertion below states the intent next to it.
+    mockListTasks.mockResolvedValue([
+      {
+        id: 't1',
+        userId: 'u1',
+        title: 'Book dentist',
+        demand: 'light',
+        createdAt: ts(1000),
+        updatedAt: ts(1000),
+      },
+    ]);
+
+    const { findByTestId, getByTestId } = renderFocusNav();
+
+    await findByTestId('focus-hub');
+    fireEvent.press(await findByTestId('focus-hub-card-task-batching'));
+    await findByTestId('captured-tasks-group-light');
+
+    // A swipe pane would be a sibling control behind the row. There is none.
+    const row = getByTestId('captured-tasks-row-t1');
+    expect(row.props.accessibilityRole).toBe('button');
+    expect(row.props.accessibilityActions).toBeUndefined();
   });
 });

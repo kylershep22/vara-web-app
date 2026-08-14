@@ -7,9 +7,16 @@
  * The mockup's own annotation says it: "This is the entire capture form. Name
  * plus demand. The absence of every other field is the design."
  *
- * PRESENTATIONAL. It hands a draft up once and writes nothing itself, the same
- * split AddBlockSheet and DailyPickerSheet use, which is what lets an abandoned
- * sheet leave nothing behind.
+ * DOUBLES AS THE EDIT SHEET SINCE TB-2c, on the AddBlockSheet precedent: same
+ * component, same two fields, seeded from the task and with the copy switched.
+ * A separate edit sheet would be this file with different strings, and the two
+ * would drift the first time the gate changed. Clearing lives at the bottom of
+ * it, below a divider, because a task has nowhere else to put a destructive
+ * action — there is no swipe, by decision (see the screen header).
+ *
+ * PRESENTATIONAL. It hands a draft up once and writes nothing itself — not even
+ * the delete, which it only requests. Same split AddBlockSheet and
+ * DailyPickerSheet use, and what lets an abandoned sheet leave nothing behind.
  *
  * DEMAND IS REQUIRED AND HAS NO DEFAULT. Same reasoning as the blocks sheet:
  * "how much does this take out of you?" is a felt question, and pre-selecting an
@@ -35,8 +42,12 @@ import { SelectChip } from '../../components/shared/SelectChip';
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import type { Demand } from '../../types/models';
 import {
+  CLEAR_TASK,
   DEMAND_LABELS,
+  EDIT_INTRO,
+  EDIT_TITLE,
   LABEL_DEMAND,
+  SAVE_CHANGES,
   SAVE_CTA,
   SAVE_FAILED,
   SHEET_INTRO,
@@ -44,6 +55,7 @@ import {
   TITLE_PLACEHOLDER,
   missingCaptureHint,
 } from './tasksCopy';
+import type { CapturedTask } from '../../types/models';
 
 const MIN_TOUCH_TARGET = 48;
 const INPUT_ACCESSORY_ID = 'capture-task-title';
@@ -60,6 +72,10 @@ export interface CaptureTaskSheetProps {
   visible: boolean;
   saving: boolean;
   saveFailed: boolean;
+  /** Pre-fills the form and switches copy to edit mode (TB-2c). */
+  initialTask?: CapturedTask | null;
+  /** Edit mode only. Confirms and clears; the screen owns the delete. */
+  onClear?: () => void;
   onConfirm: (draft: NewTaskDraft) => void;
   onDismiss: () => void;
 }
@@ -68,14 +84,20 @@ export const CaptureTaskSheet: React.FC<CaptureTaskSheetProps> = ({
   visible,
   saving,
   saveFailed,
+  initialTask,
+  onClear,
   onConfirm,
   onDismiss,
 }) => {
-  // The screen remounts this by key on each open, so these initialisers run
-  // exactly once per opening and there is no stale-draft reconciliation.
-  const [title, setTitle] = useState('');
-  // Null until the user answers. See the header on why there is no default.
-  const [demand, setDemand] = useState<Demand | null>(null);
+  const editing = !!initialTask;
+
+  // Both fields are seeded from the task when editing. The screen remounts this
+  // by key on each open, so these initialisers run exactly once per opening and
+  // there is no stale-prop reconciliation to get wrong.
+  const [title, setTitle] = useState(initialTask?.title ?? '');
+  // Null until the user answers, on capture. On an edit it starts wherever the
+  // task already is — that is a recorded answer, not a default.
+  const [demand, setDemand] = useState<Demand | null>(initialTask?.demand ?? null);
   // Set by tapping the primary before the capture is complete, and never shown
   // once it is: the hint answers a question the user just asked by tapping.
   const [hintRequested, setHintRequested] = useState(false);
@@ -107,8 +129,8 @@ export const CaptureTaskSheet: React.FC<CaptureTaskSheetProps> = ({
     <EnhancedModal
       visible={visible}
       onDismiss={onDismiss}
-      title={SHEET_TITLE}
-      subtitle={SHEET_INTRO}
+      title={editing ? EDIT_TITLE : SHEET_TITLE}
+      subtitle={editing ? EDIT_INTRO : SHEET_INTRO}
       hasInputs
       inputAccessoryViewID={INPUT_ACCESSORY_ID}
       showKeyboardToolbar
@@ -140,8 +162,30 @@ export const CaptureTaskSheet: React.FC<CaptureTaskSheetProps> = ({
             accessibilityHint={isComplete ? undefined : hintText}
             testID="capture-task-confirm"
           >
-            <Text style={styles.primaryLabel}>{SAVE_CTA}</Text>
+            <Text style={styles.primaryLabel}>
+              {editing ? SAVE_CHANGES : SAVE_CTA}
+            </Text>
           </TouchableOpacity>
+
+          {/* Edit only. Separated from the primary by a divider so a
+              destructive action is never adjacent to the confirm, and Muted
+              Sage Gray rather than coral: clearing a task you captured
+              yourself is housekeeping, not an error. The TB-1c Remove
+              precedent, treatment and placement both. */}
+          {editing && onClear && (
+            <View style={styles.clearZone}>
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={onClear}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={CLEAR_TASK}
+                testID="capture-task-clear"
+              >
+                <Text style={styles.clearLabel}>{CLEAR_TASK}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       }
     >
@@ -208,6 +252,27 @@ const styles = StyleSheet.create({
   // still lands.
   primaryDisabled: { opacity: 0.4 },
   primaryLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+  },
+  // Sits below the primary with a rule above it: a destructive action must not
+  // read as the next step after the confirm.
+  clearZone: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
+  },
+  clearButton: {
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: Layout.borderRadius.lg,
+    backgroundColor: Colors.mutedSageGray,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+  },
+  clearLabel: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.white,

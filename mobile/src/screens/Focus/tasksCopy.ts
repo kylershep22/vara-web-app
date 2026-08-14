@@ -102,6 +102,79 @@ export const TITLE_PLACEHOLDER = 'What is it?';
  */
 export const SAVE_CTA = 'Save and get back';
 
+// ---- edit mode (TB-2c, no mockup) ----
+
+// COPY: draft, not from guidelines doc - pending Jen
+/**
+ * [new] The sheet's title when opened on an existing task.
+ *
+ * The mockup draws no edit state — it predates the decision that a task can be
+ * changed at all — so this and the strings below are written to the pattern the
+ * blocks sheet established rather than transcribed.
+ */
+export const EDIT_TITLE = 'Edit task';
+
+// COPY: draft, not from guidelines doc - pending Jen
+/**
+ * [new] The sheet's subtitle when editing.
+ *
+ * Names the two things that can change, because they are the only two. Nothing
+ * about when it happens: a task is timeless, and scheduling it is what a block
+ * is for.
+ */
+export const EDIT_INTRO = 'Change what it says, or how much it takes.';
+
+// COPY: draft, not from guidelines doc - pending Jen
+/** [new] The primary in edit mode, mirroring the blocks sheet's SAVE_CHANGES. */
+export const SAVE_CHANGES = 'Save changes';
+
+// COPY: draft, not from guidelines doc - pending Jen
+/**
+ * [new] The single destructive action, inside the edit sheet.
+ *
+ * "Clear", not "Delete" and never "Delete forever", per the UI standards'
+ * language rule and because clearing is what the model actually calls it: the
+ * row goes and nothing is kept. Blocks say "Remove" for the same reason at the
+ * same place in their sheet.
+ */
+export const CLEAR_TASK = 'Clear';
+
+// COPY: draft, not from guidelines doc - pending Jen
+/** [new] Confirm dialog title. Names the act, asks nothing rhetorical. */
+export const CLEAR_CONFIRM_TITLE = 'Clear this task?';
+
+// COPY: draft, not from guidelines doc - pending Jen
+/**
+ * [new] Confirm dialog body.
+ *
+ * States the one consequence that matters and stops. It is honest that there is
+ * no undo and no history, without dressing a two-word task up as a grave
+ * decision — the recovery cost is retyping a line.
+ */
+export const CLEAR_CONFIRM_BODY = "It won't be kept anywhere. You can always jot it down again.";
+
+// COPY: draft, not from guidelines doc - pending Jen
+/** [new] Confirm dialog accept. */
+export const CLEAR_CONFIRM_ACCEPT = 'Clear it';
+
+// COPY: draft, not from guidelines doc - pending Jen
+/** [new] Confirm dialog cancel. */
+export const CLEAR_CONFIRM_CANCEL = 'Keep it';
+
+// COPY: draft, not from guidelines doc - pending Jen
+/** [new] Shown when the clear itself fails, in the same Alert. */
+export const CLEAR_FAILED = "That didn't clear. Try once more.";
+
+// COPY: draft, not from guidelines doc - pending Jen
+/**
+ * [new] Announced for a task row, since the row LOOKS static and now is not.
+ *
+ * Tap, not swipe. The device walk answered the Step-0 question: swipe stayed
+ * dead app-wide, so the row itself is the affordance and this line is how a
+ * screen-reader user learns it.
+ */
+export const ROW_A11Y_HINT = 'Opens this task to edit or clear it';
+
 // COPY: draft, not from guidelines doc - pending Jen
 /**
  * [new] A refused save.
