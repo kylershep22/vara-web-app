@@ -33,7 +33,7 @@ import {
   TimePickerSheet,
   formatReminderTime,
 } from '../../components/shared/TimePickerSheet';
-import type { Demand } from '../../types/models';
+import type { DayBlock, Demand } from '../../types/models';
 import type { ReminderTime } from '../../types/models';
 import type { TimedRhythmKey } from '../../constants/focusRhythms';
 import { FOCUS_RHYTHM_OPTIONS } from '../../constants/focusRhythms';
@@ -50,6 +50,10 @@ import {
   LABEL_HOW_LONG,
   LABEL_RHYTHMS,
   LABEL_WHAT,
+  EDIT_INTRO,
+  EDIT_TITLE,
+  REMOVE_BLOCK,
+  SAVE_CHANGES,
   NO_RHYTHMS_INVITATION,
   PLACE_IT_THERE,
   USE_THIS_TIME,
@@ -116,6 +120,25 @@ export interface AddBlockSheetProps {
   suggestion: PlacementSuggestion;
   /** Injected clock, so the concrete date is deterministic under test. */
   now: Date;
+  /**
+   * The DAY a manually-picked time lands on. Today on the Today tab, tomorrow
+   * on the Tomorrow tab, and the block's own day when editing. Separate from
+   * `now`, which stays the clock the suggestion reasons about.
+   */
+  dayAnchor: Date;
+  /**
+   * Suppresses the whole rhythm area and opens straight in manual mode.
+   *
+   * True when editing (adjusting a concrete time is not re-running placement)
+   * and on the Tomorrow tab (the suggestion is about what comes NEXT, which may
+   * well be today, so offering it while the user is deliberately planning
+   * tomorrow would place the block on the wrong day).
+   */
+  manualOnly: boolean;
+  /** Pre-fills the form and switches copy to edit mode. */
+  initialBlock?: DayBlock | null;
+  /** Edit mode only. Confirms and removes; the screen owns the delete. */
+  onRemove?: () => void;
   saving: boolean;
   saveFailed: boolean;
   /**
@@ -151,6 +174,10 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
   visible,
   suggestion,
   now,
+  dayAnchor,
+  manualOnly,
+  initialBlock,
+  onRemove,
   saving,
   saveFailed,
   overlapWith,
@@ -158,13 +185,22 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
   onDismiss,
   onOpenRhythms,
 }) => {
-  const hasSuggestion = suggestion.kind === 'ok';
+  const editing = !!initialBlock;
+  // The rhythm area is offered only when there is something to suggest AND the
+  // user is not deliberately placing into a specific day or fixing an existing
+  // block.
+  const hasSuggestion = suggestion.kind === 'ok' && !manualOnly;
 
-  const [title, setTitle] = useState('');
+  // Every field is seeded from the block when editing. The sheet is remounted
+  // by key on each open, so these initialisers run exactly once per opening
+  // and there is no stale-prop reconciliation to get wrong.
+  const [title, setTitle] = useState(initialBlock?.title ?? '');
   // Null until the user answers. See the note above on why there is no default.
-  const [demand, setDemand] = useState<Demand | null>(null);
-  const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION);
-  const [isProtected, setIsProtected] = useState(false);
+  const [demand, setDemand] = useState<Demand | null>(initialBlock?.demand ?? null);
+  const [durationMinutes, setDurationMinutes] = useState(
+    initialBlock?.durationMinutes ?? DEFAULT_DURATION
+  );
+  const [isProtected, setIsProtected] = useState(initialBlock?.isProtected ?? false);
   // Set by tapping the primary before the block is complete, and never shown
   // once it is: the hint answers a question the user just asked by tapping.
   const [hintRequested, setHintRequested] = useState(false);
@@ -189,7 +225,13 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
    * The seed below is a DISPLAY starting point for the spinner only. It is
    * never a committed value and is never written.
    */
-  const [committedTime, setCommittedTime] = useState<ReminderTime | null>(null);
+  const [committedTime, setCommittedTime] = useState<ReminderTime | null>(() => {
+    if (!initialBlock) return null;
+    // Editing starts with the block's own time already committed, so Save is
+    // live immediately and the row shows a real value rather than a prompt.
+    const d = initialBlock.startAt.toDate();
+    return { hour: d.getHours(), minute: d.getMinutes() };
+  });
 
   const seedHour = suggestion.kind === 'ok' ? suggestion.startHour : FALLBACK_START_HOUR;
   const pickerSeed: ReminderTime = committedTime ?? { hour: seedHour, minute: 0 };
@@ -204,12 +246,14 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
 
   // Null until a time has been committed. There is no fallback: an uncommitted
   // manual block is incomplete and cannot be saved at all.
+  // Built on the DAY ANCHOR, not on `now`: a time picked from the Tomorrow tab
+  // has to land on tomorrow, and an edited block has to stay on its own day.
   const manualStart = useMemo(() => {
     if (!committedTime) return null;
-    const d = new Date(now);
+    const d = new Date(dayAnchor);
     d.setHours(committedTime.hour, committedTime.minute, 0, 0);
     return d;
-  }, [now, committedTime]);
+  }, [dayAnchor, committedTime]);
 
   const startAt = manual ? manualStart : suggestedStart;
 
@@ -260,8 +304,8 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
     <EnhancedModal
       visible={visible}
       onDismiss={onDismiss}
-      title={SHEET_TITLE}
-      subtitle={SHEET_INTRO}
+      title={editing ? EDIT_TITLE : SHEET_TITLE}
+      subtitle={editing ? EDIT_INTRO : SHEET_INTRO}
       hasInputs
       inputAccessoryViewID={INPUT_ACCESSORY_ID}
       showKeyboardToolbar
@@ -274,12 +318,17 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
       // Closing discards the draft. Nothing persists it, and the keyed remount
       // on reopen guarantees the next open starts clean.
       showCloseButton={!pickerOpen}
-      // Raised from "auto" after the device walk: all five content rows have to
-      // be on screen at once, so the primary's referent is visible when the
-      // primary is. Paired with the tightened vertical rhythm in the styles
-      // below; "auto" subtracts the safe areas plus 40 and came up short on a
-      // smaller viewport.
-      maxHeightPercent={0.95}
+      // HEIGHT, third pass. "auto" (safe areas minus 40) came up short; 0.95
+      // cleared the fold but the walk still read as cramped, and edit mode adds
+      // a sixth row (Remove) below the five. EnhancedModal caps at
+      // screenHeight * this, so 0.98 is effectively "as tall as the shell
+      // allows" — its own 480 minHeight and internal padding still keep the
+      // sheet off the very edges.
+      //
+      // Height alone was never going to fix "cramped": the breathing room comes
+      // from the loosened rhythm in the styles below, and the cap is what stops
+      // that extra room from reintroducing a scroll.
+      maxHeightPercent={0.98}
       testID="add-block-sheet"
       // THE FOOTER IS GONE WHILE THE PICKER IS UP. Done and Save must never be
       // live at the same time: that ambiguity is the commit-semantics bug this
@@ -326,9 +375,28 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
             testID="add-block-confirm"
           >
             <Text style={styles.primaryLabel}>
-              {manual ? SAVE_BLOCK : PLACE_IT_THERE}
+              {editing ? SAVE_CHANGES : manual ? SAVE_BLOCK : PLACE_IT_THERE}
             </Text>
           </TouchableOpacity>
+
+          {/* Edit only. Separated from the primary by a divider so a
+              destructive action is never adjacent to the confirm. Muted Sage
+              Gray, not coral: removing a block you placed is housekeeping, per
+              the round-3 rule. */}
+          {editing && onRemove && (
+            <View style={styles.removeZone}>
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={onRemove}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={REMOVE_BLOCK}
+                testID="add-block-remove"
+              >
+                <Text style={styles.removeLabel}>{REMOVE_BLOCK}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Only offered while the suggestion is still on the table. */}
           {!manual && hasSuggestion && (
@@ -422,7 +490,7 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
 
       {/* ---- the rhythm area, three states keyed to suggestPlacement ---- */}
 
-      {suggestion.kind === 'ok' && (
+      {suggestion.kind === 'ok' && !manualOnly && (
         // In manual mode the card stays, DE-EMPHASIZED and tappable, so going
         // manual is not a one-way door. It is dead as a placement until tapped:
         // `manual` alone decides what gets written, never this card's presence.
@@ -462,7 +530,7 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
         </TouchableOpacity>
       )}
 
-      {suggestion.kind === 'no-rhythms' && (
+      {suggestion.kind === 'no-rhythms' && !manualOnly && (
         // A LINK, not a button: the sheet keeps one primary action.
         <TouchableOpacity
           onPress={onOpenRhythms}
@@ -474,7 +542,7 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
         </TouchableOpacity>
       )}
 
-      {suggestion.kind === 'varies' && (
+      {suggestion.kind === 'varies' && !manualOnly && (
         // Neutral, and deliberately no link: they already answered.
         <Text style={styles.variesText} testID="add-block-varies">
           {VARIES_LINE}
@@ -527,11 +595,11 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
     letterSpacing: 0.4,
     color: Colors.mutedSageGray,
-    marginBottom: Spacing.xs,
-    // Tightened from md after the device walk. Every marginTop in this sheet
-    // was cut a step so the five content rows clear a standard viewport
-    // together; do not loosen one in isolation.
-    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+    // Round 3 cut every marginTop a step to clear the fold. Round 4 gives the
+    // room back, paired with the raised cap: clearing the fold was never the
+    // same as being comfortable. Change these together, never one alone.
+    marginTop: Spacing.base,
   },
   input: {
     borderWidth: 1.5,
@@ -548,7 +616,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   rhythmCard: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     backgroundColor: Colors.dewSageLight,
     borderLeftWidth: 4,
     borderLeftColor: Colors.evergreenTeal,
@@ -603,7 +671,7 @@ const styles = StyleSheet.create({
     color: Colors.evergreenTeal,
   },
   invitationRow: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
   },
@@ -613,13 +681,13 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   variesText: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     fontSize: Typography.fontSize.sm,
     lineHeight: 20,
     color: Colors.mutedSageGray,
   },
   timeRow: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
     minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
     paddingHorizontal: Spacing.sm,
@@ -637,7 +705,7 @@ const styles = StyleSheet.create({
     color: Colors.mutedSageGray,
   },
   toggleRow: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     minHeight: MIN_TOUCH_TARGET,
     flexDirection: 'row',
     alignItems: 'center',
@@ -669,6 +737,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   primaryLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+  },
+  // Sits below the primary with a rule above it: a destructive action must not
+  // read as the next step after the confirm.
+  removeZone: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
+  },
+  removeButton: {
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: Layout.borderRadius.lg,
+    backgroundColor: Colors.mutedSageGray,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+  },
+  removeLabel: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.white,

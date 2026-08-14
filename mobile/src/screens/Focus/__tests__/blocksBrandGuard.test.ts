@@ -70,13 +70,26 @@ describe('the blocks feature never borrows the error colour', () => {
     });
   });
 
-  it('the Remove pane is a neutral destructive treatment, not an error', () => {
-    // Pinned by name rather than by hex so a token rename cannot silently
-    // reintroduce coral here.
-    const source = readFileSync(join(FEATURE_ROOT, 'components', 'BlockCard.tsx'), 'utf8');
-    const paneBlock = source.slice(source.indexOf('  action: {'), source.indexOf('  actionLabel: {'));
+  it('the Remove button is a neutral destructive treatment, not an error', () => {
+    // Followed the control when TB-1c deleted the swipe pane and moved Remove
+    // into the edit sheet. Pinned by token NAME rather than by hex so a rename
+    // cannot silently reintroduce coral.
+    const source = readFileSync(join(FEATURE_ROOT, 'AddBlockSheet.tsx'), 'utf8');
+    const buttonBlock = source.slice(
+      source.indexOf('  removeButton: {'),
+      source.indexOf('  removeLabel: {')
+    );
 
-    expect(paneBlock).toContain('Colors.mutedSageGray');
-    expect(paneBlock).not.toContain('softCoral');
+    expect(buttonBlock).toContain('Colors.mutedSageGray');
+    expect(buttonBlock).not.toContain('softCoral');
+  });
+
+  it('the swipe pane is gone, not merely recoloured', () => {
+    // TB-1c removed swipe-to-remove entirely; the edit sheet owns removal. A
+    // reintroduced pane would be a second way to do the same thing.
+    const source = readFileSync(join(FEATURE_ROOT, 'components', 'BlockCard.tsx'), 'utf8');
+
+    expect(source).not.toContain('GestureDetector');
+    expect(source).not.toContain('actionLayer');
   });
 });

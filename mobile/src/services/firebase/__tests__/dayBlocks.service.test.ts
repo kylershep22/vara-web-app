@@ -12,6 +12,8 @@ const mockWhere = jest.fn((...a: any[]) => ({ __where: a }));
 const mockOrderBy = jest.fn((...a: any[]) => ({ __orderBy: a }));
 const mockAddDoc = jest.fn((..._a: any[]): any => ({ id: 'new-block-id' }));
 const mockDeleteDoc = jest.fn((..._a: any[]): any => undefined);
+const mockUpdateDoc = jest.fn((..._a: any[]): any => undefined);
+const mockDeleteField = jest.fn(() => ({ __deleteField: true }));
 const mockServerTimestamp = jest.fn(() => ({ __serverTimestamp: true }));
 
 jest.mock('firebase/firestore', () => ({
@@ -23,6 +25,8 @@ jest.mock('firebase/firestore', () => ({
   orderBy: (...a: any[]) => mockOrderBy(...a),
   addDoc: (...a: any[]) => mockAddDoc(...a),
   deleteDoc: (...a: any[]) => mockDeleteDoc(...a),
+  updateDoc: (...a: any[]) => mockUpdateDoc(...a),
+  deleteField: () => mockDeleteField(),
   serverTimestamp: () => mockServerTimestamp(),
 }));
 // requireDb() reads `db` from this module, so mocking it here narrows the
@@ -35,6 +39,7 @@ jest.mock('../../../config/firebase', () => ({
 import {
   createDayBlock,
   listDayBlocksBetween,
+  updateDayBlock,
   deleteDayBlock,
 } from '../dayBlocks.service';
 
@@ -211,6 +216,80 @@ describe('listDayBlocksBetween', () => {
     const blocks = await listDayBlocksBetween(ALICE, RANGE_START, RANGE_END);
 
     expect(blocks[0].id).toBe('real-id');
+  });
+});
+
+describe('updateDayBlock', () => {
+  it('patches the allowlisted fields', async () => {
+    await updateDayBlock('block-1', {
+      title: 'Renamed',
+      demand: 'light',
+      durationMinutes: 30,
+      startAt: START_AT,
+      isProtected: true,
+    });
+
+    expect(mockDoc).toHaveBeenCalledWith({ __db: true }, 'dayBlocks', 'block-1');
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(payload).toMatchObject({
+      title: 'Renamed',
+      demand: 'light',
+      durationMinutes: 30,
+      startAt: START_AT,
+      isProtected: true,
+    });
+  });
+
+  it('stamps updatedAt', async () => {
+    await updateDayBlock('block-1', { title: 'Renamed' });
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(payload.updatedAt).toEqual({ __serverTimestamp: true });
+  });
+
+  it('omits every field the caller did not supply', async () => {
+    // A patch is a patch: touching a field that was not asked about would let
+    // an edit of the title silently rewrite the time.
+    await updateDayBlock('block-1', { title: 'Renamed' });
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(Object.keys(payload).sort()).toEqual(['title', 'updatedAt']);
+  });
+
+  it('STRIPS identity and ownership fields rather than patching them', async () => {
+    // The TB-1a hard guard. The payload is CONSTRUCTED from an allowlist rather
+    // than spread from the input, so these cannot reach Firestore even from an
+    // untyped caller. Stripping, not throwing: construction-from-allowlist is
+    // the specified mechanism and it inherently drops unknown keys, and the
+    // patch type already refuses them at compile time.
+    await updateDayBlock('block-1', {
+      title: 'Renamed',
+      userId: 'someone-else',
+      id: 'other-id',
+      createdAt: { __forged: true },
+    } as any);
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect('userId' in payload).toBe(false);
+    expect('id' in payload).toBe(false);
+    expect('createdAt' in payload).toBe(false);
+    expect(payload.title).toBe('Renamed');
+  });
+
+  it('clears suggestedFrom with a field delete when passed null', async () => {
+    // Provenance that is no longer true must be REMOVED, not written as null:
+    // the field is optional on DayBlock and a null would violate that on read.
+    await updateDayBlock('block-1', { suggestedFrom: null });
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(payload.suggestedFrom).toEqual({ __deleteField: true });
+  });
+
+  it('sets suggestedFrom when passed a zone', async () => {
+    await updateDayBlock('block-1', { suggestedFrom: 'mid_morning' });
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(payload.suggestedFrom).toBe('mid_morning');
   });
 });
 

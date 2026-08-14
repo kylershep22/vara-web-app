@@ -17,7 +17,15 @@
  * view and no date navigation at MVP.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -30,6 +38,7 @@ import {
   createDayBlock,
   deleteDayBlock,
   listDayBlocksBetween,
+  updateDayBlock,
 } from '../../services/firebase/dayBlocks.service';
 import { getFocusRhythms } from '../../services/firebase/focusRhythms.service';
 import {
@@ -48,7 +57,27 @@ import {
   EMPTY_LINE,
   SUFFICIENCY_LINE,
   placedForTomorrow,
+  REMOVE_CONFIRM_ACCEPT,
+  REMOVE_CONFIRM_BODY,
+  REMOVE_CONFIRM_CANCEL,
+  REMOVE_CONFIRM_TITLE,
+  REMOVE_FAILED,
+  TAB_TODAY,
+  TAB_TOMORROW,
+  TOMORROW_EMPTY,
+  TOMORROW_INTRO,
+  TOMORROW_TITLE,
 } from './blocksCopy';
+
+/** Today and tomorrow only. Arbitrary dates are out of scope by fence. */
+export type DayTab = 'today' | 'tomorrow';
+
+/** The calendar day a tab refers to, relative to the given clock. */
+function anchorFor(tab: DayTab, now: Date): Date {
+  const d = new Date(now);
+  if (tab === 'tomorrow') d.setDate(d.getDate() + 1);
+  return d;
+}
 
 const MIN_TOUCH_TARGET = 48;
 
@@ -110,13 +139,16 @@ function dayBounds(day: Date): { start: Date; end: Date } {
 function findOverlap(
   existing: DayBlock[],
   start: Date,
-  durationMinutes: number
+  durationMinutes: number,
+  excludeId?: string
 ): DayBlock | null {
   const startMs = start.getTime();
   const endMs = startMs + durationMinutes * 60_000;
 
   return (
     existing.find((block) => {
+      // The block being edited is not its own conflict.
+      if (excludeId && block.id === excludeId) return false;
       const otherStart = block.startAt.toDate().getTime();
       const otherEnd = otherStart + block.durationMinutes * 60_000;
       return startMs < otherEnd && otherStart < endMs;
@@ -139,6 +171,10 @@ export function DayBlocksScreen() {
   const [tomorrowNotice, setTomorrowNotice] = useState<string | null>(null);
   // Title of the block a refused save collided with. Null when there is none.
   const [overlapWith, setOverlapWith] = useState<string | null>(null);
+  /** Which day the view is showing. Today and tomorrow only, by scope fence. */
+  const [tab, setTab] = useState<DayTab>('today');
+  /** The block being edited, or null when the sheet is in create mode. */
+  const [editing, setEditing] = useState<DayBlock | null>(null);
 
   /**
    * Bumped every time the sheet opens, and used as its `key` so it REMOUNTS.
@@ -172,13 +208,14 @@ export function DayBlocksScreen() {
     }
     const current = new Date();
     setNow(current);
-    const { start, end } = dayBounds(current);
+    // The clock stays today's; only the WINDOW moves with the tab.
+    const { start, end } = dayBounds(anchorFor(tab, current));
     try {
-      const [todaysBlocks, storedWindows] = await Promise.all([
+      const [dayBlocks, storedWindows] = await Promise.all([
         listDayBlocksBetween(uid, start, end),
         getFocusRhythms(uid),
       ]);
-      setBlocks(todaysBlocks);
+      setBlocks(dayBlocks);
       setWindows(storedWindows);
     } catch (error) {
       // Best effort: an empty day is a legitimate state, so a read failure
@@ -187,7 +224,7 @@ export function DayBlocksScreen() {
     } finally {
       setLoading(false);
     }
-  }, [uid]);
+  }, [uid, tab]);
 
   useFocusEffect(
     useCallback(() => {
@@ -201,6 +238,7 @@ export function DayBlocksScreen() {
     }, [load])
   );
 
+  const isTomorrow = tab === 'tomorrow';
   const suggestion = useMemo(() => suggestPlacement(windows, now), [windows, now]);
 
   const atCap = blocks.length >= MAX_BLOCKS_PER_DAY;
@@ -222,6 +260,7 @@ export function DayBlocksScreen() {
       // TEMPORARY: TB-1c adds the Tomorrow view, at which point this notice
       // stops being the only evidence the block exists and can go.
       const landsTomorrow = !isSameDay(draft.startAt, new Date());
+      const original = editing;
       try {
         // OVERLAP CHECK, against the day actually being written to. For today
         // that is the list already on screen; for a rollover suggestion it is
@@ -232,14 +271,22 @@ export function DayBlocksScreen() {
         // NOT a data invariant: the service has no such rule and the rules
         // layer cannot express one. Two devices racing can still interleave.
         // This is a UI guard against the mistake a person actually makes.
-        const targetDay = landsTomorrow
-          ? await (async () => {
+        const sameDayAsView = isSameDay(draft.startAt, anchorFor(tab, new Date()));
+        const targetDay = sameDayAsView
+          ? blocks
+          : await (async () => {
               const { start, end } = dayBounds(draft.startAt);
               return listDayBlocksBetween(uid, start, end);
-            })()
-          : blocks;
+            })();
 
-        const conflict = findOverlap(targetDay, draft.startAt, draft.durationMinutes);
+        const conflict = findOverlap(
+          targetDay,
+          draft.startAt,
+          draft.durationMinutes,
+          // A block being edited cannot collide with ITSELF: stretching a
+          // 60-minute block to 90 overlaps its own old span every time.
+          original?.id
+        );
         if (conflict) {
           setOverlapWith(conflict.title);
           setSaving(false);
@@ -247,11 +294,33 @@ export function DayBlocksScreen() {
         }
         setOverlapWith(null);
 
-        await createDayBlock(uid, draft);
+        if (original) {
+          // SUGGESTEDFROM ON EDIT is data honesty, not copy. The field records
+          // that THIS time came from an accepted rhythm suggestion. Move the
+          // time and that stops being true, so the provenance is cleared rather
+          // than left pointing at a zone the block no longer sits in. Leave the
+          // time alone and it is still true, so it is preserved by omission.
+          const startMoved =
+            original.startAt.toDate().getTime() !== draft.startAt.getTime();
+          await updateDayBlock(original.id, {
+            title: draft.title,
+            demand: draft.demand,
+            durationMinutes: draft.durationMinutes,
+            startAt: draft.startAt,
+            isProtected: draft.isProtected,
+            ...(startMoved ? { suggestedFrom: null } : {}),
+          });
+        } else {
+          await createDayBlock(uid, draft);
+        }
         setSheetOpen(false);
         await load();
         setTomorrowNotice(
-          landsTomorrow ? placedForTomorrow(zoneLabel(draft.suggestedFrom)) : null
+          // Only meaningful from the Today tab: on the Tomorrow tab the block
+          // is right there in the list the user is already looking at.
+          landsTomorrow && tab === 'today'
+            ? placedForTomorrow(zoneLabel(draft.suggestedFrom))
+            : null
         );
       } catch (error) {
         logger.error('[DayBlocks] create failed:', error);
@@ -261,26 +330,81 @@ export function DayBlocksScreen() {
         setSaving(false);
       }
     },
-    [uid, load, blocks]
+    [uid, load, blocks, tab, editing]
   );
 
+  /**
+   * Remove, behind the codebase's existing destructive confirm.
+   *
+   * Mirrors HabitDetailScreen's Alert, including its deliberate omission of
+   * `style: 'destructive'`: removing a block you placed yourself is an
+   * intentional act, not an error, which is the same reasoning that made the
+   * button Muted Sage Gray rather than coral.
+   */
   const handleRemove = useCallback(
-    async (blockId: string) => {
-      try {
-        await deleteDayBlock(blockId);
-        await load();
-      } catch (error) {
-        logger.error('[DayBlocks] remove failed:', error);
-      }
+    (block: DayBlock) => {
+      Alert.alert(REMOVE_CONFIRM_TITLE, REMOVE_CONFIRM_BODY, [
+        { text: REMOVE_CONFIRM_CANCEL, style: 'cancel' },
+        {
+          text: REMOVE_CONFIRM_ACCEPT,
+          onPress: async () => {
+            try {
+              await deleteDayBlock(block.id);
+              setSheetOpen(false);
+              setEditing(null);
+              await load();
+            } catch (error) {
+              logger.error('[DayBlocks] remove failed:', error);
+              Alert.alert(REMOVE_CONFIRM_TITLE, REMOVE_FAILED);
+            }
+          },
+        },
+      ]);
     },
     [load]
   );
 
+  /** Opens the sheet on an existing block. */
+  const handleEdit = useCallback((block: DayBlock) => {
+    setSaveFailed(false);
+    setOverlapWith(null);
+    setTomorrowNotice(null);
+    setEditing(block);
+    setSheetSession((n) => n + 1);
+    setSheetOpen(true);
+  }, []);
+
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content} testID="day-blocks">
-        <Text style={styles.title}>{DAY_TITLE}</Text>
-        <Text style={styles.intro}>{DAY_INTRO}</Text>
+        <Text style={styles.title}>{isTomorrow ? TOMORROW_TITLE : DAY_TITLE}</Text>
+        <Text style={styles.intro}>{isTomorrow ? TOMORROW_INTRO : DAY_INTRO}</Text>
+
+        {/* TWO TEXT TABS, not a chip row. At two options on a page that already
+            carries chips inside its sheet, bordered chips read as a form
+            control the user must answer; an underlined text pair reads as
+            "where am I", which is what this is. Calmer at this size, and it
+            keeps SelectChip meaning "pick a value" everywhere it appears. */}
+        <View style={styles.tabs} accessibilityRole="tablist">
+          {(['today', 'tomorrow'] as DayTab[]).map((key) => {
+            const selected = tab === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                style={[styles.tab, selected && styles.tabSelected]}
+                onPress={() => setTab(key)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                accessibilityLabel={key === 'today' ? TAB_TODAY : TAB_TOMORROW}
+                testID={`day-blocks-tab-${key}`}
+              >
+                <Text style={[styles.tabLabel, selected && styles.tabLabelSelected]}>
+                  {key === 'today' ? TAB_TODAY : TAB_TOMORROW}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
         {loading ? (
           <ActivityIndicator
@@ -297,11 +421,19 @@ export function DayBlocksScreen() {
                 OPEN FOR JEN: the mockup asks whether it should appear from the
                 SECOND block on rather than the first. Kept at one for now, so
                 the first block still gets placed in the shape of the day. */}
-            {blocks.length > 0 && <DayShapeStrip blocks={blocks} windows={windows} />}
+            {/* TODAY ONLY. The strip's whole job is to show today's placements
+                against the rhythm windows the user is living through right now.
+                Drawn for tomorrow it would shade windows nobody is in yet and
+                invite reading a forecast into it, which is speculation the
+                strip cannot support. Parked for the separate strip design pass
+                rather than decided here. */}
+            {!isTomorrow && blocks.length > 0 && (
+              <DayShapeStrip blocks={blocks} windows={windows} />
+            )}
 
             {blocks.length === 0 ? (
               <Text style={styles.empty} testID="day-blocks-empty">
-                {EMPTY_LINE}
+                {isTomorrow ? TOMORROW_EMPTY : EMPTY_LINE}
               </Text>
             ) : (
               blocks.map((block) => (
@@ -309,7 +441,7 @@ export function DayBlocksScreen() {
                   key={block.id}
                   block={block}
                   now={now}
-                  onRemove={handleRemove}
+                  onEdit={handleEdit}
                 />
               ))
             )}
@@ -331,6 +463,7 @@ export function DayBlocksScreen() {
                   setSaveFailed(false);
                   setTomorrowNotice(null);
                   setOverlapWith(null);
+                  setEditing(null);
                   setSheetSession((n) => n + 1);
                   setSheetOpen(true);
                 }}
@@ -351,11 +484,20 @@ export function DayBlocksScreen() {
         visible={sheetOpen}
         suggestion={suggestion}
         now={now}
+        dayAnchor={editing ? editing.startAt.toDate() : anchorFor(tab, now)}
+        // Editing adjusts a concrete time; the Tomorrow tab places into a
+        // specific day. Neither is a moment for a "what comes next" suggestion.
+        manualOnly={!!editing || isTomorrow}
+        initialBlock={editing}
+        onRemove={editing ? () => handleRemove(editing) : undefined}
         saving={saving}
         saveFailed={saveFailed}
         overlapWith={overlapWith}
         onConfirm={handleConfirm}
-        onDismiss={() => setSheetOpen(false)}
+        onDismiss={() => {
+          setSheetOpen(false);
+          setEditing(null);
+        }}
         onOpenRhythms={() => {
           setSheetOpen(false);
           navigation.navigate(ROUTES.FocusRhythms);
@@ -384,6 +526,28 @@ const styles = StyleSheet.create({
     ...TextStyles.body,
     color: Colors.mutedSageGray,
     marginBottom: Spacing.lg,
+  },
+  tabs: {
+    flexDirection: 'row',
+    gap: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  tab: {
+    minHeight: MIN_TOUCH_TARGET,
+    justifyContent: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabSelected: {
+    borderBottomColor: Colors.evergreenTeal,
+  },
+  tabLabel: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.mutedSageGray,
+  },
+  tabLabelSelected: {
+    color: Colors.evergreenTeal,
+    fontWeight: Typography.fontWeight.semibold,
   },
   loading: {
     marginTop: Spacing.xl,

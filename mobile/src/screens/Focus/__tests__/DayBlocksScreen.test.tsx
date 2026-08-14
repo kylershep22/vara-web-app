@@ -5,31 +5,8 @@
 // of a user who answered "It varies" (telling them to go answer) is the failure
 // worth guarding.
 
-// Gesture handler and reanimated are mocked LOCALLY rather than in
-// jest.setup.js. Nothing in the suite had ever imported a gesture-handler
-// component before this slice (SwipeableGoalCard, the pattern BlockCard follows,
-// has no tests), so adding a global mock would put 182 passing suites at risk to
-// serve one. The cost is that the real pan recogniser is never exercised here —
-// the swipe belongs on the device walk, and the Remove action is asserted
-// through its button, which is also the accessible path.
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
-
-jest.mock('react-native-gesture-handler', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  // Chainable no-op builder: Gesture.Pan().activeOffsetX().onUpdate().onEnd()
-  const makeGesture = () => {
-    const g: Record<string, () => unknown> = {};
-    for (const method of ['activeOffsetX', 'onUpdate', 'onEnd', 'onStart', 'enabled']) {
-      g[method] = () => g;
-    }
-    return g;
-  };
-  return {
-    GestureDetector: ({ children }: any) => React.createElement(View, null, children),
-    Gesture: { Pan: makeGesture },
-  };
-});
+// No gesture-handler or reanimated mock any more: TB-1c deleted the swipe from
+// BlockCard, and nothing else in the blocks feature touches either library.
 
 // Same stub the existing TimePickerSheet suite uses.
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
@@ -59,10 +36,12 @@ jest.mock('../../../context/AuthContext', () => ({ useAuth: () => mockUseAuth() 
 const mockListBlocks = jest.fn();
 const mockCreateBlock = jest.fn();
 const mockDeleteBlock = jest.fn();
+const mockUpdateBlock = jest.fn();
 jest.mock('../../../services/firebase/dayBlocks.service', () => ({
   listDayBlocksBetween: (...a: any[]) => mockListBlocks(...a),
   createDayBlock: (...a: any[]) => mockCreateBlock(...a),
   deleteDayBlock: (...a: any[]) => mockDeleteBlock(...a),
+  updateDayBlock: (...a: any[]) => mockUpdateBlock(...a),
 }));
 
 const mockGetRhythms = jest.fn();
@@ -71,7 +50,7 @@ jest.mock('../../../services/firebase/focusRhythms.service', () => ({
 }));
 
 import React from 'react';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { DayBlocksScreen, MAX_BLOCKS_PER_DAY } from '../DayBlocksScreen';
@@ -91,6 +70,12 @@ import {
   placedForTomorrow,
   overlapMessage,
   USE_THIS_TIME,
+  EDIT_TITLE,
+  SAVE_CHANGES,
+  REMOVE_BLOCK,
+  TAB_TOMORROW,
+  TOMORROW_TITLE,
+  TOMORROW_EMPTY,
 } from '../blocksCopy';
 
 /** Drive the underlying picker as an iOS spinner scroll would. */
@@ -128,6 +113,7 @@ beforeEach(() => {
   mockGetRhythms.mockResolvedValue([]);
   mockCreateBlock.mockResolvedValue('new-id');
   mockDeleteBlock.mockResolvedValue(undefined);
+  mockUpdateBlock.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -187,15 +173,25 @@ describe('the day view', () => {
     expect(queryByTestId('block-protected-b2')).toBeNull();
   });
 
-  it('removes a block through the service and re-reads the day', async () => {
+  it('opens the edit sheet when a card is tapped', async () => {
+    // The card is the edit affordance now. TB-1b's swipe-to-remove pane is
+    // gone entirely; the sheet owns removal.
     mockListBlocks.mockResolvedValue([makeBlock({ id: 'b1', start: TODAY_9AM })]);
 
-    const { findByTestId } = render(<DayBlocksScreen />);
-    fireEvent.press(await findByTestId('block-remove-b1'));
+    const { findByTestId, getByText } = render(<DayBlocksScreen />);
+    fireEvent.press(await findByTestId('block-card-b1'));
 
-    await waitFor(() => expect(mockDeleteBlock).toHaveBeenCalledWith('b1'));
-    // Re-read: the initial load plus one after the removal.
-    await waitFor(() => expect(mockListBlocks).toHaveBeenCalledTimes(2));
+    await findByTestId('add-block-sheet');
+    expect(getByText(EDIT_TITLE)).toBeTruthy();
+  });
+
+  it('has no swipe remove affordance left anywhere', async () => {
+    mockListBlocks.mockResolvedValue([makeBlock({ id: 'b1', start: TODAY_9AM })]);
+
+    const { findByTestId, queryByTestId } = render(<DayBlocksScreen />);
+    await findByTestId('block-card-b1');
+
+    expect(queryByTestId('block-remove-b1')).toBeNull();
   });
 });
 
@@ -945,5 +941,276 @@ describe('creating a block', () => {
 
     // Everything above is local state. The screen owns the write.
     expect(mockCreateBlock).not.toHaveBeenCalled();
+  });
+});
+
+describe('editing a block (TB-1c)', () => {
+  const EXISTING = () =>
+    makeBlock({
+      id: 'b1',
+      start: new Date(new Date().setHours(9, 0, 0, 0)),
+      durationMinutes: 60,
+      title: 'Q3 board deck',
+      demand: 'heavy',
+      isProtected: true,
+      suggestedFrom: 'mid_morning',
+    });
+
+  async function openEditor(blocks = [EXISTING()]) {
+    mockListBlocks.mockResolvedValue(blocks);
+    const utils = render(<DayBlocksScreen />);
+    fireEvent.press(await utils.findByTestId('block-card-b1'));
+    await utils.findByTestId('add-block-sheet');
+    return utils;
+  }
+
+  it('pre-fills every field from the block', async () => {
+    const { getByTestId, getByText } = await openEditor();
+
+    expect(getByTestId('add-block-title').props.value).toBe('Q3 board deck');
+    expect(getByTestId('add-block-demand-heavy').props.accessibilityState.selected).toBe(true);
+    expect(getByTestId('add-block-duration-60').props.accessibilityState.selected).toBe(true);
+    expect(getByTestId('add-block-protect').props.value).toBe(true);
+    // The block's own time is already committed, so Save is live immediately.
+    expect(getByText(startsAtRow('9:00 AM'))).toBeTruthy();
+    expect(getByText(SAVE_CHANGES)).toBeTruthy();
+  });
+
+  it('offers no rhythm suggestion while editing', async () => {
+    // Adjusting a concrete time is not re-running placement.
+    mockGetRhythms.mockResolvedValue(['afternoon']);
+    const { queryByTestId } = await openEditor();
+
+    expect(queryByTestId('add-block-suggestion')).toBeNull();
+    expect(queryByTestId('add-block-choose-time')).toBeNull();
+  });
+
+  it('patches through updateDayBlock, never createDayBlock', async () => {
+    const { getByTestId } = await openEditor();
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Renamed deck');
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalled());
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+    const [blockId, patch] = mockUpdateBlock.mock.calls[0];
+    expect(blockId).toBe('b1');
+    expect(patch.title).toBe('Renamed deck');
+  });
+
+  it('PRESERVES suggestedFrom when the time is untouched', async () => {
+    const { getByTestId } = await openEditor();
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Renamed deck');
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalled());
+    const [, patch] = mockUpdateBlock.mock.calls[0];
+    // Absent from the patch means untouched in Firestore.
+    expect('suggestedFrom' in patch).toBe(false);
+  });
+
+  it('CLEARS suggestedFrom when the time moves', async () => {
+    // The block no longer sits where the suggestion put it, so the provenance
+    // has stopped being true. Data honesty, not copy.
+    const { getByTestId } = await openEditor();
+
+    fireEvent.press(getByTestId('add-block-time-row'));
+    scrollPickerTo(14, 30);
+    fireEvent.press(getByTestId('time-picker-commit'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalled());
+    const [, patch] = mockUpdateBlock.mock.calls[0];
+    expect(patch.suggestedFrom).toBeNull();
+  });
+
+  it('does not treat the edited block as its own overlap', async () => {
+    // Stretching 60 minutes to 90 overlaps its own old span every time.
+    const { getByTestId } = await openEditor();
+
+    fireEvent.press(getByTestId('add-block-duration-90'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalled());
+    const [, patch] = mockUpdateBlock.mock.calls[0];
+    expect(patch.durationMinutes).toBe(90);
+  });
+
+  it('refuses an edit that collides with a DIFFERENT block, naming it', async () => {
+    const neighbour = makeBlock({
+      id: 'b2',
+      start: new Date(new Date().setHours(11, 0, 0, 0)),
+      durationMinutes: 60,
+      title: 'Standup',
+    });
+    const { getByTestId, findByTestId, getByText } = await openEditor([EXISTING(), neighbour]);
+
+    fireEvent.press(getByTestId('add-block-time-row'));
+    scrollPickerTo(11, 30);
+    fireEvent.press(getByTestId('time-picker-commit'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await findByTestId('add-block-overlap');
+    expect(getByText(overlapMessage('Standup'))).toBeTruthy();
+    expect(mockUpdateBlock).not.toHaveBeenCalled();
+  });
+
+  it('keeps exact adjacency legal on edit', async () => {
+    const neighbour = makeBlock({
+      id: 'b2',
+      start: new Date(new Date().setHours(11, 0, 0, 0)),
+      durationMinutes: 60,
+      title: 'Standup',
+    });
+    const { getByTestId } = await openEditor([EXISTING(), neighbour]);
+
+    // 10:00 for 60 minutes ends exactly where Standup begins.
+    fireEvent.press(getByTestId('add-block-time-row'));
+    scrollPickerTo(10, 0);
+    fireEvent.press(getByTestId('time-picker-commit'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalledTimes(1));
+  });
+
+  it('offers Remove in the sheet, behind a confirm', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const { getByTestId, getByText } = await openEditor();
+
+    expect(getByText(REMOVE_BLOCK)).toBeTruthy();
+    fireEvent.press(getByTestId('add-block-remove'));
+
+    // Confirmed first, not deleted on the spot.
+    expect(alertSpy).toHaveBeenCalled();
+    expect(mockDeleteBlock).not.toHaveBeenCalled();
+  });
+
+  it('deletes once the confirm is accepted', async () => {
+    jest.spyOn(Alert, 'alert').mockImplementation((_t: any, _m: any, buttons: any) => {
+      const accept = buttons.find((b: any) => b.style !== 'cancel');
+      accept.onPress();
+    });
+    const { getByTestId } = await openEditor();
+
+    fireEvent.press(getByTestId('add-block-remove'));
+
+    await waitFor(() => expect(mockDeleteBlock).toHaveBeenCalledWith('b1'));
+  });
+
+  it('shows no Remove when creating', async () => {
+    mockListBlocks.mockResolvedValue([]);
+    const utils = render(<DayBlocksScreen />);
+    fireEvent.press(await utils.findByTestId('day-blocks-add'));
+    await utils.findByTestId('add-block-sheet');
+
+    expect(utils.queryByTestId('add-block-remove')).toBeNull();
+  });
+});
+
+describe('the Tomorrow tab (TB-1c)', () => {
+  async function switchToTomorrow() {
+    const utils = render(<DayBlocksScreen />);
+    await utils.findByTestId('day-blocks-tab-tomorrow');
+    fireEvent.press(utils.getByTestId('day-blocks-tab-tomorrow'));
+    return utils;
+  }
+
+  it('queries tomorrow local midnight to midnight', async () => {
+    await switchToTomorrow();
+
+    await waitFor(() => expect(mockListBlocks.mock.calls.length).toBeGreaterThan(1));
+    const calls = mockListBlocks.mock.calls;
+    const [, start, end] = calls[calls.length - 1];
+    const expected = new Date();
+    expected.setDate(expected.getDate() + 1);
+
+    expect(start.getDate()).toBe(expected.getDate());
+    expect(start.getHours()).toBe(0);
+    expect(end.getTime() - start.getTime()).toBe(24 * 60 * 60 * 1000);
+  });
+
+  it('switches the heading and the empty line', async () => {
+    const { getByText } = await switchToTomorrow();
+
+    await waitFor(() => expect(getByText(TOMORROW_TITLE)).toBeTruthy());
+    expect(getByText(TOMORROW_EMPTY)).toBeTruthy();
+  });
+
+  it('draws NO strip on Tomorrow, even with blocks', async () => {
+    // The strip reads rhythm-vs-placed for the day being lived through.
+    mockListBlocks.mockResolvedValue([makeBlock({ id: 'b1', start: TODAY_9AM })]);
+    const { queryByTestId, findByTestId } = await switchToTomorrow();
+
+    await findByTestId('block-card-b1');
+    expect(queryByTestId('day-shape-strip')).toBeNull();
+  });
+
+  it('creates on TOMORROWs date from the Tomorrow tab', async () => {
+    mockGetRhythms.mockResolvedValue(['afternoon']);
+    const utils = await switchToTomorrow();
+    await waitFor(() => expect(utils.getByTestId('day-blocks-add')).toBeTruthy());
+
+    fireEvent.press(utils.getByTestId('day-blocks-add'));
+    await utils.findByTestId('add-block-sheet');
+    // Manual only on this tab: no suggestion to accidentally place on today.
+    expect(utils.queryByTestId('add-block-suggestion')).toBeNull();
+
+    fireEvent.changeText(utils.getByTestId('add-block-title'), 'Strategy memo');
+    fireEvent.press(utils.getByTestId('add-block-demand-heavy'));
+    fireEvent.press(utils.getByTestId('add-block-time-row'));
+    scrollPickerTo(10, 0);
+    fireEvent.press(utils.getByTestId('time-picker-commit'));
+    fireEvent.press(utils.getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
+    const [, draft] = mockCreateBlock.mock.calls[0];
+    const expected = new Date();
+    expected.setDate(expected.getDate() + 1);
+    expect(draft.startAt.getDate()).toBe(expected.getDate());
+    expect(draft.startAt.getHours()).toBe(10);
+  });
+
+  it('checks the Tomorrow tabs own list for overlaps', async () => {
+    const tomorrow10 = new Date();
+    tomorrow10.setDate(tomorrow10.getDate() + 1);
+    tomorrow10.setHours(10, 0, 0, 0);
+    mockListBlocks.mockResolvedValue([
+      makeBlock({ id: 'tmr', start: tomorrow10, durationMinutes: 60, title: 'Deep work' }),
+    ]);
+
+    const utils = await switchToTomorrow();
+    await waitFor(() => expect(utils.getByTestId('day-blocks-add')).toBeTruthy());
+    fireEvent.press(utils.getByTestId('day-blocks-add'));
+    await utils.findByTestId('add-block-sheet');
+
+    fireEvent.changeText(utils.getByTestId('add-block-title'), 'Strategy memo');
+    fireEvent.press(utils.getByTestId('add-block-demand-heavy'));
+    fireEvent.press(utils.getByTestId('add-block-time-row'));
+    scrollPickerTo(10, 30);
+    fireEvent.press(utils.getByTestId('time-picker-commit'));
+    fireEvent.press(utils.getByTestId('add-block-confirm'));
+
+    await utils.findByTestId('add-block-overlap');
+    expect(utils.getByText(overlapMessage('Deep work'))).toBeTruthy();
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+  });
+
+  it('shows no tomorrow notice for a save made FROM the Tomorrow tab', async () => {
+    // The block is right there in the list being looked at.
+    const utils = await switchToTomorrow();
+    await waitFor(() => expect(utils.getByTestId('day-blocks-add')).toBeTruthy());
+    fireEvent.press(utils.getByTestId('day-blocks-add'));
+    await utils.findByTestId('add-block-sheet');
+
+    fireEvent.changeText(utils.getByTestId('add-block-title'), 'Strategy memo');
+    fireEvent.press(utils.getByTestId('add-block-demand-light'));
+    fireEvent.press(utils.getByTestId('add-block-time-row'));
+    scrollPickerTo(10, 0);
+    fireEvent.press(utils.getByTestId('time-picker-commit'));
+    fireEvent.press(utils.getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
+    expect(utils.queryByTestId('day-blocks-tomorrow-notice')).toBeNull();
   });
 });
