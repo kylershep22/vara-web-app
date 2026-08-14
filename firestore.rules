@@ -898,6 +898,49 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // ========== TASK BATCHING ==========
+
+    // Captured tasks — a name plus a demand tag, nothing else (TB-2a).
+    //
+    // NOT the `tasks` collection above. That one is the WEB app's, carries
+    // `priority` (importance), and is frozen; this one is the mobile capture
+    // entity and carries `demand` (cognitive load). Two collections, two rules
+    // blocks, no shared path — and they must stay that way. Anyone tempted to
+    // merge these blocks should read the CapturedTask note in
+    // mobile/src/types/models.ts first.
+    //
+    // Identical owner-on-userId-FIELD form to dayBlocks above, including the
+    // SAME get/list split, for the same reason spelled out there: `resource` is
+    // null on a get of a document that does not exist and `resource.data.userId`
+    // against null ERRORS rather than returning false. Do not collapse these
+    // into a combined `allow read`.
+    //
+    // The absent-document path is REACHED IN NORMAL USE here, more so than for
+    // blocks: clearing a task deletes it outright with no history, so any
+    // get-after-clear — a stale row tapped twice, two devices clearing the same
+    // capture — lands on a document that no longer exists.
+    //
+    // The list rule is what makes the capture-list query legal. That query is a
+    // BARE equality on userId with no orderBy and no composite index, by
+    // decision (see listCapturedTasks); grouping by demand happens client-side.
+    // Nothing about that choice touches authorization — the ownership filter is
+    // the only load-bearing part either way.
+    //
+    // NO UPDATE PATH EXISTS IN THE SERVICE at MVP (retagging is clear and
+    // recapture), but update is allowed here rather than denied, on the same
+    // reasoning as dayBlocks: the rule describes who may touch the row, and
+    // refusing a verb at the rules layer to enforce a product decision would
+    // misplace it. Contrast analyticsEvents below, where append-only IS the
+    // security property.
+    match /capturedTasks/{taskId} {
+      // Allow read if document doesn't exist (for checking before create) OR if user owns it
+      allow get: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      // List enforces ownership through the userId FIELD, never through resource.
+      allow list: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
     // ========== BEHAVIORAL TELEMETRY ==========
 
     // Analytics events — owner-scoped, CREATE-ONLY exhaust.

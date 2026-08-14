@@ -724,6 +724,53 @@ export interface DayBlock {
 }
 
 // ==========================================
+// CAPTURED TASK MODELS (Task-Batching, TB-2a)
+// ==========================================
+
+/**
+ * One captured task: a name and how much it takes out of you. Nothing else.
+ *
+ * NEVER CONFLATE THIS WITH `Task` ABOVE (line ~649). They are two different
+ * entities that happen to share an English word, and the axis is the tell:
+ *
+ *   Task         legacy, WEB app, frozen. `priority: low|medium|high`, which
+ *                is IMPORTANCE. Still written by the web app's Tasks page; the
+ *                whole layer around it (tasks.service.ts, useTasks, the rules
+ *                block, two composite indexes) is fenced off pending a product
+ *                call about the web app's future. Mobile reads none of it.
+ *   CapturedTask mobile capture, this arc. `demand: light|medium|heavy`, which
+ *                is COGNITIVE LOAD — the same axis a DayBlock carries, reusing
+ *                the same `Demand` type above so a task and the block it
+ *                becomes stay sortable against each other.
+ *
+ * Same cardinality, different question. Do not alias, migrate, or "unify" them.
+ *
+ * WHAT IS DELIBERATELY ABSENT, each an answer rather than an omission:
+ *
+ *   completed  A cleared task is DELETED, not flagged done. There is no history
+ *              and no cleared list — tasks are a holding pen, not a record, so
+ *              there is no state for a completion flag to represent. (Compare
+ *              DayBlock, which omits `completed` for a different reason: a block
+ *              is an appointment with no done state at all.)
+ *   dueDate    Scheduling is what a DayBlock is for. A due date here would make
+ *              two competing answers to "when does this happen".
+ *   priority   The importance axis belongs to the legacy entity. Demand is the
+ *              only axis this model has, by design.
+ *   description, projects, subtasks, reminders, tags
+ *              The fence that keeps capture from becoming a to-do app. Adding
+ *              any of them is a product decision, not a schema tweak.
+ */
+export interface CapturedTask {
+  id: string;
+  userId: string;
+  title: string;
+  /** Cognitive load. Shared with DayBlock — see the `Demand` note above. */
+  demand: Demand;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ==========================================
 // JOURNAL MODELS
 // ==========================================
 

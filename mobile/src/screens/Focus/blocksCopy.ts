@@ -79,18 +79,10 @@ export const PROTECTED_CHIP = 'Protected';
  */
 export const EARLIER_TODAY = 'Earlier today';
 
-// COPY: draft, not from guidelines doc - pending Jen
-/**
- * [new] The single destructive action on a card, revealed by swipe.
- *
- * "Remove", never "Delete forever", per the UI standards' language rule. The
- * swipe interaction itself is open for Jen; see the comment at its call site.
- */
-export const REMOVE_ACTION = 'Remove';
-
-// COPY: draft, not from guidelines doc - pending Jen
-/** [new] Announced to screen readers for the swipe action. */
-export const REMOVE_A11Y_HINT = 'Removes this block from today';
+// REMOVE_ACTION and REMOVE_A11Y_HINT lived here for the swipe-to-remove pane.
+// TB-1c deleted that pane and moved removal into the edit sheet, which uses
+// REMOVE_BLOCK below; the two strings survived with zero importers and two live
+// sentinels, inflating the drafted-copy gate by 2. Deleted in TB-2a.
 
 // ---- add-a-block sheet (mockup B, demand row from mockup D) ----
 
