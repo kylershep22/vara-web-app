@@ -77,6 +77,11 @@ export const ROUTES = {
   // FocusHubScreen) and from nowhere else. A quiet capture of when focus comes
   // easiest; no scores. Registered in the flag-ON AppStack path only.
   FocusRhythms: 'FocusRhythms',
+  // Today's blocks (TB-1b), reached from the Focus hub's "Time blocking" card
+  // and from nowhere else. NOT flag-gated, on the PillarStressRecovery
+  // precedent: its only parent is a screen that exists solely in the four-tab
+  // IA, so there is no flag-OFF path that could reach it.
+  FocusDayBlocks: 'FocusDayBlocks',
 
   // --- Root / AppStack (MainNavigator) ---
   Main: 'Main',

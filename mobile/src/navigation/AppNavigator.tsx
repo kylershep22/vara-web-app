@@ -50,7 +50,12 @@ import PlanScreen from '../screens/PlanScreen';
 // screen; step 4a gives it the caller it was waiting for (the Practices hub's
 // "Focus & Time" card) and registers it below. The screen file itself never
 // changed.
-import { FocusScreen, FocusHubScreen, FocusRhythmsScreen } from '../screens/Focus';
+import {
+  FocusScreen,
+  FocusHubScreen,
+  FocusRhythmsScreen,
+  DayBlocksScreen,
+} from '../screens/Focus';
 import JournalScreen from '../screens/JournalScreen';
 import InsightsScreen from '../screens/InsightsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -923,6 +928,28 @@ const MainNavigator = () => {
           options={stackOpts({
             ...standardHeaderOptions,
             headerBackTitle: 'Practices',
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: '',
+            headerShadowVisible: false,
+          })}
+        />
+        {/* TB-1b — Today's blocks, reached from the Focus hub's "Time blocking"
+            card, which stopped being a coming-soon placeholder in this slice.
+
+            NOT flag-gated, on exactly the PillarStressRecovery terms below:
+            its only entry point is the Focus hub, which is reachable only
+            through the Practices hub, which exists only in the four-tab IA. No
+            flag-OFF path can reach it, so a gate would be dead code.
+
+            headerBackTitle names the single parent, the same condition under
+            which FocusRhythms names its own. */}
+        <AppStack.Screen
+          name={ROUTES.FocusDayBlocks}
+          component={DayBlocksScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            headerBackTitle: 'Focus',
             animation: 'slide_from_right',
             headerShown: true,
             title: '',

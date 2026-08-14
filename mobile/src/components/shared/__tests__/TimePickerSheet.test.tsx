@@ -129,6 +129,31 @@ describe('visibility', () => {
   });
 });
 
+describe('the header title', () => {
+  test('defaults to the reminder wording it was extracted for', () => {
+    // The per-habit reminder path passes no title and must keep this exactly.
+    renderSheet();
+    expect(screen.getByText('Reminder time')).toBeTruthy();
+  });
+
+  test('an override replaces it entirely', () => {
+    // Blocks pass "Start time": that surface has no reminders of any kind, so
+    // the default would misdescribe what the app is about to do.
+    render(
+      <TimePickerSheet
+        visible
+        value={{ hour: 8, minute: 0 }}
+        title="Start time"
+        onChange={onChange}
+        onClose={onClose}
+      />
+    );
+
+    expect(screen.getByText('Start time')).toBeTruthy();
+    expect(screen.queryByText('Reminder time')).toBeNull();
+  });
+});
+
 describe('formatReminderTime', () => {
   test.each([
     [{ hour: 0, minute: 0 }, '12:00 AM'],

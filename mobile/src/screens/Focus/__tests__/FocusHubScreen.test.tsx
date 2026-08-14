@@ -89,32 +89,52 @@ describe('FocusHubScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith('FocusRhythms');
   });
 
-  it('shows the planned tools as coming-soon cards, in order after rhythms', () => {
+  it('shows both focus tools, in order after rhythms', () => {
     const { getByText, getByTestId } = render(<FocusHubScreen />);
     expect(getByText('Time blocking')).toBeTruthy();
+    // The body survived the coming-soon swap verbatim: TB-1b changed the
+    // affordance, not the promise.
     expect(getByText('Shape the day into a few protected blocks.')).toBeTruthy();
     expect(getByText('Task batching')).toBeTruthy();
     expect(getByText('Group similar work so you switch less.')).toBeTruthy();
-    // Both are present and distinct; the rhythms row still sits above them.
+    // Both present and distinct; the rhythms row still sits above them.
     expect(getByTestId('focus-hub-card-rhythms')).toBeTruthy();
     expect(getByTestId('focus-hub-card-time-blocking')).toBeTruthy();
     expect(getByTestId('focus-hub-card-task-batching')).toBeTruthy();
   });
 
-  it('coming-soon cards navigate nowhere when pressed', () => {
+  it('routes Time blocking to the day view, and nowhere else', () => {
+    // THE card-swap tripwire. Mirrors the Stress Recovery pattern: a live card
+    // must land on its OWN screen, so a copy-paste of the rhythms row (the
+    // nearest neighbour, and the row this card was styled from) fails here
+    // rather than shipping.
     const { getByTestId } = render(<FocusHubScreen />);
+
     fireEvent.press(getByTestId('focus-hub-card-time-blocking'));
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('FocusDayBlocks');
+    expect(mockNavigate).not.toHaveBeenCalledWith('FocusRhythms');
+    expect(mockNavigate).not.toHaveBeenCalledWith('FocusTimer', expect.anything());
+  });
+
+  it('leaves Task batching navigating nowhere when pressed', () => {
+    const { getByTestId } = render(<FocusHubScreen />);
     fireEvent.press(getByTestId('focus-hub-card-task-batching'));
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('coming-soon cards are inert to assistive tech, not actionable', () => {
+  it('keeps Task batching inert to assistive tech, and Time blocking actionable', () => {
     const { getByTestId } = render(<FocusHubScreen />);
-    for (const id of ['focus-hub-card-time-blocking', 'focus-hub-card-task-batching']) {
-      const card = getByTestId(id);
-      expect(card.props.accessibilityRole).toBe('text');
-      expect(card.props.onPress).toBeUndefined();
-    }
+
+    const comingSoon = getByTestId('focus-hub-card-task-batching');
+    expect(comingSoon.props.accessibilityRole).toBe('text');
+    expect(comingSoon.props.onPress).toBeUndefined();
+
+    // The swapped card is a real button now, which is the whole point of the
+    // swap: an inert card that navigates would be the worst of both.
+    const live = getByTestId('focus-hub-card-time-blocking');
+    expect(live.props.accessibilityRole).toBe('button');
   });
 
   describe('rhythms recall', () => {
@@ -304,13 +324,16 @@ describe('FocusHubScreen', () => {
       expect(mockNavigate).toHaveBeenCalledWith('FocusTimer', { fromHub: true });
     });
 
-    it('leaves the rhythms row and the coming-soon cards alone', async () => {
+    it('leaves the rhythms row and both tool cards alone', async () => {
       jest.spyOn(Date.prototype, 'getHours').mockReturnValue(14);
       mockGetFocusRhythms.mockResolvedValue(['afternoon']);
       const { findByText, getByText, getByTestId } = render(<FocusHubScreen />);
       await findByText(IN_WINDOW_BODY);
       expect(getByText('Deep work')).toBeTruthy();
       expect(getByText('Set a focus')).toBeTruthy();
+      // Both tool cards still render in-window. Time blocking is live as of
+      // TB-1b, Task batching is still a placeholder; the in-window state
+      // changes neither.
       expect(getByTestId('focus-hub-card-time-blocking')).toBeTruthy();
       expect(getByTestId('focus-hub-card-task-batching')).toBeTruthy();
       fireEvent.press(getByTestId('focus-hub-card-rhythms'));
