@@ -35,9 +35,8 @@ jest.mock('../useHabits', () => ({
 jest.mock('../useGoals', () => ({
   useGoals: () => ({ goals: [], loading: false, error: null }),
 }));
-jest.mock('../useTasks', () => ({
-  useTasks: () => ({ tasks: [], loading: false, error: null }),
-}));
+// No useTasks mock: TB-2a removed the hook's dormant subscription, so
+// useDashboard no longer imports it and a mock here would stub nothing.
 jest.mock('../useJournal', () => ({
   useJournal: () => ({ entries: [], loading: false, error: null }),
 }));
