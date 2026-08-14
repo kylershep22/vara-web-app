@@ -14,25 +14,7 @@
 // Mounts the REAL FocusHubScreen and the REAL DayBlocksScreen. Only leaf deps
 // are stubbed.
 
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
-
-// See DayBlocksScreen.test.tsx for why gesture-handler is mocked locally rather
-// than in jest.setup.js.
-jest.mock('react-native-gesture-handler', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  const makeGesture = () => {
-    const g: Record<string, () => unknown> = {};
-    for (const method of ['activeOffsetX', 'onUpdate', 'onEnd', 'onStart', 'enabled']) {
-      g[method] = () => g;
-    }
-    return g;
-  };
-  return {
-    GestureDetector: ({ children }: any) => React.createElement(View, null, children),
-    Gesture: { Pan: makeGesture },
-  };
-});
+// TB-1c removed BlockCard's swipe, so no gesture-handler / reanimated mock.
 
 // A real navigator pulls @react-navigation/elements' SafeAreaProviderCompat,
 // which reads the provider, both contexts and initialWindowMetrics; the screens
@@ -77,6 +59,7 @@ jest.mock('../../../services/firebase/dayBlocks.service', () => ({
   listDayBlocksBetween: (...a: any[]) => mockListBlocks(...a),
   createDayBlock: (...a: any[]) => mockCreateBlock(...a),
   deleteDayBlock: (...a: any[]) => mockDeleteBlock(...a),
+  updateDayBlock: jest.fn(),
 }));
 
 import React from 'react';

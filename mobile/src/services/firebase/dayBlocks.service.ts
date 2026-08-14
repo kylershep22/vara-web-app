@@ -11,10 +11,9 @@
  * calendar event needs, so Phase 2 sync re-derives nothing. A rhythm zone key
  * is NEVER written as the block's time; `suggestedFrom` is provenance only.
  *
- * NO UPDATE AT MVP — a known gap, stated rather than hidden. Editing a block
- * means deleting it and adding another. When an update lands it must stamp
- * `updatedAt` (the field is already written on create for exactly that reason)
- * and must never let `userId`, `id` or `createdAt` be patched.
+ * THE UPDATE PATH LANDED IN TB-1c. It stamps `updatedAt` and constructs its
+ * payload from an allowlist so `userId`, `id` and `createdAt` cannot be
+ * patched, exactly as the TB-1a note here required before it existed.
  *
  * Uses requireDb() throughout, not the raw `if (!db)` guards of the older
  * tasks.service.ts: a write that silently no-ops because Firebase failed to
@@ -25,11 +24,13 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDocs,
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 
@@ -114,7 +115,61 @@ export async function listDayBlocksBetween(
   }));
 }
 
-/** Remove a block. The only way to change one at MVP; see the no-update note. */
+/**
+ * A patch. Only these six fields exist, deliberately.
+ *
+ * `suggestedFrom: null` CLEARS the provenance; omitting it leaves it alone.
+ * Null rather than undefined because undefined means "not patching this", and
+ * the two are different intents.
+ */
+export interface DayBlockPatch {
+  title?: string;
+  demand?: Demand;
+  durationMinutes?: number;
+  startAt?: Date;
+  isProtected?: boolean;
+  suggestedFrom?: TimedRhythmKey | null;
+}
+
+/**
+ * Patch a block.
+ *
+ * THE PAYLOAD IS CONSTRUCTED FROM AN ALLOWLIST, NEVER SPREAD FROM THE INPUT.
+ * That is the whole guard, and it is structural: `userId`, `id` and `createdAt`
+ * are not readable from `patch` anywhere below, so no caller — typed or not,
+ * careless or hostile — can reach them. Spreading `...patch` would undo it in
+ * one character, which is why this reads as tediously explicit. Keep it that
+ * way. The TB-1a service note called this out before the update path existed.
+ *
+ * Only keys the caller actually supplied are written, so patching a title
+ * cannot silently rewrite a time.
+ */
+export async function updateDayBlock(
+  blockId: string,
+  patch: DayBlockPatch
+): Promise<void> {
+  const payload: Record<string, unknown> = {};
+
+  if (patch.title !== undefined) payload.title = patch.title;
+  if (patch.demand !== undefined) payload.demand = patch.demand;
+  if (patch.durationMinutes !== undefined) {
+    payload.durationMinutes = patch.durationMinutes;
+  }
+  if (patch.startAt !== undefined) payload.startAt = patch.startAt;
+  if (patch.isProtected !== undefined) payload.isProtected = patch.isProtected;
+  if (patch.suggestedFrom !== undefined) {
+    // Removed, not nulled: the field is optional on DayBlock, and a stored null
+    // would violate that for every reader.
+    payload.suggestedFrom =
+      patch.suggestedFrom === null ? deleteField() : patch.suggestedFrom;
+  }
+
+  payload.updatedAt = serverTimestamp();
+
+  await updateDoc(doc(requireDb(), DAY_BLOCKS, blockId), payload);
+}
+
+/** Remove a block. */
 export async function deleteDayBlock(blockId: string): Promise<void> {
   await deleteDoc(doc(requireDb(), DAY_BLOCKS, blockId));
 }

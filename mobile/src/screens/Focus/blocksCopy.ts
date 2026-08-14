@@ -274,3 +274,40 @@ export const overlapMessage = (conflictTitle: string) =>
 
 /** [new] The picker takeover's commit, now a real primary rather than a header link. */
 export const USE_THIS_TIME = gap('Use this time');
+
+// ---- edit mode (TB-1c) ----
+
+/** [new] Sheet title when opened on an existing block. */
+export const EDIT_TITLE = gap('Edit block');
+/** [new] Sheet subtitle in edit mode. */
+export const EDIT_INTRO = gap('Change what it is, how long, or when.');
+/** [new] Primary in edit mode. */
+export const SAVE_CHANGES = gap('Save changes');
+/** [new] The in-sheet destructive action, Muted Sage Gray per the round-3 rule. */
+export const REMOVE_BLOCK = gap('Remove');
+
+/**
+ * [new] Remove confirmation, matching HabitDetailScreen's Alert pattern.
+ *
+ * "Remove", never "Delete forever". The confirm button is deliberately NOT
+ * styled `destructive` there, for the reason that governs the button colour
+ * too: removing a block you placed yourself is an intentional act, not an error.
+ */
+export const REMOVE_CONFIRM_TITLE = gap('Remove block');
+export const REMOVE_CONFIRM_BODY = gap('This takes it off your day. You can add it back.');
+export const REMOVE_CONFIRM_CANCEL = gap('Cancel');
+export const REMOVE_CONFIRM_ACCEPT = gap('Remove');
+export const REMOVE_FAILED = gap("That didn't remove. Try again?");
+
+// ---- today / tomorrow (TB-1c) ----
+
+/** [new] The two-option day control at the top of the day view. */
+export const TAB_TODAY = gap('Today');
+export const TAB_TOMORROW = gap('Tomorrow');
+
+/** [new] Heading and intro when the Tomorrow tab is selected. */
+export const TOMORROW_TITLE = gap("Tomorrow's blocks");
+export const TOMORROW_INTRO = gap('Decide it now, so tomorrow starts already shaped.');
+
+/** [new] Empty state on the Tomorrow tab. */
+export const TOMORROW_EMPTY = gap('Nothing placed for tomorrow yet.');
