@@ -129,7 +129,7 @@ export type ProtocolVariantMatrix = Record<
  * because smearing the same twelve actions across thirty-six slots would report
  * a full grid to the one person who most needs to see the gaps. They are also
  * NOT filled with placeholder variants, because a placeholder that wins the time
- * filter renders "[COPY GAP]" onto a real user's card. Instead the cell stays
+ * filter puts stand-in text onto a real user's card. Instead the cell stays
  * short, `selectProtocol` falls back, and `unauthoredVariants()` below names
  * every missing triple so the gap is legible without being shippable.
  *

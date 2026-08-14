@@ -34,19 +34,22 @@ import { ROUTES } from '../../navigation/routes';
 import { ProtocolListItem } from '../../components/protocol/ProtocolListItem';
 import type { Protocol } from '../../types/models';
 
-// [COPY GAP] markers render ON SCREEN, per the weekly-loop convention: nobody
-// should mistake a walkthrough build for finished product. Removing a marker is
-// a copy decision and belongs to Jen. The TITLE carries one too — "Stress
-// Recovery" is the roadmap's working pillar name, and the roadmap itself flags
-// it as a feature-set label that must not read as a return to
+// BOTH STRINGS BELOW ARE DRAFT, the title included. "Stress Recovery" is the
+// roadmap's working pillar name, and the roadmap itself flags it as a
+// feature-set label that must not read as a return to
 // stress-recovery-as-a-category, which is precisely a copy call.
-const gap = (text: string) => `[COPY GAP] ${text}`;
+//
+// Guidelines section 7 has no Stress Recovery slot and is under a HOLD besides,
+// so neither line can be rewritten from it yet. They used to render an
+// on-screen [COPY GAP] prefix; that convention is retired.
 
+// COPY: draft, not from guidelines doc - pending Jen
 // The framing. Kept as named constants rather than inline JSX so changing the
 // page's voice is a string edit and never a structural one — Jen replaces these
 // two values and nothing else on the page moves.
-const PAGE_TITLE = gap('Stress Recovery');
-const PAGE_INTRO = gap('In-the-moment relief when you are activated.');
+const PAGE_TITLE = 'Stress Recovery';
+// COPY: draft, not from guidelines doc - pending Jen
+const PAGE_INTRO = 'In-the-moment relief when you are activated.';
 
 const TEST_ID_PREFIX = 'stress-recovery-card';
 

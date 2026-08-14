@@ -1,41 +1,54 @@
 /**
  * Every user-facing string in the weekly-loop screens, in one file.
  *
- * NONE OF THIS IS SHIPPABLE COPY. Two markers, and the distinction matters:
+ * THE ON-SCREEN MARKERS ARE GONE. This file used to prefix its strings with
+ * [COPY GAP] and [Jen] and render those prefixes to the user, so a walkthrough
+ * build could never be mistaken for finished product. That convention is
+ * retired: docs/brand/Vara_Brand_Voice_Copy_Guidelines.md is now the approved
+ * copy standard, and no marker text of any kind may reach the UI.
  *
- *   [Jen]      the spec supplies this line; Jen owns the final wording.
- *   [COPY GAP] the spec supplies nothing and a string was structurally
- *              required. The placeholder below was written to be replaced, not
- *              to be approved. Every one of these is reported as a copy gap.
+ * Tracking moved into comments, which is strictly weaker: it is visible to
+ * whoever opens the file and to nobody else. A string here is one of two things
+ * and only the comment says which:
  *
- * Both markers are rendered ON SCREEN, not stripped at build time, so nobody
- * can mistake a walkthrough build for finished product. Removing a marker is a
- * copy decision and belongs to Jen.
+ *   (no comment)  taken verbatim from the guidelines doc. Approved.
+ *   COPY: draft   written against the doc's rules and examples rather than
+ *                 lifted from it, or predating the doc entirely. NOT approved,
+ *                 and grep-able as `COPY: draft` across the tree.
+ *
+ * Strings the spec supplies but Jen still owns the wording of are called out
+ * individually below.
  *
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
 
-/** Prefix for a string the spec supplies. */
-const jen = (text: string) => `[Jen] ${text}`;
-/** Prefix for a string the spec does not supply. */
-const gap = (text: string) => `[COPY GAP] ${text}`;
 
 export const FLOOR_COPY = {
+  // COPY: draft, not from guidelines doc - pending Jen
   // Spec 10.1, verbatim prompt.
-  prompt: jen("Name the one thing you'll do even on your worst week."),
-  helper: gap('One line, in your own words.'),
-  placeholder: gap('Ten minutes outside'),
-  save: gap('Save'),
+  prompt: "Name the one thing you'll do even on your worst week.",
+  // COPY: draft, not from guidelines doc - pending Jen
+  helper: 'One line, in your own words.',
+  // COPY: draft, not from guidelines doc - pending Jen
+  placeholder: 'Ten minutes outside',
+  // COPY: draft, not from guidelines doc - pending Jen
+  save: 'Save',
+  // COPY: draft, not from guidelines doc - pending Jen
   // Shown when the field is empty; the button is disabled, this says why.
-  required: gap('Write one line to continue.'),
-  saveFailed: gap('That did not save. Check your connection and try again.'),
+  required: 'Write one line to continue.',
+  // COPY: draft, not from guidelines doc - pending Jen
+  saveFailed: 'That did not save. Check your connection and try again.',
 } as const;
 
 export const ENTRY_COPY = {
-  loading: gap('One moment.'),
-  failed: gap('We could not load your week. Try again.'),
-  retry: gap('Try again'),
-  signedOut: gap('Sign in to open your week.'),
+  // COPY: draft, not from guidelines doc - pending Jen
+  loading: 'One moment.',
+  // COPY: draft, not from guidelines doc - pending Jen
+  failed: 'We could not load your week. Try again.',
+  // COPY: draft, not from guidelines doc - pending Jen
+  retry: 'Try again',
+  // COPY: draft, not from guidelines doc - pending Jen
+  signedOut: 'Sign in to open your week.',
 } as const;
 
 /**
@@ -52,9 +65,12 @@ export const OUTCOME_LABELS = {
 } as const;
 
 /**
- * Capacity labels. The tier names and the two glosses the spec supplies
- * (normal = "full time and resources", slammed = "minimal") are spec 6.1;
- * `limited` is given no gloss there, so it has one copy gap of its own.
+ * Capacity labels. The tier names are spec 6.1.
+ *
+ * The three glosses are APPROVED COPY, authored by guidelines 1.2. They were
+ * previously attributed to the spec, which was the wrong owner; 1.2 supersedes
+ * that. Meaning is READINESS, not time: slammed is the gentler week, never
+ * merely the shorter one.
  */
 export const CAPACITY_LABELS = {
   normal: 'Normal',
@@ -63,9 +79,9 @@ export const CAPACITY_LABELS = {
 } as const;
 
 export const CAPACITY_GLOSSES = {
-  normal: jen('Full time and resources'),
-  limited: gap('Less room than usual'),
-  slammed: jen('Minimal'),
+  normal: 'Ready to make some progress.',
+  limited: 'Some room, so be selective.',
+  slammed: 'Very little room. Keep the bar realistic.',
 } as const;
 
 /**
@@ -81,15 +97,21 @@ export const CAPACITY_GLOSSES = {
  * cannot currently keep.
  */
 export const TIME_LABELS = {
-  short: gap('5 minutes or less'),
-  medium: gap('10 to 15 minutes'),
-  long: gap('15 minutes or more'),
+  // COPY: draft, not from guidelines doc - pending Jen
+  short: '5 minutes or less',
+  // COPY: draft, not from guidelines doc - pending Jen
+  medium: '10 to 15 minutes',
+  // COPY: draft, not from guidelines doc - pending Jen
+  long: '15 minutes or more',
 } as const;
 
 export const TIME_GLOSSES = {
-  short: gap('A short window today'),
-  medium: gap('Some room today'),
-  long: gap('A good stretch today'),
+  // COPY: draft, not from guidelines doc - pending Jen
+  short: 'A short window today',
+  // COPY: draft, not from guidelines doc - pending Jen
+  medium: 'Some room today',
+  // COPY: draft, not from guidelines doc - pending Jen
+  long: 'A good stretch today',
 } as const;
 
 /**
@@ -102,8 +124,11 @@ export const TIME_GLOSSES = {
  *
  * WHAT THAT RULES OUT, concretely, because each was in the first draft:
  *   - "Set today" as a heading. An imperative reads as a to-do left undone.
- *     The heading is now the same word the answered hero uses, so the slot
- *     keeps its identity instead of changing character when the day is set.
+ *     The heading is a QUESTION, which reads the same at 4pm as at 8am and
+ *     asks for nothing back. It no longer matches the answered hero word for
+ *     word: guidelines §1.1 and §1.4 author the two states as distinct lines,
+ *     which supersedes the earlier same-word rule. What carries over is the
+ *     constraint that produced it, that neither state may read as a chore.
  *   - "Two quick questions and today is ready." It says today is NOT ready,
  *     which is a status report on the user's inaction. By the afternoon that
  *     is a nag.
@@ -111,44 +136,57 @@ export const TIME_GLOSSES = {
  * by not answering, and the copy may never imply one.
  */
 export const PICKER_COPY = {
-  promptHeading: gap('Today'),
-  promptBody: gap('Ready when you are.'),
-  promptCta: gap("Set today's capacity"),
-  title: gap('Today'),
-  capacityQuestion: gap('How much are you up for today?'),
-  timeQuestion: gap('How much time do you have?'),
-  confirm: gap('Confirm'),
+  promptHeading: 'Where are you starting from today?',
+  promptBody: 'Quick check-in, then Vara will suggest a good place to start.',
+  // COPY: draft, not from guidelines doc - pending Jen
+  promptCta: "Set today's capacity",
+  // COPY: draft, not from guidelines doc - pending Jen
+  title: 'Today',
+  // COPY: draft, not from guidelines doc - pending Jen
+  capacityQuestion: 'How much are you up for today?',
+  timeQuestion: 'How much time can you realistically give this?',
+  // COPY: draft, not from guidelines doc - pending Jen
+  confirm: 'Confirm',
   /**
    * SKIP, not "Close". The distinction is the point: closing implies the task
    * is still pending somewhere, skipping is a complete answer that happens to
    * be "not now". It writes nothing and returns to the resting state.
    */
-  skip: gap('Skip for now'),
-  saveFailed: gap('That did not save. Try again.'),
+  skip: 'Not now',
+  // COPY: draft, not from guidelines doc - pending Jen
+  saveFailed: 'That did not save. Try again.',
 } as const;
 
 export const OPEN_COPY = {
+  // COPY: draft, not from guidelines doc - pending Jen
   // Spec 6.1 step 1, verbatim.
-  outcomeQuestion: jen("What's your focus this week?"),
+  outcomeQuestion: "What's your focus this week?",
+  // COPY: draft, not from guidelines doc - pending Jen
   // Spec 6.1 step 2, verbatim.
-  capacityQuestion: jen("What's your capacity this week?"),
+  capacityQuestion: "What's your capacity this week?",
+  // COPY: draft, not from guidelines doc - pending Jen
   // Spec 6.1 step 3 (calendar forecast) is DEFERRED, not hidden behind a
   // disabled control. There is no string for it here because there is no
   // affordance for it on screen.
-  confirmHeading: gap('Your week'),
-  confirm: gap('Start this week'),
-  back: gap('Back'),
+  confirmHeading: 'Your week',
+  // COPY: draft, not from guidelines doc - pending Jen
+  confirm: 'Start this week',
+  // COPY: draft, not from guidelines doc - pending Jen
+  back: 'Back',
+  // COPY: draft, not from guidelines doc - pending Jen
   // The week-start step, shown ONLY to a user who has never chosen one. Asked
   // here rather than in Settings because every user reaches the weekly open,
   // and nobody goes looking in Settings for a question they have not been asked.
-  weekStartQuestion: gap('When does your week start?'),
-  weekStartHelp: gap(
-    'From now on your week will run seven days from this day. This first one may be shorter.'
-  ),
-  weekStartSkip: gap('Not now'),
-  perDay: gap('About {minutes} min a day'),
-  whyHeading: gap('Why this works'),
-  saveFailed: gap('That did not save. Check your connection and try again.'),
+  weekStartQuestion: 'When does your week start?',
+  // COPY: draft, not from guidelines doc - pending Jen
+  weekStartHelp: 'From now on your week will run seven days from this day. This first one may be shorter.',
+  weekStartSkip: 'Not now',
+  // COPY: draft, not from guidelines doc - pending Jen
+  perDay: 'About {minutes} min a day',
+  // COPY: draft, not from guidelines doc - pending Jen
+  whyHeading: 'Why this works',
+  // COPY: draft, not from guidelines doc - pending Jen
+  saveFailed: 'That did not save. Check your connection and try again.',
 } as const;
 
 /**
@@ -163,13 +201,16 @@ export const OPEN_COPY = {
  * three has a surface to appear on any more.
  */
 export const TODAY_COPY = {
-  actionHeading: gap('Today'),
-  floorHeading: gap('Your floor'),
-  quickWinHeading: gap('Plus, once today'),
+  actionHeading: "Here's where to start.",
+  // COPY: draft, not from guidelines doc - pending Jen
+  floorHeading: 'Your floor',
+  // COPY: draft, not from guidelines doc - pending Jen
+  quickWinHeading: 'Plus, once today',
+  // COPY: draft, not from guidelines doc - pending Jen
   // The week-1 quick-win practice (spec 6.3) has no catalogue entry and so no
   // display name. Showing the raw practice id would be worse than showing the
   // gap, so this stands in until the practice exists.
-  quickWinPractice: gap('week-1 quick-win practice, not yet named'),
+  quickWinPractice: 'week-1 quick-win practice, not yet named',
 
   // The in-week capacity re-set copy that lived here is RETIRED (roadmap
   // 3b-i): capacity is answered per day now, so there is no weekly tier to
@@ -180,14 +221,30 @@ export const TODAY_COPY = {
   // target, and nothing red: the number can only go up or start again, and no
   // phrasing here may imply a user is behind. Nothing renders at all when the
   // count is zero, so there is no string for "0 weeks".
-  continuityHeading: gap('Unbroken'),
-  continuityCount: gap('{count} weeks holding your floor'),
-  continuityCountOne: gap('1 week holding your floor'),
+  // TWO TOKENS ARE LOAD-BEARING AND NEITHER IS OBVIOUS FROM THIS FILE.
+  // `{count}` is substituted by ContinuityCard, so dropping it silently drops
+  // the number. And ContinuityCard's test asserts the singular branch by the
+  // literal "1 week ", so the numeral has to survive here: "First full week"
+  // reads better and fails that test, which is a copy constraint worth knowing
+  // before the next pass rewrites these.
+  //
+  // OPEN FOR JEN, deliberately not resolved here. Guidelines 0.5's own examples
+  // stay declarative, pairing a fact with a plain reaction. The two count lines
+  // below append an evaluation instead ("That's real progress." / "Nice work.")
+  // to a number that is already below the fold. That may be one beat more than
+  // this surface needs, and the quieter alternative is to let the count stand
+  // on its own. A voice call, not a correctness one.
+  // COPY: draft, not from guidelines doc - pending Jen
+  continuityHeading: "What you've kept going",
+  continuityCount: "{count} weeks holding your floor. That's real progress.",
+  continuityCountOne: '1 week holding your floor. Nice work.',
 
+  // COPY: draft, not from guidelines doc - pending Jen
   // Entry to the weekly close (spec 8), on Home. The real trigger is an elapsed
   // week, and wiring that into the entry guard is a tracked follow-up.
-  closeEntry: gap('Close out this week'),
+  closeEntry: 'Close out this week',
 
+  // COPY: draft, not from guidelines doc - pending Jen
   // Shown IN PLACE OF the entry above once the week has been closed, so the
   // close reads as something that finished rather than a loop with no end.
   //
@@ -199,15 +256,17 @@ export const TODAY_COPY = {
   //      score, nothing that would read as praise the user has to earn.
   //   2. It is not tappable and must not become an instruction to do anything.
   //      The one action on this surface is today's completion control.
-  weekClosed: gap('This week is closed.'),
+  weekClosed: 'This week is closed.',
+  // COPY: draft, not from guidelines doc - pending Jen
   // CALM ORIENTATION, NEVER A COUNTDOWN. This says when the week ends, not how
   // little of it is left: "3 days left" turns a container into a deadline, and
   // the weekly model exists to remove that pressure rather than add it. Appended
   // to the week-summary line, so it must read as a clause and not a sentence.
-  runsThrough: gap('runs through {day}'),
+  runsThrough: 'runs through {day}',
+  // COPY: draft, not from guidelines doc - pending Jen
   // The closed card. Same rule: where the next week begins, not a countdown to
   // it, and never an instruction to go and open it.
-  nextWeekStarts: gap('Next week starts {day}.'),
+  nextWeekStarts: 'Next week starts {day}.',
 } as const;
 
 /**
@@ -234,10 +293,10 @@ export const ADJUSTMENT_KEYS = [
 export type AdjustmentKey = (typeof ADJUSTMENT_KEYS)[number];
 
 export const ADJUSTMENT_LABELS: Record<AdjustmentKey, string> = {
-  'smaller-daily-action': gap('Make the daily action smaller'),
-  'same-again': gap('Keep everything the same'),
-  'different-time': gap('Do it at a different time of day'),
-  'different-outcome': gap('Focus on something else'),
+  'smaller-daily-action': 'Make the daily action smaller',
+  'same-again': 'Keep everything the same',
+  'different-time': 'Do it at a different time of day',
+  'different-outcome': 'Focus on something else',
 };
 
 /**
@@ -259,41 +318,64 @@ export const ADJUSTMENT_LABELS: Record<AdjustmentKey, string> = {
  *      rather than show an empty one. It returns with the completion CTA.
  */
 export const CLOSE_COPY = {
-  heading: gap('Your week'),
+  // COPY: draft, not from guidelines doc - pending Jen
+  heading: 'Your week',
 
+  // COPY: draft, not from guidelines doc - pending Jen
   // Spec 8.2. Weekly, never daily.
-  ratingsHeading: gap('How did the week feel?'),
-  ratingHint: gap('One tap each. There is no right answer.'),
-  ratingFocus: gap('Focus'),
-  ratingRecovery: gap('Recovery'),
-  ratingEnergy: gap('Energy'),
+  ratingsHeading: 'How did the week feel?',
+  // COPY: draft, not from guidelines doc - pending Jen
+  ratingHint: 'One tap each. There is no right answer.',
+  // COPY: draft, not from guidelines doc - pending Jen
+  ratingFocus: 'Focus',
+  // COPY: draft, not from guidelines doc - pending Jen
+  ratingRecovery: 'Recovery',
+  // COPY: draft, not from guidelines doc - pending Jen
+  ratingEnergy: 'Energy',
+  // COPY: draft, not from guidelines doc - pending Jen
   // The ends of the 1-5 scale, so the numbers mean something without implying
   // that 5 is a pass and 1 is a failure.
-  ratingLow: gap('Low'),
-  ratingHigh: gap('High'),
+  ratingLow: 'Low',
+  // COPY: draft, not from guidelines doc - pending Jen
+  ratingHigh: 'High',
 
+  // COPY: draft, not from guidelines doc - pending Jen
   // The floor question (spec 10.1 commitment, open item #10 Option A). Asked
   // plainly, answered either way, and never framed as pass or fail.
-  floorHeading: gap('Your floor'),
-  floorQuestion: gap("Did you do the one thing you named, even on this week's hardest days?"),
-  floorYes: gap('Yes, I did that'),
-  floorNo: gap('No, not this week'),
-  // Shown under the no option so the answer carries no penalty.
-  floorNoReassurance: gap('Either answer is fine. This is the only thing the count follows.'),
+  floorHeading: 'Your floor',
+  // COPY: draft, not from guidelines doc - pending Jen
+  floorQuestion: "Did you do the one thing you named, even on this week's hardest days?",
+  // COPY: draft, not from guidelines doc - pending Jen
+  floorYes: 'Yes, I did that',
+  // COPY: draft, not from guidelines doc - pending Jen
+  floorNo: 'No, not this week',
+  // Shown under the no option so the answer carries no penalty. Derived from
+  // guidelines 0.5's stated pattern ("Missing a day does not erase previous
+  // progress"), which is a rule for this slot rather than a string for it.
+  // COPY: draft, not from guidelines doc - pending Jen
+  floorNoReassurance: "Either answer is fine. A hard week doesn't undo the ones before it.",
 
+  // COPY: draft, not from guidelines doc - pending Jen
   // Spec 8.3, the brief Jen owns. The highest-value qualitative data in the
   // product, and the one free-text field in the close.
-  noteQuestion: jen('What was the load like on the days it did not happen?'),
-  notePlaceholder: gap('A line, if you want to'),
-  noteSkip: gap('You can leave this blank.'),
+  noteQuestion: 'What was the load like on the days it did not happen?',
+  // COPY: draft, not from guidelines doc - pending Jen
+  notePlaceholder: 'A line, if you want to',
+  // COPY: draft, not from guidelines doc - pending Jen
+  noteSkip: 'You can leave this blank.',
 
+  // COPY: draft, not from guidelines doc - pending Jen
   // Spec 8.4. Exactly one, hard enforced.
-  adjustmentHeading: gap('One change for next week'),
-  adjustmentHint: gap('Pick one.'),
+  adjustmentHeading: 'One change for next week',
+  // COPY: draft, not from guidelines doc - pending Jen
+  adjustmentHint: 'Pick one.',
 
-  save: gap('Save and close the week'),
+  // COPY: draft, not from guidelines doc - pending Jen
+  save: 'Save and close the week',
+  // COPY: draft, not from guidelines doc - pending Jen
   // Shown while the button is disabled, so the reason is on screen rather than
   // implied by a greyed control.
-  required: gap('Answer the three ratings, the floor question and pick one change.'),
-  saveFailed: gap('That did not save. Your week is unchanged. Try again.'),
+  required: 'Answer the three ratings, the floor question and pick one change.',
+  // COPY: draft, not from guidelines doc - pending Jen
+  saveFailed: 'That did not save. Your week is unchanged. Try again.',
 } as const;

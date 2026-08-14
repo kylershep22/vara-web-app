@@ -15,8 +15,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TextStyles } from '../../constants';
 
-// [COPY GAP] marker rendered on screen, per the weekly-loop convention.
-const PLACEHOLDER = '[COPY GAP] Things worth understanding will live here.';
+// COPY: draft, not from guidelines doc - pending Jen
+// Stands in for a tab that has no content yet, so this is a build-state message
+// rather than a real empty state. It used to render an on-screen [COPY GAP]
+// prefix; that convention is retired and no marker text may reach the UI.
+const PLACEHOLDER = 'Things worth understanding will live here.';
 
 export function LearnHubScreen() {
   return (

@@ -1036,8 +1036,10 @@ const MainNavigator = () => {
             second one would put the same content under a second title with a
             back gesture between them, which is the bug this collapse removed.
 
-            The screens carry placeholder [Jen] / [COPY GAP] copy, which now
-            renders in production builds. That is intended and known. */}
+            The screens no longer render [Jen] / [COPY GAP] prefixes: that
+            convention is retired and no marker text reaches the UI. Most of
+            their copy is still draft, tracked by `COPY: draft` comments at each
+            string rather than by anything visible on screen. */}
         <AppStack.Screen
           name={ROUTES.WeeklyEntry}
           component={WeeklyEntryScreen}

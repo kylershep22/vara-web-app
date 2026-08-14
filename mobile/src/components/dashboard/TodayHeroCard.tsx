@@ -35,13 +35,20 @@ import { CardHeading } from './CardHeading';
 const MIN_TOUCH_TARGET = 48;
 const CHECK_SIZE = 22;
 
-// Placeholder, marked like the rest of the weekly copy. TODAY_COPY has no
-// completion strings because the weekly Today screen has no completion control
-// yet (it is listed there as deliberately absent).
+// TODAY_COPY has no completion strings because the weekly Today screen has no
+// completion control yet (it is listed there as deliberately absent).
+//
+// `markDone` is APPROVED COPY from guidelines §1.5 and carries no marker. The
+// two below are still placeholders. `done` is deliberately NOT written yet:
+// §1.5 supplies acknowledgments at two effort tiers plus five extensions, and
+// this card holds a single static string, so honouring it needs a component
+// change rather than a string swap. Tracked, not silently collapsed to one line.
 const COMPLETION_COPY = {
-  markDone: '[COPY GAP] Mark today done',
-  done: '[COPY GAP] Done today',
-  saveFailed: '[COPY GAP] That did not save. Try again.',
+  markDone: 'Mark it done',
+  // COPY: draft, not from guidelines doc - pending Jen
+  done: 'Done today',
+  // COPY: draft, not from guidelines doc - pending Jen
+  saveFailed: 'That did not save. Try again.',
 } as const;
 
 export interface TodayHeroCardProps {

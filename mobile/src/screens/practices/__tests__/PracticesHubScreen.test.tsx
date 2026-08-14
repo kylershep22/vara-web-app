@@ -50,8 +50,9 @@ describe('PracticesHubScreen — pillar launcher', () => {
 
     // Order is designed, not incidental: Focus & Time, Energy, Routines.
     // Asserted off the rendered tree order rather than by matching label text,
-    // so a copy change (these are all [COPY GAP] placeholders awaiting Jen)
-    // cannot silently turn this into a no-op.
+    // so a copy change (every string on this screen is still draft, and section
+    // 7 of the guidelines doc is on hold) cannot silently turn this into a
+    // no-op.
     const cards = UNSAFE_getAllByType(TouchableOpacity);
     expect(cards.map((c) => c.props.testID)).toEqual(CARD_IDS);
   });
@@ -153,14 +154,11 @@ describe('PracticesHubScreen — pillar launcher', () => {
     expect(mockNavigate).not.toHaveBeenCalledWith(ROUTES.PillarEnergy);
   });
 
-  it('still marks its copy as a gap', () => {
-    const { getAllByText } = render(<PracticesHubScreen />);
-
-    // The marker renders ON SCREEN, per the weekly-loop convention: a
-    // walkthrough build must never be mistaken for finished product. Every card
-    // carries it on both its label and its descriptor, plus one on the page
-    // intro — hence the arithmetic, which scales with CARD_IDS rather than
-    // needing a hand-edit each time a pillar lands.
-    expect(getAllByText(/^\[COPY GAP\]/)).toHaveLength(CARD_IDS.length * 2 + 1);
-  });
+  // DELETED: 'still marks its copy as a gap', which asserted
+  // getAllByText(/^\[COPY GAP\]/) had length CARD_IDS.length * 2 + 1. It existed
+  // to count on-screen markers, and that convention is retired: no marker text
+  // may reach the UI, so the count it performed is now always zero and the test
+  // has no subject. Draft status is tracked by the `COPY: draft` comments in
+  // PracticesHubScreen.tsx, which no test can assert because comments are not
+  // rendered. That is a real loss of enforcement and it is deliberate.
 });
