@@ -52,9 +52,13 @@ export const OUTCOME_LABELS = {
 } as const;
 
 /**
- * Capacity labels. The tier names and the two glosses the spec supplies
- * (normal = "full time and resources", slammed = "minimal") are spec 6.1;
- * `limited` is given no gloss there, so it has one copy gap of its own.
+ * Capacity labels. The tier names are spec 6.1.
+ *
+ * The three glosses are APPROVED COPY, authored by the brand voice guidelines
+ * §1.2, and carry no marker. They previously carried [Jen] (normal, slammed) and
+ * [COPY GAP] (limited) markers on the reading that the spec owned this wording;
+ * §1.2 supersedes that. Meaning is READINESS, not time: slammed is the gentler
+ * week, never merely the shorter one.
  */
 export const CAPACITY_LABELS = {
   normal: 'Normal',
@@ -63,9 +67,9 @@ export const CAPACITY_LABELS = {
 } as const;
 
 export const CAPACITY_GLOSSES = {
-  normal: jen('Full time and resources'),
-  limited: gap('Less room than usual'),
-  slammed: jen('Minimal'),
+  normal: 'Ready to make some progress.',
+  limited: 'Some room, so be selective.',
+  slammed: 'Very little room. Keep the bar realistic.',
 } as const;
 
 /**
@@ -102,8 +106,11 @@ export const TIME_GLOSSES = {
  *
  * WHAT THAT RULES OUT, concretely, because each was in the first draft:
  *   - "Set today" as a heading. An imperative reads as a to-do left undone.
- *     The heading is now the same word the answered hero uses, so the slot
- *     keeps its identity instead of changing character when the day is set.
+ *     The heading is a QUESTION, which reads the same at 4pm as at 8am and
+ *     asks for nothing back. It no longer matches the answered hero word for
+ *     word: guidelines §1.1 and §1.4 author the two states as distinct lines,
+ *     which supersedes the earlier same-word rule. What carries over is the
+ *     constraint that produced it, that neither state may read as a chore.
  *   - "Two quick questions and today is ready." It says today is NOT ready,
  *     which is a status report on the user's inaction. By the afternoon that
  *     is a nag.
@@ -111,19 +118,19 @@ export const TIME_GLOSSES = {
  * by not answering, and the copy may never imply one.
  */
 export const PICKER_COPY = {
-  promptHeading: gap('Today'),
-  promptBody: gap('Ready when you are.'),
+  promptHeading: 'Where are you starting from today?',
+  promptBody: 'Quick check-in, then Vara will suggest a good place to start.',
   promptCta: gap("Set today's capacity"),
   title: gap('Today'),
   capacityQuestion: gap('How much are you up for today?'),
-  timeQuestion: gap('How much time do you have?'),
+  timeQuestion: 'How much time can you realistically give this?',
   confirm: gap('Confirm'),
   /**
    * SKIP, not "Close". The distinction is the point: closing implies the task
    * is still pending somewhere, skipping is a complete answer that happens to
    * be "not now". It writes nothing and returns to the resting state.
    */
-  skip: gap('Skip for now'),
+  skip: 'Not now',
   saveFailed: gap('That did not save. Try again.'),
 } as const;
 
@@ -145,7 +152,7 @@ export const OPEN_COPY = {
   weekStartHelp: gap(
     'From now on your week will run seven days from this day. This first one may be shorter.'
   ),
-  weekStartSkip: gap('Not now'),
+  weekStartSkip: 'Not now',
   perDay: gap('About {minutes} min a day'),
   whyHeading: gap('Why this works'),
   saveFailed: gap('That did not save. Check your connection and try again.'),
@@ -163,7 +170,7 @@ export const OPEN_COPY = {
  * three has a surface to appear on any more.
  */
 export const TODAY_COPY = {
-  actionHeading: gap('Today'),
+  actionHeading: "Here's where to start.",
   floorHeading: gap('Your floor'),
   quickWinHeading: gap('Plus, once today'),
   // The week-1 quick-win practice (spec 6.3) has no catalogue entry and so no
@@ -180,9 +187,15 @@ export const TODAY_COPY = {
   // target, and nothing red: the number can only go up or start again, and no
   // phrasing here may imply a user is behind. Nothing renders at all when the
   // count is zero, so there is no string for "0 weeks".
-  continuityHeading: gap('Unbroken'),
-  continuityCount: gap('{count} weeks holding your floor'),
-  continuityCountOne: gap('1 week holding your floor'),
+  // TWO TOKENS ARE LOAD-BEARING AND NEITHER IS OBVIOUS FROM THIS FILE.
+  // `{count}` is substituted by ContinuityCard, so dropping it silently drops
+  // the number. And ContinuityCard's test asserts the singular branch by the
+  // literal "1 week ", so the numeral has to survive here: "First full week"
+  // reads better and fails that test, which is a copy constraint worth knowing
+  // before the next pass rewrites these.
+  continuityHeading: "What you've kept going",
+  continuityCount: "{count} weeks holding your floor. That's real progress.",
+  continuityCountOne: '1 week holding your floor. Nice work.',
 
   // Entry to the weekly close (spec 8), on Home. The real trigger is an elapsed
   // week, and wiring that into the entry guard is a tracked follow-up.
@@ -279,7 +292,7 @@ export const CLOSE_COPY = {
   floorYes: gap('Yes, I did that'),
   floorNo: gap('No, not this week'),
   // Shown under the no option so the answer carries no penalty.
-  floorNoReassurance: gap('Either answer is fine. This is the only thing the count follows.'),
+  floorNoReassurance: "Either answer is fine. A hard week doesn't undo the ones before it.",
 
   // Spec 8.3, the brief Jen owns. The highest-value qualitative data in the
   // product, and the one free-text field in the close.
