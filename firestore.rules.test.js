@@ -2192,4 +2192,174 @@ describe('Day Blocks (Time Blocking)', () => {
   });
 });
 
+describe('Captured Tasks (Task Batching)', () => {
+  async function seedCapturedTask(userId, demand = 'heavy') {
+    return withAdminDb((adminDb) =>
+      addDoc(collection(adminDb, 'capturedTasks'), {
+        userId,
+        title: 'Draft investor update',
+        demand,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    );
+  }
+
+  // ---- owner CRUD ----
+
+  test('a user can capture their own task', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(
+      addDoc(collection(db, 'capturedTasks'), {
+        userId: ALICE_UID,
+        title: 'Draft investor update',
+        demand: 'heavy',
+      })
+    );
+  });
+
+  test('a user can read and update their own captured task', async () => {
+    const ref = await seedCapturedTask(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'capturedTasks', ref.id)));
+    // No update path exists in the service at MVP (retagging is clear and
+    // recapture), but the rule permits the owner: refusing the verb here would
+    // put a product decision in the security layer.
+    await assertSucceeds(
+      updateDoc(doc(db, 'capturedTasks', ref.id), { demand: 'light' })
+    );
+  });
+
+  test('a user can clear their own captured task', async () => {
+    // Clearing IS deleting — there is no completed flag and no history — so
+    // this path is the entire "done" story and has to work.
+    const ref = await seedCapturedTask(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(deleteDoc(doc(db, 'capturedTasks', ref.id)));
+  });
+
+  // ---- cross-user denial ----
+
+  test('a DIFFERENT authenticated user CANNOT read that captured task', async () => {
+    const ref = await seedCapturedTask(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'capturedTasks', ref.id)));
+  });
+
+  test('a DIFFERENT authenticated user CANNOT clear that captured task', async () => {
+    const ref = await seedCapturedTask(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(deleteDoc(doc(db, 'capturedTasks', ref.id)));
+  });
+
+  test('a user cannot capture a task owned by someone else', async () => {
+    // Forge guard: Bob claiming Alice's userId is refused by the create rule.
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(
+      addDoc(collection(db, 'capturedTasks'), {
+        userId: ALICE_UID,
+        title: 'Draft investor update',
+        demand: 'heavy',
+      })
+    );
+  });
+
+  test('unauthenticated users cannot read a captured task', async () => {
+    const ref = await seedCapturedTask(ALICE_UID);
+    const db = getUnauthContext().firestore();
+
+    await assertFails(getDoc(doc(db, 'capturedTasks', ref.id)));
+  });
+
+  // ---- the absent-document guard, and what it must NOT widen ----
+
+  test('capturedTasks: a user CAN get their own non-existent captured task', async () => {
+    // Reached in normal use here rather than as an edge case: clearing deletes
+    // the row outright, so any get-after-clear lands on a document that no
+    // longer exists. Without the null guard this returns "Missing or
+    // insufficient permissions" instead of an empty snapshot.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'capturedTasks', 'no-such-task')));
+  });
+
+  test('capturedTasks: the guard does NOT expose another users EXISTING task', async () => {
+    const ref = await seedCapturedTask(ALICE_UID);
+    const db = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(db, 'capturedTasks', ref.id)));
+  });
+
+  test('capturedTasks: a list is still owner-scoped through the userId field', async () => {
+    await seedCapturedTask(ALICE_UID);
+
+    const alice = getAuthContext(ALICE_UID).firestore();
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    // Alice's own rows: legal.
+    await assertSucceeds(
+      getDocs(query(collection(alice, 'capturedTasks'), where('userId', '==', ALICE_UID)))
+    );
+    // Unfiltered: illegal, because the rule cannot be satisfied for every
+    // candidate document.
+    await assertFails(getDocs(collection(alice, 'capturedTasks')));
+    // Bob asking for Alice's rows: illegal. This is the assertion that would
+    // break first if the null guard were ever moved onto list.
+    await assertFails(
+      getDocs(query(collection(bob, 'capturedTasks'), where('userId', '==', ALICE_UID)))
+    );
+  });
+
+  test('capturedTasks: the exact capture-list query is legal for its owner', async () => {
+    // Mirrors listCapturedTasks in
+    // mobile/src/services/firebase/capturedTasks.service.ts EXACTLY: a bare
+    // equality on userId, no orderBy, no composite index. If the service ever
+    // grows server-side ordering, this test should grow it too — and the index
+    // has to ship in the same commit.
+    await seedCapturedTask(ALICE_UID);
+
+    const alice = getAuthContext(ALICE_UID).firestore();
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertSucceeds(
+      getDocs(query(collection(alice, 'capturedTasks'), where('userId', '==', ALICE_UID)))
+    );
+    // The same query, aimed at someone else's list: still refused.
+    await assertFails(
+      getDocs(query(collection(bob, 'capturedTasks'), where('userId', '==', ALICE_UID)))
+    );
+  });
+
+  // ---- the two collections stay separate ----
+
+  test('capturedTasks access grants NOTHING on the legacy tasks collection', async () => {
+    // The collections share an English word and nothing else. This pins that
+    // they are two rules blocks rather than one shared path: Bob owning a
+    // captured task gives him no reach into Alice's legacy `tasks` row, and the
+    // reverse holds too. It would fail if anyone ever "tidied" these into a
+    // single match with a wildcard.
+    const legacy = await withAdminDb((adminDb) =>
+      addDoc(collection(adminDb, 'tasks'), {
+        userId: ALICE_UID,
+        title: 'Legacy web task',
+        priority: 'high',
+        completed: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    );
+    await seedCapturedTask(BOB_UID);
+
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(bob, 'tasks', legacy.id)));
+  });
+});
+
 console.log('✅ All security rules tests defined. Run with: npm run test:rules');

@@ -14,7 +14,6 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useGoals } from './useGoals';
 import { useHabits } from './useHabits';
-import { useTasks } from './useTasks';
 import { useJournal } from './useJournal';
 import { useFeatureDiscovery } from './useFeatureDiscovery';
 import { useNotificationOptInCards } from './useNotificationOptInCards';
@@ -66,10 +65,6 @@ export function useDashboard() {
   const goalsError = DASHBOARD_V2 ? null : goalsResult.error;
   const { habits, loading: habitsLoading, error: habitsError } = useHabits(true);
   const { noteTarget, promptForNote, saveNote, dismissNote } = useHabitNotePrompt();
-  const tasksResult = useTasks();
-  const allTasks = DASHBOARD_V2 ? [] : tasksResult.tasks;
-  const tasksLoading = DASHBOARD_V2 ? false : tasksResult.loading;
-  const tasksError = DASHBOARD_V2 ? null : tasksResult.error;
   const { entries: journalEntries, error: journalError } = useJournal(1);
 
   // Collect any data-fetch errors for the UI to display
@@ -77,10 +72,9 @@ export function useDashboard() {
     const errors: string[] = [];
     if (goalsError) errors.push('goals');
     if (habitsError) errors.push('habits');
-    if (tasksError) errors.push('tasks');
     if (journalError) errors.push('journal');
     return errors;
-  }, [goalsError, habitsError, tasksError, journalError]);
+  }, [goalsError, habitsError, journalError]);
 
   const { trackEngagement, evaluateTriggers, pendingToasts, markToastShown } = useFeatureDiscovery();
   const { queueUnlockToasts } = useToast();
@@ -192,9 +186,6 @@ export function useDashboard() {
     }
     return days;
   }, [daysToShow, today, isCompactMode]);
-
-  // Filter tasks to incomplete only
-  const tasks = useMemo(() => allTasks.filter((task) => !task.completed), [allTasks]);
 
   // Track lastActiveAt and check for returning user
   useEffect(() => {
@@ -489,10 +480,14 @@ export function useDashboard() {
     setGeneratingPlan(true);
     try {
       const response = await generateDailyPlan({
+        // No `tasks` here. DailyPlanRequest.tasks is optional, and the mobile
+        // app has no live task collection to fill it from: the legacy `tasks`
+        // subscription this hook used to hold was dormant under DASHBOARD_V2
+        // and is retired. Sending an always-empty array said "this user has no
+        // tasks" when the truth is "this app does not read tasks".
         userId: user!.uid,
         goals: goals.slice(0, 5),
         habits: habits.slice(0, 10),
-        tasks: tasks.slice(0, 10),
       });
       setDailyPlan(response.plan);
       await SecureStore.setItemAsync(`dailyPlan_${today}`, response.plan);
@@ -502,7 +497,7 @@ export function useDashboard() {
     } finally {
       setGeneratingPlan(false);
     }
-  }, [user, goals, habits, tasks, today]);
+  }, [user, goals, habits, today]);
 
   // Sub-step 2.5: handleBrainStateCheckIn removed — chip taps now
   // navigate to CheckInFlow, which handles the Firestore write
@@ -707,7 +702,7 @@ export function useDashboard() {
     }
   }, [user]);
 
-  const dataLoading = goalsLoading || habitsLoading || tasksLoading;
+  const dataLoading = goalsLoading || habitsLoading;
 
   return {
     user,
@@ -730,9 +725,8 @@ export function useDashboard() {
     saveNote,
     dismissNote,
 
-    // Goals/Tasks
+    // Goals
     goals,
-    tasks,
     completedToday,
     lastJournalDate,
 
