@@ -79,14 +79,21 @@ import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import { NAV_TARGETS } from '../../navigation/navTargets';
 
-// [COPY GAP] markers render ON SCREEN, per the weekly-loop convention: nobody
-// should mistake a walkthrough build for finished product. Removing a marker is
-// a copy decision and belongs to Jen. Card LABELS carry the marker too: all four
-// are the roadmap's working pillar names, which is not the same thing as
-// approved user-facing copy. "Stress Recovery" especially — the roadmap flags it
-// as a feature-set label that must not read as a return to
+// EVERY STRING ON THIS SCREEN IS DRAFT and carries the `COPY: draft` sentinel.
+// The card LABELS are drafted too, not just the descriptors: all four are the
+// roadmap's working pillar names, which is not the same thing as approved
+// user-facing copy. "Stress Recovery" especially, which the roadmap flags as a
+// feature-set label that must not read as a return to
 // stress-recovery-as-a-category.
-const gap = (text: string) => `[COPY GAP] ${text}`;
+//
+// PILLAR HUBS ARE UNDER A HOLD in the guidelines doc: section 7 defines Focus /
+// Energy / Time / Community hubs, and this launcher ships Focus & Time /
+// Energy / Routines / Stress Recovery with Community as a separate tab. Section
+// 7 has no slot for Stress Recovery and the app has no Community hub, so none
+// of this may be rewritten from it until the section is re-specced.
+//
+// These strings used to render an on-screen [COPY GAP] prefix; that convention
+// is retired and no marker text may reach the UI.
 
 const MIN_TOUCH_TARGET = 48;
 
@@ -145,22 +152,28 @@ interface PillarCardConfig {
 const PILLARS: PillarCardConfig[] = [
   {
     id: 'focus-time',
-    label: gap('Focus & Time'),
-    descriptor: gap('Protected time for one thing at a time.'),
+    // COPY: draft, not from guidelines doc - pending Jen
+    label: 'Focus & Time',
+    // COPY: draft, not from guidelines doc - pending Jen
+    descriptor: 'Protected time for one thing at a time.',
     icon: 'target',
     go: (navigation) => navigation.navigate(ROUTES.PillarFocus),
   },
   {
     id: 'energy',
-    label: gap('Energy'),
-    descriptor: gap('Ways to shift how you feel.'),
+    // COPY: draft, not from guidelines doc - pending Jen
+    label: 'Energy',
+    // COPY: draft, not from guidelines doc - pending Jen
+    descriptor: 'Ways to shift how you feel.',
     icon: 'white-balance-sunny',
     go: (navigation) => navigation.navigate(ROUTES.PillarEnergy),
   },
   {
     id: 'routines',
-    label: gap('Routines'),
-    descriptor: gap('The sequences your days run on.'),
+    // COPY: draft, not from guidelines doc - pending Jen
+    label: 'Routines',
+    // COPY: draft, not from guidelines doc - pending Jen
+    descriptor: 'The sequences your days run on.',
     // Echoes the dashboard routine card's own icon (RoutineCard.tsx:45), so the
     // same concept carries the same mark on both surfaces that open it.
     icon: 'clipboard-check-outline',
@@ -173,13 +186,15 @@ const PILLARS: PillarCardConfig[] = [
   },
   {
     id: 'stress-recovery',
-    label: gap('Stress Recovery'),
+    // COPY: draft, not from guidelines doc - pending Jen
+    label: 'Stress Recovery',
+    // COPY: draft, not from guidelines doc - pending Jen
     // The one descriptor that has to work harder than the others. Every
     // practice behind this card also sits under Energy, so the descriptor is
     // what tells someone why they would tap here instead — it names the MOMENT
     // (activated, now) rather than the mechanism (regulation), which is the
     // whole basis of the cross-list. See StressRecoveryScreen's header comment.
-    descriptor: gap('Something to reach for when stress spikes.'),
+    descriptor: 'Something to reach for when stress spikes.',
     icon: 'lifebuoy',
     go: (navigation) => navigation.navigate(ROUTES.PillarStressRecovery),
   },
@@ -194,7 +209,8 @@ export function PracticesHubScreen() {
         <View style={styles.titleRow}>
           <Text style={styles.title}>Practices</Text>
         </View>
-        <Text style={styles.intro}>{gap('Pick a place to start.')}</Text>
+        {/* COPY: draft, not from guidelines doc - pending Jen */}
+        <Text style={styles.intro}>{'Pick a place to start.'}</Text>
 
         <View style={styles.cards}>
           {PILLARS.map((p) => (

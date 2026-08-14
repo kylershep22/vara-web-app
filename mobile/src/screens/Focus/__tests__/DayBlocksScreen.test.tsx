@@ -364,7 +364,8 @@ describe('the sheet, in each of the three rhythm states', () => {
     const { getByTestId, queryByTestId, getByText } = await openSheet(['afternoon']);
 
     expect(getByTestId('add-block-suggestion')).toBeTruthy();
-    // Queried by text, which also pins that the [COPY GAP] marker renders.
+    // Queried by the exported constant, not a literal, so the pending copy pass
+    // on this file cannot break it.
     expect(getByText(PLACE_IT_THERE)).toBeTruthy();
     expect(getByTestId('add-block-choose-time')).toBeTruthy();
     // Neither of the other two states leaks in.

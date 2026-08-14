@@ -296,10 +296,18 @@ describe('Practices → Stress Recovery: the step-4b-ii-a page', () => {
 
     // The framing is the entire reason this pillar exists as a page rather than
     // a fourth Energy category — every practice behind it is already on Energy.
-    // Asserted by shape (both framing slots are present and marked) rather than
-    // by exact words, because the words are Jen's to replace: a title and an
-    // intro, which is precisely what the Energy browse lists do not have.
-    expect(await findAllByText(/^\[COPY GAP\]/)).toHaveLength(2);
+    // Two slots, a title and an intro, which is precisely what the Energy browse
+    // lists do not have.
+    //
+    // This used to assert both slots by their [COPY GAP] prefix, which let it
+    // check shape without pinning wording. The prefix is gone, so it now names
+    // the strings. That couples the test to copy Jen has not signed off, and the
+    // coupling is the point: if the words change, this fails loudly rather than
+    // silently passing on a page that lost its framing.
+    expect(await findAllByText('Stress Recovery')).toHaveLength(1);
+    expect(
+      await findAllByText('In-the-moment relief when you are activated.')
+    ).toHaveLength(1);
   });
 
   it('pushes over the hub, leaving a back path to Practices', async () => {

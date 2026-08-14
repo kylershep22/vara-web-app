@@ -45,8 +45,10 @@ const CHECK_SIZE = 22;
 // change rather than a string swap. Tracked, not silently collapsed to one line.
 const COMPLETION_COPY = {
   markDone: 'Mark it done',
-  done: '[COPY GAP] Done today',
-  saveFailed: '[COPY GAP] That did not save. Try again.',
+  // COPY: draft, not from guidelines doc - pending Jen
+  done: 'Done today',
+  // COPY: draft, not from guidelines doc - pending Jen
+  saveFailed: 'That did not save. Try again.',
 } as const;
 
 export interface TodayHeroCardProps {

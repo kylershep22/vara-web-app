@@ -44,8 +44,9 @@ const COPY_SOURCES = [
   'src/screens/Focus/FocusRhythmsScreen.tsx',
   // IA restructure step 4a. The Practices hub's pillar card labels and
   // descriptors, guarded on the same terms as the pillar hubs they open. The
-  // strings are [COPY GAP] placeholders today, which is exactly why the guard
-  // goes on now: it is Jen's replacement copy that most needs it.
+  // strings are still draft (see the `COPY: draft` sentinels in that file),
+  // which is exactly why the guard goes on now: it is Jen's replacement copy
+  // that most needs it.
   'src/screens/practices/PracticesHubScreen.tsx',
   // IA restructure step 4b-ii-a. The Stress Recovery page's title + intro, on
   // the same terms as the Energy browse list it cross-lists from.

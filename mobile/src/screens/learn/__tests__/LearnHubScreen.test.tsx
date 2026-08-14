@@ -14,11 +14,11 @@ describe('LearnHubScreen — step 2 shell', () => {
     expect(getByText('Learn')).toBeTruthy();
   });
 
-  it('renders placeholder copy still marked as a copy gap', () => {
-    const { getByText } = render(<LearnHubScreen />);
-
-    expect(getByText(/^\[COPY GAP\]/)).toBeTruthy();
-  });
+  // DELETED: 'renders placeholder copy still marked as a copy gap', which
+  // asserted getByText(/^\[COPY GAP\]/). Its only job was proving the on-screen
+  // marker rendered, and that convention is retired: no marker text may reach
+  // the UI, so there is nothing left for it to assert. The tab's body text is
+  // covered by the mount test above.
 
   it('has nothing tappable', () => {
     const { UNSAFE_root } = render(<LearnHubScreen />);

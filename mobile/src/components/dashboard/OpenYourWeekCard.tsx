@@ -21,10 +21,13 @@ const MIN_TOUCH_TARGET = 48;
 
 // Placeholder pending Jen, marked like the rest of the weekly copy.
 const COPY = {
-  heading: '[COPY GAP] Start your week',
+  // COPY: draft, not from guidelines doc - pending Jen
+  heading: 'Start your week',
+  // COPY: draft, not from guidelines doc - pending Jen
   body:
-    '[COPY GAP] Pick what you want more of and how much room the week has. It takes about a minute.',
-  cta: '[COPY GAP] Open your week',
+    'Pick what you want more of and how much room the week has. It takes about a minute.',
+  // COPY: draft, not from guidelines doc - pending Jen
+  cta: 'Open your week',
 } as const;
 
 export interface OpenYourWeekCardProps {
