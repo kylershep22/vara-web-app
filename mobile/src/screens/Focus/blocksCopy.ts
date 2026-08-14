@@ -280,6 +280,11 @@ export function formatTimeRange(start: Date, durationMinutes: number): string {
   return `${formatClock(start)} to ${formatClock(end)}`;
 }
 
+/**
+ * DELIBERATELY NOT EXPORTED. Every caller goes through a builder in this file,
+ * so the meridiem above cannot be dropped at a call site — it can only be
+ * removed here, next to the note explaining what that cost last time.
+ */
 function formatClock(date: Date): string {
   const hours24 = date.getHours();
   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
@@ -287,6 +292,30 @@ function formatClock(date: Date): string {
   const meridiem = hours24 >= 12 ? 'PM' : 'AM';
   return `${hours12}:${minutes} ${meridiem}`;
 }
+
+// COPY: draft, not from guidelines doc - pending Jen
+/**
+ * [mockup] C .st, the "already placed" status on a task row (TB-3).
+ *
+ * DIVERGES FROM THE DRAWING, AND THE DIVERGENCE IS THE POINT. Screen C draws
+ * "Blocked · 9:00" with no meridiem. That is the exact ambiguity documented on
+ * formatTimeRange above: a 9 AM block and a 9 PM block render as the same
+ * string, and following the drawing on that point once already cost a device
+ * walk round diagnosing a display lie as a logic bug. So this ships
+ * "Blocked · 9:00 AM".
+ *
+ * FOR JEN: this is a deliberate departure from the mockup, not an oversight. If
+ * the bare time is wanted for rhythm, it is a copy decision to make knowingly —
+ * do not quietly restore it to match the drawing.
+ *
+ * Lives here rather than in tasksCopy because it formats a BLOCK's start, and
+ * formatClock is private to this file. Same reasoning that kept DEMAND_LABELS
+ * here: the vocabulary of a thing lives with the thing.
+ *
+ * The separator is an interpunct (U+00B7), matching suggestionSlot and the task
+ * group headers. It is not an em dash and the app-wide rule does not reach it.
+ */
+export const blockedAt = (start: Date) => `Blocked ${'·'} ${formatClock(start)}`;
 
 // COPY: draft, not from guidelines doc - pending Jen
 /**

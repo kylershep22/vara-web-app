@@ -14,9 +14,17 @@
  * it, below a divider, because a task has nowhere else to put a destructive
  * action — there is no swipe, by decision (see the screen header).
  *
+ * IT ALSO HOSTS "BLOCK IT" AS OF TB-3, and that placement is a decision the
+ * mockup asked for by name. Screen C draws the action on every task ROW and its
+ * own annotation questions it: "three tappables per group... or tap a task, act
+ * from a sheet. Quieter, one more step. Which way?" The sheet won, on the TB-2c
+ * precedent that already moved editing and clearing here for the same reason —
+ * the list keeps one target per row and one primary action on the screen.
+ *
  * PRESENTATIONAL. It hands a draft up once and writes nothing itself — not even
- * the delete, which it only requests. Same split AddBlockSheet and
- * DailyPickerSheet use, and what lets an abandoned sheet leave nothing behind.
+ * the delete, which it only requests, nor the navigation, which it also only
+ * requests. Same split AddBlockSheet and DailyPickerSheet use, and what lets an
+ * abandoned sheet leave nothing behind.
  *
  * DEMAND IS REQUIRED AND HAS NO DEFAULT. Same reasoning as the blocks sheet:
  * "how much does this take out of you?" is a felt question, and pre-selecting an
@@ -42,6 +50,8 @@ import { SelectChip } from '../../components/shared/SelectChip';
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import type { Demand } from '../../types/models';
 import {
+  BLOCK_IT,
+  BLOCK_IT_A11Y_HINT,
   CLEAR_TASK,
   DEMAND_LABELS,
   EDIT_INTRO,
@@ -76,6 +86,19 @@ export interface CaptureTaskSheetProps {
   initialTask?: CapturedTask | null;
   /** Edit mode only. Confirms and clears; the screen owns the delete. */
   onClear?: () => void;
+  /**
+   * Edit mode only. Leaves for the day view to place this task into a block
+   * (TB-3). The screen owns the navigation; this only requests it, on the same
+   * split as onClear.
+   *
+   * ABSENCE IS HOW "ALREADY BLOCKED" IS EXPRESSED, and that is deliberate. The
+   * chip on the task row and this button are mutually exclusive states of the
+   * same thing, so rather than passing the block down and branching here, the
+   * screen simply does not supply this handler for a task that already has one.
+   * The exclusivity is then structural: there is no combination of props that
+   * renders a Block it button for a blocked task.
+   */
+  onBlockIt?: () => void;
   onConfirm: (draft: NewTaskDraft) => void;
   onDismiss: () => void;
 }
@@ -86,6 +109,7 @@ export const CaptureTaskSheet: React.FC<CaptureTaskSheetProps> = ({
   saveFailed,
   initialTask,
   onClear,
+  onBlockIt,
   onConfirm,
   onDismiss,
 }) => {
@@ -166,6 +190,32 @@ export const CaptureTaskSheet: React.FC<CaptureTaskSheetProps> = ({
               {editing ? SAVE_CHANGES : SAVE_CTA}
             </Text>
           </TouchableOpacity>
+
+          {/* Edit only, and only for a task with no block on it yet (TB-3).
+              Sits BETWEEN the primary and the destructive zone, which is the
+              order of consequence on this sheet: save what you changed, place
+              it, or throw it away.
+
+              A SECONDARY TREATMENT, standards 7.1: outlined rather than
+              filled, so it is legible as an action without competing with the
+              filled primary above it, and unmistakable against the filled grey
+              Clear below. Three filled buttons in a column would read as three
+              equal choices, which they are not. */}
+          {editing && onBlockIt && (
+            <TouchableOpacity
+              style={styles.secondary}
+              onPress={onBlockIt}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={BLOCK_IT}
+              // The tap closes this sheet and pushes another screen. That is a
+              // bigger consequence than the label carries, so it is announced.
+              accessibilityHint={BLOCK_IT_A11Y_HINT}
+              testID="capture-task-block-it"
+            >
+              <Text style={styles.secondaryLabel}>{BLOCK_IT}</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Edit only. Separated from the primary by a divider so a
               destructive action is never adjacent to the confirm, and Muted
@@ -255,6 +305,26 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.white,
+  },
+  // Outlined, not filled. The one treatment that is unambiguously neither the
+  // primary (filled teal, directly above) nor the destructive (filled Muted
+  // Sage Gray, directly below), so a column of three buttons still reads as a
+  // hierarchy rather than a menu.
+  secondary: {
+    marginTop: Spacing.md,
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: Layout.borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.evergreenTeal,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+  },
+  secondaryLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
   },
   // Sits below the primary with a rule above it: a destructive action must not
   // read as the next step after the confirm.

@@ -57,6 +57,12 @@ export interface CreateDayBlockInput {
    * be what a suggestion was placed from.
    */
   suggestedFrom?: TimedRhythmKey;
+  /**
+   * The captured task this block came from, when it came from one (TB-3).
+   * Provenance only, exactly like `suggestedFrom` above, and set ONLY at
+   * creation: see DayBlockPatch below for why re-linking is unrepresentable.
+   */
+  sourceTaskId?: string;
 }
 
 /** Create a block. Returns the new document id. */
@@ -75,6 +81,10 @@ export async function createDayBlock(
     // explicit `undefined` field value, so the key has to be absent rather than
     // unset when no suggestion was accepted.
     ...(input.suggestedFrom ? { suggestedFrom: input.suggestedFrom } : {}),
+    // SPREAD, for the same reason as suggestedFrom directly above: Firestore
+    // rejects an explicit `undefined` field value, so a block created by hand
+    // rather than from a task must have the key ABSENT, not unset.
+    ...(input.sourceTaskId ? { sourceTaskId: input.sourceTaskId } : {}),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -116,11 +126,24 @@ export async function listDayBlocksBetween(
 }
 
 /**
- * A patch. Only these six fields exist, deliberately.
+ * A patch. Only these seven fields exist, deliberately.
  *
  * `suggestedFrom: null` CLEARS the provenance; omitting it leaves it alone.
  * Null rather than undefined because undefined means "not patching this", and
  * the two are different intents.
+ *
+ * `sourceTaskId` IS NULL-ONLY, AND THE ASYMMETRY IS THE POINT (TB-3). The link
+ * is established at creation and can only ever be destroyed afterwards, never
+ * moved: there is no affordance anywhere that picks a different task for an
+ * existing block, so a set-path here would be speculative code that widens the
+ * write surface for nothing. Typing it `null` rather than `string | null` makes
+ * re-linking UNREPRESENTABLE rather than merely unused — a caller cannot reach
+ * for it even by accident.
+ *
+ * Contrast `suggestedFrom`, which is typed to accept a zone too. It reads
+ * wider than it is used (its only live caller passes null, from the title/time
+ * edit path in DayBlocksScreen), and that width is exactly what this one
+ * declines to copy.
  */
 export interface DayBlockPatch {
   title?: string;
@@ -129,6 +152,7 @@ export interface DayBlockPatch {
   startAt?: Date;
   isProtected?: boolean;
   suggestedFrom?: TimedRhythmKey | null;
+  sourceTaskId?: null;
 }
 
 /**
@@ -162,6 +186,13 @@ export async function updateDayBlock(
     // would violate that for every reader.
     payload.suggestedFrom =
       patch.suggestedFrom === null ? deleteField() : patch.suggestedFrom;
+  }
+  if (patch.sourceTaskId !== undefined) {
+    // Removed, not nulled, on the suggestedFrom mechanism directly above: the
+    // field is optional on DayBlock and a stored null would violate that for
+    // every reader. The type admits only null, so there is no set branch to
+    // write — the ternary above has no counterpart here by design.
+    payload.sourceTaskId = deleteField();
   }
 
   payload.updatedAt = serverTimestamp();

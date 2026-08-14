@@ -175,6 +175,32 @@ export const CLEAR_FAILED = "That didn't clear. Try once more.";
  */
 export const ROW_A11Y_HINT = 'Opens this task to edit or clear it';
 
+// ---- the task-to-block bridge (TB-3, mockup C) ----
+
+// COPY: draft, not from guidelines doc - pending Jen
+/**
+ * [mockup] C .st.q, the action on a task that has no block yet.
+ *
+ * IT IS A BUTTON INSIDE THE EDIT SHEET, NOT A PER-ROW CONTROL, and the mockup
+ * itself is what asks the question: "'Block it' per row is three tappables per
+ * group. Alternative: tap a task, act from a sheet. Quieter, one more step.
+ * Which way?" TB-2c already answered the identical question for editing and
+ * clearing by choosing the sheet, and a second tappable nested inside a row that
+ * is already one button would give every row two targets and two announcements.
+ * The words survive the move; the placement does not.
+ */
+export const BLOCK_IT = 'Block it';
+
+// COPY: draft, not from guidelines doc - pending Jen
+/**
+ * [new] Announced for the Block it button, because the tap LEAVES this screen.
+ *
+ * Every other control in this sheet resolves inside it. This one closes the
+ * sheet and pushes the day view, which is a bigger consequence than a button
+ * label can carry on its own, so it is named rather than discovered.
+ */
+export const BLOCK_IT_A11Y_HINT = 'Closes this and opens the day view to place it';
+
 // COPY: draft, not from guidelines doc - pending Jen
 /**
  * [new] A refused save.

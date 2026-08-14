@@ -3,6 +3,14 @@
  * the task arriving from Tasks with its tag already on and TB-1b has no Tasks
  * screen to arrive from.
  *
+ * THAT ARRIVAL EXISTS AS OF TB-3 (`seed`). A task tapped "Block it" on the Tasks
+ * screen opens this sheet with its title and demand already filled, which is
+ * what mockup B's annotation describes: "The task arrives from Tasks with its
+ * demand tag already on. Typing a fresh one here also works." What the mockup
+ * does NOT draw, and what is therefore deliberately absent, is a control for
+ * PICKING a task from inside this sheet. Arriving and picking are two different
+ * features and only the first is drawn; the picker is deferred.
+ *
  * PRESENTATIONAL, AND THAT IS THE SAFETY PROPERTY, exactly as DailyPickerSheet
  * states it: this component owns no write and no service call. It holds the
  * draft in local state and hands it upward once, on confirm. The screen owns
@@ -103,6 +111,21 @@ const DEFAULT_DURATION = 60;
 /** Fallback manual start when there is no suggestion to seed from. */
 const FALLBACK_START_HOUR = 9;
 
+/**
+ * A captured task this block is being created from (TB-3).
+ *
+ * PRE-FILL PLUS PROVENANCE, and nothing else. It seeds two fields the user
+ * would otherwise retype and carries the id through to the write. It does not
+ * decide the time, the duration, or the day — a task is timeless, so everything
+ * about WHEN is still the user's answer here, exactly as it is for a block
+ * started by hand.
+ */
+export interface BlockSeed {
+  title: string;
+  demand: Demand;
+  sourceTaskId: string;
+}
+
 /** What the sheet hands up. The screen turns this into a createDayBlock call. */
 export interface NewBlockDraft {
   title: string;
@@ -112,6 +135,8 @@ export interface NewBlockDraft {
   isProtected: boolean;
   /** Present only when the rhythm suggestion was accepted unchanged. */
   suggestedFrom?: TimedRhythmKey;
+  /** Present only when the block was started from a captured task (TB-3). */
+  sourceTaskId?: string;
 }
 
 export interface AddBlockSheetProps {
@@ -137,6 +162,14 @@ export interface AddBlockSheetProps {
   manualOnly: boolean;
   /** Pre-fills the form and switches copy to edit mode. */
   initialBlock?: DayBlock | null;
+  /**
+   * Pre-fills a CREATE from a captured task (TB-3). Null for a hand-started
+   * block, and mutually exclusive with initialBlock in practice: a seed makes a
+   * block that does not exist yet, an initialBlock edits one that does. Where
+   * both were somehow supplied, initialBlock wins every field below — editing a
+   * real row must never be overwritten by a stale seed.
+   */
+  seed?: BlockSeed | null;
   /** Edit mode only. Confirms and removes; the screen owns the delete. */
   onRemove?: () => void;
   saving: boolean;
@@ -177,6 +210,7 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
   dayAnchor,
   manualOnly,
   initialBlock,
+  seed,
   onRemove,
   saving,
   saveFailed,
@@ -194,9 +228,16 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
   // Every field is seeded from the block when editing. The sheet is remounted
   // by key on each open, so these initialisers run exactly once per opening
   // and there is no stale-prop reconciliation to get wrong.
-  const [title, setTitle] = useState(initialBlock?.title ?? '');
+  // A seed fills the same two initialisers an edit does, and for the same
+  // reason: both are answers the user has already given. Nothing about WHEN is
+  // seeded — see the BlockSeed note.
+  const [title, setTitle] = useState(initialBlock?.title ?? seed?.title ?? '');
   // Null until the user answers. See the note above on why there is no default.
-  const [demand, setDemand] = useState<Demand | null>(initialBlock?.demand ?? null);
+  // A seeded demand is NOT a default: the user tagged the task, and this is
+  // that answer carried over rather than one assigned on their behalf.
+  const [demand, setDemand] = useState<Demand | null>(
+    initialBlock?.demand ?? seed?.demand ?? null
+  );
   const [durationMinutes, setDurationMinutes] = useState(
     initialBlock?.durationMinutes ?? DEFAULT_DURATION
   );
@@ -297,6 +338,10 @@ export const AddBlockSheet: React.FC<AddBlockSheetProps> = ({
       ...(!manual && suggestion.kind === 'ok'
         ? { suggestedFrom: suggestion.zoneKey }
         : {}),
+      // Provenance, carried through untouched from the seed. Only on a create:
+      // editing an existing block cannot establish a link that was not there,
+      // and the patch type makes re-linking unrepresentable anyway.
+      ...(seed && !editing ? { sourceTaskId: seed.sourceTaskId } : {}),
     });
   };
 

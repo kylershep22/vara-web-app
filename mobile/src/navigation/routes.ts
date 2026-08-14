@@ -78,9 +78,10 @@ export const ROUTES = {
   // easiest; no scores. Registered in the flag-ON AppStack path only.
   FocusRhythms: 'FocusRhythms',
   // Today's blocks (TB-1b), reached from the Focus hub's "Time blocking" card
-  // and from nowhere else. NOT flag-gated, on the PillarStressRecovery
-  // precedent: its only parent is a screen that exists solely in the four-tab
-  // IA, so there is no flag-OFF path that could reach it.
+  // and, since TB-3, from "Block it" in the Tasks edit sheet — which pushes it
+  // with {seedTitle, seedDemand, seedTaskId} to open the add sheet pre-filled.
+  // NOT flag-gated, on the PillarStressRecovery precedent: neither parent is
+  // reachable outside the four-tab IA, so there is no flag-OFF path to it.
   FocusDayBlocks: 'FocusDayBlocks',
   // Captured tasks (TB-2b), reached from the Focus hub's "Task batching" card
   // and from nowhere else. Ungated for the same reason as FocusDayBlocks above:

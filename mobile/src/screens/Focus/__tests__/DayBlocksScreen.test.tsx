@@ -21,8 +21,16 @@ jest.mock('react-native-safe-area-context', () => {
 });
 
 const mockNavigate = jest.fn();
+// TB-3's seeded arrival. A MUTABLE HOLDER whose IDENTITY IS STABLE unless a test
+// replaces it, which is the property the screen's one-shot effect depends on:
+// React Navigation keeps the params object identity stable for the life of a
+// route entry, so a plain useEffect keyed on it fires once per navigation. A
+// mock returning a fresh literal per render would make that untestable — and
+// would hide the very bug the plain-effect choice avoids.
+let mockRouteParams: any;
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),
+  useRoute: () => ({ params: mockRouteParams }),
   // Run the effect body once on mount, which is what the screen needs.
   useFocusEffect: (cb: any) => {
     const React = require('react');
@@ -51,7 +59,7 @@ jest.mock('../../../services/firebase/focusRhythms.service', () => ({
 
 import React from 'react';
 import { Alert, Platform } from 'react-native';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { DayBlocksScreen, MAX_BLOCKS_PER_DAY } from '../DayBlocksScreen';
 import type { DayBlock } from '../../../types/models';
@@ -105,6 +113,9 @@ const TODAY_9AM = new Date(2026, 7, 13, 9, 0, 0);
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // No seed by default: the hub entry point carries no params at all, and that
+  // is how this screen is reached most of the time.
+  mockRouteParams = undefined;
   // The picker's Cancel/Done header is the iOS path; Android defers to the
   // system dialog and has no second commit button to disambiguate.
   Platform.OS = 'ios';
@@ -1213,5 +1224,270 @@ describe('the Tomorrow tab (TB-1c)', () => {
 
     await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
     expect(utils.queryByTestId('day-blocks-tomorrow-notice')).toBeNull();
+  });
+});
+
+// ---- the task-to-block bridge, day-view half (TB-3) ----
+
+describe('the seeded arrival from "Block it"', () => {
+  const SEED = { seedTitle: 'Q3 board deck', seedDemand: 'heavy', seedTaskId: 't1' };
+
+  it('opens the add sheet already filled from the task', async () => {
+    mockRouteParams = SEED;
+    const { findByTestId, getByTestId } = render(<DayBlocksScreen />);
+
+    await findByTestId('add-block-sheet');
+    expect(getByTestId('add-block-title').props.value).toBe('Q3 board deck');
+    expect(
+      getByTestId('add-block-demand-heavy').props.accessibilityState.selected
+    ).toBe(true);
+  });
+
+  it('opens in CREATE mode, not edit', async () => {
+    // A seeded block does not exist yet. Edit copy here would offer Remove on
+    // something that has never been written.
+    mockRouteParams = SEED;
+    const { findByTestId, queryByTestId, queryByText } = render(<DayBlocksScreen />);
+
+    await findByTestId('add-block-sheet');
+    expect(queryByTestId('add-block-remove')).toBeNull();
+    expect(queryByText(SAVE_CHANGES)).toBeNull();
+  });
+
+  it('lands on the Today tab', async () => {
+    mockRouteParams = SEED;
+    const { findByTestId } = render(<DayBlocksScreen />);
+
+    await findByTestId('add-block-sheet');
+    expect(
+      (await findByTestId('day-blocks-tab-today')).props.accessibilityState.selected
+    ).toBe(true);
+  });
+
+  it('still offers the rhythm suggestion, because that IS the loop', async () => {
+    // The seed answers WHAT. WHEN is the question this whole feature exists to
+    // help with, so a seeded create must not be forced into manual mode the way
+    // editing and the Tomorrow tab are.
+    jest.spyOn(Date.prototype, 'getHours').mockReturnValue(9);
+    mockGetRhythms.mockResolvedValue(['mid_morning']);
+    mockRouteParams = SEED;
+
+    const { findByTestId, getByText } = render(<DayBlocksScreen />);
+
+    expect(await findByTestId('add-block-suggestion')).toBeTruthy();
+    expect(getByText(PLACE_IT_THERE)).toBeTruthy();
+  });
+
+  it('carries sourceTaskId through to the write', async () => {
+    jest.spyOn(Date.prototype, 'getHours').mockReturnValue(9);
+    mockGetRhythms.mockResolvedValue(['mid_morning']);
+    mockRouteParams = SEED;
+
+    const { findByTestId, getByTestId } = render(<DayBlocksScreen />);
+    await findByTestId('add-block-suggestion');
+
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
+    const [, input] = mockCreateBlock.mock.calls[0];
+    expect(input.sourceTaskId).toBe('t1');
+    expect(input.title).toBe('Q3 board deck');
+    expect(input.demand).toBe('heavy');
+  });
+
+  it('FIRES EXACTLY ONCE - re-rendering does not reopen the sheet', async () => {
+    // THE ONE-SHOT PROPERTY, and the reason the effect is a plain useEffect
+    // rather than useFocusEffect. Params identity is stable for the life of a
+    // route entry, so re-renders and focus changes must not re-fire it. A
+    // useFocusEffect here would reopen a seeded sheet, over whatever the user
+    // is now doing, on every return to this screen for the rest of the session.
+    mockRouteParams = SEED;
+    const { findByTestId, getByTestId, queryByTestId, rerender } = render(
+      <DayBlocksScreen />
+    );
+
+    await findByTestId('add-block-sheet');
+    // Dismiss, as a user backing out of the seeded draft would.
+    fireEvent(getByTestId('add-block-sheet'), 'requestClose');
+    await waitFor(() => expect(queryByTestId('add-block-sheet')).toBeNull());
+
+    // Same params object, new render pass. Nothing should reopen.
+    await act(async () => {
+      rerender(<DayBlocksScreen />);
+    });
+
+    expect(queryByTestId('add-block-sheet')).toBeNull();
+    expect(mockCreateBlock).not.toHaveBeenCalled();
+  });
+
+  it('opens nothing when the screen is reached with no params', async () => {
+    // The hub entry point, which is how this screen is reached most of the time.
+    mockRouteParams = undefined;
+    const { findByTestId, queryByTestId } = render(<DayBlocksScreen />);
+
+    await findByTestId('day-blocks-add');
+    expect(queryByTestId('add-block-sheet')).toBeNull();
+  });
+
+  it('opens nothing on a PARTIAL seed', async () => {
+    // The three fields are one seed. A half-filled sheet from a hand-built deep
+    // link, or a param that failed to serialise, is worse than no sheet.
+    mockRouteParams = { seedTitle: 'Q3 board deck' };
+    const { findByTestId, queryByTestId } = render(<DayBlocksScreen />);
+
+    await findByTestId('day-blocks-add');
+    expect(queryByTestId('add-block-sheet')).toBeNull();
+  });
+
+  it('opens nothing when the demand did not survive the wire', async () => {
+    // Route params are untyped at the boundary, so the demand is narrowed once
+    // rather than trusted. A junk value opens no sheet instead of seeding one
+    // with a tag nothing can render.
+    mockRouteParams = { ...SEED, seedDemand: 'urgent' };
+    const { findByTestId, queryByTestId } = render(<DayBlocksScreen />);
+
+    await findByTestId('day-blocks-add');
+    expect(queryByTestId('add-block-sheet')).toBeNull();
+  });
+
+  it('does not leak the seed into a hand-started block afterwards', async () => {
+    // Back out of a seeded draft, then tap Add. That block came from nobody and
+    // must carry no provenance.
+    mockRouteParams = SEED;
+    const { findByTestId, getByTestId, queryByTestId } = render(<DayBlocksScreen />);
+
+    await findByTestId('add-block-sheet');
+    fireEvent(getByTestId('add-block-sheet'), 'requestClose');
+    await waitFor(() => expect(queryByTestId('add-block-sheet')).toBeNull());
+
+    fireEvent.press(getByTestId('day-blocks-add'));
+    await findByTestId('add-block-sheet');
+
+    // A clean sheet: the keyed remount plus the cleared seed.
+    expect(getByTestId('add-block-title').props.value).toBe('');
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Strategy memo');
+    fireEvent.press(getByTestId('add-block-demand-light'));
+    fireEvent.press(getByTestId('add-block-time-row'));
+    scrollPickerTo(14, 0);
+    fireEvent.press(getByTestId('time-picker-commit'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockCreateBlock).toHaveBeenCalled());
+    const [, input] = mockCreateBlock.mock.calls[0];
+    expect('sourceTaskId' in input).toBe(false);
+  });
+});
+
+describe('editing a linked block (TB-3)', () => {
+  const LINKED = () =>
+    makeBlock({
+      id: 'b1',
+      start: new Date(new Date().setHours(9, 0, 0, 0)),
+      durationMinutes: 60,
+      title: 'Q3 board deck',
+      demand: 'heavy',
+      sourceTaskId: 't1',
+    });
+
+  async function openLinkedEditor(blocks = [LINKED()]) {
+    mockListBlocks.mockResolvedValue(blocks);
+    const utils = render(<DayBlocksScreen />);
+    fireEvent.press(await utils.findByTestId('block-card-b1'));
+    await utils.findByTestId('add-block-sheet');
+    return utils;
+  }
+
+  it('CLEARS the link when the title is edited away from the task', async () => {
+    // The field is not falsified by a rename: the block really did come from
+    // that task. What breaks is the only thing the field is for. The chip is an
+    // identity claim ("this task, that window"), and once the two titles
+    // diverge the person reading it cannot check it. Usefulness and
+    // truthfulness expire together, so the link goes.
+    const { getByTestId } = await openLinkedEditor();
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Sort receipts');
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalled());
+    const [, patch] = mockUpdateBlock.mock.calls[0];
+    expect(patch.sourceTaskId).toBeNull();
+  });
+
+  it('PRESERVES the link when only the time moves', async () => {
+    // Moving a block does not change what it is. Contrast suggestedFrom, which
+    // IS cleared by exactly this edit: the two rules key on different fields
+    // because they assert different things.
+    const { getByTestId } = await openLinkedEditor();
+
+    fireEvent.press(getByTestId('add-block-time-row'));
+    scrollPickerTo(15, 0);
+    fireEvent.press(getByTestId('time-picker-commit'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalled());
+    const [, patch] = mockUpdateBlock.mock.calls[0];
+    expect('sourceTaskId' in patch).toBe(false);
+    // The other rule still fires on the same edit.
+    expect(patch.suggestedFrom).toBeNull();
+  });
+
+  it('PRESERVES the link when only the demand or duration changes', async () => {
+    const { getByTestId } = await openLinkedEditor();
+
+    fireEvent.press(getByTestId('add-block-demand-light'));
+    fireEvent.press(getByTestId('add-block-duration-90'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalled());
+    const [, patch] = mockUpdateBlock.mock.calls[0];
+    expect('sourceTaskId' in patch).toBe(false);
+  });
+
+  it('treats a whitespace-only title change as no change at all', async () => {
+    // The confirm path trims before writing, so comparing a trimmed draft
+    // against an untrimmed original would report a rename for a stray space.
+    const { getByTestId } = await openLinkedEditor();
+
+    fireEvent.changeText(getByTestId('add-block-title'), '  Q3 board deck  ');
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalled());
+    const [, patch] = mockUpdateBlock.mock.calls[0];
+    expect('sourceTaskId' in patch).toBe(false);
+  });
+
+  it('writes nothing extra when an UNLINKED block is renamed', async () => {
+    // Most blocks have no link. Renaming one must not send a clear for a field
+    // that was never there.
+    const { getByTestId } = await openLinkedEditor([
+      makeBlock({
+        id: 'b1',
+        start: new Date(new Date().setHours(9, 0, 0, 0)),
+        durationMinutes: 60,
+        title: 'Q3 board deck',
+      }),
+    ]);
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Renamed');
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalled());
+    const [, patch] = mockUpdateBlock.mock.calls[0];
+    expect('sourceTaskId' in patch).toBe(false);
+  });
+
+  it('cannot RE-LINK a block from the edit sheet', async () => {
+    // There is no affordance for it and the patch type forbids it. This asserts
+    // the behaviour end to end: no edit ever produces a sourceTaskId string.
+    const { getByTestId } = await openLinkedEditor();
+
+    fireEvent.changeText(getByTestId('add-block-title'), 'Sort receipts');
+    fireEvent.press(getByTestId('add-block-demand-light'));
+    fireEvent.press(getByTestId('add-block-confirm'));
+
+    await waitFor(() => expect(mockUpdateBlock).toHaveBeenCalled());
+    const [, patch] = mockUpdateBlock.mock.calls[0];
+    expect(typeof patch.sourceTaskId).not.toBe('string');
   });
 });

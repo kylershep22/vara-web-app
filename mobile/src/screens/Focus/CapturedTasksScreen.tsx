@@ -29,6 +29,18 @@
  * one primary action on the screen — capture — with every change to an existing
  * task one level down, and it means blocks and tasks now answer the destructive
  * action question the same way.
+ *
+ * IT READS BLOCKS AS OF TB-3, AND ONLY TO DECORATE (the bridge). A task that has
+ * been placed shows a "Blocked · 9:00 AM" chip, and the action that places one
+ * lives in the edit sheet beside Clear. Three things are worth knowing:
+ *
+ *   - The link is DERIVED, never stored on the task. Blocks carry
+ *     `sourceTaskId`; nothing on CapturedTask points at a block, so the entity
+ *     stays timeless and neither deletion direction needs a cleanup write.
+ *   - The two reads are settled SEPARATELY. A blocks failure costs the chips
+ *     and nothing else; it must never be able to empty the task list.
+ *   - This screen still writes no blocks. Block it navigates; the day view
+ *     owns every dayBlocks write, as it always has.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -41,9 +53,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
+import { ROUTES } from '../../navigation/routes';
 import { useAuth } from '../../context/AuthContext';
 import { logger } from '../../utils/logger';
 import {
@@ -52,8 +66,11 @@ import {
   listCapturedTasks,
   updateCapturedTask,
 } from '../../services/firebase/capturedTasks.service';
-import type { CapturedTask } from '../../types/models';
+import { listDayBlocksBetween } from '../../services/firebase/dayBlocks.service';
+import type { CapturedTask, DayBlock } from '../../types/models';
 import { groupTasksByDemand } from './groupTasks';
+import { blockedFor } from './blockedFor';
+import { blockedAt } from './blocksCopy';
 import { TaskRow } from './components/TaskRow';
 import { CaptureTaskSheet, type NewTaskDraft } from './CaptureTaskSheet';
 import {
@@ -72,10 +89,44 @@ import {
 
 const MIN_TOUCH_TARGET = 48;
 
+/**
+ * The window the "Blocked" chip cares about: from local midnight today to local
+ * midnight the day after tomorrow, so today and tomorrow are both covered by ONE
+ * range query on the existing (userId, startAt) composite index.
+ *
+ * TODAY AND TOMORROW ONLY, and that matches the scope everywhere else: the day
+ * view has exactly these two tabs, and a block whose day has already passed is
+ * not meaningfully a plan any more — the day view marks such blocks "Earlier
+ * today" and gives them no done state precisely because they are history rather
+ * than intent. A chip claiming a task is Blocked against yesterday would be
+ * pointing at something the rest of the feature has already stopped counting.
+ */
+function chipWindow(now: Date): { start: Date; end: Date } {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 2);
+  return { start, end };
+}
+
+type NavigationProp = NativeStackNavigationProp<{
+  FocusDayBlocks:
+    | { seedTitle?: string; seedDemand?: string; seedTaskId?: string }
+    | undefined;
+}>;
+
 export function CapturedTasksScreen() {
   const { user } = useAuth();
+  const navigation = useNavigation<NavigationProp>();
 
   const [tasks, setTasks] = useState<CapturedTask[]>([]);
+  /**
+   * Today's and tomorrow's blocks, loaded only to derive the "Blocked" chip.
+   *
+   * This screen still owns no block writes and offers no block UI. It reads
+   * them, matches them against its own tasks, and renders a label.
+   */
+  const [blocks, setBlocks] = useState<DayBlock[]>([]);
   const [loading, setLoading] = useState(true);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -101,18 +152,53 @@ export function CapturedTasksScreen() {
   const load = useCallback(async () => {
     if (!uid) {
       setTasks([]);
+      setBlocks([]);
       setLoading(false);
       return;
     }
-    try {
-      setTasks(await listCapturedTasks(uid));
-    } catch (error) {
+
+    /**
+     * THE TWO READS ARE SETTLED SEPARATELY, NEVER AWAITED TOGETHER, and this is
+     * a correctness decision rather than a style one.
+     *
+     * The tasks read is what the screen IS. The blocks read only decorates it.
+     * Put both in one `Promise.all` inside one try, as the day view does with
+     * its own two reads, and a dayBlocks failure rejects the pair and takes the
+     * tasks list down with it — the user loses their entire capture list
+     * because a chip could not be drawn. The failure modes are ranked, so the
+     * error handling has to be too:
+     *
+     *   tasks read fails    the screen shows its empty copy, as it always has.
+     *   blocks read fails   NO CHIPS, and nothing else changes. Every task is
+     *                       still listed, editable, clearable and blockable.
+     *
+     * They still run CONCURRENTLY — allSettled starts both at once — so this
+     * costs nothing in latency. A test pins the degradation.
+     */
+    const { start, end } = chipWindow(new Date());
+    const [taskResult, blockResult] = await Promise.allSettled([
+      listCapturedTasks(uid),
+      listDayBlocksBetween(uid, start, end),
+    ]);
+
+    if (taskResult.status === 'fulfilled') {
+      setTasks(taskResult.value);
+    } else {
       // Best effort: an empty list is a legitimate state, so a read failure
       // shows the empty copy rather than an error screen.
-      logger.error('[CapturedTasks] load failed:', error);
-    } finally {
-      setLoading(false);
+      logger.error('[CapturedTasks] load failed:', taskResult.reason);
     }
+
+    if (blockResult.status === 'fulfilled') {
+      setBlocks(blockResult.value);
+    } else {
+      // Chips only. The list above is unaffected, which is the whole point of
+      // settling these separately.
+      logger.error('[CapturedTasks] block read failed:', blockResult.reason);
+      setBlocks([]);
+    }
+
+    setLoading(false);
   }, [uid]);
 
   useFocusEffect(
@@ -131,6 +217,10 @@ export function CapturedTasksScreen() {
   // service query stays a bare equality with no orderBy, and a spine test pins
   // that, so this memo is the only thing deciding what order anything appears in.
   const groups = useMemo(() => groupTasksByDemand(tasks), [tasks]);
+
+  // The block on each task that has one, derived rather than stored. See
+  // blockedFor.ts for why the link is read block -> task and never the reverse.
+  const blockByTask = useMemo(() => blockedFor(tasks, blocks), [tasks, blocks]);
 
   const openSheet = useCallback(() => {
     setSaveFailed(false);
@@ -217,6 +307,33 @@ export function CapturedTasksScreen() {
     [load]
   );
 
+  /**
+   * Hand the task off to the day view to be placed (TB-3).
+   *
+   * THE SEED IS ROUTE PARAMS, NOT A SECOND SHEET HOSTED HERE. AddBlockSheet
+   * needs the user's rhythm windows, a placement suggestion, a day anchor and
+   * the target day's existing blocks for its overlap check — all of which
+   * DayBlocksScreen already holds. Rebuilding that here would put a second
+   * writer of dayBlocks on a screen whose entire design is "capture is the only
+   * primary action", and would leave the overlap guard applying from one entry
+   * point and not the other.
+   *
+   * The sheet closes FIRST. Navigating out from under an open modal leaves it
+   * mounted behind the pushed screen and visible again on the way back.
+   */
+  const handleBlockIt = useCallback(
+    (task: CapturedTask) => {
+      setSheetOpen(false);
+      setEditing(null);
+      navigation.navigate(ROUTES.FocusDayBlocks, {
+        seedTitle: task.title,
+        seedDemand: task.demand,
+        seedTaskId: task.id,
+      });
+    },
+    [navigation]
+  );
+
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content} testID="captured-tasks">
@@ -264,14 +381,21 @@ export function CapturedTasksScreen() {
               >
                 {GROUP_HEADERS[group.demand]}
               </Text>
-              {group.tasks.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  onEdit={handleEdit}
-                  testID={`captured-tasks-row-${task.id}`}
-                />
-              ))}
+              {group.tasks.map((task) => {
+                const block = blockByTask.get(task.id);
+                return (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    // Formatted here, not in the row: blockedAt keeps the
+                    // meridiem rule inside blocksCopy, where formatClock is
+                    // private and the note explaining it lives.
+                    blockedLabel={block ? blockedAt(block.startAt.toDate()) : null}
+                    onEdit={handleEdit}
+                    testID={`captured-tasks-row-${task.id}`}
+                  />
+                );
+              })}
             </View>
           ))
         )}
@@ -284,6 +408,15 @@ export function CapturedTasksScreen() {
         saveFailed={saveFailed}
         initialTask={editing}
         onClear={editing ? () => handleClear(editing) : undefined}
+        // NOT SUPPLIED for a task that already has a block, which is how the
+        // chip and the action are kept mutually exclusive: the sheet has no
+        // branch for it, because there is no prop combination that renders
+        // Block it on a blocked task.
+        onBlockIt={
+          editing && !blockByTask.has(editing.id)
+            ? () => handleBlockIt(editing)
+            : undefined
+        }
         onConfirm={handleConfirm}
         onDismiss={() => {
           setSheetOpen(false);
