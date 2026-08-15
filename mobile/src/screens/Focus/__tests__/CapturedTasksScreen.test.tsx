@@ -34,13 +34,30 @@ jest.mock('../../../services/firebase/capturedTasks.service', () => ({
   deleteCapturedTask: (...a: any[]) => mockDeleteTask(...a),
 }));
 
+// TB-3. The screen reads blocks to derive the "Blocked" chip. It still writes
+// none — only the list function is reachable from here, and the rest of the
+// module is stubbed so an accidental write would be visible as a missing mock
+// rather than as a silent no-op.
+const mockListBlocks = jest.fn();
+jest.mock('../../../services/firebase/dayBlocks.service', () => ({
+  listDayBlocksBetween: (...a: any[]) => mockListBlocks(...a),
+  createDayBlock: jest.fn(),
+  updateDayBlock: jest.fn(),
+  deleteDayBlock: jest.fn(),
+}));
+
 // Clearing goes through the codebase's destructive-confirm Alert. Spied rather
 // than module-mocked, the same way DayBlocksScreen's removal tests do it:
 // replacing the Alert module leaves the `Alert` the screen imported undefined.
 
 // The real useFocusEffect needs a navigation container; the screen only uses it
 // to re-read on focus, so running the callback once on mount is the honest stub.
+// useNavigation arrived with TB-3's "Block it" handoff — a spy here proves the
+// call and its params; the round trip is proved against a real navigator in
+// DayBlocksLaunch.integration.test.tsx.
+const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate }),
   useFocusEffect: (cb: any) => {
     const React = require('react');
     React.useEffect(cb, [cb]);
@@ -52,7 +69,10 @@ import { Alert } from 'react-native';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { CapturedTasksScreen } from '../CapturedTasksScreen';
+import { ROUTES } from '../../../navigation/routes';
+import { blockedAt } from '../blocksCopy';
 import {
+  BLOCK_IT,
   CAPTURE_TARGET,
   CLEAR_CONFIRM_ACCEPT,
   CLEAR_CONFIRM_BODY,
@@ -78,11 +98,27 @@ const task = (id: string, title: string, demand: string, createdMs = 1000) => ({
   updatedAt: ts(createdMs),
 });
 
+/** A DayBlock whose startAt behaves like a Firestore Timestamp (TB-3). */
+const block = (id: string, start: Date, sourceTaskId?: string) =>
+  ({
+    id,
+    userId: 'u1',
+    title: 'Deep work',
+    demand: 'heavy',
+    durationMinutes: 60,
+    startAt: { toDate: () => start },
+    isProtected: false,
+    ...(sourceTaskId ? { sourceTaskId } : {}),
+    createdAt: {},
+    updatedAt: {},
+  }) as any;
+
 let mockAlert: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockListTasks.mockResolvedValue([]);
+  mockListBlocks.mockResolvedValue([]);
   mockCreateTask.mockResolvedValue('new-id');
   mockUpdateTask.mockResolvedValue(undefined);
   mockDeleteTask.mockResolvedValue(undefined);
@@ -604,5 +640,251 @@ describe('CaptureTaskSheet — the demand gate', () => {
     expect(queryByTestId('capture-task-time')).toBeNull();
     expect(queryByText('FOCUS RHYTHMS')).toBeNull();
     expect(queryByText(CAPTURE_TARGET)).toBeTruthy(); // the screen behind it
+  });
+});
+
+// ---- the task-to-block bridge (TB-3) ----
+
+const NINE_AM = new Date(2026, 7, 14, 9, 0, 0);
+const ELEVEN_AM = new Date(2026, 7, 14, 11, 0, 0);
+
+describe('the Blocked chip', () => {
+  it('reads today and tomorrow in ONE range query, on the existing index', async () => {
+    // A single call over a two-day window, not one call per day: the composite
+    // is (userId, startAt), so one range covers both and no new index ships.
+    render(<CapturedTasksScreen />);
+
+    await waitFor(() => expect(mockListBlocks).toHaveBeenCalled());
+    expect(mockListBlocks).toHaveBeenCalledTimes(1);
+
+    const [uid, start, end] = mockListBlocks.mock.calls[0];
+    expect(uid).toBe('u1');
+    // Local midnight today...
+    expect(start.getHours()).toBe(0);
+    expect(start.getMinutes()).toBe(0);
+    // ...to local midnight two days on, so today and tomorrow are both inside.
+    expect(end.getHours()).toBe(0);
+    expect(Math.round((end.getTime() - start.getTime()) / 86_400_000)).toBe(2);
+  });
+
+  it('renders the chip on a task that has a block', async () => {
+    mockListTasks.mockResolvedValue([task('t1', 'Q3 board deck', 'heavy')]);
+    mockListBlocks.mockResolvedValue([block('b1', NINE_AM, 't1')]);
+
+    const { findByTestId } = render(<CapturedTasksScreen />);
+
+    const chip = await findByTestId('task-blocked-t1');
+    expect(chip).toBeTruthy();
+    expect(chip.props.children).toBe(blockedAt(NINE_AM));
+  });
+
+  it('ships the meridiem, diverging from the mockup deliberately', async () => {
+    // The drawing says "Blocked · 9:00". A bare 12-hour time makes a 9 AM and a
+    // 9 PM block render identically, which is the exact ambiguity that cost a
+    // walk round on the block cards. Pinned so it cannot drift back.
+    mockListTasks.mockResolvedValue([task('t1', 'Q3 board deck', 'heavy')]);
+    mockListBlocks.mockResolvedValue([block('b1', NINE_AM, 't1')]);
+
+    const { findByTestId } = render(<CapturedTasksScreen />);
+
+    expect((await findByTestId('task-blocked-t1')).props.children).toContain('AM');
+  });
+
+  it('leaves an unblocked task with no chip', async () => {
+    mockListTasks.mockResolvedValue([
+      task('t1', 'Q3 board deck', 'heavy'),
+      task('t2', 'Expense report', 'light'),
+    ]);
+    mockListBlocks.mockResolvedValue([block('b1', NINE_AM, 't1')]);
+
+    const { findByTestId, queryByTestId } = render(<CapturedTasksScreen />);
+
+    await findByTestId('task-blocked-t1');
+    expect(queryByTestId('task-blocked-t2')).toBeNull();
+  });
+
+  it('folds the chip into the row label rather than making a second node', async () => {
+    // BlockCard's one-announcement pattern. A screen-reader user hears the task
+    // and its status as one string; the chip itself is not separately focusable.
+    mockListTasks.mockResolvedValue([task('t1', 'Q3 board deck', 'heavy')]);
+    mockListBlocks.mockResolvedValue([block('b1', NINE_AM, 't1')]);
+
+    const { findByTestId } = render(<CapturedTasksScreen />);
+
+    const row = await findByTestId('captured-tasks-row-t1');
+    expect(row.props.accessibilityLabel).toBe(
+      `Q3 board deck. ${blockedAt(NINE_AM)}`
+    );
+  });
+
+  it('shows the EARLIEST block when a task somehow has two', async () => {
+    // Not reachable through the UI — Block it is hidden the moment a task has a
+    // block — but reachable across two devices, so the chip is deterministic
+    // rather than dependent on array order.
+    mockListTasks.mockResolvedValue([task('t1', 'Q3 board deck', 'heavy')]);
+    mockListBlocks.mockResolvedValue([
+      block('b1', NINE_AM, 't1'),
+      block('b2', ELEVEN_AM, 't1'),
+    ]);
+
+    const { findByTestId } = render(<CapturedTasksScreen />);
+
+    expect((await findByTestId('task-blocked-t1')).props.children).toBe(
+      blockedAt(NINE_AM)
+    );
+  });
+
+  it('drops the chip once the block is gone, on the next load', async () => {
+    // No cleanup write anywhere: the chip is derived, so deleting the block is
+    // the whole of "unblock this task".
+    mockListTasks.mockResolvedValue([task('t1', 'Q3 board deck', 'heavy')]);
+    mockListBlocks.mockResolvedValue([block('b1', NINE_AM, 't1')]);
+
+    const first = render(<CapturedTasksScreen />);
+    await first.findByTestId('task-blocked-t1');
+    first.unmount();
+
+    // The block is removed from the day view. Nothing else happens anywhere.
+    mockListBlocks.mockResolvedValue([]);
+
+    const second = render(<CapturedTasksScreen />);
+    await second.findByTestId('captured-tasks-row-t1');
+    expect(second.queryByTestId('task-blocked-t1')).toBeNull();
+
+    // The task itself is untouched — nothing was written to unblock it.
+    expect(mockUpdateTask).not.toHaveBeenCalled();
+    expect(mockDeleteTask).not.toHaveBeenCalled();
+  });
+
+  it('ignores a block pointing at a task that was cleared', async () => {
+    mockListTasks.mockResolvedValue([task('t1', 'Q3 board deck', 'heavy')]);
+    mockListBlocks.mockResolvedValue([block('b1', NINE_AM, 'cleared-task')]);
+
+    const { findByTestId, queryByTestId } = render(<CapturedTasksScreen />);
+
+    await findByTestId('captured-tasks-row-t1');
+    expect(queryByTestId('task-blocked-t1')).toBeNull();
+  });
+});
+
+describe('a failed blocks read degrades to no chips, never to no tasks', () => {
+  it('still renders every task when the blocks read rejects', async () => {
+    // THE RANKED FAILURE MODES, PINNED. The tasks read is what the screen IS;
+    // the blocks read only decorates it. Awaiting both together in one
+    // Promise.all would let a dayBlocks outage empty the user's capture list.
+    mockListTasks.mockResolvedValue([
+      task('t1', 'Q3 board deck', 'heavy'),
+      task('t2', 'Expense report', 'light'),
+    ]);
+    mockListBlocks.mockRejectedValue(new Error('index missing'));
+
+    const { findByTestId, queryByTestId, queryByText } = render(<CapturedTasksScreen />);
+
+    expect(await findByTestId('captured-tasks-row-t1')).toBeTruthy();
+    expect(await findByTestId('captured-tasks-row-t2')).toBeTruthy();
+    // No chips, and emphatically not the empty copy.
+    expect(queryByTestId('task-blocked-t1')).toBeNull();
+    expect(queryByText(EMPTY_LINE)).toBeNull();
+  });
+
+  it('keeps the sheet reachable when the blocks read rejects', async () => {
+    // Degraded chips must not degrade the actions. Editing, clearing and
+    // capturing all still work with no block data at all.
+    mockListTasks.mockResolvedValue([task('t1', 'Q3 board deck', 'heavy')]);
+    mockListBlocks.mockRejectedValue(new Error('offline'));
+
+    const { findByTestId, findByText } = render(<CapturedTasksScreen />);
+
+    fireEvent.press(await findByTestId('captured-tasks-row-t1'));
+    expect(await findByText(EDIT_TITLE)).toBeTruthy();
+  });
+
+  it('still shows the empty copy when the TASKS read rejects', async () => {
+    // The other direction, unchanged from TB-2b: an empty list is a legitimate
+    // state, so a tasks failure shows the warm line rather than an error screen.
+    mockListTasks.mockRejectedValue(new Error('offline'));
+    mockListBlocks.mockResolvedValue([]);
+
+    const { findByTestId } = render(<CapturedTasksScreen />);
+
+    expect(await findByTestId('captured-tasks-empty')).toBeTruthy();
+  });
+});
+
+describe('Block it', () => {
+  const openEdit = async (blocks: any[] = []) => {
+    mockListTasks.mockResolvedValue([task('t1', 'Q3 board deck', 'heavy')]);
+    mockListBlocks.mockResolvedValue(blocks);
+    const utils = render(<CapturedTasksScreen />);
+    fireEvent.press(await utils.findByTestId('captured-tasks-row-t1'));
+    await utils.findByText(EDIT_TITLE);
+    return utils;
+  };
+
+  it('offers Block it in the edit sheet, not on the row', async () => {
+    // The mockup draws the action per row and asks the question in its own
+    // annotation: "three tappables per group... or tap a task, act from a
+    // sheet." TB-2c answered it for edit and clear; this follows.
+    const { getByTestId, queryByTestId } = await openEdit();
+
+    expect(getByTestId('capture-task-block-it')).toBeTruthy();
+    // The row itself gained no second target.
+    expect(queryByTestId('captured-tasks-row-t1').props.children).toBeTruthy();
+  });
+
+  it('is absent on the capture sheet, which has no task to place', async () => {
+    const { findByTestId, queryByTestId } = render(<CapturedTasksScreen />);
+
+    fireEvent.press(await findByTestId('captured-tasks-capture'));
+    await findByTestId('capture-task-sheet');
+
+    expect(queryByTestId('capture-task-block-it')).toBeNull();
+  });
+
+  it('is HIDDEN on a task that already has a block', async () => {
+    // The chip and the action are mutually exclusive, and structurally so: the
+    // screen withholds the handler, so the sheet has no branch to get wrong.
+    const { queryByTestId } = await openEdit([block('b1', NINE_AM, 't1')]);
+
+    expect(queryByTestId('capture-task-block-it')).toBeNull();
+  });
+
+  it('navigates to the day view carrying title, demand and task id', async () => {
+    const { getByTestId } = await openEdit();
+
+    fireEvent.press(getByTestId('capture-task-block-it'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.FocusDayBlocks, {
+      seedTitle: 'Q3 board deck',
+      seedDemand: 'heavy',
+      seedTaskId: 't1',
+    });
+  });
+
+  it('closes the sheet before leaving', async () => {
+    // Navigating out from under an open modal leaves it mounted behind the
+    // pushed screen and visible again on the way back.
+    const { getByTestId, queryByTestId } = await openEdit();
+
+    fireEvent.press(getByTestId('capture-task-block-it'));
+
+    await waitFor(() =>
+      expect(queryByTestId('capture-task-sheet')).toBeNull()
+    );
+  });
+
+  it('writes nothing — placing a task is a navigation, not a mutation', async () => {
+    const { getByTestId } = await openEdit();
+
+    fireEvent.press(getByTestId('capture-task-block-it'));
+
+    expect(mockUpdateTask).not.toHaveBeenCalled();
+    expect(mockDeleteTask).not.toHaveBeenCalled();
+    expect(mockCreateTask).not.toHaveBeenCalled();
+  });
+
+  it('renders the mockup label', async () => {
+    const { getByText } = await openEdit();
+    expect(getByText(BLOCK_IT)).toBeTruthy();
   });
 });

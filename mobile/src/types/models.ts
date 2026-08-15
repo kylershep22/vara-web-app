@@ -719,6 +719,33 @@ export interface DayBlock {
    * unrepresentable rather than merely unlikely.
    */
   suggestedFrom?: TimedRhythmKey;
+  /**
+   * Which captured task this block was created from, when it came from one at
+   * all (TB-3, the task-to-block bridge).
+   *
+   * PROVENANCE ONLY, on exactly the `suggestedFrom` terms above. It records
+   * where the block came from; it is never scheduling data, never an ownership
+   * claim, and nothing derives a time from it.
+   *
+   * THE LINK LIVES HERE AND NOT ON THE TASK, and that direction is the whole
+   * design. A CapturedTask is structurally timeless — see its "deliberately
+   * absent" list below, where `dueDate` is refused because it would make two
+   * competing answers to "when does this happen". A `blockId` there would be
+   * that same second answer one hop away. Keeping the reference on this side
+   * also makes both deletions behave without a cleanup pass:
+   *
+   *   block deleted   the task's "Blocked" chip is DERIVED by scanning loaded
+   *                   blocks (see screens/Focus/blockedFor.ts), so the chip
+   *                   simply stops matching. Nothing to tidy.
+   *   task cleared    this id dangles, and that is harmless: no read path
+   *                   dereferences it. The derivation asks "which block points
+   *                   at THIS task", starting from a task that still exists, so
+   *                   a pointer to a cleared task is never followed.
+   *
+   * A DANGLING VALUE IS THEREFORE EXPECTED, not a defect. Do not add a cleanup
+   * job, a batch write on clear, or an existence check on read.
+   */
+  sourceTaskId?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -754,6 +781,12 @@ export interface DayBlock {
  *              is an appointment with no done state at all.)
  *   dueDate    Scheduling is what a DayBlock is for. A due date here would make
  *              two competing answers to "when does this happen".
+ *   blockId    Same refusal, one hop further out (TB-3). The task-to-block link
+ *              is real, but it lives on the BLOCK as `sourceTaskId` — a
+ *              reference from here would be a second answer to "when does this
+ *              happen" reached by dereferencing, and it would need a cleanup
+ *              write every time a block was deleted. The "Blocked" chip is
+ *              DERIVED instead; see the sourceTaskId note on DayBlock above.
  *   priority   The importance axis belongs to the legacy entity. Demand is the
  *              only axis this model has, by design.
  *   description, projects, subtasks, reminders, tags

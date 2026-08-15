@@ -147,6 +147,40 @@ describe('createDayBlock', () => {
     expect(mockAddDoc).toHaveBeenCalledTimes(1);
   });
 
+  it('writes sourceTaskId when the block came from a captured task', async () => {
+    // TB-3 provenance, on the suggestedFrom terms exactly: it records WHERE the
+    // block came from and is never the source of anything about when.
+    await createDayBlock(ALICE, {
+      title: 'Q3 board deck',
+      demand: 'heavy',
+      durationMinutes: 90,
+      startAt: START_AT,
+      isProtected: false,
+      sourceTaskId: 'task-7',
+    });
+
+    const [, payload] = mockAddDoc.mock.calls[0];
+    expect(payload.sourceTaskId).toBe('task-7');
+    expect(payload.startAt).toBe(START_AT);
+  });
+
+  it('OMITS sourceTaskId entirely for a hand-started block', async () => {
+    // THE CONDITIONAL SPREAD, PINNED. Not `undefined`: Firestore rejects an
+    // undefined field value outright, so writing the key unset would throw
+    // against a real backend for every block created from the day view's own
+    // Add CTA — which is most of them. Same failure mode suggestedFrom has.
+    await createDayBlock(ALICE, {
+      title: 'Inbox',
+      demand: 'light',
+      durationMinutes: 30,
+      startAt: START_AT,
+      isProtected: false,
+    });
+
+    const [, payload] = mockAddDoc.mock.calls[0];
+    expect('sourceTaskId' in payload).toBe(false);
+  });
+
   it('writes no completed field — blocks have no done state by design', async () => {
     // Past blocks fade; they are never ticked off. Treat this absence as
     // designed, not missing, and do not "restore" it.
@@ -290,6 +324,40 @@ describe('updateDayBlock', () => {
 
     const [, payload] = mockUpdateDoc.mock.calls[0];
     expect(payload.suggestedFrom).toBe('mid_morning');
+  });
+
+  it('clears sourceTaskId with a field delete when passed null', async () => {
+    // TB-3. Removed rather than nulled, for the reason suggestedFrom is: the
+    // field is optional on DayBlock and a stored null would violate that for
+    // every reader, including the chip derivation that walks these.
+    await updateDayBlock('block-1', { sourceTaskId: null });
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect(payload.sourceTaskId).toEqual({ __deleteField: true });
+  });
+
+  it('leaves sourceTaskId alone when the patch does not mention it', async () => {
+    // A patch is a patch. Editing a time must not silently drop the link.
+    await updateDayBlock('block-1', { startAt: START_AT });
+
+    const [, payload] = mockUpdateDoc.mock.calls[0];
+    expect('sourceTaskId' in payload).toBe(false);
+  });
+
+  it('refuses to RE-LINK a block at compile time', async () => {
+    // THE NULL-ONLY TYPE, PINNED. The link is established at creation and can
+    // only ever be destroyed afterwards: nothing anywhere picks a different
+    // task for an existing block, so a set-path would be speculative write
+    // surface. If this directive ever reports as UNUSED, DayBlockPatch was
+    // widened to `string | null` and tsc fails here — which is the point.
+    await updateDayBlock('block-1', {
+      // @ts-expect-error sourceTaskId is null-only: re-linking is
+      // unrepresentable, not merely unused.
+      sourceTaskId: 'some-other-task',
+    });
+
+    // The guard is the type, not a runtime check — the call itself still runs.
+    expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
   });
 });
 

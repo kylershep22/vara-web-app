@@ -15,8 +15,15 @@
  *
  * TODAY ONLY. The range is local midnight to local midnight. There is no week
  * view and no date navigation at MVP.
+ *
+ * IT IS ALSO THE LANDING SITE FOR "BLOCK IT" (TB-3). Arriving with seed params
+ * opens the add sheet pre-filled from a captured task, on the Today tab, with
+ * the rhythm suggestion still offered — a seeded create is exactly the moment
+ * "your focus runs strongest mid-morning" is worth saying, so the seed fills the
+ * WHAT and leaves the WHEN to the user and the engine. See the one-shot effect
+ * below: it is a plain useEffect on purpose, and that is load-bearing.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -27,7 +34,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
@@ -45,11 +53,11 @@ import {
   FOCUS_RHYTHM_OPTIONS,
   type FocusRhythmKey,
 } from '../../constants/focusRhythms';
-import type { DayBlock } from '../../types/models';
+import type { DayBlock, Demand } from '../../types/models';
 import { suggestPlacement } from './suggestPlacement';
 import { DayShapeStrip } from './components/DayShapeStrip';
 import { BlockCard } from './components/BlockCard';
-import { AddBlockSheet, type NewBlockDraft } from './AddBlockSheet';
+import { AddBlockSheet, type BlockSeed, type NewBlockDraft } from './AddBlockSheet';
 import {
   ADD_BLOCK_CTA,
   DAY_INTRO,
@@ -105,6 +113,33 @@ type NavigationProp = NativeStackNavigationProp<{
   FocusRhythms: undefined;
 }>;
 
+/**
+ * What Tasks sends when the user taps "Block it" (TB-3).
+ *
+ * All three arrive together or not at all — they are one seed, not three
+ * independent options — but each is optional because route params are untyped
+ * at the boundary and this screen is also reached with no params at all from
+ * the Focus hub.
+ *
+ * `seedDemand` is a plain string here rather than `Demand`. It crossed a
+ * navigation boundary, so it is whatever was actually put on the route; it is
+ * narrowed once, below, before anything trusts it.
+ */
+type SeedParams = {
+  seedTitle?: string;
+  seedDemand?: string;
+  seedTaskId?: string;
+};
+
+type DayBlocksRoute = RouteProp<{ FocusDayBlocks: SeedParams | undefined }, 'FocusDayBlocks'>;
+
+const DEMANDS: Demand[] = ['light', 'medium', 'heavy'];
+
+/** A demand that actually crossed the wire, or null. */
+function asDemand(value: string | undefined): Demand | null {
+  return DEMANDS.includes(value as Demand) ? (value as Demand) : null;
+}
+
 /** Same local calendar day. */
 function isSameDay(a: Date, b: Date): boolean {
   return (
@@ -158,6 +193,7 @@ function findOverlap(
 
 export function DayBlocksScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<DayBlocksRoute>();
   const { user } = useAuth();
 
   const [blocks, setBlocks] = useState<DayBlock[]>([]);
@@ -175,6 +211,12 @@ export function DayBlocksScreen() {
   const [tab, setTab] = useState<DayTab>('today');
   /** The block being edited, or null when the sheet is in create mode. */
   const [editing, setEditing] = useState<DayBlock | null>(null);
+  /**
+   * The task this create came from, when the sheet was opened by "Block it".
+   * Null for every hand-started block. Cleared when the sheet closes, so a
+   * subsequent hand-started block cannot inherit the provenance.
+   */
+  const [seed, setSeed] = useState<BlockSeed | null>(null);
 
   /**
    * Bumped every time the sheet opens, and used as its `key` so it REMOUNTS.
@@ -237,6 +279,76 @@ export function DayBlocksScreen() {
       };
     }, [load])
   );
+
+  /**
+   * THE SEEDED ARRIVAL (TB-3). Opens the add sheet pre-filled from the task the
+   * user tapped "Block it" on.
+   *
+   * A PLAIN useEffect, NOT useFocusEffect, AND THAT IS THE WHOLE MECHANISM.
+   * Everything else on this screen re-runs on focus, which is right for a read
+   * that can go stale. This one must fire EXACTLY ONCE PER NAVIGATION, and the
+   * two hooks differ precisely there:
+   *
+   *   useFocusEffect  runs on every focus. Open the seeded sheet, tap through
+   *                   to the rhythms page and come back, and it reopens over
+   *                   whatever the user is now doing — with a draft they may
+   *                   have already abandoned. Every return to this screen for
+   *                   the rest of the session would re-fire it.
+   *   useEffect       runs when its deps change. React Navigation keeps the
+   *                   params OBJECT IDENTITY stable for the life of a route
+   *                   entry, so focus and blur do not touch it. One navigation
+   *                   in, one open.
+   *
+   * There is deliberately no `navigation.setParams` call to "consume" the seed.
+   * setParams appears nowhere in this codebase, and the effect keying already
+   * gives the one-shot behaviour it would be reached for — clearing the params
+   * would be a second mechanism doing the first one's job, and it would fight
+   * the identity stability this depends on.
+   *
+   * Guarded on all three fields together: they are one seed, so a partial set
+   * (a hand-built deep link, a param that failed to serialise) opens nothing
+   * rather than a half-filled sheet.
+   *
+   * IT WAITS FOR THE FIRST LOAD, AND THAT IS NOT A POLISH DETAIL. AddBlockSheet
+   * decides at MOUNT whether it has a suggestion to offer, and latches manual
+   * mode when it does not — the reason `sheetSession` exists at all. Opening
+   * the seeded sheet on the first render, before getFocusRhythms has resolved,
+   * therefore mounts it against an empty windows array and latches it into
+   * no-suggestion mode permanently: the rhythm card appears a moment later, but
+   * the primary still says "Save" and nothing will place the block for you. The
+   * whole point of seeding from a task is that the WHEN question then gets the
+   * engine's answer, so opening a beat later is the correct trade. Found by the
+   * suggestion test below, which is why that test asserts the primary's LABEL
+   * rather than only the card's presence.
+   *
+   * The ref is what makes "once" independent of the extra `loading` dependency.
+   * Params identity alone would be enough with a single dep, but loading flips
+   * once after mount, and a one-shot that relies on two facts staying true is a
+   * one-shot waiting to break.
+   */
+  const params = route.params;
+  const consumedSeed = useRef<object | null>(null);
+  useEffect(() => {
+    // The rhythm read has not landed yet; opening now would latch the sheet.
+    if (loading) return;
+    if (!params || consumedSeed.current === params) return;
+
+    const title = params.seedTitle;
+    const demand = asDemand(params.seedDemand);
+    const taskId = params.seedTaskId;
+    if (!title || !demand || !taskId) return;
+
+    consumedSeed.current = params;
+    setSaveFailed(false);
+    setTomorrowNotice(null);
+    setOverlapWith(null);
+    // Create mode, not edit: a seeded block does not exist yet.
+    setEditing(null);
+    setSeed({ title, demand, sourceTaskId: taskId });
+    setTab('today');
+    setSheetSession((n) => n + 1);
+    setSheetOpen(true);
+  }, [params, loading]);
 
   const isTomorrow = tab === 'tomorrow';
   const suggestion = useMemo(() => suggestPlacement(windows, now), [windows, now]);
@@ -302,6 +414,31 @@ export function DayBlocksScreen() {
           // time alone and it is still true, so it is preserved by omission.
           const startMoved =
             original.startAt.toDate().getTime() !== draft.startAt.getTime();
+
+          // SOURCETASKID ON A TITLE EDIT (TB-3). The same shape as the rule
+          // directly above, reached by a different argument, and the difference
+          // is worth stating because the obvious reasoning is wrong.
+          //
+          // The field is NOT falsified by a rename. This block really did come
+          // from that task, and renaming it does not un-happen. What breaks is
+          // the only thing the field is for: its sole consumer is the "Blocked"
+          // chip on the Tasks screen, and that chip is an IDENTITY CLAIM shown
+          // to a person — "this task, that window". Once the block's title and
+          // the task's title diverge, the claim is no longer checkable by the
+          // person reading it. The task says "Expense report" and the block it
+          // points at says something else, so the chip can only mislead.
+          //
+          // Its usefulness and its truthfulness therefore expire together, and
+          // there is no second reader that wants the provenance kept. So it is
+          // cleared, and cleared the same way suggestedFrom is: null in, a real
+          // field delete out, never a stored null.
+          //
+          // Trimmed on both sides, because the confirm path trims before it
+          // writes — comparing a trimmed draft against an untrimmed original
+          // would report a rename for a stray space.
+          const titleChanged = draft.title.trim() !== original.title.trim();
+          const linkBroken = titleChanged && !!original.sourceTaskId;
+
           await updateDayBlock(original.id, {
             title: draft.title,
             demand: draft.demand,
@@ -309,11 +446,15 @@ export function DayBlocksScreen() {
             startAt: draft.startAt,
             isProtected: draft.isProtected,
             ...(startMoved ? { suggestedFrom: null } : {}),
+            ...(linkBroken ? { sourceTaskId: null } : {}),
           });
         } else {
           await createDayBlock(uid, draft);
         }
         setSheetOpen(false);
+        // The seed has done its job the moment the block is written. Held any
+        // longer it is just state waiting to be misread.
+        setSeed(null);
         await load();
         setTomorrowNotice(
           // Only meaningful from the Today tab: on the Tomorrow tab the block
@@ -370,6 +511,9 @@ export function DayBlocksScreen() {
     setOverlapWith(null);
     setTomorrowNotice(null);
     setEditing(block);
+    // An edit is never seeded. Leaving a stale seed here would let an abandoned
+    // Block it draft attach its provenance to an unrelated existing block.
+    setSeed(null);
     setSheetSession((n) => n + 1);
     setSheetOpen(true);
   }, []);
@@ -464,6 +608,9 @@ export function DayBlocksScreen() {
                   setTomorrowNotice(null);
                   setOverlapWith(null);
                   setEditing(null);
+                  // A hand-started block, by definition. It must not inherit a
+                  // seed from an earlier "Block it" the user backed out of.
+                  setSeed(null);
                   setSheetSession((n) => n + 1);
                   setSheetOpen(true);
                 }}
@@ -489,6 +636,7 @@ export function DayBlocksScreen() {
         // specific day. Neither is a moment for a "what comes next" suggestion.
         manualOnly={!!editing || isTomorrow}
         initialBlock={editing}
+        seed={seed}
         onRemove={editing ? () => handleRemove(editing) : undefined}
         saving={saving}
         saveFailed={saveFailed}
@@ -497,6 +645,9 @@ export function DayBlocksScreen() {
         onDismiss={() => {
           setSheetOpen(false);
           setEditing(null);
+          // Discarding a seeded draft discards the LINK too. Nothing was
+          // written, so there is nothing to point at.
+          setSeed(null);
         }}
         onOpenRhythms={() => {
           setSheetOpen(false);

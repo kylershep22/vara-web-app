@@ -944,7 +944,20 @@ const MainNavigator = () => {
             flag-OFF path can reach it, so a gate would be dead code.
 
             headerBackTitle names the single parent, the same condition under
-            which FocusRhythms names its own. */}
+            which FocusRhythms names its own.
+
+            NAMED COST, TB-3: that parent is no longer single. "Block it" on the
+            Tasks screen now pushes this route from FocusTasks, so the back
+            chevron reads "Focus" while back actually returns to Tasks. The
+            label is wrong, the destination is right, and nothing is stranded.
+
+            Accepted rather than fixed, deliberately. headerBackTitle is a static
+            string evaluated once at registration, so the fix is to make options
+            a function of the route and derive the label from where the user came
+            from — which means either threading a param purely for a header
+            string or reading navigation state at render. Both are more machinery
+            than a one-word label is worth on a screen with two entry points.
+            Revisit if a third arrives, or if the walk finds it disorienting. */}
         <AppStack.Screen
           name={ROUTES.FocusDayBlocks}
           component={DayBlocksScreen}
