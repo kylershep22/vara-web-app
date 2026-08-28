@@ -98,30 +98,106 @@ function stripMarkdown(text) {
  * When dailyMax is set, the endpoint is also capped to that many requests per 24h.
  */
 const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+
+// Every key here fronts a paid OpenAI call. checkRateLimit FAILS CLOSED on a
+// missing key, so adding a paid endpoint without adding it here breaks that
+// endpoint rather than uncapping it. That is the intended trade.
+//
+// Router paths are registered under both the bare and the /api/-prefixed form
+// because exports.api dispatches on either (see the route table below).
+// Standalone exports use a "fn:" pseudo-path so their counter never shares a
+// Firestore document with the router twin — the two are separate entry points
+// and a user hitting both should be charged against both.
 const RATE_LIMITS = {
-  "/journal-summary": {maxRequests: 10, windowMs: 60 * 60 * 1000, dailyMax: 20},
-  "/ai-chat": {maxRequests: 20, windowMs: 60 * 60 * 1000, dailyMax: 100},
-  "/openai": {maxRequests: 30, windowMs: 60 * 60 * 1000, dailyMax: 150},
-  "/api/journal-summary": {maxRequests: 10, windowMs: 60 * 60 * 1000, dailyMax: 20},
-  "/api/ai-chat": {maxRequests: 20, windowMs: 60 * 60 * 1000, dailyMax: 100},
-  "/api/openai": {maxRequests: 30, windowMs: 60 * 60 * 1000, dailyMax: 150},
+  // --- existing tiers, unchanged ---
+  "/journal-summary": {maxRequests: 10, windowMs: HOUR_MS, dailyMax: 20},
+  "/ai-chat": {maxRequests: 20, windowMs: HOUR_MS, dailyMax: 100},
+  "/openai": {maxRequests: 30, windowMs: HOUR_MS, dailyMax: 150},
+  "/api/journal-summary": {maxRequests: 10, windowMs: HOUR_MS, dailyMax: 20},
+  "/api/ai-chat": {maxRequests: 20, windowMs: HOUR_MS, dailyMax: 100},
+  "/api/openai": {maxRequests: 30, windowMs: HOUR_MS, dailyMax: 150},
+
+  // --- added: previously unmetered router paths (P1-2) ---
+  // Cheapest call of the three (400 max_tokens) and user-initiated repeatedly
+  // within one journalling session, so it gets the mid tier.
+  "/journal-prompt": {maxRequests: 20, windowMs: HOUR_MS, dailyMax: 100},
+  "/api/journal-prompt": {maxRequests: 20, windowMs: HOUR_MS, dailyMax: 100},
+  // Most expensive route in the app at 1500 max_tokens. Most conservative
+  // existing tier, per slice decision.
+  "/generate-daily-plan": {maxRequests: 10, windowMs: HOUR_MS, dailyMax: 20},
+  "/api/generate-daily-plan": {maxRequests: 10, windowMs: HOUR_MS, dailyMax: 20},
+  // Weekly-cadence feature. A handful of calls a week is the real usage, so
+  // the conservative tier is already far above need.
+  "/week-recap-suggestions": {maxRequests: 10, windowMs: HOUR_MS, dailyMax: 20},
+  "/api/week-recap-suggestions": {maxRequests: 10, windowMs: HOUR_MS, dailyMax: 20},
+
+  // --- added: standalone exports that never reached the limiter at all ---
+  // Mirrors /journal-prompt; same handler shape, same cost.
+  "fn:journalPrompt": {maxRequests: 20, windowMs: HOUR_MS, dailyMax: 100},
+  // No router twin. Matches /openai, the suggestion-generation tier it
+  // duplicates in purpose.
+  "fn:generateHabitSuggestions": {maxRequests: 30, windowMs: HOUR_MS, dailyMax: 150},
+  // Mirrors /generate-daily-plan.
+  "fn:generateDailyPlan": {maxRequests: 10, windowMs: HOUR_MS, dailyMax: 20},
 };
+
+// Paths exports.api dispatches to. Kept in lockstep with the route table at the
+// bottom of exports.api: a path here with no handler 404s at dispatch, a
+// handler whose path is missing here is unreachable. Both halves must also have
+// a RATE_LIMITS entry above or the request is refused before dispatch.
+const ROUTED_PATHS = new Set([
+  "/journal-summary", "/api/journal-summary",
+  "/ai-chat", "/api/ai-chat",
+  "/openai", "/api/openai",
+  "/journal-prompt", "/api/journal-prompt",
+  "/generate-daily-plan", "/api/generate-daily-plan",
+  "/week-recap-suggestions", "/api/week-recap-suggestions",
+]);
 
 /**
  * Check rate limit for a user/endpoint combination
- * Returns { allowed: boolean, remaining: number, resetAt: number }
+ * Returns { allowed: boolean, remaining: number, resetAt: number, reason?: string }
+ *
+ * FAIL-CLOSED CONTRACT. Every path that cannot positively establish the caller
+ * is under their limit returns allowed:false. That includes a missing uid, an
+ * endpoint with no RATE_LIMITS entry, and any thrown error from Firestore.
+ *
+ * This is deliberate and load-bearing: every caller of this function fronts a
+ * paid OpenAI call. The previous behaviour allowed the request in all three of
+ * those cases, which meant a new endpoint added to the router silently shipped
+ * with NO rate limit at all — exactly how /journal-prompt,
+ * /generate-daily-plan and /week-recap-suggestions came to be unmetered.
+ *
+ * Adding a new paid endpoint therefore REQUIRES adding a RATE_LIMITS entry.
+ * Forgetting now breaks the endpoint loudly instead of uncapping the bill.
  */
 async function checkRateLimit(userId, endpoint) {
   if (!userId) {
-    // If no userId (shouldn't happen), allow but log
-    logger.warn("Rate limit check called without userId");
-    return {allowed: true, remaining: 999, resetAt: Date.now()};
+    // No verified caller — refuse rather than assume. Reaching this means an
+    // auth check upstream was skipped or reordered.
+    logger.error("Rate limit check called without userId", {endpoint});
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt: Date.now(),
+      reason: "unidentified",
+    };
   }
 
   const limit = RATE_LIMITS[endpoint];
   if (!limit) {
-    // No rate limit configured for this endpoint
-    return {allowed: true, remaining: 999, resetAt: Date.now()};
+    // Unconfigured endpoint. Refuse: an unmetered paid route is the failure
+    // mode this whole function exists to prevent.
+    logger.error("Rate limit refused: no RATE_LIMITS entry for endpoint", {
+      userId, endpoint,
+    });
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt: Date.now(),
+      reason: "unconfigured",
+    };
   }
 
   const now = Date.now();
@@ -188,10 +264,99 @@ async function checkRateLimit(userId, endpoint) {
       resetAt: now + limit.windowMs,
     };
   } catch (err) {
-    logger.error("Rate limit check failed", {userId, endpoint, error: err.message});
-    // On error, allow the request (fail open)
-    return {allowed: true, remaining: 999, resetAt: Date.now()};
+    // FAIL CLOSED. If the counter cannot be read or written we cannot know
+    // whether this caller is over their limit, so we refuse. A brief outage on
+    // an AI feature is recoverable; an uncapped OpenAI bill is not.
+    logger.error("Rate limit check failed — refusing request (fail closed)", {
+      userId, endpoint, error: err.message,
+    });
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt: Date.now(),
+      reason: "unavailable",
+    };
   }
+}
+
+/**
+ * Send the HTTP rejection for a failed checkRateLimit, for onRequest handlers.
+ *
+ * Two distinct classes, deliberately given different status codes:
+ *
+ *   429 — the caller genuinely exhausted their quota ("hourly" / "daily").
+ *         Retryable by the user, later. Carries Retry-After.
+ *   503 — the server could not EVALUATE the limit ("unconfigured",
+ *         "unavailable", "unidentified"). Not the caller's fault, and telling
+ *         them they hit a daily limit would be a false statement. No paid call
+ *         was made either way.
+ *
+ * Both deny. The split exists so the user-facing message stays factual and so
+ * a misconfigured endpoint is distinguishable from an abusive one in logs.
+ *
+ * @param {object} res Express response object.
+ * @param {object} rateLimit Result returned by checkRateLimit.
+ * @param {object} ctx Log context, e.g. {userId, path}.
+ * @return {object} The Express response, already sent.
+ */
+function rejectRateLimited(res, rateLimit, ctx) {
+  const reason = rateLimit.reason;
+
+  if (reason === "hourly" || reason === "daily") {
+    logger.warn("Request blocked by rate limit", {...ctx, reason});
+    const retryAfter = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+    const isDaily = reason === "daily";
+    res.set("Retry-After", retryAfter.toString());
+    return res.status(429).json({
+      error: "Too many requests",
+      code: isDaily ? "daily_limit_exceeded" : "hourly_limit_exceeded",
+      message: isDaily ?
+        "You've reached today's limit for this feature. Try again tomorrow." :
+        "You've exceeded the rate limit. Please try again later.",
+      retryAfter,
+      resetAt: new Date(rateLimit.resetAt).toISOString(),
+    });
+  }
+
+  // Server-side inability to evaluate the limit. Already logged at error level
+  // inside checkRateLimit with the endpoint path.
+  return res.status(503).json({
+    error: "Service unavailable",
+    code: "rate_limit_unavailable",
+    reason: reason || "unknown",
+    message: "This feature is temporarily unavailable. Please try again later.",
+  });
+}
+
+/**
+ * Callable-function equivalent of rejectRateLimited. Throws rather than returns.
+ *
+ * @param {object} rateLimit Result returned by checkRateLimit.
+ * @param {object} ctx Log context, e.g. {userId, fn}.
+ * @return {void} Never returns normally; always throws HttpsError.
+ */
+function throwRateLimited(rateLimit, ctx) {
+  const reason = rateLimit.reason;
+
+  if (reason === "hourly" || reason === "daily") {
+    logger.warn("Callable blocked by rate limit", {...ctx, reason});
+    throw new HttpsError(
+        "resource-exhausted",
+        reason === "daily" ?
+          "You've reached today's limit for this feature. Try again tomorrow." :
+          "You've exceeded the rate limit. Please try again later.",
+        {
+          code: reason === "daily" ? "daily_limit_exceeded" : "hourly_limit_exceeded",
+          resetAt: new Date(rateLimit.resetAt).toISOString(),
+        },
+    );
+  }
+
+  throw new HttpsError(
+      "unavailable",
+      "This feature is temporarily unavailable. Please try again later.",
+      {code: "rate_limit_unavailable", reason: reason || "unknown"},
+  );
 }
 
 /* ======================================================================
@@ -222,6 +387,26 @@ exports.generateHabitSuggestions = onCall(
       if (!request.auth) {
         throw new HttpsError("unauthenticated", "Must be logged in.");
       }
+      const uid = request.auth.uid;
+
+      // Decommission telemetry: called only by the (production-gated) web app.
+      logger.info("standalone-endpoint-hit", {fn: "generateHabitSuggestions", uid});
+
+      if (!request.auth.token?.email_verified) {
+        logger.warn("Blocked unverified email", {uid, fn: "generateHabitSuggestions"});
+        throw new HttpsError(
+            "failed-precondition",
+            "Verify your email address to use this feature.",
+            {code: "EMAIL_UNVERIFIED"},
+        );
+      }
+
+      // This callable previously never reached the rate limiter at all.
+      const rateLimit = await checkRateLimit(uid, "fn:generateHabitSuggestions");
+      if (!rateLimit.allowed) {
+        throwRateLimited(rateLimit, {userId: uid, fn: "generateHabitSuggestions"});
+      }
+
       const {goal} = request.data || {};
 
       if (typeof goal !== "string" || !goal.trim()) {
@@ -279,6 +464,28 @@ exports.generateDailyPlan = onCall(
       if (!request.auth) {
         throw new HttpsError("unauthenticated", "Must be logged in.");
       }
+      const uid = request.auth.uid;
+
+      // Decommission telemetry: duplicates the router's /generate-daily-plan.
+      // Called only by the (production-gated) web app.
+      logger.info("standalone-endpoint-hit", {fn: "generateDailyPlan", uid});
+
+      if (!request.auth.token?.email_verified) {
+        logger.warn("Blocked unverified email", {uid, fn: "generateDailyPlan"});
+        throw new HttpsError(
+            "failed-precondition",
+            "Verify your email address to use this feature.",
+            {code: "EMAIL_UNVERIFIED"},
+        );
+      }
+
+      // This callable previously never reached the rate limiter at all — and
+      // it is the most expensive path in the app at 1500 max_tokens.
+      const rateLimit = await checkRateLimit(uid, "fn:generateDailyPlan");
+      if (!rateLimit.allowed) {
+        throwRateLimited(rateLimit, {userId: uid, fn: "generateDailyPlan"});
+      }
+
       const {name, preferences, mood, goals, modifier} = request.data || {};
 
       if (!Array.isArray(goals)) {
@@ -383,11 +590,34 @@ exports.journalPrompt = onRequest(
           return res.status(401).json({error: "Missing or invalid Authorization header"});
         }
         const idToken = authHeader.split("Bearer ")[1];
+        let decodedToken;
         try {
-          await admin.auth().verifyIdToken(idToken);
+          decodedToken = await admin.auth().verifyIdToken(idToken);
         } catch (authErr) {
           logger.warn("journalPrompt auth failed", {error: authErr.message});
           return res.status(401).json({error: "Invalid or expired token"});
+        }
+        const uid = decodedToken.uid;
+
+        // Decommission telemetry: this standalone export duplicates the
+        // router's /journal-prompt. Only the (production-gated) web app calls
+        // it. Log every hit so zero traffic can be demonstrated before removal.
+        logger.info("standalone-endpoint-hit", {fn: "journalPrompt", uid});
+
+        // Verified email required — see the router gate for the 403 rationale.
+        if (!decodedToken.email_verified) {
+          logger.warn("Blocked unverified email", {uid, fn: "journalPrompt"});
+          return res.status(403).json({
+            error: "email_unverified",
+            code: "EMAIL_UNVERIFIED",
+            message: "Verify your email address to use this feature.",
+          });
+        }
+
+        // This export previously never reached the rate limiter at all.
+        const rateLimit = await checkRateLimit(uid, "fn:journalPrompt");
+        if (!rateLimit.allowed) {
+          return rejectRateLimited(res, rateLimit, {userId: uid, path: "fn:journalPrompt"});
         }
 
         const {prompt} = req.body || {};
@@ -561,30 +791,43 @@ exports.api = onRequest(
         const userId = decodedToken.uid; // Use verified UID, not body-supplied
         req.authenticatedUid = userId; // Make available to all handler functions
 
-        // Check rate limit if userId is present
-        if (userId && RATE_LIMITS[path]) {
-          const rateLimit = await checkRateLimit(userId, path);
+        // Require a verified email before spending anything on OpenAI.
+        // 403 + code, deliberately NOT 401: the client's response interceptor
+        // force-refreshes and retries only on 401, and a refresh cannot fix an
+        // unverified address. See "client contract" in the slice report.
+        if (!decodedToken.email_verified) {
+          logger.warn("Blocked unverified email", {userId, path});
+          return res.status(403).json({
+            error: "email_unverified",
+            code: "EMAIL_UNVERIFIED",
+            message: "Verify your email address to use this feature.",
+          });
+        }
 
-          // Add rate limit headers
+        // Unknown paths 404 here, BEFORE the limiter, so a typo'd URL still
+        // gets an honest answer. This does not weaken the fail-closed
+        // guarantee: every path in ROUTED_PATHS goes through checkRateLimit
+        // below, so a route added to the dispatch table without a RATE_LIMITS
+        // entry is still refused.
+        if (!ROUTED_PATHS.has(path)) {
+          return res.status(404).json({error: `Route not found: ${path}`});
+        }
+
+        // Rate limit EVERY routed path. There is deliberately no
+        // `RATE_LIMITS[path]` precondition here: checkRateLimit fails closed on
+        // an unconfigured endpoint, and skipping the call for missing keys is
+        // precisely the bug that left three paid routes unmetered.
+        const rateLimit = await checkRateLimit(userId, path);
+
+        // Headers are best-effort — an unconfigured path has no limit to report.
+        if (RATE_LIMITS[path]) {
           res.set("X-RateLimit-Limit", RATE_LIMITS[path].maxRequests.toString());
-          res.set("X-RateLimit-Remaining", rateLimit.remaining.toString());
-          res.set("X-RateLimit-Reset", new Date(rateLimit.resetAt).toISOString());
+        }
+        res.set("X-RateLimit-Remaining", rateLimit.remaining.toString());
+        res.set("X-RateLimit-Reset", new Date(rateLimit.resetAt).toISOString());
 
-          if (!rateLimit.allowed) {
-            logger.warn("Request blocked by rate limit", {userId, path, reason: rateLimit.reason});
-            const retryAfter = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
-            const isDaily = rateLimit.reason === "daily";
-            res.set("Retry-After", retryAfter.toString());
-            return res.status(429).json({
-              error: "Too many requests",
-              code: isDaily ? "daily_limit_exceeded" : "hourly_limit_exceeded",
-              message: isDaily ?
-                "You've reached today's limit for this feature. Try again tomorrow." :
-                "You've exceeded the rate limit. Please try again later.",
-              retryAfter,
-              resetAt: new Date(rateLimit.resetAt).toISOString(),
-            });
-          }
+        if (!rateLimit.allowed) {
+          return rejectRateLimited(res, rateLimit, {userId, path});
         }
 
         // Route to appropriate handler
