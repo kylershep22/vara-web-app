@@ -1181,6 +1181,80 @@ describe('Private User Store (userPrivate)', () => {
 
     await assertSucceeds(getDoc(doc(db, 'users', ALICE_UID)));
   });
+
+  // ---- Enumeration ----
+
+  test('NOBODY can list the userPrivate collection — not even to find their own doc', async () => {
+    // The owner-only rule matches on the document ID, so there is no query that
+    // can satisfy it: a list has no single {userId} to bind. That means the
+    // collection is unenumerable, which is the property that makes it safe to
+    // move email and push tokens into it. Asserted explicitly so a future edit
+    // that adds a `userId` FIELD and a list grant has to delete this test
+    // rather than quietly widen the collection.
+    await seedUserPrivate(ALICE_UID);
+    await seedUserPrivate(BOB_UID);
+
+    const alice = getAuthContext(ALICE_UID).firestore();
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDocs(collection(alice, 'userPrivate')));
+    await assertFails(getDocs(collection(bob, 'userPrivate')));
+  });
+
+  // ---- Before-state of the PUBLIC doc, pinned ahead of the migration ----
+  //
+  // These two record what users/{uid} allows TODAY, so the allowlist flip in
+  // slice 4 has a documented starting point rather than a remembered one.
+
+  test('BEFORE-STATE: a client cannot write its own subscription or moderation fields on UPDATE', async () => {
+    // The update rule denylists role / moderationStatus / suspendedUntil /
+    // subscription / eventData / subscriptionType / hasActiveSubscription.
+    // This passes today and must keep passing after the allowlist flip.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', ALICE_UID), {
+        displayName: 'Alice',
+        createdAt: new Date(),
+      });
+    });
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), { role: 'admin' }));
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), { moderationStatus: 'active' }));
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), { subscriptionType: 'premium' }));
+    await assertFails(updateDoc(doc(db, 'users', ALICE_UID), { hasActiveSubscription: true }));
+  });
+
+  test('BEFORE-STATE: the CREATE rule denylist does not cover role/moderationStatus/suspendedUntil', async () => {
+    // Documents a real gap, deliberately asserted as it BEHAVES rather than as
+    // it should behave, so the suite stays honest and green.
+    //
+    // The create denylist is only
+    //   ['subscription','eventData','subscriptionType','hasActiveSubscription']
+    // whereas the UPDATE denylist additionally covers
+    //   ['role','moderationStatus','suspendedUntil'].
+    // A user whose profile document does not yet exist therefore writes a
+    // CREATE, and can set role:'admin' on it — which isAdmin() then honours.
+    //
+    // Fixing this is three strings in the create denylist and does NOT need
+    // this migration; it is written up as its own hotfix. When that lands, flip
+    // both assertions below to assertFails and delete this comment.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    // Alice's document does not exist, so this is a CREATE, and the create
+    // denylist does not mention `role`.
+    await assertSucceeds(setDoc(doc(db, 'users', ALICE_UID), {
+      displayName: 'Alice',
+      role: 'admin',
+    }));
+
+    // Same gap for the moderation fields, on a fresh document.
+    const bobDb = getAuthContext(BOB_UID).firestore();
+    await assertSucceeds(setDoc(doc(bobDb, 'users', BOB_UID), {
+      displayName: 'Bob',
+      moderationStatus: 'active',
+      suspendedUntil: null,
+    }));
+  });
 });
 
 // ============================================
