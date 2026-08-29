@@ -9,6 +9,14 @@ import type { TimedRhythmKey } from '../constants/focusRhythms';
 // Type-only import: erased at compile time, so this does NOT wire the weekly
 // engine into the running app. The engine stays unconsumed by any screen.
 import type { OutcomeKey, CapacityTier, TimeClass } from '../protocolEngine';
+// Type-only, same as above: these shapes already exist and the UserPrivate
+// migration surface reuses them rather than re-declaring divergent copies.
+import type { SubscriptionData, SubscriptionType } from '../utils/subscription';
+import type {
+  OnboardingCheckInData,
+  OnboardingInsightResult,
+  CompletedOnboardingActivity,
+} from './onboarding';
 
 // ==========================================
 // VALUE MODELS
@@ -147,6 +155,90 @@ export interface UserPrivate {
    * cleared, which is distinct from undefined (never captured).
    */
   energyWindow?: { bucket: string; updatedAt: Timestamp } | null;
+
+  // ==========================================================================
+  // MIGRATION SURFACE — declared in slice 1, written in slice 2.
+  //
+  // Everything below moves off users/{uid}, which is readable by ANY
+  // authenticated account (firestore.rules `match /users/{userId}`). The public
+  // document keeps only the profile card — displayName, bio, avatar, bannerUrl,
+  // location, interests, goals, keywords, privacy, searchable, timestamps —
+  // and after the flip its write rule is an ALLOWLIST, so nothing here can be
+  // written back to it.
+  //
+  // NOTHING WRITES THESE YET. Slice 1 is type-only: declaring the target shape
+  // is what lets slice 2 repoint writers one at a time against a fixed
+  // contract. Every field stays optional per this interface's rule — readers
+  // must treat absence as the default, which during slices 2-3 is the normal
+  // state for any user not yet backfilled.
+  // ==========================================================================
+
+  /** Account email. Written by signup today (AuthContext), moves in slice 2. */
+  email?: string;
+
+  // ---- Billing. Server-written (RevenueCat webhook / onUserCreate) via Admin
+  // SDK, which bypasses rules. Clients never write these — see the users
+  // write-rule denylist, which the allowlist supersedes at the flip. ----
+  subscription?: SubscriptionData;
+  subscriptionType?: SubscriptionType;
+  hasActiveSubscription?: boolean;
+  trialStartedAt?: Timestamp;
+  trialExpiresAt?: Timestamp;
+
+  // ---- Moderation. Server-written.
+  //
+  // ⚠️ RULES DEPENDENCY — READ BEFORE MOVING THESE. `isAdmin()` reads
+  // users/{uid}.role and `isActiveUser()` reads users/{uid}.moderationStatus and
+  // .suspendedUntil (firestore.rules helpers). Between them they gate 25 rule
+  // clauses. Both helpers MUST be repointed at userPrivate/{uid} in the same
+  // change that moves these fields, or every isActiveUser()-gated write starts
+  // failing and isAdmin() silently returns false for real admins. A rules
+  // get() is a privileged read, so it can reach an owner-only document. ----
+  role?: string;
+  moderationStatus?: string | null;
+  suspendedUntil?: Timestamp | null;
+
+  // ---- Push delivery. An identifier, not content: a push token on a
+  // world-readable document lets any authenticated account harvest every user's
+  // token. Moving these is the highest-value item in the migration. ----
+  expoPushToken?: string;
+  pushTokenUpdatedAt?: Timestamp;
+  fcmTokenUpdatedAt?: Timestamp;
+
+  // ---- Event / cohort affiliation. Server-written by validateEventCode. ----
+  eventCode?: string;
+  eventId?: string;
+  eventName?: string;
+  eventData?: Record<string, unknown>;
+  joinedAt?: Timestamp;
+
+  // ---- Onboarding. `onboardingCheckIn` carries energy/focus/mood and
+  // `onboardingInsight` an AI-generated wellness narrative — both are health-
+  // adjacent and neither belongs on a public document. ----
+  hasCompletedOnboarding?: boolean;
+  onboardingCompletedAt?: Timestamp;
+  onboardingHabitCreated?: boolean;
+  onboardingCheckIn?: OnboardingCheckInData;
+  onboardingInsight?: OnboardingInsightResult;
+  completedOnboardingActivity?: CompletedOnboardingActivity;
+  selectedPillar?: BrainPillar;
+  /**
+   * The live values field. Note the PUBLIC document also declares `values` and
+   * `userValues` (UserProfile) — both are dead: nothing writes them, and the one
+   * reader (IntentionStep) reads a field that never exists. Those are deleted in
+   * the flip slice; this is the one that carries data.
+   */
+  selectedValues?: string[];
+
+  // ---- Consent, integrations, behavioural state. ----
+  aiConsent?: boolean;
+  connectedAppsPicks?: string[];
+  connectedAppsSubmittedAt?: Timestamp;
+  featureDiscovery?: Record<string, unknown>;
+  firstShiftAt?: Timestamp | null;
+  wellnessScoreEnabled?: boolean;
+  lastActiveAt?: Timestamp;
+  eventPromptDismissed?: boolean;
 
   /** Optional like everything else: absent until the first write stamps them. */
   createdAt?: Timestamp;
