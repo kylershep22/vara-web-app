@@ -19,7 +19,10 @@ import {
   limit,
   getDocs,
   serverTimestamp,
+  type Timestamp,
 } from 'firebase/firestore';
+import { setUserPrivate } from './userPrivate.service';
+import { getMergedUserData } from './userMigrationRead';
 import { db } from '../../config/firebase';
 import { BrainState, BrainStateCheckIn } from '../../types';
 import { selectProtocol } from '../protocolSelector.service';
@@ -406,20 +409,15 @@ async function setFirstShiftAtIfNeeded(
   if (!qualifies) return;
   if (!db) return;
   try {
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    const currentFirstShiftAt = userSnap.exists()
-      ? (userSnap.data() as UserProfile).firstShiftAt
-      : null;
+    // MIGRATION_FALLBACK — firstShiftAt moved to userPrivate in slice 2. The
+    // merged read is what keeps this idempotent: a user whose first shift was
+    // recorded on an older build must not have it re-stamped now.
+    const merged = await getMergedUserData(userId);
+    const currentFirstShiftAt = merged?.firstShiftAt ?? null;
     if (currentFirstShiftAt == null) {
-      await setDoc(
-        userRef,
-        {
-          firstShiftAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      await setUserPrivate(userId, {
+        firstShiftAt: serverTimestamp() as unknown as Timestamp,
+      });
     }
   } catch (error) {
     logger.error(

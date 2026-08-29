@@ -92,15 +92,31 @@ async function createBellNotification(n) {
  */
 async function sendPushNotification(toUid, title, body, data = {}) {
   try {
-    // Get user's push token
-    const userSnap = await db.doc(`users/${toUid}`).get();
-    if (!userSnap.exists) {
+    // MIGRATION_FALLBACK — userPrivate first, users/{uid} as the fallback.
+    //
+    // Slice 2 of the userPrivate migration moved expoPushToken to the
+    // owner-only userPrivate/{uid}, written by the client with NO dual-write
+    // (a fresh token left on the world-readable profile would defeat the move).
+    // A user on a new build therefore has it only privately; one who has not
+    // updated has it only publicly. Reading a single location would silently
+    // stop delivering to half the install base — silently, because a missing
+    // token is an early return here, not an error.
+    //
+    // Inlined rather than imported from functions/src/lib/userFields.js: this
+    // is a SEPARATE deployed codebase with its own package.json and
+    // node_modules, so it cannot reach across. Slice 4 removes both copies.
+    const [privateSnap, publicSnap] = await Promise.all([
+      db.doc(`userPrivate/${toUid}`).get(),
+      db.doc(`users/${toUid}`).get(),
+    ]);
+    if (!privateSnap.exists && !publicSnap.exists) {
       console.log(`User ${toUid} not found for push notification`);
       return;
     }
 
-    const userData = userSnap.data();
-    const pushToken = userData.expoPushToken;
+    const privateToken = privateSnap.exists ? privateSnap.data().expoPushToken : undefined;
+    const publicToken = publicSnap.exists ? publicSnap.data().expoPushToken : undefined;
+    const pushToken = privateToken || publicToken;
 
     if (!pushToken) {
       console.log(`No push token for user ${toUid}`);

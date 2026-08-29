@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { subscribeMergedUserData } from '../services/firebase/userMigrationRead';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { ValueId } from '../constants/values';
@@ -20,15 +21,12 @@ export function useUserValues(): ValueId[] {
       return;
     }
 
-    const userRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(
-      userRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          if (Array.isArray(data.selectedValues)) {
-            setSelectedValues(data.selectedValues as ValueId[]);
-          }
+    // MIGRATION_FALLBACK — selectedValues moved to userPrivate in slice 2.
+    const unsubscribe = subscribeMergedUserData(
+      user.uid,
+      (data) => {
+        if (data && Array.isArray(data.selectedValues)) {
+          setSelectedValues(data.selectedValues as ValueId[]);
         }
       },
       (error) => {

@@ -7,6 +7,7 @@ const {onSchedule} = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 const {sendNotification} = require("./utils/fcmSender");
+const {getFcmToken} = require("../lib/userFields");
 const {isWithinQuietHours} = require("./utils/quietHours");
 const {shouldSendNotification, getQuietTierMessage} = require("./notificationTier");
 
@@ -122,7 +123,9 @@ const sendInsights = onSchedule(
       // Get FCM token
       const userSnap = await db.doc(`users/${userId}`).get();
       if (!userSnap.exists) continue;
-      const fcmToken = userSnap.data().fcmToken;
+      // MIGRATION_FALLBACK — token may be on userPrivate (new builds) or
+      // still on users/{uid} (not yet updated). See src/lib/userFields.js.
+      const fcmToken = await getFcmToken(userId);
       if (!fcmToken) {
         skipped++;
         continue;

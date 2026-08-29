@@ -1092,6 +1092,21 @@ exports.deleteAccount = onCall(
         const userRef = db.collection("users").doc(uid);
         await deleteQueryBatched(userRef.collection("moods"));
 
+        // Delete the owner-only private document.
+        //
+        // Added in migration slice 2, deliberately ahead of the rest of the
+        // retention work: userPrivate now holds the most sensitive per-user
+        // data in the system — email, push tokens, the onboarding check-in and
+        // the AI wellness narrative — and it must not outlive the account it
+        // belongs to, least of all during a migration where the same values
+        // also still sit on users/{uid}. Idempotent: deleting a document that
+        // does not exist is a no-op, which is the normal case for a user who
+        // never wrote one.
+        //
+        // The other collections this function does not yet cover remain the
+        // separate retention slice; nothing else here changed.
+        await db.collection("userPrivate").doc(uid).delete();
+
         // Delete user profile
         await userRef.delete();
 

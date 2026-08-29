@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { subscribeMergedUserData } from '../services/firebase/userMigrationRead';
 import { db, firebaseError } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -69,13 +70,17 @@ export function useFeatureDiscovery(): UseFeatureDiscoveryReturn {
     }
 
     setLoading(true);
-    const userRef = doc(db, 'users', user.uid);
 
-    const unsubscribe = onSnapshot(
-      userRef,
-      (docSnapshot) => {
-        if (docSnapshot.exists()) {
-          const data = docSnapshot.data();
+    // MIGRATION_FALLBACK — featureDiscovery and the nested onboarding map moved
+    // to userPrivate in slice 2. The merge is DEEP, which matters here: a
+    // counter write touches only featureDiscovery.engagement, so a
+    // mid-migration user has .features on users/{uid} and .engagement on
+    // userPrivate, and a shallow overlay would drop every feature state.
+    const unsubscribe = subscribeMergedUserData(
+      user.uid,
+      (mergedData) => {
+        if (mergedData) {
+          const data = mergedData as Record<string, any>;
           const discovery = data.featureDiscovery;
           const onboarding = data.onboarding;
 

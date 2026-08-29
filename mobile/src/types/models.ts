@@ -17,6 +17,12 @@ import type {
   OnboardingInsightResult,
   CompletedOnboardingActivity,
 } from './onboarding';
+// Type-only, same as above. Slice 2 declares the stress-recovery onboarding
+// block and the resume step on UserPrivate, so both reuse the constants file's
+// unions rather than widening to `string` at the store boundary. That file
+// imports BrainState back from here; the cycle is type-only and erases at
+// compile time, so no runtime edge is created (see the Metro barrel rules).
+import type { PeakWindow, OnboardingSrStep } from '../constants/onboardingStressRecovery';
 
 // ==========================================
 // VALUE MODELS
@@ -239,6 +245,119 @@ export interface UserPrivate {
   wellnessScoreEnabled?: boolean;
   lastActiveAt?: Timestamp;
   eventPromptDismissed?: boolean;
+
+  // ==========================================================================
+  // MIGRATION SURFACE, PART 2 — fields slice 1 did not declare.
+  //
+  // Slice 1 enumerated the surface from the audit's field list. Repointing the
+  // writers in slice 2 turned up ten more fields that are written to
+  // users/{uid} today, are not on the public-profile allowlist, and therefore
+  // have to land here too. They are declared in the same shape the writers
+  // already use, so the repoint is a destination change and not a reshape.
+  //
+  // (The slice-2 step-0 report called this "nine fields" in its prose while
+  // listing ten. Ten is correct.)
+  // ==========================================================================
+
+  /**
+   * Native FCM/APNs device token, from Notifications.getDevicePushTokenAsync().
+   *
+   * DISTINCT FROM `expoPushToken`, and both are live. `expoPushToken` is the
+   * Expo push service handle used by client-side scheduling; `fcmToken` is the
+   * raw device token the Cloud Functions senders push through directly
+   * (functions/src/notifications/utils/fcmSender.js takes it as `token`). Two
+   * registration paths, two fields, both written by notifications.service.ts.
+   * Consolidating them is a real question and not this slice's.
+   *
+   * Same sensitivity argument as expoPushToken: an identifier on a
+   * world-readable document is harvestable by any authenticated account.
+   */
+  fcmToken?: string;
+
+  // ---- Notification + coaching preferences, written by SettingsScreen. ----
+  notificationsEnabled?: boolean;
+  reminderTime?: string;
+  tone?: string;
+  intensity?: string;
+
+  /**
+   * Stress-recovery onboarding capture. Nested rather than flattened because
+   * every writer and reader already addresses it as one map, and reshaping it
+   * mid-migration would put a data change inside a move.
+   */
+  onboardingStressRecovery?: {
+    initialState?: BrainState;
+    stressors?: string[];
+    peakWindow?: PeakWindow | null;
+    recheckStateAfter?: BrainState;
+    recheckShift?: 'improved' | 'flat' | 'worse';
+  };
+
+  /**
+   * Resume marker for the stress-recovery arc: the route the user is ON.
+   *
+   * A GATE FIELD — it steers AppNavigator's initial route, so slice 2
+   * dual-writes it to users/{uid} as well. See the MIGRATION_FALLBACK note on
+   * saveOnboardingStep.
+   */
+  onboardingStep?: OnboardingSrStep;
+
+  /**
+   * The legacy nested onboarding map read by the feature-unlock system.
+   *
+   * NOT the same thing as the flat `selectedPillar` above, which
+   * onboarding.service writes. This one carries the progressive-unlock timer
+   * (`featureUnlockMode`, `completedAt`, `unlockedAllAt`) and its own copy of
+   * the pillar. The duplication predates the migration; slice 2 moves it
+   * as-is rather than reconciling it.
+   */
+  onboarding?: {
+    selectedPillar?: BrainPillar;
+    featureUnlockMode?: 'progressive' | 'full';
+    completedAt?: Timestamp;
+    unlockedAllAt?: Timestamp;
+  };
+
+  /** Whether the community orientation sheet has been dismissed. */
+  community_orientation_seen?: boolean;
+
+  // ---- Focus preferences and rhythms.
+  //
+  // FOUND LATE. The slice-2 step-0 sweep missed these two: their services
+  // address the user document through a USERS_COLLECTION constant rather than
+  // an inline doc(db, 'users', ...), so the grep that built the writer table
+  // did not see them. They are ordinary non-allowlist fields and they move for
+  // the ordinary reason — but the deciding factor is slice 4, where the
+  // users/{uid} write rule becomes an ALLOWLIST: a writer still sending these
+  // to the public document would simply start failing then. ----
+  focusPreferences?: { centerFirst?: boolean; updatedAt?: Timestamp };
+  focusRhythms?: { windows?: string[]; updatedAt?: Timestamp };
+
+  /** The first action taken in the legacy tour flow, if any. */
+  firstAction?: {
+    type: string;
+    data: unknown;
+    completedAt: Timestamp | Date;
+  } | null;
+
+  // ==========================================================================
+  // DELIBERATELY NOT MOVED
+  //
+  // `lastActiveAt` stays on users/{uid} and joins the slice-4 ALLOWLIST.
+  // Three things make it unmovable rather than merely inconvenient:
+  //   1. components/community/PersonCard.tsx renders ANOTHER user's
+  //      lastActiveAt ("Active now"). userPrivate is owner-only by rule, so
+  //      that read would become impossible, not just fallback-able.
+  //   2. functions/src/admin/analytics.js and web src/services/db/admin.service.js
+  //      run a COMPOUND query, where(createdAt <= X).where(lastActiveAt >= Y).
+  //      A compound query cannot span two collections, so splitting the fields
+  //      breaks 7-day retention outright.
+  //   3. The web admin dashboard uses the CLIENT SDK, which could not query
+  //      userPrivate at all under the owner-only rule.
+  // It is a presence signal already rendered publicly in the people list, not
+  // sensitive data. Revisiting it means designing a presence collection, which
+  // is its own slice.
+  // ==========================================================================
 
   /** Optional like everything else: absent until the first write stamps them. */
   createdAt?: Timestamp;

@@ -8,6 +8,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { doc, getDoc } from 'firebase/firestore';
+import { getMergedUserData } from '../../services/firebase/userMigrationRead';
 import { db } from '../../config/firebase';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
 import { withAlpha } from '../../components/dashboard/brainStateCheckin/colorUtils';
@@ -121,9 +122,10 @@ const OnboardingReflectScreen: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        if (cancelled || !snap.exists()) return;
-        const sr = (snap.data().onboardingStressRecovery ?? {}) as {
+        // MIGRATION_FALLBACK — as in OnboardingAnchorScreen.
+        const merged = await getMergedUserData(user.uid);
+        if (cancelled || !merged) return;
+        const sr = (merged.onboardingStressRecovery ?? {}) as {
           initialState?: BrainState;
           stressors?: string[];
           peakWindow?: PeakWindow | null;

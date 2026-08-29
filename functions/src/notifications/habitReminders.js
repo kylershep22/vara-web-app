@@ -8,6 +8,7 @@ const {onSchedule} = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 const {sendNotification} = require("./utils/fcmSender");
+const {getFcmToken} = require("../lib/userFields");
 const {isWithinQuietHours} = require("./utils/quietHours");
 const {shouldSendNotification, getQuietTierMessage} = require("./notificationTier");
 
@@ -94,8 +95,8 @@ const sendHabitReminders = onSchedule(
         // Get user data for FCM token and quiet hours
         const userSnap = await db.doc(`users/${habit.userId}`).get();
         if (!userSnap.exists) continue;
-        const userData = userSnap.data();
-        const fcmToken = userData.fcmToken;
+        // MIGRATION_FALLBACK — see src/lib/userFields.js.
+        const fcmToken = await getFcmToken(habit.userId);
         if (!fcmToken) {
           skipped++;
           continue;

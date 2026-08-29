@@ -7,13 +7,9 @@
  */
 
 import { db } from '../../config/firebase';
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
+import { serverTimestamp, Timestamp } from 'firebase/firestore';
+import { setUserPrivate } from './userPrivate.service';
+import { getMergedUserData } from './userMigrationRead';
 import {
   BrainPillar,
   FeatureId,
@@ -57,15 +53,15 @@ export interface ComputedFeatureAccess {
 export async function getFeatureUnlockState(userId: string): Promise<FeatureUnlockState | null> {
   if (!db) return null;
   try {
-    const userRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userRef);
+    // MIGRATION_FALLBACK — the nested `onboarding` map moved to userPrivate in
+    // slice 2; users who have not written since still have it on users/{uid}.
+    const data = await getMergedUserData(userId);
 
-    if (!userDoc.exists()) {
+    if (!data) {
       return null;
     }
 
-    const data = userDoc.data();
-    const onboarding = data.onboarding || {};
+    const onboarding = (data.onboarding || {}) as Record<string, any>;
 
     return {
       selectedPillar: onboarding.selectedPillar || null,
@@ -86,12 +82,16 @@ export async function getFeatureUnlockState(userId: string): Promise<FeatureUnlo
 export async function setSelectedPillar(userId: string, pillar: BrainPillar): Promise<void> {
   if (!db) throw new Error('Firestore is not initialized');
   try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      'onboarding.selectedPillar': pillar,
-      'onboarding.featureUnlockMode': 'progressive',
-      'onboarding.completedAt': serverTimestamp(), // Start the unlock timer
-      updatedAt: serverTimestamp(),
+    // Nested object, not dotted paths — see the note in
+    // onboardingStressRecovery.service.ts: setDoc(merge) would treat
+    // 'onboarding.selectedPillar' as a literal dotted field name. A nested map
+    // under merge deep-merges, so sibling keys survive exactly as they did.
+    await setUserPrivate(userId, {
+      onboarding: {
+        selectedPillar: pillar,
+        featureUnlockMode: 'progressive',
+        completedAt: serverTimestamp() as unknown as Timestamp, // Start the unlock timer
+      },
     });
     console.log(`Set selected pillar to ${pillar} for user ${userId}`);
   } catch (error) {
@@ -107,11 +107,11 @@ export async function setSelectedPillar(userId: string, pillar: BrainPillar): Pr
 export async function unlockAllFeatures(userId: string): Promise<void> {
   if (!db) throw new Error('Firestore is not initialized');
   try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      'onboarding.featureUnlockMode': 'full',
-      'onboarding.unlockedAllAt': serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    await setUserPrivate(userId, {
+      onboarding: {
+        featureUnlockMode: 'full',
+        unlockedAllAt: serverTimestamp() as unknown as Timestamp,
+      },
     });
     console.log(`Unlocked all features for user ${userId}`);
   } catch (error) {

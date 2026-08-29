@@ -259,7 +259,25 @@ const revenueCatWebhook = onRequest(
       }
 
       try {
-        await userRef.set(patch, {merge: true});
+        // MIGRATION_FALLBACK — DUAL-WRITE, slice 2 of the userPrivate migration.
+        //
+        // Subscription state is read by useSubscription on users/{uid} in every
+        // build already in the field, and on web. Writing it only to
+        // userPrivate would strip access from anyone who has not updated. So it
+        // lands on BOTH until slice 4 flips the readers, in ONE batch — a
+        // half-applied entitlement is the worst outcome this webhook has.
+        //
+        // The private half uses set(merge) because the document may not exist
+        // yet. FieldValue.delete() sentinels inside `patch` mirror correctly
+        // through both writes.
+        const batch = db.batch();
+        batch.set(userRef, patch, {merge: true});
+        batch.set(
+            db.collection("userPrivate").doc(appUserId),
+            {...patch, uid: appUserId, updatedAt: nowFv},
+            {merge: true},
+        );
+        await batch.commit();
         logger.info("revenueCatWebhook: applied", {
           eventType,
           eventId,

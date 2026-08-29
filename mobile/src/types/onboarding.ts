@@ -63,7 +63,12 @@ export interface CompletedOnboardingActivity {
   type: 'breathing' | 'reflection' | 'intention';
   duration: string;
   completedAt: Timestamp;
-  response?: string;            // User's text response (for reflection/intention)
+  // Nullable, not merely optional: both writers persist `activity.response ||
+  // null`, so an activity with no text response is stored with an explicit
+  // null rather than an absent key. Declared honestly once the write path
+  // became type-checked in migration slice 2 — nothing reads the field back,
+  // so the shape on disk is what this needs to describe.
+  response?: string | null;     // User's text response (for reflection/intention)
 }
 
 // ==========================================

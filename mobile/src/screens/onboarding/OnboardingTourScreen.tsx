@@ -13,7 +13,8 @@ import { QuietFinish } from '../../components/celebrations';
 import { FirstActionCard } from '../../components/onboarding/FirstActionCard';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, writeBatch, type Timestamp } from 'firebase/firestore';
+import { stageUserPrivate } from '../../services/firebase/userPrivate.service';
 import { db } from '../../config/firebase';
 import { FocusArea } from './OnboardingFocusScreen';
 
@@ -125,16 +126,25 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
     // Mark onboarding as completed in Firestore
     if (user && db) {
       try {
-        const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, {
+        const batch = writeBatch(db);
+        // MIGRATION_FALLBACK — gate-field dual-write. hasCompletedOnboarding
+        // and onboardingCompletedAt stay mirrored on users/{uid} until slice 4
+        // so a client still reading there does not re-run onboarding.
+        // firstAction is not a gate field and goes private only.
+        batch.update(doc(db, 'users', user.uid), {
           hasCompletedOnboarding: true,
           onboardingCompletedAt: new Date(),
+        });
+        await stageUserPrivate(batch, user.uid, {
+          hasCompletedOnboarding: true,
+          onboardingCompletedAt: new Date() as unknown as Timestamp,
           firstAction: completedAction ? {
             type: completedAction.type,
             data: completedAction.data,
             completedAt: new Date(),
           } : null,
         });
+        await batch.commit();
         console.log('✅ Onboarding completed with first action, user document updated');
 
         // The AppNavigator will automatically detect the change and navigate to MainNavigator

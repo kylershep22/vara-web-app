@@ -7,30 +7,27 @@
  * updatedAt. No scores, no counts, no session/protocol rows. Downstream use is
  * out of scope for this slice.
  */
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { serverTimestamp, type Timestamp } from 'firebase/firestore';
+import { setUserPrivate } from './userPrivate.service';
+import { getMergedUserData } from './userMigrationRead';
 
-const USERS_COLLECTION = 'users';
-
-function userRef(userId: string) {
-  if (!db) throw new Error('Firestore not initialized');
-  return doc(db, USERS_COLLECTION, userId);
-}
 
 export async function saveFocusRhythms(
   userId: string,
   windows: string[]
 ): Promise<void> {
-  await updateDoc(userRef(userId), {
-    'focusRhythms.windows': windows,
-    'focusRhythms.updatedAt': serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  // userPrivate from migration slice 2. Nested object rather than dotted paths
+  // — see the note in focusPreferences.service.
+  await setUserPrivate(userId, {
+    focusRhythms: { windows, updatedAt: serverTimestamp() as unknown as Timestamp },
   });
 }
 
 export async function getFocusRhythms(userId: string): Promise<string[]> {
-  const snap = await getDoc(userRef(userId));
-  if (!snap.exists()) return [];
-  const windows = snap.data()?.focusRhythms?.windows;
+  // MIGRATION_FALLBACK — userPrivate first, users/{uid} as the fallback.
+  const merged = await getMergedUserData(userId);
+  if (!merged) return [];
+  const rhythms = merged.focusRhythms as { windows?: unknown } | undefined;
+  const windows = rhythms?.windows;
   return Array.isArray(windows) ? windows : [];
 }

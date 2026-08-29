@@ -3,7 +3,8 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import { db } from '../config/firebase';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, type Timestamp } from 'firebase/firestore';
+import { setUserPrivate } from './firebase/userPrivate.service';
 import { FocusCopy } from '../constants/focusContent';
 
 // ==========================================
@@ -167,12 +168,19 @@ export async function savePushTokenToUser(userId: string, pushToken: string): Pr
     return;
   }
   try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
+    // userPrivate ONLY, from migration slice 2. A push token on users/{uid} —
+    // which every authenticated account can read — lets anyone harvest the
+    // full token list, which is the single highest-value item in the
+    // migration. There is deliberately no dual-write here: the Cloud Functions
+    // senders read through functions/src/lib/userFields.js, which checks
+    // userPrivate first and falls back to users/{uid} for anyone still on an
+    // old build, so delivery is correct in both directions without leaving a
+    // fresh token on the public document.
+    await setUserPrivate(userId, {
       expoPushToken: pushToken,
-      pushTokenUpdatedAt: serverTimestamp(),
+      pushTokenUpdatedAt: serverTimestamp() as unknown as Timestamp,
     });
-    console.log('Push token saved to user document');
+    console.log('Push token saved to private user document');
   } catch (error) {
     console.error('Error saving push token:', error);
     throw error;
@@ -357,10 +365,13 @@ export async function registerAndSaveFCMToken(userId: string): Promise<string | 
     const fcmToken = deviceToken.data;
 
     if (fcmToken && typeof fcmToken === 'string') {
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
+      // userPrivate ONLY — same reasoning as savePushTokenToUser above. This is
+      // the token the server senders actually push through (fcmSender.js takes
+      // it as `token`), so the read-through helper on the functions side is
+      // what keeps server push working across the migration.
+      await setUserPrivate(userId, {
         fcmToken,
-        fcmTokenUpdatedAt: serverTimestamp(),
+        fcmTokenUpdatedAt: serverTimestamp() as unknown as Timestamp,
       });
       return fcmToken;
     }

@@ -25,6 +25,8 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
+import { setUserPrivate } from './userPrivate.service';
+import { getMergedUserData } from './userMigrationRead';
 import { db } from '../../config/firebase';
 import {
   DailyWellnessScore,
@@ -909,11 +911,10 @@ export const getScoreLabel = (score: number): string => {
 export const getWellnessScoreEnabled = async (userId: string): Promise<boolean> => {
   if (!db) return false;
   try {
-    const userDocRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userDocRef);
+    // MIGRATION_FALLBACK — the opt-in moved to userPrivate in slice 2.
+    const data = await getMergedUserData(userId);
 
-    if (userSnap.exists()) {
-      const data = userSnap.data();
+    if (data) {
       // Default to false (opt-in)
       return data.wellnessScoreEnabled === true;
     }
@@ -930,11 +931,7 @@ export const getWellnessScoreEnabled = async (userId: string): Promise<boolean> 
 export const setWellnessScoreEnabled = async (userId: string, enabled: boolean): Promise<void> => {
   if (!db) throw new Error('Firestore is not initialized');
   try {
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, {
-      wellnessScoreEnabled: enabled,
-      updatedAt: serverTimestamp(),
-    });
+    await setUserPrivate(userId, { wellnessScoreEnabled: enabled });
   } catch (error) {
     console.error('Error setting wellness score enabled:', error);
     throw error;

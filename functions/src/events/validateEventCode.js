@@ -72,19 +72,50 @@ const validateEventCode = onCall(
           new Date(Date.now() + freeAccessDays * 24 * 60 * 60 * 1000),
       );
 
-      await db.collection("users").doc(uid).update({
-        eventData: {
-          eventId: eventDoc.id,
-          eventCode: code,
-          eventName: eventData.name,
-          joinedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
+      const nowFv = admin.firestore.FieldValue.serverTimestamp();
+      const grantEventData = {
+        eventId: eventDoc.id,
+        eventCode: code,
+        eventName: eventData.name,
+        joinedAt: nowFv,
+      };
+
+      // MIGRATION_FALLBACK — DUAL-WRITE, slice 2 of the userPrivate migration.
+      // eventData is read by SettingsScreen and useDashboard, and the
+      // subscription fields by useSubscription, all still on users/{uid} in
+      // shipped builds. Both documents, one batch.
+      //
+      // The public half keeps its DOTTED subscription paths so it merges into
+      // an existing subscription map exactly as before. The private half uses
+      // set(merge) with a NESTED map instead: the private document may not
+      // exist yet, update() would reject that, and dotted keys under
+      // set(merge) would be read as literal field names containing dots.
+      const batch = db.batch();
+      batch.update(db.collection("users").doc(uid), {
+        eventData: grantEventData,
         "subscription.type": "event",
         "subscription.eventAccessExpiresAt": eventAccessExpiresAt,
-        "subscription.eventGrantedAt": admin.firestore.FieldValue.serverTimestamp(),
+        "subscription.eventGrantedAt": nowFv,
         subscriptionType: "event",
         hasActiveSubscription: true,
       });
+      batch.set(
+          db.collection("userPrivate").doc(uid),
+          {
+            uid,
+            eventData: grantEventData,
+            subscription: {
+              type: "event",
+              eventAccessExpiresAt: eventAccessExpiresAt,
+              eventGrantedAt: nowFv,
+            },
+            subscriptionType: "event",
+            hasActiveSubscription: true,
+            updatedAt: nowFv,
+          },
+          {merge: true},
+      );
+      await batch.commit();
 
       await eventDoc.ref.update({
         participantCount: admin.firestore.FieldValue.increment(1),

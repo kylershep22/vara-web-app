@@ -7,10 +7,10 @@
  * breathing practice before a focus session). Remembered across sessions, not
  * reset each time. No new collection.
  */
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { serverTimestamp, type Timestamp } from 'firebase/firestore';
+import { setUserPrivate } from './userPrivate.service';
+import { getMergedUserData } from './userMigrationRead';
 
-const USERS_COLLECTION = 'users';
 
 export interface FocusPreferences {
   centerFirst: boolean;
@@ -18,27 +18,28 @@ export interface FocusPreferences {
 
 const DEFAULTS: FocusPreferences = { centerFirst: false };
 
-function userRef(userId: string) {
-  if (!db) throw new Error('Firestore not initialized');
-  return doc(db, USERS_COLLECTION, userId);
-}
-
 export async function saveFocusPreferences(
   userId: string,
   prefs: FocusPreferences
 ): Promise<void> {
-  await updateDoc(userRef(userId), {
-    'focusPreferences.centerFirst': prefs.centerFirst,
-    'focusPreferences.updatedAt': serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  // userPrivate from migration slice 2. Nested object rather than dotted paths:
+  // setDoc(merge) would read 'focusPreferences.centerFirst' as a literal field
+  // name containing a dot and drop the real value.
+  await setUserPrivate(userId, {
+    focusPreferences: {
+      centerFirst: prefs.centerFirst,
+      updatedAt: serverTimestamp() as unknown as Timestamp,
+    },
   });
 }
 
 export async function getFocusPreferences(
   userId: string
 ): Promise<FocusPreferences> {
-  const snap = await getDoc(userRef(userId));
-  if (!snap.exists()) return { ...DEFAULTS };
-  const centerFirst = snap.data()?.focusPreferences?.centerFirst;
-  return { centerFirst: centerFirst === true };
+  // MIGRATION_FALLBACK — userPrivate first, users/{uid} for anyone not yet
+  // backfilled by slice 3.
+  const merged = await getMergedUserData(userId);
+  if (!merged) return { ...DEFAULTS };
+  const prefs = merged.focusPreferences as { centerFirst?: boolean } | undefined;
+  return { centerFirst: prefs?.centerFirst === true };
 }

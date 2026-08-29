@@ -26,6 +26,8 @@ import { GuidePill } from '../../components/ai/GuidePill';
 import { CommunityOrientationCard } from '../../components/community/CommunityOrientationCard';
 import CreatePostModal from '../../components/community/CreatePostModal';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { setUserPrivate } from '../../services/firebase/userPrivate.service';
+import { getMergedUserData } from '../../services/firebase/userMigrationRead';
 import { db } from '../../config/firebase';
 import CommentModal from '../../components/community/CommentModal';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -87,8 +89,11 @@ const CommunityScreen: React.FC = () => {
         return;
       }
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const seen = userDoc.data()?.community_orientation_seen === true;
+        // MIGRATION_FALLBACK — the dismissal flag moved to userPrivate in
+        // slice 2; a user who dismissed it on an older build has it on
+        // users/{uid} and must not be shown the sheet again.
+        const merged = await getMergedUserData(user.uid);
+        const seen = merged?.community_orientation_seen === true;
         setShowOrientation(!seen);
       } catch {
         // On error, don't show orientation (fail silently)
@@ -102,9 +107,7 @@ const CommunityScreen: React.FC = () => {
     setShowOrientation(false);
     if (user && db) {
       try {
-        await updateDoc(doc(db, 'users', user.uid), {
-          community_orientation_seen: true,
-        });
+        await setUserPrivate(user.uid, { community_orientation_seen: true });
       } catch {
         // Best-effort persist
       }

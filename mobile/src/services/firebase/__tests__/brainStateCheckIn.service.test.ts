@@ -63,10 +63,18 @@ const TEST_USER_ID = 'user-test-123';
 
 beforeEach(() => {
   mockDoc.mockReset();
-  mockDoc.mockImplementation((_db: unknown, _coll: string, id: string) => ({
+  mockDoc.mockImplementation((_db: unknown, coll: string, id: string) => ({
     __mockDocRef: id,
+    collection: coll,
   }));
   mockGetDoc.mockReset();
+  // A safe DEFAULT, added for userPrivate migration slice 2. firstShiftAt moved
+  // to userPrivate, so the marker path now reads BOTH documents (merged, private
+  // first) before writing. The mockResolvedValueOnce chains below were written
+  // against a single read; without a default the extra reads resolve undefined
+  // and blow up inside the service. Absent is the right default: it is the
+  // normal mid-migration state.
+  mockGetDoc.mockResolvedValue({ exists: () => false, data: () => null });
   mockSetDoc.mockReset();
   mockSetDoc.mockResolvedValue(undefined);
   mockUpdateDoc.mockReset();
@@ -183,6 +191,34 @@ describe('maybeMarkFirstShift — Firestore SDK-level integration', () => {
       (call) => (call[1] as { firstShiftAt?: unknown }).firstShiftAt !== undefined
     );
     expect(firstShiftWrite).toBeUndefined();
+  });
+
+  it('does NOT overwrite a firstShiftAt that still lives only on users/{uid}', async () => {
+    // MIGRATION_FALLBACK. The marker is idempotent by design — it records the
+    // FIRST shift. A user who earned it on an older build has it only on the
+    // public document; reading just userPrivate would re-stamp it and reset
+    // their first-shift date.
+    mockGetDoc.mockImplementation((ref: { collection?: string }) =>
+      Promise.resolve(
+        ref.collection === 'userPrivate'
+          ? { exists: () => false, data: () => null }
+          : { exists: () => true, data: () => ({ firstShiftAt: '__EXISTING_TIMESTAMP__' }) }
+      )
+    );
+    await maybeMarkFirstShift(TEST_USER_ID, 'shifted');
+    const firstShiftWrite = mockSetDoc.mock.calls.find(
+      (call) => (call[1] as { firstShiftAt?: unknown }).firstShiftAt !== undefined
+    );
+    expect(firstShiftWrite).toBeUndefined();
+  });
+
+  it('writes the marker to userPrivate, not to users/{uid}', async () => {
+    mockGetDoc.mockResolvedValue({ exists: () => false, data: () => null });
+    await maybeMarkFirstShift(TEST_USER_ID, 'shifted');
+    const firstShiftWrite = mockSetDoc.mock.calls.find(
+      (call) => (call[1] as { firstShiftAt?: unknown }).firstShiftAt !== undefined
+    );
+    expect((firstShiftWrite![0] as { collection: string }).collection).toBe('userPrivate');
   });
 
   it('dryRun skips the firstShiftAt call entirely', async () => {
