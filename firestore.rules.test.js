@@ -1201,12 +1201,13 @@ describe('Private User Store (userPrivate)', () => {
     await assertFails(getDocs(collection(bob, 'userPrivate')));
   });
 
-  // ---- Before-state of the PUBLIC doc, pinned ahead of the migration ----
+  // ---- Privilege lockdown on the PUBLIC doc ----
   //
-  // These two record what users/{uid} allows TODAY, so the allowlist flip in
-  // slice 4 has a documented starting point rather than a remembered one.
+  // These pin what users/{uid} allows a client to write to itself. The create
+  // and update denylists must stay identical; the slice-4 allowlist supersedes
+  // both, at which point these become the regression guard for that flip.
 
-  test('BEFORE-STATE: a client cannot write its own subscription or moderation fields on UPDATE', async () => {
+  test('a client cannot write its own subscription or moderation fields on UPDATE', async () => {
     // The update rule denylists role / moderationStatus / suspendedUntil /
     // subscription / eventData / subscriptionType / hasActiveSubscription.
     // This passes today and must keep passing after the allowlist flip.
@@ -1224,35 +1225,44 @@ describe('Private User Store (userPrivate)', () => {
     await assertFails(updateDoc(doc(db, 'users', ALICE_UID), { hasActiveSubscription: true }));
   });
 
-  test('BEFORE-STATE: the CREATE rule denylist does not cover role/moderationStatus/suspendedUntil', async () => {
-    // Documents a real gap, deliberately asserted as it BEHAVES rather than as
-    // it should behave, so the suite stays honest and green.
+  test('a client cannot self-grant role or moderation fields on CREATE', async () => {
+    // THE ESCALATION THIS CLOSES: a user's first write is a CREATE, because the
+    // profile document does not exist yet. The create denylist originally
+    // covered only subscription/eventData/subscriptionType/hasActiveSubscription
+    // while the UPDATE denylist also covered role/moderationStatus/
+    // suspendedUntil — so any new account could set role:'admin' on itself at
+    // signup, and isAdmin() honours that field across the 13 clauses calling it.
     //
-    // The create denylist is only
-    //   ['subscription','eventData','subscriptionType','hasActiveSubscription']
-    // whereas the UPDATE denylist additionally covers
-    //   ['role','moderationStatus','suspendedUntil'].
-    // A user whose profile document does not yet exist therefore writes a
-    // CREATE, and can set role:'admin' on it — which isAdmin() then honours.
-    //
-    // Fixing this is three strings in the create denylist and does NOT need
-    // this migration; it is written up as its own hotfix. When that lands, flip
-    // both assertions below to assertFails and delete this comment.
+    // Both lists now match. If someone edits one denylist without the other,
+    // this test is what catches it.
     const db = getAuthContext(ALICE_UID).firestore();
 
-    // Alice's document does not exist, so this is a CREATE, and the create
-    // denylist does not mention `role`.
-    await assertSucceeds(setDoc(doc(db, 'users', ALICE_UID), {
+    await assertFails(setDoc(doc(db, 'users', ALICE_UID), {
       displayName: 'Alice',
       role: 'admin',
     }));
 
-    // Same gap for the moderation fields, on a fresh document.
     const bobDb = getAuthContext(BOB_UID).firestore();
-    await assertSucceeds(setDoc(doc(bobDb, 'users', BOB_UID), {
+    await assertFails(setDoc(doc(bobDb, 'users', BOB_UID), {
       displayName: 'Bob',
       moderationStatus: 'active',
       suspendedUntil: null,
+    }));
+  });
+
+  test('a legitimate signup-shaped CREATE still succeeds', async () => {
+    // The guard against over-tightening: the denylist must reject the three
+    // escalation fields WITHOUT breaking the real signup payload. This is the
+    // exact shape mobile AuthContext writes at signup.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(setDoc(doc(db, 'users', ALICE_UID), {
+      uid: ALICE_UID,
+      email: 'alice@test.com',
+      displayName: 'Alice',
+      hasCompletedOnboarding: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     }));
   });
 });

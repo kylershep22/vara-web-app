@@ -67,8 +67,24 @@ service cloud.firestore {
       // Subscription state is owned by the onUserCreate Cloud Function trigger —
       // clients must not include subscription/eventData/subscriptionType/hasActiveSubscription
       // on the initial doc create either.
+      //
+      // role / moderationStatus / suspendedUntil are denied here for the SAME
+      // reason they are denied on update, and the omission was a privilege
+      // escalation: a user's first write is a CREATE (the document does not
+      // exist yet), so leaving `role` off this list let any new account set
+      // role:'admin' on itself at signup — which isAdmin() then honours across
+      // the 13 clauses that call it. The update denylist below already covered
+      // all three; this list now matches it. Nothing legitimate is lost:
+      // neither onUserCreate nor any client creation path writes these three
+      // (mobile AuthContext, mobile AppNavigator, web Signup, web
+      // profileService all verified), and admin grants go through the
+      // isAdmin() update branch below, not through create.
+      //
+      // The slice-4 allowlist supersedes this denylist entirely. Until then
+      // this is the interim lock, and it must stay in lockstep with update.
       allow create: if request.auth.uid == userId
             && !request.resource.data.keys().hasAny([
+                  'role', 'moderationStatus', 'suspendedUntil',
                   'subscription', 'eventData',
                   'subscriptionType', 'hasActiveSubscription'
                 ]);
