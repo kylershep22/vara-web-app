@@ -9,7 +9,7 @@ export const INSIGHT_STRIP_MESSAGES = [
   'Your brain builds habits by strengthening connections between neurons. Every time you repeat a habit, that connection gets a little stronger.',
   'Small changes stick better when they match your brain\'s natural energy patterns. That\'s why timing matters almost as much as effort.',
   'Rest isn\'t the opposite of productivity. Your brain does some of its most important work during downtime, including locking in what you learned today.',
-  'Consistency doesn\'t require perfection. Your brain responds to patterns, not streaks. Showing up most days matters more than never missing one.',
+  'Consistency doesn\'t require perfection. Showing up most days matters more than never missing one.',
   'Habits are easier to maintain when they work with your brain\'s natural rhythms instead of fighting them.',
 ];
 

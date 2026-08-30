@@ -70,8 +70,6 @@ const ALLOWLIST: Record<string, string> = {
     'model field names and persisted keys, not user-visible copy; renaming is a data migration.',
   'src/services/firebase/fourThreeTwoOne.service.ts':
     'model field names and persisted keys, not user-visible copy; renaming is a data migration.',
-  'src/constants/brainInsightsCopy.ts':
-    'PROVISIONAL, awaiting a copy decision. INSIGHT_STRIP_MESSAGES[4] uses "streaks" in a negating sense ("responds to patterns, not streaks"). Surface is dark (BrainHealthInsightStrip has zero render sites). Remove this entry once the string is aligned with its live notificationScheduler counterpart or explicitly kept.',
 };
 
 /** Extracts string literals so "streak" is only matched inside one. */
