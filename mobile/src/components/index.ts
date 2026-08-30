@@ -58,7 +58,6 @@ export { default as ErrorBoundary } from './shared/ErrorBoundary';
 export { PriorityBadge } from './shared/PriorityBadge';
 export { ProgressBar } from './shared/ProgressBar';
 export { AnimatedProgressBar, CompactProgressBar } from './shared/AnimatedProgressBar';
-export { BrainPillarBadge } from './shared/BrainPillarBadge';
 export { EnhancedModal, ModalFooterActions } from './shared/EnhancedModal';
 export { KeyboardAwareScrollView, useKeyboardContext } from './shared/KeyboardAwareScrollView';
 export { Tag } from './shared/Tag';
