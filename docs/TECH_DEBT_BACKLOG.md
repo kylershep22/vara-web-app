@@ -1326,3 +1326,51 @@ captured as a known limitation, not a bug.
 `mobile/src/components/checkin/flow/reducer.ts` and the marker
 writer in `mobile/src/utils/flowSessionMarker.ts:166-191` are the
 key sites Phase 4 will refactor.
+
+---
+
+## `motion.ts` cites the Build Guide by line number, now shifted (Aug 2026 doc restructure)
+
+`mobile/src/constants/motion.ts:3` reads "Build Guide §UI motion
+(Vara_Build_Guide.md, lines 188-191) defines...". Two problems:
+
+- The file moved to `docs/archive/Vara_Build_Guide_SUPERSEDED.md` and is
+  quarantined, so the path in the comment no longer resolves.
+- The 8-line supersession header shifted every line by +8, so the cited
+  range 188-191 now points 8 lines early.
+
+The motion VALUES are not in question and nothing is broken at runtime.
+This is a stale citation that will mislead the next reader.
+
+**Fix when `motion.ts` is next touched:** repoint the citation to whichever
+current doc owns motion ranges (likely `mobile/Vara_Mobile_UI_Standards.md`),
+or quote the range inline so it stops depending on another file’s line
+numbers. Do not open the file solely for this.
+
+---
+
+## `Colors.brainPillars` renders the retired five-pillar model
+
+The five-pillar model (Growth / Energy / Focus / Resilience / Connection) is
+retired, superseded by the four-tab IA. Its tokens and consumers are still
+in the tree:
+
+- `mobile/src/constants/colors.ts:94` — the `brainPillars` token block.
+- `mobile/src/components/shared/BrainPillarBadge.tsx:53-54`
+- `mobile/src/components/shared/BrainPillarInfoModal.tsx:34,54,74,94,114`
+- `mobile/src/screens/GoalsScreen.tsx:92,117` — a `brainPillars` form field.
+
+The documentation for these tokens was removed from
+`mobile/docs/DESIGN_SYSTEM.md` in the Aug 2026 doc-precedence slice, so the
+tokens are now live but undocumented — the worst of both states.
+
+**Needed, in order:** (1) a reachability check against the CC inventory
+(`mobile/docs/inventory/CC_Inventory_2026-08-15.md`) to establish whether
+BrainPillarBadge and BrainPillarInfoModal are BUILT AND REACHABLE or BUILT
+BUT DARK; (2) if dark, a removal slice for components + tokens + the
+GoalsScreen field; (3) if reachable, a decision from Kyle on what those
+surfaces should say instead, since the vocabulary they render is retired.
+
+Do not delete piecemeal. `GoalsScreen`’s `brainPillars` field may be
+persisted on existing goal documents; removing the write path is not the
+same as migrating the data.

@@ -6,7 +6,7 @@ Guidelines for contributing to the Vara Wellness mobile app.
 
 1. Create the screen in `src/screens/YourScreen.tsx`
 2. Add the route in `src/navigation/AppNavigator.tsx`
-3. Keep file size under 400 lines -- extract components into `src/components/`
+3. Keep file size under 300 lines -- extract components into `src/components/`. This is the `max-lines` rule in `.eslintrc.js`; it reports as a warning, so it will not fail `npm run lint` for you.
 4. Import design tokens from `src/constants` (never hardcode colors, sizes, or spacing)
 5. Add accessibility labels to all interactive elements
 
@@ -61,7 +61,7 @@ export default YourScreen;
 - [ ] Checkboxes have `accessibilityRole="checkbox"` and `accessibilityState={{ checked }}`
 - [ ] Images have `accessibilityLabel` or `accessible={false}` if decorative
 - [ ] Progress indicators have `accessibilityRole="progressbar"` with value
-- [ ] Use helpers from `src/utils/accessibility.ts` for consistent labels
+- [ ] Use helpers from `src/utils/accessibility.ts` for new pressables -- they are the intended pattern going forward. Adoption across existing screens is not done and is tracked as a separate accessibility remediation slice.
 
 ## Running Tests
 
@@ -105,8 +105,9 @@ Before submitting a PR:
 - [ ] Animations respect `useReducedMotion`
 - [ ] No new `console.log` calls (use `logger` from `src/utils/logger.ts`)
 - [ ] No secrets or API keys in committed code
-- [ ] File size under 400 lines (extract if larger)
+- [ ] File size under 300 lines (extract if larger) -- matches `max-lines` in `.eslintrc.js`
 - [ ] Brand compliance: no prohibited copy patterns
+- [ ] If new user-facing strings were added as drafts, the copyDraftSentinel count is updated in the same commit and named in the commit message
 
 ## Code Style
 

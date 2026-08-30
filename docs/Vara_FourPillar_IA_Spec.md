@@ -1,3 +1,8 @@
+> **SUPERSEDED by `docs/Vara_Today_IA_Restructure_Roadmap_v2.md`**, which replaces this five-tab IA with the shipped four-tab IA: Today / Practices / Learn / Community.
+> Kept for history only. Do not build the five-tab structure described below.
+
+---
+
 # Vara — Four-Pillar IA Spec
 **Version 1.0 | For review | The tab/IA switch: Home / Focus / Energy / Time / Community**
 

@@ -1,5 +1,13 @@
+> **SUPERSEDED — April 2026 guide, retired August 2026.** This document describes
+> a prior version of Vara: the five-state vocabulary (Wired/Foggy/Steady/Clear/
+> Alive), five-tab IA, floating V button, intent paths, protocol tiers, and 7-day
+> trial are ALL RETIRED. Do not build from this document. Current precedence:
+> see mobile/CLAUDE.md. Kept for history only.
+
+---
+
 # Vara Build Guide
-**The non-negotiables for building Vara. Load this at the start of every Claude Code session.**
+**[RETIRED INSTRUCTION — do not load this document in any session. See mobile/CLAUDE.md.]**
 
 Version 1.0 | April 2026
 

@@ -1,3 +1,11 @@
+> **CAUTION — contains stale references.** This plan predates the August 2026
+> doc-precedence restructure and repeatedly instructs loading the Build Guide,
+> which is now quarantined at docs/archive/Vara_Build_Guide_SUPERSEDED.md.
+> Source-of-truth precedence now lives in mobile/CLAUDE.md. This plan has not
+> been re-audited against current docs; treat phase instructions as historical.
+
+---
+
 # Vara Redesign — Phased Implementation Plan
 **Version 1.0 | April 2026 | Solo founder working nights and weekends**
 

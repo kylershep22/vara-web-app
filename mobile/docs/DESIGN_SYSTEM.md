@@ -1,5 +1,7 @@
 # Vara Design System
 
+**Scope: this document maps design tokens to their source files in `src/constants/`.** It is the code-mapping companion to `mobile/Vara_Mobile_UI_Standards.md`, which is the design system of record. Where the two disagree, the UI Standards win and this file is the one that is wrong.
+
 Canonical reference for the Vara mobile app design tokens. All values are defined in `src/constants/` and should be imported from there.
 
 ## Color Palette
@@ -44,16 +46,6 @@ Source: `src/constants/colors.ts`
 | `tealMedium` | `rgba(27,94,87,0.15)` | Active badge borders |
 | `dewSageLight` | `rgba(213,227,209,0.5)` | Icon containers, inactive pills |
 | `divider` | `rgba(184,205,186,0.4)` | Dividers, borders |
-
-### Brain Health Pillar Colors
-
-| Pillar | Token | Hex |
-|---|---|---|
-| Growth | `brainPillars.growth` | `#1B5E57` (Evergreen Teal) |
-| Energy | `brainPillars.energy` | `#F4C542` (Sunrise Amber) |
-| Focus | `brainPillars.focus` | `#B8CDBA` (Silver Sage) |
-| Resilience | `brainPillars.resilience` | `#F5B971` (Golden Apricot) |
-| Connection | `brainPillars.connection` | `#D5E3D1` (Dew Sage) |
 
 ### Rules
 
@@ -176,7 +168,7 @@ Vara uses **quiet acknowledgment** over loud celebration. The goal is to recogni
 ### Approved Patterns
 
 - **QuietFinish:** Inline overlay with calm message ("Done for today. Well done."). Auto-dismisses after 2.5s.
-- **MomentOfRecognition:** Modal shown at engagement thresholds (7, 30, 60, 100 days). Never displays the number.
+- **MomentOfRecognition:** Modal shown at engagement thresholds (7, 30, 60, 100 days). Never displays the number. <!-- UNDER REVIEW - day-count thresholds may conflict with the no-accumulation acknowledgment rule (Voice & Tone v2.2 section 3.3). Decision pending. -->
 - **AnimatedCheckbox:** Subtle scale animation with brief acknowledgment text ("Done.", "Noted.", "Captured.").
 
 ### Prohibited Patterns
@@ -193,11 +185,13 @@ Vara uses **quiet acknowledgment** over loud celebration. The goal is to recogni
 
 | Context | CTA Text |
 |---|---|
-| Paywall (new user) | "Start your 7-day free trial" |
+| Paywall (new user) | "Start your 14-day free trial" |
 | Paywall (expired) | "Continue with Vara" |
 | Restore purchase | "Restore previous purchase" |
 | Onboarding | "Get started" |
 | Habit completion | "Done." / "Noted." / "Captured." |
+
+> **Trial length is defined by the RevenueCat offering, not by this document.** The CTA copy must match the offering that is actually live. If they disagree, the offering is right and the copy is the bug.
 
 ### Prohibited Examples
 
