@@ -26,7 +26,6 @@ export { FourThreeTwoOneCarousel } from './dashboard/FourThreeTwoOneCarousel';
 export { default as ProgressNudgeCard } from './dashboard/ProgressNudgeCard';
 export { BrainHealthInsightStrip } from './dashboard/BrainHealthInsightStrip';
 export { QuickActionCarousel } from './dashboard/QuickActionCarousel';
-export { WellnessScoreCard } from './dashboard/WellnessScoreCard';
 export { WellnessScoreBreakdown } from './dashboard/WellnessScoreBreakdown';
 export { MorningCheckIn, MorningCheckInComplete } from './dashboard/MorningCheckIn';
 export { WellnessScoreOptInCard } from './dashboard/WellnessScoreOptInCard';

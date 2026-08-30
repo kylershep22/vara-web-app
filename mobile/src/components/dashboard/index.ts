@@ -11,7 +11,6 @@ export { BrainHealthInsightStrip } from './BrainHealthInsightStrip';
 export { QuickActionCarousel } from './QuickActionCarousel';
 
 // Wellness Score Components
-export { WellnessScoreCard } from './WellnessScoreCard';
 export { WellnessScoreBreakdown } from './WellnessScoreBreakdown';
 export { MorningCheckIn, MorningCheckInComplete } from './MorningCheckIn';
 export { WellnessScoreOptInCard } from './WellnessScoreOptInCard';
