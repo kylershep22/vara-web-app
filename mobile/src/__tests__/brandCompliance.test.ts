@@ -61,9 +61,9 @@ const ALLOWLIST: Record<string, string> = {
   'src/screens/onboarding/OnboardingTourScreen.tsx':
     'dark screen; confetti replaced by QuietFinish, only identifier names survive; rename tracked on backlog.',
   'src/constants/featureDiscovery.ts':
-    'dark; describes retired streak-gated unlock mechanics; file is a deletion candidate in the legacy-removal slice.',
+    'live provider (UnlockToast path); contains retired streak-gated copy for deleted ComingUpSection surfaces; strings are dead weight pending a content-level prune.',
   'src/services/firebase/wellnessScore.service.ts':
-    'dark; describes retired streak-gated unlock mechanics; file is a deletion candidate in the legacy-removal slice. The scored-metric concept itself is banned, not just the string.',
+    'LIVE service: useDashboard calls it on every dashboard mount. Computes a scored metric with a streakBonus - the concept is banned, not just the string. De-wiring project on the backlog; not a copy fix.',
   'src/services/firebase/habits.service.ts':
     'model field names and persisted keys, not user-visible copy; renaming is a data migration.',
   'src/services/firebase/notificationPreferences.service.ts':

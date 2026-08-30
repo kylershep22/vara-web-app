@@ -128,8 +128,4 @@ export { default as OnboardingReflectionActivity } from './onboarding/activities
 export { default as OnboardingIntentionActivity } from './onboarding/activities/OnboardingIntentionActivity';
 
 // Discovery components (progressive feature unlock)
-export { default as FeaturePreviewBottomSheet } from './discovery/FeaturePreviewBottomSheet';
-export { default as SoftRevealCard } from './discovery/SoftRevealCard';
-export { default as NewlyAvailableCard } from './discovery/NewlyAvailableCard';
 export { default as UnlockToast } from './discovery/UnlockToast';
-export { default as ComingUpSection } from './discovery/ComingUpSection';
