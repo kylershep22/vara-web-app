@@ -34,18 +34,29 @@ const onUserCreate = functionsV1
 
       const now = admin.firestore.FieldValue.serverTimestamp();
 
-      await userRef.set(
-          {
-            subscription: {
-              type: "none",
-              // Retained for analytics cohort use (see admin/analytics.js).
-              // Effectively a signup timestamp post-Model-A.
-              trialStartedAt: now,
-            },
-            subscriptionType: "none",
-          },
+      const seed = {
+        subscription: {
+          type: "none",
+          // Retained for analytics cohort use (see admin/analytics.js).
+          // Effectively a signup timestamp post-Model-A.
+          trialStartedAt: now,
+        },
+        subscriptionType: "none",
+      };
+
+      // MIGRATION_FALLBACK — DUAL-WRITE, slice 2 of the userPrivate migration.
+      // Same reasoning as revenueCatWebhook: builds already in the field read
+      // subscription state from users/{uid}, so the seed has to land there too
+      // until slice 4. One batch so an account can never exist with the seed on
+      // one document and not the other.
+      const batch = db.batch();
+      batch.set(userRef, seed, {merge: true});
+      batch.set(
+          db.collection("userPrivate").doc(uid),
+          {...seed, uid, createdAt: now, updatedAt: now},
           {merge: true},
       );
+      await batch.commit();
 
       logger.info("Subscription state bootstrapped", {uid});
     });

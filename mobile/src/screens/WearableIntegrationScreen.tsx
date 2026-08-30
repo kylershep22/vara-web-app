@@ -22,7 +22,9 @@ import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebase';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { serverTimestamp, type Timestamp } from 'firebase/firestore';
+import { setUserPrivate } from '../services/firebase/userPrivate.service';
+import { getMergedUserData } from '../services/firebase/userMigrationRead';
 
 const VARA_COLORS = {
   teal: '#1B5E57',
@@ -60,8 +62,10 @@ const ConnectedAppsScreen: React.FC = () => {
     }
     const check = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data().connectedAppsPicks) {
+        // MIGRATION_FALLBACK — picks moved to userPrivate in slice 2; an
+        // earlier submission may still only exist on users/{uid}.
+        const merged = await getMergedUserData(user.uid);
+        if (merged?.connectedAppsPicks) {
           setHasSubmitted(true);
         }
       } catch {
@@ -89,9 +93,9 @@ const ConnectedAppsScreen: React.FC = () => {
     if (otherText.trim()) picks.push(`other: ${otherText.trim()}`);
 
     try {
-      await updateDoc(doc(db, 'users', user.uid), {
+      await setUserPrivate(user.uid, {
         connectedAppsPicks: picks,
-        connectedAppsSubmittedAt: serverTimestamp(),
+        connectedAppsSubmittedAt: serverTimestamp() as unknown as Timestamp,
       });
       setHasSubmitted(true);
       setShowPicker(false);

@@ -9,7 +9,9 @@
  * so a crash mid-flow resumes onto the step the user is ON, not the one they
  * just completed.
  */
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { setUserPrivate, stageUserPrivate } from './userPrivate.service';
+import { getMergedUserData } from './userMigrationRead';
 import { db } from '../../config/firebase';
 import type { BrainState } from '../../types/models';
 import {
@@ -29,25 +31,35 @@ function userRef(userId: string) {
   return doc(db, USERS_COLLECTION, userId);
 }
 
+/** Narrowed Firestore handle for the one site that opens a batch. */
+function requireDbForBatch() {
+  if (!db) throw new Error('Firestore not initialized');
+  return db;
+}
+
+// MIGRATION SLICE 2 — these four now write userPrivate/{uid}.
+//
+// The dotted paths became nested objects. That is required, not cosmetic:
+// setDoc(..., {merge:true}) treats a key like 'onboardingStressRecovery.peakWindow'
+// as a literal field name containing a dot, so the dotted form would have
+// written a garbage top-level field and silently dropped the real one. Nested
+// maps under merge:true deep-merge in Firestore, so each of these still leaves
+// its sibling keys intact exactly as the dotted updateDoc did.
+//
+// setUserPrivate (setDoc merge) rather than updateDoc also fixes the absent-
+// document case: updateDoc rejects a write to a document that does not exist,
+// and for a mid-migration user the private document usually does not yet.
+
 export async function saveInitialState(userId: string, state: BrainState): Promise<void> {
-  await updateDoc(userRef(userId), {
-    'onboardingStressRecovery.initialState': state,
-    updatedAt: serverTimestamp(),
-  });
+  await setUserPrivate(userId, { onboardingStressRecovery: { initialState: state } });
 }
 
 export async function saveStressors(userId: string, stressors: string[]): Promise<void> {
-  await updateDoc(userRef(userId), {
-    'onboardingStressRecovery.stressors': stressors,
-    updatedAt: serverTimestamp(),
-  });
+  await setUserPrivate(userId, { onboardingStressRecovery: { stressors } });
 }
 
 export async function savePeakWindow(userId: string, peak: PeakWindow | null): Promise<void> {
-  await updateDoc(userRef(userId), {
-    'onboardingStressRecovery.peakWindow': peak,
-    updatedAt: serverTimestamp(),
-  });
+  await setUserPrivate(userId, { onboardingStressRecovery: { peakWindow: peak } });
 }
 
 export async function saveRecheckShift(
@@ -55,10 +67,8 @@ export async function saveRecheckShift(
   stateAfter: BrainState,
   shift: 'improved' | 'flat' | 'worse'
 ): Promise<void> {
-  await updateDoc(userRef(userId), {
-    'onboardingStressRecovery.recheckStateAfter': stateAfter,
-    'onboardingStressRecovery.recheckShift': shift,
-    updatedAt: serverTimestamp(),
+  await setUserPrivate(userId, {
+    onboardingStressRecovery: { recheckStateAfter: stateAfter, recheckShift: shift },
   });
 }
 
@@ -72,10 +82,14 @@ export async function saveRecheckShift(
  */
 export async function persistRecheckAsDailyCheckIn(userId: string): Promise<void> {
   try {
-    const snap = await getDoc(userRef(userId));
-    if (!snap.exists()) return;
-    const after = (snap.data()?.onboardingStressRecovery?.recheckStateAfter ??
-      null) as BrainState | null;
+    // MIGRATION_FALLBACK — the re-check state is written privately from slice 2
+    // but a user who captured it on an older build still has it on users/{uid}.
+    const merged = await getMergedUserData(userId);
+    if (!merged) return;
+    const sr = merged.onboardingStressRecovery as
+      | { recheckStateAfter?: BrainState }
+      | undefined;
+    const after = (sr?.recheckStateAfter ?? null) as BrainState | null;
     if (!after) return; // re-check skipped or not reached → gate normally
     // Stamp the marker with the real circumplex quadrant + pinned situation
     // (derived losslessly from the bridged re-check state), matching the
@@ -97,7 +111,14 @@ export async function persistRecheckAsDailyCheckIn(userId: string): Promise<void
  * the one they just completed. Writes the route name verbatim.
  */
 export async function saveOnboardingStep(userId: string, step: OnboardingSrStep): Promise<void> {
-  await updateDoc(userRef(userId), { onboardingStep: step, updatedAt: serverTimestamp() });
+  const batch = writeBatch(requireDbForBatch());
+  // MIGRATION_FALLBACK — gate-field dual-write. onboardingStep decides which
+  // screen AppNavigator resumes the arc on, so a client still reading
+  // users/{uid} must keep seeing it advance or it would restart the flow.
+  // Slice 4 drops this line and keeps the userPrivate write.
+  batch.update(userRef(userId), { onboardingStep: step, updatedAt: serverTimestamp() });
+  await stageUserPrivate(batch, userId, { onboardingStep: step });
+  await batch.commit();
 }
 
 /**

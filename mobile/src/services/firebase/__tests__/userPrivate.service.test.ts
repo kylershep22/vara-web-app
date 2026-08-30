@@ -22,6 +22,7 @@ import {
   getUserPrivate,
   setFloorCommitment,
   setUserPrivate,
+  stageUserPrivate,
 } from '../userPrivate.service';
 
 /** Shorthand for the two getDoc outcomes the service branches on. */
@@ -265,6 +266,73 @@ describe('userPrivate.service', () => {
       await setFloorCommitment('u1', 'one walk');
       expect(mockSetDoc.mock.calls[0][1]).not.toHaveProperty('userId');
       expect(mockDoc.mock.calls[0][2]).toBe('u1');
+    });
+  });
+
+  // ------------------------------------------------------------------------
+  // stageUserPrivate — added in migration slice 2 for the sites that must
+  // touch BOTH documents atomically.
+  // ------------------------------------------------------------------------
+  describe('stageUserPrivate', () => {
+    /** Minimal stand-in for a Firestore WriteBatch. */
+    const makeBatch = () => ({ set: jest.fn(), update: jest.fn(), commit: jest.fn() });
+
+    test('stages onto the caller batch and does NOT write on its own', async () => {
+      // The caller owns the commit so it can stage its public-document write
+      // into the same atomic unit. Committing here would defeat that.
+      mockGetDoc.mockResolvedValue(absent);
+      const batch = makeBatch();
+
+      await stageUserPrivate(batch as any, 'u1', { email: 'a@example.com' });
+
+      expect(batch.set).toHaveBeenCalledTimes(1);
+      expect(batch.commit).not.toHaveBeenCalled();
+      expect(mockSetDoc).not.toHaveBeenCalled();
+    });
+
+    test('targets userPrivate/{uid} and merges', async () => {
+      mockGetDoc.mockResolvedValue(absent);
+      const batch = makeBatch();
+
+      await stageUserPrivate(batch as any, 'u1', { email: 'a@example.com' });
+
+      expect(mockDoc).toHaveBeenCalledWith({ __db: true }, 'userPrivate', 'u1');
+      const [, data, options] = batch.set.mock.calls[0];
+      expect(data).toMatchObject({ email: 'a@example.com', uid: 'u1' });
+      expect(options).toEqual({ merge: true });
+    });
+
+    test('stamps createdAt on a first write only', async () => {
+      mockGetDoc.mockResolvedValue(absent);
+      const batch = makeBatch();
+      await stageUserPrivate(batch as any, 'u1', { email: 'a@example.com' });
+      expect(batch.set.mock.calls[0][1]).toHaveProperty('createdAt');
+    });
+
+    test('omits createdAt when the document already exists', async () => {
+      // A blind createdAt under merge would reset the creation time on every
+      // later write — the same hazard setUserPrivate guards against.
+      mockGetDoc.mockResolvedValue(present({ email: 'a@example.com' }));
+      const batch = makeBatch();
+      await stageUserPrivate(batch as any, 'u1', { aiConsent: true });
+      expect(batch.set.mock.calls[0][1]).not.toHaveProperty('createdAt');
+    });
+
+    test('strips caller-supplied uid and timestamps', async () => {
+      mockGetDoc.mockResolvedValue(present({}));
+      const batch = makeBatch();
+
+      await stageUserPrivate(batch as any, 'u1', {
+        uid: 'someone-else',
+        createdAt: 'forged',
+        updatedAt: 'forged',
+        aiConsent: true,
+      } as any);
+
+      const data = batch.set.mock.calls[0][1];
+      expect(data.uid).toBe('u1');
+      expect(data.createdAt).toBeUndefined();
+      expect(data.updatedAt).toBe('__ts__');
     });
   });
 });

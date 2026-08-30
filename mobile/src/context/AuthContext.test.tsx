@@ -39,9 +39,24 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: (...args: any[]) => mockDeleteItemAsync(...args),
 }));
 
+// Firestore, with enough of the batch surface for the two-document signup
+// write introduced by userPrivate migration slice 2. `doc` returns an
+// identifiable ref so the assertions can tell the public document from the
+// private one.
+const mockBatchSet = jest.fn();
+const mockBatchUpdate = jest.fn();
+const mockBatchCommit = jest.fn().mockResolvedValue(undefined);
+const mockGetDoc = jest.fn().mockResolvedValue({ exists: () => false });
+
 jest.mock('firebase/firestore', () => ({
-  doc: jest.fn(),
+  doc: jest.fn((_db: any, collection: string, id: string) => ({ collection, id })),
+  getDoc: (...args: any[]) => mockGetDoc(...args),
   setDoc: jest.fn(),
+  writeBatch: jest.fn(() => ({
+    set: (...args: any[]) => mockBatchSet(...args),
+    update: (...args: any[]) => mockBatchUpdate(...args),
+    commit: (...args: any[]) => mockBatchCommit(...args),
+  })),
   serverTimestamp: jest.fn(() => new Date()),
   Timestamp: { fromDate: jest.fn() },
 }));
@@ -75,7 +90,13 @@ describe('AuthContext', () => {
     jest.clearAllMocks();
     mockCreateUser.mockResolvedValue({ user: { uid: 'new-user-1' } });
     mockSignIn.mockResolvedValue({ user: { uid: 'returning-user-1' } });
+    mockGetDoc.mockResolvedValue({ exists: () => false });
+    mockBatchCommit.mockResolvedValue(undefined);
   });
+
+  /** The staged write for one collection, or undefined if nothing was staged. */
+  const stagedFor = (collection: string) =>
+    mockBatchSet.mock.calls.find((call) => call[0]?.collection === collection)?.[1];
 
   it('provides auth context to children', () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
@@ -101,6 +122,81 @@ describe('AuthContext', () => {
       renderHook(() => useAuth());
     }).toThrow('useAuth must be used within an AuthProvider');
     spy.mockRestore();
+  });
+
+  // ---------------------------------------------------------------------
+  // userPrivate migration slice 2 — writer repoint at signup.
+  // ---------------------------------------------------------------------
+  describe('signup writes email to userPrivate, not to the public profile', () => {
+    it('puts the email on userPrivate/{uid}', async () => {
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await act(async () => {
+        await result.current.signup('Alice@Example.com', 'pw', 'Alice');
+      });
+
+      expect(stagedFor('userPrivate')).toMatchObject({
+        email: 'alice@example.com',
+        uid: 'new-user-1',
+      });
+    });
+
+    it('does NOT put the email on users/{uid}', async () => {
+      // users/{uid} is readable by every authenticated account, so an email
+      // there is an address book anyone can enumerate. This is the assertion
+      // the whole migration exists for.
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await act(async () => {
+        await result.current.signup('alice@example.com', 'pw', 'Alice');
+      });
+
+      const publicWrite = stagedFor('users');
+      expect(publicWrite).toBeDefined();
+      expect(publicWrite).not.toHaveProperty('email');
+      expect(publicWrite).toMatchObject({ displayName: 'Alice' });
+    });
+
+    it('dual-writes the hasCompletedOnboarding gate to BOTH documents', async () => {
+      // The gate steers AppNavigator's routing and is still read from
+      // users/{uid} by web and by builds that have not updated. Dropping the
+      // public half would send them back through onboarding.
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await act(async () => {
+        await result.current.signup('alice@example.com', 'pw', 'Alice');
+      });
+
+      expect(stagedFor('users')).toMatchObject({ hasCompletedOnboarding: false });
+      expect(stagedFor('userPrivate')).toMatchObject({ hasCompletedOnboarding: false });
+    });
+
+    it('commits both documents in ONE batch', async () => {
+      // Two sequential writes could leave an account whose public card exists
+      // with no private document behind it — a user with no stored email that
+      // nothing would later notice or repair.
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await act(async () => {
+        await result.current.signup('alice@example.com', 'pw', 'Alice');
+      });
+
+      expect(mockBatchSet).toHaveBeenCalledTimes(2);
+      expect(mockBatchCommit).toHaveBeenCalledTimes(1);
+    });
+
+    it('stamps createdAt on a first private write and omits it on a later one', async () => {
+      // A blind createdAt under merge would reset the private store's creation
+      // time on every subsequent write.
+      mockGetDoc.mockResolvedValue({ exists: () => true });
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await act(async () => {
+        await result.current.signup('alice@example.com', 'pw', 'Alice');
+      });
+
+      expect(stagedFor('userPrivate')).not.toHaveProperty('createdAt');
+    });
   });
 
   // The two events that fire on a real production path. Everything else wired

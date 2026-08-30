@@ -48,6 +48,7 @@ import { ROUTES } from '../navigation/routes';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebase';
 import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
+import { subscribeMergedUserData } from '../services/firebase/userMigrationRead';
 
 const DashboardScreen: React.FC = () => {
   const { user } = useAuth();
@@ -94,9 +95,8 @@ const DashboardScreen: React.FC = () => {
   const [firstShiftAt, setFirstShiftAt] = useState<Timestamp | null>(null);
   useEffect(() => {
     if (!user?.uid || !db) return;
-    const userRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(userRef, (snap) => {
-      const data = snap.data();
+    // MIGRATION_FALLBACK — firstShiftAt moved to userPrivate in slice 2.
+    const unsubscribe = subscribeMergedUserData(user.uid, (data) => {
       const value = (data?.firstShiftAt as Timestamp | undefined) ?? null;
       setFirstShiftAt(value);
     });

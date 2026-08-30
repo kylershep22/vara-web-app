@@ -19,6 +19,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRoute } from '@react-navigation/native';
 import { doc, getDoc } from 'firebase/firestore';
+import { getMergedUserData } from '../../services/firebase/userMigrationRead';
 import { db } from '../../config/firebase';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';
 import { Colors, Spacing, Typography } from '../../constants';
@@ -76,9 +77,14 @@ const OnboardingAnchorScreen: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        if (cancelled || !snap.exists()) return;
-        const peak = (snap.data().onboardingStressRecovery?.peakWindow ?? null) as PeakWindow | null;
+        // MIGRATION_FALLBACK — the stress-recovery capture moved to userPrivate
+        // in slice 2; an in-flight arc may have written it either side.
+        const merged = await getMergedUserData(user.uid);
+        if (cancelled || !merged) return;
+        const sr = merged.onboardingStressRecovery as
+          | { peakWindow?: PeakWindow | null }
+          | undefined;
+        const peak = (sr?.peakWindow ?? null) as PeakWindow | null;
         setSelectedTime(new Date(2024, 0, 1, hourForPeak(peak), 0));
       } catch {
         // Keep the default hour.

@@ -4,19 +4,32 @@
  *
  * Design Philosophy: Features unlock through natural engagement milestones.
  * Users never "earn" access — features open organically as they explore.
+ *
+ * MIGRATION SLICE 2 — this state moved from users/{uid} to userPrivate/{uid}.
+ *
+ * Two mechanical consequences, both deliberate:
+ *
+ *   1. DOTTED PATHS BECAME NESTED OBJECTS. setDoc(..., {merge:true}) reads a
+ *      key like 'featureDiscovery.engagement.sessionCount' as a literal field
+ *      name containing dots, so keeping the dotted form would have written
+ *      junk and dropped the real value. Nested maps deep-merge under merge:true,
+ *      so sibling keys survive as they did under the dotted updateDoc.
+ *
+ *   2. increment() AND arrayUnion() BECAME READ-MODIFY-WRITE. Those sentinels
+ *      apply to whatever is in the document they are written to — and the
+ *      private document starts empty, so increment(1) against it would reset a
+ *      user's counter to 1 instead of continuing it. Each counter write now
+ *      reads the MERGED state (private over public) and writes the resulting
+ *      absolute value, which carries the pre-migration count forward intact.
+ *      The trade is losing atomic increments; these are per-user, single-device
+ *      counters feeding unlock thresholds, so a lost concurrent update would
+ *      delay a feature unlock by one action rather than corrupt anything.
  */
 
 import { db, firebaseError } from '../../config/firebase';
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-  Timestamp,
-  increment,
-  arrayUnion,
-} from 'firebase/firestore';
+import { serverTimestamp, Timestamp } from 'firebase/firestore';
+import { setUserPrivate } from './userPrivate.service';
+import { getMergedUserData } from './userMigrationRead';
 
 /**
  * Check if Firestore is available
@@ -54,7 +67,6 @@ export async function initializeFeatureDiscovery(
   selectedPillar: BrainPillar
 ): Promise<void> {
   try {
-    const userRef = doc(ensureFirestore(), 'users', userId);
     const initialStates = initializeFeatureStates(selectedPillar);
 
     // Convert to Firestore format
@@ -68,7 +80,7 @@ export async function initializeFeatureDiscovery(
       };
     }
 
-    await updateDoc(userRef, {
+    await setUserPrivate(userId, {
       featureDiscovery: {
         features: firestoreFeatures,
         engagement: {
@@ -86,7 +98,8 @@ export async function initializeFeatureDiscovery(
         initializedAt: serverTimestamp(),
         lastEvaluatedAt: null,
       },
-      updatedAt: serverTimestamp(),
+      // No `updatedAt` here — the userPrivate store stamps its own on every
+      // write and strips a caller-supplied one.
     });
 
     console.log(`Initialized feature discovery for user ${userId} with pillar ${selectedPillar}`);
@@ -104,14 +117,13 @@ export async function getFeatureDiscoveryState(userId: string): Promise<{
   engagement: UserEngagementMetrics | null;
 } | null> {
   try {
-    const userRef = doc(ensureFirestore(), 'users', userId);
-    const userDoc = await getDoc(userRef);
+    // MIGRATION_FALLBACK — merged read; see the module header.
+    const data = await getMergedUserData(userId);
 
-    if (!userDoc.exists()) {
+    if (!data) {
       return null;
     }
 
-    const data = userDoc.data();
     const discovery = data.featureDiscovery as FeatureDiscoveryDocument | undefined;
 
     if (!discovery) {
@@ -165,6 +177,24 @@ export async function getFeatureDiscoveryState(userId: string): Promise<{
 }
 
 /**
+ * MIGRATION_FALLBACK — the merged engagement map (userPrivate over users/{uid}).
+ *
+ * Every read-modify-write counter goes through this so a user mid-migration
+ * continues from the count they actually have rather than from zero. Returns
+ * an empty object rather than null when neither document carries engagement
+ * yet, so callers can treat "no value" and "value of zero" identically.
+ */
+async function readMergedEngagement(
+  userId: string
+): Promise<Record<string, unknown>> {
+  const merged = await getMergedUserData(userId);
+  const discovery = merged?.featureDiscovery as
+    | { engagement?: Record<string, unknown> }
+    | undefined;
+  return discovery?.engagement ?? {};
+}
+
+/**
  * Track an engagement metric increment
  */
 export async function trackEngagementMetric(
@@ -173,11 +203,17 @@ export async function trackEngagementMetric(
   incrementBy: number = 1
 ): Promise<void> {
   try {
-    const userRef = doc(ensureFirestore(), 'users', userId);
-    await updateDoc(userRef, {
-      [`featureDiscovery.engagement.${metric}`]: increment(incrementBy),
-      'featureDiscovery.engagement.lastActivityAt': serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    // MIGRATION_FALLBACK — read merged so a counter that still lives on
+    // users/{uid} continues from its real value instead of restarting at zero.
+    const current = await readMergedEngagement(userId);
+    const previous = typeof current?.[metric] === 'number' ? (current[metric] as number) : 0;
+    await setUserPrivate(userId, {
+      featureDiscovery: {
+        engagement: {
+          [metric]: previous + incrementBy,
+          lastActivityAt: serverTimestamp(),
+        },
+      },
     });
   } catch (error) {
     console.error(`Error tracking engagement metric ${metric}:`, error);
@@ -193,11 +229,27 @@ export async function trackFeatureEngaged(
   featureId: string
 ): Promise<void> {
   try {
-    const userRef = doc(ensureFirestore(), 'users', userId);
-    await updateDoc(userRef, {
-      'featureDiscovery.engagement.featuresEngaged': arrayUnion(featureId),
-      'featureDiscovery.engagement.lastActivityAt': serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    // MIGRATION_FALLBACK — the union is computed here rather than by
+    // arrayUnion(), for the same reason the counters are: the sentinel would
+    // union against an empty private document and lose the existing list.
+    const current = await readMergedEngagement(userId);
+    const existing = Array.isArray(current?.featuresEngaged)
+      ? (current.featuresEngaged as string[])
+      : [];
+    if (existing.includes(featureId)) {
+      // Already recorded — still stamp activity, but do not rewrite the array.
+      await setUserPrivate(userId, {
+        featureDiscovery: { engagement: { lastActivityAt: serverTimestamp() } },
+      });
+      return;
+    }
+    await setUserPrivate(userId, {
+      featureDiscovery: {
+        engagement: {
+          featuresEngaged: [...existing, featureId],
+          lastActivityAt: serverTimestamp(),
+        },
+      },
     });
   } catch (error) {
     console.error(`Error tracking feature engaged ${featureId}:`, error);
@@ -210,11 +262,17 @@ export async function trackFeatureEngaged(
  */
 export async function trackNewSession(userId: string): Promise<void> {
   try {
-    const userRef = doc(ensureFirestore(), 'users', userId);
-    await updateDoc(userRef, {
-      'featureDiscovery.engagement.sessionCount': increment(1),
-      'featureDiscovery.engagement.lastActivityAt': serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    // MIGRATION_FALLBACK — read-modify-write, as above.
+    const current = await readMergedEngagement(userId);
+    const previous =
+      typeof current?.sessionCount === 'number' ? (current.sessionCount as number) : 0;
+    await setUserPrivate(userId, {
+      featureDiscovery: {
+        engagement: {
+          sessionCount: previous + 1,
+          lastActivityAt: serverTimestamp(),
+        },
+      },
     });
   } catch (error) {
     console.error('Error tracking new session:', error);
@@ -236,7 +294,9 @@ export async function evaluateUnlockTriggers(
     }
 
     const newlyUnlocked: DiscoverableFeatureId[] = [];
-    const updates: Record<string, any> = {};
+    // Keyed by featureId, then nested under featureDiscovery.features on the
+    // write below. Was a flat map of dotted field paths before slice 2.
+    const unlockedFeatureStates: Record<string, any> = {};
 
     // Sort triggers by priority
     const sortedTriggers = [...UNLOCK_TRIGGERS].sort((a, b) => a.priority - b.priority);
@@ -258,7 +318,7 @@ export async function evaluateUnlockTriggers(
       // Evaluate the trigger
       if (trigger.evaluate(state.engagement, selectedPillar)) {
         newlyUnlocked.push(trigger.featureId);
-        updates[`featureDiscovery.features.${trigger.featureId}`] = {
+        unlockedFeatureStates[trigger.featureId] = {
           status: 'available',
           unlockedAt: serverTimestamp(),
           toastShown: false,
@@ -269,11 +329,11 @@ export async function evaluateUnlockTriggers(
 
     // Apply updates if any features unlocked
     if (newlyUnlocked.length > 0) {
-      const userRef = doc(ensureFirestore(), 'users', userId);
-      await updateDoc(userRef, {
-        ...updates,
-        'featureDiscovery.lastEvaluatedAt': serverTimestamp(),
-        updatedAt: serverTimestamp(),
+      await setUserPrivate(userId, {
+        featureDiscovery: {
+          features: unlockedFeatureStates,
+          lastEvaluatedAt: serverTimestamp(),
+        },
       });
 
       console.log(`Unlocked features for user ${userId}:`, newlyUnlocked);
@@ -306,11 +366,12 @@ export async function markFeatureOpened(
       return;
     }
 
-    const userRef = doc(ensureFirestore(), 'users', userId);
-    await updateDoc(userRef, {
-      [`featureDiscovery.features.${featureId}.status`]: 'active',
-      [`featureDiscovery.features.${featureId}.firstOpenedAt`]: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    await setUserPrivate(userId, {
+      featureDiscovery: {
+        features: {
+          [featureId]: { status: 'active', firstOpenedAt: serverTimestamp() },
+        },
+      },
     });
 
     console.log(`Marked feature ${featureId} as active for user ${userId}`);
@@ -328,10 +389,8 @@ export async function markToastShown(
   featureId: DiscoverableFeatureId
 ): Promise<void> {
   try {
-    const userRef = doc(ensureFirestore(), 'users', userId);
-    await updateDoc(userRef, {
-      [`featureDiscovery.features.${featureId}.toastShown`]: true,
-      updatedAt: serverTimestamp(),
+    await setUserPrivate(userId, {
+      featureDiscovery: { features: { [featureId]: { toastShown: true } } },
     });
   } catch (error) {
     console.error(`Error marking toast shown for ${featureId}:`, error);
@@ -420,8 +479,6 @@ export async function migrateFromOldSystem(
   oldUnlockedFeatures: string[]
 ): Promise<void> {
   try {
-    const userRef = doc(ensureFirestore(), 'users', userId);
-
     // Initialize states based on pillar
     const states = initializeFeatureStates(selectedPillar);
 
@@ -448,7 +505,7 @@ export async function migrateFromOldSystem(
       };
     }
 
-    await updateDoc(userRef, {
+    await setUserPrivate(userId, {
       featureDiscovery: {
         features: firestoreFeatures,
         engagement: {
@@ -466,7 +523,8 @@ export async function migrateFromOldSystem(
         initializedAt: serverTimestamp(),
         lastEvaluatedAt: serverTimestamp(),
       },
-      updatedAt: serverTimestamp(),
+      // No `updatedAt` here — the userPrivate store stamps its own on every
+      // write and strips a caller-supplied one.
     });
 
     console.log(`Migrated feature discovery for user ${userId}`);

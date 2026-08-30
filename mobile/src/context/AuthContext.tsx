@@ -16,7 +16,8 @@ import {
 } from 'firebase/auth';
 import { AppState } from 'react-native';
 import { auth, db } from '../config/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { stageUserPrivate } from '../services/firebase/userPrivate.service';
 import * as SecureStore from 'expo-secure-store';
 import { setUserId as setCrashReportingUserId, setUserAttributes, clearUser as clearCrashReportingUser } from '../services/crashReporting.service';
 import { logEvent } from '../services/firebase/analyticsEvents.service';
@@ -183,20 +184,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Update profile with display name
       await updateProfile(userCredential.user, { displayName });
 
-      // Create user profile document in Firestore.
+      // Create the user's documents in Firestore. ONE BATCH, TWO DOCUMENTS.
+      //
       // Subscription state is owned by the onUserCreate Cloud Function trigger
       // (functions/src/auth/onUserCreate.js) — never written from the client.
       // Use merge:true so we don't race-overwrite that trigger's subscription write.
-      const userRef = doc(db, 'users', userCredential.user.uid);
+      //
+      // `email` moved to userPrivate in migration slice 2: users/{uid} is
+      // readable by any authenticated account, so an email address on it is an
+      // address book anyone can enumerate. It is now written ONLY to the
+      // private document.
+      //
+      // The batch is not decoration. Two sequential writes could leave an
+      // account whose public card exists with no private document behind it —
+      // a user with no stored email, which nothing in the app would later
+      // notice or repair.
+      const uid = userCredential.user.uid;
+      const batch = writeBatch(db);
 
-      await setDoc(userRef, {
-        uid: userCredential.user.uid,
-        email: email.toLowerCase(),
+      batch.set(doc(db, 'users', uid), {
+        uid,
         displayName: displayName.trim(),
+        // MIGRATION_FALLBACK — gate-field dual-write. hasCompletedOnboarding
+        // steers AppNavigator's routing, and web clients plus any not-yet-
+        // updated mobile build still read it here. Writing it to userPrivate
+        // alone would send those clients back through onboarding. Slice 4
+        // deletes this line and leaves the userPrivate write below.
         hasCompletedOnboarding: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }, { merge: true });
+
+      await stageUserPrivate(batch, uid, {
+        email: email.toLowerCase(),
+        hasCompletedOnboarding: false,
+      });
+
+      await batch.commit();
 
       // Send email verification
       await sendEmailVerification(userCredential.user);
@@ -210,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // the account is already created by this point and no telemetry defect may
       // be able to fail a signup that succeeded.
       try {
-        logEvent(userCredential.user.uid, 'sign_up', { method: 'email' });
+        logEvent(uid, 'sign_up', { method: 'email' });
       } catch {
         // Never the user's problem.
       }

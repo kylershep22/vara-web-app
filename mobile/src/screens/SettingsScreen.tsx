@@ -23,7 +23,9 @@ import { useFeatureUnlock } from '../hooks/useFeatureUnlock';
 import { FEATURE_METADATA, FeatureId } from '../constants/featureUnlock';
 import Purchases from 'react-native-purchases';
 import { db } from '../config/firebase';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { stageUserPrivate } from '../services/firebase/userPrivate.service';
+import { getMergedUserData } from '../services/firebase/userMigrationRead';
 import { useAccountActions } from '../hooks/useAccountActions';
 import { Colors, Spacing, Typography, Layout } from '../constants';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../constants/legal';
@@ -76,9 +78,12 @@ const SettingsScreen = () => {
     const loadEventData = async () => {
       try {
         if (!db) return;
-        const userSnap = await getDoc(doc(db, 'users', user.uid));
-        if (userSnap.exists() && userSnap.data().eventData) {
-          setEventName(userSnap.data().eventData.eventName);
+        // MIGRATION_FALLBACK — eventData is dual-written by validateEventCode
+        // from slice 2; read merged so both shapes resolve.
+        const merged = await getMergedUserData(user.uid);
+        const eventData = merged?.eventData as { eventName?: string } | undefined;
+        if (eventData?.eventName) {
+          setEventName(eventData.eventName);
         }
       } catch {}
     };
@@ -90,17 +95,25 @@ const SettingsScreen = () => {
 
     try {
       setLoading(true);
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      // MIGRATION_FALLBACK — this form spans BOTH documents. privacy and
+      // searchable are public-profile allowlist fields and stay on users/{uid}
+      // permanently; the notification and coaching preferences moved to
+      // userPrivate in slice 2. The merged read is what lets one form render
+      // from two homes.
+      const data = await getMergedUserData(user.uid);
 
-      if (userDoc.exists()) {
-        const data = userDoc.data();
+      if (data) {
+        // The merged map is untyped by design — it spans two documents whose
+        // shapes only overlap during the migration — so each field is narrowed
+        // here, where the Settings shape says what it must be.
+        const d = data as Partial<Record<keyof Settings, unknown>>;
         setSettings({
-          notificationsEnabled: data.notificationsEnabled !== false,
-          reminderTime: data.reminderTime || '08:00',
-          tone: data.tone || 'gentle',
-          intensity: data.intensity || 'standard',
-          privacy: data.privacy || 'public',
-          searchable: data.searchable !== false,
+          notificationsEnabled: d.notificationsEnabled !== false,
+          reminderTime: (d.reminderTime as string) || '08:00',
+          tone: (d.tone as Settings['tone']) || 'gentle',
+          intensity: (d.intensity as Settings['intensity']) || 'standard',
+          privacy: (d.privacy as Settings['privacy']) || 'public',
+          searchable: d.searchable !== false,
         });
       }
     } catch (error) {
@@ -116,11 +129,33 @@ const SettingsScreen = () => {
 
     try {
       setSaving(true);
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        ...updates,
-        updatedAt: serverTimestamp(),
-      });
+
+      // Split write, one batch. `privacy` and `searchable` are allowlist fields
+      // and belong on the public profile card; everything else on this form is
+      // private. Two sequential writes could leave the form half-applied — the
+      // tone saved and the privacy not — with nothing to reconcile it.
+      const PUBLIC_SETTINGS_KEYS = ['privacy', 'searchable'] as const;
+      const publicPatch: Record<string, unknown> = {};
+      const privatePatch: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(updates)) {
+        if ((PUBLIC_SETTINGS_KEYS as readonly string[]).includes(key)) {
+          publicPatch[key] = value;
+        } else {
+          privatePatch[key] = value;
+        }
+      }
+
+      const batch = writeBatch(db);
+      if (Object.keys(publicPatch).length > 0) {
+        batch.update(doc(db, 'users', user.uid), {
+          ...publicPatch,
+          updatedAt: serverTimestamp(),
+        });
+      }
+      if (Object.keys(privatePatch).length > 0) {
+        await stageUserPrivate(batch, user.uid, privatePatch);
+      }
+      await batch.commit();
 
       setSettings(prev => ({ ...prev, ...updates }));
     } catch (error) {

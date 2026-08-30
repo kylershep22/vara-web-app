@@ -7,6 +7,7 @@ const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 const {sendNotification} = require("./utils/fcmSender");
+const {getFcmToken} = require("../lib/userFields");
 const {isWithinQuietHours} = require("./utils/quietHours");
 
 /**
@@ -41,7 +42,8 @@ const onNewDirectMessage = onDocumentCreated(
     // Get receiver's FCM token
     const receiverSnap = await db.doc(`users/${receiverId}`).get();
     if (!receiverSnap.exists) return;
-    const fcmToken = receiverSnap.data().fcmToken;
+    // MIGRATION_FALLBACK — see src/lib/userFields.js.
+    const fcmToken = await getFcmToken(receiverId);
     if (!fcmToken) return;
 
     const preview = text && text.length > 100 ? text.substring(0, 97) + "..." : (text || "");
@@ -95,7 +97,8 @@ const onNewConnection = onDocumentCreated(
     // Get receiver FCM token
     const receiverSnap = await db.doc(`users/${receiverId}`).get();
     if (!receiverSnap.exists) return;
-    const fcmToken = receiverSnap.data().fcmToken;
+    // MIGRATION_FALLBACK — see src/lib/userFields.js.
+    const fcmToken = await getFcmToken(receiverId);
     if (!fcmToken) return;
 
     await sendNotification(

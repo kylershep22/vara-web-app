@@ -14,16 +14,17 @@
  *      is not created anywhere else. updateDoc would reject the first write on
  *      a user who has never had one.
  *
- * Nothing in the app calls this yet. The foundation slice establishes the
- * store, its rule, its type and this accessor; later slices (onboarding, the
- * weekly-capacity engine) are what actually populate it.
+ * As of slice 2 of the migration this is the destination for every
+ * non-allowlist field that used to live on users/{uid}: email, push tokens,
+ * onboarding capture, consent, feature-discovery state and the rest. Readers
+ * reach it through userMigrationRead.ts until slice 4 removes the fallback.
  *
  * Uses requireDb() rather than the raw `db` import so the Firestore handle is
  * narrowed to non-null at the call site — the un-narrowed `db` pattern is what
  * produces the "Firestore | null is not assignable" errors elsewhere in this
  * directory, and this module adds none of them.
  */
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, type WriteBatch } from 'firebase/firestore';
 import { requireDb } from './ensureDb';
 import type { UserPrivate } from '../../types/models';
 
@@ -38,7 +39,7 @@ export type UserPrivatePatch = Partial<
   Omit<UserPrivate, 'uid' | 'createdAt' | 'updatedAt'>
 >;
 
-function userPrivateRef(uid: string) {
+export function userPrivateRef(uid: string) {
   return doc(requireDb(), COLLECTION, uid);
 }
 
@@ -127,6 +128,52 @@ export async function setUserPrivate(
   delete safePatch.updatedAt;
 
   await setDoc(
+    ref,
+    {
+      ...safePatch,
+      uid,
+      ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+/**
+ * Stage a userPrivate patch onto a caller-owned WriteBatch instead of
+ * committing it directly.
+ *
+ * Exists for the sites that must touch BOTH documents in one atomic commit:
+ * signup (public profile card + private email), the settings save (allowlist
+ * half stays public, the rest is private) and the gate-field dual-writes. Two
+ * sequential writes there would leave a half-applied account — an existing
+ * user with no email in the private store, or a settings form where the tone
+ * saved and the privacy did not.
+ *
+ * The existence read happens here, BEFORE the commit, for the same reason
+ * setUserPrivate does one: a blind createdAt under merge resets the creation
+ * time on every subsequent write. The read is outside the atomic unit, which
+ * is harmless — worst case a concurrent first write elsewhere means createdAt
+ * is stamped twice with near-identical values.
+ *
+ * Await this before committing the batch. It stages, it does not commit; the
+ * caller owns the commit so it can stage its public-document writes too.
+ */
+export async function stageUserPrivate(
+  batch: WriteBatch,
+  uid: string,
+  patch: UserPrivatePatch
+): Promise<void> {
+  const ref = userPrivateRef(uid);
+  const existing = await getDoc(ref);
+
+  // Same key-stripping guarantee as setUserPrivate; see the comment there.
+  const safePatch: Record<string, unknown> = { ...patch };
+  delete safePatch.uid;
+  delete safePatch.createdAt;
+  delete safePatch.updatedAt;
+
+  batch.set(
     ref,
     {
       ...safePatch,

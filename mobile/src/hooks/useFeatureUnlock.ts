@@ -17,6 +17,7 @@ import {
 } from '../services/firebase/featureUnlock.service';
 import { FeatureId, BrainPillar, getPillarById } from '../constants/featureUnlock';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { subscribeMergedUserData } from '../services/firebase/userMigrationRead';
 import { db } from '../config/firebase';
 
 interface UseFeatureUnlockReturn {
@@ -59,13 +60,14 @@ export function useFeatureUnlock(): UseFeatureUnlockReturn {
     }
 
     setLoading(true);
-    const userRef = doc(db, 'users', user.uid);
 
-    const unsubscribe = onSnapshot(
-      userRef,
-      (docSnapshot) => {
-        if (docSnapshot.exists()) {
-          const data = docSnapshot.data();
+    // MIGRATION_FALLBACK — the nested onboarding map moved to userPrivate in
+    // slice 2; users who have not written since still have it on users/{uid}.
+    const unsubscribe = subscribeMergedUserData(
+      user.uid,
+      (mergedData) => {
+        if (mergedData) {
+          const data = mergedData as Record<string, any>;
           const onboarding = data.onboarding || {};
 
           setState({

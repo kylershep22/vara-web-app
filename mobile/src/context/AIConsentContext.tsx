@@ -2,7 +2,8 @@
  * AIConsentContext
  * Tracks whether the user has granted consent for Vara's OpenAI-powered
  * features (daily plan, AI chat, journal tools). Consent is persisted on
- * `users/{uid}.aiConsent`. Call `requireConsent(callback)` at any AI
+ * `userPrivate/{uid}.aiConsent` (moved off the world-readable users/{uid} in
+ * migration slice 2). Call `requireConsent(callback)` at any AI
  * entry point — it invokes the callback directly if consent is granted,
  * otherwise it shows the consent modal and defers the callback until
  * the user taps Enable.
@@ -16,7 +17,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { setUserPrivate } from '../services/firebase/userPrivate.service';
+import { getMergedUserData } from '../services/firebase/userMigrationRead';
 import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
 import AIConsentModal from '../components/ai/AIConsentModal';
@@ -45,9 +47,11 @@ export const AIConsentProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     (async () => {
       try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
+        // MIGRATION_FALLBACK — consent is written privately from slice 2, but a
+        // user who granted it on an older build still has it on users/{uid}.
+        const merged = await getMergedUserData(user.uid);
         if (cancelled) return;
-        setHasConsent(!!snap.data()?.aiConsent);
+        setHasConsent(!!merged?.aiConsent);
       } catch (err) {
         if (cancelled) return;
         logger.warn('AIConsent: failed to load consent state', err);
@@ -62,10 +66,10 @@ export const AIConsentProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const setConsent = useCallback(
     async (value: boolean) => {
       if (!user?.uid || !db) return;
-      await updateDoc(doc(db, 'users', user.uid), {
-        aiConsent: !!value,
-        updatedAt: serverTimestamp(),
-      });
+      // userPrivate only. Web still writes aiConsent to users/{uid}; that
+      // divergence is an accepted, logged risk for slice 2 — see the migration
+      // notes. Un-gating web requires repointing its writers first.
+      await setUserPrivate(user.uid, { aiConsent: !!value });
       setHasConsent(!!value);
     },
     [user?.uid]

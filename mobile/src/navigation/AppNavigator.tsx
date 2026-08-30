@@ -1235,8 +1235,11 @@ const AppNavigator: React.FC = () => {
     const setupOnboardingListener = async () => {
       try {
         setCheckingOnboarding(true);
-        const { doc: firestoreDoc, onSnapshot, setDoc, serverTimestamp } = await import('firebase/firestore');
+        const { doc: firestoreDoc, serverTimestamp } = await import('firebase/firestore');
         const { db } = await import('../config/firebase');
+        const { subscribeMergedUserData } = await import(
+          '../services/firebase/userMigrationRead'
+        );
 
         if (!db) {
           console.error('Firestore not initialized - cannot check onboarding status');
@@ -1251,11 +1254,24 @@ const AppNavigator: React.FC = () => {
         // Set up real-time listener for onboarding status
         let backfillDone = false;
 
-        unsubscribe = onSnapshot(
-          userRef,
-          async (docSnapshot) => {
-            if (docSnapshot.exists()) {
-              const userData = docSnapshot.data();
+        // MIGRATION_FALLBACK — the routing gate reads BOTH documents.
+        //
+        // hasCompletedOnboarding and onboardingStep are written to userPrivate
+        // from slice 2 on, but a user who has not written since updating still
+        // has them only on users/{uid}. subscribeMergedUserData layers the two
+        // with userPrivate winning, and holds its first emit until BOTH have
+        // delivered — without that wait this listener would publish the stale
+        // public value for a beat and bounce a migrated user into onboarding
+        // and straight back out. Slice 4 replaces this with a plain
+        // userPrivate listener.
+        //
+        // `null` here means NEITHER document exists, which is exactly the
+        // condition the single-document listener branched on before.
+        unsubscribe = subscribeMergedUserData(
+          user.uid,
+          async (mergedData) => {
+            if (mergedData) {
+              const userData = mergedData as Record<string, any>;
               // Use !== false so existing users whose document predates
               // the onboarding system (field is undefined) are treated
               // as having completed onboarding.
@@ -1277,8 +1293,16 @@ const AppNavigator: React.FC = () => {
               if (completed && userData.hasCompletedOnboarding === undefined && !backfillDone) {
                 backfillDone = true;
                 try {
-                  const { updateDoc } = await import('firebase/firestore');
-                  await updateDoc(userRef, { hasCompletedOnboarding: true });
+                  const { writeBatch } = await import('firebase/firestore');
+                  const { stageUserPrivate } = await import(
+                    '../services/firebase/userPrivate.service'
+                  );
+                  const batch = writeBatch(db);
+                  // MIGRATION_FALLBACK — gate-field dual-write. See the note in
+                  // AuthContext.signup; slice 4 drops the users/{uid} half.
+                  batch.update(userRef, { hasCompletedOnboarding: true });
+                  await stageUserPrivate(batch, user.uid, { hasCompletedOnboarding: true });
+                  await batch.commit();
                   console.log('📱 Backfilled hasCompletedOnboarding for existing user');
                 } catch (backfillError) {
                   // Non-critical, will be caught next time
@@ -1300,15 +1324,28 @@ const AppNavigator: React.FC = () => {
                   setCheckingOnboarding(false);
                   console.log('📱 User document found on re-check, onboarding:', completed);
                 } else {
-                  // Truly new — create with merge to be safe
-                  await setDoc(userRef, {
+                  // Truly new — create with merge to be safe. Same two-document
+                  // batch as AuthContext.signup: `email` is private, the
+                  // profile card is public, and the pair has to land together
+                  // or not at all.
+                  const { writeBatch } = await import('firebase/firestore');
+                  const { stageUserPrivate } = await import(
+                    '../services/firebase/userPrivate.service'
+                  );
+                  const batch = writeBatch(db);
+                  batch.set(userRef, {
                     uid: user.uid,
-                    email: user.email || '',
                     displayName: user.displayName || '',
+                    // MIGRATION_FALLBACK — gate-field dual-write, as above.
                     hasCompletedOnboarding: false,
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                   }, { merge: true });
+                  await stageUserPrivate(batch, user.uid, {
+                    email: user.email || '',
+                    hasCompletedOnboarding: false,
+                  });
+                  await batch.commit();
                   console.log('📱 User document created');
                   // New user → needs onboarding
                   setHasCompletedOnboarding(false);

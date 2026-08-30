@@ -9,6 +9,8 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
 import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { setUserPrivate } from '../services/firebase/userPrivate.service';
+import { getMergedUserData } from '../services/firebase/userMigrationRead';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -193,8 +195,17 @@ export function useDashboard() {
     const checkAndUpdate = async () => {
       try {
         const userRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userRef);
-        const data = userDoc.data();
+        // MIGRATION_FALLBACK — eventData and eventPromptDismissed moved to
+        // userPrivate in slice 2. `lastActiveAt` and `createdAt` deliberately
+        // did NOT (see the UserPrivate "deliberately not moved" note), and the
+        // merged read never lets the private store's own createdAt shadow the
+        // account's — which is what the account-age window below depends on.
+        // The merged map spans two documents, so it is untyped; the two
+        // timestamp shapes this reads (Firestore Timestamp / raw seconds) are
+        // the same ones the single-document read handled before.
+        const data = (await getMergedUserData(user.uid)) as
+          | Record<string, any>
+          | null;
         if (data?.lastActiveAt) {
           const lastActive = data.lastActiveAt.toDate ? data.lastActiveAt.toDate() : new Date(data.lastActiveAt);
           const daysSince = (Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24);
@@ -611,7 +622,7 @@ export function useDashboard() {
     setShowEventCodeCard(false);
     if (user?.uid && db) {
       try {
-        await updateDoc(doc(db, 'users', user.uid), { eventPromptDismissed: true });
+        await setUserPrivate(user.uid, { eventPromptDismissed: true });
       } catch (err) {
         logger.error('Error dismissing event prompt:', err);
       }
