@@ -90,15 +90,6 @@ export const Colors = {
     low: 'rgba(213,227,209,1)',        // Dew Sage
   },
 
-  // Brain Health Pillar Colors
-  brainPillars: {
-    growth: '#1B5E57',      // Evergreen Teal
-    energy: '#F4C542',      // Sunrise Amber
-    focus: '#B8CDBA',       // Silver Sage
-    resilience: '#F5B971',  // Golden Apricot
-    connection: '#D5E3D1',  // Dew Sage (replaced Lavender Mist)
-  },
-
   // Overlay
   overlay: 'rgba(0, 0, 0, 0.5)',
   overlayLight: 'rgba(0, 0, 0, 0.3)',

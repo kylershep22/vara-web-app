@@ -7,7 +7,7 @@
 import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LoadingSpinner, BrainPillarInfoModal, InlineCreateButton, Button } from '../components';
+import { LoadingSpinner, InlineCreateButton, Button } from '../components';
 import { QuietFinish } from '../components/celebrations';
 import { WizardContainer } from '../components/habits/wizard';
 import { HabitListItem } from '../components/habits/HabitListItem';
@@ -43,8 +43,6 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
     setModalVisible,
     editingHabit,
     completedToday,
-    pillarInfoVisible,
-    setPillarInfoVisible,
     allHabitsCompletedToday,
     setAllHabitsCompletedToday,
     handleCreateHabit,
@@ -194,11 +192,6 @@ const HabitsScreen: React.FC<HabitsScreenProps> = ({
           onComplete={handleWizardComplete}
         />
       )}
-
-      <BrainPillarInfoModal
-        visible={pillarInfoVisible}
-        onDismiss={() => setPillarInfoVisible(false)}
-      />
 
       <QuietFinish
         visible={allHabitsCompletedToday}

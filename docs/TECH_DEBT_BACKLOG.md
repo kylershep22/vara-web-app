@@ -1472,7 +1472,7 @@ guard-hardening slice fence excluded docs other than this backlog):
 
 ---
 
-## `wellnessScore.service.ts` implements a banned concept, not just banned copy
+## [SUPERSEDED 2026-08-30 - see "CORRECTION 1" at the end of this file] `wellnessScore.service.ts` implements a banned concept, not just banned copy
 
 `mobile/src/services/firebase/wellnessScore.service.ts` computes a scored wellness
 metric with weighted components, including a `streakBonus` (`:427`) and the
@@ -1489,7 +1489,7 @@ legacy-removal slice. Until then the brand guard allowlists the service.
 
 ---
 
-## `featureDiscovery.ts` + `ComingUpSection` — retired streak-gated unlock mechanic
+## [SUPERSEDED 2026-08-30 - see "CORRECTION 2" at the end of this file] `featureDiscovery.ts` + `ComingUpSection` — retired streak-gated unlock mechanic
 
 `mobile/src/constants/featureDiscovery.ts` describes a feature-unlock mechanic
 gated on habit streaks, with four user-facing strings that violate the no-streaks
@@ -1505,3 +1505,99 @@ components rendered only inside it (`FeaturePreviewBottomSheet`,
 `NewlyAvailableCard`, `SoftRevealCard`). Note `UnlockToast` is **not** in that
 set — `ToastContext.tsx:163` renders it. Legacy-removal slice. Until then the
 brand guard allowlists the constants file.
+
+---
+
+# Legacy-removal slice (2026-08-30) — outcomes
+
+Branch `chore/legacy-removal` off `4805c8e`. Archive tag
+`legacy-removal-pre-2026-08` points at the branch point and is pushed: every
+deleted file is one checkout away with
+`git checkout legacy-removal-pre-2026-08 -- <path>`.
+
+**Two of the six entries below asserted a deletability this slice disproved.
+They are CORRECTED, not marked resolved.** A backlog entry claiming a live file
+is dead is worse than no entry.
+
+## RESOLVED
+
+| Item | Commit |
+|---|---|
+| `BrainPillarInfoModal` — mounted on reachable `HabitsScreen`, `visible` permanently false | `e921eeb` |
+| `GoalsScreen` — dark, in no navigator | `1f4c31a` |
+| `BrainPillarBadge` — sole render site was GoalsScreen | `d7cd23d` |
+| `Colors.brainPillars` tokens | `8904e16` |
+| `StreakMilestoneModal` + test + both barrel exports | `6aa636b` |
+| `WellnessScoreCard` (card only — see correction below) | `e88c8c8` |
+| `ComingUpSection` + `FeaturePreviewBottomSheet` + `SoftRevealCard` + `NewlyAvailableCard` | `e7e766d` |
+| `OnboardingTourScreen` confetti identifiers renamed; allowlist entry retired | `81d57cb` |
+
+The `BrainPillar` **type** (`types/models.ts:641`) and `Goal.brainPillars`
+(`:662`) were deliberately left alone: the type is used by ~30 files including
+the persisted `selectedPillar` user-doc field, and both are data shape rather
+than client code.
+
+## CORRECTION 1 — `wellnessScore.service.ts` is LIVE, not dead
+
+The earlier entry said the service had "no consumers outside its own barrel"
+and should be deleted with the card. **That was wrong.** Only the card was dead.
+
+`hooks/useDashboard.ts` imports five of its functions through the
+`services/firebase` barrel and calls them on every dashboard mount:
+`:255` `getWellnessScoreEnabled`, `:331` `getTodayWellnessScore`,
+`:335` `calculateWellnessScore`, `:473` `refreshWellnessScore`.
+
+Also live and previously unlisted: `components/dashboard/WellnessScoreBreakdown.tsx`
+and `WellnessScoreOptInCard.tsx`, plus `saveMorningCheckIn` / `getMorningCheckIn`
+— an unrelated live feature sharing the same file, exported from the firebase
+barrel at `:199-200`.
+
+**Why the earlier check missed it: barrel imports defeat filename greps.** The
+consumer imports symbols from `'../services/firebase'`, never the file path.
+Verify consumers at the SYMBOL level, not the path level.
+
+**Still true and still a violation:** a scored wellness metric with a
+`streakBonus` (`:427`) runs on every dashboard mount today. Scores and
+denominators are banned outright.
+
+**De-wiring project, in order:**
+1. Sever the four `useDashboard` call sites.
+2. Extract `saveMorningCheckIn` / `getMorningCheckIn` into their own service —
+   they are a live, unrelated feature and must survive.
+3. Delete the score machinery: the service remainder, `WellnessScoreBreakdown`,
+   `WellnessScoreOptInCard`, `DailyWellnessScore` (`models.ts:1967`).
+
+Collections `dailyWellnessScores` (written `:844`) and the `wellnessScoreEnabled`
+user-doc field (`models.ts:245`) become **orphaned data pending a cleanup
+decision**. Firestore data is not touched by client-code removal.
+
+## CORRECTION 2 — `constants/featureDiscovery.ts` is LIVE, not deletable
+
+The earlier entry said to delete the constants file along with
+`ComingUpSection`. **The surfaces were dead; the provider is not.**
+
+`components/discovery/UnlockToast.tsx:25` imports `UNLOCK_TOAST_CONTENT` from
+it, and UnlockToast is on a live path: `ToastContext.tsx:163` renders it and
+`App.tsx:119` mounts `<ToastProvider>`. Also live: `hooks/useFeatureDiscovery.ts:44`,
+`services/firebase/featureDiscovery.service.ts:59` (which writes the
+`featureDiscovery` map on user docs), the `constants/index.ts:120` re-export,
+`types/featureDiscovery.ts` (used by `ToastContext.tsx:21`), and the
+`userMigrationRead` path with two migration tests.
+
+The dead surfaces were deleted in `e7e766d`. The file stays.
+
+**Open follow-up — content-level prune.** Four user-facing strings in
+`featureDiscovery.ts` violate the no-streaks rule and now describe surfaces that
+no longer exist: `:204` "Build a habit tracking streak", `:395` "Advanced streak
+and consistency insights", `:397` "Opens once you've built a solid habit
+tracking streak.", `:535` "Build your habit streak first". They are dead weight
+inside a live file. Removing them edits a live file's content, so it belongs in
+a copy-level pass, not a deletion slice. The brand-guard allowlist entry for
+this file now records exactly this state.
+
+## Guard allowlist, after this slice
+
+`brandCompliance` is down to 5 entries. `OnboardingTourScreen` was removed
+(`81d57cb`) because the rename made it unnecessary. The `featureDiscovery` and
+`wellnessScore.service` reasons were rewritten in `e7e766d` — both previously
+asserted the deletability disproved above.

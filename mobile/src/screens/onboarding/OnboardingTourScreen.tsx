@@ -78,7 +78,7 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSuccessBanner, setShowSuccessBanner] = useState(!skipped && !!createdType);
   const [showFirstAction, setShowFirstAction] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
+  const [showQuietFinish, setShowQuietFinish] = useState(false);
   const [completedAction, setCompletedAction] = useState<{ type: string; data?: any } | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -112,12 +112,12 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
   const handleFirstActionComplete = (actionType: string, actionData?: any) => {
     // Store what action was completed for the success message
     setCompletedAction({ type: actionType, data: actionData });
-    // Show confetti celebration
-    setShowConfetti(true);
+    // Show the quiet acknowledgment
+    setShowQuietFinish(true);
   };
 
-  const handleConfettiComplete = () => {
-    setShowConfetti(false);
+  const handleQuietFinishComplete = () => {
+    setShowQuietFinish(false);
     // Now finish the onboarding
     handleFinish();
   };
@@ -197,8 +197,8 @@ const OnboardingTourScreen: React.FC<OnboardingTourScreenProps> = ({ navigation,
 
         {/* Quiet acknowledgment */}
         <QuietFinish
-          visible={showConfetti}
-          onDismiss={handleConfettiComplete}
+          visible={showQuietFinish}
+          onDismiss={handleQuietFinishComplete}
         />
       </SafeAreaView>
     );

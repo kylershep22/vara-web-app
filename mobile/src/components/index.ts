@@ -26,7 +26,6 @@ export { FourThreeTwoOneCarousel } from './dashboard/FourThreeTwoOneCarousel';
 export { default as ProgressNudgeCard } from './dashboard/ProgressNudgeCard';
 export { BrainHealthInsightStrip } from './dashboard/BrainHealthInsightStrip';
 export { QuickActionCarousel } from './dashboard/QuickActionCarousel';
-export { WellnessScoreCard } from './dashboard/WellnessScoreCard';
 export { WellnessScoreBreakdown } from './dashboard/WellnessScoreBreakdown';
 export { MorningCheckIn, MorningCheckInComplete } from './dashboard/MorningCheckIn';
 export { WellnessScoreOptInCard } from './dashboard/WellnessScoreOptInCard';
@@ -58,8 +57,6 @@ export { default as ErrorBoundary } from './shared/ErrorBoundary';
 export { PriorityBadge } from './shared/PriorityBadge';
 export { ProgressBar } from './shared/ProgressBar';
 export { AnimatedProgressBar, CompactProgressBar } from './shared/AnimatedProgressBar';
-export { BrainPillarBadge } from './shared/BrainPillarBadge';
-export { BrainPillarInfoModal } from './shared/BrainPillarInfoModal';
 export { EnhancedModal, ModalFooterActions } from './shared/EnhancedModal';
 export { KeyboardAwareScrollView, useKeyboardContext } from './shared/KeyboardAwareScrollView';
 export { Tag } from './shared/Tag';
@@ -86,7 +83,6 @@ export { AIChatModal } from './ai/AIChatModal';
 
 // Celebration components
 export { default as AnimatedCheckbox } from './celebrations/AnimatedCheckbox';
-export { default as MomentOfRecognitionModal } from './celebrations/StreakMilestoneModal';
 export { default as QuietFinish } from './celebrations/QuietFinish';
 export { GoalMilestoneCheckmark, InlineCheckmark } from './celebrations/GoalMilestoneCheckmark';
 
@@ -132,8 +128,4 @@ export { default as OnboardingReflectionActivity } from './onboarding/activities
 export { default as OnboardingIntentionActivity } from './onboarding/activities/OnboardingIntentionActivity';
 
 // Discovery components (progressive feature unlock)
-export { default as FeaturePreviewBottomSheet } from './discovery/FeaturePreviewBottomSheet';
-export { default as SoftRevealCard } from './discovery/SoftRevealCard';
-export { default as NewlyAvailableCard } from './discovery/NewlyAvailableCard';
 export { default as UnlockToast } from './discovery/UnlockToast';
-export { default as ComingUpSection } from './discovery/ComingUpSection';
