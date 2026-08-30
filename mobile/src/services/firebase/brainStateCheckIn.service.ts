@@ -486,7 +486,7 @@ export async function writeBrainStateCheckInDoc(
 ): Promise<void> {
   if (options.dryRun) {
     logger.log(
-      '[writeBrainStateCheckInDoc] dryRun — would update legacy brainStateCheckIns'
+      '[writeBrainStateCheckInDoc] dryRun, would update legacy brainStateCheckIns'
     );
     return;
   }
@@ -604,7 +604,7 @@ export async function maybeMarkFirstShift(
 ): Promise<void> {
   if (options.dryRun) {
     logger.log(
-      '[maybeMarkFirstShift] dryRun — would conditionally set firstShiftAt'
+      '[maybeMarkFirstShift] dryRun, would conditionally set firstShiftAt'
     );
     return;
   }

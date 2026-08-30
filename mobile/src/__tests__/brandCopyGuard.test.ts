@@ -1,85 +1,52 @@
 /**
- * Brand Copy Regression Guard - em-dash + optim* class.
+ * Brand Copy Regression Guard - em dash + optim* class, tree-wide.
  *
- * Companion to brandCompliance.test.ts. Guards a curated set of mobile
- * copy/content sources against re-introducing two brand-guardrail
- * violations that were swept out in the brand-hygiene pass:
+ * WHAT CHANGED AND WHY. This suite used to read a curated COPY_SOURCES list of
+ * 32 paths, grown one slice at a time. The Aug 2026 Step-0 audit found that
+ * every one of the eight modules named `*copy*.ts` was outside it - including
+ * `screens/Focus/blocksCopy.ts` and `screens/weekly/copy.ts`, the two the brand
+ * voice doc explicitly says it does not cover. So the strings least governed by
+ * the guidelines were also the least guarded. It now walks the tree.
+ *
+ * Like COPY_SOURCES before it, this suite skips a file that is silently missing
+ * only if that file is in ALLOWLIST, and an allowlisted path that stops existing
+ * is a failure.
+ *
+ * Guarded against:
  *   - the em dash (U+2014) in user-facing copy
- *   - "optimize" / "optimizer" / "optimization" (case-insensitive,
- *     including British -ise/-isation)
+ *   - "optimize" / "optimizer" / "optimization" / "optimizing", case-insensitive,
+ *     including British -ise/-isation
  *
- * Scope is deliberately NARROW: data/catalog modules plus the two
- * rendered-copy files cleaned in the sweep, NOT a tree-wide grep, which
- * returns many comment / identifier / log hits. Comments are stripped
- * before scanning so prose em dashes in JSDoc and inline comments (which
- * are not user-facing) do not trip the guard. The remaining content in
- * these files is string-literal / JSX copy.
- *
- * En dashes (U+2013) used in numeric ranges are intentionally NOT matched.
+ * DELIBERATELY NOT MATCHED, all carried over from the curated version:
+ *   - En dashes (U+2013) in numeric ranges. Only U+2014 is prohibited.
+ *   - Anything inside a comment. Block and line comments are stripped before
+ *     scanning, so prose em dashes in JSDoc are not user-facing and do not trip.
+ *   - `evening-sleep-optimizer`, a persisted routine-template id. Renaming it
+ *     would orphan existing user completion data. The visible name is already
+ *     "Sleep Wind-Down"; only the stable id retains the old word.
+ *   - `src/screens/_dev/`, developer test harnesses, excluded wholesale.
+ *   - import and export specifier lines. A module path is not copy.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Curated copy sources (paths relative to the mobile/ root). These are the
-// modules that carry user-facing strings cleaned in the brand sweep.
-const COPY_SOURCES = [
-  'src/constants/routineTemplates.ts',
-  'src/constants/featureUnlock.ts',
-  'src/constants/groupCategories.ts',
-  'src/constants/brainHealthMapping.ts',
-  'src/constants/milestoneTemplates.ts',
-  'src/components/dashboard/dashboardInsights.ts',
-  'src/engine/planMap.ts',
-  'src/components/checkin/flow/PointerOfferStepView.tsx',
-  // Four-Pillar IA Energy pillar screens (B-3b). User-facing hub + browse
-  // list copy; guarded here so the pillar rollout can't reintroduce an
-  // em dash / optim* in the rendered strings.
-  'src/screens/Energy/EnergyHubScreen.tsx',
-  'src/screens/Energy/EnergyBrowseListScreen.tsx',
-  // Four-Pillar IA Focus pillar (B-3c). The Focus hub + rhythms screens, the
-  // rhythms option labels, and the reworded focus reflection copy; guarded so
-  // the pillar rollout can't reintroduce an em dash / optim* in these strings.
-  'src/screens/Focus/FocusHubScreen.tsx',
-  'src/screens/Focus/FocusRhythmsScreen.tsx',
-  // IA restructure step 4a. The Practices hub's pillar card labels and
-  // descriptors, guarded on the same terms as the pillar hubs they open. The
-  // strings are still draft (see the `COPY: draft` sentinels in that file),
-  // which is exactly why the guard goes on now: it is Jen's replacement copy
-  // that most needs it.
-  'src/screens/practices/PracticesHubScreen.tsx',
-  // IA restructure step 4b-ii-a. The Stress Recovery page's title + intro, on
-  // the same terms as the Energy browse list it cross-lists from.
-  'src/screens/StressRecovery/StressRecoveryScreen.tsx',
-  'src/screens/Focus/components/CenterFirstToggle.tsx',
-  'src/constants/focusRhythms.ts',
-  'src/constants/focusContent.ts',
-  'src/components/checkin/flow/reflection.ts',
-  // Four-Pillar IA Insights launch home (B-3d.6). The quiet dashboard look-back
-  // card's user-facing copy; guarded so the rollout can't reintroduce an em dash
-  // / optim* in its rendered strings.
-  'src/components/dashboard/InsightsLookbackCard.tsx',
-  // Launch conversion surfaces (Slice A). The post-onboarding paywall + the
-  // Create Account screen; guarded so the outcomes-led copy can't regress an em
-  // dash / optim* (and, below, brain-health-led framing).
-  'src/screens/PaywallScreen.tsx',
-  'src/screens/auth/SignupScreen.tsx',
-  // Habit detail rebuild. The screen's own copy plus the module that composes
-  // its descriptive reporting lines.
-  'src/screens/HabitDetailScreen.tsx',
-  'src/components/habits/habitHistory.ts',
-  'src/components/habits/HabitWeekStrip.tsx',
-  'src/components/habits/HabitFourWeekView.tsx',
-  // The controlled habit taxonomy. Its nine labels are permanent user-facing
-  // copy (rendered as chips on both the create sheet and the detail edit
-  // modal), so they belong under the central guard rather than relying on a
-  // local test that only knows today's rules.
-  'src/constants/habitTaxonomy.ts',
-  'src/components/habits/HabitCategorySelect.tsx',
-];
+const mobileRoot = path.resolve(__dirname, '../..');
 
-// U+2014 EM DASH, built via char code so no literal em-dash byte lives in
-// this source file (and so the guard never flags its own definition).
+/** Directories excluded from the walk, relative to mobile/. */
+const EXCLUDED_DIRS = new Set(['src/screens/_dev']);
+
+/**
+ * Files waived from the guard, each with the reason it is waived.
+ * Adding an entry here is a decision, not a convenience.
+ */
+const ALLOWLIST: Record<string, string> = {
+  'src/services/api/ai.service.ts':
+    'em-dash regex literals ARE the enforcement mechanism; guarding this file fails the code enforcing the guard.',
+};
+
+// U+2014 EM DASH, built via char code so no literal em-dash byte lives in this
+// source file, and so the guard never flags its own definition.
 const EM_DASH = String.fromCharCode(0x2014);
 
 const PROHIBITED_PATTERNS = [
@@ -90,223 +57,157 @@ const PROHIBITED_PATTERNS = [
   },
 ];
 
-// Survivors that are legitimately fine and must NOT fail the guard:
-//  - 'evening-sleep-optimizer' is a persisted routine-template id; renaming
-//    it would orphan existing user completion data. (The visible name was
-//    changed to "Sleep Wind-Down"; only the stable id retains the old word.)
-// The "Optimistic update" hook comments are not in scope here (those files
-// are not copy sources) and would be comment-stripped regardless.
 const ALLOWLIST_PATTERNS = [/evening-sleep-optimizer/];
 
-const mobileRoot = path.resolve(__dirname, '../..');
-
-// Blank out block comments while preserving newlines, so reported line
-// numbers stay accurate.
+/** Blank block comments while preserving newlines, so line numbers stay true. */
 function stripBlockComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
 }
 
-// Drop a trailing line comment. The curated copy sources contain no "//"
-// inside string literals, so a simple split is safe for this scoped set.
 function stripLineComment(line: string): string {
-  const idx = line.indexOf('//');
-  return idx === -1 ? line : line.slice(0, idx);
+  const i = line.indexOf('//');
+  return i === -1 ? line : line.slice(0, i);
 }
 
-function isAllowlisted(line: string): boolean {
+function isModuleSpecifier(line: string): boolean {
+  return (
+    /^\s*(import|export)\b[\s\S]*\bfrom\s*['"]/.test(line) ||
+    /^\s*import\s*['"]/.test(line)
+  );
+}
+
+function isLineAllowlisted(line: string): boolean {
   return ALLOWLIST_PATTERNS.some((p) => p.test(line));
 }
 
-describe('Brand copy guard - em-dash + optim*', () => {
-  COPY_SOURCES.forEach((relPath) => {
-    const fullPath = path.join(mobileRoot, relPath);
+function walk(dirRel: string, acc: string[] = []): string[] {
+  for (const entry of fs.readdirSync(path.join(mobileRoot, dirRel), { withFileTypes: true })) {
+    const rel = `${dirRel}/${entry.name}`;
+    if (entry.isDirectory()) {
+      if (entry.name === '__tests__' || EXCLUDED_DIRS.has(rel)) continue;
+      walk(rel, acc);
+    } else if (
+      /\.tsx?$/.test(entry.name) &&
+      !/\.(test|spec)\.tsx?$/.test(entry.name) &&
+      !/\.d\.ts$/.test(entry.name)
+    ) {
+      acc.push(rel);
+    }
+  }
+  return acc;
+}
 
-    // Skip files that don't exist (defensive; all should exist).
-    if (!fs.existsSync(fullPath)) return;
+interface Violation {
+  file: string;
+  line: number;
+  label: string;
+  text: string;
+}
 
-    describe(relPath, () => {
-      const raw = fs.readFileSync(fullPath, 'utf-8');
-      const lines = stripBlockComments(raw)
-        .split('\n')
-        .map(stripLineComment);
+function scan(relPath: string): Violation[] {
+  const raw = fs.readFileSync(path.join(mobileRoot, relPath), 'utf-8');
+  const out: Violation[] = [];
+  stripBlockComments(raw)
+    .split('\n')
+    .forEach((rawLine, idx) => {
+      const line = stripLineComment(rawLine);
+      if (!line.trim() || isModuleSpecifier(line) || isLineAllowlisted(line)) return;
+      for (const pattern of PROHIBITED_PATTERNS) {
+        if (pattern.re.test(line)) {
+          out.push({
+            file: relPath,
+            line: idx + 1,
+            label: pattern.label,
+            text: line.trim().slice(0, 120),
+          });
+        }
+      }
+    });
+  return out;
+}
 
-      PROHIBITED_PATTERNS.forEach(({ label, re }) => {
-        it(`does not contain ${label}`, () => {
-          const violations = lines
-            .map((line, idx) => ({ line: line.trim(), num: idx + 1 }))
-            .filter(({ line }) => re.test(line) && !isAllowlisted(line));
+describe('Brand copy guard - em dash + optim*', () => {
+  const files = walk('src');
 
-          if (violations.length > 0) {
-            const details = violations
-              .map((v) => `  Line ${v.num}: ${v.line}`)
-              .join('\n');
-            throw new Error(
-              `Found prohibited ${label} in ${relPath}:\n${details}`
-            );
-          }
-        });
-      });
+  it('walks a non-trivial slice of the tree (guards against a broken walk passing vacuously)', () => {
+    expect(files.length).toBeGreaterThan(400);
+  });
+
+  it('covers every *copy*.ts module in the tree', () => {
+    // The gap that motivated this rewrite: all eight were outside COPY_SOURCES.
+    const copyModules = files.filter((f) => /copy[^/]*\.tsx?$/i.test(path.basename(f)));
+    expect(copyModules.length).toBeGreaterThanOrEqual(8);
+    for (const m of copyModules) {
+      expect(m in ALLOWLIST).toBe(false);
+    }
+  });
+
+  it('finds no prohibited copy outside the allowlist', () => {
+    const violations = files
+      .filter((f) => !(f in ALLOWLIST))
+      .flatMap((f) => scan(f));
+
+    if (violations.length > 0) {
+      const detail = violations
+        .map((v) => `  ${v.file}:${v.line}  [${v.label}]\n      ${v.text}`)
+        .join('\n');
+      throw new Error(
+        `Found ${violations.length} brand copy violation(s):\n${detail}\n\n` +
+          'Replace the em dash (a comma, a period, or a rewrite) or the optim* ' +
+          'word. Only waive by adding the file to ALLOWLIST in this file with a ' +
+          'one-line reason.'
+      );
+    }
+  });
+});
+
+describe('Brand copy guard - allowlist integrity', () => {
+  const entries = Object.entries(ALLOWLIST);
+
+  entries.forEach(([relPath, reason]) => {
+    it(`allowlisted file still exists: ${relPath}`, () => {
+      const exists = fs.existsSync(path.join(mobileRoot, relPath));
+      if (!exists) {
+        throw new Error(
+          `ALLOWLIST names a file that no longer exists: ${relPath}\n` +
+            `  reason on record: ${reason}\n\n` +
+            'The file was renamed or deleted. Remove the entry, or repoint it. ' +
+            'Waivers must not outlive what they waive.'
+        );
+      }
     });
   });
 });
 
-// Conversion + in-app headline surfaces additionally must stay OUTCOMES-LED.
-// The June pivot moved brain health from headline to backbone, so these
-// highest-intent / hero-copy screens must not reintroduce brain-health-led
-// framing. Scoped to a curated list on purpose: a tree-wide "brain health" ban
-// would trip legitimate BACKBONE education (e.g. brainHealthMapping.ts, the
-// Learn/Masterclass explainer body). These surfaces carry acquisition or
-// in-app *headline/hub/empty-state* copy where leading with "your brain" is the
-// violation; explainer body copy that uses the backbone as the "why" is NOT
-// listed here. Comments are stripped first, so a comment that mentions the
-// retired framing to explain why it was removed does not trip the guard.
-const OUTCOMES_LED_SURFACES = [
-  'src/screens/PaywallScreen.tsx',
-  'src/screens/auth/SignupScreen.tsx',
-  // In-app pillar/reflection headline surfaces (v2 outcomes-led sweep). The
-  // Energy hub (three-ways cards + Learn/Journal rows), the Journal intro
-  // callout, and the Journal empty state are hub/headline copy, so they hold to
-  // the same no-brain-health-led-framing rule as the conversion screens.
-  'src/screens/Energy/EnergyHubScreen.tsx',
-  'src/screens/JournalScreen.tsx',
-  'src/components/journal/JournalEmptyState.tsx',
-  // The habit detail screen. It led with brain health in two places before the
-  // rebuild; both are gone and neither may come back.
-  'src/screens/HabitDetailScreen.tsx',
-  // The Practices hub (IA step 4b-i). It sits ABOVE the pillar hubs already
-  // listed here and its card descriptors are the same class of copy, so it holds
-  // to the same rule. Added with the Routines card, whose destination subtitle
-  // ("Build routines that support your brain", focusContent.ts:44) is exactly
-  // the framing this guard exists to keep off hub surfaces — the card
-  // deliberately does not echo it, and this is what keeps it that way.
-  'src/screens/practices/PracticesHubScreen.tsx',
-  // The Stress Recovery page (4b-ii-a). Its intro is the highest-risk copy on
-  // the pillar pages: a page about relief from stress is exactly where a
-  // nervous-system / brain-health explanation wants to creep back in as
-  // justification. The page's job is to name the MOMENT, not teach the
-  // mechanism, and every practice it lists is already explained on Energy.
-  'src/screens/StressRecovery/StressRecoveryScreen.tsx',
-];
+describe('Brand copy guard - pattern sanity', () => {
+  const emDashLine = `  title: 'Focus ${EM_DASH} the deep kind',`;
+  const enDashLine = `  label: '20${String.fromCharCode(0x2013)}30 minutes',`;
 
-const RETIRED_POSITIONING_PATTERNS = [
-  { label: 'brain-health-led framing (brain health / brain-health)', re: /brain[-\s]?health/i },
-  { label: 'brain-aligned framing', re: /brain[-\s]?aligned/i },
-  { label: 'brain-as-headline phrasing', re: /how your brain\b|supporting your brain/i },
-];
-
-// Habit surfaces additionally must state NO CLINICAL CLAIM. Voice & Tone §5
-// bans clinical claims outright; §4 permits only conditional framing. The habit
-// detail screen shipped two as flat fact — "consistent focus habits strengthen
-// prefrontal cortex pathways over time" and "even 5 minutes of focused practice
-// builds your brain's attention networks" — from a twenty-string table in
-// intentions.ts. The table is deleted; this guard is what stops a replacement
-// being written.
-//
-// Scoped to the habit surfaces on purpose. A tree-wide ban would trip the
-// legitimate BACKBONE education in brainHealthMapping.ts and the Learn content,
-// which is explainer body copy, not a claim attached to a user's own habit.
-// Comments are stripped first, so the notes explaining what was removed (and
-// this list itself) cannot trip it.
-const NO_CLINICAL_CLAIM_SOURCES = [
-  'src/screens/HabitDetailScreen.tsx',
-  'src/components/habits/habitHistory.ts',
-  'src/components/habits/HabitWeekStrip.tsx',
-  'src/components/habits/HabitFourWeekView.tsx',
-  'src/components/habits/IntentionEditSheet.tsx',
-  // Where the deleted table lived.
-  'src/constants/intentions.ts',
-];
-
-const CLINICAL_CLAIM_PATTERNS = [
-  {
-    label: 'brain-anatomy mechanism',
-    re: /prefrontal|cortex|neural (pathway|loop|network)|attention network|neuroplastic|synap|dopamine|serotonin|cortisol/i,
-  },
-  { label: 'rewiring claim', re: /rewir(e|es|ed|ing)/i },
-  {
-    label: 'cognitive-benefit claim',
-    re: /builds? your brain|strengthens? your brain|cognitive (improvement|gain|benefit)/i,
-  },
-];
-
-describe('Habit surfaces state no clinical claim', () => {
-  NO_CLINICAL_CLAIM_SOURCES.forEach((relPath) => {
-    const fullPath = path.join(mobileRoot, relPath);
-    if (!fs.existsSync(fullPath)) return;
-
-    describe(relPath, () => {
-      const raw = fs.readFileSync(fullPath, 'utf-8');
-      const lines = stripBlockComments(raw)
-        .split('\n')
-        .map(stripLineComment);
-
-      CLINICAL_CLAIM_PATTERNS.forEach(({ label, re }) => {
-        it(`does not contain a ${label}`, () => {
-          const violations = lines
-            .map((line, idx) => ({ line: line.trim(), num: idx + 1 }))
-            .filter(({ line }) => re.test(line));
-
-          if (violations.length > 0) {
-            const details = violations
-              .map((v) => `  Line ${v.num}: ${v.line}`)
-              .join('\n');
-            throw new Error(
-              `Found prohibited ${label} in ${relPath}:\n${details}`
-            );
-          }
-        });
-      });
-    });
+  it('catches an em dash in copy', () => {
+    expect(PROHIBITED_PATTERNS[0].re.test(emDashLine)).toBe(true);
   });
-});
 
-// The habit detail screen must not reintroduce coral. Colors.error (#D97A6E) is
-// reserved for genuine errors; removing a habit you chose is an intentional
-// action. Checked at the source rather than in a render, because a coral style
-// on a state the default render never reaches would pass a render assertion.
-describe('Habit detail screen uses no error color', () => {
-  const raw = fs.readFileSync(
-    path.join(mobileRoot, 'src/screens/HabitDetailScreen.tsx'),
-    'utf-8'
-  );
-  const lines = stripBlockComments(raw).split('\n').map(stripLineComment);
-
-  it.each([
-    ['Colors.error', /Colors\.error/],
-    ['the coral hex', /D97A6E/i],
-    ['any red or amber literal', /#(FF|F4|E5|D9)[0-9A-F]{0,2}(00|3B|43)/i],
-  ])('does not reference %s', (_label, re) => {
-    expect(lines.filter((line) => re.test(line))).toEqual([]);
+  it('leaves en dashes in numeric ranges alone', () => {
+    expect(PROHIBITED_PATTERNS[0].re.test(enDashLine)).toBe(false);
   });
-});
 
-describe('Conversion surfaces stay outcomes-led (no brain-health-led framing)', () => {
-  OUTCOMES_LED_SURFACES.forEach((relPath) => {
-    const fullPath = path.join(mobileRoot, relPath);
-    if (!fs.existsSync(fullPath)) return;
+  it('catches the optim* family including British spellings', () => {
+    const re = PROHIBITED_PATTERNS[1].re;
+    for (const word of ['optimize', 'Optimizer', 'optimisation', 'OPTIMIZING', 'optimise']) {
+      expect(re.test(`  copy: 'Sleep ${word} routine',`)).toBe(true);
+    }
+  });
 
-    describe(relPath, () => {
-      const raw = fs.readFileSync(fullPath, 'utf-8');
-      const lines = stripBlockComments(raw)
-        .split('\n')
-        .map(stripLineComment);
+  it('keeps the evening-sleep-optimizer persisted id exempt', () => {
+    expect(isLineAllowlisted("  id: 'evening-sleep-optimizer',")).toBe(true);
+  });
 
-      RETIRED_POSITIONING_PATTERNS.forEach(({ label, re }) => {
-        it(`does not contain ${label}`, () => {
-          const violations = lines
-            .map((line, idx) => ({ line: line.trim(), num: idx + 1 }))
-            .filter(({ line }) => re.test(line));
-
-          if (violations.length > 0) {
-            const details = violations
-              .map((v) => `  Line ${v.num}: ${v.line}`)
-              .join('\n');
-            throw new Error(
-              `Found prohibited ${label} in ${relPath}:\n${details}`
-            );
-          }
-        });
-      });
-    });
+  it('strips comments before matching', () => {
+    const src = `/* prose ${EM_DASH} with an em dash */\nconst a = 1;\n// another ${EM_DASH} here\n`;
+    const cleaned = stripBlockComments(src)
+      .split('\n')
+      .map(stripLineComment)
+      .join('\n');
+    expect(cleaned.includes(EM_DASH)).toBe(false);
   });
 });

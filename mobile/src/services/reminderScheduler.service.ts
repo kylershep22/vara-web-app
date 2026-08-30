@@ -378,7 +378,7 @@ export async function syncAllReminders(userId: string): Promise<void> {
 
       if (droppedHabits > 0) {
         logger.warn(
-          `[reminderScheduler] REMINDER CAP EXCEEDED — scheduling ${MAX_HABIT_REMINDER_TRIGGERS} triggers ` +
+          `[reminderScheduler] REMINDER CAP EXCEEDED, scheduling ${MAX_HABIT_REMINDER_TRIGGERS} triggers ` +
             `for ${kept.length} habit(s); DROPPED ${droppedHabits} habit(s) / ${droppedTriggers} trigger(s). ` +
             `Newest reminders are dropped first. iOS silently discards pending notifications beyond 64, ` +
             `so this cap is what keeps the drop deliberate and diagnosable.`

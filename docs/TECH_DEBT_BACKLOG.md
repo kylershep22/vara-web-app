@@ -1374,3 +1374,134 @@ surfaces should say instead, since the vocabulary they render is retired.
 Do not delete piecemeal. `GoalsScreen`’s `brainPillars` field may be
 persisted on existing goal documents; removing the write path is not the
 same as migrating the data.
+
+---
+
+## `StreakMilestoneModal` / `MomentOfRecognitionModal` has no render site
+
+`mobile/src/components/celebrations/StreakMilestoneModal.tsx` exports a modal
+aliased `MomentOfRecognitionModal` by two barrels
+(`components/celebrations/index.ts:7`, `components/index.ts:89`) and covered by
+`components/celebrations/__tests__/StreakMilestoneModal.test.tsx`. **No screen or
+component imports it.** Verified by import graph, not filename grep, during the
+guard-hardening slice (2026-08-30).
+
+`mobile/docs/DESIGN_SYSTEM.md` lists MomentOfRecognition under Approved Patterns,
+and the Aug 2026 doc slice flagged its day-count thresholds UNDER REVIEW against
+the no-accumulation rule. That review may be moot: the component renders nowhere.
+
+**Action in a future cleanup slice:** remove the component, its test, and both
+barrel exports, unless a render site is planned. Any future milestone
+acknowledgment is a fresh design decision against Voice & Tone v2.2 section 3.3,
+not a revival of this component.
+
+**Also:** if it is kept rather than removed, rename the file
+`StreakMilestoneModal.tsx` to `MomentOfRecognitionModal.tsx`. The filename is the
+only place "Streak" survives, and it is the reason the brand guard has to skip
+import/export specifier lines at all.
+
+---
+
+## Five-pillar removal: refined reachability
+
+Supersedes the single open question in the `Colors.brainPillars` item above. The
+guard-hardening Step-0 pass resolved it into three different answers:
+
+- `src/screens/GoalsScreen.tsx` — **DARK.** Registered in no navigator
+  (`mobile/docs/inventory/CC_Inventory_2026-08-15.md` section 1d, line 185).
+- `src/components/shared/BrainPillarBadge.tsx` — **DARK by inheritance.** Its only
+  render site is `GoalsScreen.tsx:534`.
+- `src/components/shared/BrainPillarInfoModal.tsx` — **MOUNTED ON A REACHABLE
+  SCREEN, PERMANENTLY INVISIBLE.** Rendered at `HabitsScreen.tsx:198`, and
+  `HabitsScreen` is reachable content (inventory line 164: `PlanScreen` mounts it
+  as a child component; `PillarTime` is REACHABLE at line 146). But
+  `setPillarInfoVisible(true)` is never called anywhere in the tree:
+  `useState(false)` at `useHabitsScreen.ts:50`, and the only invocation is
+  `setPillarInfoVisible(false)` in the modal's own `onDismiss`
+  (`HabitsScreen.tsx:200`). The `visible` prop is a constant `false`.
+
+This is a fourth state the inventory's three-way scheme does not name: shipped,
+mounted, unopenable. It is worse than dark for removal purposes, because it reads
+as live to anyone opening `HabitsScreen`.
+
+**The removal slice has three targets. Take the modal first** — it is the one
+that looks live and is not.
+
+---
+
+## `OnboardingTourScreen` confetti identifiers
+
+`src/screens/onboarding/OnboardingTourScreen.tsx` holds `showConfetti`,
+`setShowConfetti`, and `handleConfettiComplete` (lines 81, 115, 116, 119, 120,
+200, 201). The confetti itself is long gone: the screen renders `<QuietFinish>`.
+Only the identifier names survive.
+
+The screen is DARK (inventory section 1d, line 189: registered nowhere), and the
+brand-compliance guard waives it by allowlist rather than failing on identifiers.
+
+**Action:** rename the three identifiers to match what the screen actually does
+(`showAcknowledgment` / `setShowAcknowledgment` / `handleAcknowledgmentComplete`)
+whenever this screen is next touched, then drop its allowlist entry. Not worth a
+dedicated slice; it is a dark screen.
+
+---
+
+## Root `npm test` is red on main
+
+`npm test` from the repo root runs `react-scripts test` against the **web** app:
+7 suites / 21 tests, of which **3 suites and 2 tests fail** (`src/App.test.js`,
+`src/services/db/__tests__/profiles.service.test.js`,
+`src/services/db/__tests__/errors.service.test.js`). Cause is Firebase auth
+initialization without env vars (`src/firebase.js:23`, `getAuth`). Real exit code
+is 1. Verified 2026-08-30.
+
+It does not run the mobile suite, and mobile's `npm test` does not run these. The
+two are disjoint, and this is the same class of trap as the root-`tsc`
+placeholder documented in `mobile/CLAUDE.md`.
+
+**Action:** in the next slice that touches the repo root, either fix these three
+suites or formally skip them, and add this approved line to the root `CLAUDE.md`
+under "Working on the web app" (approved 2026-08-30, parked here because the
+guard-hardening slice fence excluded docs other than this backlog):
+
+> `npm test` here runs `react-scripts test` against the **web** app only and is
+> currently **red on main** (3 suites fail on Firebase auth init without env
+> vars). It does not run the mobile suite; that is `npm test` from `mobile/`. Do
+> not read a root test failure as a mobile regression, or a mobile pass as web
+> coverage.
+
+---
+
+## `wellnessScore.service.ts` implements a banned concept, not just banned copy
+
+`mobile/src/services/firebase/wellnessScore.service.ts` computes a scored wellness
+metric with weighted components, including a `streakBonus` (`:427`) and the
+user-facing label `'Streaks: Build consistency'` (`:432`).
+
+Scores and denominators are banned outright, so this is not a string fix. The
+whole service is the violation. `WellnessScoreCard`
+(`components/dashboard/WellnessScoreCard.tsx`) has **0 render sites** — exported
+from two barrels, rendered nowhere — and the service has no consumers outside its
+own barrel.
+
+**Action:** delete the service, the card, and their barrel exports in the
+legacy-removal slice. Until then the brand guard allowlists the service.
+
+---
+
+## `featureDiscovery.ts` + `ComingUpSection` — retired streak-gated unlock mechanic
+
+`mobile/src/constants/featureDiscovery.ts` describes a feature-unlock mechanic
+gated on habit streaks, with four user-facing strings that violate the no-streaks
+rule (`:204`, `:395`, `:397`, `:535`). Its only consumer,
+`components/discovery/ComingUpSection.tsx`, has **0 render sites** (inventory line
+268), which is also what makes the 5 dead `navigationTarget` values in that file
+inert (inventory line 1226).
+
+Rewording the strings is the wrong fix. The mechanic itself is retired.
+
+**Action:** delete `featureDiscovery.ts`, `ComingUpSection.tsx`, and the discovery
+components rendered only inside it (`FeaturePreviewBottomSheet`,
+`NewlyAvailableCard`, `SoftRevealCard`). Note `UnlockToast` is **not** in that
+set — `ToastContext.tsx:163` renders it. Legacy-removal slice. Until then the
+brand guard allowlists the constants file.
