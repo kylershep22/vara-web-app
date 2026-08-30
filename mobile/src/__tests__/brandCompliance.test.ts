@@ -58,8 +58,6 @@ const EXCLUDED_DIRS = new Set(['src/screens/_dev']);
  * is always preferred to waiving it.
  */
 const ALLOWLIST: Record<string, string> = {
-  'src/screens/onboarding/OnboardingTourScreen.tsx':
-    'dark screen; confetti replaced by QuietFinish, only identifier names survive; rename tracked on backlog.',
   'src/constants/featureDiscovery.ts':
     'live provider (UnlockToast path); contains retired streak-gated copy for deleted ComingUpSection surfaces; strings are dead weight pending a content-level prune.',
   'src/services/firebase/wellnessScore.service.ts':
