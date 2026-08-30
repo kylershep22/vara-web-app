@@ -84,7 +84,6 @@ export { AIChatModal } from './ai/AIChatModal';
 
 // Celebration components
 export { default as AnimatedCheckbox } from './celebrations/AnimatedCheckbox';
-export { default as MomentOfRecognitionModal } from './celebrations/StreakMilestoneModal';
 export { default as QuietFinish } from './celebrations/QuietFinish';
 export { GoalMilestoneCheckmark, InlineCheckmark } from './celebrations/GoalMilestoneCheckmark';
 
