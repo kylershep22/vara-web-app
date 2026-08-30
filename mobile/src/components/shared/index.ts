@@ -8,7 +8,6 @@ export { PriorityBadge } from './PriorityBadge';
 export { ProgressBar } from './ProgressBar';
 export { AnimatedProgressBar, CompactProgressBar } from './AnimatedProgressBar';
 export { BrainPillarBadge } from './BrainPillarBadge';
-export { BrainPillarInfoModal } from './BrainPillarInfoModal';
 export { EnhancedModal, ModalFooterActions } from './EnhancedModal';
 export { KeyboardAwareScrollView, useKeyboardContext } from './KeyboardAwareScrollView';
 export { Tag } from './Tag';

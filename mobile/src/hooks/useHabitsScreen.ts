@@ -47,7 +47,6 @@ export function useHabitsScreen() {
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [completedToday, setCompletedToday] = useState<Set<string>>(new Set());
   const [togglingHabits, setTogglingHabits] = useState<Set<string>>(new Set());
-  const [pillarInfoVisible, setPillarInfoVisible] = useState(false);
   const [completionSheetHabit, setCompletionSheetHabit] = useState<Habit | null>(null);
   // The user's stored focus rhythms, read here rather than in the create sheet
   // so that sheet stays presentational (no auth, no Firestore). Fetched when the
@@ -420,8 +419,6 @@ export function useHabitsScreen() {
     setModalVisible,
     editingHabit,
     completedToday,
-    pillarInfoVisible,
-    setPillarInfoVisible,
     allHabitsCompletedToday,
     setAllHabitsCompletedToday,
     handleCreateHabit,
