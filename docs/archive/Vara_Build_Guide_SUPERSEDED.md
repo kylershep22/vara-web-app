@@ -7,7 +7,7 @@
 ---
 
 # Vara Build Guide
-**The non-negotiables for building Vara. Load this at the start of every Claude Code session.**
+**[RETIRED INSTRUCTION — do not load this document in any session. See mobile/CLAUDE.md.]**
 
 Version 1.0 | April 2026
 
