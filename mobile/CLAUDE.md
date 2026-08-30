@@ -5,7 +5,7 @@
 ## WHAT THIS IS
 
 React Native + Expo + TypeScript. All app code lives in `mobile/src/`.
-Run every command from `mobile/`, never the repo root: `npx tsc --noEmit`, `npm run lint`, `npm test`. Running them from the root picks up a decoy package and produces output that looks like a clean build without having checked this app.
+Run every command from `mobile/`, never the repo root: `npx tsc --noEmit`, `npm run lint`, `npm test`. The root has no `tsconfig.json` and no `typescript` dependency, so `npx tsc` there resolves to an unrelated placeholder package on npm that prints "This is not the tsc command you are looking for" and exits 1 having typechecked nothing. **Exit 1 with zero `error TS` lines is the trap** — that is not a failing build or a clean one, it is no build at all. A real run reports errors or prints nothing and exits 0.
 Jest must run with `--forceExit` (reanimated and timer handles keep the process alive). `npm test` already includes it.
 
 ## SOURCE-OF-TRUTH PRECEDENCE
