@@ -164,8 +164,8 @@ export function PracticesIndexScreen() {
         <View style={styles.emptyState} testID="practices-index-empty">
           <Text style={styles.emptyTitle}>Nothing fits right now</Text>
           <Text style={styles.emptyBody}>
-            No protocols match your current state and time window. This is rare —
-            try a different time window from the check-in flow.
+            No protocols match your current state and time window. This is rare.
+            Try a different time window from the check-in flow.
           </Text>
         </View>
       ) : (
