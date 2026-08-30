@@ -210,7 +210,7 @@ export async function writeProtocolSession(
   options: WriteProtocolSessionOptions = {}
 ): Promise<void> {
   if (options.dryRun) {
-    logger.log('[protocolSession.service] dryRun — would write payload:', {
+    logger.log('[protocolSession.service] dryRun, would write payload:', {
       userId,
       ...payload,
       docId: buildDocId(userId, payload.sessionStartedAt),
@@ -220,7 +220,7 @@ export async function writeProtocolSession(
 
   if (!db) {
     throw new Error(
-      '[protocolSession.service] Firestore not initialized — cannot write session'
+      '[protocolSession.service] Firestore not initialized, cannot write session'
     );
   }
 
