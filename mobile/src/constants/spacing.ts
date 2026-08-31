@@ -33,6 +33,7 @@ export const Layout = {
     md: 8,
     lg: 12,
     xl: 16,
+    '2xl': 20,    // Arrival cards on Today, the capacity invitation
     pill: 9999,   // Pill-shaped filter tabs (full-circle intent)
     full: 9999,
   },

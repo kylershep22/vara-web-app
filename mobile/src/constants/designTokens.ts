@@ -158,7 +158,7 @@ export const SizeTokens = {
   activityIconLarge: 56,
 
   // Input heights
-  inputHeight: 44,
+  inputHeight: 48,   // Matches Layout.inputHeight; UI Standards section 6.2
   toggleWidth: 48,
   toggleHeight: 28,
 

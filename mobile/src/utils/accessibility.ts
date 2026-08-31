@@ -13,9 +13,13 @@
 import { AccessibilityInfo, Platform } from 'react-native';
 
 /**
- * Minimum touch target size (Apple HIG & Material Design guidelines)
+ * Minimum touch target size.
+ *
+ * Vara's floor is 48, not the 44 of Apple's HIG: the UI Standards (section 16)
+ * take Apple's number as the minimum and add margin. Matches
+ * `SizeTokens.touchTargetMin`.
  */
-export const MIN_TOUCH_TARGET_SIZE = 44;
+export const MIN_TOUCH_TARGET_SIZE = 48;
 
 /**
  * Check if screen reader is enabled
