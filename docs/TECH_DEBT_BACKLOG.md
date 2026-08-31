@@ -1601,3 +1601,97 @@ this file now records exactly this state.
 (`81d57cb`) because the rename made it unnecessary. The `featureDiscovery` and
 `wellnessScore.service` reasons were rewritten in `e7e766d` — both previously
 asserted the deletability disproved above.
+
+---
+
+# UI Standards v2.0 slice (2026-08-30) — token findings
+
+Surfaced by the read-only Step-0 verification for the UI Standards v2.0
+doc slice. None of these are runtime bugs; all three are token-layer
+inconsistencies found while checking the doc's claims against source.
+
+## `BAND_STRONG_SCRIM` is a design token living in a component file
+
+`mobile/src/components/shared/ScreenHeader.tsx:58` declares
+`export const BAND_STRONG_SCRIM = [0, 0.05, 0.82, 1] as const` — the
+approved gradient stop positions for the launch hero bands. It is
+re-exported through `src/components/shared/index.ts:21` and consumed by
+three screens: `DashboardScreen.tsx:26`, `Energy/EnergyHubScreen.tsx:22`,
+`Focus/FocusHubScreen.tsx:23`.
+
+It is a shared, named, approved visual constant used across three hubs,
+which makes it a token by every other standard in this repo. It sits in a
+component file only because it was introduced alongside the hero-band work.
+Anyone looking for it under `src/constants/` will not find it, and the UI
+Standards doc's token tables are the place people will look.
+
+Note it is a gradient **locations** array, not a color, so it does not
+belong in `ColorTokens`. It has no obvious home in the current
+`designTokens.ts` groupings.
+
+**Fix when the hero-band surfaces are next touched:** move it to
+`designTokens.ts` (likely a new gradient/scrim grouping), keep a re-export
+from `ScreenHeader.tsx` for one cycle so the three consumers do not need to
+change in the same commit, then repoint them. Do not open these files
+solely for this.
+
+---
+
+## The entire `Layout.community` block is dead, and one key pre-empts a radius token
+
+`mobile/src/constants/spacing.ts:118-126` defines a `community` block with
+six keys: `postCardRadius: 12`, `buttonRadius: 20`,
+`postAuthorAvatarSize: 40`, `commentAvatarSize: 32`,
+`postContentPadding: 16`, `actionButtonHeight: 48`.
+
+**All six have zero consumers in `src/`.** The community screens were built
+against the general scale instead. Four of the six also duplicate an
+existing general token exactly (`12` = `borderRadius.lg`, `40`/`32` =
+`avatarSize.md`/`sm`, `16` = `Spacing.base`, `48` = `buttonHeight.md`).
+
+The one that matters for the token scale is `buttonRadius: 20`. When
+`borderRadius['2xl'] = 20` lands, the repo will hold two unrelated
+definitions of a 20pt radius, one of them dead — exactly the drift the
+scale exists to prevent.
+
+**Fix:** delete the `community` block outright rather than consolidating it.
+Nothing imports it, so this is a pure removal with no consumer changes.
+Deferred out of the v2.0 doc slice because that slice is scoped to `.md`
+files plus additive token work, and a deletion is neither. Verify the
+zero-consumer finding still holds at the time of removal.
+
+---
+
+## Two incompatible `letterSpacing` conventions, neither documented
+
+The repo stores letter spacing in two different units, and nothing marks
+which is which:
+
+- `Typography.letterSpacing` (`typography.ts:60-65`) is in **absolute
+  points** — `tighter: -0.5`, `tight: -0.25`, `normal: 0`, `wide: 0.5`.
+  These are assigned directly to a React Native `letterSpacing` style,
+  which is correct: RN's `letterSpacing` is absolute, not an em multiplier.
+- `TypographyTokens.letterSpacingTimer` (`designTokens.ts:77`) is `-0.02`,
+  an **em multiplier**, and must be multiplied by the font size at the call
+  site to become points.
+
+`letterSpacingTimer` is used correctly today. Both consumers do the
+conversion: `PomodoroTab.tsx:414` and `ActiveRoutinePlayer.tsx:719` each
+write `letterSpacingTimer * <fontSize>`. This entry is **not** reporting a
+rendering bug — it is reporting that the correctness depends entirely on
+every future call site remembering an unwritten rule.
+
+The failure mode is quiet and one-directional: assigning `letterSpacingTimer`
+straight to a style yields -0.02pt, which is visually indistinguishable from
+zero, so it renders as "no tracking" rather than as anything obviously wrong.
+The same trap catches anyone transcribing an `em` value out of the UI
+Standards doc into a points-based field.
+
+`TypographyTokens.letterSpacingCaps: 0.04` (`designTokens.ts:78`) has **zero
+consumers**, so its unit has never been exercised either way.
+
+**Fix when `designTokens.ts` is next touched:** either convert the em tokens
+to points to match the dominant convention, or rename them to carry the unit
+(`letterSpacingTimerEm`) and comment the multiply-at-call-site requirement.
+Renaming is the cheaper, safer option — it makes the two call sites
+self-checking. Do not open the file solely for this.
