@@ -26,8 +26,8 @@ The contracts stay authoritative for their own scope beneath this ladder: `docs/
 These fail or warn in CI. Know them before you write code.
 
 - **No raw hex literals** — `.eslintrc.js` `no-restricted-syntax` (error). Import from `src/constants/`.
-- **`src/__tests__/brandCompliance.test.ts`** — prohibited copy (streak, confetti, urgency). Covers a hand-maintained 13-file subset, not the tree. **A new screen MUST be added to `SCREEN_FILES`** or it is unguarded, and a missing file is skipped silently.
-- **`src/__tests__/brandCopyGuard.test.ts`** — em dash (U+2014) and the optimize/optimizer/optimization family, over a curated `COPY_SOURCES` list. **A new copy module MUST be added to that list.**
+- **`src/__tests__/brandCompliance.test.ts`** — prohibited copy (streak, confetti, urgency). **Walks all of `src/`**, so a new screen is guarded automatically. A waiver means adding the file to `ALLOWLIST` with a one-line reason; an allowlisted path that stops existing FAILS, so stale entries cannot rot.
+- **`src/__tests__/brandCopyGuard.test.ts`** — em dash (U+2014) and the optimize/optimizer/optimization family. **Walks all of `src/`** on the same contract: reasoned `ALLOWLIST`, and an allowlist entry naming a missing file FAILS.
 - **`src/__tests__/copyDraftSentinel.test.ts`** — pinned count of unapproved drafted strings, currently **189**. Any change to the number must be made in the same commit as the string change **and named in the commit message**. A silent edit to this number is the exact failure this test exists to catch.
 - **`src/screens/Focus/__tests__/blocksBrandGuard.test.ts`** — Soft Coral is barred from routine controls in the blocks feature.
 - **Firestore rules** — `npm run test:rules`, from the **repo root**, needs the emulator.

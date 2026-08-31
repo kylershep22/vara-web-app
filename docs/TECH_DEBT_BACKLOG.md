@@ -1704,3 +1704,185 @@ to points to match the dominant convention, or rename them to carry the unit
 (`letterSpacingTimerEm`) and comment the multiply-at-call-site requirement.
 Renaming is the cheaper, safer option — it makes the two call sites
 self-checking. Do not open the file solely for this.
+
+---
+
+# UI Standards v2.0 calibration (2026-08-30) — refactor-design input
+
+Produced by the read-only Step-5 calibration pass of the v2.0 doc slice, which
+applied the Section 18 checklist and the Section 2 requirements to the Today
+surface and the Focus hub. **Every entry below is refactor-design input, not a
+fix list for the doc branch.** Nothing here was changed on `docs/ui-standards-v2`;
+the branch added tokens and docs only. Section references are to
+`mobile/Vara_Mobile_UI_Standards.md` v2.0.
+
+## Arrival surface signature pattern
+
+**Targets:** the Today surface (`src/screens/DashboardScreen.tsx`) and every hub
+(`Focus/FocusHubScreen.tsx`, `Energy/EnergyHubScreen.tsx`, and the Practices and
+Learn hubs as they reach the same shape).
+
+Both audited screens fail the Section 2.7 distinctiveness test for the same
+reason, and it is one root cause rather than two screen-specific ones. Each
+already owns its strongest signature: the watercolor hero band, correctly placed
+per Section 8.1 (hub and arrival screens only). Then neither spends anything
+else. The band does all the work and everything under it is generic, which is
+exactly the "technically compliant and forgettable" outcome Section 2 opens by
+naming.
+
+Measured on both screens: no warm point anywhere in the rendered tree
+(Section 2.2); headline one or two steps below display size (Section 2.3); a
+single radius repeated across primary and secondary cards (Section 2.6); two
+elevation tiers and no Dew Sage section washes (Section 2.1); no noticing
+(Section 14.7, where zero is a defect).
+
+**The shared fix, applied per surface:**
+
+1. Headline at display size via `TextStyles.displayLg` (34, tracking `tighter`).
+   The token landed in `2d2d3e7`; nothing consumes it yet.
+2. One warm point, deliberately placed. One per screen, never on text, never on
+   a button fill.
+3. Primary card promoted to `borderRadius['2xl']` (20, also landed in
+   `2d2d3e7`) with either a Dew Sage wash and no shadow, or white with
+   `shadow.md`. Exactly one primary card per screen.
+4. Secondary cards down to `borderRadius.lg` (12), so radius encodes hierarchy
+   instead of flattening it.
+5. One `dewSageLight` section wash, to get a third elevation tier and the
+   section rhythm Section 2.1 asks for.
+6. One noticing per surface as a highlight card (Section 10.2 treatment,
+   Section 14.7 rules): describes a choice the user made, carries no number and
+   no judgment.
+
+Doing this once as a shared pass is the point. Handling each screen
+independently is how the surfaces drifted apart in the first place.
+
+**Blocked on a decision:** the noticing needs a data source. It must reflect the
+user's own behavior ("evenings are usually when you reach for this"), which is
+not the same thing as the curated rotation Today ships now (see the Today entry
+below). That is a product call for Kyle, not a design detail.
+
+---
+
+## Today surface — items that do not generalize
+
+`src/screens/DashboardScreen.tsx`. Everything in the cross-cutting entry above
+applies here too; these are the additions specific to this screen.
+
+**Above-fold card count needs a device check.** Section 11-E allows the hero plus
+at most two more cards above the fold. The live render order is the hero
+(`TodayHeroCard` or `SetTodayCard`), then `ContinuityCard`, `CloseWeekEntry`,
+`InsightCard`, `WeeklyHabitGrid`, `RoutineCard`, `InsightsLookbackCard`. Several
+self-hide (ContinuityCard at zero, the habit grid with no habits), so the
+count is state-dependent and cannot be settled by reading source. **Check on a
+device across the pre-pick, post-pick, and closed-week states before deciding
+what moves below the fold.**
+
+**The error banner is the wrong pattern.** `DashboardScreen.tsx` renders a
+persistent inline strip listing which reads failed. Section 14.4 wants the
+failure inline directly under the thing that failed, with the retry in place.
+The current strip says "Pull to refresh" as body copy instead of offering a
+retry affordance.
+
+**Raw values in that same banner.** `backgroundColor: 'rgba(217,122,110,0.1)'`
+is a raw color literal, and `borderRadius: 8` and the settings button's
+`borderRadius: 9999` are raw radius literals (Section 3.1). Worth noting for the
+lint backlog: the hex-literal eslint rule did not catch the `rgba()` form, so
+the guard has a gap wider than this one file.
+
+**A note on the warm-point measurement.** Grepping `components/dashboard/` for
+`sunriseAmber` / `goldenApricot` returns hits, but every one is inside a
+component this screen no longer renders (`brainStateCheckin`, `DashboardAnchor`,
+`FourThreeTwoOne*`, `MorningCheckIn`) — all de-engined by the landing slice. The
+rendered tree has no warm tone. Do not let those grep hits suggest otherwise.
+
+**On `InsightCard` and the noticing.** `InsightCard` is a curated, daily-rotating
+static insight from `getDashboardInsight()`. It is calm and correct for what it
+is, and it is deliberately not a stat card. It is **not** a Section 14.7
+noticing, which has to reflect something the app observed about this user. Do
+not satisfy the noticing requirement by relabeling this card.
+
+---
+
+## Focus hub — items that do not generalize
+
+`src/screens/Focus/FocusHubScreen.tsx`. The cross-cutting entry applies here too.
+
+**Remove the uppercase eyebrow.** `primaryEyebrow` renders "Deep work" with
+`textTransform: 'uppercase'` and `letterSpacing: 0.72` above the "Set a focus"
+heading. Section 5.4 bans this twice over: ALL CAPS outside 12pt tab labels and
+tags, and small tracked-out labels above headings, which it calls the commonest
+tell of generated UI. The heading already names the action, so the eyebrow can
+be deleted rather than restyled. Its raw `fontSize: 12` and raw
+`letterSpacing: 0.72` go with it.
+
+**`mutedSageGray` on the default body path is below AA.** `primaryBody` uses
+`Colors.mutedSageGray` at 16pt, which measures 4.22:1 against the card surface,
+under the 4.5:1 floor in Section 16. The file already documents this and
+overrides to `softCharcoal` for the in-window variant only, with a comment
+explaining that the default is deliberately left alone. That scoping is correct
+— the fix belongs to the app-wide `mutedSageGray` contrast pass, not to a hub
+slice — but it is a live AA miss on the path most users see, and it should be
+counted when that app-wide pass is scheduled rather than treated as already
+handled.
+
+**Radius literals.** Five raw `borderRadius: 16` values across `primaryCard` and
+the four `secondaryCard`s, plus raw margins `6` / `8` / `2` (Section 3.1). These
+get resolved by the radius-hierarchy step in the cross-cutting entry; noted here
+so the count is on record.
+
+---
+
+## No screen sets `maxFontSizeMultiplier` (app-wide)
+
+Section 5.3 makes Dynamic Type a launch requirement and asks that every `Text`
+carry `maxFontSizeMultiplier={1.3}`, so layouts have a known ceiling to design
+against. **A tree-wide grep returns zero occurrences.** The audience for this app
+includes people who run large text deliberately, which is why the standard is
+worded as required rather than aspirational.
+
+The good news is the other half already holds: `allowFontScaling={false}` appears
+nowhere in `src/`, so text does scale today. It scales without a ceiling.
+
+`typography.ts:83` already carries a comment acknowledging this as a known
+app-wide gap, and the line heights are multipliers rather than fixed pixels
+(`lineHeightFor`), so the type scale itself is ready for it.
+
+**Fix as one shared change, not per screen:** a wrapped `Text` component (or a
+default applied once at the root) that carries the multiplier, then migrate
+call sites. Doing this screen by screen guarantees an inconsistent ceiling.
+Layout tolerance at the 1.3 ceiling then needs verifying per surface: no
+fixed-height text containers, `numberOfLines` only where truncation is
+deliberate, buttons growing vertically rather than truncating.
+
+---
+
+## The tsc baseline conceals real defects
+
+The standing baseline was 153 errors and is now 149. It is treated as ambient
+noise, and that is what makes it dangerous: **a real runtime defect sitting in
+the list is indistinguishable from the `Firestore | null` chorus.**
+
+Concrete proof from this slice. Four live call sites wrote
+`Layout.borderRadius['2xl']` against a key that did not exist:
+
+- `src/components/profile/ProfileHeader.tsx:139`
+- `src/screens/ChatScreen.tsx:381`
+- `src/components/goals/ProgressUpdateModal.tsx:379`
+- `src/screens/discover/BreathworkDetailScreen.tsx:198`
+
+All four resolved to `undefined` and rendered with **no corner radius** until
+`2d2d3e7` added the token. Each had been reporting itself as a TS7053 the whole
+time, inside the 153. The type checker found four rendering bugs and nobody
+could see them for the noise.
+
+**Action:** drive the baseline toward zero, and in the meantime triage the
+remaining 149 by whether each is a runtime defect or a type-only complaint. The
+large known families (`Firestore | null` from un-narrowed `db`, and
+`getReactNativePersistence` missing from `firebase/auth`) are type-only and can
+be batched. What matters is the residue after those are set aside: the TS2339
+and TS7053 entries indexing a token object with a key that does not exist are
+the same shape as the four above, and each one is a candidate rendering bug.
+
+Until the baseline is zero, a slice that changes the count should diff the
+before and after error lists rather than compare totals. This slice did, which
+is the only reason the four were noticed.
