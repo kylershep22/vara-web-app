@@ -29,6 +29,7 @@ export const Typography = {
     xl: 22,       // H2 (section titles)
     '2xl': 26,    // H1 (screen titles)
     '3xl': 32,    // Display (rare, hero only)
+    displayLg: 34, // Display large (arrival screens: Today greeting, hub titles)
     timer: 48,    // Breathwork timer display only
   },
 
@@ -47,6 +48,7 @@ export const Typography = {
   // 1.5x for body text, 1.3x for headings
   // ===========================================
   lineHeight: {
+    display: 1.1,     // Display and timer sizes
     heading: 1.3,     // Headings
     normal: 1.5,      // Body text
     relaxed: 1.6,     // Comfortable reading
@@ -84,6 +86,15 @@ const lineHeightFor = (fontSize: number, multiplier: number): number =>
   fontSize * multiplier;
 
 export const TextStyles = {
+  // Display Large - 34px / Semi-Bold (600) - arrival screens only
+  // Color: Evergreen Teal (#1B5E57)
+  displayLg: {
+    fontSize: Typography.fontSize.displayLg,
+    fontWeight: Typography.fontWeight.semibold,
+    lineHeight: lineHeightFor(Typography.fontSize.displayLg, Typography.lineHeight.display),
+    letterSpacing: Typography.letterSpacing.tighter,
+  },
+
   // Display - 32px / Semi-Bold (600) - rare, hero only
   display: {
     fontSize: Typography.fontSize['3xl'],
