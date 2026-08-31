@@ -15,8 +15,7 @@ Highest to lowest. When two documents disagree, the higher one wins.
 1. `docs/Vara_Today_IA_Restructure_Roadmap_v2.md` — IA, tabs, the Today surface, the capacity model.
 2. `docs/Vara_Reconciled_Product_Spec.md` (v1.7) — all other product behavior.
 3. `docs/brand/Vara_Brand_Voice_Copy_Guidelines.md` — all copy.
-4. `mobile/Vara_Mobile_UI_Standards.md` — the visual design system.
-5. `mobile/docs/DESIGN_SYSTEM.md` — token-to-code mapping; defers to (4).
+4. `mobile/Vara_Mobile_UI_Standards.md` (v2.0) — the visual and interaction authority, including token-to-code mapping.
 
 The contracts stay authoritative for their own scope beneath this ladder: `docs/Vara_Engine_Contract.md`, `docs/Vara_Protocol_Engine_Contract.md`, `docs/Vara_Modal_Design_System_v1.1.md`, `docs/Vara_Core_Loop_v2.md`.
 
@@ -46,6 +45,7 @@ These fail or warn in CI. Know them before you write code.
 - Outcomes are felt self-report. Never a metrics dashboard.
 - Firestore rules are allowlist and fail-closed. New collections need rules before the first write.
 - **The legacy tasks layer is frozen:** `src/hooks/useTasks.ts`, `src/services/firebase/tasks.service.ts`, `Task` in `src/types/models.ts`, and the `tasks` collection. Never extend, migrate, or delete it. New task work goes through `capturedTasks`.
+- Every UI slice's REPORT answers the Section 18 checklist of the UI Standards item by item.
 - **Retired vocabulary:** the five-state model (Wired/Foggy/Steady/Clear/Alive), the five-pillar model (`brainPillars` tokens), intent paths, and the floating V button are RETIRED. Code referencing them is legacy pending removal — never extend it. Removal is tracked on the backlog.
 
 ## WORKFLOW
@@ -59,7 +59,7 @@ These fail or warn in CI. Know them before you write code.
 ## POINTERS
 
 - `mobile/docs/CONTRIBUTING.md` — screen and component patterns, accessibility checklist, pre-commit checklist, naming, code style.
-- `mobile/docs/DESIGN_SYSTEM.md` — which token lives in which file under `src/constants/`.
+- `mobile/Vara_Mobile_UI_Standards.md` Section 3.3 — which token lives in which file under `src/constants/`.
 - `mobile/docs/inventory/CC_Inventory_2026-08-15.md` — route-by-route reachability (BUILT AND REACHABLE / BUILT BUT DARK / NOT PRESENT), and the flags that decide which navigator mounts. Read this before assuming a screen is live.
 - `mobile/docs/inventory/CC_Guide_Diagnostic.md` — the AI Guide, client and server.
 - Backlogs, all under `docs/`: `TECH_DEBT_BACKLOG.md`, `TEST_INFRASTRUCTURE_BACKLOG.md`, `DESIGN_BACKLOG.md`, `SPEC_CONSISTENCY_BACKLOG.md`, `VOICE_AUDIT_BACKLOG.md`.

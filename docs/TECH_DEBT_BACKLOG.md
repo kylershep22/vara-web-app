@@ -1362,7 +1362,9 @@ in the tree:
 
 The documentation for these tokens was removed from
 `mobile/docs/DESIGN_SYSTEM.md` in the Aug 2026 doc-precedence slice, so the
-tokens are now live but undocumented — the worst of both states.
+tokens are now live but undocumented — the worst of both states. (That file has
+since retired into `mobile/Vara_Mobile_UI_Standards.md`; its section 4.1 is the
+current palette and does not carry `brainPillars` either, so the gap stands.)
 
 **Needed, in order:** (1) a reachability check against the CC inventory
 (`mobile/docs/inventory/CC_Inventory_2026-08-15.md`) to establish whether
@@ -1377,7 +1379,7 @@ same as migrating the data.
 
 ---
 
-## `StreakMilestoneModal` / `MomentOfRecognitionModal` has no render site
+## [RESOLVED 2026-08-30] `StreakMilestoneModal` / `MomentOfRecognitionModal` has no render site
 
 `mobile/src/components/celebrations/StreakMilestoneModal.tsx` exports a modal
 aliased `MomentOfRecognitionModal` by two barrels
@@ -1386,9 +1388,16 @@ aliased `MomentOfRecognitionModal` by two barrels
 component imports it.** Verified by import graph, not filename grep, during the
 guard-hardening slice (2026-08-30).
 
-`mobile/docs/DESIGN_SYSTEM.md` lists MomentOfRecognition under Approved Patterns,
-and the Aug 2026 doc slice flagged its day-count thresholds UNDER REVIEW against
-the no-accumulation rule. That review may be moot: the component renders nowhere.
+**RESOLVED:** component deleted `6aa636b` (merged to main in `fea23e2`); the
+DESIGN_SYSTEM.md section that listed MomentOfRecognition under Approved Patterns
+retired with that file in this slice. Both halves of the entry are gone, so the
+UNDER REVIEW flag on its day-count thresholds is moot. The successor rule lives
+in `mobile/Vara_Mobile_UI_Standards.md` section 10.10, which names day-count
+milestone modals as retired and not to be rebuilt.
+
+The only surviving mentions of the name are string fixtures inside
+`src/__tests__/brandCompliance.test.ts`, which exercise the module-specifier
+detector. They are test data, not a render site, and are correct as they stand.
 
 **Action in a future cleanup slice:** remove the component, its test, and both
 barrel exports, unless a render site is planned. Any future milestone

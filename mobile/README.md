@@ -138,7 +138,7 @@ Colors, typography, and spacing are defined in `src/constants/`:
 - **Typography** (`typography.ts`): Inter font family, sizes from xs (12px) to 3xl (32px), with preset text styles (h1, h2, body, caption, etc.).
 - **Spacing** (`spacing.ts`): Scale from 2xs (2px) to 3xl (64px), plus Layout constants for border radius, shadows, button heights, and avatar sizes.
 
-See `docs/DESIGN_SYSTEM.md` for the complete design system reference.
+See `../Vara_Mobile_UI_Standards.md` Section 3.3 for the token-to-code mapping, and the rest of that document for the design system of record.
 
 ## Linting and Formatting
 
@@ -152,5 +152,5 @@ npm run format          # Format with Prettier
 
 - `EAS_SECRETS_SETUP.md` - EAS Secrets and store submission setup
 - `DEPLOYMENT_GUIDE.md` - Deployment procedures
-- `docs/DESIGN_SYSTEM.md` - Complete design token reference
+- `../Vara_Mobile_UI_Standards.md` - Design system of record; Section 3.3 is the token-to-code mapping
 - `docs/CONTRIBUTING.md` - Contribution guidelines
