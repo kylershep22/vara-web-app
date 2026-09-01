@@ -2446,4 +2446,196 @@ describe('Captured Tasks (Task Batching)', () => {
   });
 });
 
+
+describe('Journey State (journeyStates)', () => {
+  // The document ID IS the uid, so there is no seeding-by-query here and no
+  // list rule to test. Ownership is the path, and every case below is about
+  // whether the path and the field validation hold.
+  //
+  // VACUITY GUARD: the first test writes a fully valid document and asserts it
+  // SUCCEEDS. Without it, a rule that denied everything would make every
+  // assertFails below pass and the suite would be green for the wrong reason.
+
+  function validState(userId, over = {}) {
+    return {
+      userId,
+      destination: 'focus',
+      phaseKey: 'remove',
+      enteredAt: new Date(),
+      history: [],
+      skipped: [],
+      advanceOfferedAt: null,
+      advanceDeclinedAt: null,
+      adjustOfferedAt: null,
+      adjustDeclinedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...over,
+    };
+  }
+
+  async function seedState(userId) {
+    await withAdminDb((adminDb) =>
+      setDoc(doc(adminDb, 'journeyStates', userId), validState(userId))
+    );
+  }
+
+  // ---- owner CRUD ----
+
+  test('a user can create their own journey state', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(
+      setDoc(doc(db, 'journeyStates', ALICE_UID), validState(ALICE_UID))
+    );
+  });
+
+  test('a user can read their own journey state', async () => {
+    await seedState(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'journeyStates', ALICE_UID)));
+  });
+
+  test('a user can update their own journey state', async () => {
+    await seedState(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    // An update must still satisfy validJourney, so the whole document is
+    // re-sent with merge rather than a bare field patch.
+    await assertSucceeds(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { phaseKey: 'recover' }),
+        { merge: true }
+      )
+    );
+  });
+
+  // ---- cross-user denial ----
+
+  test('a user cannot read another user journey state', async () => {
+    await seedState(ALICE_UID);
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(bob, 'journeyStates', ALICE_UID)));
+  });
+
+  test('a user cannot create a journey state at another user path', async () => {
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(
+      setDoc(doc(bob, 'journeyStates', ALICE_UID), validState(ALICE_UID))
+    );
+  });
+
+  test('a user cannot overwrite another user journey state', async () => {
+    await seedState(ALICE_UID);
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(
+      setDoc(
+        doc(bob, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { phaseKey: 'refocus' })
+      )
+    );
+  });
+
+  test('an unauthenticated client cannot read a journey state', async () => {
+    await seedState(ALICE_UID);
+    const anon = getUnauthContext().firestore();
+
+    await assertFails(getDoc(doc(anon, 'journeyStates', ALICE_UID)));
+  });
+
+  // ---- field validation ----
+
+  test('a phaseKey outside PHASE_ORDER is refused', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { phaseKey: 'reboot' })
+      )
+    );
+  });
+
+  test('a destination outside DESTINATION_KEYS is refused', async () => {
+    // 'stress' is the WEEKLY loop OutcomeKey. The journey destination for the
+    // same territory is 'calm', and the two vocabularies stay apart until
+    // slice 3 - so this is the exact mistake the validation is here to catch.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { destination: 'stress' })
+      )
+    );
+  });
+
+  test('a non-timestamp enteredAt is refused', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { enteredAt: '2026-08-10' })
+      )
+    );
+  });
+
+  test('a non-list history is refused', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      setDoc(doc(db, 'journeyStates', ALICE_UID), validState(ALICE_UID, { history: 3 }))
+    );
+  });
+
+  test('a non-list skipped is refused', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { skipped: 'remove' })
+      )
+    );
+  });
+
+  test('a forged userId is refused, so deleteAccount can always find the row', async () => {
+    // The cleanup function sweeps `where userId == uid`. A row whose userId
+    // disagrees with its own path would survive account deletion.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { userId: BOB_UID })
+      )
+    );
+  });
+
+  // ---- no client delete ----
+
+  test('a user cannot delete their OWN journey state', async () => {
+    // Not an oversight. Phase history is the record the advancement and
+    // adjustment decisions are made from; account deletion goes through the
+    // deleteAccount Cloud Function, whose Admin SDK writes bypass rules.
+    await seedState(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(deleteDoc(doc(db, 'journeyStates', ALICE_UID)));
+  });
+
+  test('a user cannot delete another user journey state', async () => {
+    await seedState(ALICE_UID);
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(deleteDoc(doc(bob, 'journeyStates', ALICE_UID)));
+  });
+});
+
 console.log('✅ All security rules tests defined. Run with: npm run test:rules');

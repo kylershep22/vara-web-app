@@ -957,6 +957,51 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // ========== JOURNEY ==========
+
+    // Journey state - one document per user, and the DOCUMENT ID IS THE UID.
+    //
+    // Gated on the ID path, not on a userId field, exactly like userPrivate
+    // above and unlike every collection in the weekly section: there is at most
+    // one row per user and nothing ever queries across them, so there is no
+    // list rule and no need for the get/list split those collections carry.
+    //
+    // NO CLIENT DELETE. Ending a journey is starting a new one (createJourneyState
+    // overwrites), and account deletion is the deleteAccount Cloud Function,
+    // whose Admin SDK writes bypass these rules. A client that could delete this
+    // row could erase its own phase history, which is the record the adjustment
+    // and advancement decisions are made from.
+    //
+    // THE FIELD VALIDATION IS A TYPE CHECK, NOT A BUSINESS RULE. It refuses a
+    // phaseKey or destination outside the two closed vocabularies, because a
+    // typo there is unrecoverable once written and the client is the only thing
+    // that writes here. It deliberately does NOT police phase ORDER: advancing,
+    // skipping and stepping back are all legal transitions and the sequence
+    // lives in PHASE_ORDER, not in rules.
+    //
+    // NO COUNTER FIELD IS VALIDATED because none exists. Counters are derived
+    // (roadmap Section 3.1). If a future rule here starts validating a stored
+    // consistentDays, the model has drifted.
+    match /journeyStates/{userId} {
+      function validJourney(data) {
+        return data.destination in ['focus', 'calm', 'routines', 'energy']
+          && data.phaseKey in ['remove', 'recover', 'rewire', 'refocus']
+          && data.enteredAt is timestamp
+          && data.history is list
+          && data.skipped is list
+          // Carried so deleteAccount's `where userId ==` sweep finds this row.
+          // Validated so a client cannot orphan its own data by forging it.
+          && data.userId == userId;
+      }
+
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create, update: if isAuthenticated()
+        && request.auth.uid == userId
+        && validJourney(request.resource.data);
+      // Server-side only (Admin SDK bypasses rules). See the note above.
+      allow delete: if false;
+    }
+
     // ========== BEHAVIORAL TELEMETRY ==========
 
     // Analytics events — owner-scoped, CREATE-ONLY exhaust.

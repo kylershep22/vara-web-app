@@ -56,6 +56,7 @@ import {
   closeWeeklyCycle,
   createDownshiftEvent,
   getDownshiftEventsForCycle,
+  getWeeklyCyclesSince,
 } from '../weeklyCycle.service';
 
 const docsSnap = (docs: { id: string; data: Record<string, unknown> }[]) => ({
@@ -618,4 +619,63 @@ describe('weeklyCycle.service', () => {
   // helpers above are KEPT and still tested; they are orphaned writers-of-
   // record, not dead code, and the rows already written stay readable.
   // -------------------------------------------------------------------------
+
+  // -------------------------------------------------------------------------
+  // getWeeklyCyclesSince (journey slice 1)
+  //
+  // INDEX-FREE BY DESIGN. It filters on userId only and narrows in memory, so
+  // it does not join getRecentWeeklyCycles in needing a weeklyCycles composite
+  // index that does not exist. The second test below is the one that matters:
+  // a server-side range on weekEnd would drop every legacy row that has no
+  // weekEnd, and those are the oldest rows, which is exactly where a "since"
+  // query looks.
+  // -------------------------------------------------------------------------
+  describe('getWeeklyCyclesSince', () => {
+    test('filters on userId only, so no composite index is needed', async () => {
+      mockGetDocs.mockResolvedValue(docsSnap([]));
+      await getWeeklyCyclesSince(ALICE, WEEK);
+      expect(mockWhere).toHaveBeenCalledTimes(1);
+      expect(mockWhere).toHaveBeenCalledWith('userId', '==', ALICE);
+      expect(mockOrderBy).not.toHaveBeenCalled();
+    });
+
+    test('KEEPS a legacy row that has no weekEnd, resolving it from weekStart', async () => {
+      // weekStart 2026-08-03 with no stored weekEnd resolves to 2026-08-09,
+      // which is on or after the cutoff, so the row belongs in the result. A
+      // Firestore range filter on weekEnd would have excluded it outright.
+      mockGetDocs.mockResolvedValue(
+        docsSnap([{ id: 'c1', data: { userId: ALICE, weekStart: '2026-08-03' } }])
+      );
+      const rows = await getWeeklyCyclesSince(ALICE, '2026-08-09');
+      expect(rows.map((r) => r.id)).toEqual(['c1']);
+    });
+
+    test('drops cycles whose week ended before the cutoff', async () => {
+      mockGetDocs.mockResolvedValue(
+        docsSnap([
+          { id: 'old', data: { userId: ALICE, weekStart: '2026-07-06', weekEnd: '2026-07-12' } },
+          { id: 'new', data: { userId: ALICE, weekStart: '2026-08-03', weekEnd: '2026-08-09' } },
+        ])
+      );
+      const rows = await getWeeklyCyclesSince(ALICE, '2026-08-01');
+      expect(rows.map((r) => r.id)).toEqual(['new']);
+    });
+
+    test('returns oldest first regardless of the order the query returned', async () => {
+      mockGetDocs.mockResolvedValue(
+        docsSnap([
+          { id: 'b', data: { userId: ALICE, weekStart: '2026-08-10', weekEnd: '2026-08-16' } },
+          { id: 'a', data: { userId: ALICE, weekStart: '2026-08-03', weekEnd: '2026-08-09' } },
+        ])
+      );
+      const rows = await getWeeklyCyclesSince(ALICE, '2026-08-01');
+      expect(rows.map((r) => r.id)).toEqual(['a', 'b']);
+    });
+
+    test('returns [] when the user has no cycles at all', async () => {
+      mockGetDocs.mockResolvedValue(docsSnap([]));
+      expect(await getWeeklyCyclesSince(ALICE, WEEK)).toEqual([]);
+    });
+  });
+
 });

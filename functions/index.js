@@ -1058,6 +1058,11 @@ exports.deleteAccount = onCall(
         "gratitudeEntries", "bedtimeRoutines", "emotionalCheckins",
         "cognitiveReframes", "digitalWellbeing", "brainHealthScores",
         "notifications", "challengeParticipants", "challengeCheckIns",
+        // Journey slice 1. journeyStates is keyed by uid as its DOCUMENT ID and
+        // could have been deleted by path, but it also carries a userId field
+        // (the rules refuse a forged one), so it belongs on this sweep with its
+        // siblings rather than in a one-off delete below.
+        "journeyStates",
       ];
 
       try {

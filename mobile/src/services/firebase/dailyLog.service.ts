@@ -23,10 +23,15 @@
  * import produces elsewhere in this directory.
  */
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  orderBy,
+  query,
   serverTimestamp,
   setDoc,
+  where,
 } from 'firebase/firestore';
 import { requireDb } from './ensureDb';
 import type { DailyLog } from '../../types/models';
@@ -162,4 +167,35 @@ export async function getDailyLog(
   // `id` comes from the arguments: the document ID is the authority on
   // ownership, so a stored field that ever disagreed still reads back correctly.
   return { ...(snap.data() as Omit<DailyLog, 'id'>), id };
+}
+
+/**
+ * Every day's log from fromDateIso onward, oldest first.
+ *
+ * Feeds deriveConsistentDays, which counts the completed days in a journey
+ * phase (journey slice 1). The range is INCLUSIVE of fromDateIso: a day
+ * completed on the day a phase was entered belongs to that phase.
+ *
+ * NEEDS A COMPOSITE INDEX on (userId ASC, date ASC), added to
+ * firestore.indexes.json by the same slice. An equality filter plus a range on
+ * a different field is exactly the shape Firestore refuses to serve from the
+ * single-field indexes, and the failure is a thrown query at runtime rather
+ * than anything a type or a test would catch.
+ *
+ * The ownership filter is what makes this rule-legal; the range predicate on
+ * date is irrelevant to authorization.
+ */
+export async function getDailyLogsSince(
+  userId: string,
+  fromDateIso: string
+): Promise<DailyLog[]> {
+  const snap = await getDocs(
+    query(
+      collection(requireDb(), DAILY_LOGS),
+      where('userId', '==', userId),
+      where('date', '>=', fromDateIso),
+      orderBy('date', 'asc')
+    )
+  );
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<DailyLog, 'id'>), id: d.id }));
 }
