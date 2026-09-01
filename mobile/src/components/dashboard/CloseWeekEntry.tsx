@@ -30,7 +30,8 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
-import { OUTCOME_LABELS, TODAY_COPY } from '../../screens/weekly/copy';
+import { OUTCOME_LABELS } from '../../screens/weekly/copy';
+import { TODAY_COPY } from './dailyPicker.copy';
 import type { WeeklyCycle } from '../../types/models';
 import { addDaysIso, resolveWeekEnd } from '../../utils/weekStart';
 import { weekdayNameForIso } from '../../utils/weekdayLabels';

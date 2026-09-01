@@ -12,7 +12,7 @@ import { render, screen } from '@testing-library/react-native';
 
 import { SetTodayCard } from '../SetTodayCard';
 import { Colors } from '../../../constants';
-import { PICKER_COPY } from '../../../screens/weekly/copy';
+import { PICKER_COPY } from '../dailyPicker.copy';
 
 /** Every style object React actually applied, flattened out of the tree. */
 function renderedStyles(): Record<string, unknown>[] {

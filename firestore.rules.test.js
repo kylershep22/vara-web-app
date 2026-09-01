@@ -1500,7 +1500,7 @@ describe('Weekly Loop (weeklyCycles + dailyLogs + downshiftEvents)', () => {
   const WEEK_START = '2026-08-03';
   const ORG_ID = 'weeklyorg1';
 
-  // Mirrors dailyLogDocId() in mobile/src/services/firebase/weeklyCycle.service.ts.
+  // Mirrors dailyLogDocId() in mobile/src/services/firebase/dailyLog.service.ts.
   const dailyLogId = (userId, date) => `${userId}_${date}`;
 
   async function seedWeeklyCycle(userId, weekStart = WEEK_START) {

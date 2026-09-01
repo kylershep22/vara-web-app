@@ -48,12 +48,12 @@ import {
   type ResolvedProtocolVariant,
   type TimeClass,
 } from '../protocolEngine';
+import { countWeeklyCyclesForOutcome } from '../services/firebase/weeklyCycle.service';
 import {
-  countWeeklyCyclesForOutcome,
   getDailyLog,
   hasPickedToday,
   upsertDailyLog,
-} from '../services/firebase/weeklyCycle.service';
+} from '../services/firebase/dailyLog.service';
 import { getFloorCommitment } from '../services/firebase/userPrivate.service';
 import { loadWeeklyContinuity } from '../screens/weekly/weeklyContinuity';
 import type { WeeklyCycle } from '../types/models';

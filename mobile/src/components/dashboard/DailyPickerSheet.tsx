@@ -34,13 +34,12 @@ import {
   type CapacityTier,
   type TimeClass,
 } from '../../protocolEngine';
+import { CAPACITY_GLOSSES, CAPACITY_LABELS } from '../../constants/capacityCopy';
 import {
-  CAPACITY_GLOSSES,
-  CAPACITY_LABELS,
   PICKER_COPY,
   TIME_GLOSSES,
   TIME_LABELS,
-} from '../../screens/weekly/copy';
+} from './dailyPicker.copy';
 
 const MIN_TOUCH_TARGET = 48;
 
