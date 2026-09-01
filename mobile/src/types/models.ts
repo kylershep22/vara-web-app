@@ -536,6 +536,24 @@ export interface WeeklyCycle {
    */
   floorMet?: boolean;
 
+  /**
+   * The user's read on whether the journey phase is working, answered at the
+   * weekly close (Journey roadmap Section 1). Two consecutive 'not_moving'
+   * reads are what offer an adjustment.
+   *
+   * TYPE ONLY IN THIS SLICE. Nothing writes it until slice 6, so it is absent
+   * on every row that exists today and readers must treat absence as "not
+   * answered" rather than as any particular read.
+   */
+  phaseRead?: PhaseRead;
+  /**
+   * Which phase the read above was given about. Stored beside the read rather
+   * than looked up later, because the phase can change between the close and
+   * whenever the read is next consulted, and a read attributed to the wrong
+   * phase would silently feed the adjustment threshold.
+   */
+  phaseKeyAtRead?: PhaseKey;
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -632,6 +650,108 @@ export interface DownshiftEvent {
   toCapacity: CapacityTier;
   timestamp: Timestamp;
 }
+
+// ==========================================
+// JOURNEY (Journey Architecture Roadmap v3, Section 3.1)
+// ==========================================
+
+/**
+ * The four phases of the journey, in order.
+ *
+ * ORDER IS CARRIED BY PHASE_ORDER in src/constants/journey.ts, not by this
+ * union: a union has no order, and every advance/skip/step-back decision needs
+ * one. Read the sequence from there and never from the declaration order here.
+ */
+export type PhaseKey = 'remove' | 'recover' | 'rewire' | 'refocus';
+
+/**
+ * Where the user says they are trying to get to.
+ *
+ * DELIBERATELY NOT OutcomeKey, and the overlap is not an invitation to merge
+ * them. OutcomeKey is the weekly loop's four outcomes ('focus' | 'stress' |
+ * 'routines' | 'energy'); this is the journey destination and reads 'calm'
+ * where the weekly one reads 'stress'. The two vocabularies are reconciled in
+ * slice 3, and until then a cast between them is a bug.
+ */
+export type DestinationKey = 'focus' | 'calm' | 'routines' | 'energy';
+
+/**
+ * The user's own read on whether the phase is working, answered at the weekly
+ * close. Three states, no scale: this is a direction, not a score.
+ */
+export type PhaseRead = 'moving' | 'same' | 'not_moving';
+
+/** Why a phase ended. Every history entry carries exactly one. */
+export type PhaseExitReason = 'advanced' | 'skipped' | 'adjusted_back';
+
+/**
+ * One closed phase. Appended when a phase is left, never edited afterwards.
+ *
+ * `exitedAt` and `exitReason` are REQUIRED because an entry is only written at
+ * the moment of exit; there is no open-ended entry for the phase in progress.
+ * The phase in progress is `phaseKey` + `enteredAt` on the state document.
+ */
+export interface PhaseHistoryEntry {
+  phaseKey: PhaseKey;
+  enteredAt: Timestamp;
+  exitedAt: Timestamp;
+  exitReason: PhaseExitReason;
+}
+
+/**
+ * Where one user is in their journey. At most one per user; doc ID IS the uid.
+ *
+ * NO COUNTERS LIVE HERE, and that is the load-bearing rule of this model
+ * (Section 3.1). Consistent days and calendar days are DERIVED at read time
+ * from dailyLogs and from `enteredAt` by src/journey/derive.ts. A stored
+ * `consistentDays` would be a second copy of an answer that can already be
+ * recomputed, and the two would disagree the first time a log was corrected,
+ * a day was backfilled, or a phase was re-entered. Do not add one.
+ *
+ * A SEPARATE COLLECTION, not a userPrivate field. userPrivate is mid-migration
+ * and carries the most sensitive per-user data in the system; hanging a new
+ * model off it would entangle this slice with that migration for no benefit.
+ *
+ * The doc ID is the uid, so the rules gate on the ID rather than on a field.
+ * `userId` is carried anyway because deleteAccount's cleanup sweeps by
+ * `where userId == uid`, and because every sibling behavioral collection
+ * carries it.
+ */
+export interface JourneyState {
+  /** Mirrors the document ID, which IS the uid. */
+  id: string;
+  userId: string;
+  destination: DestinationKey;
+  /** The phase in progress. The closed ones are in `history`. */
+  phaseKey: PhaseKey;
+  /** When the CURRENT phase was entered. Reset on every phase change. */
+  enteredAt: Timestamp;
+  /** Closed phases, oldest first. Append-only. */
+  history: PhaseHistoryEntry[];
+  /**
+   * Phases the user jumped over. A phase can appear here AND in history: it is
+   * recorded as skipped and gets a history entry with exitReason 'skipped'.
+   */
+  skipped: PhaseKey[];
+
+  /**
+   * Offer bookkeeping for the current phase. All four are RESET TO NULL on
+   * every phase change, so they always describe the phase in progress and
+   * never leak a previous phase's answer into the next one.
+   *
+   * Null rather than optional-absent: a null says "not offered in this phase",
+   * which is a different fact from a field that was never modelled, and the
+   * derivations branch on it.
+   */
+  advanceOfferedAt: Timestamp | null;
+  advanceDeclinedAt: Timestamp | null;
+  adjustOfferedAt: Timestamp | null;
+  adjustDeclinedAt: Timestamp | null;
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 
 // ==========================================
 // BRAIN HEALTH MODELS

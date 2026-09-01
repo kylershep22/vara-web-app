@@ -269,6 +269,21 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "dailyLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
       "collectionGroup": "dayBlocks",
       "queryScope": "COLLECTION",
       "fields": [

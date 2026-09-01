@@ -52,6 +52,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { requireDb } from './ensureDb';
+import { resolveWeekEnd } from '../../utils/weekStart';
 import type { DownshiftEvent, WeeklyCycle } from '../../types/models';
 // Type-only import from the engine barrel: erased at compile time, so this does
 // NOT wire the weekly engine into the running app.
@@ -403,3 +404,44 @@ export async function getDownshiftEventsForCycle(
 // written are a true record of re-sets that really happened, and deleting the
 // read path would strand them. Nothing writes there any more.
 // ---------------------------------------------------------------------------
+
+/**
+ * Cycles whose week ended on or after fromIso, oldest first.
+ *
+ * Feeds deriveAdjustDue, which reads the two most recent weekly phase reads
+ * (journey slice 1).
+ *
+ * FILTERS ON userId ONLY AND NARROWS IN MEMORY, DELIBERATELY. Two reasons, and
+ * both matter:
+ *
+ *   1. NO COMPOSITE INDEX. `where userId ==` plus a range or an orderBy on
+ *      another field needs one, firestore.indexes.json still has no
+ *      weeklyCycles entry at all, and getRecentWeeklyCycles above is already
+ *      stranded on exactly that. Adding a second stranded query would be a bug
+ *      waiting for its first caller.
+ *   2. A RANGE FILTER ON weekEnd WOULD SILENTLY DROP ROWS. `weekEnd` is
+ *      optional and absent on every cycle written before it existed, and
+ *      Firestore excludes documents missing the field from a range filter
+ *      entirely. Those rows are the OLDEST ones, which is precisely where a
+ *      "since" query looks. In memory they are kept and resolveWeekEnd's
+ *      fallback applies.
+ *
+ * A user accumulates about 52 of these a year, so reading them all is cheap
+ * and stays cheap. Revisit only if that stops being true.
+ */
+export async function getWeeklyCyclesSince(
+  userId: string,
+  fromIso: string
+): Promise<WeeklyCycle[]> {
+  const snap = await getDocs(
+    query(collection(requireDb(), WEEKLY_CYCLES), where('userId', '==', userId))
+  );
+  return snap.docs
+    .map((d) => ({ ...(d.data() as Omit<WeeklyCycle, 'id'>), id: d.id }))
+    .filter((cycle) => resolveWeekEnd(cycle.weekStart, cycle.weekEnd) >= fromIso)
+    .sort((a, b) =>
+      resolveWeekEnd(a.weekStart, a.weekEnd).localeCompare(
+        resolveWeekEnd(b.weekStart, b.weekEnd)
+      )
+    );
+}

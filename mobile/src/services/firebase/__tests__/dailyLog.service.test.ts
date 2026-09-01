@@ -8,11 +8,21 @@ const mockDoc = jest.fn((..._a: any[]) => ({ __ref: true, builtFrom: _a }));
 const mockGetDoc = jest.fn((..._a: any[]): any => undefined);
 const mockSetDoc = jest.fn((..._a: any[]): any => undefined);
 const mockServerTimestamp = jest.fn(() => ({ __serverTimestamp: true }));
+const mockGetDocs = jest.fn((..._a: any[]): any => undefined);
+const mockCollection = jest.fn((..._a: any[]) => ({ __collection: true }));
+const mockQuery = jest.fn((..._a: any[]) => ({ __query: true }));
+const mockWhere = jest.fn((..._a: any[]) => ({ __where: true }));
+const mockOrderBy = jest.fn((..._a: any[]) => ({ __orderBy: true }));
 
 jest.mock('firebase/firestore', () => ({
   doc: (...a: any[]) => mockDoc(...a),
   getDoc: (...a: any[]) => mockGetDoc(...a),
+  getDocs: (...a: any[]) => mockGetDocs(...a),
   setDoc: (...a: any[]) => mockSetDoc(...a),
+  collection: (...a: any[]) => mockCollection(...a),
+  query: (...a: any[]) => mockQuery(...a),
+  where: (...a: any[]) => mockWhere(...a),
+  orderBy: (...a: any[]) => mockOrderBy(...a),
   serverTimestamp: () => mockServerTimestamp(),
 }));
 // requireDb() reads `db` from this module, so mocking it here narrows the handle
@@ -26,6 +36,7 @@ import {
   dailyLogDocId,
   upsertDailyLog,
   getDailyLog,
+  getDailyLogsSince,
   hasPickedToday,
 } from '../dailyLog.service';
 import type { DailyLog } from '../../../types/models';
@@ -44,6 +55,11 @@ describe('dailyLog.service', () => {
     mockDoc.mockClear();
     mockGetDoc.mockReset();
     mockSetDoc.mockClear();
+    mockGetDocs.mockReset();
+    mockCollection.mockClear();
+    mockQuery.mockClear();
+    mockWhere.mockClear();
+    mockOrderBy.mockClear();
   });
 
   describe('dailyLogDocId', () => {
@@ -262,4 +278,52 @@ describe('dailyLog.service', () => {
       });
     });
   });
+
+  // -------------------------------------------------------------------------
+  // getDailyLogsSince (journey slice 1)
+  //
+  // The RANGE query. Its shape is what the composite index in
+  // firestore.indexes.json has to match, so these assertions are the only
+  // place the two are pinned together: an equality on userId plus a range on
+  // date, ordered by date. Change the query and the index goes stale silently,
+  // failing at runtime and nowhere else.
+  // -------------------------------------------------------------------------
+  describe('getDailyLogsSince', () => {
+    test('addresses the dailyLogs collection', async () => {
+      mockGetDocs.mockResolvedValue({ docs: [] });
+      await getDailyLogsSince(ALICE, WEEK);
+      expect(mockCollection).toHaveBeenCalledWith({ __db: true }, 'dailyLogs');
+    });
+
+    test('filters on userId equality AND a date range, ordered by date', async () => {
+      mockGetDocs.mockResolvedValue({ docs: [] });
+      await getDailyLogsSince(ALICE, WEEK);
+      expect(mockWhere).toHaveBeenCalledWith('userId', '==', ALICE);
+      expect(mockWhere).toHaveBeenCalledWith('date', '>=', WEEK);
+      expect(mockOrderBy).toHaveBeenCalledWith('date', 'asc');
+    });
+
+    test('returns [] when the user has no logs in range', async () => {
+      mockGetDocs.mockResolvedValue({ docs: [] });
+      expect(await getDailyLogsSince(ALICE, WEEK)).toEqual([]);
+    });
+
+    test('carries the document id onto every row', async () => {
+      mockGetDocs.mockResolvedValue({
+        docs: [
+          { id: 'alice123_2026-08-03', data: () => ({ userId: ALICE, date: WEEK }) },
+          {
+            id: 'alice123_2026-08-04',
+            data: () => ({ userId: ALICE, date: '2026-08-04' }),
+          },
+        ],
+      });
+      const rows = await getDailyLogsSince(ALICE, WEEK);
+      expect(rows.map((r) => r.id)).toEqual([
+        'alice123_2026-08-03',
+        'alice123_2026-08-04',
+      ]);
+    });
+  });
+
 });
