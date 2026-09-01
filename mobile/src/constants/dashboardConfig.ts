@@ -36,6 +36,31 @@ export const ONBOARDING_V3 = true;
 export const FOUR_PILLAR_IA = true;
 
 /**
+ * JOURNEY_IA — the Today surface reads from journeyStates instead of the
+ * weekly cycle (journey slice 2).
+ *
+ * When true, Home resolves its landing through useJourneyLanding, which runs
+ * the resolver ladder and hands useTodayCard a PhaseContext rather than a
+ * WeeklyCycle. When false, Home uses useWeeklyLanding and the WeeklyCycle path
+ * exactly as before: the flag-off path is not a reimplementation, it is the
+ * original call sites untouched, which is what makes "byte-identical" a claim
+ * this file can actually keep.
+ *
+ * TWO THINGS THE FLAG DOES NOT GATE, deliberately. The weekly open and close
+ * screens still write `cycle.outcome`, and onboarding still creates a weekly
+ * cycle; slices 3 and 4 retire those. Under the flag nothing DAILY reads the
+ * cycle's outcome, so the redundancy is accepted rather than half-removed.
+ *
+ * KNOWN CONSEQUENCE WHILE ON: the 'open' target is never emitted, so Home
+ * neither pushes to the weekly open nor renders the standing OpenYourWeekCard.
+ * A user whose week expires stays on Today, which is the intended end state and
+ * is why this ships behind a flag rather than as a straight edit.
+ *
+ * Like FOUR_PILLAR_IA this is a compile-time const, so flipping it is a rebuild.
+ */
+export const JOURNEY_IA = true;
+
+/**
  * Dashboard rework — reversible suppression flags.
  *
  * The reworked Home renders the spec component set ONLY. Cards that predate the

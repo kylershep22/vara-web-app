@@ -54,7 +54,17 @@ const COMPLETION_COPY = {
 } as const;
 
 export interface TodayHeroCardProps {
-  cycle: WeeklyCycle;
+  /**
+   * The week this day sits inside, read ONLY for the summary line below the
+   * action.
+   *
+   * OPTIONAL SINCE JOURNEY SLICE 2. Under JOURNEY_IA the day is sourced from a
+   * PhaseContext and there may be no live week at all, so the summary line has
+   * nothing to name and is omitted rather than filled with a stale week. The
+   * action, the completion control and the floor do not depend on it and are
+   * unchanged in both states.
+   */
+  cycle?: WeeklyCycle | null;
   protocol: ResolvedProtocolVariant;
   /** Rendered only when present; the hook reads it only on slammed weeks. */
   floorCommitment: string | null;
@@ -133,11 +143,13 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
         below does not match. `selectProtocol` stamps the capacity it resolved
         onto the protocol, so reading it back from there makes the label and the
         action the same fact by construction rather than by agreement. */}
-    <Text style={styles.weekSummary} testID="home-today-summary">
-      {OUTCOME_LABELS[cycle.outcome]} / {CAPACITY_LABELS[protocol.capacity]}
-      {!!cycle.weekEnd &&
-        ` · ${TODAY_COPY.runsThrough.replace('{day}', weekdayNameForIso(resolveWeekEnd(cycle.weekStart, cycle.weekEnd)))}`}
-    </Text>
+    {!!cycle && (
+      <Text style={styles.weekSummary} testID="home-today-summary">
+        {OUTCOME_LABELS[cycle.outcome]} / {CAPACITY_LABELS[protocol.capacity]}
+        {!!cycle.weekEnd &&
+          ` · ${TODAY_COPY.runsThrough.replace('{day}', weekdayNameForIso(resolveWeekEnd(cycle.weekStart, cycle.weekEnd)))}`}
+      </Text>
+    )}
     <Text style={styles.protocolName}>{protocol.name}</Text>
 
     {/* Floor, on slammed weeks only. The user's own words, never rendered back

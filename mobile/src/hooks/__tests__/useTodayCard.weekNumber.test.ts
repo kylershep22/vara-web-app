@@ -74,7 +74,7 @@ jest.mock('../../config/firebase', () => ({
 
 import { renderHook, waitFor } from '@testing-library/react-native';
 
-import { useTodayCard } from '../useTodayCard';
+import { cycleSource, useTodayCard } from '../useTodayCard';
 import { PROTOCOL_MATRIX } from '../../protocolEngine';
 import type { WeeklyCycle } from '../../types/models';
 
@@ -114,7 +114,7 @@ const resolved = (over: Partial<WeeklyCycle> = {}): WeeklyCycle =>
   }) as WeeklyCycle;
 
 async function renderToday(cycle: WeeklyCycle = resolved()) {
-  const view = renderHook(() => useTodayCard('u1', cycle));
+  const view = renderHook(() => useTodayCard('u1', cycleSource(cycle)));
   await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
   return view;
 }

@@ -52,7 +52,8 @@ jest.mock('../../utils/logger', () => ({
 import { AppState } from 'react-native';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
-import { useTodayCard } from '../useTodayCard';
+import { cycleSource, phaseSource, useTodayCard } from '../useTodayCard';
+import type { PhaseContext } from '../../journey/resolveJourney';
 import type { DailyLog, WeeklyCycle } from '../../types/models';
 
 const MONDAY = '2026-08-10';
@@ -125,7 +126,7 @@ describe('useTodayCard across the day boundary', () => {
   });
 
   test('reads the log for today, not for whatever day the hook mounted on', async () => {
-    const { result } = renderHook(() => useTodayCard('u1', cycle()));
+    const { result } = renderHook(() => useTodayCard('u1', cycleSource(cycle())));
 
     await waitFor(() => expect(result.current.completed).toBe(true));
     expect(mockGetDailyLog).toHaveBeenCalledWith('u1', MONDAY);
@@ -135,7 +136,7 @@ describe('useTodayCard across the day boundary', () => {
     // The overnight path: backgrounded on Monday with the day complete,
     // foregrounded on Tuesday. Without the listener nothing re-renders, the
     // effect never re-arms, and Tuesday opens showing Monday's completion.
-    const { result } = renderHook(() => useTodayCard('u1', cycle()));
+    const { result } = renderHook(() => useTodayCard('u1', cycleSource(cycle())));
     await waitFor(() => expect(result.current.completed).toBe(true));
 
     setToday(TUESDAY);
@@ -149,7 +150,7 @@ describe('useTodayCard across the day boundary', () => {
     // The other path: Home refocuses and the landing hook hands back a fresh
     // cycle object. Its primitives are identical, so the effect would not
     // re-arm on its own.
-    const { result, rerender } = renderHook(() => useTodayCard('u1', cycle()));
+    const { result, rerender } = renderHook(() => useTodayCard('u1', cycleSource(cycle())));
     await waitFor(() => expect(result.current.completed).toBe(true));
 
     setToday(TUESDAY);
@@ -162,7 +163,7 @@ describe('useTodayCard across the day boundary', () => {
   test('does NOT re-read when the date has not changed', async () => {
     // The guard that stops the render-time sync from refetching on every
     // render of Home. It must only fire when the calendar date actually moved.
-    const { result, rerender } = renderHook(() => useTodayCard('u1', cycle()));
+    const { result, rerender } = renderHook(() => useTodayCard('u1', cycleSource(cycle())));
     await waitFor(() => expect(result.current.completed).toBe(true));
     const callsAfterLoad = mockGetDailyLog.mock.calls.length;
 
@@ -175,7 +176,7 @@ describe('useTodayCard across the day boundary', () => {
   test('writes completion against the NEW date after a rollover', async () => {
     // The other half of the bug: markDone also read the clock inline, so a tap
     // on Tuesday could have written to Monday's row.
-    const { result } = renderHook(() => useTodayCard('u1', cycle()));
+    const { result } = renderHook(() => useTodayCard('u1', cycleSource(cycle())));
     await waitFor(() => expect(result.current.completed).toBe(true));
 
     setToday(TUESDAY);
@@ -186,5 +187,64 @@ describe('useTodayCard across the day boundary', () => {
 
     await waitFor(() => expect(mockUpsertDailyLog).toHaveBeenCalled());
     expect(mockUpsertDailyLog.mock.calls[0][1]).toBe(TUESDAY);
+  });
+});
+
+/** The journey source (slice 2). */
+const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
+  phaseKey: 'remove',
+  destination: 'focus',
+  capacitySeed: 'normal',
+  revisionToken: 1,
+  ...over,
+});
+
+describe('reload identity on the PhaseContext path (journey slice 2)', () => {
+  beforeEach(() => {
+    mockCountForOutcome.mockReset().mockResolvedValue(1);
+    mockGetDailyLog.mockReset().mockResolvedValue(null);
+    mockUpsertDailyLog.mockReset().mockResolvedValue(undefined);
+    mockGetCyclesForUser.mockReset().mockResolvedValue([]);
+  });
+
+  test('a NEW PhaseContext object with identical values does NOT refetch', async () => {
+    // The journey path has the same problem the cycle path solved with
+    // `cycle.id`: the landing hook rebuilds the object on every resolve, and
+    // depending on the object would refetch the protocol on every Home focus.
+    const { rerender } = renderHook(
+      ({ p }: { p: PhaseContext }) => useTodayCard('u1', phaseSource(p)),
+      { initialProps: { p: phase() } }
+    );
+    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(1));
+
+    rerender({ p: phase() });
+    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(1));
+  });
+
+  test('a BUMPED revisionToken DOES refetch', async () => {
+    // The token is updatedAt millis, so it moves exactly when the journey
+    // state changes. That is the one thing that has to re-arm the load.
+    const { rerender } = renderHook(
+      ({ p }: { p: PhaseContext }) => useTodayCard('u1', phaseSource(p)),
+      { initialProps: { p: phase({ revisionToken: 1 }) } }
+    );
+    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(1));
+
+    rerender({ p: phase({ revisionToken: 2 }) });
+    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(2));
+  });
+
+  test('a phase ADVANCE refetches even if the token has not resolved yet', async () => {
+    // A freshly written document reads back with an unresolved serverTimestamp,
+    // so revisionToken can still be 0 while phaseKey has already moved. The key
+    // carries both for exactly this window.
+    const { rerender } = renderHook(
+      ({ p }: { p: PhaseContext }) => useTodayCard('u1', phaseSource(p)),
+      { initialProps: { p: phase({ phaseKey: 'remove', revisionToken: 0 }) } }
+    );
+    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(1));
+
+    rerender({ p: phase({ phaseKey: 'recover', revisionToken: 0 }) });
+    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(2));
   });
 });

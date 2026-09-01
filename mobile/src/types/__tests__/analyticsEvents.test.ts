@@ -41,6 +41,9 @@ describe('analytics event schema', () => {
       // that does not exist.
       expect([...ANALYTICS_EVENT_NAMES].sort()).toEqual([
         'floor_set',
+        // Fired by resolveJourney's migration branch; its wiring proof is
+        // resolveJourney.test.ts, which asserts both source values.
+        'journey_state_created',
         'login',
         'sign_up',
         'weekly_close',

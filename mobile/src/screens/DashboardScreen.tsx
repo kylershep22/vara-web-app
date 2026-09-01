@@ -25,7 +25,7 @@ import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../components/shared/ScreenHeader';
 import { GuidePill } from '../components/ai/GuidePill';
-import { DASHBOARD_SUPPRESS } from '../constants/dashboardConfig';
+import { DASHBOARD_SUPPRESS, JOURNEY_IA } from '../constants/dashboardConfig';
 
 // The one illustration on Home: a watercolor header band. Raster asset (WebP)
 // rendered via ScreenHeader's expo-image layer, never an SVG icon.
@@ -41,8 +41,8 @@ import { OpenYourWeekCard } from '../components/dashboard/OpenYourWeekCard';
 import { ContinuityCard } from '../components/dashboard/ContinuityCard';
 import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
 import { useDashboard } from '../hooks/useDashboard';
-import { useWeeklyLanding } from '../hooks/useWeeklyLanding';
-import { useTodayCard } from '../hooks/useTodayCard';
+import { useJourneyLanding } from '../hooks/useJourneyLanding';
+import { cycleSource, phaseSource, useTodayCard } from '../hooks/useTodayCard';
 import { useWeeklyCloseEntry } from '../hooks/useWeeklyCloseEntry';
 import { ROUTES } from '../navigation/routes';
 import { useAuth } from '../context/AuthContext';
@@ -112,7 +112,12 @@ const DashboardScreen: React.FC = () => {
   // 'today' is served by rendering (the Today hero lands in sub-step 2). The
   // other two targets are pushed OVER the tab, so the tab bar stays and the user
   // keeps their place.
-  const weeklyLanding = useWeeklyLanding(user?.uid);
+  // useJourneyLanding WRAPS useWeeklyLanding rather than replacing it, so this
+  // is one call site in both flag states. With JOURNEY_IA off it returns the
+  // weekly landing's own fields verbatim and `phase` is always null, which is
+  // what makes the flag-off path the original code rather than a second
+  // implementation of it.
+  const weeklyLanding = useJourneyLanding(user?.uid);
 
   // The day's action, sourced from the cycle the landing hook resolved. No-ops
   // to an empty card when there is no cycle, so it is safe to call
@@ -122,7 +127,17 @@ const DashboardScreen: React.FC = () => {
   // retired re-set's way of re-reading a cycle this screen does not own; with
   // the re-set gone nothing in the card mutates the cycle, so the hook no longer
   // takes the callback at all.
-  const todayCard = useTodayCard(user?.uid, weeklyLanding.cycle);
+  //
+  // THE DAY'S SOURCE. Under JOURNEY_IA the day comes from the resolved phase
+  // and not from the week; with the flag off it is the cycle exactly as before.
+  // `phaseSource` falls back to the cycle when the resolver landed on 'legacy',
+  // which is the rung that keeps a user with no derivable destination on the
+  // surface they already had.
+  const todaySource =
+    JOURNEY_IA && weeklyLanding.phase
+      ? phaseSource(weeklyLanding.phase)
+      : cycleSource(weeklyLanding.cycle);
+  const todayCard = useTodayCard(user?.uid, todaySource);
 
   // The daily picker's visibility, and nothing else. Opening the sheet writes
   // NOTHING: `hasPickedToday` keys on the stored time field, so a write on open
@@ -295,7 +310,7 @@ const DashboardScreen: React.FC = () => {
                 close entry along with the hero. Those answer to the week, not
                 to whether today has been picked, so they stay up in both
                 states now. The hero alone swaps below. */}
-            {weeklyLanding.target === 'today' && weeklyLanding.cycle && (
+            {weeklyLanding.target === 'today' && (weeklyLanding.cycle || weeklyLanding.phase) && (
                 <>
                   {/* THE ONLY THING THE PICK GATES. Unpicked, the whole hero is
                       the prompt: no protocol title, no quick win, no completion
@@ -304,6 +319,10 @@ const DashboardScreen: React.FC = () => {
                       exactly what it has always been. */}
                   {todayCard.picked && todayCard.protocol ? (
                     <TodayHeroCard
+                      /* Optional since slice 2. Under JOURNEY_IA a user whose
+                         week has expired has a phase but no cycle, and the
+                         card omits its week-summary line rather than naming a
+                         week that is over. */
                       cycle={weeklyLanding.cycle}
                       protocol={todayCard.protocol}
                       floorCommitment={todayCard.floorCommitment}
@@ -341,11 +360,18 @@ const DashboardScreen: React.FC = () => {
                       closed. closeCompletedAt rides in on the cycle already
                       (getWeeklyCyclesForUser spreads the document), and this is
                       the first place in the app that reads it. */}
-                  <CloseWeekEntry
-                    closed={!!weeklyLanding.cycle.closeCompletedAt}
-                    cycle={weeklyLanding.cycle}
-                    onPress={openClose}
-                  />
+                  {/* GATED ON THE CYCLE, not on the Today block. The close
+                      belongs to a week, and under JOURNEY_IA the block can
+                      render for a user who has a phase and no live week. There
+                      is nothing to close in that state, so the entry is absent
+                      rather than pointing at a week that does not exist. */}
+                  {!!weeklyLanding.cycle && (
+                    <CloseWeekEntry
+                      closed={!!weeklyLanding.cycle.closeCompletedAt}
+                      cycle={weeklyLanding.cycle}
+                      onPress={openClose}
+                    />
+                  )}
 
                   {/* Mounted only while open, so its local answer state starts
                       from the pre-fill each time rather than from whatever the

@@ -118,7 +118,7 @@ export {
   getOrderedUpcomingFeatures,
   initializeFeatureStates,
 } from './featureDiscovery';
-export { DASHBOARD_V2, ONBOARDING_V2, ONBOARDING_V3, FOUR_PILLAR_IA } from './dashboardConfig';
+export { DASHBOARD_V2, ONBOARDING_V2, ONBOARDING_V3, FOUR_PILLAR_IA, JOURNEY_IA } from './dashboardConfig';
 export {
   BRAIN_STATE_PROTOCOLS,
   getProtocolById,

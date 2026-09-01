@@ -44,7 +44,8 @@ jest.mock('../../utils/logger', () => ({
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
-import { useTodayCard } from '../useTodayCard';
+import { cycleSource, phaseSource, useTodayCard } from '../useTodayCard';
+import type { PhaseContext } from '../../journey/resolveJourney';
 import type { WeeklyCycle } from '../../types/models';
 
 const cycle = (over: Partial<WeeklyCycle> = {}): WeeklyCycle =>
@@ -68,7 +69,7 @@ const closed = (weekStart: string, floorMet?: boolean) =>
   } as Partial<WeeklyCycle>);
 
 const renderToday = (c: WeeklyCycle | null = cycle()) =>
-  renderHook(() => useTodayCard('u1', c));
+  renderHook(() => useTodayCard('u1', cycleSource(c)));
 
 describe('useTodayCard continuity', () => {
   beforeEach(() => {
@@ -182,7 +183,7 @@ describe('useTodayCard continuity', () => {
         .mockResolvedValueOnce([closed('2026-08-03')])
         .mockResolvedValue([closed('2026-07-27', true), closed('2026-08-03', true)]);
       const { result, rerender } = renderHook(
-        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c),
+        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', cycleSource(c)),
         { initialProps: { c: cycle() } }
       );
       await waitFor(() => expect(result.current.continuity).toBe(0));
@@ -196,7 +197,7 @@ describe('useTodayCard continuity', () => {
       // useWeeklyLanding hands back a NEW cycle object on every focus resolve.
       // Re-reading on object identity would refetch on every return to Home.
       const { result, rerender } = renderHook(
-        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c),
+        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', cycleSource(c)),
         { initialProps: { c: cycle() } }
       );
       await waitFor(() => expect(result.current.loading).toBe(false));
@@ -214,7 +215,7 @@ describe('useTodayCard continuity', () => {
       // on every focus while looking correct in a test that reuses one object.
       // These two stamps are equal in meaning and distinct in identity.
       const { result, rerender } = renderHook(
-        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c),
+        ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', cycleSource(c)),
         {
           initialProps: {
             c: cycle({ closeCompletedAt: stamp(1) } as Partial<WeeklyCycle>),
@@ -242,7 +243,7 @@ describe('useTodayCard continuity', () => {
       .mockResolvedValueOnce([closed('2026-08-03', true)])
       .mockResolvedValue([closed('2026-07-27', true), closed('2026-08-03', true)]);
     const { result, rerender } = renderHook(
-      ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', c),
+      ({ c }: { c: WeeklyCycle }) => useTodayCard('u1', cycleSource(c)),
       { initialProps: { c: cycle() } }
     );
     await waitFor(() => expect(result.current.continuity).toBe(1));
@@ -250,5 +251,47 @@ describe('useTodayCard continuity', () => {
     rerender({ c: cycle({ capacityInitial: 'limited' }) });
 
     await waitFor(() => expect(result.current.continuity).toBe(2));
+  });
+});
+
+/** The journey source (slice 2). */
+const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
+  phaseKey: 'remove',
+  destination: 'focus',
+  capacitySeed: 'normal',
+  revisionToken: 1,
+  ...over,
+});
+
+describe('continuity on the PhaseContext path (journey slice 2)', () => {
+  beforeEach(() => {
+    mockCountForOutcome.mockReset().mockResolvedValue(1);
+    mockGetFloor.mockReset().mockResolvedValue(null);
+    mockGetDailyLog.mockReset().mockResolvedValue(null);
+    mockUpsertDailyLog.mockReset().mockResolvedValue(undefined);
+    mockGetCyclesForUser.mockReset().mockResolvedValue([]);
+    mockLogEvent.mockReset();
+  });
+
+  test('CONTINUITY IS STILL READ, and still from the weekly cycles', async () => {
+    // Continuity counts unbroken weeks against the floor commitment. Nothing
+    // about that moved this slice, so a journey-sourced day must show the same
+    // count a cycle-sourced day would. If this ever goes quiet under the flag,
+    // the below-the-fold count has silently disappeared for every user.
+    mockGetCyclesForUser.mockResolvedValue([
+      closed('2026-08-03', true),
+      closed('2026-08-10', true),
+    ]);
+    const view = renderHook(() => useTodayCard('u1', phaseSource(phase())));
+
+    await waitFor(() => expect(view.result.current.continuity).toBe(2));
+  });
+
+  test('a failed continuity read is null, not 0, on this path too', async () => {
+    mockGetCyclesForUser.mockRejectedValue(new Error('offline'));
+    const view = renderHook(() => useTodayCard('u1', phaseSource(phase())));
+
+    await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+    expect(view.result.current.continuity).toBeNull();
   });
 });

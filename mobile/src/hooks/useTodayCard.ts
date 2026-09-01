@@ -57,6 +57,7 @@ import {
 import { getFloorCommitment } from '../services/firebase/userPrivate.service';
 import { loadWeeklyContinuity } from '../screens/weekly/weeklyContinuity';
 import type { WeeklyCycle } from '../types/models';
+import { legacyOutcomeFor, type PhaseContext } from '../journey/resolveJourney';
 import { addDaysIso, toIsoDate } from '../utils/weekStart';
 import { logger } from '../utils/logger';
 
@@ -123,9 +124,30 @@ const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
  * parameter nothing reads is a hook that looks like it can refresh itself when
  * it cannot. Home still owns the cycle through useWeeklyLanding.
  */
+/**
+ * What the day is sourced from.
+ *
+ * DISCRIMINATED ON `kind`, not on which fields happen to be present. The two
+ * carry overlapping information and a structural check between them would be
+ * one added field away from silently picking the wrong branch.
+ */
+export type TodaySource =
+  | { kind: 'cycle'; cycle: WeeklyCycle }
+  | { kind: 'phase'; phase: PhaseContext };
+
+/** The weekly-cycle source, or null when there is no week. */
+export function cycleSource(cycle: WeeklyCycle | null): TodaySource | null {
+  return cycle ? { kind: 'cycle', cycle } : null;
+}
+
+/** The journey source, or null when there is no phase. */
+export function phaseSource(phase: PhaseContext | null): TodaySource | null {
+  return phase ? { kind: 'phase', phase } : null;
+}
+
 export function useTodayCard(
   uid: string | undefined,
-  cycle: WeeklyCycle | null
+  source: TodaySource | null
 ): TodayCard {
   const [protocol, setProtocol] = useState<ResolvedProtocolVariant | null>(null);
   const [floorCommitment, setFloorCommitment] = useState<string | null>(null);
@@ -194,9 +216,45 @@ export function useTodayCard(
   // refetch the protocol on every Home focus. `capacityInitial` is included
   // because it is the seed the day falls back to; `capacityCurrent` is NOT,
   // because nothing reads it any more.
-  const cycleId = cycle?.id;
-  const outcome = cycle?.outcome;
-  const capacitySeed = cycle?.capacityInitial;
+  //
+  // BOTH SOURCES REDUCE TO THE SAME THREE PRIMITIVES plus a reload key, and
+  // every line downstream reads only those. That is the whole shape of this
+  // slice: the branch is four lines wide and nothing below it knows which side
+  // it came from.
+  //
+  // `sourceKey` replaces `cycle.id` as the identity dependency. The journey has
+  // no natural key that changes when the state changes - its document ID is the
+  // uid and is constant across a phase advance - so the journey side keys on
+  // `revisionToken` (updatedAt millis) instead. Prefixed so the two key spaces
+  // cannot collide.
+  const sourceKey =
+    source === null
+      ? undefined
+      : source.kind === 'cycle'
+        ? `cycle:${source.cycle.id}`
+        : `phase:${source.phase.revisionToken}:${source.phase.phaseKey}`;
+
+  // TEMPORARY SHIM - REMOVED IN SLICE 3. The journey speaks DestinationKey and
+  // both selectProtocol and countWeeklyCyclesForOutcome are keyed on
+  // OutcomeKey, so the phase side maps through legacyOutcomeFor to reach them.
+  // Slice 3 rekeys the matrix on DestinationKey and this branch collapses to
+  // `source.phase.destination`.
+  const outcome =
+    source === null
+      ? undefined
+      : source.kind === 'cycle'
+        ? source.cycle.outcome
+        : legacyOutcomeFor(source.phase.destination);
+
+  // TEMPORARY SHIM - REMOVED IN SLICE 3. The phase's own seed is itself read
+  // off the latest cycle's capacityInitial by the resolver, so both sides are
+  // sourced from the same place today; slice 4 re-homes it onto the journey.
+  const capacitySeed =
+    source === null
+      ? undefined
+      : source.kind === 'cycle'
+        ? source.cycle.capacityInitial
+        : source.phase.capacitySeed;
   // A BOOLEAN, never `closeCompletedAt` itself. The close writes floorMet,
   // which is the only input to continuity, and it changes none of the three
   // fields above — so without this the count below would never refresh after a
@@ -207,12 +265,19 @@ export function useTodayCard(
   // object on every read, so depending on it would refetch on every focus
   // resolve and defeat the memoization the three lines above exist for. This
   // flips false -> true at most once per cycle, which is once per week.
-  const isClosed = !!cycle?.closeCompletedAt;
+  //
+  // THE JOURNEY SIDE HAS NO CLOSE, so it contributes `false` rather than
+  // borrowing the cycle's. A journey user's week-number count refreshes on
+  // `revisionToken` instead, which moves whenever the phase does. This is the
+  // one of the four reads with no journey equivalent, and inventing one would
+  // have meant reaching back into a cycle the day no longer depends on.
+  const isClosed =
+    source !== null && source.kind === 'cycle' && !!source.cycle.closeCompletedAt;
 
   useEffect(() => {
     activeRef.current = true;
 
-    if (!uid || !cycleId || !outcome || !capacitySeed) {
+    if (!uid || !sourceKey || !outcome || !capacitySeed) {
       setProtocol(null);
       setFloorCommitment(null);
       setCompleted(false);
@@ -313,7 +378,7 @@ export function useTodayCard(
     return () => {
       activeRef.current = false;
     };
-  }, [uid, cycleId, outcome, capacitySeed, isClosed, todayIso, reloadToken]);
+  }, [uid, sourceKey, outcome, capacitySeed, isClosed, todayIso, reloadToken]);
 
   /**
    * Mark today done. One direction only: there is no un-complete.
@@ -398,7 +463,7 @@ export function useTodayCard(
     [uid, todayIso, pickSaving]
   );
 
-  if (!cycle) return { ...EMPTY, markDone, confirmPick };
+  if (!source) return { ...EMPTY, markDone, confirmPick };
 
   return {
     protocol,
