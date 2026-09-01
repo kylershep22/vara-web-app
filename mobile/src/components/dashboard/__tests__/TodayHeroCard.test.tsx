@@ -9,7 +9,9 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 
 import { TodayHeroCard } from '../TodayHeroCard';
-import { CAPACITY_LABELS, OUTCOME_LABELS, TODAY_COPY } from '../../../screens/weekly/copy';
+import { OUTCOME_LABELS } from '../../../screens/weekly/copy';
+import { CAPACITY_LABELS } from '../../../constants/capacityCopy';
+import { TODAY_COPY } from '../dailyPicker.copy';
 import { PROTOCOL_MATRIX } from '../../../protocolEngine';
 import type { WeeklyCycle } from '../../../types/models';
 

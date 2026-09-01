@@ -314,21 +314,18 @@ export {
   getMembershipsForUser,
 } from './org.service';
 
-// weeklyCycle.service (weekly-loop persistence: weeklyCycles + dailyLogs +
+// weeklyCycle.service (weekly-loop persistence: weeklyCycles +
 // downshiftEvents). downshiftEvents is append-only by design — create + read
 // only, no update/delete helper, and ORPHANED since the in-week capacity re-set
 // was retired (roadmap 3b-i); its rows stay readable, nothing writes them.
 // closeWeeklyCycle (S8) is one document, one updateDoc, and the only writer of
 // floorMet.
 export {
-  dailyLogDocId,
   createWeeklyCycle,
   getWeeklyCycleForWeek,
   getRecentWeeklyCycles,
   updateWeeklyCycle,
   closeWeeklyCycle,
-  upsertDailyLog,
-  getDailyLog,
   createDownshiftEvent,
   getDownshiftEventsForCycle,
 } from './weeklyCycle.service';
@@ -336,6 +333,15 @@ export type {
   CreateWeeklyCycleInput,
   WeeklyCyclePatch,
   CloseWeeklyCycleInput,
-  DailyLogInput,
   CreateDownshiftEventInput,
 } from './weeklyCycle.service';
+
+// dailyLog.service (daily-loop persistence: dailyLogs). Split out of
+// weeklyCycle.service in journey slice 0; the daily capacity loop outlives the
+// weekly outcome loop, so it gets its own module.
+export {
+  dailyLogDocId,
+  upsertDailyLog,
+  getDailyLog,
+} from './dailyLog.service';
+export type { DailyLogInput } from './dailyLog.service';

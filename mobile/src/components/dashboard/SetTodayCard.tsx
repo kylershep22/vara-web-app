@@ -35,7 +35,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
-import { PICKER_COPY } from '../../screens/weekly/copy';
+import { PICKER_COPY } from './dailyPicker.copy';
 import { CardHeading } from './CardHeading';
 
 const MIN_TOUCH_TARGET = 48;

@@ -9,7 +9,8 @@ import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
 import { CloseWeekEntry } from '../CloseWeekEntry';
-import { OUTCOME_LABELS, TODAY_COPY } from '../../../screens/weekly/copy';
+import { OUTCOME_LABELS } from '../../../screens/weekly/copy';
+import { TODAY_COPY } from '../dailyPicker.copy';
 import type { WeeklyCycle } from '../../../types/models';
 
 // 2026-08-16 is a SUNDAY and 2026-08-22 the Saturday that ends that week, so

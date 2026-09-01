@@ -1,8 +1,13 @@
 /**
- * weeklyCycles / dailyLogs / downshiftEvents — the weekly-loop persistence layer.
+ * weeklyCycles / downshiftEvents — the WEEKLY-loop persistence layer.
+ *
+ * dailyLogs LEFT THIS FILE in journey slice 0 and now lives in
+ * dailyLog.service.ts. The daily capacity loop survives the weekly loop's
+ * retirement, so the two no longer share a module; do not add a dailyLogs
+ * helper back here.
  *
  * Stores what the pure src/protocolEngine module computes (Reconciled Product Spec
- * S6-S8). Three owner-scoped behavioral collections, each gated by the rules on
+ * S6-S8). Two owner-scoped behavioral collections, each gated by the rules on
  * the userId FIELD rather than the document ID, which is what makes the
  * `where userId ==` queries below legal for the caller's own rows and illegal
  * for anyone else's.
@@ -13,7 +18,7 @@
  * reads another user's rows; the rules would refuse it anyway.
  *
  * APPEND-ONLY: downshiftEvents exposes only create + read. The owner rule is
- * uniform across all three collections (update/delete are allowed to the owner),
+ * uniform across both collections (update/delete are allowed to the owner),
  * but an event log that can be rewritten is not an event log. The absence of an
  * update or delete helper here is the deliberate boundary; keep it.
  *
@@ -37,37 +42,24 @@ import {
   addDoc,
   collection,
   doc,
-  getDoc,
   getDocs,
   limit as limitTo,
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
   updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore';
 import { requireDb } from './ensureDb';
-import type { DailyLog, DownshiftEvent, WeeklyCycle } from '../../types/models';
+import type { DownshiftEvent, WeeklyCycle } from '../../types/models';
 // Type-only import from the engine barrel: erased at compile time, so this does
 // NOT wire the weekly engine into the running app.
-import type { CapacityTier, OutcomeKey, TimeClass } from '../../protocolEngine';
+import type { CapacityTier, OutcomeKey } from '../../protocolEngine';
 
 const WEEKLY_CYCLES = 'weeklyCycles';
-const DAILY_LOGS = 'dailyLogs';
 const DOWNSHIFT_EVENTS = 'downshiftEvents';
 
-/**
- * The deterministic dailyLogs document ID, built in exactly one place.
- *
- * Matches the existing brainStateCheckIns / dailyReflections / fourThreeTwoOne
- * convention. `date` is ISO YYYY-MM-DD and contains no underscore, so unlike a
- * slug-bearing org ID this composite key cannot be parsed ambiguously.
- */
-export function dailyLogDocId(userId: string, date: string): string {
-  return `${userId}_${date}`;
-}
 
 /**
  * The fields a caller supplies when opening a week.
@@ -96,53 +88,6 @@ export interface CreateWeeklyCycleInput {
 export type WeeklyCyclePatch = Partial<
   Omit<WeeklyCycle, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
 >;
-
-/**
- * The per-day state a caller supplies.
- *
- * EVERY FIELD IS OPTIONAL, because the writers answer different questions and
- * must not be forced to invent each other's answers. The daily pick writes
- * capacity and time; completion writes the boolean and the practices. `merge:
- * true` means an omitted field leaves whatever is stored alone rather than
- * clearing it, which is what lets the two coexist on one row.
- *
- * `protocolCompleted` in particular MUST stay optional: a pick that had to send
- * `false` would silently un-complete a day the user had already finished, the
- * first time anything re-opened the picker after completion.
- */
-export interface DailyLogInput {
-  protocolCompleted?: boolean;
-  practiceIds?: string[];
-  /** The tier in force for this day (roadmap 3b-i). Omit to leave unchanged. */
-  dailyCapacity?: CapacityTier;
-  /** The window the user said they had (roadmap 3b-ii-b). Omit to leave unchanged. */
-  dailyTimeBudget?: TimeClass;
-}
-
-/**
- * Did the user answer the daily picker for this day?
- *
- * THE ONE DEFINITION. Nothing else may re-derive this: the card gate, the
- * picker's own guard and any later reader all come through here, so the rule
- * lives in exactly one place and changes in exactly one place.
- *
- * KEYED ON THE TIME FIELD, and that is not arbitrary. `dailyCapacity` cannot
- * serve, because 3b-i's completion write stamps a capacity SEEDED from
- * `capacityInitial` (see useTodayCard.markDone): every day completed since then
- * carries a tier the user never chose, and keying on it would report those days
- * as picked and suppress the morning prompt forever. Only an explicit confirm
- * writes a time budget.
- *
- * THE COUPLING, STATED SO IT CANNOT SURPRISE ANYONE: this is correct only while
- * the time question is MANDATORY in the picker. If a later slice lets the user
- * skip it, or makes the field optional on the write, this predicate silently
- * starts reporting "nobody has ever picked" and the prompt never clears. The
- * fix at that point is an explicit marker (a `pickedAt` timestamp), not a
- * second field checked here.
- */
-export function hasPickedToday(log: DailyLog | null | undefined): boolean {
-  return !!log?.dailyTimeBudget;
-}
 
 /** The capacity change a caller records. Direction is carried by from/to. */
 export interface CreateDownshiftEventInput {
@@ -395,53 +340,6 @@ export async function closeWeeklyCycle(
     closeCompletedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
-}
-
-// ---------------------------------------------------------------------------
-// dailyLogs
-// ---------------------------------------------------------------------------
-
-/**
- * Write today's completion state, creating the row if absent.
- *
- * setDoc(merge) rather than updateDoc because the document may not exist yet;
- * updateDoc would reject the first write of the day. Reads before writing so
- * `createdAt` is stamped exactly once — a blind serverTimestamp() under merge
- * resets the creation time on every subsequent call.
- */
-export async function upsertDailyLog(
-  userId: string,
-  date: string,
-  input: DailyLogInput
-): Promise<void> {
-  const id = dailyLogDocId(userId, date);
-  const ref = doc(requireDb(), DAILY_LOGS, id);
-  const existing = await getDoc(ref);
-
-  await setDoc(
-    ref,
-    {
-      ...stripOwnedKeys(input),
-      userId,
-      date,
-      ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
-}
-
-/** One day's log, or null when nothing was recorded that day. */
-export async function getDailyLog(
-  userId: string,
-  date: string
-): Promise<DailyLog | null> {
-  const id = dailyLogDocId(userId, date);
-  const snap = await getDoc(doc(requireDb(), DAILY_LOGS, id));
-  if (!snap.exists()) return null;
-  // `id` comes from the arguments: the document ID is the authority on
-  // ownership, so a stored field that ever disagreed still reads back correctly.
-  return { ...(snap.data() as Omit<DailyLog, 'id'>), id };
 }
 
 // ---------------------------------------------------------------------------

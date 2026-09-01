@@ -26,7 +26,9 @@ import { Check } from 'lucide-react-native';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import type { ResolvedProtocolVariant } from '../../protocolEngine';
-import { CAPACITY_LABELS, OUTCOME_LABELS, TODAY_COPY } from '../../screens/weekly/copy';
+import { OUTCOME_LABELS } from '../../screens/weekly/copy';
+import { CAPACITY_LABELS } from '../../constants/capacityCopy';
+import { TODAY_COPY } from './dailyPicker.copy';
 import type { WeeklyCycle } from '../../types/models';
 import { resolveWeekEnd } from '../../utils/weekStart';
 import { weekdayNameForIso } from '../../utils/weekdayLabels';

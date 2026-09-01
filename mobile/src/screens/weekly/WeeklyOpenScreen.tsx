@@ -50,12 +50,8 @@ import { logger } from '../../utils/logger';
 import { planWeek, resolveWeekEnd, toIsoDate } from '../../utils/weekStart';
 import { ROUTES } from '../../navigation/routes';
 import { WeekStartPicker } from '../../components/shared/WeekStartPicker';
-import {
-  CAPACITY_GLOSSES,
-  CAPACITY_LABELS,
-  OPEN_COPY,
-  OUTCOME_LABELS,
-} from './copy';
+import { CAPACITY_GLOSSES, CAPACITY_LABELS } from '../../constants/capacityCopy';
+import { OPEN_COPY, OUTCOME_LABELS } from './copy';
 
 const MIN_TOUCH_TARGET = 48;
 

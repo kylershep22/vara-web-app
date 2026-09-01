@@ -21,7 +21,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
-import { TODAY_COPY } from '../../screens/weekly/copy';
+import { TODAY_COPY } from './dailyPicker.copy';
 
 export interface ContinuityCardProps {
   /** Unbroken weeks. null when the read failed, which is NOT the same as 0. */

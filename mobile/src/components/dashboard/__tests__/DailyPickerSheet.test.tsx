@@ -15,7 +15,8 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { DailyPickerSheet } from '../DailyPickerSheet';
-import { CAPACITY_LABELS, PICKER_COPY, TIME_LABELS } from '../../../screens/weekly/copy';
+import { CAPACITY_LABELS } from '../../../constants/capacityCopy';
+import { PICKER_COPY, TIME_LABELS } from '../dailyPicker.copy';
 
 const onConfirm = jest.fn();
 const onDismiss = jest.fn();

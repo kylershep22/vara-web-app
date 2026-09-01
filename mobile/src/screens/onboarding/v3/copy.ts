@@ -17,14 +17,12 @@
  * taxonomy (spec 5), shared by the weekly open, the Practices filters and the
  * content tags. A second set of labels for the same OutcomeKey union is exactly
  * the divergence that vocabulary lock exists to prevent. Same reasoning for the
- * capacity labels and glosses.
+ * capacity labels and glosses, which journey slice 0 moved to
+ * src/constants/capacityCopy.ts because three unrelated surfaces read them.
  */
 
-export {
-  OUTCOME_LABELS,
-  CAPACITY_LABELS,
-  CAPACITY_GLOSSES,
-} from '../../weekly/copy';
+export { OUTCOME_LABELS } from '../../weekly/copy';
+export { CAPACITY_LABELS, CAPACITY_GLOSSES } from '../../../constants/capacityCopy';
 
 
 export const COLD_OPEN_COPY = {
