@@ -200,6 +200,14 @@ const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
 });
 
 describe('reload identity on the PhaseContext path (journey slice 2)', () => {
+  // THE RELOAD PROBE IS THE CONTINUITY READ, not the week-number query it was
+  // in slice 2. `countWeeklyCyclesForOutcome` retired with applyQuickWin in
+  // slice 3a.
+  //
+  // NOT `getDailyLog`: that fires TWICE per load on an unpicked day (today,
+  // then yesterday for the sheet pre-fill), so counting it would read every
+  // single load as two. `loadWeeklyContinuity` runs exactly once per effect
+  // run, which is the property a reload probe needs.
   beforeEach(() => {
     mockCountForOutcome.mockReset().mockResolvedValue(1);
     mockGetDailyLog.mockReset().mockResolvedValue(null);
@@ -215,10 +223,10 @@ describe('reload identity on the PhaseContext path (journey slice 2)', () => {
       ({ p }: { p: PhaseContext }) => useTodayCard('u1', phaseSource(p)),
       { initialProps: { p: phase() } }
     );
-    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1));
 
     rerender({ p: phase() });
-    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1));
   });
 
   test('a BUMPED revisionToken DOES refetch', async () => {
@@ -228,10 +236,10 @@ describe('reload identity on the PhaseContext path (journey slice 2)', () => {
       ({ p }: { p: PhaseContext }) => useTodayCard('u1', phaseSource(p)),
       { initialProps: { p: phase({ revisionToken: 1 }) } }
     );
-    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1));
 
     rerender({ p: phase({ revisionToken: 2 }) });
-    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(2));
   });
 
   test('a phase ADVANCE refetches even if the token has not resolved yet', async () => {
@@ -242,9 +250,9 @@ describe('reload identity on the PhaseContext path (journey slice 2)', () => {
       ({ p }: { p: PhaseContext }) => useTodayCard('u1', phaseSource(p)),
       { initialProps: { p: phase({ phaseKey: 'remove', revisionToken: 0 }) } }
     );
-    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1));
 
     rerender({ p: phase({ phaseKey: 'recover', revisionToken: 0 }) });
-    await waitFor(() => expect(mockCountForOutcome).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(2));
   });
 });

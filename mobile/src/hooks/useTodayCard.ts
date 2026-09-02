@@ -5,12 +5,15 @@
  * WeeklyTodayScreen's read path; that screen was deleted once Home took the
  * surface over, and this is now the sole place the day's protocol is resolved:
  *
- *   week number  <- countWeeklyCyclesForOutcome (the single source; do not add
- *                   a second derivation, it would run against a different
- *                   database state and could disagree about the quick win)
- *   capacity     <- today's dailyLog, falling back to the cycle's capacityInitial
- *   protocol     <- applyQuickWin(selectProtocol(outcome, capacity, time), weekNo)
+ *   capacity     <- today's dailyLog, falling back to the source's capacitySeed
+ *   protocol     <- selectProtocol(phase, capacity, time, destination)
  *   floor        <- read ONLY when THAT capacity is 'slammed' (spec 9, 10.1)
+ *
+ * THE WEEK NUMBER IS GONE (journey slice 3a). It existed for one caller, the
+ * week-1 quick win, and both retired together: early-phase gentleness is a
+ * property Jen authors into the Remove protocols, not an engine rule applied on
+ * top of whatever the matrix returned. `countWeeklyCyclesForOutcome` was its
+ * only source and went with it.
  *
  * CAPACITY IS A DAILY READ (roadmap 3b-i). It used to be locked for the week on
  * the cycle, adjustable only through an in-week re-set control; that control is
@@ -41,14 +44,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import {
-  applyQuickWin,
+  legacyPhaseFor,
   selectProtocol,
   DEFAULT_TIME_CLASS,
   type CapacityTier,
   type ResolvedProtocolVariant,
   type TimeClass,
 } from '../protocolEngine';
-import { countWeeklyCyclesForOutcome } from '../services/firebase/weeklyCycle.service';
 import {
   getDailyLog,
   hasPickedToday,
@@ -57,7 +59,8 @@ import {
 import { getFloorCommitment } from '../services/firebase/userPrivate.service';
 import { loadWeeklyContinuity } from '../screens/weekly/weeklyContinuity';
 import type { WeeklyCycle } from '../types/models';
-import { legacyOutcomeFor, type PhaseContext } from '../journey/resolveJourney';
+import type { PhaseContext } from '../journey/resolveJourney';
+import type { DestinationKey, PhaseKey } from '../types/models';
 import { addDaysIso, toIsoDate } from '../utils/weekStart';
 import { logger } from '../utils/logger';
 
@@ -234,21 +237,29 @@ export function useTodayCard(
         ? `cycle:${source.cycle.id}`
         : `phase:${source.phase.revisionToken}:${source.phase.phaseKey}`;
 
-  // TEMPORARY SHIM - REMOVED IN SLICE 3. The journey speaks DestinationKey and
-  // both selectProtocol and countWeeklyCyclesForOutcome are keyed on
-  // OutcomeKey, so the phase side maps through legacyOutcomeFor to reach them.
-  // Slice 3 rekeys the matrix on DestinationKey and this branch collapses to
-  // `source.phase.destination`.
-  const outcome =
+  // THE ENGINE SPEAKS PHASE NATIVELY NOW (journey slice 3a), so the journey
+  // side passes its own two values straight through with no mapping at all.
+  //
+  // The CYCLE side still holds an OutcomeKey, because the flag-off path reads a
+  // weekly cycle and that document has no phase on it. It maps through
+  // `legacyPhaseFor`, which is a LEGACY BRIDGE that dies with the JOURNEY_IA
+  // flag. Its destination is 'focus' because a legacy cycle has no destination
+  // either, and destination only ORDERS a cell: with no weights authored the
+  // ordering is the identity, so this choice changes nothing today and is the
+  // reason the flag-off path is still byte-identical.
+  const phaseKey: PhaseKey | undefined =
     source === null
       ? undefined
       : source.kind === 'cycle'
-        ? source.cycle.outcome
-        : legacyOutcomeFor(source.phase.destination);
+        ? legacyPhaseFor(source.cycle.outcome)
+        : source.phase.phaseKey;
 
-  // TEMPORARY SHIM - REMOVED IN SLICE 3. The phase's own seed is itself read
+  const destination: DestinationKey =
+    source !== null && source.kind === 'phase' ? source.phase.destination : 'focus';
+
+  // TEMPORARY SHIM - RE-HOMED IN SLICE 4. The phase's own seed is itself read
   // off the latest cycle's capacityInitial by the resolver, so both sides are
-  // sourced from the same place today; slice 4 re-homes it onto the journey.
+  // sourced from the same place today.
   const capacitySeed =
     source === null
       ? undefined
@@ -277,7 +288,7 @@ export function useTodayCard(
   useEffect(() => {
     activeRef.current = true;
 
-    if (!uid || !sourceKey || !outcome || !capacitySeed) {
+    if (!uid || !sourceKey || !phaseKey || !capacitySeed) {
       setProtocol(null);
       setFloorCommitment(null);
       setCompleted(false);
@@ -317,8 +328,6 @@ export function useTodayCard(
 
     (async () => {
       try {
-        const weekNumber = await countWeeklyCyclesForOutcome(uid, outcome);
-
         // Today's row, by date. Absent is the normal state each morning, and it
         // carries BOTH the day's completion and the day's capacity — one read
         // for both because they are one document.
@@ -334,16 +343,21 @@ export function useTodayCard(
         const todaysTime = log?.dailyTimeBudget ?? DEFAULT_TIME_CLASS;
         const answered = hasPickedToday(log);
 
-        // THE PICKED TIME IS PASSED HONESTLY, and it currently changes nothing.
-        // Every matrix cell holds one variant until the off-diagonal content is
-        // authored, so selectProtocol resolves to the same protocol whatever
-        // class it is handed and the result is capacity-driven. It is passed
+        // THE PICKED TIME AND THE DESTINATION ARE BOTH PASSED HONESTLY, and
+        // neither changes what is served today. The off-diagonal time slots are
+        // unauthored and no variant carries a destinationWeight, so the ladder
+        // and the ordering are both currently degenerate. They are passed
         // rather than withheld so that the day the content lands, this line
         // already does the right thing.
-        const resolved = applyQuickWin(
-          selectProtocol(outcome, todaysCapacity, todaysTime),
-          weekNumber
-        );
+        //
+        // `quickWinActive: false` is spelled out rather than omitted:
+        // ResolvedProtocolVariant still requires it, the field is always
+        // present and never inferred, and the quick-win rule that used to set
+        // it retired in slice 3a.
+        const resolved: ResolvedProtocolVariant = {
+          ...selectProtocol(phaseKey, todaysCapacity, todaysTime, destination),
+          quickWinActive: false,
+        };
 
         // Yesterday's answers, for the sheet to open with. Read ONLY when the
         // day is unpicked, matching the conditional floor read below: a picked
@@ -378,7 +392,7 @@ export function useTodayCard(
     return () => {
       activeRef.current = false;
     };
-  }, [uid, sourceKey, outcome, capacitySeed, isClosed, todayIso, reloadToken]);
+  }, [uid, sourceKey, phaseKey, destination, capacitySeed, isClosed, todayIso, reloadToken]);
 
   /**
    * Mark today done. One direction only: there is no un-complete.

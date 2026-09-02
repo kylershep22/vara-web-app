@@ -134,7 +134,7 @@ const confirmPick = jest.fn();
 
 function todayCard(over: Record<string, unknown> = {}) {
   return {
-    protocol: { ...PROTOCOL_MATRIX.focus.normal[0], quickWinActive: true },
+    protocol: { ...PROTOCOL_MATRIX.refocus.normal[0], quickWinActive: true },
     floorCommitment: null,
     completed: false,
     loading: false,
@@ -214,7 +214,7 @@ describe('Home — before the day is answered', () => {
     // being present, or a seeded day would silently skip the picker.
     const screen = await renderHome({
       picked: false,
-      protocol: { ...PROTOCOL_MATRIX.focus.slammed[0], quickWinActive: false },
+      protocol: { ...PROTOCOL_MATRIX.refocus.slammed[0], quickWinActive: false },
     });
 
     expect(await screen.findByTestId('home-set-today')).toBeTruthy();

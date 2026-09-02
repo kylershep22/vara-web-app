@@ -49,7 +49,7 @@ function renderCard(over: Partial<WeeklyCycle> = {}, props: Record<string, unkno
   return render(
     <TodayHeroCard
       cycle={cycle(over)}
-      protocol={{ ...PROTOCOL_MATRIX.routines.normal[0], quickWinActive: false }}
+      protocol={{ ...PROTOCOL_MATRIX.recover.normal[0], quickWinActive: false }}
       floorCommitment={null}
       completed={false}
       saving={false}
@@ -79,7 +79,7 @@ describe('TodayHeroCard', () => {
       const screen = renderCard(
         { capacityInitial: 'normal', capacityCurrent: 'normal' },
         {
-          protocol: { ...PROTOCOL_MATRIX.routines.slammed[0], quickWinActive: false },
+          protocol: { ...PROTOCOL_MATRIX.recover.slammed[0], quickWinActive: false },
         }
       );
       const summary = textOf(screen.getByTestId('home-today-summary'));
@@ -144,7 +144,7 @@ describe('TodayHeroCard', () => {
       const screen = renderCard();
 
       expect(textOf(screen.getByTestId('home-today-action'))).toContain(
-        PROTOCOL_MATRIX.routines.normal[0].dailyAction
+        PROTOCOL_MATRIX.recover.normal[0].dailyAction
       );
     });
   });
@@ -169,7 +169,7 @@ describe('TodayHeroCard', () => {
       const screen = render(
         <TodayHeroCard
           cycle={cycle()}
-          protocol={{ ...PROTOCOL_MATRIX.routines.normal[0], quickWinActive: true }}
+          protocol={{ ...PROTOCOL_MATRIX.recover.normal[0], quickWinActive: true }}
           floorCommitment={null}
           completed={false}
           saving={false}

@@ -52,7 +52,7 @@ const ALICE = 'alice123';
 const OPEN_PARAMS = {
   outcome: 'focus',
   capacityInitial: 'normal',
-  protocolId: 'focus-normal',
+  protocolId: 'refocus-normal',
 } as const;
 
 /** Let the swallowed floating promise inside logEvent settle. */
@@ -84,7 +84,7 @@ describe('analyticsEvents.service', () => {
       expect(payload.params).toEqual({
         outcome: 'focus',
         capacityInitial: 'normal',
-        protocolId: 'focus-normal',
+        protocolId: 'refocus-normal',
       });
     });
 
@@ -251,7 +251,7 @@ describe('analyticsEvents.service', () => {
         logEvent(ALICE, 'weekly_open', {
           outcome: 'focus',
           capacityInitial: 'normal',
-          protocolId: 'focus-normal',
+          protocolId: 'refocus-normal',
         })
       ).not.toThrow();
     });

@@ -19,7 +19,8 @@ import {
   type AdjustmentKey,
   type WeeklyEntryRoute,
 } from '../analyticsEvents';
-import { CAPACITY_TIERS, OUTCOME_KEYS, PROTOCOL_MATRIX } from '../../protocolEngine';
+import { CAPACITY_TIERS, PROTOCOL_MATRIX } from '../../protocolEngine';
+import { PHASE_ORDER } from '../../constants/journey';
 import { ADJUSTMENT_KEYS, type AdjustmentKey as CopyAdjustmentKey } from '../../screens/weekly/copy';
 import type { WeeklyEntryTarget } from '../../screens/weekly/weeklyEntry';
 
@@ -122,21 +123,21 @@ describe('analytics event schema', () => {
 
   describe('protocolIdFor', () => {
     test('matches the id stored on every cell of the protocol matrix', () => {
-      // If the matrix ever stops building ids as `${outcome}-${capacity}`, the
+      // If the matrix ever stops building ids as `${phase}-${capacity}`, the
       // analytics id would silently disagree with the persisted one and every
       // join between them would break. This is the tripwire for that.
-      for (const outcome of OUTCOME_KEYS) {
+      for (const phase of PHASE_ORDER) {
         for (const capacity of CAPACITY_TIERS) {
-          expect(protocolIdFor(outcome, capacity)).toBe(
-            PROTOCOL_MATRIX[outcome][capacity][0].id
+          expect(protocolIdFor(phase, capacity)).toBe(
+            PROTOCOL_MATRIX[phase][capacity][0].id
           );
         }
       }
     });
 
     test('covers all twelve cells with distinct ids', () => {
-      const ids = OUTCOME_KEYS.flatMap((outcome) =>
-        CAPACITY_TIERS.map((capacity) => protocolIdFor(outcome, capacity))
+      const ids = PHASE_ORDER.flatMap((phase) =>
+        CAPACITY_TIERS.map((capacity) => protocolIdFor(phase, capacity))
       );
 
       expect(ids).toHaveLength(12);

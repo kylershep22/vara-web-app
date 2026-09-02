@@ -40,7 +40,7 @@ import {
   createWeeklyCycle,
   getWeeklyCycleForWeek,
 } from '../../../services/firebase/weeklyCycle.service';
-import { representativeProtocol } from '../../../protocolEngine';
+import { legacyPhaseFor, representativeProtocol } from '../../../protocolEngine';
 import { planWeek, toIsoDate } from '../../../utils/weekStart';
 import { logger } from '../../../utils/logger';
 import { DONE_COPY } from './copy';
@@ -109,7 +109,10 @@ export const OnboardingV3DoneScreen: React.FC = () => {
         // the plan is what stops them drifting apart in a later slice.
         const existing = await getWeeklyCycleForWeek(user.uid, weekStart);
         if (!existing) {
-          const selected = representativeProtocol(outcome, capacity);
+          // LEGACY BRIDGE (slice 3a). Step 2 still collects an OutcomeKey and
+          // rekeys to DestinationKey in slice 4; until then the terminal maps
+          // to a phase to reach the engine.
+          const selected = representativeProtocol(legacyPhaseFor(outcome), capacity);
           await createWeeklyCycle(user.uid, {
             weekStart,
             weekEnd,

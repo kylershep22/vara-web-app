@@ -161,7 +161,7 @@ const PHASE = {
 
 function todayCard(over: Record<string, unknown> = {}) {
   return {
-    protocol: { ...PROTOCOL_MATRIX.focus.normal[0], quickWinActive: true },
+    protocol: { ...PROTOCOL_MATRIX.refocus.normal[0], quickWinActive: true },
     floorCommitment: null,
     completed: false,
     loading: false,

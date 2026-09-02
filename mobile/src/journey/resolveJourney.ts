@@ -28,8 +28,13 @@
  * THE VOCABULARY GAP IS REAL AND IS BRIDGED HERE. Weekly outcomes are
  * OutcomeKey ('focus' | 'stress' | 'routines' | 'energy'); journey destinations
  * are DestinationKey, which reads 'calm' where the weekly one reads 'stress'.
- * Both rungs map through `destinationForOutcome`. Slice 3 rekeys the matrix and
- * this bridge goes away.
+ * Both rungs map through `destinationForOutcome`, which reads a LEGACY FIELD to
+ * derive a destination once and is not itself legacy.
+ *
+ * `legacyOutcomeFor`, its inverse, WAS HERE AND IS GONE (slice 3a). The engine
+ * is keyed on PhaseKey now, so nothing needs to translate a destination back
+ * into an outcome. The remaining legacy direction lives in the engine as
+ * `legacyPhaseFor` and dies with the JOURNEY_IA flag.
  */
 import {
   createJourneyState,
@@ -83,19 +88,6 @@ export type JourneyResolution =
  */
 export function destinationForOutcome(outcome: OutcomeKey): DestinationKey {
   return outcome === 'stress' ? 'calm' : outcome;
-}
-
-/**
- * DestinationKey -> OutcomeKey.
- *
- * TEMPORARY SHIM - REMOVED IN SLICE 3. The protocol matrix and
- * countWeeklyCyclesForOutcome are both keyed on OutcomeKey, so the journey path
- * has to speak weekly to reach them. Slice 3 rekeys the matrix on
- * DestinationKey and deletes this function; nothing else should start depending
- * on it in the meantime.
- */
-export function legacyOutcomeFor(destination: DestinationKey): OutcomeKey {
-  return destination === 'calm' ? 'stress' : destination;
 }
 
 /** journeyState.updatedAt, in millis, tolerant of the shapes Firestore returns. */

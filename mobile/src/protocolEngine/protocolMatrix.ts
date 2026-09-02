@@ -30,6 +30,12 @@
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
 import type { CapacityTier, OutcomeKey, TimeClass, ProtocolVariant } from './types';
+import type { PhaseKey } from '../types/models';
+// PHASE_ORDER is the ONE definition of phase order (journey slice 1). Imported
+// rather than restated: a second list here is exactly how the engine and the
+// journey service start disagreeing about what comes after 'remove'.
+// constants/journey has no runtime imports of its own, so this edge is a leaf.
+import { PHASE_ORDER } from '../constants/journey';
 
 /**
  * Placeholder quick-win practice: the short extended exhale appended to every
@@ -90,148 +96,134 @@ export function timeClassForMinutes(minutes: number): TimeClass {
 }
 
 const protocol = (
-  outcome: OutcomeKey,
+  phase: PhaseKey,
   capacity: CapacityTier,
   fields: Pick<ProtocolVariant, 'name' | 'dailyAction' | 'estMinutes' | 'whyItWorks'> &
-    Partial<Pick<ProtocolVariant, 'quickWinPracticeId' | 'supportingPracticeIds'>>
+    Partial<
+      Pick<
+        ProtocolVariant,
+        'quickWinPracticeId' | 'supportingPracticeIds' | 'destinationWeight' | 'placeholder'
+      >
+    >
 ): ProtocolVariant => {
   // Derived, never passed in: a hand-written class could disagree with the
   // minutes beside it, and the whole point of the class is to describe them.
   const timeClass = timeClassForMinutes(fields.estMinutes);
+  // The "[PLACEHOLDER] " prefix is applied HERE rather than typed into every
+  // stand-in title, so the marker cannot drift from the `placeholder` flag that
+  // the merge gate reads. One fact, one place.
+  const name = fields.placeholder ? `[PLACEHOLDER] ${fields.name}` : fields.name;
   return {
-    id: `${outcome}-${capacity}`,
-    variantKey: `${outcome}-${capacity}-${timeClass}`,
-    outcome,
+    id: `${phase}-${capacity}`,
+    variantKey: `${phase}-${capacity}-${timeClass}`,
+    phase,
     capacity,
     timeClass,
     quickWinPracticeId: DEFAULT_QUICK_WIN_PRACTICE_ID,
     supportingPracticeIds: [],
     ...fields,
+    name,
   };
 };
 
+/** The prefix every placeholder title carries. The merge gate greps for it. */
+export const PLACEHOLDER_TITLE_PREFIX = '[PLACEHOLDER] ';
+
 export type ProtocolVariantMatrix = Record<
-  OutcomeKey,
+  PhaseKey,
   Record<CapacityTier, ProtocolVariant[]>
 >;
 
 /**
- * THE AUTHORED CONTENT SITS ON THE DIAGONAL, and that is the honest state of it.
+ * RE-TAGGED, NOT REWRITTEN (journey roadmap 3.2). The twelve authored rows are
+ * character-for-character the ones that shipped; only the cell they sit in
+ * changed:
  *
- * These 12 rows were written when capacity WAS the time proxy, so each one is
- * simultaneously a readiness level and a duration: the normal-capacity focus
- * protocol is also the long one, the slammed-capacity focus protocol is also the
- * short one. Re-indexing them onto the time axis therefore gives every cell
- * exactly ONE variant, whose class is whatever its minutes imply.
+ *   focus              -> refocus   (3 rows, one per capacity)
+ *   stress + energy    -> recover   (6 rows)
+ *   routines           -> recover   (3 rows; routines are recovery
+ *                                    infrastructure, per Jen section 5)
  *
- * The off-diagonal cells (high readiness with five minutes; slammed with forty)
- * are genuinely unauthored. They are NOT filled with copies of a neighbour,
- * because smearing the same twelve actions across thirty-six slots would report
- * a full grid to the one person who most needs to see the gaps. They are also
- * NOT filled with placeholder variants, because a placeholder that wins the time
- * filter puts stand-in text onto a real user's card. Instead the cell stays
- * short, `selectProtocol` falls back, and `unauthoredVariants()` below names
- * every missing triple so the gap is legible without being shippable.
+ * `recover` therefore holds THREE variants per capacity tier, which is the
+ * first time a cell has held more than one. Some of them share a time class,
+ * so `pickVariant` can no longer assume the class it finds is the only
+ * candidate; `orderForDestination` is what decides which of them leads.
  *
- * Consequence worth stating: until the off-diagonal is written, the time
- * question cannot change what a given cell serves. The picker in 3b-ii-b will
- * ask it and the answer will resolve to the same protocol.
+ * `remove` and `rewire` ARE NET-NEW AND HOLD PLACEHOLDERS. This reverses the
+ * rule the previous version of this comment stated, and the reversal is
+ * deliberate rather than an oversight: every user is in `remove` under
+ * JOURNEY_IA, so an empty remove cell is not a gap that falls back, it is a
+ * blank card. The placeholders exist so the surface can be walked end to end
+ * before Jen's content lands.
+ *
+ * THEY MUST NOT SHIP. Every one carries `placeholder: true` and a title
+ * prefixed "[PLACEHOLDER] ", and
+ * `__tests__/protocolMatrix.removeCellsAuthored.test.ts` FAILS while any of
+ * them is still in a remove cell. That failing test is this slice's merge gate.
+ * Rewire placeholders may outlive the gate: no user reaches rewire until
+ * slice 5.
+ *
+ * The off-diagonal time slots remain genuinely unauthored, and are still NOT
+ * filled with copies of a neighbour: smearing the same actions across the grid
+ * would report a full matrix to the one person who most needs to see the gaps.
+ * `unauthoredVariants()` below names every missing triple.
  */
 export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
-  focus: {
+  remove: {
     normal: [
-      protocol('focus', 'normal', {
-        name: 'Deep work block', // PLACEHOLDER [Jen]
-        dailyAction: 'One 25-min single-task block, then a device-free break', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 30, // PLACEHOLDER [Jen]
+      protocol('remove', 'normal', {
+        // PLACEHOLDER, not shippable. See the merge gate in
+        // __tests__/protocolMatrix.removeCellsAuthored.test.ts.
+        name: 'Build-walk stand-in, normal capacity',
+        dailyAction: 'Mark today done when you have done one thing that fits.',
+        estMinutes: 20,
         whyItWorks:
-          'Sustained attention on one task avoids the switching cost of juggling several, and a break without a screen lets attention recover before the next block.', // PLACEHOLDER [Jen]
+          'Stand-in rationale so the card renders end to end during the build walk. Jen authors the real one.',
+        placeholder: true,
       }),
     ],
     limited: [
-      protocol('focus', 'limited', {
-        name: 'Short focus block', // PLACEHOLDER [Jen]
-        dailyAction: 'One 15-min single-task block', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 15, // PLACEHOLDER [Jen]
+      protocol('remove', 'limited', {
+        // PLACEHOLDER, not shippable. See the merge gate in
+        // __tests__/protocolMatrix.removeCellsAuthored.test.ts.
+        name: 'Build-walk stand-in, limited capacity',
+        dailyAction: 'Mark today done when you have done one thing that fits.',
+        estMinutes: 10,
         whyItWorks:
-          'A shorter block keeps the same single-task structure at a length that still fits a full day.', // PLACEHOLDER [Jen]
+          'Stand-in rationale so the card renders end to end during the build walk. Jen authors the real one.',
+        placeholder: true,
       }),
     ],
     slammed: [
-      protocol('focus', 'slammed', {
-        name: 'One thing, five minutes', // PLACEHOLDER [Jen]
-        dailyAction: '5 min on one thing, every other tab closed', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 5, // PLACEHOLDER [Jen]
+      protocol('remove', 'slammed', {
+        // PLACEHOLDER, not shippable. See the merge gate in
+        // __tests__/protocolMatrix.removeCellsAuthored.test.ts.
+        name: 'Build-walk stand-in, slammed capacity',
+        dailyAction: 'Mark today done when you have done one thing that fits.',
+        estMinutes: 5,
         whyItWorks:
-          'Closing the other tabs removes the cues that pull attention away, so five minutes is enough to get one thing moving.', // PLACEHOLDER [Jen]
+          'Stand-in rationale so the card renders end to end during the build walk. Jen authors the real one.',
+        placeholder: true,
       }),
     ],
   },
-  stress: {
+  recover: {
     normal: [
-      protocol('stress', 'normal', {
+      protocol('recover', 'normal', {
         name: 'Exhale and unplug', // PLACEHOLDER [Jen]
         dailyAction: '10-min extended exhale, plus an afternoon device-free break', // PLACEHOLDER [Jen], draft per spec 6.2
         estMinutes: 15, // PLACEHOLDER [Jen]
         whyItWorks:
           'Breathing out for longer than you breathe in engages the parasympathetic branch and lowers arousal, and an afternoon break stops stress stacking through the day.', // PLACEHOLDER [Jen]
       }),
-    ],
-    limited: [
-      protocol('stress', 'limited', {
-        name: 'Exhale and a break', // PLACEHOLDER [Jen]
-        dailyAction: '5-min extended exhale, plus a break', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 10, // PLACEHOLDER [Jen]
-        whyItWorks:
-          'A shorter exhale practice still shifts arousal down, and pairing it with a break gives the effect somewhere to land.', // PLACEHOLDER [Jen]
-      }),
-    ],
-    slammed: [
-      protocol('stress', 'slammed', {
-        name: 'Five-minute exhale', // PLACEHOLDER [Jen]
-        dailyAction: '5-min extended exhale', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 5, // PLACEHOLDER [Jen]
-        whyItWorks:
-          'Extending the exhale works within minutes, which is why it holds up on the weeks nothing else does.', // PLACEHOLDER [Jen]
-      }),
-    ],
-  },
-  routines: {
-    normal: [
-      protocol('routines', 'normal', {
+      protocol('recover', 'normal', {
         name: 'Three-step anchor', // PLACEHOLDER [Jen]
         dailyAction: 'One 3-step anchor routine, same order daily', // PLACEHOLDER [Jen], draft per spec 6.2
         estMinutes: 10, // PLACEHOLDER [Jen]
         whyItWorks:
           'Running the same steps in the same order lets each step cue the next, so the sequence needs less deliberate effort over time.', // PLACEHOLDER [Jen]
       }),
-    ],
-    limited: [
-      // Six minutes rounds UP into medium: the classes are exclusive, and the
-      // gap between five and ten is not a bucket the picker offers. Worth Jen's
-      // attention, because a "6 min" action offered to someone who said they had
-      // 10-15 reads as under-serving them.
-      protocol('routines', 'limited', {
-        name: 'Two-step anchor', // PLACEHOLDER [Jen]
-        dailyAction: 'A 2-step anchor routine', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 6, // PLACEHOLDER [Jen]
-        whyItWorks:
-          'Two steps is short enough to survive a busy week and still long enough to form a sequence.', // PLACEHOLDER [Jen]
-      }),
-    ],
-    slammed: [
-      protocol('routines', 'slammed', {
-        name: 'One anchor cue', // PLACEHOLDER [Jen]
-        dailyAction: 'One anchor cue at the same time daily', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 2, // PLACEHOLDER [Jen]
-        whyItWorks:
-          'Holding the timing steady keeps the cue in place, which is the part a routine is rebuilt from later.', // PLACEHOLDER [Jen]
-      }),
-    ],
-  },
-  energy: {
-    normal: [
-      protocol('energy', 'normal', {
+      protocol('recover', 'normal', {
         name: 'Light, movement, steady wake', // PLACEHOLDER [Jen]
         dailyAction:
           'Morning light within 30 min of waking, plus movement and a consistent wake time', // PLACEHOLDER [Jen], draft per spec 6.2
@@ -241,7 +233,21 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
       }),
     ],
     limited: [
-      protocol('energy', 'limited', {
+      protocol('recover', 'limited', {
+        name: 'Exhale and a break', // PLACEHOLDER [Jen]
+        dailyAction: '5-min extended exhale, plus a break', // PLACEHOLDER [Jen], draft per spec 6.2
+        estMinutes: 10, // PLACEHOLDER [Jen]
+        whyItWorks:
+          'A shorter exhale practice still shifts arousal down, and pairing it with a break gives the effect somewhere to land.', // PLACEHOLDER [Jen]
+      }),
+      protocol('recover', 'limited', {
+        name: 'Two-step anchor', // PLACEHOLDER [Jen]
+        dailyAction: 'A 2-step anchor routine', // PLACEHOLDER [Jen], draft per spec 6.2
+        estMinutes: 6, // PLACEHOLDER [Jen]
+        whyItWorks:
+          'Two steps is short enough to survive a busy week and still long enough to form a sequence.', // PLACEHOLDER [Jen]
+      }),
+      protocol('recover', 'limited', {
         name: 'Light and steady wake', // PLACEHOLDER [Jen]
         dailyAction: 'Morning light, plus a consistent wake time', // PLACEHOLDER [Jen], draft per spec 6.2
         estMinutes: 10, // PLACEHOLDER [Jen]
@@ -250,7 +256,21 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
       }),
     ],
     slammed: [
-      protocol('energy', 'slammed', {
+      protocol('recover', 'slammed', {
+        name: 'Five-minute exhale', // PLACEHOLDER [Jen]
+        dailyAction: '5-min extended exhale', // PLACEHOLDER [Jen], draft per spec 6.2
+        estMinutes: 5, // PLACEHOLDER [Jen]
+        whyItWorks:
+          'Extending the exhale works within minutes, which is why it holds up on the weeks nothing else does.', // PLACEHOLDER [Jen]
+      }),
+      protocol('recover', 'slammed', {
+        name: 'One anchor cue', // PLACEHOLDER [Jen]
+        dailyAction: 'One anchor cue at the same time daily', // PLACEHOLDER [Jen], draft per spec 6.2
+        estMinutes: 2, // PLACEHOLDER [Jen]
+        whyItWorks:
+          'Holding the timing steady keeps the cue in place, which is the part a routine is rebuilt from later.', // PLACEHOLDER [Jen]
+      }),
+      protocol('recover', 'slammed', {
         name: 'Morning light', // PLACEHOLDER [Jen]
         dailyAction: 'Morning light only', // PLACEHOLDER [Jen], draft per spec 6.2
         estMinutes: 5, // PLACEHOLDER [Jen]
@@ -259,21 +279,94 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
       }),
     ],
   },
+  rewire: {
+    normal: [
+      protocol('rewire', 'normal', {
+        // PLACEHOLDER, not shippable. See the merge gate in
+        // __tests__/protocolMatrix.removeCellsAuthored.test.ts.
+        name: 'Build-walk stand-in, normal capacity',
+        dailyAction: 'Mark today done when you have done one thing that fits.',
+        estMinutes: 20,
+        whyItWorks:
+          'Stand-in rationale so the card renders end to end during the build walk. Jen authors the real one.',
+        placeholder: true,
+      }),
+    ],
+    limited: [
+      protocol('rewire', 'limited', {
+        // PLACEHOLDER, not shippable. See the merge gate in
+        // __tests__/protocolMatrix.removeCellsAuthored.test.ts.
+        name: 'Build-walk stand-in, limited capacity',
+        dailyAction: 'Mark today done when you have done one thing that fits.',
+        estMinutes: 10,
+        whyItWorks:
+          'Stand-in rationale so the card renders end to end during the build walk. Jen authors the real one.',
+        placeholder: true,
+      }),
+    ],
+    slammed: [
+      protocol('rewire', 'slammed', {
+        // PLACEHOLDER, not shippable. See the merge gate in
+        // __tests__/protocolMatrix.removeCellsAuthored.test.ts.
+        name: 'Build-walk stand-in, slammed capacity',
+        dailyAction: 'Mark today done when you have done one thing that fits.',
+        estMinutes: 5,
+        whyItWorks:
+          'Stand-in rationale so the card renders end to end during the build walk. Jen authors the real one.',
+        placeholder: true,
+      }),
+    ],
+  },
+  refocus: {
+    normal: [
+      protocol('refocus', 'normal', {
+        name: 'Deep work block', // PLACEHOLDER [Jen]
+        dailyAction: 'One 25-min single-task block, then a device-free break', // PLACEHOLDER [Jen], draft per spec 6.2
+        estMinutes: 30, // PLACEHOLDER [Jen]
+        whyItWorks:
+          'Sustained attention on one task avoids the switching cost of juggling several, and a break without a screen lets attention recover before the next block.', // PLACEHOLDER [Jen]
+      }),
+    ],
+    limited: [
+      protocol('refocus', 'limited', {
+        name: 'Short focus block', // PLACEHOLDER [Jen]
+        dailyAction: 'One 15-min single-task block', // PLACEHOLDER [Jen], draft per spec 6.2
+        estMinutes: 15, // PLACEHOLDER [Jen]
+        whyItWorks:
+          'A shorter block keeps the same single-task structure at a length that still fits a full day.', // PLACEHOLDER [Jen]
+      }),
+    ],
+    slammed: [
+      protocol('refocus', 'slammed', {
+        name: 'One thing, five minutes', // PLACEHOLDER [Jen]
+        dailyAction: '5 min on one thing, every other tab closed', // PLACEHOLDER [Jen], draft per spec 6.2
+        estMinutes: 5, // PLACEHOLDER [Jen]
+        whyItWorks:
+          'Closing the other tabs removes the cues that pull attention away, so five minutes is enough to get one thing moving.', // PLACEHOLDER [Jen]
+      }),
+    ],
+  },
 };
-
+/**
+ * LEGACY. The four weekly outcomes, in the order the weekly open renders them.
+ *
+ * NO LONGER A MATRIX AXIS. Two live consumers remain and both are scheduled:
+ * `WeeklyOpenScreen`'s outcome step (retires in slice 3b) and Onboarding V3
+ * step 2 (rekeys to DestinationKey in slice 4). Do not add a third.
+ */
 export const OUTCOME_KEYS: readonly OutcomeKey[] = ['focus', 'stress', 'routines', 'energy'];
 export const CAPACITY_TIERS: readonly CapacityTier[] = ['normal', 'limited', 'slammed'];
 
-/** Every variant in the matrix, outcome-major then capacity then time order. */
+/** Every variant in the matrix, phase-major then capacity then time order. */
 export function allProtocols(): ProtocolVariant[] {
-  return OUTCOME_KEYS.flatMap((outcome) =>
-    CAPACITY_TIERS.flatMap((capacity) => PROTOCOL_MATRIX[outcome][capacity])
+  return PHASE_ORDER.flatMap((phase) =>
+    CAPACITY_TIERS.flatMap((capacity) => PROTOCOL_MATRIX[phase][capacity])
   );
 }
 
-/** One unwritten slot in the outcome x capacity x time grid. */
+/** One unwritten slot in the phase x capacity x time grid. */
 export interface UnauthoredVariant {
-  outcome: OutcomeKey;
+  phase: PhaseKey;
   capacity: CapacityTier;
   timeClass: TimeClass;
 }
@@ -290,12 +383,12 @@ export interface UnauthoredVariant {
  * writing it, and never stands in for content on a user's card.
  */
 export function unauthoredVariants(): UnauthoredVariant[] {
-  return OUTCOME_KEYS.flatMap((outcome) =>
+  return PHASE_ORDER.flatMap((phase) =>
     CAPACITY_TIERS.flatMap((capacity) =>
       TIME_CLASSES.filter(
         (timeClass) =>
-          !PROTOCOL_MATRIX[outcome][capacity].some((v) => v.timeClass === timeClass)
-      ).map((timeClass) => ({ outcome, capacity, timeClass }))
+          !PROTOCOL_MATRIX[phase][capacity].some((v) => v.timeClass === timeClass)
+      ).map((timeClass) => ({ phase, capacity, timeClass }))
     )
   );
 }

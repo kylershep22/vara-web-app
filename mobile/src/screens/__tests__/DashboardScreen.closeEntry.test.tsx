@@ -172,7 +172,7 @@ async function renderHome(
 
 function todayCardState(over: Record<string, unknown> = {}) {
   return {
-    protocol: { ...PROTOCOL_MATRIX.focus.normal[0], quickWinActive: false },
+    protocol: { ...PROTOCOL_MATRIX.refocus.normal[0], quickWinActive: false },
     floorCommitment: null,
     completed: false,
     loading: false,

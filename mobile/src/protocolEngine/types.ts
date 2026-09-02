@@ -23,10 +23,28 @@
  * the quick-win week rule) keep their names on purpose.
  */
 
+import type { DestinationKey, PhaseKey } from '../types/models';
+
 /**
- * The four outcomes. LOCKED by spec Section 5. This is the single vocabulary
- * across the weekly open, the Practices filters, and content tags. Do not
- * introduce a second set of category names.
+ * LEGACY. The four weekly outcomes.
+ *
+ * NO LONGER A MATRIX AXIS (journey roadmap 3.2). PhaseKey is the outer key of
+ * PROTOCOL_MATRIX now, and nothing in the daily loop reads this. It survives
+ * for three reasons and no others:
+ *
+ *   1. `WeeklyCycle.outcome` and `UserPrivate.activeOutcome` are persisted on
+ *      documents already written. Those fields keep this type so legacy rows
+ *      still parse.
+ *   2. `WeeklyOpenScreen` still writes it. That screen retires in slice 3b.
+ *   3. Onboarding V3 step 2 still collects it. That step rekeys to
+ *      DestinationKey in slice 4.
+ *
+ * Do NOT add a new consumer. Every live reader maps through `legacyPhaseFor`
+ * in `selectProtocol.ts`, which dies with the JOURNEY_IA flag.
+ *
+ * Type-only import of PhaseKey below: `import type` is erased by babel, so the
+ * models <-> protocolEngine edge is a compile-time cycle only and produces no
+ * runtime require cycle for Metro to trip on.
  */
 export type OutcomeKey = 'focus' | 'stress' | 'routines' | 'energy';
 
@@ -67,7 +85,7 @@ export type TimeClass = 'short' | 'medium' | 'long';
  */
 export interface ProtocolVariant {
   /**
-   * Stable CELL id, by convention `${outcome}-${capacity}`.
+   * Stable CELL id, by convention `${phase}-${capacity}`.
    *
    * DELIBERATELY NOT UNIQUE PER VARIANT. Every variant in a cell carries the
    * same id, because this value is persisted on `WeeklyCycle.protocolId` and is
@@ -78,14 +96,23 @@ export interface ProtocolVariant {
    */
   id: string;
   /**
-   * Unique per variant, by convention `${outcome}-${capacity}-${timeClass}`.
+   * Unique per variant, by convention `${phase}-${capacity}-${timeClass}`.
    *
    * Not persisted anywhere and not an analytics value: the daily variant is
-   * DERIVED from the stored (outcome, capacity, time) inputs, so this exists to
-   * disambiguate objects in code and tests, not to be written down.
+   * DERIVED from the stored (capacity, time) inputs plus the user's phase, so
+   * this exists to disambiguate objects in code and tests, not to be written
+   * down.
+   *
+   * NOT UNIQUE ONCE A CELL HOLDS TWO VARIANTS OF ONE CLASS, which the re-tag
+   * makes real: three former outcomes collapsed into `recover`, so its cells
+   * now hold several variants and some share a time class. The name predates
+   * that and is kept rather than churned; `id` plus `name` identifies a row.
    */
   variantKey: string;
-  outcome: OutcomeKey;
+  /**
+   * The journey phase this variant belongs to. THE MATRIX AXIS (roadmap 3.2).
+   */
+  phase: PhaseKey;
   capacity: CapacityTier;
   /** Which of the picker's three windows this variant fits. */
   timeClass: TimeClass;
@@ -110,6 +137,28 @@ export interface ProtocolVariant {
    * `ResolvedProtocolVariant`, never by appending to this list.
    */
   supportingPracticeIds: string[];
+  /**
+   * How well this variant suits each destination, for ORDERING WITHIN A CELL
+   * and never for membership (roadmap 3.2).
+   *
+   * Every variant in a cell is servable to every destination. This only decides
+   * which one leads. Absent means "no preference", which sorts as authored
+   * order, and that is the state of every variant today: Jen has not defined
+   * weights, so `orderForDestination` is currently the identity.
+   *
+   * WHY NOT MEMBERSHIP. Filtering a cell by destination could empty it, and an
+   * empty cell has no protocol to serve. Ordering cannot fail.
+   */
+  destinationWeight?: Partial<Record<DestinationKey, number>>;
+  /**
+   * Build-and-walk stand-in, NOT shippable content.
+   *
+   * Present only on variants whose title also carries the "[PLACEHOLDER] "
+   * prefix. `protocolMatrix.removeCellsAuthored.test.ts` fails while any remove
+   * cell holds one of these, and that failing test is the merge gate for this
+   * slice. Never set this on a variant Jen has authored.
+   */
+  placeholder?: true;
 }
 
 /**

@@ -103,7 +103,7 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
       const { result } = await renderToday(cycle({ capacityInitial: 'limited' }));
 
       expect(result.current.protocol?.dailyAction).toBe(
-        PROTOCOL_MATRIX.focus.limited[0].dailyAction
+        PROTOCOL_MATRIX.refocus.limited[0].dailyAction
       );
       expect(result.current.protocol?.capacity).toBe('limited');
     });
@@ -115,7 +115,7 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
       const { result } = await renderToday(cycle({ capacityInitial: 'slammed' }));
 
       expect(result.current.protocol?.dailyAction).toBe(
-        PROTOCOL_MATRIX.focus.slammed[0].dailyAction
+        PROTOCOL_MATRIX.refocus.slammed[0].dailyAction
       );
       expect(result.current.completed).toBe(true);
     });
@@ -127,7 +127,7 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
       const { result } = await renderToday(cycle({ capacityInitial: 'normal' }));
 
       expect(result.current.protocol?.dailyAction).toBe(
-        PROTOCOL_MATRIX.focus.slammed[0].dailyAction
+        PROTOCOL_MATRIX.refocus.slammed[0].dailyAction
       );
     });
 
@@ -163,7 +163,7 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
       );
 
       expect(result.current.protocol?.dailyAction).toBe(
-        PROTOCOL_MATRIX.focus.normal[0].dailyAction
+        PROTOCOL_MATRIX.refocus.normal[0].dailyAction
       );
     });
   });
@@ -239,29 +239,44 @@ describe('useTodayCard sourced from a PhaseContext (journey slice 2)', () => {
     expect(view.result.current.protocol?.capacity).toBe('limited');
   });
 
-  test("destination 'calm' reaches the matrix as the legacy outcome 'stress'", async () => {
-    // THE SHIM, asserted rather than assumed. calm/stress is the one
-    // asymmetric pair between the two vocabularies, so it is the only case
-    // that would catch a cast where the mapping should be.
+  test('THE PHASE REACHES THE MATRIX NATIVELY, with no outcome in between', async () => {
+    // Replaces the slice-2 shim tests, which asserted that a destination was
+    // mapped to an OutcomeKey on the way in. `legacyOutcomeFor` is gone (slice
+    // 3a) and the engine is keyed on PhaseKey, so the assertion is now about
+    // WHICH CELL the served protocol came out of.
     mockGetDailyLog.mockResolvedValue(null);
     const view = renderHook(() =>
-      useTodayCard('u1', phaseSource(phase({ destination: 'calm' })))
+      useTodayCard('u1', phaseSource(phase({ phaseKey: 'recover', destination: 'calm' })))
     );
 
     await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
-    expect(mockCountForOutcome).toHaveBeenCalledWith('u1', 'stress');
+    expect(view.result.current.protocol?.phase).toBe('recover');
+    expect(view.result.current.protocol?.id).toBe('recover-normal');
   });
 
-  test('the three symmetric destinations pass through unchanged', async () => {
+  test('every destination serves out of the PHASE cell, not a destination cell', async () => {
+    // Destination ORDERS a cell, it never selects one (roadmap 3.2). With no
+    // weights authored the four destinations are indistinguishable here, which
+    // is exactly the state this pins: if a destination ever started choosing a
+    // different cell, that would be membership, and membership can empty a cell.
     mockGetDailyLog.mockResolvedValue(null);
-    for (const key of ['focus', 'routines', 'energy'] as const) {
-      mockCountForOutcome.mockClear();
+    for (const destination of ['focus', 'calm', 'routines', 'energy'] as const) {
       const view = renderHook(() =>
-        useTodayCard('u1', phaseSource(phase({ destination: key })))
+        useTodayCard('u1', phaseSource(phase({ phaseKey: 'refocus', destination })))
       );
       await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
-      expect(mockCountForOutcome).toHaveBeenCalledWith('u1', key);
+      expect(view.result.current.protocol?.id).toBe('refocus-normal');
     }
+  });
+
+  test('the week-1 quick win is gone: nothing is ever flagged active', async () => {
+    // applyQuickWin retired in slice 3a. Early-phase gentleness is content Jen
+    // authors into the Remove protocols, not an engine rule layered on top.
+    mockGetDailyLog.mockResolvedValue(null);
+    const view = renderHook(() => useTodayCard('u1', phaseSource(phase())));
+
+    await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+    expect(view.result.current.protocol?.quickWinActive).toBe(false);
   });
 
   test('a null source yields the empty card and reads nothing', async () => {

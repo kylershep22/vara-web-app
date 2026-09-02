@@ -36,12 +36,22 @@ export {
   timeClassForMinutes,
   allProtocols,
   unauthoredVariants,
+  PLACEHOLDER_TITLE_PREFIX,
 } from './protocolMatrix';
 export type { ProtocolVariantMatrix, UnauthoredVariant } from './protocolMatrix';
 // selectProtocol takes a time class; representativeProtocol deliberately does
 // not (week-level callers have no daily answer to give it).
-export { selectProtocol, representativeProtocol } from './selectProtocol';
-export { applyQuickWin, QUICK_WIN_WEEK } from './quickWin';
+export {
+  selectProtocol,
+  representativeProtocol,
+  orderForDestination,
+  legacyPhaseFor,
+} from './selectProtocol';
+// RETIRED in journey slice 3a: `applyQuickWin` / `QUICK_WIN_WEEK`. The week-1
+// quick win was an ENGINE rule bolted onto a content problem; early-phase
+// gentleness is a property Jen authors into the Remove protocols themselves
+// (roadmap 3.2). Its only week-number source, countWeeklyCyclesForOutcome,
+// retired with it.
 export { computeContinuity } from './continuity';
 // RETIRED with the in-week re-set (roadmap 3b-i): `nextTierDown` / `nextTierUp`
 // walked the capacity ladder one rung for that control and had no other caller.
