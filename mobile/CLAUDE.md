@@ -12,10 +12,11 @@ Jest must run with `--forceExit` (reanimated and timer handles keep the process 
 
 Highest to lowest. When two documents disagree, the higher one wins.
 
-1. `docs/Vara_Today_IA_Restructure_Roadmap_v2.md` — IA, tabs, the Today surface, the capacity model.
-2. `docs/Vara_Reconciled_Product_Spec.md` (v1.7) — all other product behavior.
-3. `docs/brand/Vara_Brand_Voice_Copy_Guidelines.md` — all copy.
-4. `mobile/Vara_Mobile_UI_Standards.md` (v2.0) — the visual and interaction authority, including token-to-code mapping.
+1. `docs/Vara_Journey_Architecture_Roadmap_v3.md` — the journey build: IA, tabs, the Today surface, the weekly loop, phase/journey semantics, and the build sequence (Section 5) with its Section 13 build log. Supersedes the doc below on every topic it covers.
+2. `docs/Vara_Today_IA_Restructure_Roadmap_v2.md` — IA, tabs, the Today surface, the capacity model — **only where the journey roadmap above is silent.**
+3. `docs/Vara_Reconciled_Product_Spec.md` (v1.7) — all other product behavior.
+4. `docs/brand/Vara_Brand_Voice_Copy_Guidelines.md` — all copy.
+5. `mobile/Vara_Mobile_UI_Standards.md` (v2.0) — the visual and interaction authority, including token-to-code mapping.
 
 The contracts stay authoritative for their own scope beneath this ladder: `docs/Vara_Engine_Contract.md`, `docs/Vara_Protocol_Engine_Contract.md`, `docs/Vara_Modal_Design_System_v1.1.md`, `docs/Vara_Core_Loop_v2.md`.
 
