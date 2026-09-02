@@ -57,6 +57,15 @@ export function protocolIdFor(outcome: OutcomeKey, capacity: CapacityTier): Prot
 export type AuthMethod = 'email' | 'apple' | 'google';
 
 /**
+ * Which rung of the journey resolver ladder supplied a migrated destination.
+ *
+ * A CLOSED UNION, not an open string, for the same reason every other
+ * dimension here is closed: this collection is read cold, and a free-text
+ * source would drift into three spellings of the same rung within a month.
+ */
+export type JourneyMigrationSource = 'migration_cycle' | 'migration_active_outcome';
+
+/**
  * Why a write failed. Three buckets, and everything else is `unknown`.
  *
  * THE UNION IS THE ONLY GUARD HERE, and this is the one place that is easy to
@@ -238,6 +247,24 @@ export interface AnalyticsEventMap {
    * close to worthless read on its own.
    */
   weekly_close_entry: Record<string, never>;
+  /**
+   * A journeyStates document was created for a user who did not have one
+   * (journey slice 2, the migration branch).
+   *
+   * `source` IS THE WHOLE POINT. It records WHICH rung of the resolver ladder
+   * supplied the destination, because the two are not equally trustworthy: a
+   * weekly cycle is a choice the user made and re-made every week, while
+   * activeOutcome is a single write from the onboarding terminal that nothing
+   * has read since. If the migration ever looks wrong, the first question is
+   * which rung produced it, and this is the only place that will say.
+   *
+   * NO uid AND NO destination IN THE PAYLOAD. The writer stamps the userId
+   * itself, and the destination is already on the document this event is about.
+   *
+   * ONE PER USER, EVER. A second one for the same user means the ladder ran
+   * again after a document already existed, which would be a resolver bug.
+   */
+  journey_state_created: { source: JourneyMigrationSource };
   /** An account was created. */
   sign_up: { method: AuthMethod };
   /** An existing account signed in. */
@@ -251,6 +278,7 @@ export type AnalyticsEventName = keyof AnalyticsEventMap;
  * to the map above without adding it here is a tsc error.
  */
 const EVENT_NAME_SET: Record<AnalyticsEventName, true> = {
+  journey_state_created: true,
   weekly_open: true,
   weekly_close: true,
   weekly_close_failed: true,

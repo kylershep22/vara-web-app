@@ -52,7 +52,8 @@ jest.mock('../../utils/logger', () => ({
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
-import { useTodayCard } from '../useTodayCard';
+import { cycleSource, phaseSource, useTodayCard } from '../useTodayCard';
+import type { PhaseContext } from '../../journey/resolveJourney';
 import { PROTOCOL_MATRIX } from '../../protocolEngine';
 import type { DailyLog, WeeklyCycle } from '../../types/models';
 
@@ -80,7 +81,7 @@ const log = (over: Partial<DailyLog> = {}): DailyLog =>
   }) as DailyLog;
 
 async function renderToday(c: WeeklyCycle = cycle()) {
-  const view = renderHook(() => useTodayCard('u1', c));
+  const view = renderHook(() => useTodayCard('u1', cycleSource(c)));
   await waitFor(() => expect(view.result.current.loading).toBe(false));
   return view;
 }
@@ -184,5 +185,88 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
         practiceIds: [],
       });
     });
+  });
+});
+
+/**
+ * The journey source (slice 2). Mirrors `cycle()` above so the two paths can be
+ * asserted against the SAME expectations rather than against a weaker set.
+ */
+const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
+  phaseKey: 'remove',
+  destination: 'focus',
+  capacitySeed: 'normal',
+  revisionToken: 1,
+  ...over,
+});
+
+describe('useTodayCard sourced from a PhaseContext (journey slice 2)', () => {
+  beforeEach(() => {
+    mockCountForOutcome.mockReset().mockResolvedValue(1);
+    mockGetFloor.mockReset().mockResolvedValue(null);
+    mockGetDailyLog.mockReset().mockResolvedValue(null);
+    mockUpsertDailyLog.mockReset().mockResolvedValue(undefined);
+    mockGetCyclesForUser.mockReset().mockResolvedValue([]);
+  });
+
+  test("an unpicked day falls back to the PHASE's capacitySeed, not a cycle's", async () => {
+    mockGetDailyLog.mockResolvedValue(null);
+    const view = renderHook(() =>
+      useTodayCard('u1', phaseSource(phase({ capacitySeed: 'slammed' })))
+    );
+
+    await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+    expect(view.result.current.protocol?.capacity).toBe('slammed');
+  });
+
+  test("the DAY's stored capacity still wins over the phase seed", async () => {
+    // The same precedence the cycle path has. The seed is a fallback on both
+    // sides, never an override.
+    mockGetDailyLog.mockResolvedValue({
+      id: 'u1_x',
+      userId: 'u1',
+      date: 'x',
+      protocolCompleted: false,
+      practiceIds: [],
+      dailyCapacity: 'limited',
+      dailyTimeBudget: 'short',
+    });
+    const view = renderHook(() =>
+      useTodayCard('u1', phaseSource(phase({ capacitySeed: 'normal' })))
+    );
+
+    await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+    expect(view.result.current.protocol?.capacity).toBe('limited');
+  });
+
+  test("destination 'calm' reaches the matrix as the legacy outcome 'stress'", async () => {
+    // THE SHIM, asserted rather than assumed. calm/stress is the one
+    // asymmetric pair between the two vocabularies, so it is the only case
+    // that would catch a cast where the mapping should be.
+    mockGetDailyLog.mockResolvedValue(null);
+    const view = renderHook(() =>
+      useTodayCard('u1', phaseSource(phase({ destination: 'calm' })))
+    );
+
+    await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+    expect(mockCountForOutcome).toHaveBeenCalledWith('u1', 'stress');
+  });
+
+  test('the three symmetric destinations pass through unchanged', async () => {
+    mockGetDailyLog.mockResolvedValue(null);
+    for (const key of ['focus', 'routines', 'energy'] as const) {
+      mockCountForOutcome.mockClear();
+      const view = renderHook(() =>
+        useTodayCard('u1', phaseSource(phase({ destination: key })))
+      );
+      await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+      expect(mockCountForOutcome).toHaveBeenCalledWith('u1', key);
+    }
+  });
+
+  test('a null source yields the empty card and reads nothing', async () => {
+    renderHook(() => useTodayCard('u1', null));
+    expect(mockGetDailyLog).not.toHaveBeenCalled();
+    expect(mockCountForOutcome).not.toHaveBeenCalled();
   });
 });

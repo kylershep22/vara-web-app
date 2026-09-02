@@ -25,6 +25,7 @@ Compile-time flags in `mobile/src/constants/dashboardConfig.ts` govern which nav
 | `ONBOARDING_V3` | `true` | `OnboardingNavigator` returns the V3 stack and returns early, never reaching the V1/V2 branch |
 | `ONBOARDING_V2` | `true` | Dead while `ONBOARDING_V3` is true |
 | `DASHBOARD_V2` | `true` | Gates render/data logic inside `useDashboard`, not routing |
+| `JOURNEY_IA` | `true` | Home resolves its landing through `useJourneyLanding` and sources the day from a `PhaseContext` instead of a `WeeklyCycle` (journey slice 2). Gates render/data logic, not routing, but it does suppress the `open` target: while on, Home neither pushes to `WeeklyOpen` nor renders `OpenYourWeekCard`. |
 
 ### 1a / 1b. Registered routes, by navigator
 

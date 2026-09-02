@@ -39,7 +39,8 @@ jest.mock('../../utils/logger', () => ({
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
-import { useTodayCard } from '../useTodayCard';
+import { cycleSource, phaseSource, useTodayCard } from '../useTodayCard';
+import type { PhaseContext } from '../../journey/resolveJourney';
 import { PROTOCOL_MATRIX } from '../../protocolEngine';
 import type { DailyLog, WeeklyCycle } from '../../types/models';
 
@@ -76,7 +77,7 @@ function rows(byDate: Record<string, DailyLog>) {
 }
 
 async function renderToday(c: WeeklyCycle = cycle()) {
-  const view = renderHook(() => useTodayCard('u1', c));
+  const view = renderHook(() => useTodayCard('u1', cycleSource(c)));
   await waitFor(() => expect(view.result.current.loading).toBe(false));
   return view;
 }
@@ -263,5 +264,71 @@ describe('useTodayCard — the daily pick', () => {
       expect(written).toEqual({ protocolCompleted: true, practiceIds: [] });
       expect(written).not.toHaveProperty('dailyCapacity');
     });
+  });
+});
+
+/** The journey source (slice 2). */
+const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
+  phaseKey: 'remove',
+  destination: 'focus',
+  capacitySeed: 'normal',
+  revisionToken: 1,
+  ...over,
+});
+
+describe('the daily pick on the PhaseContext path (journey slice 2)', () => {
+  beforeEach(() => {
+    mockCountForOutcome.mockReset().mockResolvedValue(1);
+    mockGetFloor.mockReset().mockResolvedValue(null);
+    mockGetDailyLog.mockReset().mockResolvedValue(null);
+    mockUpsertDailyLog.mockReset().mockResolvedValue(undefined);
+    mockGetCyclesForUser.mockReset().mockResolvedValue([]);
+  });
+
+  test('an unpicked day reports picked=false, exactly as on the cycle path', async () => {
+    mockGetDailyLog.mockResolvedValue(null);
+    const view = renderHook(() => useTodayCard('u1', phaseSource(phase())));
+
+    await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+    expect(view.result.current.picked).toBe(false);
+  });
+
+  test('CONFIRM WRITES THE SAME ROW. The journey changes where the day is', async () => {
+    // sourced from, not where it is stored. dailyLogs is still the one place a
+    // day is written, and the write must be byte-identical across the two
+    // paths or the flag stops being reversible.
+    mockGetDailyLog.mockResolvedValue(null);
+    const view = renderHook(() => useTodayCard('u1', phaseSource(phase())));
+    await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+
+    await act(async () => {
+      await view.result.current.confirmPick('slammed', 'short');
+    });
+
+    expect(mockUpsertDailyLog).toHaveBeenCalledWith('u1', expect.any(String), {
+      dailyCapacity: 'slammed',
+      dailyTimeBudget: 'short',
+    });
+  });
+
+  test('a confirmed pick flips picked to true without a remount', async () => {
+    mockGetDailyLog.mockResolvedValue(null);
+    const view = renderHook(() => useTodayCard('u1', phaseSource(phase())));
+    await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+
+    mockGetDailyLog.mockResolvedValue({
+      id: 'u1_x',
+      userId: 'u1',
+      date: 'x',
+      protocolCompleted: false,
+      practiceIds: [],
+      dailyCapacity: 'slammed',
+      dailyTimeBudget: 'short',
+    });
+    await act(async () => {
+      await view.result.current.confirmPick('slammed', 'short');
+    });
+
+    await waitFor(() => expect(view.result.current.picked).toBe(true));
   });
 });

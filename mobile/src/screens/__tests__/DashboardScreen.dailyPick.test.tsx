@@ -106,6 +106,11 @@ jest.mock('../../utils/logger', () => ({
 
 const mockTodayCard = jest.fn();
 jest.mock('../../hooks/useTodayCard', () => ({
+  // The two source builders are passed through REAL: Home calls them before it
+  // calls the hook, and stubbing them out would make this suite pass on wiring
+  // that could not run. Only the hook itself is replaced.
+  cycleSource: jest.requireActual('../../hooks/useTodayCard').cycleSource,
+  phaseSource: jest.requireActual('../../hooks/useTodayCard').phaseSource,
   useTodayCard: () => mockTodayCard(),
 }));
 jest.mock('../../services/firebase/analyticsEvents.service', () => ({
