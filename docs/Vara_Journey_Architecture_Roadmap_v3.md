@@ -339,4 +339,34 @@ Start-day edit surface · Coach 500 fix · B2B2C coach channel.
   Kyle the walk script, STOP." CC never reports walk results it did not observe.
 - `chore/legacy-removal` verified fully contained in main; deleted.
 
+**Sept 2, 2026 — slice 3a merged (be58b97). Engine speaks PhaseKey natively.**
+- Jen's three behavioral Remove protocols live; rewire cells placeholder and
+  unreachable until slice 5. Retag confirmed by Jen (12 rows, zero edits);
+  real-content walk passed all three tiers.
+- Retired with the slice: applyQuickWin, countWeeklyCyclesForOutcome, week-number
+  plumbing, reshapeParity (superseded by retagParity). Why-copy on Remove variants
+  is held unrendered until the slice 9 behavioral screen.
+- Baselines: jest **2953 / 200**, sentinel **189**, tsc 149. *(Measured on be58b97.
+  The draft of this entry read 2988 / 203 and sentinel 192; both were wrong and are
+  corrected here rather than recorded, because the next slice's Step 0 keys off these.
+  Suites went 201 → 200: THREE retired — useTodayCard.weekNumber, quickWin,
+  reshapeParity — and TWO added, protocolMatrix.removeCellsAuthored and retagParity.
+  The sentinel did not move because it counts DRAFTED strings: Jen's content is
+  approved, carries no `COPY: draft` marker, and replaced placeholders that carried
+  none either.)*
+- Walk finding (Sept 2): DailyPickerSheet's time question has been invisible since
+  3b-ii-b — sticky footer over an unaffordanced scroll; JSDOM suites cannot catch
+  layout occlusion. Fix slice queued (compress time to a chip row, §5.2 fade on
+  EnhancedModal): must land before any cell gains multiple time-length variants.
+  Standing note: device walks are the only net for layout-class bugs.
+- Remove framework finalized with Jen (three drafts, two rounds): three protocol
+  families (behavioral/mental/interpersonal), replace-not-just-remove routing,
+  one-move-before-building, curated-strings-only rule (free text never enters
+  template copy), crisis pre-check promoted to a 3c-i precondition. Slice 3c split:
+  3c-i capture + families + pre-check; 3c-ii replacement pick + routine seed.
+- Resolved: advance-offer decline suppresses 7 days, re-offers once, then map-only.
+  "It varies" timing routes scaffold-only (no routine seed). Acknowledgment
+  rotation with consistency-derived quieting is 3c-i scope.
+- Open: helper line (Kyle) — his definition, Jen's decision rule, or the combo.
+
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*
