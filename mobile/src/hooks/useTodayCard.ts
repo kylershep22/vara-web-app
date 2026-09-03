@@ -53,14 +53,16 @@ import {
 } from '../protocolEngine';
 import {
   getDailyLog,
+  getDailyLogsSince,
   hasPickedToday,
   upsertDailyLog,
 } from '../services/firebase/dailyLog.service';
+import { deriveConsistentDays } from '../journey/derive';
 import { getFloorCommitment } from '../services/firebase/userPrivate.service';
 import { loadWeeklyContinuity } from '../screens/weekly/weeklyContinuity';
 import type { WeeklyCycle } from '../types/models';
 import type { PhaseContext } from '../journey/resolveJourney';
-import type { DestinationKey, PhaseKey } from '../types/models';
+import type { DestinationKey, PhaseKey, RemoveFamily } from '../types/models';
 import { addDaysIso, toIsoDate } from '../utils/weekStart';
 import { logger } from '../utils/logger';
 
@@ -103,6 +105,13 @@ export interface TodayCard {
   pickSaving: boolean;
   /** The confirm write failed; the day is still unpicked. */
   pickFailed: boolean;
+  /**
+   * Completed days in the current phase. DERIVED, never stored, and NEVER
+   * RENDERED: its only consumer is the acknowledgment quieting rule.
+   *
+   * 0 on the legacy cycle path, which has no phase to count within.
+   */
+  consistentDays: number;
 }
 
 const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
@@ -117,6 +126,7 @@ const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
   picked: false,
   prefillCapacity: 'normal',
   prefillTime: DEFAULT_TIME_CLASS,
+  consistentDays: 0,
   pickSaving: false,
   pickFailed: false,
 };
@@ -165,6 +175,7 @@ export function useTodayCard(
   const [prefillTime, setPrefillTime] = useState<TimeClass>(DEFAULT_TIME_CLASS);
   const [pickSaving, setPickSaving] = useState(false);
   const [pickFailed, setPickFailed] = useState(false);
+  const [consistentDays, setConsistentDays] = useState(0);
   // Bumped by a successful confirm to re-run the load below. The protocol and
   // the conditional floor read both derive from the stored capacity, so a local
   // patch would leave one of them wrong; re-reading is what keeps them together.
@@ -256,6 +267,18 @@ export function useTodayCard(
 
   const destination: DestinationKey =
     source !== null && source.kind === 'phase' ? source.phase.destination : 'focus';
+
+  // The captured Remove family, when there is one. Undefined on the legacy
+  // cycle path and on any journey that has not captured, and undefined orders
+  // nothing, so both are byte-identical to pre-capture behavior.
+  const removeFamily: RemoveFamily | undefined =
+    source !== null && source.kind === 'phase' ? source.phase.removeFamily : undefined;
+
+  // Empty on the cycle path and while enteredAt is an unresolved sentinel.
+  // Either way the consistency read is skipped rather than counted from a
+  // date nobody chose.
+  const enteredAtIso =
+    source !== null && source.kind === 'phase' ? source.phase.enteredAtIso : '';
 
   // TEMPORARY SHIM - RE-HOMED IN SLICE 4. The phase's own seed is itself read
   // off the latest cycle's capacityInitial by the resolver, so both sides are
@@ -355,7 +378,13 @@ export function useTodayCard(
         // present and never inferred, and the quick-win rule that used to set
         // it retired in slice 3a.
         const resolved: ResolvedProtocolVariant = {
-          ...selectProtocol(phaseKey, todaysCapacity, todaysTime, destination),
+          ...selectProtocol(
+            phaseKey,
+            todaysCapacity,
+            todaysTime,
+            destination,
+            removeFamily
+          ),
           quickWinActive: false,
         };
 
@@ -364,6 +393,24 @@ export function useTodayCard(
         // day has no sheet to fill. This is a read and stays a read; writing a
         // pre-fill would set the time field and mark the day answered before
         // the user answered it.
+        // Completed days in this phase, for the acknowledgment quieting rule
+        // ONLY. One indexed range read, and it is skipped entirely on the
+        // legacy path. A failure here must not take the card down: the
+        // acknowledgment simply does not quiet, which is the safe direction.
+        if (enteredAtIso) {
+          try {
+            const since = await getDailyLogsSince(uid, enteredAtIso);
+            if (activeRef.current) {
+              setConsistentDays(deriveConsistentDays(since, enteredAtIso));
+            }
+          } catch (error) {
+            logger.error('[useTodayCard] consistency read failed:', error);
+            if (activeRef.current) setConsistentDays(0);
+          }
+        } else if (activeRef.current) {
+          setConsistentDays(0);
+        }
+
         const prior = answered
           ? null
           : await getDailyLog(uid, addDaysIso(todayIso, -1));
@@ -392,7 +439,18 @@ export function useTodayCard(
     return () => {
       activeRef.current = false;
     };
-  }, [uid, sourceKey, phaseKey, destination, capacitySeed, isClosed, todayIso, reloadToken]);
+  }, [
+    uid,
+    sourceKey,
+    phaseKey,
+    destination,
+    removeFamily,
+    enteredAtIso,
+    capacitySeed,
+    isClosed,
+    todayIso,
+    reloadToken,
+  ]);
 
   /**
    * Mark today done. One direction only: there is no un-complete.
@@ -492,6 +550,7 @@ export function useTodayCard(
     picked,
     prefillCapacity,
     prefillTime,
+    consistentDays,
     confirmPick,
     pickSaving,
     pickFailed,

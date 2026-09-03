@@ -2630,6 +2630,114 @@ describe('Journey State (journeyStates)', () => {
     await assertFails(deleteDoc(doc(db, 'journeyStates', ALICE_UID)));
   });
 
+  // ---- the Remove capture (slice 3c-i), all five fields optional ----
+
+  test('AN EXISTING USER WITH NO CAPTURE CAN STILL WRITE', async () => {
+    // THE REGRESSION THIS EXISTS FOR. Every journeyStates document written
+    // before slice 3c-i lacks all five capture keys, and a bare `data.field`
+    // check on a missing key ERRORS in rules rather than returning null, which
+    // would have denied every write from every existing user. validState()
+    // deliberately carries none of the five.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(
+      setDoc(doc(db, 'journeyStates', ALICE_UID), validState(ALICE_UID))
+    );
+  });
+
+  test('a full chips-path capture is accepted', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, {
+          removeFamily: 'behavioral',
+          removeTargetChip: 'scroll',
+          removeTargetText: null,
+          removeTiming: 'evening',
+          removeCapturedAt: new Date(),
+        })
+      )
+    );
+  });
+
+  test('a free-text capture with no chip is accepted', async () => {
+    // The two paths are separable by design: text without a chip is as valid a
+    // capture as a chip without text.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, {
+          removeFamily: 'mental',
+          removeTargetChip: null,
+          removeTargetText: 'the thing I keep going back to at night',
+          removeTiming: 'varies',
+          removeCapturedAt: new Date(),
+        })
+      )
+    );
+  });
+
+  test('an invalid removeFamily is refused', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { removeFamily: 'behavioural' })
+      )
+    );
+  });
+
+  test('an invalid removeTiming is refused', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { removeTiming: 'night' })
+      )
+    );
+  });
+
+  test('free text over 200 characters is refused', async () => {
+    // The cap is a rules-layer bound on the only field a user types into. The
+    // input can enforce what it likes; this is what holds if it does not.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { removeTargetText: 'x'.repeat(201) })
+      )
+    );
+  });
+
+  test('free text at exactly 200 characters is accepted', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { removeTargetText: 'x'.repeat(200) })
+      )
+    );
+  });
+
+  test('a non-timestamp removeCapturedAt is refused', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'journeyStates', ALICE_UID),
+        validState(ALICE_UID, { removeCapturedAt: '2026-09-02' })
+      )
+    );
+  });
+
   test('a user cannot delete another user journey state', async () => {
     await seedState(ALICE_UID);
     const bob = getAuthContext(BOB_UID).firestore();

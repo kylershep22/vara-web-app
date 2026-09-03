@@ -1,4 +1,4 @@
-import { representativeProtocol, selectProtocol } from '../selectProtocol';
+import { orderForFamily, representativeProtocol, selectProtocol } from '../selectProtocol';
 import { PHASE_ORDER } from '../../constants/journey';
 import {
   PROTOCOL_MATRIX,
@@ -150,14 +150,18 @@ describe('protocol id and variant key', () => {
     }
   });
 
-  it('duplicates only ever sit inside ONE cell, and only in recover today', () => {
+  it('duplicates only ever sit inside ONE cell, in recover and remove', () => {
     const counts = new Map<string, number>();
     for (const p of allProtocols()) {
       counts.set(p.variantKey, (counts.get(p.variantKey) ?? 0) + 1);
     }
     const duplicated = [...counts.entries()].filter(([, n]) => n > 1).map(([k]) => k);
+    // Two multi-variant phases now, for two different reasons: recover absorbed
+    // three former outcomes (slice 3a), and remove holds one variant per family
+    // (slice 3c-i). Both are cells with several answers to one question, which
+    // is exactly what the array shape was for.
     for (const key of duplicated) {
-      expect(key.startsWith('recover-')).toBe(true);
+      expect(key.startsWith('recover-') || key.startsWith('remove-')).toBe(true);
     }
   });
 });
@@ -235,15 +239,23 @@ describe('authored coverage after the slice 3a re-tag', () => {
     }
   });
 
-  it('holds exactly one AUTHORED variant per remove cell', () => {
-    // Remove was placeholder-only when the re-key landed and is authored now
-    // (Jen's behavioral-family content). The merge gate in
-    // protocolMatrix.removeCellsAuthored.test.ts is the enforcement; this is
-    // the shape assertion beside it.
+  it('holds one AUTHORED variant per family per remove cell', () => {
+    // Slice 3c-i added the mental and interpersonal families beside the
+    // behavioral one that shipped with slice 3a, so every remove cell now holds
+    // exactly three: one answer per family, and every family answered.
     for (const capacity of CAPACITIES) {
       const cell = PROTOCOL_MATRIX.remove[capacity];
-      expect(cell).toHaveLength(1);
-      expect(cell[0].placeholder).toBeUndefined();
+      expect(cell).toHaveLength(3);
+      expect(cell.map((v) => v.family)).toEqual([
+        'behavioral',
+        'mental',
+        'interpersonal',
+      ]);
+      for (const variant of cell) {
+        expect(variant.placeholder).toBeUndefined();
+        // Every Remove variant carries its own acknowledgment line.
+        expect(variant.acknowledgment?.length).toBeGreaterThan(0);
+      }
     }
   });
 
@@ -294,5 +306,63 @@ describe('authored coverage after the slice 3a re-tag', () => {
     ['recover', 'normal', 'medium'],
   ])('authors %s/%s at %s', (phase, capacity, timeClass) => {
     expect(PROTOCOL_MATRIX[phase][capacity][0].timeClass).toBe(timeClass);
+  });
+});
+
+describe('family-aware selection in the Remove phase (slice 3c-i)', () => {
+  const FAMILIES = ['behavioral', 'mental', 'interpersonal'] as const;
+
+  it('serves the captured family at every capacity tier', () => {
+    for (const family of FAMILIES) {
+      for (const capacity of CAPACITIES) {
+        const served = selectProtocol(
+          'remove',
+          capacity,
+          'long',
+          ANY_DESTINATION,
+          family
+        );
+        expect(served.family).toBe(family);
+      }
+    }
+  });
+
+  it('falls back to behavioral when the family has no variant in the cell', () => {
+    // Every remove cell holds all three families today, so this is asserted
+    // against a hand-built cell rather than the matrix: the fallback rung must
+    // work before a cell is ever authored unevenly, not after.
+    const cell = PROTOCOL_MATRIX.remove.normal.filter(
+      (v) => v.family !== 'interpersonal'
+    );
+    const ordered = orderForFamily(cell, 'interpersonal');
+    expect(ordered[0].family).toBe('behavioral');
+  });
+
+  it('IS A NO-OP WITH NO CAPTURE, so pre-capture behavior is unchanged', () => {
+    for (const capacity of CAPACITIES) {
+      const withNothing = selectProtocol('remove', capacity, 'long', ANY_DESTINATION);
+      expect(withNothing).toBe(PROTOCOL_MATRIX.remove[capacity][0]);
+      expect(withNothing.family).toBe('behavioral');
+    }
+  });
+
+  it('never consults family outside the Remove phase', () => {
+    // The other three phases have no family axis. Passing one must not reorder
+    // their cells, which would silently change what they serve on a field that
+    // means nothing there.
+    for (const phase of ['recover', 'rewire', 'refocus'] as const) {
+      for (const family of FAMILIES) {
+        expect(
+          selectProtocol(phase, 'normal', 'long', ANY_DESTINATION, family)
+        ).toBe(selectProtocol(phase, 'normal', 'long', ANY_DESTINATION));
+      }
+    }
+  });
+
+  it('orders rather than filters: every family still sees the whole cell', () => {
+    for (const family of FAMILIES) {
+      const ordered = orderForFamily(PROTOCOL_MATRIX.remove.normal, family);
+      expect(ordered).toHaveLength(PROTOCOL_MATRIX.remove.normal.length);
+    }
   });
 });

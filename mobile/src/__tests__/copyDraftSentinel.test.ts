@@ -37,7 +37,14 @@ import * as path from 'path';
  *
  * Read the contract in this file's header before changing it.
  */
-const EXPECTED_SENTINELS = 189;
+// 192 since journey slice 3c-i: +3 for FIRST_MOVE_BY_FAMILY in the Remove
+// capture flow. Those three are sourced from "the v3 pack Section 4", which was
+// not supplied with the slice brief the way Section 6 (the protocols) was, so
+// they are marked drafted and counted rather than shipped as approved content.
+// Everything else the slice added is either Jen-approved (the six protocols,
+// the capture chips) or placeholder-marked safety copy, which carries its own
+// marker and its own merge gate.
+const EXPECTED_SENTINELS = 192;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

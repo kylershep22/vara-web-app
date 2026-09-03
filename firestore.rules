@@ -991,7 +991,36 @@ service cloud.firestore {
           && data.skipped is list
           // Carried so deleteAccount's `where userId ==` sweep finds this row.
           // Validated so a client cannot orphan its own data by forging it.
-          && data.userId == userId;
+          && data.userId == userId
+          && validRemoveCapture(data);
+      }
+
+      // The Remove capture (slice 3c-i). ALL FIVE FIELDS ARE OPTIONAL and are
+      // absent on every document written before that slice, which is every
+      // document that exists today.
+      //
+      // EVERY CLAUSE USES data.get(field, null), NEVER data.field. Reading a
+      // key that is not on the document ERRORS in rules rather than returning
+      // null, so a bare `data.removeFamily in [...]` would deny every write
+      // from every existing user the moment this shipped. That is the same
+      // absent-key trap that has cost this project a slice before.
+      //
+      // The text cap is 200 characters. It is a rules-layer bound on a field the
+      // client is the only writer of, not a UI concern: the input can enforce
+      // whatever it likes, and this is what holds if it does not.
+      function validRemoveCapture(data) {
+        return (data.get('removeFamily', null) == null
+            || data.get('removeFamily', null) in ['behavioral', 'mental', 'interpersonal'])
+          && (data.get('removeTiming', null) == null
+            || data.get('removeTiming', null) in ['morning', 'day', 'evening', 'varies'])
+          && (data.get('removeTargetChip', null) == null
+            || (data.get('removeTargetChip', null) is string
+              && data.get('removeTargetChip', null).size() <= 64))
+          && (data.get('removeTargetText', null) == null
+            || (data.get('removeTargetText', null) is string
+              && data.get('removeTargetText', null).size() <= 200))
+          && (data.get('removeCapturedAt', null) == null
+            || data.get('removeCapturedAt', null) is timestamp);
       }
 
       allow read: if isAuthenticated() && request.auth.uid == userId;

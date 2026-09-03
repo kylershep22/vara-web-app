@@ -37,6 +37,8 @@ import type {
   PhaseExitReason,
   PhaseHistoryEntry,
   PhaseKey,
+  RemoveFamily,
+  RemoveTiming,
 } from '../../types/models';
 
 const JOURNEY_STATES = 'journeyStates';
@@ -255,6 +257,53 @@ export async function recordAdjustOffered(userId: string): Promise<void> {
 export async function recordAdjustDeclined(userId: string): Promise<void> {
   await updateDoc(doc(requireDb(), JOURNEY_STATES, userId), {
     adjustDeclinedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * The answers one Remove capture produces (slice 3c-i).
+ *
+ * EVERY FIELD IS OPTIONAL BECAUSE THE FIVE ROUTES ANSWER DIFFERENT QUESTIONS.
+ * The chips path writes a chip and no text; the free-text path writes text and
+ * no chip; the relationship and sleep routes skip timing entirely. Requiring
+ * any of them would force a caller to invent an answer the user never gave.
+ */
+export interface RemoveCaptureInput {
+  family?: RemoveFamily | null;
+  chipId?: string | null;
+  /**
+   * The user's own words. THE CALLER IS RESPONSIBLE FOR HAVING RUN THE CRISIS
+   * PRE-CHECK before this reaches here; this module does not scan text and must
+   * not start, because a second scanner is a second answer.
+   */
+  text?: string | null;
+  timing?: RemoveTiming | null;
+}
+
+/**
+ * Record what the user named as the thing to remove.
+ *
+ * `removeCapturedAt` is stamped here and ONLY here, so it is the one field that
+ * says a capture happened. Explicit nulls are written for whatever the route
+ * did not collect, rather than omitting the keys: a null says "this route did
+ * not ask", which reads correctly cold, while a missing key is
+ * indistinguishable from a document that predates the field.
+ *
+ * updateDoc, not setDoc(merge): a capture only ever happens for a user who
+ * already has a journey state, and a create here would mean the resolver ladder
+ * had been bypassed.
+ */
+export async function recordRemoveCapture(
+  userId: string,
+  input: RemoveCaptureInput
+): Promise<void> {
+  await updateDoc(doc(requireDb(), JOURNEY_STATES, userId), {
+    removeFamily: input.family ?? null,
+    removeTargetChip: input.chipId ?? null,
+    removeTargetText: input.text ?? null,
+    removeTiming: input.timing ?? null,
+    removeCapturedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }

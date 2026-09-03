@@ -42,10 +42,16 @@ describe('analytics event schema', () => {
       // that does not exist.
       expect([...ANALYTICS_EVENT_NAMES].sort()).toEqual([
         'floor_set',
+        // Fired by the Remove capture flow (slice 3c-i). Wiring proof is
+        // removeCapture's own suites.
+        'journey_remove_capture_dismissed',
+        'journey_remove_captured',
         // Fired by resolveJourney's migration branch; its wiring proof is
         // resolveJourney.test.ts, which asserts both source values.
         'journey_state_created',
         'login',
+        // Bare by design: shown-count only, never what triggered it.
+        'safety_precheck_shown',
         'sign_up',
         'weekly_close',
         'weekly_close_entry',
