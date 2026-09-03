@@ -172,38 +172,44 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
   remove: {
     normal: [
       protocol('remove', 'normal', {
-        // PLACEHOLDER, not shippable. See the merge gate in
-        // __tests__/protocolMatrix.removeCellsAuthored.test.ts.
-        name: 'Build-walk stand-in, normal capacity',
-        dailyAction: 'Mark today done when you have done one thing that fits.',
+        name: 'Make it harder to reach',
+        dailyAction:
+          'Pick one piece of friction and put it in place today. Charger out of the bedroom, app off the home screen, remote in a drawer. Small is fine.',
         estMinutes: 20,
+        // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
+        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
+        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
+        // rendered from slice 9 behavioral screen.
         whyItWorks:
-          'Stand-in rationale so the card renders end to end during the build walk. Jen authors the real one.',
-        placeholder: true,
+          "Automatic habits are easier to interrupt when the environment changes first. Make the usual choice slightly harder now, so you're not relying on willpower later.",
       }),
     ],
     limited: [
       protocol('remove', 'limited', {
-        // PLACEHOLDER, not shippable. See the merge gate in
-        // __tests__/protocolMatrix.removeCellsAuthored.test.ts.
-        name: 'Build-walk stand-in, limited capacity',
-        dailyAction: 'Mark today done when you have done one thing that fits.',
+        name: 'Catch the moment it starts',
+        dailyAction:
+          'Just notice it once today. The reach, the tap, the time on the clock. One line to yourself: "It starts when..." That\'s the whole practice.',
         estMinutes: 10,
+        // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
+        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
+        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
+        // rendered from slice 9 behavioral screen.
         whyItWorks:
-          'Stand-in rationale so the card renders end to end during the build walk. Jen authors the real one.',
-        placeholder: true,
+          "You can't change a pattern you never catch. Noticing where it starts gives you something specific to work with.",
       }),
     ],
     slammed: [
       protocol('remove', 'slammed', {
-        // PLACEHOLDER, not shippable. See the merge gate in
-        // __tests__/protocolMatrix.removeCellsAuthored.test.ts.
-        name: 'Build-walk stand-in, slammed capacity',
-        dailyAction: 'Mark today done when you have done one thing that fits.',
+        name: 'Interrupt it once',
+        dailyAction:
+          'When you notice it today, make one small break in the pattern. Put the phone down, step away, silence one thing. Even two minutes counts.',
         estMinutes: 5,
+        // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
+        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
+        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
+        // rendered from slice 9 behavioral screen.
         whyItWorks:
-          'Stand-in rationale so the card renders end to end during the build walk. Jen authors the real one.',
-        placeholder: true,
+          'A pattern loosens a little every time it gets interrupted. One small break is enough on a day like this.',
       }),
     ],
   },

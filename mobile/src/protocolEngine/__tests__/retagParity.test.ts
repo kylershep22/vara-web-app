@@ -75,13 +75,23 @@ describe('every authored row survived the re-tag unedited', () => {
     }
   );
 
-  test('nothing authored was lost: all 12 rows are still in the matrix', () => {
+  test('nothing re-tagged was lost, and Remove added exactly three', () => {
+    // 12 re-tagged rows + 3 authored Remove protocols = 15. The Remove three
+    // arrived in the slice 3a closing commit and are NOT re-tagged rows, so
+    // they are counted separately rather than folded into RETAGGED: this test
+    // must keep failing if a re-tagged row goes missing, even while the
+    // authored total grows.
     const authored = PHASE_ORDER.flatMap((phase) =>
       CAPACITY_TIERS.flatMap((capacity) =>
         PROTOCOL_MATRIX[phase][capacity].filter((v) => !v.placeholder)
       )
     );
-    expect(authored).toHaveLength(RETAGGED.length);
+    const removeAuthored = CAPACITY_TIERS.flatMap((capacity) =>
+      PROTOCOL_MATRIX.remove[capacity].filter((v) => !v.placeholder)
+    );
+
+    expect(removeAuthored).toHaveLength(3);
+    expect(authored).toHaveLength(RETAGGED.length + removeAuthored.length);
   });
 
   test('recover absorbed three former outcomes, so its cells hold three each', () => {

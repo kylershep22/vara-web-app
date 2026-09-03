@@ -235,16 +235,26 @@ describe('authored coverage after the slice 3a re-tag', () => {
     }
   });
 
-  it('holds exactly one PLACEHOLDER per remove and rewire cell', () => {
-    // These are the net-new phases. Remove is the merge gate (see
-    // protocolMatrix.removeCellsAuthored.test.ts); rewire is unreachable until
-    // slice 5.
-    for (const phase of ['remove', 'rewire'] as const) {
-      for (const capacity of CAPACITIES) {
-        const cell = PROTOCOL_MATRIX[phase][capacity];
-        expect(cell).toHaveLength(1);
-        expect(cell[0].placeholder).toBe(true);
-      }
+  it('holds exactly one AUTHORED variant per remove cell', () => {
+    // Remove was placeholder-only when the re-key landed and is authored now
+    // (Jen's behavioral-family content). The merge gate in
+    // protocolMatrix.removeCellsAuthored.test.ts is the enforcement; this is
+    // the shape assertion beside it.
+    for (const capacity of CAPACITIES) {
+      const cell = PROTOCOL_MATRIX.remove[capacity];
+      expect(cell).toHaveLength(1);
+      expect(cell[0].placeholder).toBeUndefined();
+    }
+  });
+
+  it('holds exactly one PLACEHOLDER per rewire cell', () => {
+    // Rewire is still net-new and unreachable until slice 5, so its stand-ins
+    // outlive the slice 3a gate by design. When slice 5 makes it reachable this
+    // becomes a gate of its own.
+    for (const capacity of CAPACITIES) {
+      const cell = PROTOCOL_MATRIX.rewire[capacity];
+      expect(cell).toHaveLength(1);
+      expect(cell[0].placeholder).toBe(true);
     }
   });
 
