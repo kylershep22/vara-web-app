@@ -12,7 +12,7 @@
  */
 import { PROTOCOL_MATRIX, TIME_CLASSES } from './protocolMatrix';
 import type { CapacityTier, OutcomeKey, TimeClass, ProtocolVariant } from './types';
-import type { DestinationKey, PhaseKey } from '../types/models';
+import type { DestinationKey, PhaseKey, RemoveFamily } from '../types/models';
 
 /**
  * LEGACY BRIDGE - dies with JOURNEY_IA flag retirement.
@@ -108,6 +108,39 @@ export function pickVariant(
 }
 
 /**
+ * Order a Remove cell for a captured family. NEVER filters (slice 3c-i).
+ *
+ * THE LADDER, in order:
+ *   1. variants whose family matches the capture
+ *   2. then behavioral, the default family every Remove cell is guaranteed
+ *   3. then everything else, in authored order
+ *
+ * WHY BEHAVIORAL IS THE FALLBACK RUNG rather than "whatever is first": every
+ * Remove cell holds a behavioral variant by construction, so rung 2 can never
+ * come up empty. Falling back to authored order alone would make what a
+ * mental-family user gets depend on where in the file someone happened to add
+ * a variant.
+ *
+ * A NO-OP WHEN THERE IS NO CAPTURE. `family` is undefined until the user
+ * completes the Remove capture, and an undefined family returns the cell
+ * untouched, which is byte-identical to what shipped before this slice.
+ */
+export function orderForFamily(
+  variants: ProtocolVariant[],
+  family: RemoveFamily | undefined
+): ProtocolVariant[] {
+  if (!family) return variants;
+  const rank = (v: ProtocolVariant): number =>
+    v.family === family ? 0 : v.family === 'behavioral' ? 1 : 2;
+  // Index tiebreak keeps the sort stable as a property of this code rather
+  // than of the runtime, matching orderForDestination above.
+  return variants
+    .map((variant, index) => ({ variant, index }))
+    .sort((a, b) => rank(a.variant) - rank(b.variant) || a.index - b.index)
+    .map((entry) => entry.variant);
+}
+
+/**
  * The day's protocol for a phase, a readiness tier, a time window and a
  * destination.
  *
@@ -120,10 +153,21 @@ export function selectProtocol(
   phase: PhaseKey,
   capacity: CapacityTier,
   time: TimeClass,
-  destination: DestinationKey
+  destination: DestinationKey,
+  removeFamily?: RemoveFamily
 ): ProtocolVariant {
-  const ordered = orderForDestination(PROTOCOL_MATRIX[phase][capacity], destination);
-  return pickVariant(ordered, time);
+  const cell = PROTOCOL_MATRIX[phase][capacity];
+  // FAMILY ORDERS FIRST, THEN DESTINATION, THEN THE TIME LADDER PICKS. The
+  // family is the more specific signal - the user named this thing - so it
+  // outranks the destination, which is a standing preference. Both only order;
+  // only the time ladder actually chooses.
+  //
+  // Family applies to REMOVE ONLY. No other phase has a family axis, and
+  // consulting it elsewhere would silently reorder cells on a field that means
+  // nothing there.
+  const byFamily =
+    phase === 'remove' ? orderForFamily(cell, removeFamily) : cell;
+  return pickVariant(orderForDestination(byFamily, destination), time);
 }
 
 /**

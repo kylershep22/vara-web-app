@@ -43,10 +43,16 @@ import {
 import { getLatestWeeklyCycle } from '../services/firebase/weeklyCycle.service';
 import { getUserPrivate } from '../services/firebase/userPrivate.service';
 import { logEvent } from '../services/firebase/analyticsEvents.service';
-import type { DestinationKey, JourneyState, PhaseKey } from '../types/models';
+import type {
+  DestinationKey,
+  JourneyState,
+  PhaseKey,
+  RemoveFamily,
+} from '../types/models';
 import type { JourneyMigrationSource } from '../types/analyticsEvents';
 import type { CapacityTier, OutcomeKey } from '../protocolEngine';
 import { logger } from '../utils/logger';
+import { toIsoDate } from '../utils/weekStart';
 
 /**
  * What Home needs to render the day, with no weekly cycle in it.
@@ -73,6 +79,34 @@ export interface PhaseContext {
   capacitySeed: CapacityTier;
   /** journeyState.updatedAt in millis. See the note on this interface. */
   revisionToken: number;
+  /**
+   * The family the user named in the Remove capture (slice 3c-i).
+   *
+   * UNDEFINED UNTIL THEY CAPTURE, and undefined is the honest value: it means
+   * "not asked yet", and selectProtocol returns the cell untouched for it. A
+   * default of 'behavioral' would serve the same protocol but would claim the
+   * user had chosen it.
+   */
+  removeFamily?: RemoveFamily;
+  /**
+   * ISO date the current phase was entered, for deriveConsistentDays.
+   *
+   * A DATE STRING, NOT THE TIMESTAMP. The derivation compares it against
+   * `dailyLog.date`, which is ISO YYYY-MM-DD, and converting once here keeps
+   * the comparison in one frame instead of two.
+   *
+   * Empty string when the server has not resolved `enteredAt` yet, which
+   * suppresses the consistency read rather than counting from the epoch.
+   */
+  enteredAtIso: string;
+  /**
+   * Has the user completed the Remove capture (slice 3c-i)?
+   *
+   * DERIVED FROM removeCapturedAt AND NOTHING ELSE. The other four capture
+   * fields can each legitimately be null after a completed capture, so gating
+   * on any of them would re-offer the flow to someone who had already finished.
+   */
+  hasRemoveCapture: boolean;
 }
 
 export type JourneyResolution =
@@ -88,6 +122,24 @@ export type JourneyResolution =
  */
 export function destinationForOutcome(outcome: OutcomeKey): DestinationKey {
   return outcome === 'stress' ? 'calm' : outcome;
+}
+
+/**
+ * journeyState.enteredAt as an ISO date, tolerant of the shapes Firestore
+ * returns and of the unresolved-sentinel window.
+ */
+function enteredAtIsoOf(state: JourneyState): string {
+  const stamp = state.enteredAt as unknown as {
+    toDate?: () => Date;
+    seconds?: number;
+  } | null;
+  const date =
+    stamp && typeof stamp.toDate === 'function'
+      ? stamp.toDate()
+      : stamp && typeof stamp.seconds === 'number'
+        ? new Date(stamp.seconds * 1000)
+        : null;
+  return date ? toIsoDate(date) : '';
 }
 
 /** journeyState.updatedAt, in millis, tolerant of the shapes Firestore returns. */
@@ -150,6 +202,9 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
           destination: existing.destination,
           capacitySeed,
           revisionToken: revisionOf(existing),
+          removeFamily: existing.removeFamily ?? undefined,
+          enteredAtIso: enteredAtIsoOf(existing),
+          hasRemoveCapture: !!existing.removeCapturedAt,
         },
       };
     }
@@ -203,6 +258,11 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
         destination: created.destination,
         capacitySeed,
         revisionToken: revisionOf(created),
+        // A journey created a moment ago has no capture yet, by construction.
+        removeFamily: undefined,
+        enteredAtIso: enteredAtIsoOf(created),
+        // A journey created a moment ago has no capture, by construction.
+        hasRemoveCapture: false,
       },
     };
   } catch (error) {

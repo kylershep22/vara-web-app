@@ -134,6 +134,10 @@ export const ROUTES = {
   WeeklyEntry: 'WeeklyEntry',
   WeeklyFloor: 'WeeklyFloor',
   WeeklyOpen: 'WeeklyOpen',
+  // The Remove capture flow (journey slice 3c-i). ONE AppStack entry holding a
+  // nested stack, so the flow's own six route names stay inside their own
+  // navigator and cannot collide with anything here.
+  RemoveCapture: 'RemoveCapture',
   WeeklyClose: 'WeeklyClose',
 
   // --- Dev-only AppStack screens (__DEV__) ---

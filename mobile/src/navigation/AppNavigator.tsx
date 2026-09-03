@@ -76,6 +76,7 @@ import WearableIntegrationScreen from '../screens/WearableIntegrationScreen';
 import { WeeklyEntryScreen } from '../screens/weekly/WeeklyEntryScreen';
 import { FloorCommitmentScreen } from '../screens/weekly/FloorCommitmentScreen';
 import { WeeklyOpenScreen } from '../screens/weekly/WeeklyOpenScreen';
+import { RemoveCaptureNavigator } from '../screens/journey/removeCapture/RemoveCaptureNavigator';
 import { WeeklyCloseScreen } from '../screens/weekly/WeeklyCloseScreen';
 import {
   CommunityScreen,
@@ -1096,6 +1097,18 @@ const MainNavigator = () => {
             headerShown: true,
             title: 'Your floor',
             headerShadowVisible: false,
+          })}
+        />
+        {/* The Remove capture (journey slice 3c-i). Modal-style presentation:
+            it is a one-time flow entered from a Today card, and it returns to
+            Today rather than continuing deeper into the app. Its own header is
+            off; each screen carries its own scaffold. */}
+        <AppStack.Screen
+          name={ROUTES.RemoveCapture}
+          component={RemoveCaptureNavigator}
+          options={stackOpts({
+            headerShown: false,
+            animation: 'slide_from_right',
           })}
         />
         <AppStack.Screen

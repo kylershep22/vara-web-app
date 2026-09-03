@@ -129,7 +129,7 @@ jest.mock('../../services/firebase/analyticsEvents.service', () => ({
 }));
 
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { act, render, waitFor } from '@testing-library/react-native';
 
 import DashboardScreen from '../DashboardScreen';
 import { PROTOCOL_MATRIX } from '../../protocolEngine';
@@ -165,6 +165,8 @@ const PHASE = {
   destination: 'calm',
   capacitySeed: 'limited',
   revisionToken: 99,
+  enteredAtIso: '',
+  hasRemoveCapture: true,
 };
 
 function todayCard(over: Record<string, unknown> = {}) {
@@ -259,6 +261,63 @@ describe('DashboardScreen under JOURNEY_IA', () => {
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
     expect(mockResolveJourney).not.toHaveBeenCalled();
+  });
+
+  test('THE ENTRY CARD RELEASES ON A COMPLETED CAPTURE, WITHOUT A REMOUNT', async () => {
+    // The re-walk failure. A capture completes, the flow pops back to Today,
+    // and Today re-resolves on focus. Before this fix the resolver effect never
+    // re-fired on a refresh, so the card sat there, re-enterable, until the app
+    // was killed.
+    //
+    // The focus callback is captured from the mocked useFocusEffect and invoked
+    // by hand, which is exactly what returning to the tab does.
+    let focusCb: (() => void) | undefined;
+    mockUseFocusEffect.mockImplementation((cb: () => void) => {
+      focusCb = cb;
+    });
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: { ...PHASE, hasRemoveCapture: false },
+    });
+
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-remove-capture')).toBeTruthy());
+    // Suppressed while the card is up, per the card-ceiling decision.
+    expect(queryByTestId('home-continuity')).toBeNull();
+
+    // The capture lands.
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: { ...PHASE, hasRemoveCapture: true },
+    });
+    await act(async () => {
+      focusCb?.();
+    });
+
+    await waitFor(() => expect(queryByTestId('home-remove-capture')).toBeNull());
+    expect(getByTestId('home-continuity')).toBeTruthy();
+  });
+
+  test('the card stays up while the capture is still outstanding', async () => {
+    // Guards the test above against passing for the wrong reason: if the card
+    // hid on any refresh regardless of state, this would go red.
+    let focusCb: (() => void) | undefined;
+    mockUseFocusEffect.mockImplementation((cb: () => void) => {
+      focusCb = cb;
+    });
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: { ...PHASE, hasRemoveCapture: false },
+    });
+
+    const { getByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-remove-capture')).toBeTruthy());
+
+    await act(async () => {
+      focusCb?.();
+    });
+
+    await waitFor(() => expect(getByTestId('home-remove-capture')).toBeTruthy());
   });
 
   test("a 'legacy' resolution falls back to the CYCLE source", async () => {

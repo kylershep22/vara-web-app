@@ -32,7 +32,7 @@
  */
 
 import type { CapacityTier, OutcomeKey } from '../protocolEngine';
-import type { PhaseKey } from './models';
+import type { PhaseKey, RemoveFamily, RemoveTiming } from './models';
 
 /**
  * The 12 protocol ids, as a closed union.
@@ -276,6 +276,36 @@ export interface AnalyticsEventMap {
    * again after a document already existed, which would be a resolver bug.
    */
   journey_state_created: { source: JourneyMigrationSource };
+  /**
+   * The Remove capture completed (slice 3c-i).
+   *
+   * THE USER'S OWN WORDS ARE NOT HERE AND MAY NEVER BE. `chipId` carries
+   * 'free_text' when they typed instead of tapping, which records THAT they
+   * used the free-text path without recording what they said. This declaration
+   * is the guard: there is no field for the text, so there is nothing for a
+   * careless call site to fill.
+   *
+   * `family` and `timing` are closed unions the user selected from, not derived
+   * content, which is why they are safe to record.
+   */
+  journey_remove_captured: {
+    family: RemoveFamily | null;
+    /** A curated chip id, or the literal 'free_text'. NEVER the text. */
+    chipId: string;
+    timing: RemoveTiming | null;
+  };
+  /** The entry card was dismissed with "I'll name it later". */
+  journey_remove_capture_dismissed: Record<string, never>;
+  /**
+   * The crisis pre-check did not pass and the support screen was shown.
+   *
+   * DELIBERATELY BARE. No text, no category, no length, no timing, nothing that
+   * could be joined back to a person or a disclosure. The only fact recorded is
+   * that the screen appeared at all, which is what tells us whether the
+   * pre-check is firing in the field. Adding ANY dimension to this payload
+   * would convert an anonymous count into a record of who disclosed what.
+   */
+  safety_precheck_shown: Record<string, never>;
   /** An account was created. */
   sign_up: { method: AuthMethod };
   /** An existing account signed in. */
@@ -289,7 +319,10 @@ export type AnalyticsEventName = keyof AnalyticsEventMap;
  * to the map above without adding it here is a tsc error.
  */
 const EVENT_NAME_SET: Record<AnalyticsEventName, true> = {
+  journey_remove_captured: true,
+  journey_remove_capture_dismissed: true,
   journey_state_created: true,
+  safety_precheck_shown: true,
   weekly_open: true,
   weekly_close: true,
   weekly_close_failed: true,

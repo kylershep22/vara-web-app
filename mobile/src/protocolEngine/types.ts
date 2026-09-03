@@ -23,7 +23,7 @@
  * the quick-win week rule) keep their names on purpose.
  */
 
-import type { DestinationKey, PhaseKey } from '../types/models';
+import type { DestinationKey, PhaseKey, RemoveFamily } from '../types/models';
 
 /**
  * LEGACY. The four weekly outcomes.
@@ -150,6 +150,30 @@ export interface ProtocolVariant {
    * empty cell has no protocol to serve. Ordering cannot fail.
    */
   destinationWeight?: Partial<Record<DestinationKey, number>>;
+  /**
+   * Which Remove family this variant serves (slice 3c-i).
+   *
+   * REMOVE-PHASE ONLY. The other three phases have no family axis, so the field
+   * is absent there rather than defaulted; `selectProtocol` only consults it
+   * when the phase is 'remove' and the user has captured a family.
+   *
+   * ORDERING, LIKE destinationWeight, NEVER MEMBERSHIP. A user whose capture
+   * says 'mental' is still served a behavioral variant when the cell has no
+   * mental one, because an empty cell has no protocol to serve.
+   */
+  family?: RemoveFamily;
+  /**
+   * The line the done-state shows instead of the fixed one (slice 3c-i).
+   *
+   * PER VARIANT, SO IT MATCHES WHAT THE USER ACTUALLY DID. A friction protocol
+   * acknowledges friction; a noticing protocol acknowledges noticing. Absent on
+   * every non-Remove variant, which falls back to COMPLETION_COPY.done.
+   *
+   * NEVER A COUNT AND NEVER A STREAK. The quieting rule lives in the card, not
+   * here, and it swaps this line for the plain one rather than counting at the
+   * user.
+   */
+  acknowledgment?: string;
   /**
    * Build-and-walk stand-in, NOT shippable content.
    *

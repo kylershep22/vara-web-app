@@ -30,7 +30,7 @@
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
 import type { CapacityTier, OutcomeKey, TimeClass, ProtocolVariant } from './types';
-import type { PhaseKey } from '../types/models';
+import type { PhaseKey, RemoveFamily } from '../types/models';
 // PHASE_ORDER is the ONE definition of phase order (journey slice 1). Imported
 // rather than restated: a second list here is exactly how the engine and the
 // journey service start disagreeing about what comes after 'remove'.
@@ -102,7 +102,12 @@ const protocol = (
     Partial<
       Pick<
         ProtocolVariant,
-        'quickWinPracticeId' | 'supportingPracticeIds' | 'destinationWeight' | 'placeholder'
+        | 'quickWinPracticeId'
+        | 'supportingPracticeIds'
+        | 'destinationWeight'
+        | 'placeholder'
+        | 'family'
+        | 'acknowledgment'
       >
     >
 ): ProtocolVariant => {
@@ -182,6 +187,36 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         // rendered from slice 9 behavioral screen.
         whyItWorks:
           "Automatic habits are easier to interrupt when the environment changes first. Make the usual choice slightly harder now, so you're not relying on willpower later.",
+        family: 'behavioral',
+        acknowledgment: 'Nice. That\'s in place.',
+      }),
+      protocol('remove', 'normal', {
+        family: 'mental',
+        name: 'Give the thought a time',
+        dailyAction:
+          'When it shows up, write one line: what it is, and when you\'ll deal with it. Then put the pen down. You\'ve answered it.',
+        estMinutes: 20,
+        acknowledgment: "It's on paper now, not on you.",
+        // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
+        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
+        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
+        // rendered from slice 9 behavioral screen.
+        whyItWorks:
+          "A thought keeps replaying when it has nowhere to go. A written plan can quiet it in a way pushing it away doesn't.",
+      }),
+      protocol('remove', 'normal', {
+        family: 'interpersonal',
+        name: 'Decide one boundary',
+        dailyAction:
+          'Pick one small limit and put it in place today. A shorter call, a topic you won\'t pick up, a reply that waits until tomorrow.',
+        estMinutes: 20,
+        acknowledgment: 'Good. You made some room.',
+        // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
+        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
+        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
+        // rendered from slice 9 behavioral screen.
+        whyItWorks:
+          "A draining interaction costs less when you've decided its shape in advance. One boundary, chosen ahead of time, does the work in the moment.",
       }),
     ],
     limited: [
@@ -196,6 +231,36 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         // rendered from slice 9 behavioral screen.
         whyItWorks:
           "You can't change a pattern you never catch. Noticing where it starts gives you something specific to work with.",
+        family: 'behavioral',
+        acknowledgment: 'You caught it. That\'s useful.',
+      }),
+      protocol('remove', 'limited', {
+        family: 'mental',
+        name: 'Name it once',
+        dailyAction:
+          'When the loop starts today, say what it\'s actually about, in one line, out loud or on paper. Nothing else required.',
+        estMinutes: 10,
+        acknowledgment: 'You caught it. That\'s useful.',
+        // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
+        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
+        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
+        // rendered from slice 9 behavioral screen.
+        whyItWorks:
+          'Naming a thought can put a little distance between you and it. The volume tends to come down from there.',
+      }),
+      protocol('remove', 'limited', {
+        family: 'interpersonal',
+        name: 'Notice what it costs',
+        dailyAction:
+          'After the next interaction, take one breath and notice where it landed. Shoulders, jaw, mood.',
+        estMinutes: 10,
+        acknowledgment: 'You caught it. That\'s useful.',
+        // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
+        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
+        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
+        // rendered from slice 9 behavioral screen.
+        whyItWorks:
+          'Seeing the cost clearly is the first boundary. The next one tends to be easier to draw.',
       }),
     ],
     slammed: [
@@ -210,6 +275,36 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         // rendered from slice 9 behavioral screen.
         whyItWorks:
           'A pattern loosens a little every time it gets interrupted. One small break is enough on a day like this.',
+        family: 'behavioral',
+        acknowledgment: 'That\'s time you took back.',
+      }),
+      protocol('remove', 'slammed', {
+        family: 'mental',
+        name: 'Two minutes somewhere else',
+        dailyAction:
+          'When it starts, change what your body is doing. Stand up, change rooms, run cold water over your hands.',
+        estMinutes: 5,
+        acknowledgment: 'That\'s time you took back.',
+        // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
+        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
+        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
+        // rendered from slice 9 behavioral screen.
+        whyItWorks:
+          "When thoughts won't move, the body is the better lever. A change of place can break the grip for a moment, and a moment is enough today.",
+      }),
+      protocol('remove', 'slammed', {
+        family: 'interpersonal',
+        name: 'Take one exit',
+        dailyAction:
+          'Give yourself one out today. End a conversation a few minutes early, step outside, let a message sit.',
+        estMinutes: 5,
+        acknowledgment: 'Good. You made some room.',
+        // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
+        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
+        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
+        // rendered from slice 9 behavioral screen.
+        whyItWorks:
+          'On a low day, the boundary is the exit. Taking it once is enough.',
       }),
     ],
   },

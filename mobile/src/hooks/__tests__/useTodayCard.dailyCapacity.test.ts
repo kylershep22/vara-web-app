@@ -197,6 +197,10 @@ const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
   destination: 'focus',
   capacitySeed: 'normal',
   revisionToken: 1,
+  // Slice 3c-i. Empty enteredAtIso suppresses the consistency read, which is
+  // what keeps these suites asserting the day's load and nothing else.
+  enteredAtIso: '',
+  hasRemoveCapture: false,
   ...over,
 });
 

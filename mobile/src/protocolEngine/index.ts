@@ -45,6 +45,7 @@ export {
   selectProtocol,
   representativeProtocol,
   orderForDestination,
+  orderForFamily,
   legacyPhaseFor,
 } from './selectProtocol';
 // RETIRED in journey slice 3a: `applyQuickWin` / `QUICK_WIN_WEEK`. The week-1

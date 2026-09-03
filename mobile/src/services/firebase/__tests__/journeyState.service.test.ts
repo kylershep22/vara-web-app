@@ -37,6 +37,7 @@ import {
   recordAdjustOffered,
   recordAdvanceDeclined,
   recordAdvanceOffered,
+  recordRemoveCapture,
   skipToPhase,
   stepBackToPhase,
 } from '../journeyState.service';
@@ -355,5 +356,46 @@ describe('journeyState.service', () => {
       await recordAdvanceOffered(ALICE);
       expect(patch().updatedAt).toEqual({ __serverTimestamp: true });
     });
+  });
+});
+
+describe('recordRemoveCapture refuses an empty capture', () => {
+  // The backstop for the walk failure. The write is an updateDoc, so an empty
+  // one does not merely record nothing: it nulls a real answer and stamps a
+  // fresh removeCapturedAt over it. The call site guards too; this is the layer
+  // that actually touches the row.
+  beforeEach(() => {
+    mockDoc.mockClear();
+    mockUpdateDoc.mockClear();
+  });
+
+  test('throws, and writes nothing, when no target was named', async () => {
+    await expect(recordRemoveCapture(ALICE, {})).rejects.toThrow(
+      /no target/i
+    );
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
+  });
+
+  test('throws on explicit nulls too, not just missing keys', async () => {
+    await expect(
+      recordRemoveCapture(ALICE, {
+        family: null,
+        chipId: null,
+        text: null,
+        timing: 'evening',
+      })
+    ).rejects.toThrow(/no target/i);
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
+  });
+
+  test('a chip alone is a target, so the guard is not over-broad', async () => {
+    await recordRemoveCapture(ALICE, { chipId: 'scroll' });
+    expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
+    expect(mockUpdateDoc.mock.calls[0][1].removeTargetChip).toBe('scroll');
+  });
+
+  test('free text alone is a target too', async () => {
+    await recordRemoveCapture(ALICE, { text: 'scrolling at night' });
+    expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
   });
 });

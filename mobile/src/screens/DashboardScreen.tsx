@@ -40,6 +40,8 @@ import { DailyPickerSheet } from '../components/dashboard/DailyPickerSheet';
 import { OpenYourWeekCard } from '../components/dashboard/OpenYourWeekCard';
 import { ContinuityCard } from '../components/dashboard/ContinuityCard';
 import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
+import { RemoveCaptureCard } from '../components/dashboard/RemoveCaptureCard';
+import { logEvent } from '../services/firebase/analyticsEvents.service';
 import { useDashboard } from '../hooks/useDashboard';
 import { useJourneyLanding } from '../hooks/useJourneyLanding';
 import { cycleSource, phaseSource, useTodayCard } from '../hooks/useTodayCard';
@@ -144,6 +146,20 @@ const DashboardScreen: React.FC = () => {
   // would mark the day answered because the user looked at it. The only write
   // is behind the sheet's confirm, in useTodayCard.confirmPick.
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Session-scoped only. The durable re-offer schedule (retire 7 days, show
+  // once more, then a quiet row) is slice 5; see RemoveCaptureCard.
+  const [captureDismissed, setCaptureDismissed] = useState(false);
+
+  // THE CAPTURE CARD SUPPRESSES ContinuityCard WHILE IT SHOWS (card-ceiling
+  // decision, slice 3c-i). Naming the thing to remove is the highest-priority
+  // action a Remove-phase user has; the continuity count is a below-the-fold
+  // read on a weekly loop that is being retired. Continuity returns the moment
+  // the capture completes or is dismissed.
+  const showRemoveCapture =
+    JOURNEY_IA &&
+    weeklyLanding.phase?.phaseKey === 'remove' &&
+    !weeklyLanding.phase.hasRemoveCapture &&
+    !captureDismissed;
 
   // The weekly close (spec 8). `navigate`, not `replace`: Home is a tab, so the
   // close is pushed OVER it exactly as the floor and open flows are below.
@@ -330,6 +346,9 @@ const DashboardScreen: React.FC = () => {
                       saving={todayCard.saving}
                       saveFailed={todayCard.saveFailed}
                       onMarkDone={todayCard.markDone}
+                      /* Never rendered. Decides whether the done state shows
+                         the variant's own acknowledgment or the plain line. */
+                      consistentDays={todayCard.consistentDays}
                     />
                   ) : (
                     <SetTodayCard onPress={() => setPickerOpen(true)} />
@@ -353,8 +372,22 @@ const DashboardScreen: React.FC = () => {
                       always been a sibling with its own `closed` prop and is
                       untouched by the removal. */}
 
-                  {/* Self-hides at 0 and on a failed read; see ContinuityCard. */}
-                  <ContinuityCard continuity={todayCard.continuity} />
+                  {/* ONE CONDITIONAL, per the card-ceiling decision. Either the
+                      capture card or the continuity count, never both. */}
+                  {showRemoveCapture ? (
+                    <RemoveCaptureCard
+                      onOpen={() => go(ROUTES.RemoveCapture)}
+                      onDismiss={() => {
+                        setCaptureDismissed(true);
+                        if (user?.uid) {
+                          logEvent(user.uid, 'journey_remove_capture_dismissed', {});
+                        }
+                      }}
+                    />
+                  ) : (
+                    /* Self-hides at 0 and on a failed read; see ContinuityCard. */
+                    <ContinuityCard continuity={todayCard.continuity} />
+                  )}
 
                   {/* Replaced by a plain acknowledgment once the week has been
                       closed. closeCompletedAt rides in on the cycle already

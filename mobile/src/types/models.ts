@@ -685,6 +685,27 @@ export type PhaseRead = 'moving' | 'same' | 'not_moving';
 export type PhaseExitReason = 'advanced' | 'skipped' | 'adjusted_back';
 
 /**
+ * Which family a Remove-phase target belongs to (roadmap section 13, Sept 2).
+ *
+ * Three kinds of thing a person removes: something they DO (behavioral),
+ * something they THINK (mental), or something between them and another person
+ * (interpersonal). The family routes which protocol the day serves.
+ *
+ * INTERNAL VOCABULARY. Like the phase keys, these are keys and never words a
+ * user reads; the chips and the clarify screen speak in the user's terms.
+ */
+export type RemoveFamily = 'behavioral' | 'mental' | 'interpersonal';
+
+/**
+ * When the target tends to bite.
+ *
+ * 'varies' IS A REAL ANSWER, not a refusal to answer. It routes scaffold-only
+ * (no routine seed, roadmap section 13), because a routine anchored to a time
+ * the user does not have would be worse than no routine.
+ */
+export type RemoveTiming = 'morning' | 'day' | 'evening' | 'varies';
+
+/**
  * One closed phase. Appended when a phase is left, never edited afterwards.
  *
  * `exitedAt` and `exitReason` are REQUIRED because an entry is only written at
@@ -747,6 +768,39 @@ export interface JourneyState {
   advanceDeclinedAt: Timestamp | null;
   adjustOfferedAt: Timestamp | null;
   adjustDeclinedAt: Timestamp | null;
+
+  /**
+   * The Remove capture (slice 3c-i). ALL FIVE ARE OPTIONAL and absent on every
+   * document written before this slice, which is every document that exists.
+   * Readers must treat absence as "has not captured yet" rather than as any
+   * particular answer, and the rules validate each one absent-safely.
+   *
+   * `removeCapturedAt` IS THE ONE THAT SAYS WHETHER A CAPTURE HAPPENED. The
+   * other four can each legitimately be null after a capture: the chips path
+   * writes no text, the free-text path writes no chip, and two of the five
+   * routes skip the timing question outright. Gate on this field and nothing
+   * else.
+   */
+  removeFamily?: RemoveFamily | null;
+  /**
+   * The curated chip id, NEVER its display text. The labels are copy and will
+   * be rewritten; an id survives that, and a stored label would orphan every
+   * row written before the rewrite.
+   */
+  removeTargetChip?: string | null;
+  /**
+   * The user's own words, written ONLY after the crisis pre-check passes.
+   *
+   * NEVER ENTERS TEMPLATE COPY. It is stored here and displayed verbatim in
+   * exactly one place this slice, the capture confirmation. It must not be
+   * interpolated into a protocol string, a notification, an analytics payload
+   * or any other generated surface. The one echo point is deliberate and
+   * countable; a second one is a decision, not a convenience.
+   */
+  removeTargetText?: string | null;
+  removeTiming?: RemoveTiming | null;
+  /** When the capture completed. THE GATE for the entry card. */
+  removeCapturedAt?: Timestamp | null;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

@@ -35,6 +35,15 @@ import { weekdayNameForIso } from '../../utils/weekdayLabels';
 import { CardHeading } from './CardHeading';
 
 const MIN_TOUCH_TARGET = 48;
+
+/**
+ * Consistent days after which the done-state stops using the variant's own
+ * acknowledgment and falls back to the plain line.
+ *
+ * FIVE, and it is a volume control rather than a milestone. Nothing marks the
+ * crossing and nothing is shown for reaching it.
+ */
+const ACKNOWLEDGMENT_QUIET_AFTER_DAYS = 5;
 const CHECK_SIZE = 22;
 
 // TODAY_COPY has no completion strings because the weekly Today screen has no
@@ -69,6 +78,15 @@ export interface TodayHeroCardProps {
   /** Rendered only when present; the hook reads it only on slammed weeks. */
   floorCommitment: string | null;
   completed: boolean;
+  /**
+   * Consistent days in the phase so far, for the QUIETING rule (slice 3c-i).
+   *
+   * NEVER RENDERED. It decides whether the done-state shows the variant's own
+   * acknowledgment or the plain line, and nothing else. No count reaches the
+   * screen, which is why this is a number the card consumes rather than a
+   * string the card is handed.
+   */
+  consistentDays?: number;
   saving: boolean;
   saveFailed: boolean;
   onMarkDone: () => void;
@@ -79,6 +97,7 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
   protocol,
   floorCommitment,
   completed,
+  consistentDays = 0,
   saving,
   saveFailed,
   onMarkDone,
@@ -107,7 +126,20 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
         <View style={styles.doneCheck}>
           <Check size={14} strokeWidth={2.5} color={Colors.white} />
         </View>
-        <Text style={styles.doneLabel}>{COMPLETION_COPY.done}</Text>
+        {/* THE ACKNOWLEDGMENT QUIETS AS CONSISTENCY BUILDS, and never says so.
+            Early on the line matches what the user actually did, which is the
+            whole point of it being per variant. Past the threshold it drops to
+            the plain line: praise that keeps arriving at the same volume stops
+            reading as acknowledgment and starts reading as a scoreboard.
+
+            No number is rendered in either state, and the transition is
+            deliberately unannounced. A user must never be able to tell they
+            crossed a threshold, because that is a counter by another name. */}
+        <Text style={styles.doneLabel}>
+          {consistentDays >= ACKNOWLEDGMENT_QUIET_AFTER_DAYS
+            ? COMPLETION_COPY.done
+            : (protocol.acknowledgment ?? COMPLETION_COPY.done)}
+        </Text>
       </View>
     ) : (
       <TouchableOpacity
