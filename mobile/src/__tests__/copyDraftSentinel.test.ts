@@ -37,6 +37,13 @@ import * as path from 'path';
  *
  * Read the contract in this file's header before changing it.
  */
+// 195 since the daily-picker time-chips slice: +3 for TIME_CHIP_LABELS in
+// dailyPicker.copy.ts ('5 min or less', '10 to 15 min', '15 min or more').
+// They are short forms of the three already-drafted TIME_LABELS, needed because
+// the full labels do not fit a three-across chip row. Being compressions of
+// unapproved strings they are unapproved themselves, so they are counted rather
+// than inherited as approved.
+//
 // 192 since journey slice 3c-i: +3 for FIRST_MOVE_BY_FAMILY in the Remove
 // capture flow. Those three are sourced from "the v3 pack Section 4", which was
 // not supplied with the slice brief the way Section 6 (the protocols) was, so
@@ -44,7 +51,7 @@ import * as path from 'path';
 // Everything else the slice added is either Jen-approved (the six protocols,
 // the capture chips) or placeholder-marked safety copy, which carries its own
 // marker and its own merge gate.
-const EXPECTED_SENTINELS = 192;
+const EXPECTED_SENTINELS = 195;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

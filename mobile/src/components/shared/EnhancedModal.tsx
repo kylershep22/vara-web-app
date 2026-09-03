@@ -9,6 +9,7 @@
  * - Auto-dismiss keyboard on modal close
  * - Sticky footer for action buttons
  * - Proper z-index positioning above navigation headers
+ * - A bottom fade whenever the content is taller than the viewport
  */
 
 import React, { useCallback, useMemo } from 'react';
@@ -27,6 +28,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { KeyboardAccessoryToolbar } from '../KeyboardAccessoryToolbar';
 import { KeyboardAwareScrollView } from './KeyboardAwareScrollView';
+import { ScrollFade, ScrollFadeArea, useOverflowMeasure } from './ScrollFade';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -69,6 +71,10 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
   testID,
 }) => {
   const insets = useSafeAreaInsets();
+
+  // See ScrollFade: the shell reports its own two heights and the fade renders
+  // only when they say there is something below.
+  const { overflows, scrollProps } = useOverflowMeasure();
 
   // Calculate dynamic max height accounting for safe areas
   const modalMaxHeight = useMemo(() => {
@@ -137,20 +143,27 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
               </View>
             </View>
 
-            {/* Content with keyboard-aware scrolling */}
-            <KeyboardAwareScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.scrollContent}
-              inputAccessoryViewID={accessoryID}
-              showDoneButton={false}
-              enableKeyboardAvoidance={true}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-              nestedScrollEnabled={true}
-            >
-              {children}
-              {/* Extra padding at bottom for keyboard */}
-              <View style={styles.bottomPadding} />
-            </KeyboardAwareScrollView>
+            {/* The wrapper exists so the fade has something to be positioned
+                against: pinned to modalInner it would float over the sticky
+                footer rather than over the last line of content. */}
+            <ScrollFadeArea>
+              <KeyboardAwareScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                inputAccessoryViewID={accessoryID}
+                showDoneButton={false}
+                enableKeyboardAvoidance={true}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+                nestedScrollEnabled={true}
+                {...scrollProps}
+              >
+                {children}
+                {/* Extra padding at bottom for keyboard */}
+                <View style={styles.bottomPadding} />
+              </KeyboardAwareScrollView>
+
+              <ScrollFade visible={overflows} />
+            </ScrollFadeArea>
 
             {/* Sticky Footer */}
             {footer && (
