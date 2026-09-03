@@ -67,6 +67,18 @@ export function useJourneyLanding(uid: string | undefined): JourneyLanding {
   // unmounted, matching useWeeklyLanding's own guard.
   const activeRef = useRef(true);
 
+  // Bumped by `refresh` to re-run the resolver. THIS HOOK NEEDS ITS OWN
+  // COUNTER, which an earlier comment here got wrong: it claimed a refresh
+  // re-ran the resolver "through the weekly target flipping to null and back",
+  // and useWeeklyLanding does no such thing. It nulls its target only when
+  // there is no uid or a read failed; an ordinary refresh resolves 'today' to
+  // 'today', so the identity never changed, the effect below never re-fired,
+  // and journeyStates was re-read only on a remount.
+  //
+  // That is what left the capture entry card on Today after a completed
+  // capture until the app was killed.
+  const [attempt, setAttempt] = useState(0);
+
   // The weekly answer this resolver pass was run against. The resolver depends
   // on it: 'floor' short-circuits before the ladder runs at all.
   const weeklyTarget = weekly.target;
@@ -100,14 +112,16 @@ export function useJourneyLanding(uid: string | undefined): JourneyLanding {
     return () => {
       activeRef.current = false;
     };
-    // `weekly.attempt` is not exposed, so a refresh re-runs this through the
-    // weekly target flipping to null and back while its own reads are in
-    // flight. That is why `refresh` below drives the weekly hook rather than a
-    // counter of this hook's own.
-  }, [uid, weeklyTarget]);
+    // `attempt` is what makes a refresh re-read journeyStates. The weekly
+    // target alone is not enough: it is unchanged across an ordinary refresh.
+  }, [uid, weeklyTarget, attempt]);
 
   const refresh = useCallback(() => {
+    // Both halves, in one call. The weekly reads answer the floor gate and
+    // carry the cycle; the counter re-runs the resolver, which is what picks up
+    // a capture completed since the last resolve.
     weekly.refresh();
+    setAttempt((n) => n + 1);
   }, [weekly]);
 
   if (!JOURNEY_IA) {
