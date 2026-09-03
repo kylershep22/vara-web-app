@@ -19,52 +19,48 @@
  * animated affordance here would need that branch and would be one more thing
  * to get wrong.
  *
+ * IT DOES NOT DECIDE WHEN IT IS SHOWN. That question belongs to whoever knows
+ * the surface's height cap, because "content taller than the viewport" is true
+ * for a frame or two while a grow-to-fit container is still growing. See
+ * `useModalHeight`, which answers it against the cap instead.
+ *
  * LIVES HERE RATHER THAN INSIDE EnhancedModal so the shell stays under the
  * 300-line ceiling and so the next capped surface that needs the same signal
- * gets it without reimplementing the measurement.
+ * gets it without reimplementing it.
  */
-import React, { useCallback, useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Colors, Spacing } from '../../constants';
 import { withAlpha } from '../dashboard/brainStateCheckin/colorUtils';
 
-const FADE_HEIGHT = Spacing.xl;
-// Dew Sage, the wash colour, so the fade reads as the surface softening rather
-// than a grey scrim laid over it. Short of full opacity on purpose: at 1.0 the
-// band grows its own hard top edge, which is the cutoff this exists to avoid.
-const FADE_COLORS = [withAlpha(Colors.dewSage, 0), withAlpha(Colors.dewSage, 0.85)] as const;
+export const FADE_HEIGHT = Spacing.xl;
 
 /**
- * Measure a scrollable child against its viewport.
+ * The clearance a scrolling surface owes the fade.
  *
- * MEASURED, NOT GUESSED. Content height depends on the caller's children, the
- * device and the user's Dynamic Type setting, so the only honest test for "is
- * there more below" is the two numbers the ScrollView itself reports. Spread
- * `scrollProps` onto the ScrollView and read `overflows`.
+ * DERIVED FROM THE FADE, NOT COINCIDENTALLY EQUAL TO IT. The band overlays the
+ * last strip of the viewport, so without trailing padding the final interactive
+ * element comes to rest underneath it at the bottom of the scroll and reads
+ * dimmed, which on a selected teal chip is indistinguishable from disabled.
+ * Padding at least the fade's own height guarantees that what sits under the
+ * band at the end of a scroll is empty space. Strictly greater by one step so
+ * the last control clears the band outright rather than tangenting it.
  */
-export function useOverflowMeasure() {
-  const [viewportHeight, setViewportHeight] = useState(0);
-  const [contentHeight, setContentHeight] = useState(0);
+export const SCROLL_BOTTOM_PADDING = FADE_HEIGHT + Spacing.sm;
 
-  const onLayout = useCallback((event: LayoutChangeEvent) => {
-    setViewportHeight(event.nativeEvent.layout.height);
-  }, []);
-
-  const onContentSizeChange = useCallback((_width: number, height: number) => {
-    setContentHeight(height);
-  }, []);
-
-  return {
-    // The 1pt slack absorbs sub-pixel rounding: without it a content box
-    // measuring 532.0001 against a 532 viewport paints a fade over nothing, and
-    // a signal that lies once stops carrying information. Both heights start at
-    // 0, so nothing paints before the first layout either.
-    overflows: contentHeight > viewportHeight + 1,
-    scrollProps: { onLayout, onContentSizeChange },
-  };
-}
+/**
+ * Dew Sage, the wash colour, so the fade reads as the surface softening rather
+ * than a grey scrim laid over it.
+ *
+ * THE TERMINAL ALPHA IS A LEGIBILITY BUDGET, not a taste call. Anything
+ * approaching 1.0 both grows its own hard top edge (the cutoff this exists to
+ * avoid) and, more seriously, drains a selected control passing beneath it
+ * until it reads as disabled. 0.7 is enough to say "the content continues" and
+ * short of enough to change what a control underneath appears to be.
+ */
+const FADE_COLORS = [withAlpha(Colors.dewSage, 0), withAlpha(Colors.dewSage, 0.7)] as const;
 
 interface ScrollFadeProps {
   /** Render only when there is genuinely something below. */

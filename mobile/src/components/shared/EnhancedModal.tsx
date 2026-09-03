@@ -28,7 +28,8 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { KeyboardAccessoryToolbar } from '../KeyboardAccessoryToolbar';
 import { KeyboardAwareScrollView } from './KeyboardAwareScrollView';
-import { ScrollFade, ScrollFadeArea, useOverflowMeasure } from './ScrollFade';
+import { ScrollFade, ScrollFadeArea, SCROLL_BOTTOM_PADDING } from './ScrollFade';
+import { MIN_MODAL_HEIGHT, useModalHeight } from './modalHeight';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -72,10 +73,6 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
 
-  // See ScrollFade: the shell reports its own two heights and the fade renders
-  // only when they say there is something below.
-  const { overflows, scrollProps } = useOverflowMeasure();
-
   // Calculate dynamic max height accounting for safe areas
   const modalMaxHeight = useMemo(() => {
     if (maxHeightPercent === 'auto') {
@@ -84,6 +81,14 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
     }
     return screenHeight * maxHeightPercent;
   }, [maxHeightPercent, insets.top, insets.bottom]);
+
+  // GROWS TO FIT, UP TO THE CAP. The container used to carry a maxHeight and no
+  // height, which sounds like "size to content, clamped" and is not: nothing
+  // inside it reports a height through the flex chain, so every modal in the
+  // app rendered at the 480 floor. See modalHeight.ts for the mechanism and for
+  // why a short modal still does not stretch.
+  const { height, overflows, onHeaderLayout, onFooterLayout, onContentSizeChange } =
+    useModalHeight(modalMaxHeight);
 
   // Handle modal dismiss with keyboard cleanup
   const handleDismiss = useCallback(() => {
@@ -106,13 +111,16 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
         <View
           style={[
             styles.modalContainer,
-            { maxHeight: modalMaxHeight, minHeight: 480 },
+            // minHeight still governs the frame before anything has measured,
+            // and the floor thereafter is applied inside the hook.
+            { maxHeight: modalMaxHeight, minHeight: MIN_MODAL_HEIGHT, height },
           ]}
+          testID="modal-container"
         >
           {/* Wrapper for proper flex layout */}
           <View style={styles.modalInner}>
             {/* Header - Fixed at top */}
-            <View style={styles.header}>
+            <View style={styles.header} onLayout={onHeaderLayout} testID="modal-header">
               <View style={styles.headerContent}>
                 {headerIcon && (
                   <View style={styles.headerIconContainer}>
@@ -155,11 +163,11 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
                 enableKeyboardAvoidance={true}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
                 nestedScrollEnabled={true}
-                {...scrollProps}
+                onContentSizeChange={onContentSizeChange}
               >
                 {children}
-                {/* Extra padding at bottom for keyboard */}
-                <View style={styles.bottomPadding} />
+                {/* Keyboard room, and the fade's clearance. */}
+                <View style={styles.bottomPadding} testID="modal-scroll-bottom-padding" />
               </KeyboardAwareScrollView>
 
               <ScrollFade visible={overflows} />
@@ -167,7 +175,7 @@ export const EnhancedModal: React.FC<EnhancedModalProps> = ({
 
             {/* Sticky Footer */}
             {footer && (
-              <View style={styles.footer}>
+              <View style={styles.footer} onLayout={onFooterLayout} testID="modal-footer">
                 {footer}
               </View>
             )}
@@ -314,8 +322,10 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.base,
     flexGrow: 1,
   },
+  // Clearance for the fade, derived from it rather than guessed, so the last
+  // control scrolls clear of the band instead of resting under it.
   bottomPadding: {
-    height: Spacing.xl,
+    height: SCROLL_BOTTOM_PADDING,
   },
   footer: {
     paddingHorizontal: Spacing.lg,
