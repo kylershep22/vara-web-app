@@ -10,8 +10,14 @@
  * On a failure this returns WITHOUT calling setText, so the answer exists
  * nowhere but in a local input that unmounts. Nothing is stored, nothing is
  * echoed, and nothing is logged beyond the bare shown-event the support screen
- * fires. The category is deliberately not passed as a route param, because a
- * route param is state and this path must leave none.
+ * fires.
+ *
+ * THE CATEGORY TRAVELS; THE TEXT DOES NOT. The support screen orders its
+ * resources by the matched category, so the category is passed as a navigation
+ * param. That is in-memory navigation state and reaches no store: this app
+ * registers no `initialState` or `onStateChange`, so navigation state is never
+ * persisted. The text itself is never a param, never in context on this path,
+ * and has nowhere on that screen to be rendered.
  *
  * THE TEXT IS OPTIONAL. A user can tap a clarify chip and continue without
  * typing at all, which is part of what keeps the chips path complete on its own.
@@ -46,7 +52,9 @@ export const ClarifyScreen: React.FC = () => {
     if (trimmed) {
       const result = precheckFreeText(trimmed);
       if (!result.pass) {
-        navigation.navigate(REMOVE_CAPTURE_ROUTES.Support);
+        navigation.navigate(REMOVE_CAPTURE_ROUTES.Support, {
+          category: result.category,
+        });
         return;
       }
       setText(trimmed);
