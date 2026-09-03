@@ -35,12 +35,8 @@ jest.mock('../../utils/logger', () => ({
   logger: { log: jest.fn(), warn: (...a: any[]) => mockWarn(...a), error: (...a: any[]) => mockError(...a) },
 }));
 
-import {
-  destinationForOutcome,
-  legacyOutcomeFor,
-  resolveJourney,
-  uidDigest,
-} from '../resolveJourney';
+import { destinationForOutcome, resolveJourney, uidDigest } from '../resolveJourney';
+import { legacyPhaseFor } from '../../protocolEngine';
 
 const UID = 'alice123';
 
@@ -74,25 +70,29 @@ const cycle = (over: Record<string, unknown> = {}) => ({
 });
 
 describe('the vocabulary bridge', () => {
-  test('stress maps to calm, and back', () => {
+  test('stress maps to calm', () => {
     expect(destinationForOutcome('stress')).toBe('calm');
-    expect(legacyOutcomeFor('calm')).toBe('stress');
   });
 
-  test('the other three are identities in both directions', () => {
+  test('the other three are identities', () => {
     for (const key of ['focus', 'routines', 'energy'] as const) {
       expect(destinationForOutcome(key)).toBe(key);
-      expect(legacyOutcomeFor(key)).toBe(key);
     }
   });
 
-  test('the two are inverses across every value', () => {
-    // The property that makes the shim safe to remove in slice 3: nothing is
-    // lost by round-tripping, so a value written through one can be read
-    // through the other.
-    for (const key of ['focus', 'stress', 'routines', 'energy'] as const) {
-      expect(legacyOutcomeFor(destinationForOutcome(key))).toBe(key);
+  test('legacyOutcomeFor IS GONE, and its replacement is not its inverse', () => {
+    // Slice 3a removed the destination -> OutcomeKey direction entirely: the
+    // engine speaks phase natively, so nothing needs to translate back.
+    //
+    // What remains is legacyPhaseFor, outcome -> PhaseKey, and it is LOSSY on
+    // purpose: three outcomes collapse onto 'recover' because their content
+    // did. Asserted here so nobody reads the two functions as a round-trip
+    // pair and reintroduces the shim to "restore" it.
+    expect(legacyPhaseFor('focus')).toBe('refocus');
+    for (const key of ['stress', 'routines', 'energy'] as const) {
+      expect(legacyPhaseFor(key)).toBe('recover');
     }
+    expect(new Set(['stress', 'routines', 'energy'].map(legacyPhaseFor as any)).size).toBe(1);
   });
 });
 

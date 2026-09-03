@@ -33,6 +33,7 @@ import {
   CAPACITY_TIERS,
   OUTCOME_KEYS,
   representativeProtocol,
+  legacyPhaseFor,
   type CapacityTier,
   type OutcomeKey,
 } from '../../protocolEngine';
@@ -125,7 +126,7 @@ export function WeeklyOpenScreen() {
   // to filter by and inventing one would let a fabricated daily answer decide
   // what the WEEK previews and records.
   const protocol = useMemo(
-    () => (outcome && capacity ? representativeProtocol(outcome, capacity) : null),
+    () => (outcome && capacity ? representativeProtocol(legacyPhaseFor(outcome), capacity) : null),
     [outcome, capacity]
   );
 
@@ -159,7 +160,11 @@ export function WeeklyOpenScreen() {
     setSaving(true);
     setFailed(false);
     try {
-      const selected = representativeProtocol(outcome, capacity);
+      // LEGACY BRIDGE (slice 3a). This screen still collects an OutcomeKey and
+      // retires in slice 3b; the engine is keyed on PhaseKey, so the outcome is
+      // mapped here rather than the engine keeping a second axis for one
+      // scheduled-for-deletion caller.
+      const selected = representativeProtocol(legacyPhaseFor(outcome), capacity);
 
       // WHERE THE WEEK BEGINS AND ENDS, decided by planWeek rather than by the
       // clock. The old write stamped toIsoDate(new Date()) as weekStart on
@@ -234,7 +239,7 @@ export function WeeklyOpenScreen() {
         logEvent(user.uid, 'weekly_open', {
           outcome,
           capacityInitial: capacity,
-          protocolId: protocolIdFor(outcome, capacity),
+          protocolId: protocolIdFor(legacyPhaseFor(outcome), capacity),
         });
       } catch {
         // Never the user's problem.

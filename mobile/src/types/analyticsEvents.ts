@@ -32,6 +32,7 @@
  */
 
 import type { CapacityTier, OutcomeKey } from '../protocolEngine';
+import type { PhaseKey } from './models';
 
 /**
  * The 12 protocol ids, as a closed union.
@@ -46,11 +47,11 @@ import type { CapacityTier, OutcomeKey } from '../protocolEngine';
  * `types/__tests__/analyticsEvents.test.ts` pins the two together across all 12
  * cells so they cannot drift apart unnoticed.
  */
-export type ProtocolId = `${OutcomeKey}-${CapacityTier}`;
+export type ProtocolId = `${PhaseKey}-${CapacityTier}`;
 
 /** The protocol id for a pair, typed as the closed union. */
-export function protocolIdFor(outcome: OutcomeKey, capacity: CapacityTier): ProtocolId {
-  return `${outcome}-${capacity}`;
+export function protocolIdFor(phase: PhaseKey, capacity: CapacityTier): ProtocolId {
+  return `${phase}-${capacity}`;
 }
 
 /** How an account was authenticated. A closed set, not a free label. */
@@ -175,8 +176,18 @@ export type WeeklyEntryRoute = (typeof WEEKLY_ENTRY_ROUTES)[number];
  *     open strings that would need their own closed union. Its own slice.
  */
 export interface AnalyticsEventMap {
-  /** A week was opened. The pair chosen and the protocol it resolved to. */
+  /**
+   * A week was opened. The pair chosen and the protocol it resolved to.
+   *
+   * DEPRECATED WHOLE (roadmap 3.6). `WeeklyOpenScreen` is the only emitter and
+   * it retires in slice 3b, taking this event with it. Under JOURNEY_IA the
+   * screen is already unreachable, so this fires zero times today.
+   */
   weekly_open: {
+    /**
+     * DEPRECATED. The last OutcomeKey in an event payload; it is not a phase
+     * and must not be read as one. Retires with the screen in slice 3b.
+     */
     outcome: OutcomeKey;
     capacityInitial: CapacityTier;
     protocolId: ProtocolId;

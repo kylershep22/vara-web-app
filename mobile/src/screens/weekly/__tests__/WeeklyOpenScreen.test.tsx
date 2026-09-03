@@ -44,7 +44,7 @@ jest.mock('react-native-safe-area-context', () => ({
 import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { WeeklyOpenScreen } from '../WeeklyOpenScreen';
-import { PROTOCOL_MATRIX } from '../../../protocolEngine';
+import { legacyPhaseFor, PROTOCOL_MATRIX } from '../../../protocolEngine';
 import {
   addDaysIso,
   isoWeekday,
@@ -206,7 +206,7 @@ describe('WeeklyOpenScreen', () => {
       expect(params).toEqual({
         outcome: 'routines',
         capacityInitial: 'limited',
-        protocolId: PROTOCOL_MATRIX.routines.limited[0].id,
+        protocolId: PROTOCOL_MATRIX.recover.limited[0].id,
       });
     });
 
@@ -278,7 +278,7 @@ describe('WeeklyOpenScreen', () => {
       expect(uid).toBe('u1');
       expect(input.outcome).toBe('routines');
       expect(input.capacityInitial).toBe('limited');
-      expect(input.protocolId).toBe(PROTOCOL_MATRIX.routines.limited[0].id);
+      expect(input.protocolId).toBe(PROTOCOL_MATRIX.recover.limited[0].id);
     });
 
     test('does not pass capacityCurrent or userId in the payload', async () => {
@@ -368,8 +368,11 @@ describe('WeeklyOpenScreen', () => {
       for (const [outcome, capacity] of pairs) {
         mockCreateWeeklyCycle.mockClear();
         await openWeek(outcome, capacity);
+        // The screen still collects an OutcomeKey and maps it through
+        // legacyPhaseFor to reach the phase-keyed engine (slice 3a). The id it
+        // stores is therefore the PHASE cell id, which is what this now reads.
         expect(mockCreateWeeklyCycle.mock.calls[0][1].protocolId).toBe(
-          PROTOCOL_MATRIX[outcome][capacity][0].id
+          PROTOCOL_MATRIX[legacyPhaseFor(outcome)][capacity][0].id
         );
       }
     });

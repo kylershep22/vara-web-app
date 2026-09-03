@@ -211,3 +211,134 @@ describe('Brand copy guard - pattern sanity', () => {
     expect(cleaned.includes(EM_DASH)).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Framework words (journey roadmap section 8)
+// ---------------------------------------------------------------------------
+//
+// `remove | recover | rewire | refocus` are KEYS AND FILE NAMES, never words a
+// user reads. What the user sees is the title/short/gloss Jen writes in
+// PHASE_DISPLAY; the phase key itself never reaches a screen.
+//
+// SCOPED TO USER-FACING STRING MODULES, not the whole tree. The words are
+// legitimate everywhere else - `remove` is an ordinary verb in code, and this
+// guard walking all of src/ would flag every array splice and every "Remove
+// photo" button in a feature that has nothing to do with the journey. Copy
+// modules plus the protocol matrix are where user-visible prose actually lives.
+//
+// MATCHED INSIDE QUOTED STRINGS ONLY, as whole words. `recovery` is ordinary
+// English and does not match `\brecover\b`; `ratingRecovery` is an identifier
+// and is not inside quotes. Both are deliberate: a guard that cried wolf on
+// those would be waived within a week.
+
+const FRAMEWORK_WORDS = /\b(remove|recover|rewire|refocus)\b/i;
+const BARE_FRAMEWORK_WORD = /^(remove|recover|rewire|refocus)$/i;
+/** Longest a string can be and still read as a label rather than prose. */
+const LABEL_MAX_CHARS = 60;
+
+/**
+ * Files waived from THIS rule only, each with the reason.
+ *
+ * Separate from the em-dash ALLOWLIST above on purpose: a file can be innocent
+ * of one and guilty of the other, and a shared waiver list would quietly widen
+ * both. Same integrity contract though - an entry naming a file that no longer
+ * exists FAILS, so a waiver cannot outlive what it waives.
+ */
+const FRAMEWORK_ALLOWLIST: Record<string, string> = {
+  'src/screens/Focus/blocksCopy.ts':
+    'removing a time block is that feature own verb and predates the journey; "Remove block" is not the Remove phase.',
+};
+
+/** Every quoted string literal on a line. */
+function quotedStrings(line: string): string[] {
+  return [...line.matchAll(/'([^']*)'|"([^"]*)"|`([^`]*)`/g)].map(
+    (m) => m[1] ?? m[2] ?? m[3] ?? ''
+  );
+}
+
+function frameworkViolations(relPath: string): Violation[] {
+  const raw = fs.readFileSync(path.join(mobileRoot, relPath), 'utf-8');
+  const out: Violation[] = [];
+  stripBlockComments(raw)
+    .split('\n')
+    .forEach((rawLine, idx) => {
+      const line = stripLineComment(rawLine);
+      if (!line.trim() || isModuleSpecifier(line)) return;
+      // Placeholder titles name their own phase by design and are exempt via
+      // the marker, exactly as the slice-3a brief specifies. The marker is also
+      // what the merge gate greps for, so an exemption cannot outlive the
+      // content it is standing in for.
+      if (line.includes('[PLACEHOLDER] ')) return;
+      for (const literal of quotedStrings(line)) {
+        // A literal that IS the bare word is a key or a one-word control label
+        // (`protocol('remove', ...)`, a "Remove" button), not prose about a
+        // phase. Prose containing the word is what this rule is for.
+        if (BARE_FRAMEWORK_WORD.test(literal.trim())) continue;
+        // LABEL-SHAPED STRINGS ONLY. A phase name leaking into the product
+        // shows up as a title, a short, a gloss or a protocol name, all of
+        // which are short. In long prose these are ordinary English: "lets
+        // attention recover before the next block" is a rationale, not the
+        // Recover phase, and a guard that flagged it would be waived within a
+        // week and then trusted by nobody. The cap is the line between a label
+        // and an explanation.
+        if (literal.length > LABEL_MAX_CHARS) continue;
+        if (FRAMEWORK_WORDS.test(literal)) {
+          out.push({
+            file: relPath,
+            line: idx + 1,
+            label: 'journey framework word in user-facing copy',
+            text: literal.slice(0, 120),
+          });
+        }
+      }
+    });
+  return out;
+}
+
+describe('Brand copy guard - journey framework words', () => {
+  const files = walk('src');
+  const copyModules = files.filter((f) => /copy[^/]*\.tsx?$/i.test(path.basename(f)));
+  const scoped = [...copyModules, 'src/protocolEngine/protocolMatrix.ts'].filter(
+    (f) => !(f in FRAMEWORK_ALLOWLIST)
+  );
+
+  it('scopes to a real, non-trivial set of string modules', () => {
+    // Vacuity guard: an empty scope would make the assertion below pass for
+    // the wrong reason, which is the exact failure mode the sibling walk test
+    // above exists to prevent.
+    expect(copyModules.length).toBeGreaterThanOrEqual(8);
+    expect(files).toContain('src/protocolEngine/protocolMatrix.ts');
+  });
+
+  it('finds no framework word in a user-facing string', () => {
+    const violations = scoped.flatMap((f) => frameworkViolations(f));
+
+    if (violations.length > 0) {
+      const detail = violations
+        .map((v) => `  ${v.file}:${v.line}  [${v.label}]\n      ${v.text}`)
+        .join('\n');
+      throw new Error(
+        `Found ${violations.length} journey framework word(s) in user-facing copy:\n${detail}\n\n` +
+          'remove / recover / rewire / refocus are internal keys (roadmap section 8). ' +
+          'The user reads PHASE_DISPLAY copy, never the phase key. Rewrite the string.'
+      );
+    }
+  });
+});
+
+describe('Brand copy guard - framework allowlist integrity', () => {
+  Object.entries(FRAMEWORK_ALLOWLIST).forEach(([relPath, reason]) => {
+    it(`framework-allowlisted file still exists: ${relPath}`, () => {
+      if (!fs.existsSync(path.join(mobileRoot, relPath))) {
+        throw new Error(
+          `FRAMEWORK_ALLOWLIST names a file that no longer exists: ${relPath}
+` +
+            `  reason on record: ${reason}
+
+` +
+            'Remove the entry or repoint it. Waivers must not outlive what they waive.'
+        );
+      }
+    });
+  });
+});

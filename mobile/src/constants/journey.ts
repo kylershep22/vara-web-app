@@ -59,3 +59,46 @@ export const ADVANCE_CALENDAR_CEILING_DAYS = 14;
  * so a 'same' or 'moving' week in between resets the run.
  */
 export const ADJUST_CONSECUTIVE_NOT_MOVING = 2;
+
+/** One phase-destination pair's three lengths of display copy. */
+export interface PhaseDisplayCopy {
+  /** The map card. */
+  title: string;
+  /** The route strip and the Today journey line. */
+  short: string;
+  /** The one line under the title. */
+  gloss: string;
+}
+
+/**
+ * DECLARED SHAPE ONLY. Reading any value THROWS (journey roadmap 3.3).
+ *
+ * 16 phase-destination combinations x 3 lengths = 48 strings, all Jen's, none
+ * written. The shape lands in slice 3a so the type exists for slice 5 to fill
+ * and so the framework words have a declared home the brand guard can point at.
+ *
+ * WHY A THROWING PROXY RATHER THAN AN EMPTY OBJECT OR A CAST. An empty object
+ * behind a total type is a lie tsc will happily keep: a screen that read
+ * PHASE_DISPLAY.remove.calm.title would compile, render `undefined`, and ship.
+ * Throwing turns that into a loud failure in the first test or the first render
+ * that touches it, which is the only behavior that makes "declared but not
+ * populated" honest.
+ *
+ * NOTHING CONSUMES THIS IN SLICE 3a, deliberately. OUTCOME_LABELS still serves
+ * the legacy hero path until the weekly surfaces retire.
+ *
+ * THE FOUR FRAMEWORK WORDS ARE KEYS HERE, NEVER VALUES (roadmap section 8).
+ * `remove | recover | rewire | refocus` are internal vocabulary; what the user
+ * reads is the `title`/`short`/`gloss` Jen writes. brandCopyGuard enforces that
+ * separation on user-facing string modules.
+ */
+export const PHASE_DISPLAY: Record<
+  PhaseKey,
+  Record<DestinationKey, PhaseDisplayCopy>
+> = new Proxy({} as Record<PhaseKey, Record<DestinationKey, PhaseDisplayCopy>>, {
+  get(_target, phase) {
+    throw new Error(
+      `PHASE_DISPLAY not populated; slice 5 + Jen's 48 strings (asked for '${String(phase)}')`
+    );
+  },
+});

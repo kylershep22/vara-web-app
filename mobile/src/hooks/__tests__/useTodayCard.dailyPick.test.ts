@@ -185,7 +185,7 @@ describe('useTodayCard — the daily pick', () => {
     test('re-derives the protocol from the confirmed capacity', async () => {
       const { result } = await renderToday(cycle({ capacityInitial: 'normal' }));
       expect(result.current.protocol?.dailyAction).toBe(
-        PROTOCOL_MATRIX.focus.normal[0].dailyAction
+        PROTOCOL_MATRIX.refocus.normal[0].dailyAction
       );
 
       rows({
@@ -197,7 +197,7 @@ describe('useTodayCard — the daily pick', () => {
 
       await waitFor(() =>
         expect(result.current.protocol?.dailyAction).toBe(
-          PROTOCOL_MATRIX.focus.slammed[0].dailyAction
+          PROTOCOL_MATRIX.refocus.slammed[0].dailyAction
         )
       );
       expect(result.current.picked).toBe(true);
@@ -228,7 +228,7 @@ describe('useTodayCard — the daily pick', () => {
       const { result } = await renderToday();
 
       expect(result.current.protocol?.dailyAction).toBe(
-        PROTOCOL_MATRIX.focus.normal[0].dailyAction
+        PROTOCOL_MATRIX.refocus.normal[0].dailyAction
       );
       expect(result.current.protocol?.estMinutes).toBe(30);
     });
@@ -241,7 +241,7 @@ describe('useTodayCard — the daily pick', () => {
         const { result } = await renderToday();
 
         expect(result.current.protocol?.dailyAction).toBe(
-          PROTOCOL_MATRIX.focus.limited[0].dailyAction
+          PROTOCOL_MATRIX.refocus.limited[0].dailyAction
         );
       }
     });

@@ -138,7 +138,15 @@ import { PROTOCOL_MATRIX } from '../../protocolEngine';
 function day(offset: number) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
-  return d.toISOString().slice(0, 10);
+  // LOCAL date parts, not toISOString(). The app frames "today" through
+  // toIsoDate(), which reads getFullYear/getMonth/getDate, so a UTC-formatted
+  // fixture disagrees with it by a day whenever the machine sits west of UTC
+  // late in the day. That made day(-1) render as today's local date, and an
+  // "expired" cycle read as live: a clock-dependent failure that only appears
+  // on some machines at some hours.
+  const month = `${d.getMonth() + 1}`.padStart(2, '0');
+  const date = `${d.getDate()}`.padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${date}`;
 }
 
 const liveCycle = {
@@ -161,7 +169,7 @@ const PHASE = {
 
 function todayCard(over: Record<string, unknown> = {}) {
   return {
-    protocol: { ...PROTOCOL_MATRIX.focus.normal[0], quickWinActive: true },
+    protocol: { ...PROTOCOL_MATRIX.refocus.normal[0], quickWinActive: true },
     floorCommitment: null,
     completed: false,
     loading: false,
