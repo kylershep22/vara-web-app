@@ -369,4 +369,43 @@ Start-day edit surface · Coach 500 fix · B2B2C coach channel.
   rotation with consistency-derived quieting is 3c-i scope.
 - Open: helper line (Kyle) — his definition, Jen's decision rule, or the combo.
 
+**Sept 3, 2026 — slice 3c-i merged (701f2b4). Remove capture, safety screen,
+family-aware serving.** Branch commits 0816a79, 4b73253, 2c23dd4.
+- Baselines: jest **3067 / 206** · tsc **149** · sentinel **192** · rules 191 pass /
+  2 skip · functions 25 / 3. *(jest, tsc and sentinel re-measured on 701f2b4 and
+  confirmed; rules and functions are carried from the branch, not re-run at merge.)*
+- Shipped: five-path Remove capture (chips, sleep sub-question, timing, first move);
+  three-family protocol model with family-aware serving and six Jen-approved
+  mental/interpersonal protocols; acknowledgment rotation with consistency quieting;
+  capture entry card on Today with ContinuityCard suppression (transitional until
+  3b/slice 6); client-side crisis pre-check with SupportScreen.
+- Safety copy: Jen-reviewed, substantially hers. Integrated version differs from her
+  draft in two places: category-promoted ordering with More Support expander (not a
+  two-row list), and an always-shown static 911 line (not classifier-conditional).
+  Jen confirmed the final set on 2026-09-03, both deltas included. Resource numbers
+  and hours verified 2026-09-02; US-only, international pass is a pre-launch item.
+- Walk-caught defects (two, both would have shipped green):
+  1. Completion called goBack() on the nested stack and recordRemoveCapture had no
+     guard; a second completion overwrote a real capture with nulls. Original walk
+     account: fields nulled by the second completion, capture re-run on a reset
+     account. Fixed 4b73253: parent pop unmounts flow + provider, three-layer write
+     guard, saveFailed error path.
+  2. Entry card did not release live; resolver effect keyed on [uid, weeklyTarget]
+     so refresh-on-focus had nothing to re-run. Fixed 2c23dd4 with an attempt
+     counter. Anti-vacuity test pairs release with stays-up-when-outstanding.
+- Known limits and follow-ups:
+  - Pre-check abuse category under-sensitive: "I don't feel safe at home right now"
+    did not trigger; served the interpersonal protocol and stored the text. Pattern
+    tuning owed to Jen with this example. self_directed_negative category scope
+    (crisis screen vs softer surface) also queued for Jen.
+  - Pre-check returns first match only; the multi-match ordering rule is implemented
+    but unreachable. Follow-up: emit matched set.
+  - safety_precheck_shown kept: empty payload, uid-keyed (not anonymous as the doc
+    comment at analyticsEvents.ts:301 claims — comment correction queued for the
+    next branch); flagged inferred-sensitive for the international pre-launch pass.
+  - FIRST_MOVE_BY_FAMILY strings are Claude-drafted (sentinel 192, +3), Jen
+    fast-follow pending.
+  - journeyStates has no realtime subscription; safe while this device is the only
+    writer. Revisit when a second writer (Guide, server) exists.
+
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*
