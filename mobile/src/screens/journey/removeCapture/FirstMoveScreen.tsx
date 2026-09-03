@@ -5,20 +5,30 @@
  * recordRemoveCapture runs, which is why backing out anywhere earlier leaves no
  * half-capture behind and the entry card's gate stays honest.
  *
+ * LEAVING THE FLOW POPS THE PARENT, NOT THIS STACK. `useNavigation` inside this
+ * screen resolves to the NESTED capture stack, so `goBack()` here would pop one
+ * screen inside the flow and land on the timing question. That is exactly the
+ * defect the first device walk hit: the write succeeded, the user was returned
+ * to a screen they had already answered, and pressing through a second time
+ * re-entered this screen with the context already cleared. The whole flow is
+ * ONE entry on the parent AppStack, so popping the parent unmounts the nested
+ * stack and its provider together, which both returns the user to Today and
+ * makes the flow unreachable by back.
+ *
  * THE CONFIRMATION IS THE SOLE ECHO POINT for the user's own words in this
- * slice. It renders the text verbatim when there is one, else the chip label.
- * Neither is interpolated into anything: the heading is a fixed string and the
- * answer sits under it as its own line. The phase-page "In your words" home
- * arrives in slice 5.
+ * slice. It renders the text verbatim when there is one, else the chip label,
+ * as STATIC TEXT with no container and no border: an earlier version shared the
+ * clarify screen's input chrome and read as an empty editable field. The phase
+ * page "In your words" home arrives in slice 5.
  *
  * THE REPLACEMENT OFFER IS NOT HERE. That is 3c-ii; this screen goes straight
  * to done.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-import { Colors, Layout, Spacing, Typography } from '../../../constants';
+import { Colors, Spacing, Typography } from '../../../constants';
 import { useAuth } from '../../../context/AuthContext';
 import { logEvent } from '../../../services/firebase/analyticsEvents.service';
 import { recordRemoveCapture } from '../../../services/firebase/journeyState.service';
@@ -32,12 +42,31 @@ export const FirstMoveScreen: React.FC = () => {
   const { user } = useAuth();
   const { family, chipId, chipLabel, text, timing, reset } = useRemoveCapture();
   const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  // Latches on the first successful write. Belt and braces beside the pop
+  // below: even if the unmount were delayed a frame, a second tap cannot
+  // produce a second write.
+  const completedRef = useRef(false);
 
   const move = FIRST_MOVE_BY_FAMILY[family ?? 'behavioral'];
 
+  // WHAT THE USER ACTUALLY NAMED. Completion is refused without one, because
+  // the write is an updateDoc and an empty one would null a real answer while
+  // stamping a fresh removeCapturedAt.
+  const hasTarget = !!chipId || !!text || !!family;
+
   const onPrimary = useCallback(async () => {
-    if (!user?.uid || saving) return;
+    if (!user?.uid || saving || completedRef.current) return;
+    if (!hasTarget) {
+      // Nothing to record. This is only reachable if the flow is re-entered
+      // after a completion, which the pop below is what prevents; refusing
+      // here means the data is safe even if that ever regresses.
+      logger.warn('[FirstMoveScreen] completion with no target; not writing');
+      return;
+    }
+
     setSaving(true);
+    setSaveFailed(false);
     try {
       await recordRemoveCapture(user.uid, { family, chipId, text, timing });
       // THE TEXT IS NOT IN THIS PAYLOAD AND CANNOT BE: the event type has no
@@ -48,19 +77,33 @@ export const FirstMoveScreen: React.FC = () => {
         chipId: chipId ?? 'free_text',
         timing: timing ?? null,
       });
+      completedRef.current = true;
       reset();
-      navigation.goBack();
+      // Pop the PARENT entry, not this stack. See the note at the top.
+      const parent = navigation.getParent();
+      if (parent) {
+        parent.goBack();
+      } else {
+        // No parent means this screen is mounted outside the app stack, which
+        // only happens in a test harness. Falling back keeps that case working
+        // rather than silently doing nothing.
+        navigation.goBack();
+      }
     } catch (error) {
       logger.error('[FirstMoveScreen] capture write failed:', error);
+      // STAY ON THIS SCREEN. The answers are still in context and the retry
+      // costs one tap; navigating away would lose them and leave the user
+      // unsure whether anything was recorded.
+      setSaveFailed(true);
       setSaving(false);
     }
-  }, [user?.uid, saving, family, chipId, text, timing, reset, navigation]);
+  }, [user?.uid, saving, hasTarget, family, chipId, text, timing, reset, navigation]);
 
   return (
     <RemoveCaptureScaffold
       title={FIRST_MOVE_COPY.title}
       primaryLabel={FIRST_MOVE_COPY.primary}
-      primaryDisabled={saving}
+      primaryDisabled={saving || !hasTarget}
       onPrimary={onPrimary}
       onBack={() => navigation.goBack()}
     >
@@ -69,16 +112,24 @@ export const FirstMoveScreen: React.FC = () => {
           {move}
         </Text>
 
-        {/* The confirmation. The user's own words, verbatim, or the label they
-            tapped. Nothing is templated around either. */}
+        {/* STATIC TEXT, NOT INPUT CHROME. No border, no container, no field
+            caption: a bordered box beside a real text field on the previous
+            screen reads as an editable input, and an empty one reads as a bug.
+            The caption is a quiet label above the answer, not a form label. */}
         <View style={styles.confirmation} testID="remove-capture-confirmation">
-          <Text style={styles.confirmationHeading}>
+          <Text style={styles.confirmationCaption}>
             {FIRST_MOVE_COPY.confirmationHeading}
           </Text>
           <Text style={styles.confirmationBody} testID="remove-capture-echo">
             {text ?? chipLabel ?? ''}
           </Text>
         </View>
+
+        {saveFailed && (
+          <Text style={styles.error} testID="remove-capture-error">
+            {FIRST_MOVE_COPY.saveFailed}
+          </Text>
+        )}
       </View>
     </RemoveCaptureScaffold>
   );
@@ -92,18 +143,20 @@ const styles = StyleSheet.create({
   },
   confirmation: {
     marginTop: Spacing.lg,
-    padding: Spacing.md,
-    borderRadius: Layout.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.mutedSageGray,
   },
-  confirmationHeading: {
-    fontSize: Typography.fontSize.sm,
+  confirmationCaption: {
+    fontSize: Typography.fontSize.xs,
     color: Colors.mutedSageGray,
     marginBottom: Spacing.xs,
   },
   confirmationBody: {
     fontSize: Typography.fontSize.base,
     color: Colors.softCharcoal,
+  },
+  error: {
+    marginTop: Spacing.base,
+    // Soft coral, the brand's only error colour. Never red.
+    color: Colors.softCoral,
+    fontSize: Typography.fontSize.sm,
   },
 });

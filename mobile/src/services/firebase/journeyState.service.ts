@@ -298,6 +298,20 @@ export async function recordRemoveCapture(
   userId: string,
   input: RemoveCaptureInput
 ): Promise<void> {
+  // AN EMPTY CAPTURE IS NOT A CAPTURE, and writing one is destructive rather
+  // than merely useless: this is an updateDoc, so it would overwrite a real
+  // answer with nulls while stamping a fresh removeCapturedAt.
+  //
+  // That is not hypothetical. A navigation defect let the first-move screen be
+  // reached a second time with the context already cleared, and the second
+  // completion nulled the first one's answers. The call site guards too; this
+  // is the backstop, because the service is what actually touches the row.
+  if (!input.chipId && !input.text && !input.family) {
+    throw new Error(
+      'recordRemoveCapture called with no target. Refusing to null an existing capture.'
+    );
+  }
+
   await updateDoc(doc(requireDb(), JOURNEY_STATES, userId), {
     removeFamily: input.family ?? null,
     removeTargetChip: input.chipId ?? null,

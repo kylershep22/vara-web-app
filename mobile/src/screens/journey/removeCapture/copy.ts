@@ -90,8 +90,16 @@ export const TIMING_CHIPS = [
 export const FIRST_MOVE_COPY = {
   title: 'One thing to try',
   primary: "I'll do that",
-  /** The confirmation heading above the chip label or the user's own words. */
+  /**
+   * The quiet caption above the chip label or the user's own words.
+   *
+   * A CAPTION, NOT A FIELD LABEL. It sits over static text with no container
+   * and no border; styling it as a form label is how the read-back came to be
+   * mistaken for an empty input on the first device walk.
+   */
   confirmationHeading: "What you're working on",
+  /** Shown in place of navigating away when the one write fails. */
+  saveFailed: 'That did not save. Try again.',
 } as const;
 
 /**
