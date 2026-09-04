@@ -57,13 +57,19 @@ export const TIME_LABELS = {
  * which is about 83pt of text per chip at 12pt. The full labels do not fit and
  * wrap to two lines each, which is what made the time question fall below the
  * fold in the first place.
+ *
+ * APPROVED AS-IS BY KYLE FOR v1, 2026-09-04, on his own authority rather than
+ * Jen's. They landed drafted and were counted at 195.
+ *
+ * WHICH LEAVES AN ASYMMETRY WORTH KNOWING ABOUT. These three are approved and
+ * the three TIME_LABELS directly above are not, even though the pair describe
+ * the same windows and the unapproved one is what a screen reader announces.
+ * A voice pass on TIME_LABELS therefore has to keep these in step or the two
+ * halves of the same control start saying different things.
  */
 export const TIME_CHIP_LABELS = {
-  // COPY: draft, not from guidelines doc - pending Jen
   short: '5 min or less',
-  // COPY: draft, not from guidelines doc - pending Jen
   medium: '10 to 15 min',
-  // COPY: draft, not from guidelines doc - pending Jen
   long: '15 min or more',
 } as const;
 

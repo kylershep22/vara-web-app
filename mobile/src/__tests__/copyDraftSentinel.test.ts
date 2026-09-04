@@ -37,12 +37,20 @@ import * as path from 'path';
  *
  * Read the contract in this file's header before changing it.
  */
-// 195 since the daily-picker time-chips slice: +3 for TIME_CHIP_LABELS in
-// dailyPicker.copy.ts ('5 min or less', '10 to 15 min', '15 min or more').
-// They are short forms of the three already-drafted TIME_LABELS, needed because
-// the full labels do not fit a three-across chip row. Being compressions of
-// unapproved strings they are unapproved themselves, so they are counted rather
-// than inherited as approved.
+// 189 since the copy-approvals close-out: -6, and this is the FIRST decrement
+// that is not a Jen approval. Kyle approved all six as-is for v1 on 2026-09-04
+// on his own authority. Three are TIME_CHIP_LABELS in dailyPicker.copy.ts
+// ('5 min or less', '10 to 15 min', '15 min or more') and three are
+// FIRST_MOVE_BY_FAMILY in screens/journey/removeCapture/copy.ts (behavioral,
+// mental, interpersonal).
+//
+// THE CONTRACT IN THIS FILE'S HEADER SAYS THE COUNT GOES DOWN "WHEN JEN APPROVES
+// A STRING". Read that as: when the copy owner signs off. Kyle can clear a
+// sentinel, and did. What the contract actually forbids is the number moving
+// without a named reason, and the reason here is a decision rather than a
+// review, which is a weaker warrant and is recorded as such in both copy files.
+//
+// 195 since the daily-picker time-chips slice: +3 for TIME_CHIP_LABELS.
 //
 // 192 since journey slice 3c-i: +3 for FIRST_MOVE_BY_FAMILY in the Remove
 // capture flow. Those three are sourced from "the v3 pack Section 4", which was
@@ -51,7 +59,7 @@ import * as path from 'path';
 // Everything else the slice added is either Jen-approved (the six protocols,
 // the capture chips) or placeholder-marked safety copy, which carries its own
 // marker and its own merge gate.
-const EXPECTED_SENTINELS = 195;
+const EXPECTED_SENTINELS = 189;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');
