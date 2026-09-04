@@ -25,7 +25,7 @@
  * Today instead of being pushed into the weekly open, because the journey is
  * now what says where they are. The consequence, stated plainly so the device
  * walk is not surprised by it: Home neither pushes to the weekly open nor
- * renders the standing OpenYourWeekCard while the flag is on. That is the
+ * rolls the next cycle over in place while the flag is on. That is the
  * intended end state; it is behind a flag because it is a one-way door for
  * anyone mid-week.
  */

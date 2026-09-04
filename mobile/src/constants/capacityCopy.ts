@@ -4,7 +4,7 @@
  *
  * Moved verbatim out of screens/weekly/copy.ts by journey slice 0. Three
  * surfaces read them and they do not belong to any of the three: the weekly
- * open (WeeklyOpenScreen), the V3 onboarding capacity screen (through the
+ * open (deleted in journey slice 3b), the V3 onboarding capacity screen (through the
  * re-export in screens/onboarding/v3/copy.ts), and the daily picker
  * (DailyPickerSheet, TodayHeroCard). The weekly loop is being retired and the
  * daily loop is not, so leaving these in the weekly module would have taken

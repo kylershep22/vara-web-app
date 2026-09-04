@@ -52,7 +52,8 @@ export const FOUR_PILLAR_IA = true;
  * cycle's outcome, so the redundancy is accepted rather than half-removed.
  *
  * KNOWN CONSEQUENCE WHILE ON: the 'open' target is never emitted, so Home
- * neither pushes to the weekly open nor renders the standing OpenYourWeekCard.
+ * does not push anywhere on an expired week: it rolls the next cycle over in
+ * place (journey slice 3b, which also deleted the weekly open and its card).
  * A user whose week expires stays on Today, which is the intended end state and
  * is why this ships behind a flag rather than as a straight edit.
  *

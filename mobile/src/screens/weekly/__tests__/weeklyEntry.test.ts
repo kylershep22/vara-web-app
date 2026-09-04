@@ -58,10 +58,10 @@ describe('resolveWeeklyEntry', () => {
   });
 
   describe('with a floor captured', () => {
-    test('no cycle at all opens a week', () => {
+    test('no cycle at all rolls a week over', () => {
       expect(
         resolveWeeklyEntry({ floorCommitment, latestCycle: null, todayIso: TODAY })
-      ).toBe('open');
+      ).toBe('rollover');
     });
 
     test('a cycle opened today lands on Today', () => {
@@ -77,14 +77,14 @@ describe('resolveWeeklyEntry', () => {
       ).toBe('today');
     });
 
-    test('a long-abandoned cycle opens a fresh week', () => {
+    test('a long-abandoned cycle rolls a fresh week over', () => {
       expect(
         resolveWeeklyEntry({
           floorCommitment,
           latestCycle: cycle({ weekStart: '2026-01-05', weekEnd: '2026-01-11' }),
           todayIso: TODAY,
         })
-      ).toBe('open');
+      ).toBe('rollover');
     });
   });
 
@@ -99,11 +99,11 @@ describe('resolveWeeklyEntry', () => {
     });
 
     test.each([SUN, MON, TUE])(
-      '%s opens the first full week — the stub is over',
+      '%s rolls into the first full week — the stub is over',
       (day) => {
         expect(
           resolveWeeklyEntry({ floorCommitment, latestCycle: cycle(), todayIso: day })
-        ).toBe('open');
+        ).toBe('rollover');
       }
     );
   });
@@ -142,7 +142,7 @@ describe('resolveWeeklyEntry', () => {
           latestCycle: cycle({ closed: true }),
           todayIso: SUN,
         })
-      ).toBe('open');
+      ).toBe('rollover');
     });
 
     test('an unclosed cycle opens once the week has expired, the same way', () => {
@@ -152,7 +152,7 @@ describe('resolveWeeklyEntry', () => {
           latestCycle: cycle({ closed: false }),
           todayIso: SUN,
         })
-      ).toBe('open');
+      ).toBe('rollover');
     });
 
     test.each([WED, THU, FRI, SAT])(
@@ -190,7 +190,7 @@ describe('resolveWeeklyEntry', () => {
           todayIso: day,
         });
         expect(closed).toBe(open);
-        expect(closed).toBe('open');
+        expect(closed).toBe('rollover');
       }
     );
   });
@@ -207,14 +207,14 @@ describe('resolveWeeklyEntry', () => {
       ).toBe('today');
     });
 
-    test('a legacy cycle seven days old opens a fresh week', () => {
+    test('a legacy cycle seven days old rolls a fresh week over', () => {
       expect(
         resolveWeeklyEntry({
           floorCommitment,
           latestCycle: { weekStart: '2026-08-03', weekEnd: undefined, closed: false },
           todayIso: '2026-08-10',
         })
-      ).toBe('open');
+      ).toBe('rollover');
     });
 
     test('a closed legacy cycle inside its fallback window stays on Today', () => {
@@ -234,7 +234,7 @@ describe('resolveWeeklyEntry', () => {
           latestCycle: { weekStart: '2026-08-03', weekEnd: undefined, closed: true },
           todayIso: '2026-08-10',
         })
-      ).toBe('open');
+      ).toBe('rollover');
     });
   });
 

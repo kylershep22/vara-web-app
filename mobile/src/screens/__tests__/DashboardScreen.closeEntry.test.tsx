@@ -105,12 +105,16 @@ jest.mock('../../hooks/useDashboard', () => ({
 // The two reads useWeeklyLanding performs. Mocking HERE rather than mocking the
 // hook is what keeps the real guard in the loop.
 const mockGetFloor = jest.fn();
+const mockGetUserPrivate = jest.fn();
 jest.mock('../../services/firebase/userPrivate.service', () => ({
   getFloorCommitment: (...a: any[]) => mockGetFloor(...a),
+  getUserPrivate: (...a: any[]) => mockGetUserPrivate(...a),
 }));
 const mockGetLatestCycle = jest.fn();
+const mockEnsureCycle = jest.fn();
 jest.mock('../../services/firebase/weeklyCycle.service', () => ({
   getLatestWeeklyCycle: (...a: any[]) => mockGetLatestCycle(...a),
+  ensureCurrentWeeklyCycle: (...a: any[]) => mockEnsureCycle(...a),
 }));
 jest.mock('../../utils/logger', () => ({
   logger: { log: jest.fn(), warn: jest.fn(), error: jest.fn() },
@@ -163,6 +167,12 @@ async function renderHome(
   todayOver: Record<string, unknown> = {}
 ) {
   mockGetLatestCycle.mockResolvedValue(cycle(over));
+  mockGetUserPrivate.mockResolvedValue({ weekStartDay: null });
+  // An expired week rolls into a live one. The rolled cycle is unclosed by
+  // construction, which is what the expiry cases below turn on.
+  mockEnsureCycle.mockResolvedValue(
+    cycle({ ...over, id: 'cycle-rolled', weekStart: TODAY, weekEnd: day(6), closeCompletedAt: undefined })
+  );
   mockTodayCard.mockReturnValue(todayCardState(todayOver));
   const screen = render(<DashboardScreen />);
   // The weekly surface only mounts once the guard has answered.
@@ -283,28 +293,43 @@ describe('Home — the weekly-close entry', () => {
   });
 
   describe('once the week has EXPIRED', () => {
-    test('a closed, expired week offers the open instead of the acknowledgment', async () => {
-      // The other half of the split: expiry is what routes the user onward.
+    test('a closed, expired week rolls over and offers the NEW week to close', async () => {
+      // BEFORE ROLLOVER this asserted a push to WeeklyOpen, which is deleted.
+      // Expiry still ends the old week; what changed is where the user ends up.
+      // The acknowledgment goes because it belonged to the week that ended, and
+      // the close entry returns because the rolled week is open and unclosed.
       const screen = await renderHome({
         weekStart: day(-9),
         weekEnd: day(-1),
         closeCompletedAt: CLOSED_AT,
       });
 
-      await waitFor(() =>
-        expect(mockNavigate).toHaveBeenCalledWith('WeeklyOpen')
-      );
+      // CALLED, not called-exactly-once. Home's landing effect can re-run
+      // within a single mount, so the rollover genuinely fires more than once
+      // here, and that is the double-trigger the deterministic document ID and
+      // the transaction exist to absorb. Exactly-one is pinned where it is
+      // actually enforced, on ensureCurrentWeeklyCycle in the service suite;
+      // asserting a call count at this level would pin the render schedule
+      // instead and break on any unrelated effect change.
+      await waitFor(() => expect(mockEnsureCycle).toHaveBeenCalled());
+      expect(mockNavigate).not.toHaveBeenCalled();
       expect(screen.queryByTestId('home-week-closed')).toBeNull();
-      expect(screen.queryByTestId('home-close-entry')).toBeNull();
+      expect(screen.getByTestId('home-close-entry')).toBeTruthy();
     });
 
     test('an unclosed, expired week behaves identically', async () => {
       // Closed-ness changes nothing once the window has passed.
       await renderHome({ weekStart: day(-9), weekEnd: day(-1) });
 
-      await waitFor(() =>
-        expect(mockNavigate).toHaveBeenCalledWith('WeeklyOpen')
-      );
+      // CALLED, not called-exactly-once. Home's landing effect can re-run
+      // within a single mount, so the rollover genuinely fires more than once
+      // here, and that is the double-trigger the deterministic document ID and
+      // the transaction exist to absorb. Exactly-one is pinned where it is
+      // actually enforced, on ensureCurrentWeeklyCycle in the service suite;
+      // asserting a call count at this level would pin the render schedule
+      // instead and break on any unrelated effect change.
+      await waitFor(() => expect(mockEnsureCycle).toHaveBeenCalled());
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 });

@@ -35,7 +35,9 @@ import type { DestinationKey, PhaseKey, RemoveFamily } from '../types/models';
  *   1. `WeeklyCycle.outcome` and `UserPrivate.activeOutcome` are persisted on
  *      documents already written. Those fields keep this type so legacy rows
  *      still parse.
- *   2. `WeeklyOpenScreen` still writes it. That screen retires in slice 3b.
+ *   2. Onboarding still writes it, and resolveJourney still reads it. The
+ *      weekly open that used to write it is deleted (journey slice 3b); the
+ *      field's own retirement is sequenced behind removing those reads.
  *   3. Onboarding V3 step 2 still collects it. That step rekeys to
  *      DestinationKey in slice 4.
  *

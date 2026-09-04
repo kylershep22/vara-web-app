@@ -37,7 +37,6 @@ const CARD_OVERLAP = Spacing.xl;
 import { TodayHeroCard } from '../components/dashboard/TodayHeroCard';
 import { SetTodayCard } from '../components/dashboard/SetTodayCard';
 import { DailyPickerSheet } from '../components/dashboard/DailyPickerSheet';
-import { OpenYourWeekCard } from '../components/dashboard/OpenYourWeekCard';
 import { ContinuityCard } from '../components/dashboard/ContinuityCard';
 import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
 import { RemoveCaptureCard } from '../components/dashboard/RemoveCaptureCard';
@@ -194,22 +193,27 @@ const DashboardScreen: React.FC = () => {
   // A standing affordance for a user who declined is a sub-step 2 concern: it
   // only bites once Home IS Today and therefore has nothing to show without a
   // cycle. Noting it here rather than half-solving it now.
-  const pushedForRef = useRef<'floor' | 'open' | null>(null);
+  const pushedForRef = useRef<'floor' | null>(null);
   useEffect(() => {
     const target = weeklyLanding.target;
-    if (target === 'today' || target === null) {
+    // 'rollover' is resolved through by the landing and never surfaces, so
+    // 'floor' is the only value that reaches the push below. The explicit test
+    // keeps that a stated fact rather than an assumption about the hook.
+    if (target !== 'floor') {
       // Resolved into the app: clear the latch so a later week boundary can
       // push again without a remount.
       pushedForRef.current = null;
       return;
     }
+    // 'floor' is the only push left. An expired week is rolled over in place by
+    // the landing and arrives here as 'today', so there is nothing to push for.
     if (pushedForRef.current === target) return;
     pushedForRef.current = target;
     // Navigates directly rather than through the `go` helper below: that helper
     // is declared later in this component, and an effect that depends on
     // declaration order is a trap for the next edit.
     (navigation as unknown as { navigate: (s: string) => void }).navigate(
-      target === 'floor' ? ROUTES.WeeklyFloor : ROUTES.WeeklyOpen
+      ROUTES.WeeklyFloor
     );
     // The latch above is what makes this effect idempotent, not the dependency
     // list; `navigation` is stable for the life of the screen.
@@ -426,13 +430,12 @@ const DashboardScreen: React.FC = () => {
                 </>
               )}
 
-            {/* Standing entry for the user who declined the pushed open. Home
-                pushes once per target so backing out cannot trap them, and this
-                card is what stops that latch from turning Home into a dead end
-                with no week. */}
-            {weeklyLanding.target === 'open' && (
-              <OpenYourWeekCard onOpen={() => go(ROUTES.WeeklyOpen)} />
-            )}
+            {/* OpenYourWeekCard STOOD HERE and is deleted with the weekly open
+                (journey slice 3b). It was the standing entry for a user who
+                declined the pushed open, and there is no longer a push to
+                decline: an expired week rolls over in the landing and Home
+                renders 'today'. A card inviting the user to do the thing the
+                app has already done would be an odd request. */}
 
             {/* First-shift footer — suppressed on the reworked Home (not in the
                 spec set). Reversible via DASHBOARD_SUPPRESS. */}

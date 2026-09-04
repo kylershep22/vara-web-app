@@ -55,14 +55,18 @@ interface Navigator {
  * fourth target is a compile error here rather than a silently unrouted state.
  *
  * NOT a map of route names any more, because the three targets no longer share
- * a verb. 'floor' and 'open' are stack screens and are replaced into, which is
- * what keeps this decision screen off the back gesture. 'today' is HOME, a tab
+ * a verb. 'floor' is a stack screen and is replaced into, which is what keeps
+ * this decision screen off the back gesture. 'today' is HOME, a tab
  * inside Main, and a tab cannot be replaced into: `replace(Main)` would stack a
  * second Main on top of the one already at the root. navigate pops back to it.
  */
 const TARGET_NAV: Record<WeeklyEntryTarget, (nav: Navigator) => void> = {
   floor: (nav) => nav.replace(ROUTES.WeeklyFloor),
-  open: (nav) => nav.replace(ROUTES.WeeklyOpen),
+  // 'rollover' GOES TO HOME, exactly like 'today'. It is not a destination: it
+  // says the user needs a cycle, and Home's landing is what creates one before
+  // it renders. Routing it anywhere else would need a second copy of the
+  // rollover, which is how two writers of one cycle start racing each other.
+  rollover: (nav) => nav.navigate(ROUTES.Main, { screen: ROUTES.Home }),
   today: (nav) => nav.navigate(ROUTES.Main, { screen: ROUTES.Home }),
 };
 

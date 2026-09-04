@@ -21,8 +21,11 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { getFloorCommitment } from '../services/firebase/userPrivate.service';
-import { getLatestWeeklyCycle } from '../services/firebase/weeklyCycle.service';
+import { getFloorCommitment, getUserPrivate } from '../services/firebase/userPrivate.service';
+import {
+  ensureCurrentWeeklyCycle,
+  getLatestWeeklyCycle,
+} from '../services/firebase/weeklyCycle.service';
 import {
   resolveWeeklyEntry,
   type WeeklyEntryTarget,
@@ -41,10 +44,11 @@ export interface WeeklyLanding {
   cycle: WeeklyCycle | null;
   loading: boolean;
   /**
-   * A read failed. Home does NOT route on this: sending a user to the weekly
-   * open on an unknown state would let them open a second cycle for a week they
-   * have already opened, which is the same reasoning WeeklyEntryScreen applies
-   * when it stops and offers a retry instead of guessing.
+   * A read failed, or the rollover write did. Home does NOT act on this: rolling
+   * a cycle over from an unknown state could write a week the user already has,
+   * and while the deterministic document ID would absorb a true duplicate, a
+   * failed READ can leave `latest` null and roll the WRONG week. Stopping is the
+   * same reasoning WeeklyEntryScreen applies when it offers a retry.
    */
   failed: boolean;
   /** Re-run the reads. Used on screen focus and after a retry. */
@@ -91,6 +95,7 @@ export function useWeeklyLanding(uid: string | undefined): WeeklyLanding {
         // and the rule falls back for them; `closeCompletedAt` is what makes a
         // finished week resolve to 'open' rather than stranding the user on a
         // week they have already answered for.
+        const todayIso = toIsoDate(new Date());
         const resolved = resolveWeeklyEntry({
           floorCommitment,
           latestCycle: latest
@@ -100,12 +105,35 @@ export function useWeeklyLanding(uid: string | undefined): WeeklyLanding {
                 closed: !!latest.closeCompletedAt,
               }
             : null,
-          todayIso: toIsoDate(new Date()),
+          todayIso,
         });
 
+        // ROLLOVER IS RESOLVED THROUGH, NOT REPORTED. 'rollover' is the answer
+        // "there is no live week", and the fix for it is a write rather than a
+        // screen, so this creates the cycle and reports 'today' with it. A
+        // caller never sees 'rollover' and there is no state in which Home has
+        // to render a user out of their own week.
+        //
+        // Safe to run twice: ensureCurrentWeeklyCycle keys the document on the
+        // week it covers and creates it in a transaction, so a foreground and a
+        // navigation both landing here produce one cycle, not two.
+        if (resolved === 'rollover') {
+          const weekStartDay = (await getUserPrivate(uid))?.weekStartDay ?? null;
+          const rolled = await ensureCurrentWeeklyCycle(uid, {
+            todayIso,
+            weekStartDay,
+            latest,
+          });
+          if (!activeRef.current) return;
+          setTarget('today');
+          setCycle(rolled);
+          setLoading(false);
+          return;
+        }
+
         setTarget(resolved);
-        // Carried only for 'today'. The other two targets navigate away, and a
-        // stale cycle held behind a screen the user is leaving is a trap.
+        // Carried only for 'today'. 'floor' navigates away, and a stale cycle
+        // held behind a screen the user is leaving is a trap.
         setCycle(resolved === 'today' ? latest : null);
         setLoading(false);
       } catch (error) {

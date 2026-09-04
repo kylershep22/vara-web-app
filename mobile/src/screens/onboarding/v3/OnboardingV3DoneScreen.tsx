@@ -109,16 +109,11 @@ export const OnboardingV3DoneScreen: React.FC = () => {
         // the plan is what stops them drifting apart in a later slice.
         const existing = await getWeeklyCycleForWeek(user.uid, weekStart);
         if (!existing) {
-          // LEGACY BRIDGE (slice 3a). Step 2 still collects an OutcomeKey and
-          // rekeys to DestinationKey in slice 4; until then the terminal maps
-          // to a phase to reach the engine.
-          const selected = representativeProtocol(legacyPhaseFor(outcome), capacity);
           await createWeeklyCycle(user.uid, {
             weekStart,
             weekEnd,
             outcome,
             capacityInitial: capacity,
-            protocolId: selected.id,
           });
         }
       }

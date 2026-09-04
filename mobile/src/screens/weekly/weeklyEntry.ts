@@ -9,6 +9,10 @@
  * captured while the user is calm (spec 10.1), which means BEFORE the weekly
  * open, not after it and not during a slammed week when they most need it.
  *
+ * IT DECIDES, IT DOES NOT ACT. 'rollover' says a cycle must be created; the
+ * caller creates it. Keeping the write out of here is what lets the rule stay a
+ * pure function of three inputs and be tested without a clock or a database.
+ *
  * THE LIVENESS TEST IS THE CYCLE'S OWN BOUNDARY, not its age. A cycle carries
  * an inclusive `weekEnd`, and a week is live until today passes it. The retired
  * `age < WEEK_LENGTH_DAYS` predicate could only ask "has seven days elapsed",
@@ -18,8 +22,18 @@
  */
 import { isWithinWeek, resolveWeekEnd } from '../../utils/weekStart';
 
-/** The three screens a user can enter on. */
-export type WeeklyEntryTarget = 'floor' | 'open' | 'today';
+/**
+ * Where the user lands.
+ *
+ * 'rollover' WAS 'open', AND THE RENAME IS THE SLICE. It used to name a screen
+ * that asked for an outcome and a capacity before writing a cycle; that screen
+ * is deleted (roadmap §3.6) because the phase supplies the destination and
+ * capacity is a daily answer, so there was nothing left to ask. What remains is
+ * a fact about the world rather than a destination: the user has no live week
+ * and one must be created. It is TRANSIENT — the caller creates the cycle and
+ * resolves again, and a user never sees it.
+ */
+export type WeeklyEntryTarget = 'floor' | 'rollover' | 'today';
 
 /** The facts about the user's most recent cycle that the rule needs. */
 export interface WeeklyEntryCycle {
@@ -56,7 +70,11 @@ export function resolveWeeklyEntry({
   todayIso,
 }: WeeklyEntryInput): WeeklyEntryTarget {
   if (!floorCommitment) return 'floor';
-  if (!latestCycle) return 'open';
+  // No cycle at all is the same answer as an expired one: there is no live week
+  // and one has to be made. It used to be a different answer only because the
+  // open screen could ask a first-time user questions it could not ask a
+  // returning one, and it no longer asks anybody anything.
+  if (!latestCycle) return 'rollover';
 
   // EXPIRY IS THE ONLY THING THAT ROUTES A USER OUT OF THEIR WEEK. Closed-ness
   // is deliberately NOT consulted here, and `closed` is carried on the input
@@ -76,5 +94,5 @@ export function resolveWeeklyEntry({
     todayIso
   )
     ? 'today'
-    : 'open';
+    : 'rollover';
 }

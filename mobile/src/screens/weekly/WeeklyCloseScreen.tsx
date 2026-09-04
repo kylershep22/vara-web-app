@@ -211,12 +211,16 @@ export function WeeklyCloseScreen() {
     setSaving(true);
     setSaveFailed(false);
     try {
+      // THE RATINGS AND THE ADJUSTMENT ARE COLLECTED AND NOT STORED, for one
+      // slice only. Nothing has ever read them and slice 6 drops the questions
+      // outright (roadmap §5 row 6, C1: one felt read plus a note), so this
+      // slice stops the write and slice 6 stops the asking. Until then the
+      // screen asks three ratings and an adjustment and discards the answers,
+      // which is a real gap and is recorded as such rather than papered over.
+      // Do NOT re-add these fields to make the screen feel honest; remove the
+      // questions instead, on the slice that owns them.
       await closeWeeklyCycle(cycle.id, {
-        ratingFocus: ratings.focus,
-        ratingRecovery: ratings.recovery,
-        ratingEnergy: ratings.energy,
         closeNote: note,
-        adjustmentSelected: adjustment,
         floorMet,
       });
 
