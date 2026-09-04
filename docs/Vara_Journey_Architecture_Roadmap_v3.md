@@ -138,6 +138,17 @@ first weekly cycle is still created at onboarding for cadence; it no longer carr
 > `protocolId`, `ratingFocus/Recovery/Energy` and `adjustmentSelected` ARE retired and
 > no longer written.
 
+> **AMENDED 2026-09-05 (Content Pack v1 `§decisions-1`). `phaseRead`'s MIDDLE STATE IS
+> RENAMED.** The contract is now **`'moving' | 'not_moving' | 'unclear'`**, superseding the
+> `'moving' | 'same' | 'not_moving'` written above. `unclear` carries a rule `same` never
+> had: it is NEUTRAL, so it must not count toward the two-consecutive-`not_moving`
+> adjustment run, must not reset a prior `not_moving`, must not be read as `moving`, and
+> must not be a negative signal anywhere else. It behaves as an unanswered week does.
+> **The rename has NOT been made in code** — `types/models.ts` still ships
+> `PhaseRead = 'moving' | 'same' | 'not_moving'`, and changing it is slice-6 work, not a
+> docs edit. Until it lands, read `'same'` as today's spelling of `'unclear'`. The only
+> reader is `deriveAdjustDue` (`journey/derive.ts`), which carries the full note.
+
 ### 3.5 Unchanged
 
 `dailyLogs` (schema and helpers). `CapacityTier`, `TimeClass`, `TIME_CLASS_MAX_MINUTES`,
@@ -196,12 +207,53 @@ deploy. Deploy state lives on Kyle's checklist.
 | 1 | **Journey types, state, rules** | `PhaseKey`, `DestinationKey`, `PhaseHistoryEntry`, `JourneyState` in `types/models.ts`; `journeyState.service.ts` (get/create/advance/skip/adjust/recordOffer); `firestore.rules` for `journeyStates` (owner read/write, shape-validated) + rules tests; `deleteAccount` list updated; derivations `deriveConsistentDays`, `deriveCalendarDays`, `deriveAdjustDue` as pure functions with tests. | rules tests pass; **[Kyle-gated]** rules deploy | No |
 | 2 | **Resolver + PhaseContext + migration branch** | `resolveJourney`; `useJourneyLanding` replacing `useWeeklyLanding` behind `JOURNEY_IA`; `useTodayCard(uid, phaseContext)`; `DashboardScreen` gate swap; migration branch wiring (route screen reuse deferred to slice 4; interim: write state and land on Today). | Step-0 confirms the four scalar reads are the only seam; STOP if more found | Yes: fresh account, legacy account |
 | 3 | **Matrix rekey + re-tag + outcome-pick retirement** | §3.2 in full; `PHASE_DISPLAY` shape with placeholder strings; retire §3.6 items; `WeeklyCycle` write-set reduced per §3.4; analytics events rekeyed (`journey_*` replaces `weekly_open`; `weekly_close` survives renamed `weekly_reset`). | **[Content-gated]** re-tag mapping + at least one `remove` variant per capacity tier, authored as mark-done protocols with why-card text; STOP if unauthored cells would leave any (phase, capacity) empty | Yes: full daily loop across two phases |
+| 3c-ii | **Remove replacement pick + routine seed** *(row added 2026-09-05; the slice was split in the §13 Sept 2 entry and never got a row here)* | Curated replacement menus per time slot, one selection only, flow ends on a neutral confirmation; routine seed from the pick. **NO REMINDER SCOPE** — no notification infrastructure, no time picker, no nudge copy. | Content DELIVERED (`Content Pack v1 §replacement-menus` + `§decisions-3`). STOP if the menu appears to need a reminder to be useful; that is the signal the scope split was wrong, not licence to build it | Yes |
 | 4 | **Onboarding: destination + route** | A1 copy reframe on step 2; **new** route screen (A2) at step 3 (open item 1); Capacity step copy loses "this week"; terminal write creates `journeyStates` and the first weekly cycle without outcome; `activeOutcome` → `destination`; write order preserved (`completeOnboarding` last). Migration branch now shows A2. | **[Content-gated]** A1/A2 strings, 16 `short` strings | Yes: full arc + migration |
 | 5 | **Practices → journey map + Start here container** | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
 | 6 | **Weekly reset repurpose** | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
 | 7 | **Offers + Today additions** | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. | rules; **[Content-gated]** copy | Yes |
 | 9 | **Behavioral protocol screen + remind-later** | The Daily Action Launcher behavioral screen (protocol, why, mark done, remind me later) for `remove` protocols; one-off later-today notification (`scheduleLocalNotification` DATE trigger), `scheduledAt` on `DailyLog`, third card state, cancellation bookkeeping; OS-settings redirect after denial. | Completion semantics decision (mockup v1 E1 open item) | Yes |
+
+> **AMENDED 2026-09-05 (Journey Content Pack v1, Jen, approved on delivery).** The rows
+> above are unchanged; their **[Content-gated]** labels are superseded by this block.
+> Pack file: `docs/Vara_Journey_Content_Pack_v1.md`. Cite it as `Content Pack v1 §<anchor>`.
+> Pack strings are APPROVED and enter the code **without** `COPY: draft` markers — **the
+> sentinel does not increment for them.**
+>
+> - **Slice 4 — NO LONGER CONTENT-GATED.** A1 (`§A1`), A2 (`§A2`) and the 16 `short`
+>   strings (`§display-strings`) are delivered. Two §9 open items are resolved by the pack
+>   itself: **item 1** route screen sits at **step 3** (pack part one, section 3, decision 1),
+>   and **item 9** the destination label is **"Steadier days"**, not "Routines" (decision 2).
+>   Slice 4 now has no open gate.
+> - **Slice 5 — NO LONGER CONTENT-GATED.** 16 `title` + 16 `gloss` (`§display-strings`) and
+>   Recover's internal structure (`§recover-lanes`, three lanes: Downshift / Refill /
+>   Re-anchor, destination-weighted, labels never shown to the user) are delivered.
+>   **Carries a build rule, not a gate:** the runnable practice catalog and the daily
+>   protocol grid are **two separate systems with no shared id space**, and Recover must
+>   **not** reference runnable-practice IDs until `supportingPracticeIds` is explicitly
+>   authored per variant. Titles that match across the two systems do **not** mean they are
+>   connected. See `§decisions-2` and the note at `protocolEngine/protocolMatrix.ts`
+>   (`supportingPracticeIds`). Slice 5 owns that authoring.
+> - **Slice 6 — NO LONGER CONTENT-GATED.** C1 strings delivered (`§C1`). **Engine contract,
+>   now resolved** (`§decisions-1`): `phaseRead` is **`moving | not_moving | unclear`**; only
+>   explicit `not_moving` accumulates toward C2; `unclear` is neutral and must neither count
+>   toward the run nor reset a prior `not_moving`; and **C1 never gates the advancement
+>   offer**. Full note at `journey/derive.ts` (`deriveAdjustDue`). **Still open:** §9 item 4,
+>   the ContinuityCard ship-or-retire decision. Slice 6 is decision-gated on that one item.
+> - **Slice 7 — NO LONGER CONTENT-GATED.** B2 ×2 (`§B2`) and C2 with per-phase alternatives
+>   ×4 (`§C2`) are delivered; both were ★ "not on her list yet" and arrived early. **The C2
+>   body in the pack's own section 5 is SUPERSEDED** — build the conditional version in
+>   `§decisions-4`, never the original. **Remaining gates are decision-only:** §9 items 2, 3,
+>   5, 6.
+> - **Slice 9 — SCOPE GREW.** The replacement-flow **reminder step and nudge copy moved here
+>   from 3c-ii** (`§decisions-3`): the "Want a nudge when that time comes?" prompt, its
+>   Remind me / No reminder options, and the three reminder-presuming confirmations. Slice 9
+>   already owns notification behaviour, so this avoids a second notification path that
+>   would have to be reconciled later. Build them only as part of slice 9.
+>
+> **Not delivered by this pack:** slice 8 copy (Moments of joy) is still content-gated, and
+> the rewire placeholders in `protocolMatrix.ts` are still placeholders.
 
 **Ordering rationale.** 0 makes everything after it smaller and reversible. 1–2 land the model
 behind a flag without touching content. 3 is the content-dependent core and the point of no return
@@ -281,7 +333,7 @@ Reordered from her Part 12 to match the slice sequence. Items marked ★ are not
 
 | # | Item | Needed by | Lean |
 |---|---|---|---|
-| 1 | Route screen position: step 3 (after destination) vs Jen's step 5 | Slice 4 | Step 3 |
+| 1 | Route screen position: step 3 (after destination) vs Jen's step 5 | Slice 4 | **RESOLVED 2026-09-05: step 3.** Content Pack v1 part one, section 3, decision 1 |
 | 2 | Ceiling-met advancement copy register | Slice 7 | Honest, no practices named, door open |
 | 3 | Advancement card persistence on Today | Slice 7 | 3 days, then map only |
 | 4 | Continuity: ship (floor question survives in C1) or retire | Slice 6 | Retire for beta; revisit with data |
@@ -289,7 +341,7 @@ Reordered from her Part 12 to match the slice sequence. Items marked ★ are not
 | 6 | Today journey line: `short` string vs a stage word | Slice 7 | `short` |
 | 7 | Evening-protocol completion semantics (commit-time vs follow-through) | Slice 9 | Commit-time |
 | 8 | `WeeklyOpenScreen`: collapse to weekStart+confirm, or retire and create cycles on rollover | **RESOLVED Sept 1: retire; rollover creation is a slice 3b requirement** (under JOURNEY_IA the weekly open is unreachable, so expired weeks must self-renew or the weekly reset ritual dies) | — |
-| 9 | "Steadier days" vs "Routines" as the destination label | Slice 4 | Jen's call |
+| 9 | "Steadier days" vs "Routines" as the destination label | Slice 4 | **RESOLVED 2026-09-05: "Steadier days".** Content Pack v1 part one, section 3, decision 2. Governs the DESTINATION label only; the Practices hub card is a separate string |
 
 ---
 

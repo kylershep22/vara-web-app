@@ -111,6 +111,38 @@ export function deriveAdvanceDue(input: AdvanceDueInput): boolean {
  * and absence breaks a run exactly as a 'moving' read would. Silence is not a
  * complaint.
  *
+ * C1 THREE-STATE CONTRACT (Content Pack v1, decisions section 1, approved
+ * 2026-09-05). The weekly question has exactly three answers and they map:
+ *
+ *   "Yes, I can feel a difference" -> 'moving'
+ *   "Not really yet"               -> 'not_moving'
+ *   "Hard to tell"                 -> 'unclear'
+ *
+ * `unclear` is NEUTRAL, and neutral is a stronger claim than it sounds. It must
+ * not count toward the two-consecutive run below, must not RESET a prior
+ * not_moving as though the user reported improvement, must not be read as
+ * 'moving', and must not be treated as a negative signal anywhere else. It
+ * behaves exactly as an unanswered week does: it breaks the run without
+ * counting against the user. Uncertainty is not a complaint.
+ *
+ * ONLY EXPLICIT `not_moving` ACCUMULATES. The `every` below already enforces
+ * this by construction: a run needs two literal 'not_moving' values and any
+ * other value, present or absent, fails it. Stated here because the rule is a
+ * product decision that happens to match the code today, not a property the
+ * code would keep on its own through a refactor.
+ *
+ * C1 NEVER GATES THE ADVANCEMENT OFFER. Advancement stays governed by its own
+ * consistency/time eligibility and stays an offer; `phaseRead` is read HERE and
+ * nowhere else, and `deriveAdvanceDue` does not read it. Adding a "must report
+ * moving before advancing" requirement would be a separate product decision, to
+ * be taken deliberately and never inferred from this field.
+ *
+ * NAMING DEBT, OWED IN SLICE 6. The shipped type is
+ * `PhaseRead = 'moving' | 'same' | 'not_moving'` (types/models.ts). The contract
+ * above names the middle state `unclear`. The rename is a slice-6 code change
+ * and has NOT been made: read 'same' as today's spelling of 'unclear' until it
+ * lands. Roadmap section 3.4 carries the same annotation.
+ *
  * Declined suppresses, on the same placeholder policy as deriveAdvanceDue.
  */
 export function deriveAdjustDue(

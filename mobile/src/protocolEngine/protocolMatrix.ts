@@ -125,6 +125,32 @@ const protocol = (
     capacity,
     timeClass,
     quickWinPracticeId: DEFAULT_QUICK_WIN_PRACTICE_ID,
+    // EMPTY ON EVERY VARIANT, AND THAT IS THE CURRENT STATE OF THE BRIDGE.
+    //
+    // TWO SEPARATE CONTENT SYSTEMS (Content Pack v1, decisions section 2,
+    // approved 2026-09-05). They are not interchangeable and they share no id
+    // space:
+    //
+    //   1. The RUNNABLE PRACTICE CATALOG, constants/brainStateProtocols.ts:
+    //      14 variants across 10 families. Guided, timed, has a player.
+    //   2. The DAILY PROTOCOL GRID, this file. Behavioural actions the user
+    //      reads and marks done. Never runnable, no player, no audio.
+    //
+    // THE RULE: Recover must NOT reference runnable-practice IDs until the
+    // mapping is explicitly authored. Titles that look alike do NOT mean the
+    // systems are connected. "One anchor cue", "Morning light", "Exhale and
+    // unplug" and the rest of the recover rows are GRID content with no catalog
+    // counterpart, and reading them as catalog practices is the specific
+    // mistake this note exists to prevent.
+    //
+    // The intended shape is `daily protocol -> optional supporting runnable
+    // practice`: a Recover protocol can ask the user to take two minutes to
+    // bring things down and then launch `extended-exhale-2` as its support.
+    // Populate this array deliberately, per variant, as part of authoring that
+    // integration. Do not bulk-fill it by title match.
+    //
+    // Slice 5 owns the authoring. Until then this stays empty and the daily
+    // serve launches nothing.
     supportingPracticeIds: [],
     ...fields,
     name,
