@@ -11,14 +11,20 @@
  *
  * THE CONTRACT, and it is the whole point of pinning a number:
  *
- *   - The count goes DOWN when Jen approves a string. Remove that string's
- *     sentinel and decrement EXPECTED_SENTINELS in the same commit.
+ *   - The count goes DOWN when THE COPY OWNER SIGNS OFF. Jen owns efficacy-
+ *     adjacent and check-in copy; Kyle owns UI strings. Remove that string's
+ *     sentinel and decrement EXPECTED_SENTINELS in the same commit, naming the
+ *     OWNER as well as the strings. Two owners is not a loophole: which one
+ *     applies is a property of the copy, not of who is available, and a UI
+ *     string Kyle clears carries a weaker warrant than a Jen review of the same
+ *     length of text. Say which in the commit so a later reader can tell.
  *   - The count goes UP when new drafted copy lands. Add the sentinel and
  *     increment EXPECTED_SENTINELS in the same commit.
  *   - EITHER DIRECTION MUST BE NAMED IN THE COMMIT MESSAGE that makes it, with
- *     the strings involved. A silent edit to this number is the failure mode
- *     this test exists to prevent: it is the difference between "Jen signed off
- *     on nine strings" and "someone deleted nine inconvenient comments".
+ *     the strings and the owner involved. A silent edit to this number is the
+ *     failure mode this test exists to prevent: it is the difference between
+ *     "the owner signed off on nine strings" and "someone deleted nine
+ *     inconvenient comments".
  *
  * A red build here is not a bug in the test. It means the set of unapproved
  * strings changed and the change has not been accounted for.
@@ -37,18 +43,19 @@ import * as path from 'path';
  *
  * Read the contract in this file's header before changing it.
  */
-// 189 since the copy-approvals close-out: -6, and this is the FIRST decrement
-// that is not a Jen approval. Kyle approved all six as-is for v1 on 2026-09-04
-// on his own authority. Three are TIME_CHIP_LABELS in dailyPicker.copy.ts
-// ('5 min or less', '10 to 15 min', '15 min or more') and three are
-// FIRST_MOVE_BY_FAMILY in screens/journey/removeCapture/copy.ts (behavioral,
-// mental, interpersonal).
+// 186 since the TIME_LABELS approval: -3. Owner Kyle, 2026-09-04, for
+// '5 minutes or less', '10 to 15 minutes', '15 minutes or more' in
+// dailyPicker.copy.ts. Reviewed in the form users meet them: the 2026-09-03
+// VoiceOver walk heard the spoken "[window]. [gloss]" on device and passed it.
+// These are the accessibility half of the chip control whose visible half was
+// approved at 189; the pair must be revised together from here.
 //
-// THE CONTRACT IN THIS FILE'S HEADER SAYS THE COUNT GOES DOWN "WHEN JEN APPROVES
-// A STRING". Read that as: when the copy owner signs off. Kyle can clear a
-// sentinel, and did. What the contract actually forbids is the number moving
-// without a named reason, and the reason here is a decision rather than a
-// review, which is a weaker warrant and is recorded as such in both copy files.
+// 189 since the copy-approvals close-out: -6, owner Kyle, 2026-09-04, for the
+// three TIME_CHIP_LABELS in dailyPicker.copy.ts ('5 min or less', '10 to 15
+// min', '15 min or more') and the three FIRST_MOVE_BY_FAMILY in
+// screens/journey/removeCapture/copy.ts (behavioral, mental, interpersonal).
+// The first decrement made on Kyle's authority rather than Jen's, which is what
+// prompted the owner rule now written into the contract above.
 //
 // 195 since the daily-picker time-chips slice: +3 for TIME_CHIP_LABELS.
 //
@@ -59,7 +66,7 @@ import * as path from 'path';
 // Everything else the slice added is either Jen-approved (the six protocols,
 // the capture chips) or placeholder-marked safety copy, which carries its own
 // marker and its own merge gate.
-const EXPECTED_SENTINELS = 189;
+const EXPECTED_SENTINELS = 186;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

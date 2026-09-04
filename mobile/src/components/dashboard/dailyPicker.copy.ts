@@ -33,13 +33,22 @@
  * collected and stored but does not change the protocol until the off-diagonal
  * content exists, and copy that promised otherwise would be a lie the app
  * cannot currently keep.
+ *
+ * APPROVED AS-IS BY KYLE FOR v1, 2026-09-04. Unlike the other approvals in this
+ * file these were reviewed in the form the user actually meets them: the
+ * VoiceOver walk on 2026-09-03 heard the spoken output on device, "[window].
+ * [gloss]", and passed it. That is the only place these strings surface, since
+ * TIME_CHIP_LABELS is what gets painted.
+ *
+ * REVISE THE PAIR TOGETHER, ALWAYS. TIME_LABELS is the accessibility label on
+ * each chip and TIME_CHIP_LABELS is its visible text, so they are two halves of
+ * one control. Changing one alone makes the app say different things to two
+ * users looking at the same chip, and the voice pass would be the half nobody
+ * notices is wrong.
  */
 export const TIME_LABELS = {
-  // COPY: draft, not from guidelines doc - pending Jen
   short: '5 minutes or less',
-  // COPY: draft, not from guidelines doc - pending Jen
   medium: '10 to 15 minutes',
-  // COPY: draft, not from guidelines doc - pending Jen
   long: '15 minutes or more',
 } as const;
 
@@ -61,11 +70,9 @@ export const TIME_LABELS = {
  * APPROVED AS-IS BY KYLE FOR v1, 2026-09-04, on his own authority rather than
  * Jen's. They landed drafted and were counted at 195.
  *
- * WHICH LEAVES AN ASYMMETRY WORTH KNOWING ABOUT. These three are approved and
- * the three TIME_LABELS directly above are not, even though the pair describe
- * the same windows and the unapproved one is what a screen reader announces.
- * A voice pass on TIME_LABELS therefore has to keep these in step or the two
- * halves of the same control start saying different things.
+ * REVISE THE PAIR TOGETHER, ALWAYS. See the note on TIME_LABELS above: these two
+ * are the visible and the spoken half of one control, and changing either alone
+ * makes the chip say different things to two users looking at it.
  */
 export const TIME_CHIP_LABELS = {
   short: '5 min or less',
