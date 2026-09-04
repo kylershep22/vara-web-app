@@ -127,6 +127,17 @@ Energy`, `adjustmentSelected`. Fields stay optional on the type so legacy docs s
 first weekly cycle is still created at onboarding for cadence; it no longer carries an outcome.
 `floorMet` survives **only if** continuity ships (§9 open item 4).
 
+> **AMENDED 2026-09-04 (slice 3b). `outcome` and `capacityInitial` are STILL WRITTEN**
+> as of 7f07413, against the stop-writing list above, and `weekStart` stays on the keep
+> list unchanged. Retirement of the first two is resequenced behind the resolveJourney
+> read removal — see the §13 slice-3b entry. **Do not plan their removal without
+> removing the reads at `resolveJourney.ts:195` (the capacity seed on every phase
+> resolution) and `:216` (the migration destination) first.** Stopping the writes on
+> their own does not fail; it pins every capacity seed to `'normal'`, which is the kind
+> of bug that looks correct. Of the rest of the stop-writing list, `capacityCurrent`,
+> `protocolId`, `ratingFocus/Recovery/Energy` and `adjustmentSelected` ARE retired and
+> no longer written.
+
 ### 3.5 Unchanged
 
 `dailyLogs` (schema and helpers). `CapacityTier`, `TimeClass`, `TIME_CLASS_MAX_MINUTES`,
@@ -498,5 +509,73 @@ family-aware serving.** Branch commits 0816a79, 4b73253, 2c23dd4.
   - Time remains inert by design until Jen's off-diagonal grid.
 - Walk-scope lesson: a shared-shell change budgets a regression walk across every
   mounting surface up front. This one changed twelve and was scoped as one.
+
+**Sept 4, 2026 — slice 3b merged (7f07413). Rollover, WeeklyOpenScreen
+retirement, dead-field reduction.** Branch commits 9a4600c, 259fa88, atop the
+copy-approvals merge 337b518.
+- Figures at merge: jest **3080 / 206** · tsc **149** · sentinel **173** · rules 191
+  pass / 2 skip · functions 25 / 3. *(rules and functions carried unrun. The weekly
+  doc's rules are absent-safe by citation, not by assumption: weeklyCycles at
+  firestore.rules:850-857 validates ownership only, with no field allowlist, no
+  shape check and no document-ID constraint, so both the reduced field set and the
+  deterministic ID are accepted as written. Confirmed on the walk.)*
+- Shipped: the weekly write-set reduced to the live-reader fields. capacityCurrent,
+  protocolId, the three ratings and adjustmentSelected are no longer written; the
+  types keep them optional so legacy documents still parse, and there is no
+  migration because absence IS the migration. WeeklyOpenScreen, OpenYourWeekCard and
+  the weekly_open event retired as whole-file deletions.
+- Rollover: the expiry signal creates the next cycle rather than routing anywhere.
+  The document is named `<uid>_<weekStart>` and written inside a create-on-absence
+  transaction, so a duplicate is the SAME document rather than a second one.
+  Idempotent under a real double-trigger, not a hypothetical: Home's landing effect
+  fires more than once per mount, which is why exactly-one is pinned on the service
+  rather than on a render count. Survives app relaunch, where an in-memory guard
+  would have been forgotten.
+- 259fa88 added an existence guard on the post-transaction read-back, with a
+  VALUE-ESCAPE test rather than only a throw test. The hazard was never the missing
+  exception; it was a cycle with no weekStart reaching Home and being rendered as a
+  week, and a rejects-only test would still pass if a refactor logged the problem
+  and returned the partial object.
+- §3.4 SEQUENCING CORRECTION, annotated in §3.4 itself. `outcome` and
+  `capacityInitial` remain written against §3.4's stop-writing list; `weekStart` was
+  already on its keep list and is unchanged. The two reads are live at
+  resolveJourney.ts:195 (the capacity seed on every phase resolution) and :216 (the
+  migration destination), and stopping the writes first would not fail, it would
+  pin every capacity seed to 'normal'. Retirement is resequenced behind removing
+  those reads, in a future slice coupled to the destination migration.
+- LEGACY-ID BOUNDARY, proven and walked. Pre-3b history is auto-ID and every beta
+  account has some. Auto-ID documents stay reachable on all query paths; the only
+  two reads addressed by document ID are inside ensureCurrentWeeklyCycle, where an
+  auto-ID row is structurally invisible. That is safe rather than lucky: the
+  planner's weekStart is strictly greater than max(existing weekStarts), via three
+  chained guarantees (getLatestWeeklyCycle reduces over the unfiltered userId query
+  so legacy rows are counted; planWeek plans strictly forward of priorWeekEnd in
+  every branch; resolveWeekEnd's fallback covers rows with no stored weekEnd). The
+  deterministic ID therefore names a week no document covers, and an absent read is
+  the truth rather than a blind spot being hit. Mixed-ID account walked (step 9):
+  both path families coexist.
+- Known behaviors:
+  - Rollover requires connectivity. Firestore transactions reject rather than
+    queueing offline, so an expired week opened with no network renders Home
+    without a weekly surface and self-heals on the next online foreground. Walked
+    (step 8). Lateral against the old behavior, where the card it replaced was
+    equally non-functional offline.
+  - DEAD QUESTIONS, one slice wide. WeeklyCloseScreen still ASKS for three ratings
+    and an adjustment; this slice stopped storing them, and the answers now reach
+    analytics and nothing else. Shipped that way deliberately and documented in the
+    screen, the service, the model and the tests, with an explicit instruction not
+    to re-add the fields to make the screen feel honest. Slice 6 owns the screen's
+    repurpose (§5 row 6, C1-gated) and removes the questions. A rider hiding them
+    early was considered and not taken, so the gap is real until slice 6 lands.
+  - Nine Jen-authored `whyItWorks` strings retained in protocolMatrix rather than
+    swept as dead code, with their nine call-site comments updated to say why: it
+    is authored content held for the Practices phase detail pages (§5 row 5), and
+    deleting it would mean re-authoring it.
+- SENTINEL 186 -> 173, and the third case is now exercised and reasoned into the
+  contract. Thirteen strings were deleted WITH THEIR SURFACE (ten from OPEN_COPY,
+  three from OpenYourWeekCard) rather than approved or newly drafted. No owner is
+  named because nobody signed them off; the screen they lived on stopped existing.
+  The contract previously covered only approval and new drafts, and calling this an
+  approval would have misreported thirteen unreviewed strings as reviewed.
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*
