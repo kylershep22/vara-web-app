@@ -76,18 +76,18 @@ describe('WeeklyEntryScreen', () => {
       expect(params).toEqual({ route: 'today' });
     });
 
-    test('records the open branch when the latest cycle is a past week', async () => {
+    test('records the rollover branch when the latest cycle is a past week', async () => {
       mockGetLatestCycle.mockResolvedValue({ weekStart: '2020-01-06' });
       await route();
 
-      expect(mockLogEvent.mock.calls[0][2]).toEqual({ route: 'open' });
+      expect(mockLogEvent.mock.calls[0][2]).toEqual({ route: 'rollover' });
     });
 
-    test('records the open branch when there is no cycle at all', async () => {
+    test('records the rollover branch when there is no cycle at all', async () => {
       mockGetLatestCycle.mockResolvedValue(null);
       await route();
 
-      expect(mockLogEvent.mock.calls[0][2]).toEqual({ route: 'open' });
+      expect(mockLogEvent.mock.calls[0][2]).toEqual({ route: 'rollover' });
     });
 
     test('records the floor branch too, not only the two happy ones', async () => {

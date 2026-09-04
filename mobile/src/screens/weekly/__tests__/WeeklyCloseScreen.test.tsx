@@ -240,19 +240,27 @@ describe('WeeklyCloseScreen', () => {
       expect(selected).toHaveLength(1);
     });
 
-    test('saves a single key, not a list', async () => {
+    test('is still single-select in the UI, though nothing stores it now', async () => {
+      // THE ADJUSTMENT IS COLLECTED AND DISCARDED for one slice (journey 3b
+      // stopped the write, slice 6 drops the question). The single-select
+      // behaviour is asserted where it still exists, on screen, so this suite
+      // does not quietly lose the constraint before slice 6 removes the
+      // control that carries it.
       const screen = await renderClose();
 
       answerAll(screen, { adjustment: 'different-outcome' });
       fireEvent.press(screen.getByTestId('weekly-close-save'));
 
       await waitFor(() => expect(mockCloseCycle).toHaveBeenCalled());
-      expect(mockCloseCycle.mock.calls[0][1].adjustmentSelected).toBe('different-outcome');
+      expect(mockCloseCycle.mock.calls[0][1]).not.toHaveProperty('adjustmentSelected');
     });
   });
 
   describe('what the save writes', () => {
-    test('sends the chosen ratings, floor answer and adjustment against the cycle id', async () => {
+    test('sends the floor answer and the note against the cycle id, and nothing else', async () => {
+      // The write-set is the live-reader set (journey slice 3b). The ratings
+      // and the adjustment are still ANSWERED above and are deliberately not
+      // here: nothing reads them and slice 6 removes the questions.
       const screen = await renderClose();
 
       answerAll(screen);
@@ -260,11 +268,7 @@ describe('WeeklyCloseScreen', () => {
 
       await waitFor(() => expect(mockCloseCycle).toHaveBeenCalled());
       expect(mockCloseCycle).toHaveBeenCalledWith('cycle-1', {
-        ratingFocus: 4,
-        ratingRecovery: 2,
-        ratingEnergy: 3,
         closeNote: '',
-        adjustmentSelected: 'smaller-daily-action',
         floorMet: true,
       });
     });
@@ -455,11 +459,7 @@ describe('WeeklyCloseScreen', () => {
 
       await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('Main', { screen: 'Home' }));
       expect(mockCloseCycle).toHaveBeenCalledTimes(2);
-      expect(mockCloseCycle.mock.calls[1][1]).toMatchObject({
-        ratingFocus: 4,
-        floorMet: false,
-        adjustmentSelected: 'different-time',
-      });
+      expect(mockCloseCycle.mock.calls[1][1]).toMatchObject({ floorMet: false });
     });
   });
 

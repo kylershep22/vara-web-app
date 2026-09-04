@@ -503,14 +503,28 @@ export interface WeeklyCycle {
   outcome: OutcomeKey;
   /** The tier forecast at the weekly open. Never overwritten. */
   capacityInitial: CapacityTier;
-  /** The tier in force now, after any in-week adjustment (S7). */
-  capacityCurrent: CapacityTier;
-  /** The selected protocol cell, `${outcome}-${capacity}` (see protocolEngine). */
-  protocolId: string;
+  /**
+   * LEGACY, NO LONGER WRITTEN (journey slice 3b). Mirrored `capacityInitial`
+   * and moved when the in-week capacity re-set fired; that re-set retired when
+   * capacity became a daily answer on the dailyLogs row, so nothing has moved
+   * it or read it since. Optional because every cycle written from slice 3b on
+   * omits it, and absent is the correct reading: there is no weekly tier.
+   */
+  capacityCurrent?: CapacityTier;
+  /**
+   * LEGACY, NO LONGER WRITTEN (journey slice 3b). The weekly protocol pin,
+   * `${outcome}-${capacity}`. The phase model serves the protocol now and
+   * nothing reads this. Optional for the same reason as capacityCurrent.
+   */
+  protocolId?: string;
 
   // ---- Weekly close (S8). All absent until the close is completed. ----
   closeCompletedAt?: Timestamp;
-  /** 1-5, one tap. Weekly, never daily (S8.2). */
+  /**
+   * LEGACY, NO LONGER WRITTEN (journey slice 3b). 1-5, one tap (S8.2). The
+   * close screen still asks for these until slice 6 drops the questions; the
+   * answers reach analytics and stop there.
+   */
   ratingFocus?: number;
   ratingRecovery?: number;
   ratingEnergy?: number;

@@ -49,10 +49,18 @@ import { logEvent, __sessionId } from '../analyticsEvents.service';
 const ALICE = 'alice123';
 
 /** The one safe weekly_open payload, spelled once. */
-const OPEN_PARAMS = {
-  outcome: 'focus',
-  capacityInitial: 'normal',
-  protocolId: 'refocus-normal',
+// The sample event these tests write through. WAS `weekly_open`, which retired
+// with WeeklyOpenScreen in journey slice 3b; `weekly_close` replaces it because
+// the firewall tests need the same two shapes to push against, a closed union
+// (`ratingFocus`) and a stable-id slot (`adjustmentSelected`). Nothing here is
+// about the close in particular.
+const CLOSE_PARAMS = {
+  ratingFocus: 3,
+  ratingRecovery: 3,
+  ratingEnergy: 3,
+  adjustmentSelected: 'same-again',
+  floorMet: true,
+  continuityBeforeClose: 2,
 } as const;
 
 /** Let the swallowed floating promise inside logEvent settle. */
@@ -67,7 +75,7 @@ describe('analyticsEvents.service', () => {
 
   describe('the doc it writes', () => {
     test('writes exactly one doc to analyticsEvents', async () => {
-      logEvent(ALICE, 'weekly_open', OPEN_PARAMS);
+      logEvent(ALICE, 'weekly_close', CLOSE_PARAMS);
       await flush();
 
       expect(mockAddDoc).toHaveBeenCalledTimes(1);
@@ -75,21 +83,24 @@ describe('analyticsEvents.service', () => {
     });
 
     test('carries the owner userId, the event name and the params', async () => {
-      logEvent(ALICE, 'weekly_open', OPEN_PARAMS);
+      logEvent(ALICE, 'weekly_close', CLOSE_PARAMS);
       await flush();
 
       const [, payload] = mockAddDoc.mock.calls[0];
       expect(payload.userId).toBe(ALICE);
-      expect(payload.event).toBe('weekly_open');
+      expect(payload.event).toBe('weekly_close');
       expect(payload.params).toEqual({
-        outcome: 'focus',
-        capacityInitial: 'normal',
-        protocolId: 'refocus-normal',
+        ratingFocus: 3,
+        ratingRecovery: 3,
+        ratingEnergy: 3,
+        adjustmentSelected: 'same-again',
+        floorMet: true,
+        continuityBeforeClose: 2,
       });
     });
 
     test('stamps the time server-side, never from the device clock', async () => {
-      logEvent(ALICE, 'weekly_open', OPEN_PARAMS);
+      logEvent(ALICE, 'weekly_close', CLOSE_PARAMS);
       await flush();
 
       const [, payload] = mockAddDoc.mock.calls[0];
@@ -98,7 +109,7 @@ describe('analyticsEvents.service', () => {
     });
 
     test('carries a sessionId and the app version', async () => {
-      logEvent(ALICE, 'weekly_open', OPEN_PARAMS);
+      logEvent(ALICE, 'weekly_close', CLOSE_PARAMS);
       await flush();
 
       const [, payload] = mockAddDoc.mock.calls[0];
@@ -110,7 +121,7 @@ describe('analyticsEvents.service', () => {
     test('the sessionId is stable across events in one app run', async () => {
       // Session grouping is the whole point: two events from one run must be
       // joinable. It is regenerated per app launch and carries no user identity.
-      logEvent(ALICE, 'weekly_open', OPEN_PARAMS);
+      logEvent(ALICE, 'weekly_close', CLOSE_PARAMS);
       logEvent(ALICE, 'login', { method: 'email' });
       await flush();
 
@@ -122,7 +133,7 @@ describe('analyticsEvents.service', () => {
     test('writes no field beyond the declared envelope', async () => {
       // The doc shape is the audit surface. A field appearing here that no test
       // named is a field nobody decided to collect.
-      logEvent(ALICE, 'weekly_open', OPEN_PARAMS);
+      logEvent(ALICE, 'weekly_close', CLOSE_PARAMS);
       await flush();
 
       const [, payload] = mockAddDoc.mock.calls[0];
@@ -141,7 +152,7 @@ describe('analyticsEvents.service', () => {
     test('returns undefined synchronously rather than a promise', () => {
       // A caller cannot accidentally await analytics into a user-facing path if
       // there is nothing to await.
-      const returned = logEvent(ALICE, 'weekly_open', OPEN_PARAMS);
+      const returned = logEvent(ALICE, 'weekly_close', CLOSE_PARAMS);
 
       expect(returned).toBeUndefined();
     });
@@ -149,7 +160,7 @@ describe('analyticsEvents.service', () => {
     test('does not throw when the write rejects', async () => {
       mockAddDoc.mockRejectedValue(new Error('permission-denied'));
 
-      expect(() => logEvent(ALICE, 'weekly_open', OPEN_PARAMS)).not.toThrow();
+      expect(() => logEvent(ALICE, 'weekly_close', CLOSE_PARAMS)).not.toThrow();
       await flush();
     });
 
@@ -164,7 +175,7 @@ describe('analyticsEvents.service', () => {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const svc = require('../analyticsEvents.service');
 
-        expect(() => svc.logEvent(ALICE, 'weekly_open', OPEN_PARAMS)).not.toThrow();
+        expect(() => svc.logEvent(ALICE, 'weekly_close', CLOSE_PARAMS)).not.toThrow();
       });
     });
 
@@ -175,12 +186,12 @@ describe('analyticsEvents.service', () => {
       // must cost the field, not the event.
       delete mockConstants.expoConfig;
       try {
-        logEvent(ALICE, 'weekly_open', OPEN_PARAMS);
+        logEvent(ALICE, 'weekly_close', CLOSE_PARAMS);
         await flush();
 
         const [, payload] = mockAddDoc.mock.calls[0];
         expect(payload).not.toHaveProperty('appVersion');
-        expect(payload.event).toBe('weekly_open');
+        expect(payload.event).toBe('weekly_close');
         expect(Object.values(payload).every((v) => v !== undefined)).toBe(true);
       } finally {
         mockConstants.expoConfig = { version: '1.0.0' };
@@ -192,7 +203,7 @@ describe('analyticsEvents.service', () => {
       process.on('unhandledRejection', unhandled);
       mockAddDoc.mockRejectedValue(new Error('offline'));
 
-      logEvent(ALICE, 'weekly_open', OPEN_PARAMS);
+      logEvent(ALICE, 'weekly_close', CLOSE_PARAMS);
       await flush();
       process.off('unhandledRejection', unhandled);
 
@@ -205,8 +216,8 @@ describe('analyticsEvents.service', () => {
     // reach the writer through an `any` cast or from untyped JS.
 
     test('drops a param value that is not a safe primitive', async () => {
-      logEvent(ALICE, 'weekly_open', {
-        ...OPEN_PARAMS,
+      logEvent(ALICE, 'weekly_close', {
+        ...CLOSE_PARAMS,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         nested: { body: 'a journal entry' },
       } as any);
@@ -214,14 +225,14 @@ describe('analyticsEvents.service', () => {
 
       const [, payload] = mockAddDoc.mock.calls[0];
       expect(payload.params).not.toHaveProperty('nested');
-      expect(payload.params).toEqual(OPEN_PARAMS);
+      expect(payload.params).toEqual(CLOSE_PARAMS);
     });
 
     test('drops a string too long to be an enum or an id', async () => {
       // Free-form content is long-form. A close note or journal body forced
       // through an `any` cast is dropped rather than written.
       const note = 'I felt completely overwhelmed at work this week and barely slept.';
-      logEvent(ALICE, 'weekly_open', { ...OPEN_PARAMS, closeNote: note } as any);
+      logEvent(ALICE, 'weekly_close', { ...CLOSE_PARAMS, closeNote: note } as any);
       await flush();
 
       const [, payload] = mockAddDoc.mock.calls[0];
@@ -230,8 +241,8 @@ describe('analyticsEvents.service', () => {
     });
 
     test('keeps booleans and numbers', async () => {
-      logEvent(ALICE, 'weekly_open', {
-        ...OPEN_PARAMS,
+      logEvent(ALICE, 'weekly_close', {
+        ...CLOSE_PARAMS,
         weekNumber: 3,
         quickWinActive: true,
       } as any);
@@ -246,21 +257,15 @@ describe('analyticsEvents.service', () => {
   describe('the content firewall (type level)', () => {
     // These assertions run trivially under jest. Their real assertion is tsc.
 
-    test('accepts the safe weekly_open payload', () => {
-      expect(() =>
-        logEvent(ALICE, 'weekly_open', {
-          outcome: 'focus',
-          capacityInitial: 'normal',
-          protocolId: 'refocus-normal',
-        })
-      ).not.toThrow();
+    test('accepts the safe payload', () => {
+      expect(() => logEvent(ALICE, 'weekly_close', CLOSE_PARAMS)).not.toThrow();
     });
 
     test('rejects a free-form content field alongside a safe payload', () => {
       const closeNote = 'how the week actually went';
 
-      logEvent(ALICE, 'weekly_open', {
-        ...OPEN_PARAMS,
+      logEvent(ALICE, 'weekly_close', {
+        ...CLOSE_PARAMS,
         // @ts-expect-error - content has no expressible slot in an event payload
         closeNote,
       });
@@ -270,27 +275,27 @@ describe('analyticsEvents.service', () => {
       // Excess-property checking alone would miss this: a non-fresh object is
       // structurally assignable even with extra keys. The firewall must reject
       // it anyway, which is why the params type forbids unknown keys outright.
-      const payload = { ...OPEN_PARAMS, floorCommitment: 'ten minutes of quiet' };
+      const payload = { ...CLOSE_PARAMS, floorCommitment: 'ten minutes of quiet' };
 
       // @ts-expect-error - unknown keys are forbidden, not merely unchecked
-      logEvent(ALICE, 'weekly_open', payload);
+      logEvent(ALICE, 'weekly_close', payload);
     });
 
     test('rejects an arbitrary string in a typed enum slot', () => {
       const journalBody = 'today I noticed my shoulders were up by my ears';
 
-      logEvent(ALICE, 'weekly_open', {
-        ...OPEN_PARAMS,
-        // @ts-expect-error - outcome is a fixed union, not a string
-        outcome: journalBody,
+      logEvent(ALICE, 'weekly_close', {
+        ...CLOSE_PARAMS,
+        // @ts-expect-error - ratingFocus is a fixed union, not a string
+        ratingFocus: journalBody,
       });
     });
 
-    test('rejects an arbitrary string as a protocol id', () => {
-      logEvent(ALICE, 'weekly_open', {
-        ...OPEN_PARAMS,
-        // @ts-expect-error - protocolId is the 12-member matrix union, not a string
-        protocolId: 'whatever the user typed',
+    test('rejects an arbitrary string in a stable-id slot', () => {
+      logEvent(ALICE, 'weekly_close', {
+        ...CLOSE_PARAMS,
+        // @ts-expect-error - adjustmentSelected is a fixed key list, not a string
+        adjustmentSelected: 'whatever the user typed',
       });
     });
 
@@ -301,7 +306,7 @@ describe('analyticsEvents.service', () => {
 
     test('rejects a payload missing a required field', () => {
       // @ts-expect-error - weekly_open requires all three fields
-      logEvent(ALICE, 'weekly_open', { outcome: 'focus' });
+      logEvent(ALICE, 'weekly_close', { outcome: 'focus' });
     });
 
     // The core-loop events, each guarded at the exact place its own call site is

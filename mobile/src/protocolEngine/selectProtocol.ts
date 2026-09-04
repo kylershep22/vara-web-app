@@ -18,7 +18,7 @@ import type { DestinationKey, PhaseKey, RemoveFamily } from '../types/models';
  * LEGACY BRIDGE - dies with JOURNEY_IA flag retirement.
  *
  * The one remaining path that still holds an `OutcomeKey` rather than a phase:
- * the flag-off Today path, `WeeklyOpenScreen`, and the onboarding terminal.
+ * the flag-off Today path and the onboarding terminal.
  * Each of those retires on its own schedule (3b, 3b, slice 4), and this
  * function retires with the last of them.
  *

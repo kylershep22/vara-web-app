@@ -64,37 +64,15 @@ export const OUTCOME_LABELS = {
   energy: 'Energy',
 } as const;
 
-export const OPEN_COPY = {
-  // COPY: draft, not from guidelines doc - pending Jen
-  // Spec 6.1 step 1, verbatim.
-  outcomeQuestion: "What's your focus this week?",
-  // COPY: draft, not from guidelines doc - pending Jen
-  // Spec 6.1 step 2, verbatim.
-  capacityQuestion: "What's your capacity this week?",
-  // COPY: draft, not from guidelines doc - pending Jen
-  // Spec 6.1 step 3 (calendar forecast) is DEFERRED, not hidden behind a
-  // disabled control. There is no string for it here because there is no
-  // affordance for it on screen.
-  confirmHeading: 'Your week',
-  // COPY: draft, not from guidelines doc - pending Jen
-  confirm: 'Start this week',
-  // COPY: draft, not from guidelines doc - pending Jen
-  back: 'Back',
-  // COPY: draft, not from guidelines doc - pending Jen
-  // The week-start step, shown ONLY to a user who has never chosen one. Asked
-  // here rather than in Settings because every user reaches the weekly open,
-  // and nobody goes looking in Settings for a question they have not been asked.
-  weekStartQuestion: 'When does your week start?',
-  // COPY: draft, not from guidelines doc - pending Jen
-  weekStartHelp: 'From now on your week will run seven days from this day. This first one may be shorter.',
-  weekStartSkip: 'Not now',
-  // COPY: draft, not from guidelines doc - pending Jen
-  perDay: 'About {minutes} min a day',
-  // COPY: draft, not from guidelines doc - pending Jen
-  whyHeading: 'Why this works',
-  // COPY: draft, not from guidelines doc - pending Jen
-  saveFailed: 'That did not save. Check your connection and try again.',
-} as const;
+/**
+ * OPEN_COPY STOOD HERE and is deleted with WeeklyOpenScreen (journey slice 3b).
+ *
+ * Ten drafted strings went with it, none of which had ever been approved and
+ * none of which has a surface any more: the weekly open asked for an outcome, a
+ * capacity and a week start, and the journey model answers all three without
+ * asking. OUTCOME_LABELS above SURVIVES and is unrelated; it is read by
+ * CloseWeekEntry, TodayHeroCard and the V3 onboarding outcome step.
+ */
 
 /**
  * The adjustment options offered at the close (spec 8.4).

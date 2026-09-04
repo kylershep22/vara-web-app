@@ -182,9 +182,12 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
           'Pick one piece of friction and put it in place today. Charger out of the bedroom, app off the home screen, remote in a drawer. Small is fine.',
         estMinutes: 20,
         // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
-        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
-        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
-        // rendered from slice 9 behavioral screen.
+        // Its one call site WAS WeeklyOpenScreen, which is DELETED (journey
+        // slice 3b). RETAINED DELIBERATELY, not stranded: this is authored
+        // content, it is held for the Practices phase detail pages (roadmap §5
+        // row 5), and deleting it to satisfy a dead-code sweep would mean
+        // re-authoring it. Unrendered today, rendered from the slice 9
+        // behavioral screen.
         whyItWorks:
           "Automatic habits are easier to interrupt when the environment changes first. Make the usual choice slightly harder now, so you're not relying on willpower later.",
         family: 'behavioral',
@@ -198,9 +201,12 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 20,
         acknowledgment: "It's on paper now, not on you.",
         // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
-        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
-        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
-        // rendered from slice 9 behavioral screen.
+        // Its one call site WAS WeeklyOpenScreen, which is DELETED (journey
+        // slice 3b). RETAINED DELIBERATELY, not stranded: this is authored
+        // content, it is held for the Practices phase detail pages (roadmap §5
+        // row 5), and deleting it to satisfy a dead-code sweep would mean
+        // re-authoring it. Unrendered today, rendered from the slice 9
+        // behavioral screen.
         whyItWorks:
           "A thought keeps replaying when it has nowhere to go. A written plan can quiet it in a way pushing it away doesn't.",
       }),
@@ -212,9 +218,12 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 20,
         acknowledgment: 'Good. You made some room.',
         // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
-        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
-        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
-        // rendered from slice 9 behavioral screen.
+        // Its one call site WAS WeeklyOpenScreen, which is DELETED (journey
+        // slice 3b). RETAINED DELIBERATELY, not stranded: this is authored
+        // content, it is held for the Practices phase detail pages (roadmap §5
+        // row 5), and deleting it to satisfy a dead-code sweep would mean
+        // re-authoring it. Unrendered today, rendered from the slice 9
+        // behavioral screen.
         whyItWorks:
           "A draining interaction costs less when you've decided its shape in advance. One boundary, chosen ahead of time, does the work in the moment.",
       }),
@@ -226,9 +235,12 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
           'Just notice it once today. The reach, the tap, the time on the clock. One line to yourself: "It starts when..." That\'s the whole practice.',
         estMinutes: 10,
         // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
-        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
-        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
-        // rendered from slice 9 behavioral screen.
+        // Its one call site WAS WeeklyOpenScreen, which is DELETED (journey
+        // slice 3b). RETAINED DELIBERATELY, not stranded: this is authored
+        // content, it is held for the Practices phase detail pages (roadmap §5
+        // row 5), and deleting it to satisfy a dead-code sweep would mean
+        // re-authoring it. Unrendered today, rendered from the slice 9
+        // behavioral screen.
         whyItWorks:
           "You can't change a pattern you never catch. Noticing where it starts gives you something specific to work with.",
         family: 'behavioral',
@@ -242,9 +254,12 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 10,
         acknowledgment: 'You caught it. That\'s useful.',
         // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
-        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
-        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
-        // rendered from slice 9 behavioral screen.
+        // Its one call site WAS WeeklyOpenScreen, which is DELETED (journey
+        // slice 3b). RETAINED DELIBERATELY, not stranded: this is authored
+        // content, it is held for the Practices phase detail pages (roadmap §5
+        // row 5), and deleting it to satisfy a dead-code sweep would mean
+        // re-authoring it. Unrendered today, rendered from the slice 9
+        // behavioral screen.
         whyItWorks:
           'Naming a thought can put a little distance between you and it. The volume tends to come down from there.',
       }),
@@ -256,9 +271,12 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 10,
         acknowledgment: 'You caught it. That\'s useful.',
         // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
-        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
-        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
-        // rendered from slice 9 behavioral screen.
+        // Its one call site WAS WeeklyOpenScreen, which is DELETED (journey
+        // slice 3b). RETAINED DELIBERATELY, not stranded: this is authored
+        // content, it is held for the Practices phase detail pages (roadmap §5
+        // row 5), and deleting it to satisfy a dead-code sweep would mean
+        // re-authoring it. Unrendered today, rendered from the slice 9
+        // behavioral screen.
         whyItWorks:
           'Seeing the cost clearly is the first boundary. The next one tends to be easier to draw.',
       }),
@@ -270,9 +288,12 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
           'When you notice it today, make one small break in the pattern. Put the phone down, step away, silence one thing. Even two minutes counts.',
         estMinutes: 5,
         // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
-        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
-        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
-        // rendered from slice 9 behavioral screen.
+        // Its one call site WAS WeeklyOpenScreen, which is DELETED (journey
+        // slice 3b). RETAINED DELIBERATELY, not stranded: this is authored
+        // content, it is held for the Practices phase detail pages (roadmap §5
+        // row 5), and deleting it to satisfy a dead-code sweep would mean
+        // re-authoring it. Unrendered today, rendered from the slice 9
+        // behavioral screen.
         whyItWorks:
           'A pattern loosens a little every time it gets interrupted. One small break is enough on a day like this.',
         family: 'behavioral',
@@ -286,9 +307,12 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 5,
         acknowledgment: 'That\'s time you took back.',
         // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
-        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
-        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
-        // rendered from slice 9 behavioral screen.
+        // Its one call site WAS WeeklyOpenScreen, which is DELETED (journey
+        // slice 3b). RETAINED DELIBERATELY, not stranded: this is authored
+        // content, it is held for the Practices phase detail pages (roadmap §5
+        // row 5), and deleting it to satisfy a dead-code sweep would mean
+        // re-authoring it. Unrendered today, rendered from the slice 9
+        // behavioral screen.
         whyItWorks:
           "When thoughts won't move, the body is the better lever. A change of place can break the grip for a moment, and a moment is enough today.",
       }),
@@ -300,9 +324,12 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 5,
         acknowledgment: 'Good. You made some room.',
         // `whyItWorks` IS NOT RENDERED ON ANY SURFACE A JOURNEY USER REACHES.
-        // Its one call site is WeeklyOpenScreen.tsx:371, and that screen is
-        // unreachable while JOURNEY_IA is on. Held here, unrendered, and
-        // rendered from slice 9 behavioral screen.
+        // Its one call site WAS WeeklyOpenScreen, which is DELETED (journey
+        // slice 3b). RETAINED DELIBERATELY, not stranded: this is authored
+        // content, it is held for the Practices phase detail pages (roadmap §5
+        // row 5), and deleting it to satisfy a dead-code sweep would mean
+        // re-authoring it. Unrendered today, rendered from the slice 9
+        // behavioral screen.
         whyItWorks:
           'On a low day, the boundary is the exit. Taking it once is enough.',
       }),
@@ -452,7 +479,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
  * LEGACY. The four weekly outcomes, in the order the weekly open renders them.
  *
  * NO LONGER A MATRIX AXIS. Two live consumers remain and both are scheduled:
- * `WeeklyOpenScreen`'s outcome step (retires in slice 3b) and Onboarding V3
+ * Onboarding V3
  * step 2 (rekeys to DestinationKey in slice 4). Do not add a third.
  */
 export const OUTCOME_KEYS: readonly OutcomeKey[] = ['focus', 'stress', 'routines', 'energy'];

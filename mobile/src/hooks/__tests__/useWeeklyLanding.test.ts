@@ -16,12 +16,16 @@
 // today and rot tomorrow.
 
 const mockGetFloor = jest.fn();
+const mockGetUserPrivate = jest.fn();
 jest.mock('../../services/firebase/userPrivate.service', () => ({
   getFloorCommitment: (...a: any[]) => mockGetFloor(...a),
+  getUserPrivate: (...a: any[]) => mockGetUserPrivate(...a),
 }));
 const mockGetLatestCycle = jest.fn();
+const mockEnsureCycle = jest.fn();
 jest.mock('../../services/firebase/weeklyCycle.service', () => ({
   getLatestWeeklyCycle: (...a: any[]) => mockGetLatestCycle(...a),
+  ensureCurrentWeeklyCycle: (...a: any[]) => mockEnsureCycle(...a),
 }));
 jest.mock('../../utils/logger', () => ({
   logger: { log: jest.fn(), warn: jest.fn(), error: jest.fn() },
@@ -46,8 +50,6 @@ const cycle = (over: Partial<WeeklyCycle> = {}): WeeklyCycle =>
     weekEnd: day(6),
     outcome: 'focus',
     capacityInitial: 'normal',
-    capacityCurrent: 'normal',
-    protocolId: 'focus-normal',
     ...over,
   }) as WeeklyCycle;
 
@@ -61,9 +63,16 @@ async function resolve() {
 }
 
 describe('useWeeklyLanding', () => {
+  // The rolled cycle every rollover case lands on. Distinct id, so a test can
+  // tell "the hook rolled over and reported the new week" apart from "the hook
+  // reported the expired one it started with".
+  const ROLLED = cycle({ id: 'cycle-rolled', weekStart: TODAY, weekEnd: day(6) });
+
   beforeEach(() => {
     mockGetFloor.mockReset().mockResolvedValue(FLOOR);
+    mockGetUserPrivate.mockReset().mockResolvedValue({ weekStartDay: null });
     mockGetLatestCycle.mockReset().mockResolvedValue(cycle());
+    mockEnsureCycle.mockReset().mockResolvedValue(ROLLED);
   });
 
   describe('a live week', () => {
@@ -93,28 +102,35 @@ describe('useWeeklyLanding', () => {
   });
 
   describe('a week that has ended', () => {
-    test('one day past weekEnd opens a fresh week', async () => {
+    test('one day past weekEnd rolls over and lands on Today', async () => {
       mockGetLatestCycle.mockResolvedValue(cycle({ weekStart: day(-4), weekEnd: day(-1) }));
       const { result } = await resolve();
 
-      expect(result.current.target).toBe('open');
+      expect(result.current.target).toBe('today');
+      expect(mockEnsureCycle).toHaveBeenCalledTimes(1);
     });
 
-    test('a 4-day stub that ended yesterday opens, rather than lingering to day 7', async () => {
+    test('a 4-day stub that ended yesterday rolls over, rather than lingering to day 7', async () => {
       // THE STUB REGRESSION, at the hook. weekStart is 4 days back, so the
       // retired age < 7 predicate would still call this current and Home would
       // keep serving the finished week for three more days.
       mockGetLatestCycle.mockResolvedValue(cycle({ weekStart: day(-4), weekEnd: day(-1) }));
       const { result } = await resolve();
 
-      expect(result.current.target).toBe('open');
+      expect(result.current.target).toBe('today');
+      expect(mockEnsureCycle).toHaveBeenCalledTimes(1);
     });
 
-    test('does not carry a cycle the user is being sent away from', async () => {
+    test('carries the ROLLED cycle, never the expired one it replaced', async () => {
+      // Before rollover this asserted null, because an expired week meant the
+      // user was being navigated away and a stale cycle held behind them was a
+      // trap. There is nowhere to navigate to now: the hook makes the new week
+      // and Home renders it, so the cycle it carries must be the new one. If
+      // this ever reports the expired cycle, Home draws last week.
       mockGetLatestCycle.mockResolvedValue(cycle({ weekStart: day(-9), weekEnd: day(-3) }));
       const { result } = await resolve();
 
-      expect(result.current.cycle).toBeNull();
+      expect(result.current.cycle?.id).toBe('cycle-rolled');
     });
   });
 
@@ -143,21 +159,25 @@ describe('useWeeklyLanding', () => {
       expect(result.current.cycle?.closeCompletedAt).toBeTruthy();
     });
 
-    test('opens once the week has expired', async () => {
+    test('rolls over once the week has expired', async () => {
       // The gap this slice fixed: closed the stub, and the next week is due.
       mockGetLatestCycle.mockResolvedValue(
         cycle({ weekStart: day(-5), weekEnd: day(-1), closeCompletedAt: {} as any })
       );
       const { result } = await resolve();
 
-      expect(result.current.target).toBe('open');
+      expect(result.current.target).toBe('today');
+      expect(mockEnsureCycle).toHaveBeenCalledTimes(1);
     });
 
     test('closed-ness changes nothing — inside the window or past it', async () => {
       // THE REGRESSION GUARD against re-adding a closed check to the rule.
-      const dates: Array<[string, string, 'today' | 'open']> = [
+      // Both rows are 'today' now, for two DIFFERENT reasons: the live week is
+      // served directly, the expired one is rolled over first. That they agree
+      // is the point being guarded, which is that closing is not expiry.
+      const dates: Array<[string, string, 'today']> = [
         [day(-1), day(3), 'today'],
-        [day(-5), day(-1), 'open'],
+        [day(-5), day(-1), 'today'],
       ];
 
       for (const [weekStart, weekEnd, expected] of dates) {
@@ -184,13 +204,14 @@ describe('useWeeklyLanding', () => {
       expect(result.current.target).toBe('today');
     });
 
-    test('no weekEnd opens a fresh week on day seven', async () => {
+    test('no weekEnd rolls over and lands on Today on day seven', async () => {
       mockGetLatestCycle.mockResolvedValue(
         cycle({ weekStart: day(-7), weekEnd: undefined })
       );
       const { result } = await resolve();
 
-      expect(result.current.target).toBe('open');
+      expect(result.current.target).toBe('today');
+      expect(mockEnsureCycle).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -215,7 +236,8 @@ describe('useWeeklyLanding', () => {
       mockGetLatestCycle.mockResolvedValue(null);
       const { result } = await resolve();
 
-      expect(result.current.target).toBe('open');
+      expect(result.current.target).toBe('today');
+      expect(mockEnsureCycle).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -235,7 +257,8 @@ describe('useWeeklyLanding', () => {
     test('re-reads, so returning from the open reflects the week just started', async () => {
       mockGetLatestCycle.mockResolvedValue(null);
       const { result } = await resolve();
-      expect(result.current.target).toBe('open');
+      expect(result.current.target).toBe('today');
+      expect(mockEnsureCycle).toHaveBeenCalledTimes(1);
 
       mockGetLatestCycle.mockResolvedValue(cycle({ weekStart: TODAY, weekEnd: day(6) }));
       await act(async () => {

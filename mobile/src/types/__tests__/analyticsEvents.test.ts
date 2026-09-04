@@ -57,7 +57,6 @@ describe('analytics event schema', () => {
         'weekly_close_entry',
         'weekly_close_failed',
         'weekly_entry',
-        'weekly_open',
       ]);
     });
   });
@@ -78,7 +77,7 @@ describe('analytics event schema', () => {
     test('the entry routes match the guard targets', () => {
       const pinned: MutuallyAssignable<WeeklyEntryRoute, WeeklyEntryTarget> = true;
       expect(pinned).toBe(true);
-      expect([...WEEKLY_ENTRY_ROUTES].sort()).toEqual(['floor', 'open', 'today']);
+      expect([...WEEKLY_ENTRY_ROUTES].sort()).toEqual(['floor', 'rollover', 'today']);
     });
   });
 

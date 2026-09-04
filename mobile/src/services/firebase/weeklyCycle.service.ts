@@ -17,6 +17,10 @@
  * individually. Org membership grants zero read here. Do not add a helper that
  * reads another user's rows; the rules would refuse it anyway.
  *
+ * `writeBatch` LEFT THIS FILE with the last batched write (journey slice 3b).
+ * Rollover uses a transaction rather than a batch, because it has to READ the
+ * target document before deciding to write it; a batch cannot read.
+ *
  * APPEND-ONLY: downshiftEvents exposes only create + read. The owner rule is
  * uniform across both collections (update/delete are allowed to the owner),
  * but an event log that can be rewritten is not an event log. The absence of an
@@ -42,17 +46,18 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getDocs,
   limit as limitTo,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   where,
-  writeBatch,
 } from 'firebase/firestore';
 import { requireDb } from './ensureDb';
-import { resolveWeekEnd } from '../../utils/weekStart';
+import { isWithinWeek, planWeek, resolveWeekEnd } from '../../utils/weekStart';
 import type { DownshiftEvent, WeeklyCycle } from '../../types/models';
 // Type-only import from the engine barrel: erased at compile time, so this does
 // NOT wire the weekly engine into the running app.
@@ -60,6 +65,24 @@ import type { CapacityTier, OutcomeKey } from '../../protocolEngine';
 
 const WEEKLY_CYCLES = 'weeklyCycles';
 const DOWNSHIFT_EVENTS = 'downshiftEvents';
+
+/**
+ * What a rolled-over cycle carries when there is no previous one to carry
+ * forward. Matches resolveJourney's own fallbacks so the two cannot disagree
+ * about a user with no history.
+ */
+const DEFAULT_ROLLOVER_OUTCOME: OutcomeKey = 'focus';
+const DEFAULT_ROLLOVER_CAPACITY: CapacityTier = 'normal';
+
+/** What ensureCurrentWeeklyCycle needs. `latest` is null for a first cycle. */
+export interface EnsureWeeklyCycleInput {
+  /** Today, injected. Never read from the clock in here. */
+  todayIso: string;
+  /** userPrivate.weekStartDay; null or undefined until the picker writes one. */
+  weekStartDay: number | null | undefined;
+  /** The user's most recent cycle, or null when they have none. */
+  latest: WeeklyCycle | null;
+}
 
 
 /**
@@ -78,7 +101,6 @@ export interface CreateWeeklyCycleInput {
   weekEnd: string;
   outcome: OutcomeKey;
   capacityInitial: CapacityTier;
-  protocolId: string;
 }
 
 /**
@@ -120,9 +142,21 @@ function stripOwnedKeys(patch: object): Record<string, unknown> {
 // ---------------------------------------------------------------------------
 
 /**
- * Open a week. `capacityCurrent` is initialized to `capacityInitial`; the two
- * diverge only when the in-week control fires (S7), and the gap between them is
- * the signal that tells us whether the weekly forecast is working.
+ * Open a week.
+ *
+ * THE WRITE-SET IS THE LIVE-READER SET, and that is the whole rule (roadmap
+ * §3.4, sequencing corrected in this slice). `capacityCurrent` and `protocolId`
+ * used to be written here and are not any more: nothing reads either one.
+ * `capacityCurrent` mirrored `capacityInitial` for the in-week re-set, which
+ * retired when capacity became a daily answer, and `protocolId` was the weekly
+ * protocol pin, which the phase model serves instead.
+ *
+ * `outcome`, `capacityInitial` and `weekStart` ARE still written even though
+ * §3.4 lists the first two as stop-writing, because both are still read on live
+ * paths (resolveJourney's capacity seed and migration destination). Retiring
+ * them is sequenced behind removing those reads, in a later slice. Stopping the
+ * writes first would not fail, it would silently pin every capacity seed to
+ * 'normal', which is the worst kind of correct-looking bug.
  */
 export async function createWeeklyCycle(
   userId: string,
@@ -136,12 +170,102 @@ export async function createWeeklyCycle(
     weekEnd: input.weekEnd,
     outcome: input.outcome,
     capacityInitial: input.capacityInitial,
-    capacityCurrent: input.capacityInitial,
-    protocolId: input.protocolId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
   return ref.id;
+}
+
+/**
+ * The document ID a rolled-over cycle is written under.
+ *
+ * DETERMINISTIC, AND THAT IS THE IDEMPOTENCY. See ensureCurrentWeeklyCycle.
+ * Mirrors the shape dailyLogs already uses for the same reason (one row per
+ * user per period, named by the period). Cycles written before rollover existed
+ * carry Firestore auto-IDs and are found by the `weekStart` field like every
+ * other read here, so the two shapes coexist with nothing to migrate.
+ */
+export function weeklyCycleDocId(userId: string, weekStart: string): string {
+  return `${userId}_${weekStart}`;
+}
+
+/**
+ * Make sure the user has a live week, creating the next one if they do not.
+ *
+ * THIS REPLACES THE WEEKLY OPEN. The open was a wizard that asked for an
+ * outcome and a capacity and then wrote a cycle; under the journey model the
+ * phase supplies the destination and capacity is a daily answer, so there is
+ * nothing left to ask. What is left is bookkeeping, and bookkeeping does not
+ * deserve a screen. A week that ends now rolls into the next one, and the
+ * weekly reset check-in stays the ritual.
+ *
+ * IDEMPOTENT UNDER DOUBLE-TRIGGER, BY CONSTRUCTION RATHER THAN BY LUCK. Two
+ * things can notice expiry at once (a foreground and a navigation both
+ * re-running the landing effect), and a read-then-create would let both read
+ * "no cycle" and both create one. Two defences, and only the second is load
+ * bearing:
+ *
+ *   1. The document ID is derived from the week it covers, so a duplicate is
+ *      not a second document, it is the same document.
+ *   2. The write runs in a TRANSACTION that reads that ID and creates only on
+ *      absence. Concurrent transactions on one document serialize, so the
+ *      loser sees the winner's document and writes nothing. This is also what
+ *      makes it safe across an app relaunch, where an in-memory guard would
+ *      have been forgotten.
+ *
+ * Never overwrites. A cycle that already exists is returned untouched, which
+ * matters because it may already carry close fields, and a blind set would
+ * silently un-close a closed week.
+ *
+ * CARRIES THE PREVIOUS WEEK FORWARD. `outcome` and `capacityInitial` come from
+ * the expiring cycle, so rollover continues what the user chose rather than
+ * asking again or guessing. With no prior cycle at all the defaults are the
+ * same ones resolveJourney falls back to, so a user with no history lands
+ * exactly where the resolver would have put them anyway.
+ */
+export async function ensureCurrentWeeklyCycle(
+  userId: string,
+  input: EnsureWeeklyCycleInput
+): Promise<WeeklyCycle> {
+  const { todayIso, weekStartDay, latest } = input;
+
+  // Already live: nothing to do. The caller has usually established this
+  // already, but this makes the function safe to call unconditionally.
+  if (latest && isWithinWeek(resolveWeekEnd(latest.weekStart, latest.weekEnd), todayIso)) {
+    return latest;
+  }
+
+  const plan = planWeek({
+    todayIso,
+    weekStartDay,
+    priorWeekEnd: latest ? resolveWeekEnd(latest.weekStart, latest.weekEnd) : null,
+  });
+
+  const id = weeklyCycleDocId(userId, plan.weekStart);
+  const ref = doc(requireDb(), WEEKLY_CYCLES, id);
+
+  const created = {
+    userId,
+    weekStart: plan.weekStart,
+    weekEnd: plan.weekEnd,
+    outcome: latest?.outcome ?? DEFAULT_ROLLOVER_OUTCOME,
+    capacityInitial: latest?.capacityInitial ?? DEFAULT_ROLLOVER_CAPACITY,
+  };
+
+  await runTransaction(requireDb(), async (tx) => {
+    const existing = await tx.get(ref);
+    if (existing.exists()) return;
+    tx.set(ref, {
+      ...created,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+
+  // Read back rather than returning the local object, so a caller that lost the
+  // race gets the winner's document instead of one that was never written.
+  const settled = await getDoc(ref);
+  return { ...(settled.data() as Omit<WeeklyCycle, 'id'>), id: settled.id };
 }
 
 /**
@@ -286,14 +410,8 @@ export async function updateWeeklyCycle(
  * how a client clock ends up deciding when a week closed.
  */
 export interface CloseWeeklyCycleInput {
-  /** 1-5, one tap each. Weekly, never daily (S8.2). */
-  ratingFocus: number;
-  ratingRecovery: number;
-  ratingEnergy: number;
   /** Skippable (S8.3). Omitted from the write when blank rather than stored as ''. */
   closeNote?: string;
-  /** The stable option ID of the one adjustment chosen (S8.4), never its label. */
-  adjustmentSelected: string;
   /** Self-reported: did they hold their floor this week? (open item #10, Option A). */
   floorMet: boolean;
 }
@@ -330,13 +448,9 @@ export async function closeWeeklyCycle(
   const note = input.closeNote?.trim();
 
   await updateDoc(doc(requireDb(), WEEKLY_CYCLES, cycleId), {
-    ratingFocus: input.ratingFocus,
-    ratingRecovery: input.ratingRecovery,
-    ratingEnergy: input.ratingEnergy,
     // Skipped means absent, not empty. An '' would read back as "they answered
     // and said nothing", which is a different fact from "they skipped it".
     ...(note ? { closeNote: note } : {}),
-    adjustmentSelected: input.adjustmentSelected,
     floorMet: input.floorMet,
     closeCompletedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),

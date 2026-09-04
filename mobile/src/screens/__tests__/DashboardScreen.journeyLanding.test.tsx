@@ -92,12 +92,16 @@ jest.mock('../../hooks/useDashboard', () => ({
 }));
 
 const mockGetFloor = jest.fn();
+const mockGetUserPrivate = jest.fn();
 jest.mock('../../services/firebase/userPrivate.service', () => ({
   getFloorCommitment: (...a: any[]) => mockGetFloor(...a),
+  getUserPrivate: (...a: any[]) => mockGetUserPrivate(...a),
 }));
 const mockGetLatestCycle = jest.fn();
+const mockEnsureCycle = jest.fn();
 jest.mock('../../services/firebase/weeklyCycle.service', () => ({
   getLatestWeeklyCycle: (...a: any[]) => mockGetLatestCycle(...a),
+  ensureCurrentWeeklyCycle: (...a: any[]) => mockEnsureCycle(...a),
 }));
 jest.mock('../../utils/logger', () => ({
   logger: { log: jest.fn(), warn: jest.fn(), error: jest.fn() },
@@ -200,6 +204,10 @@ describe('DashboardScreen under JOURNEY_IA', () => {
     mockTodayCard.mockReturnValue(todayCard());
     mockGetFloor.mockResolvedValue('Ten minutes of quiet');
     mockGetLatestCycle.mockResolvedValue(liveCycle);
+    mockGetUserPrivate.mockResolvedValue({ weekStartDay: null });
+    // Rollover returns the week it just made. Distinct id, so an assertion can
+    // tell the rolled week apart from the expired one it replaced.
+    mockEnsureCycle.mockResolvedValue({ ...liveCycle, id: 'cycle-rolled' });
     mockResolveJourney.mockResolvedValue({ target: 'today', phase: PHASE });
   });
 
@@ -234,20 +242,23 @@ describe('DashboardScreen under JOURNEY_IA', () => {
     expect(getByTestId('home-close-entry')).toBeTruthy();
   });
 
-  test('OMITS the summary and the close entry when there is no live week', async () => {
-    // A journey user whose week expired: phase, no cycle. The day still
-    // renders; the week-shaped furniture does not name a week that is over.
+  test('ROLLS AN EXPIRED WEEK OVER and shows the week furniture for the new one', async () => {
+    // BEFORE ROLLOVER this asserted the opposite: an expired week meant no
+    // cycle, so the summary and the close entry were both suppressed and Home
+    // sat there with no week until the user opened one by hand. There is no
+    // hand-open any more (journey slice 3b), so the expired week becomes the
+    // next week and the furniture describes that one.
     mockGetLatestCycle.mockResolvedValue({ ...liveCycle, weekEnd: day(-1) });
-    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    const { getByTestId } = render(<DashboardScreen />);
 
     await waitFor(() => expect(getByTestId('home-today-hero')).toBeTruthy());
-    expect(queryByTestId('home-today-summary')).toBeNull();
-    expect(queryByTestId('home-close-entry')).toBeNull();
+    expect(mockEnsureCycle).toHaveBeenCalledTimes(1);
+    expect(getByTestId('home-close-entry')).toBeTruthy();
   });
 
-  test('DOES NOT PUSH to the weekly open on an expired week', async () => {
-    // The one place behavior differs under the flag, asserted rather than
-    // discovered on device.
+  test('DOES NOT PUSH ANYWHERE on an expired week', async () => {
+    // There is nowhere left to push: the weekly open is deleted and the
+    // rollover happens in place. A navigation here would mean a dead route.
     mockGetLatestCycle.mockResolvedValue({ ...liveCycle, weekEnd: day(-1) });
     const { getByTestId } = render(<DashboardScreen />);
 

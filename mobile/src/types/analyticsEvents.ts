@@ -31,7 +31,7 @@
  * `services/firebase/analyticsEvents.service.ts`.
  */
 
-import type { CapacityTier, OutcomeKey } from '../protocolEngine';
+import type { CapacityTier } from '../protocolEngine';
 import type { PhaseKey, RemoveFamily, RemoveTiming } from './models';
 
 /**
@@ -152,7 +152,7 @@ export type AdjustmentKey = (typeof ADJUSTMENT_IDS)[number];
  * mutual-assignability check in the schema test, so adding a fourth target
  * without adding it here fails the build.
  */
-export const WEEKLY_ENTRY_ROUTES = ['floor', 'open', 'today'] as const;
+export const WEEKLY_ENTRY_ROUTES = ['floor', 'rollover', 'today'] as const;
 
 export type WeeklyEntryRoute = (typeof WEEKLY_ENTRY_ROUTES)[number];
 
@@ -176,22 +176,6 @@ export type WeeklyEntryRoute = (typeof WEEKLY_ENTRY_ROUTES)[number];
  *     open strings that would need their own closed union. Its own slice.
  */
 export interface AnalyticsEventMap {
-  /**
-   * A week was opened. The pair chosen and the protocol it resolved to.
-   *
-   * DEPRECATED WHOLE (roadmap 3.6). `WeeklyOpenScreen` is the only emitter and
-   * it retires in slice 3b, taking this event with it. Under JOURNEY_IA the
-   * screen is already unreachable, so this fires zero times today.
-   */
-  weekly_open: {
-    /**
-     * DEPRECATED. The last OutcomeKey in an event payload; it is not a phase
-     * and must not be read as one. Retires with the screen in slice 3b.
-     */
-    outcome: OutcomeKey;
-    capacityInitial: CapacityTier;
-    protocolId: ProtocolId;
-  };
   /**
    * A week was closed.
    *
@@ -329,7 +313,6 @@ const EVENT_NAME_SET: Record<AnalyticsEventName, true> = {
   journey_remove_capture_dismissed: true,
   journey_state_created: true,
   safety_precheck_shown: true,
-  weekly_open: true,
   weekly_close: true,
   weekly_close_failed: true,
   floor_set: true,

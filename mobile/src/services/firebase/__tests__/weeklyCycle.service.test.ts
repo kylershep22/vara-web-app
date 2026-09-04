@@ -17,6 +17,23 @@ const mockServerTimestamp = jest.fn(() => ({ __serverTimestamp: true }));
 const mockBatchSet = jest.fn((..._a: any[]) => undefined);
 const mockBatchUpdate = jest.fn((..._a: any[]) => undefined);
 const mockBatchCommit = jest.fn((): any => Promise.resolve());
+// A stand-in for the one document a rollover writes, keyed by the ref's path
+// so the deterministic-ID behaviour is what the test actually exercises. This
+// is the mock that makes the double-trigger case meaningful: a second
+// transaction on the same key genuinely sees the first one's document.
+const txStore = new Map<string, any>();
+const keyOf = (ref: any) => JSON.stringify(ref?.builtFrom ?? ref);
+const mockRunTransaction = jest.fn(async (_db: any, fn: any) =>
+  fn({
+    get: async (ref: any) => {
+      const data = txStore.get(keyOf(ref));
+      return { exists: () => data !== undefined, data: () => data, id: 'txn-doc' };
+    },
+    set: (ref: any, data: any) => {
+      txStore.set(keyOf(ref), data);
+    },
+  })
+);
 const mockWriteBatch = jest.fn((..._a: any[]) => ({
   set: (...a: any[]) => mockBatchSet(...a),
   update: (...a: any[]) => mockBatchUpdate(...a),
@@ -37,6 +54,7 @@ jest.mock('firebase/firestore', () => ({
   updateDoc: (...a: any[]) => mockUpdateDoc(...a),
   serverTimestamp: () => mockServerTimestamp(),
   writeBatch: (...a: any[]) => mockWriteBatch(...a),
+  runTransaction: (...a: any[]) => mockRunTransaction(a[0], a[1]),
 }));
 // requireDb() reads `db` from this module, so mocking it here narrows the handle
 // for the service without needing to mock ensureDb itself.
@@ -48,6 +66,8 @@ jest.mock('../../../config/firebase', () => ({
 import {
   countWeeklyCyclesForOutcome,
   createWeeklyCycle,
+  ensureCurrentWeeklyCycle,
+  weeklyCycleDocId,
   getLatestWeeklyCycle,
   getWeeklyCyclesForUser,
   getWeeklyCycleForWeek,
@@ -82,6 +102,8 @@ describe('weeklyCycle.service', () => {
     mockSetDoc.mockClear();
     mockUpdateDoc.mockClear();
     mockWriteBatch.mockClear();
+    mockRunTransaction.mockClear();
+    txStore.clear();
     mockBatchSet.mockClear();
     mockBatchUpdate.mockClear();
     mockBatchCommit.mockReset();
@@ -95,23 +117,44 @@ describe('weeklyCycle.service', () => {
         weekEnd: WEEK_END,
         outcome: 'focus',
         capacityInitial: 'normal',
-        protocolId: 'focus-normal',
       });
       expect(mockCollection).toHaveBeenCalledWith({ __db: true }, 'weeklyCycles');
     });
 
-    test('initializes capacityCurrent to capacityInitial', async () => {
+    // THE WRITE-SET IS THE LIVE-READER SET (journey slice 3b). A field with no
+    // reader is not free: it is a thing the next person has to decide whether
+    // to trust. These two assert the boundary in both directions, so adding a
+    // field back without a reader fails here rather than in review.
+    test('writes exactly the fields that are still read, and no others', async () => {
       await createWeeklyCycle(ALICE, {
         weekStart: WEEK,
         weekEnd: WEEK_END,
         outcome: 'stress',
         capacityInitial: 'limited',
-        protocolId: 'stress-limited',
       });
-      const written = mockAddDoc.mock.calls[0][1];
-      expect(written.capacityInitial).toBe('limited');
-      expect(written.capacityCurrent).toBe('limited');
+      expect(Object.keys(mockAddDoc.mock.calls[0][1]).sort()).toEqual([
+        'capacityInitial',
+        'createdAt',
+        'outcome',
+        'updatedAt',
+        'userId',
+        'weekEnd',
+        'weekStart',
+      ]);
     });
+
+    test.each(['capacityCurrent', 'protocolId'])(
+      'never writes the retired field %s',
+      async (field) => {
+        await createWeeklyCycle(ALICE, {
+          weekStart: WEEK,
+          weekEnd: WEEK_END,
+          outcome: 'stress',
+          capacityInitial: 'limited',
+        });
+        expect(mockAddDoc.mock.calls[0][1]).not.toHaveProperty(field);
+      }
+    );
 
     test('stamps the owner and both timestamps', async () => {
       await createWeeklyCycle(ALICE, {
@@ -119,7 +162,6 @@ describe('weeklyCycle.service', () => {
         weekEnd: WEEK_END,
         outcome: 'focus',
         capacityInitial: 'normal',
-        protocolId: 'focus-normal',
       });
       const written = mockAddDoc.mock.calls[0][1];
       expect(written.userId).toBe(ALICE);
@@ -136,7 +178,6 @@ describe('weeklyCycle.service', () => {
         weekEnd: '2026-08-05',
         outcome: 'focus',
         capacityInitial: 'normal',
-        protocolId: 'focus-normal',
       });
       const written = mockAddDoc.mock.calls[0][1];
       expect(written.weekStart).toBe(WEEK);
@@ -152,7 +193,6 @@ describe('weeklyCycle.service', () => {
           weekEnd: WEEK_END,
           outcome: 'focus',
           capacityInitial: 'normal',
-          protocolId: 'focus-normal',
         })
       ).toBe('new-id');
     });
@@ -329,11 +369,7 @@ describe('weeklyCycle.service', () => {
 
   describe('closeWeeklyCycle', () => {
     const closeInput = (over: Record<string, unknown> = {}) => ({
-      ratingFocus: 4,
-      ratingRecovery: 2,
-      ratingEnergy: 3,
       closeNote: 'the days it slipped were the late ones',
-      adjustmentSelected: 'smaller-daily-action',
       floorMet: true,
       ...over,
     });
@@ -346,7 +382,7 @@ describe('weeklyCycle.service', () => {
       });
 
       test('is ONE updateDoc on ONE document, with no batch and no second collection', async () => {
-        // The close captures five answers, and all five live on the cycle. A
+        // Everything the close still stores lives on the cycle. A
         // batch here would be ceremony; a second collection would mean the
         // close could half-land, which is exactly what one document rules out.
         await closeWeeklyCycle('cycle1', closeInput());
@@ -357,25 +393,26 @@ describe('weeklyCycle.service', () => {
         expect(mockSetDoc).not.toHaveBeenCalled();
       });
 
-      test('writes the three ratings and the chosen adjustment', async () => {
-        await closeWeeklyCycle('cycle1', closeInput());
+      // THE RATINGS AND THE ADJUSTMENT ARE NO LONGER STORED (journey slice 3b).
+      // Nothing ever read them and slice 6 drops the questions; this slice
+      // stops the write. Asserted as absence rather than deleted quietly, so
+      // re-adding them is a decision someone has to make against this test.
+      test.each(['ratingFocus', 'ratingRecovery', 'ratingEnergy', 'adjustmentSelected'])(
+        'never writes the retired field %s, even when cast in',
+        async (field) => {
+          await closeWeeklyCycle(
+            'cycle1',
+            closeInput({
+              ratingFocus: 4,
+              ratingRecovery: 2,
+              ratingEnergy: 3,
+              adjustmentSelected: 'smaller-daily-action',
+            }) as any
+          );
 
-        expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({
-          ratingFocus: 4,
-          ratingRecovery: 2,
-          ratingEnergy: 3,
-          adjustmentSelected: 'smaller-daily-action',
-        });
-      });
-
-      test('stores the adjustment ID, which a copy rewrite cannot move', async () => {
-        // adjustmentSelected holds the stable option id, never the label. The
-        // labels are placeholders Jen replaces; storing one would orphan every
-        // row written before the rewrite.
-        await closeWeeklyCycle('cycle1', closeInput({ adjustmentSelected: 'different-time' }));
-
-        expect(mockUpdateDoc.mock.calls[0][1].adjustmentSelected).toBe('different-time');
-      });
+          expect(mockUpdateDoc.mock.calls[0][1]).not.toHaveProperty(field);
+        }
+      );
 
       test('rejects when the write fails, leaving the week unchanged', async () => {
         mockUpdateDoc.mockRejectedValueOnce(new Error('permission denied'));
@@ -480,11 +517,7 @@ describe('weeklyCycle.service', () => {
       test('the rest of the close still lands when the note is skipped', async () => {
         await closeWeeklyCycle('cycle1', closeInput({ closeNote: undefined }));
 
-        expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({
-          ratingFocus: 4,
-          floorMet: true,
-          adjustmentSelected: 'smaller-daily-action',
-        });
+        expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({ floorMet: true });
       });
     });
 
@@ -496,13 +529,9 @@ describe('weeklyCycle.service', () => {
         await closeWeeklyCycle('cycle1', closeInput());
 
         expect(Object.keys(mockUpdateDoc.mock.calls[0][1]).sort()).toEqual([
-          'adjustmentSelected',
           'closeCompletedAt',
           'closeNote',
           'floorMet',
-          'ratingEnergy',
-          'ratingFocus',
-          'ratingRecovery',
           'updatedAt',
         ]);
       });
@@ -515,7 +544,6 @@ describe('weeklyCycle.service', () => {
           capacityInitial: 'slammed',
           capacityCurrent: 'slammed',
           outcome: 'stress',
-          protocolId: 'stress-slammed',
         }) as any);
 
         const written = mockUpdateDoc.mock.calls[0][1];
@@ -619,6 +647,192 @@ describe('weeklyCycle.service', () => {
   // helpers above are KEPT and still tested; they are orphaned writers-of-
   // record, not dead code, and the rows already written stay readable.
   // -------------------------------------------------------------------------
+
+  // -------------------------------------------------------------------------
+  // ensureCurrentWeeklyCycle (journey slice 3b) — rollover.
+  //
+  // THE PROPERTY THAT MATTERS IS "EXACTLY ONE". Two things can notice an expired
+  // week at once, a foreground and a navigation both re-running the landing, and
+  // a read-then-create would let both read "no cycle" and both create one. The
+  // deterministic document ID plus a transaction is what makes a duplicate the
+  // SAME document rather than a second one, and the double-trigger case below is
+  // the test that would fail if either half were dropped.
+  // -------------------------------------------------------------------------
+  describe('ensureCurrentWeeklyCycle', () => {
+    const live = {
+      id: 'c-live',
+      userId: ALICE,
+      weekStart: '2026-08-31',
+      weekEnd: '2026-09-06',
+      outcome: 'focus',
+      capacityInitial: 'limited',
+    } as any;
+    const expired = { ...live, id: 'c-old', weekStart: '2026-08-17', weekEnd: '2026-08-23' };
+
+    const readsBackWhatWasWritten = () =>
+      mockGetDoc.mockImplementation(async (ref: any) => ({
+        exists: () => true,
+        data: () => txStore.get(keyOf(ref)),
+        id: 'rolled',
+      }));
+
+    test('does nothing when the week is still live', async () => {
+      const result = await ensureCurrentWeeklyCycle(ALICE, {
+        todayIso: '2026-09-02',
+        weekStartDay: 1,
+        latest: live,
+      });
+
+      expect(mockRunTransaction).not.toHaveBeenCalled();
+      expect(result).toBe(live);
+    });
+
+    test('creates the next cycle when the week has expired', async () => {
+      readsBackWhatWasWritten();
+
+      await ensureCurrentWeeklyCycle(ALICE, {
+        todayIso: '2026-08-31',
+        weekStartDay: 1,
+        latest: expired,
+      });
+
+      expect(mockRunTransaction).toHaveBeenCalledTimes(1);
+      expect(txStore.size).toBe(1);
+    });
+
+    test('DOUBLE-TRIGGER CREATES EXACTLY ONE CYCLE', async () => {
+      // The whole point. Two concurrent noticings of the same expiry.
+      readsBackWhatWasWritten();
+
+      await Promise.all([
+        ensureCurrentWeeklyCycle(ALICE, {
+          todayIso: '2026-08-31',
+          weekStartDay: 1,
+          latest: expired,
+        }),
+        ensureCurrentWeeklyCycle(ALICE, {
+          todayIso: '2026-08-31',
+          weekStartDay: 1,
+          latest: expired,
+        }),
+      ]);
+
+      expect(mockRunTransaction).toHaveBeenCalledTimes(2);
+      // Two transactions, ONE document. That is the deterministic ID doing the
+      // work; with an auto-ID this would be 2.
+      expect(txStore.size).toBe(1);
+    });
+
+    test('a relaunch after a rollover does not create a second cycle', async () => {
+      // The cross-session case an in-memory guard would miss entirely: the
+      // process is gone, and the only thing standing between the user and a
+      // duplicate is that the document is named after the week it covers.
+      readsBackWhatWasWritten();
+
+      await ensureCurrentWeeklyCycle(ALICE, {
+        todayIso: '2026-08-31',
+        weekStartDay: 1,
+        latest: expired,
+      });
+      const afterFirst = new Map(txStore);
+
+      await ensureCurrentWeeklyCycle(ALICE, {
+        todayIso: '2026-08-31',
+        weekStartDay: 1,
+        latest: expired,
+      });
+
+      expect(txStore.size).toBe(1);
+      expect([...txStore.values()]).toEqual([...afterFirst.values()]);
+    });
+
+    test('never overwrites a cycle that already exists', async () => {
+      // A rolled cycle may already carry close fields by the time something
+      // triggers again. A blind set would silently un-close a closed week.
+      readsBackWhatWasWritten();
+      const id = weeklyCycleDocId(ALICE, '2026-08-31');
+      const ref = { __ref: true, builtFrom: [{ __db: true }, 'weeklyCycles', id] };
+      txStore.set(keyOf(ref), { userId: ALICE, weekStart: '2026-08-31', floorMet: true });
+
+      await ensureCurrentWeeklyCycle(ALICE, {
+        todayIso: '2026-08-31',
+        weekStartDay: 1,
+        latest: expired,
+      });
+
+      expect(txStore.get(keyOf(ref))).toEqual({
+        userId: ALICE,
+        weekStart: '2026-08-31',
+        floorMet: true,
+      });
+    });
+
+    test('names the document after the week it covers', async () => {
+      readsBackWhatWasWritten();
+
+      await ensureCurrentWeeklyCycle(ALICE, {
+        todayIso: '2026-08-31',
+        weekStartDay: 1,
+        latest: expired,
+      });
+
+      expect(mockDoc).toHaveBeenCalledWith(
+        { __db: true },
+        'weeklyCycles',
+        weeklyCycleDocId(ALICE, '2026-08-31')
+      );
+    });
+
+    test('carries the previous week forward rather than asking again', async () => {
+      readsBackWhatWasWritten();
+
+      await ensureCurrentWeeklyCycle(ALICE, {
+        todayIso: '2026-08-31',
+        weekStartDay: 1,
+        latest: { ...expired, outcome: 'routines', capacityInitial: 'slammed' },
+      });
+
+      const written = [...txStore.values()][0];
+      expect(written.outcome).toBe('routines');
+      expect(written.capacityInitial).toBe('slammed');
+    });
+
+    test('writes the reduced field set and none of the retired fields', async () => {
+      readsBackWhatWasWritten();
+
+      await ensureCurrentWeeklyCycle(ALICE, {
+        todayIso: '2026-08-31',
+        weekStartDay: 1,
+        latest: expired,
+      });
+
+      expect(Object.keys([...txStore.values()][0]).sort()).toEqual([
+        'capacityInitial',
+        'createdAt',
+        'outcome',
+        'updatedAt',
+        'userId',
+        'weekEnd',
+        'weekStart',
+      ]);
+    });
+
+    test('creates a first cycle for a user who has none', async () => {
+      readsBackWhatWasWritten();
+
+      await ensureCurrentWeeklyCycle(ALICE, {
+        todayIso: '2026-08-27',
+        weekStartDay: 1,
+        latest: null,
+      });
+
+      const written = [...txStore.values()][0];
+      // The setup stub: starts today, ends the day before the first anchored
+      // week, per planWeek case 2.
+      expect(written.weekStart).toBe('2026-08-27');
+      expect(written.weekEnd).toBe('2026-08-30');
+    });
+  });
 
   // -------------------------------------------------------------------------
   // getWeeklyCyclesSince (journey slice 1)

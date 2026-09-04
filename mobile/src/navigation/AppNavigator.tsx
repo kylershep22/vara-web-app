@@ -75,7 +75,6 @@ import WearableIntegrationScreen from '../screens/WearableIntegrationScreen';
 // Metro 0.83 convention for navigation imports.
 import { WeeklyEntryScreen } from '../screens/weekly/WeeklyEntryScreen';
 import { FloorCommitmentScreen } from '../screens/weekly/FloorCommitmentScreen';
-import { WeeklyOpenScreen } from '../screens/weekly/WeeklyOpenScreen';
 import { RemoveCaptureNavigator } from '../screens/journey/removeCapture/RemoveCaptureNavigator';
 import { WeeklyCloseScreen } from '../screens/weekly/WeeklyCloseScreen';
 import {
@@ -1063,8 +1062,9 @@ const MainNavigator = () => {
         )}
         {/* Weekly loop (spec 6, 8, 9, 10.1) — LIVE IN PRODUCTION.
             Home (DashboardScreen) resolves resolveWeeklyEntry inline and pushes
-            WeeklyFloor / WeeklyOpen over the tab when the user has no floor or
-            no current cycle. The 'today' target is served by Home itself.
+            WeeklyFloor over the tab when the user has no floor. A user whose
+            week has expired is no longer pushed anywhere: the landing rolls the
+            next cycle over in place and serves 'today' (journey slice 3b).
 
             THERE IS NO WeeklyToday SCREEN. Every flow below that used to land on
             one now returns to Home, which is the Today surface. Registering a
@@ -1109,17 +1109,6 @@ const MainNavigator = () => {
           options={stackOpts({
             headerShown: false,
             animation: 'slide_from_right',
-          })}
-        />
-        <AppStack.Screen
-          name={ROUTES.WeeklyOpen}
-          component={WeeklyOpenScreen}
-          options={stackOpts({
-            ...standardHeaderOptions,
-            animation: 'slide_from_right',
-            headerShown: true,
-            title: 'Your week',
-            headerShadowVisible: false,
           })}
         />
         {/* The weekly close (spec 8). Entered from Home rather than from

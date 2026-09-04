@@ -43,6 +43,19 @@ import * as path from 'path';
  *
  * Read the contract in this file's header before changing it.
  */
+// 173 since journey slice 3b: -13, and this decrement is neither an approval
+// nor a new draft. The weekly open was deleted outright and took its copy with
+// it. Ten from OPEN_COPY in screens/weekly/copy.ts (the outcome and capacity
+// questions, the week-start question and its help line, the confirm, back,
+// per-day, why-heading, confirm-heading and save-failure lines) and three from
+// OpenYourWeekCard's local COPY ('Start your week', its body line, and 'Open
+// your week').
+//
+// NO OWNER IS NAMED BECAUSE NOBODY SIGNED THESE OFF. The contract above covers
+// approval and new drafts; this is the third case, deletion, where the surface
+// a string lived on stopped existing. Say so plainly rather than borrowing the
+// word approved, which would misreport thirteen unreviewed strings as reviewed.
+//
 // 186 since the TIME_LABELS approval: -3. Owner Kyle, 2026-09-04, for
 // '5 minutes or less', '10 to 15 minutes', '15 minutes or more' in
 // dailyPicker.copy.ts. Reviewed in the form users meet them: the 2026-09-03
@@ -66,7 +79,7 @@ import * as path from 'path';
 // Everything else the slice added is either Jen-approved (the six protocols,
 // the capture chips) or placeholder-marked safety copy, which carries its own
 // marker and its own merge gate.
-const EXPECTED_SENTINELS = 186;
+const EXPECTED_SENTINELS = 173;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');
