@@ -138,16 +138,27 @@ first weekly cycle is still created at onboarding for cadence; it no longer carr
 > `protocolId`, `ratingFocus/Recovery/Energy` and `adjustmentSelected` ARE retired and
 > no longer written.
 
-> **AMENDED 2026-09-05 (Content Pack v1 `§decisions-1`). `phaseRead`'s MIDDLE STATE IS
-> RENAMED.** The contract is now **`'moving' | 'not_moving' | 'unclear'`**, superseding the
-> `'moving' | 'same' | 'not_moving'` written above. `unclear` carries a rule `same` never
-> had: it is NEUTRAL, so it must not count toward the two-consecutive-`not_moving`
-> adjustment run, must not reset a prior `not_moving`, must not be read as `moving`, and
-> must not be a negative signal anywhere else. It behaves as an unanswered week does.
-> **The rename has NOT been made in code** — `types/models.ts` still ships
-> `PhaseRead = 'moving' | 'same' | 'not_moving'`, and changing it is slice-6 work, not a
-> docs edit. Until it lands, read `'same'` as today's spelling of `'unclear'`. The only
-> reader is `deriveAdjustDue` (`journey/derive.ts`), which carries the full note.
+> **AMENDED 2026-09-05 (Content Pack v1 `§decisions-1`). `phaseRead`'s MIDDLE STATE CHANGES
+> MEANING.** Slice 6's target contract is **`'moving' | 'not_moving' | 'unclear'`**,
+> superseding the `'moving' | 'same' | 'not_moving'` written above.
+>
+> **This is a SEMANTIC change, not a rename.** `same` means the user reports *no change*, a
+> substantive read about the journey. `unclear` means the user *cannot tell*, a read about
+> their own confidence. One is an answer; the other is the absence of one. Do not treat the
+> edit as a spelling fix, and do not read `'same'` as today's spelling of `'unclear'`. The
+> neutrality rules attach to `unclear` and were never true of `same`: it must not count
+> toward the two-consecutive-`not_moving` run, must not reset a prior `not_moving`, must not
+> be read as `moving`, and must not be a negative signal anywhere else. It behaves as an
+> unanswered week does.
+>
+> **Not yet made in code.** `types/models.ts` still ships the old union; changing it is
+> slice-6 work. **Slice 6's Step 0 must establish whether any `phaseRead` values are
+> STORED before touching the type.** As of 2026-09-05 nothing writes the field anywhere in
+> `src/` or `functions/src/` (slice 6 adds the write), so the expected answer is zero and
+> the change is a clean re-spec with no migration. Verify that against production rather
+> than inferring it from the repo: any surviving `same` values cannot be silently relabeled,
+> and their disposition is a product decision. The only reader is `deriveAdjustDue`
+> (`journey/derive.ts`), which carries the full note.
 
 ### 3.5 Unchanged
 
@@ -207,6 +218,9 @@ deploy. Deploy state lives on Kyle's checklist.
 | 1 | **Journey types, state, rules** | `PhaseKey`, `DestinationKey`, `PhaseHistoryEntry`, `JourneyState` in `types/models.ts`; `journeyState.service.ts` (get/create/advance/skip/adjust/recordOffer); `firestore.rules` for `journeyStates` (owner read/write, shape-validated) + rules tests; `deleteAccount` list updated; derivations `deriveConsistentDays`, `deriveCalendarDays`, `deriveAdjustDue` as pure functions with tests. | rules tests pass; **[Kyle-gated]** rules deploy | No |
 | 2 | **Resolver + PhaseContext + migration branch** | `resolveJourney`; `useJourneyLanding` replacing `useWeeklyLanding` behind `JOURNEY_IA`; `useTodayCard(uid, phaseContext)`; `DashboardScreen` gate swap; migration branch wiring (route screen reuse deferred to slice 4; interim: write state and land on Today). | Step-0 confirms the four scalar reads are the only seam; STOP if more found | Yes: fresh account, legacy account |
 | 3 | **Matrix rekey + re-tag + outcome-pick retirement** | §3.2 in full; `PHASE_DISPLAY` shape with placeholder strings; retire §3.6 items; `WeeklyCycle` write-set reduced per §3.4; analytics events rekeyed (`journey_*` replaces `weekly_open`; `weekly_close` survives renamed `weekly_reset`). | **[Content-gated]** re-tag mapping + at least one `remove` variant per capacity tier, authored as mark-done protocols with why-card text; STOP if unauthored cells would leave any (phase, capacity) empty | Yes: full daily loop across two phases |
+| 3a | **[DONE `be58b97`, 2026-09-02]** Engine re-key + re-tag + shim removal *(row added 2026-09-05 to match §13)* | The engine speaks `PhaseKey` natively. Jen's three behavioral Remove protocols; retag confirmed (12 rows, zero edits); `legacyOutcomeFor` removed. Retired with the slice: `applyQuickWin`, `countWeeklyCyclesForOutcome`, week-number plumbing, `reshapeParity`. | Content gate met before merge (Remove protocols authored) | Done: real-content walk, all three tiers |
+| 3b | **[DONE `7f07413`, 2026-09-04]** Weekly write-set reduction + `WeeklyOpenScreen` retirement + rollover *(row added 2026-09-05 to match §13)* | §3.4 write-set reduced to live-reader fields; `WeeklyOpenScreen`, `OpenYourWeekCard` and `weekly_open` deleted; expiry creates the next cycle in a create-on-absence transaction keyed `<uid>_<weekStart>`. Resolves §9 open item 8. | — | Done |
+| 3c-i | **[DONE `701f2b4`, 2026-09-03]** Remove capture + families + crisis pre-check *(row added 2026-09-05 to match §13)* | Five-path Remove capture; three-family protocol model with family-aware serving and six Jen-approved mental/interpersonal protocols; acknowledgment rotation; client-side crisis pre-check with `SupportScreen`. | Crisis pre-check promoted to a precondition of this slice | Done: two defects caught on the walk |
 | 3c-ii | **Remove replacement pick + routine seed** *(row added 2026-09-05; the slice was split in the §13 Sept 2 entry and never got a row here)* | Curated replacement menus per time slot, one selection only, flow ends on a neutral confirmation; routine seed from the pick. **NO REMINDER SCOPE** — no notification infrastructure, no time picker, no nudge copy. | Content DELIVERED (`Content Pack v1 §replacement-menus` + `§decisions-3`). STOP if the menu appears to need a reminder to be useful; that is the signal the scope split was wrong, not licence to build it | Yes |
 | 4 | **Onboarding: destination + route** | A1 copy reframe on step 2; **new** route screen (A2) at step 3 (open item 1); Capacity step copy loses "this week"; terminal write creates `journeyStates` and the first weekly cycle without outcome; `activeOutcome` → `destination`; write order preserved (`completeOnboarding` last). Migration branch now shows A2. | **[Content-gated]** A1/A2 strings, 16 `short` strings | Yes: full arc + migration |
 | 5 | **Practices → journey map + Start here container** | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
@@ -214,6 +228,16 @@ deploy. Deploy state lives on Kyle's checklist.
 | 7 | **Offers + Today additions** | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. | rules; **[Content-gated]** copy | Yes |
 | 9 | **Behavioral protocol screen + remind-later** | The Daily Action Launcher behavioral screen (protocol, why, mark done, remind me later) for `remove` protocols; one-off later-today notification (`scheduleLocalNotification` DATE trigger), `scheduledAt` on `DailyLog`, third card state, cancellation bookkeeping; OS-settings redirect after denial. | Completion semantics decision (mockup v1 E1 open item) | Yes |
+
+> **AMENDED 2026-09-05 (table reconciled with §13). SLICE 3 SHIPPED AS FOUR SLICES, NOT ONE.**
+> Row 3 above is the ORIGINAL scope and is left unedited; it never shipped under that number.
+> It was split twice in the §13 build log and the table was never updated, so rows 3a, 3b,
+> 3c-i and 3c-ii have been added to match. Three are merged; **3c-ii is the only one still
+> open**, and it is the next unblocked slice.
+>
+> **Merge order was not slice order:** 3a (`be58b97`, Sept 2) → 3c-i (`701f2b4`, Sept 3) →
+> 3b (`7f07413`, Sept 4). 3c-i landed between them because the Remove framework closed with
+> Jen before the weekly write-set work did. Read the §13 entries in date order, not by label.
 
 > **AMENDED 2026-09-05 (Journey Content Pack v1, Jen, approved on delivery).** The rows
 > above are unchanged; their **[Content-gated]** labels are superseded by this block.

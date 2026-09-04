@@ -535,8 +535,10 @@ The purpose of this screen is to listen, not reward or reassure.
 
 > **EDITORIAL NOTE (not Jen's text).** The three answers map to the engine contract in
 > [`decisions` section 1](#decisions-1): `moving` / `not_moving` / `unclear`. The shipped
-> `PhaseRead` type names its middle state `same`; renaming it to `unclear` is owed in
-> slice 6 and is a code change, not a copy change.
+> `PhaseRead` type names its middle state `same`. Moving to `unclear` is a **semantic
+> change, not a rename** ("no change" and "cannot tell" are different answers), it is
+> slice-6 code work rather than a copy change, and slice 6's Step 0 must first establish
+> whether any `phaseRead` values are stored. See roadmap section 3.4.
 
 ---
 
