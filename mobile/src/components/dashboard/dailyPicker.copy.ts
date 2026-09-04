@@ -33,13 +33,22 @@
  * collected and stored but does not change the protocol until the off-diagonal
  * content exists, and copy that promised otherwise would be a lie the app
  * cannot currently keep.
+ *
+ * APPROVED AS-IS BY KYLE FOR v1, 2026-09-04. Unlike the other approvals in this
+ * file these were reviewed in the form the user actually meets them: the
+ * VoiceOver walk on 2026-09-03 heard the spoken output on device, "[window].
+ * [gloss]", and passed it. That is the only place these strings surface, since
+ * TIME_CHIP_LABELS is what gets painted.
+ *
+ * REVISE THE PAIR TOGETHER, ALWAYS. TIME_LABELS is the accessibility label on
+ * each chip and TIME_CHIP_LABELS is its visible text, so they are two halves of
+ * one control. Changing one alone makes the app say different things to two
+ * users looking at the same chip, and the voice pass would be the half nobody
+ * notices is wrong.
  */
 export const TIME_LABELS = {
-  // COPY: draft, not from guidelines doc - pending Jen
   short: '5 minutes or less',
-  // COPY: draft, not from guidelines doc - pending Jen
   medium: '10 to 15 minutes',
-  // COPY: draft, not from guidelines doc - pending Jen
   long: '15 minutes or more',
 } as const;
 
@@ -57,13 +66,17 @@ export const TIME_LABELS = {
  * which is about 83pt of text per chip at 12pt. The full labels do not fit and
  * wrap to two lines each, which is what made the time question fall below the
  * fold in the first place.
+ *
+ * APPROVED AS-IS BY KYLE FOR v1, 2026-09-04, on his own authority rather than
+ * Jen's. They landed drafted and were counted at 195.
+ *
+ * REVISE THE PAIR TOGETHER, ALWAYS. See the note on TIME_LABELS above: these two
+ * are the visible and the spoken half of one control, and changing either alone
+ * makes the chip say different things to two users looking at it.
  */
 export const TIME_CHIP_LABELS = {
-  // COPY: draft, not from guidelines doc - pending Jen
   short: '5 min or less',
-  // COPY: draft, not from guidelines doc - pending Jen
   medium: '10 to 15 min',
-  // COPY: draft, not from guidelines doc - pending Jen
   long: '15 min or more',
 } as const;
 

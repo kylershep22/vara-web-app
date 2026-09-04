@@ -394,17 +394,25 @@ family-aware serving.** Branch commits 0816a79, 4b73253, 2c23dd4.
      so refresh-on-focus had nothing to re-run. Fixed 2c23dd4 with an attempt
      counter. Anti-vacuity test pairs release with stays-up-when-outstanding.
 - Known limits and follow-ups:
-  - Pre-check abuse category under-sensitive: "I don't feel safe at home right now"
-    did not trigger; served the interpersonal protocol and stored the text. Pattern
-    tuning owed to Jen with this example. self_directed_negative category scope
-    (crisis screen vs softer surface) also queued for Jen.
+  - Pre-check abuse sensitivity and self_directed_negative scope: CLOSED as
+    v1-accepted limitations on Kyle's authority, 2026-09-04. Neither is owed to Jen
+    any more. The recorded miss is kept verbatim and is the reopen trigger: "I don't
+    feel safe at home right now" did not trigger; served the interpersonal protocol
+    and stored the text. If beta surfaces further misses of this shape, this reopens
+    and the pattern set goes back to Jen with the accumulated examples.
+  - PRE-LAUNCH: revisit pre-check pattern sensitivity before launch. It currently
+    matches explicit keywords only, which is what the miss above demonstrates, and
+    v1-accepted is not the same as launch-accepted. Tracked here as prose alongside
+    the international resource pass rather than in a checklist, because the repo has
+    no pre-launch checklist artifact.
   - Pre-check returns first match only; the multi-match ordering rule is implemented
     but unreachable. Follow-up: emit matched set.
-  - safety_precheck_shown kept: empty payload, uid-keyed (not anonymous as the doc
-    comment at analyticsEvents.ts:301 claims — comment correction queued for the
-    next branch); flagged inferred-sensitive for the international pre-launch pass.
-  - FIRST_MOVE_BY_FAMILY strings are Claude-drafted (sentinel 192, +3), Jen
-    fast-follow pending.
+  - safety_precheck_shown kept: empty payload, uid-keyed (not anonymous, as the doc
+    comment at analyticsEvents.ts:301 claimed — corrected in 490cdf9); flagged
+    inferred-sensitive for the international pre-launch pass.
+  - FIRST_MOVE_BY_FAMILY strings: APPROVED as-is by Kyle for v1, 2026-09-04. Landed
+    Claude-drafted at sentinel 192 (+3); markers cleared on the copy-approvals
+    branch. No Jen fast-follow owed.
   - journeyStates has no realtime subscription; safe while this device is the only
     writer. Revisit when a second writer (Guide, server) exists.
 
@@ -481,10 +489,12 @@ family-aware serving.** Branch commits 0816a79, 4b73253, 2c23dd4.
   - The scroll fade has no Mobile UI Standards section. §5.2 is Typography Scale and
     §7.7 does not exist, so it was built to the slice brief's own description. Add a
     section so future fades match this implementation.
-  - TIME_CHIP_LABELS are Claude-drafted (sentinel 195, +3: "5 min or less", "10 to
-    15 min", "15 min or more"), Jen pass pending. They are compressions of the
-    already-drafted TIME_LABELS, which remain the accessibility label on each chip
-    so the screen-reader announcement is unchanged from before the slice.
+  - TIME_CHIP_LABELS ("5 min or less", "10 to 15 min", "15 min or more"): APPROVED
+    as-is by Kyle for v1, 2026-09-04. Landed Claude-drafted at sentinel 195 (+3);
+    markers cleared on the copy-approvals branch. Note the resulting asymmetry: the
+    three TIME_LABELS they were compressed from are still drafted, and those remain
+    the accessibility label on each chip, so the string a screen reader announces is
+    unapproved while the one painted beside it is approved.
   - Time remains inert by design until Jen's off-diagonal grid.
 - Walk-scope lesson: a shared-shell change budgets a regression walk across every
   mounting surface up front. This one changed twelve and was scoped as one.

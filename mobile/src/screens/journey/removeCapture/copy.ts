@@ -105,18 +105,17 @@ export const FIRST_MOVE_COPY = {
 /**
  * The family-matched first move.
  *
- * DRAFTED, NOT APPROVED. The slice brief sources these from "the v3 pack
- * Section 4", which was not supplied with the brief the way Section 6 (the
- * protocols) was. These carry the drafted-copy sentinel so the gap is counted
- * and visible rather than silently shipped as approved content, and they are
- * the only strings in this flow that do.
+ * APPROVED AS-IS BY KYLE FOR v1, 2026-09-04, on his own authority rather than
+ * Jen's. They landed drafted: the slice brief sourced them from "the v3 pack
+ * Section 4", which was never supplied the way Section 6 (the protocols) was, so
+ * they carried the drafted-copy sentinel and were counted at 192. That gap is
+ * now closed by decision, not by Jen review, and the distinction matters if
+ * these are ever revisited: nobody has checked them against the v3 pack, they
+ * were accepted as good enough to ship.
  */
 export const FIRST_MOVE_BY_FAMILY = {
-  // COPY: draft, not from guidelines doc - pending Jen
   behavioral: 'Put one piece of friction in the way today. Move it, close it, or put it out of reach.',
-  // COPY: draft, not from guidelines doc - pending Jen
   mental: 'Write one line about it today. What it is, and when you will deal with it.',
-  // COPY: draft, not from guidelines doc - pending Jen
   interpersonal: 'Pick one small limit for today. A shorter call, a topic you leave alone, a reply that waits.',
 } as const;
 
