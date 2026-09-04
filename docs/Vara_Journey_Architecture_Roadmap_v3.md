@@ -408,4 +408,85 @@ family-aware serving.** Branch commits 0816a79, 4b73253, 2c23dd4.
   - journeyStates has no realtime subscription; safe while this device is the only
     writer. Revisit when a second writer (Guide, server) exists.
 
+**Sept 3, 2026 — daily picker time chips + EnhancedModal grow-to-fit merged
+(d24fd41).** Branch commits 490cdf9, 676c1ac.
+- Figures at merge: jest **3091 / 207** · tsc **149** · sentinel **195** · rules 191
+  pass / 2 skip · functions 25 / 3. *(jest, tsc and sentinel measured on the branch
+  tip; the merge tree is byte-identical to it, so they carry. Rules and functions
+  carried unrun — no rules or functions file in the diff.)*
+- Shipped: time question compressed from three two-line OptionRows to a single
+  three-chip row (single-select, pre-filled, presentation only, write path
+  unchanged); the scroll fade extracted as a shared ScrollFade component;
+  analyticsEvents.ts:301 doc comment corrected — safety_precheck_shown is uid-keyed,
+  not the anonymous count the comment claimed.
+- Walk-caught defect, app-wide and pre-existing: every EnhancedModal surface had
+  rendered at exactly 480pt since the shell was built. modalContainer carried
+  maxHeight and minHeight but no height source, and every layer beneath it
+  (modalInner, ScrollFadeArea, KeyboardAvoidingView, the ScrollView) is flex:1, so
+  nothing reported a height upward; minHeight floored it and maxHeightPercent was
+  dead code. On an iPhone 15 that is 56% of the screen, and it left the picker a
+  293pt viewport for 422pt of content while its own cap allowed 719. Fixed 676c1ac
+  with measured grow-to-fit (useModalHeight): height = min(max(content, 480), cap),
+  from onLayout on the header and footer plus onContentSizeChange on the scroll
+  view. Short modals do not stretch — flexGrow reports short content as the viewport
+  it was padded into, so the sum is the height already held; pinned by test. The
+  fade now keys on cap overflow rather than viewport overflow (viewport overflow is
+  briefly true while the container is still growing, which is what painted the band
+  across the chip row), trailing padding is derived from the fade height so the last
+  control scrolls clear of it, and terminal alpha drops 0.85 to 0.7 so a selected
+  chip beneath it cannot read as disabled.
+- Blast radius, all twelve mount sites (paths under mobile/src): AIConsentModal
+  (components/ai/AIConsentModal.tsx:53) · CreateChallengeFromGroupModal
+  (components/community/CreateChallengeFromGroupModal.tsx:147) · InviteMembersModal
+  (components/community/InviteMembersModal.tsx:270) · DailyPickerSheet
+  (components/dashboard/DailyPickerSheet.tsx:97) · HabitCompletionSheet
+  (components/HabitCompletionSheet/index.tsx:31) · IntentionEditSheet
+  (components/habits/IntentionEditSheet.tsx:101) · SimpleHabitCreateScreen
+  (components/habits/SimpleHabitCreateScreen.tsx:191 and :200, two branches of the
+  same screen) · WizardContainer (components/habits/wizard/WizardContainer.tsx:163) ·
+  ChallengesScreen (screens/community/ChallengesScreen.tsx:544) · AddBlockSheet
+  (screens/Focus/AddBlockSheet.tsx:349) · CaptureTaskSheet
+  (screens/Focus/CaptureTaskSheet.tsx:153) · HabitDetailScreen
+  (screens/HabitDetailScreen.tsx:530).
+- Keyboard coverage COMPLETE. Three of the twelve declare hasInputs={false} and
+  cannot raise a keyboard: AIConsentModal (:58), DailyPickerSheet (:101),
+  HabitCompletionSheet (:36). All nine of the others were re-walked on device
+  2026-09-04 and all held: no footer occlusion, no stretched short modals, tall
+  modals growing correctly. SimpleHabitCreateScreen covered on both branches
+  including the wizard path. (An earlier account of "seven walked" was two errors
+  cancelling: AIConsentModal was among the seven and is not keyboard-capable, so
+  that pass was six of nine. The re-walk supersedes it.)
+- Known limits and follow-ups:
+  - Open reflow: one un-animated resize from 480 to the fitted height on first
+    paint. Walked and accepted as a settle rather than a jump; no polish queued.
+    Sizing from zeroes instead would paint a container shorter than its own floor.
+  - Keyboard dismissal is inconsistent across the shell's surfaces. Pre-existing,
+    not from this branch: EnhancedModal passes showDoneButton={false} to the scroll
+    view (:162) and renders the iOS accessory toolbar only when Platform.OS is ios
+    AND showKeyboardToolbar AND hasInputs, so some modals show a Done bar above the
+    keyboard and others rely on their footer buttons. One dismissal pattern
+    app-wide, queued with the a11y/pressable remediation.
+  - The modal inventory shrinks when habit removal lands (§11 post-beta list, "Habit
+    removal (value moves to Insights)" — NOT §7, which is Kyle's deliverables to
+    Jen). Five of the twelve are habits-owned and go with it: HabitCompletionSheet,
+    IntentionEditSheet, SimpleHabitCreateScreen, WizardContainer, HabitDetailScreen.
+    That leaves seven mounting surfaces, and four of those five are keyboard-capable,
+    so the nine drops to five. Re-read this entry's blast radius at that point.
+  - No reopen path after confirm: capacity and time are uneditable until the next
+    day, so the pre-fill is unwalkable on device same-day and stands verified by
+    test only. A revise-today affordance is a queued product question, deliberately
+    not built on this branch.
+  - maxHeightPercent caps make no keyboard allowance. Safe on the surfaces walked,
+    but a future tall keyboard modal should revisit useModalHeight.
+  - The scroll fade has no Mobile UI Standards section. §5.2 is Typography Scale and
+    §7.7 does not exist, so it was built to the slice brief's own description. Add a
+    section so future fades match this implementation.
+  - TIME_CHIP_LABELS are Claude-drafted (sentinel 195, +3: "5 min or less", "10 to
+    15 min", "15 min or more"), Jen pass pending. They are compressions of the
+    already-drafted TIME_LABELS, which remain the accessibility label on each chip
+    so the screen-reader announcement is unchanged from before the slice.
+  - Time remains inert by design until Jen's off-diagonal grid.
+- Walk-scope lesson: a shared-shell change budgets a regression walk across every
+  mounting surface up front. This one changed twelve and was scoped as one.
+
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*
