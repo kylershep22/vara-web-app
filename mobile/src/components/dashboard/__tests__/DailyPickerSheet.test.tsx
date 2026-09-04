@@ -16,7 +16,12 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { DailyPickerSheet } from '../DailyPickerSheet';
 import { CAPACITY_LABELS } from '../../../constants/capacityCopy';
-import { PICKER_COPY, TIME_LABELS } from '../dailyPicker.copy';
+import {
+  PICKER_COPY,
+  TIME_CHIP_LABELS,
+  TIME_GLOSSES,
+  TIME_LABELS,
+} from '../dailyPicker.copy';
 
 const onConfirm = jest.fn();
 const onDismiss = jest.fn();
@@ -61,7 +66,92 @@ describe('DailyPickerSheet', () => {
       // Capacity labels are the locked ones the weekly open and onboarding use.
       renderSheet();
       expect(screen.getByText(CAPACITY_LABELS.slammed)).toBeTruthy();
-      expect(screen.getByText(TIME_LABELS.short)).toBeTruthy();
+      expect(screen.getByText(TIME_CHIP_LABELS.short)).toBeTruthy();
+    });
+
+    test('asks the time question at all', () => {
+      // THE REASON THIS SLICE EXISTS. The question rendered below the fold of a
+      // scrolling modal with nothing signalling it was there, so it was
+      // collected from a control users had never seen. A passing assertion that
+      // the three options EXIST does not catch that, and did not: the suite was
+      // green the whole time the question was invisible. What this pins is the
+      // heading, which is the part that tells a user the chips below it are a
+      // question rather than decoration on the capacity answer.
+      renderSheet();
+
+      expect(screen.getByText(PICKER_COPY.timeQuestion)).toBeTruthy();
+    });
+  });
+
+  describe('the time chip row', () => {
+    // Time is a horizontal chip row and capacity is not. The compression is what
+    // brings the second question above the fold; see the component header.
+    test('renders exactly three chips, one per time class', () => {
+      renderSheet();
+
+      const chips = ['short', 'medium', 'long'].map((cls) =>
+        screen.getByTestId(`daily-pick-time-${cls}`)
+      );
+
+      expect(chips).toHaveLength(3);
+      expect(screen.getByText(TIME_CHIP_LABELS.short)).toBeTruthy();
+      expect(screen.getByText(TIME_CHIP_LABELS.medium)).toBeTruthy();
+      expect(screen.getByText(TIME_CHIP_LABELS.long)).toBeTruthy();
+    });
+
+    test('shows the SHORT label and announces the full one', () => {
+      // The compression is a fit constraint on a 313pt row, not a copy change a
+      // screen reader has to inherit. The full label and its gloss are what the
+      // OptionRow announced before this slice and what the chip announces now,
+      // which is why TIME_LABELS and TIME_GLOSSES are still live.
+      renderSheet();
+
+      const chip = screen.getByTestId('daily-pick-time-medium');
+
+      expect(chip.props.accessibilityLabel).toBe(
+        `${TIME_LABELS.medium}. ${TIME_GLOSSES.medium}`
+      );
+      // And the short form is what is painted, not the long one.
+      expect(screen.queryByText(TIME_LABELS.medium)).toBeNull();
+    });
+
+    test('reflects the selection on exactly one chip at a time', () => {
+      // Single-select is the contract. A row that can show two selected states
+      // is a row that can send an ambiguous answer to the write.
+      renderSheet({ initialTime: 'medium' });
+
+      const selectedIds = () =>
+        ['short', 'medium', 'long'].filter(
+          (cls) =>
+            screen.getByTestId(`daily-pick-time-${cls}`).props.accessibilityState
+              .selected === true
+        );
+
+      expect(selectedIds()).toEqual(['medium']);
+
+      fireEvent.press(screen.getByTestId('daily-pick-time-long'));
+
+      expect(selectedIds()).toEqual(['long']);
+    });
+
+    test('carries a radio role, so the row reads as one answer', () => {
+      renderSheet();
+
+      expect(screen.getByTestId('daily-pick-time-short').props.accessibilityRole).toBe(
+        'radio'
+      );
+    });
+
+    test('is painted below 48 but hit to the 48 floor', () => {
+      // Standards 16: 48 is the target floor. The chip is painted at 44 so three
+      // of them read as one control rather than three buttons, and the missing
+      // 4 is made up in vertical hit slop. Horizontal slop stays at zero: the
+      // chips are 8 apart and slop would overlap a neighbour's target.
+      renderSheet();
+
+      const chip = screen.getByTestId('daily-pick-time-short');
+
+      expect(chip.props.hitSlop).toEqual({ top: 2, bottom: 2, left: 0, right: 0 });
     });
   });
 
@@ -107,6 +197,38 @@ describe('DailyPickerSheet', () => {
       fireEvent.press(screen.getByTestId('daily-pick-confirm'));
 
       expect(onConfirm).toHaveBeenCalledWith('normal', 'long');
+    });
+  });
+
+  describe('the time value reaching the write', () => {
+    // THE BYTE-IDENTICAL CLAIM. This slice is presentation only: the sheet still
+    // owns no write, and the only thing it hands upwards is the same pair of
+    // union values it handed upwards before the chips existed. If the chip row
+    // ever started reporting a label, an index, or a minute count instead of a
+    // TimeClass, `upsertDailyLog`'s `dailyTimeBudget` would change shape and
+    // `hasPickedToday` would stop recognising its own field.
+    test.each([
+      ['short'],
+      ['medium'],
+      ['long'],
+    ])('confirms the raw %s TimeClass, not its label', (cls) => {
+      renderSheet({ initialCapacity: 'normal', initialTime: 'medium' });
+
+      fireEvent.press(screen.getByTestId(`daily-pick-time-${cls}`));
+      fireEvent.press(screen.getByTestId('daily-pick-confirm'));
+
+      expect(onConfirm).toHaveBeenCalledWith('normal', cls);
+    });
+
+    test('the pre-fill fast path still reaches the write untouched', () => {
+      // One tap from a cold open, with the chip row in place of the rows. The
+      // value handed up is yesterday's, unmodified by the presentation change.
+      renderSheet({ initialCapacity: 'slammed', initialTime: 'short' });
+
+      fireEvent.press(screen.getByTestId('daily-pick-confirm'));
+
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+      expect(onConfirm).toHaveBeenCalledWith('slammed', 'short');
     });
   });
 

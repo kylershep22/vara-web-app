@@ -299,11 +299,17 @@ export interface AnalyticsEventMap {
   /**
    * The crisis pre-check did not pass and the support screen was shown.
    *
-   * DELIBERATELY BARE. No text, no category, no length, no timing, nothing that
-   * could be joined back to a person or a disclosure. The only fact recorded is
-   * that the screen appeared at all, which is what tells us whether the
-   * pre-check is firing in the field. Adding ANY dimension to this payload
-   * would convert an anonymous count into a record of who disclosed what.
+   * DELIBERATELY BARE. No text, no category, no length, no timing, nothing about
+   * WHAT was disclosed. The only fact recorded is that the screen appeared at
+   * all, which is what tells us whether the pre-check is firing in the field.
+   *
+   * THIS IS NOT AN ANONYMOUS COUNT, and an earlier version of this comment said
+   * it was. `logEvent` writes `userId` on every row it creates
+   * (analyticsEvents.service.ts), so the event is uid-keyed like every other one
+   * and already says WHO reached the support screen. The empty payload is what
+   * keeps it from also saying what they wrote. Adding ANY dimension here would
+   * turn "this person hit the pre-check" into a record of who disclosed what,
+   * which is a materially worse thing to hold.
    */
   safety_precheck_shown: Record<string, never>;
   /** An account was created. */

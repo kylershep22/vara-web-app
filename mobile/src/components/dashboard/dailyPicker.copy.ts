@@ -43,6 +43,30 @@ export const TIME_LABELS = {
   long: '15 minutes or more',
 } as const;
 
+/**
+ * The SAME three windows as TIME_LABELS, compressed to fit a horizontal chip
+ * row (journey slice: daily-picker time chips).
+ *
+ * A COMPRESSION, NOT A REWRITE. Each one is its TIME_LABELS twin with the words
+ * shortened and nothing else changed, because the two must never disagree about
+ * what a window is: TIME_LABELS remains the accessibility label on every chip,
+ * so a screen reader still hears the full phrasing while sighted users read the
+ * short one. If these ever diverge in meaning, the short form is the bug.
+ *
+ * WHY SHORT AT ALL. Three chips share one row inside a modal roughly 313pt wide,
+ * which is about 83pt of text per chip at 12pt. The full labels do not fit and
+ * wrap to two lines each, which is what made the time question fall below the
+ * fold in the first place.
+ */
+export const TIME_CHIP_LABELS = {
+  // COPY: draft, not from guidelines doc - pending Jen
+  short: '5 min or less',
+  // COPY: draft, not from guidelines doc - pending Jen
+  medium: '10 to 15 min',
+  // COPY: draft, not from guidelines doc - pending Jen
+  long: '15 min or more',
+} as const;
+
 export const TIME_GLOSSES = {
   // COPY: draft, not from guidelines doc - pending Jen
   short: 'A short window today',
