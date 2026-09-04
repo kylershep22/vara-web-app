@@ -3,12 +3,13 @@
   "description": "Cloud Functions for Firebase",
   "scripts": {
     "lint": "eslint ./index.js || echo lint ignored",
-    "test": "jest --testEnvironment=node src/__tests__",
+    "test": "firebase emulators:exec --only firestore,auth \"jest --testEnvironment=node --runInBand src/__tests__\"",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "test:unit": "jest --testEnvironment=node --runInBand src/__tests__/rateLimit.test.js src/__tests__/userFields.test.js src/__tests__/deleteAccountCleanup.test.js"
   },
   "engines": {
     "node": "22"
