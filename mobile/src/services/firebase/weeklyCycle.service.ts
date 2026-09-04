@@ -265,6 +265,20 @@ export async function ensureCurrentWeeklyCycle(
   // Read back rather than returning the local object, so a caller that lost the
   // race gets the winner's document instead of one that was never written.
   const settled = await getDoc(ref);
+
+  // THROW RATHER THAN RETURN A HALF-CYCLE. The transaction above either wrote
+  // this document or found it already there, so an absent read-back should be
+  // impossible. Impossible is not the same as handled: `settled.data()` is
+  // undefined when the document is missing, and spreading undefined yields an
+  // object carrying nothing but an id. That is a cycle with no weekStart and no
+  // weekEnd, and it would reach Home and be RENDERED, which is a worse failure
+  // than an error because it looks like a week. Throwing routes it to the path
+  // a rejected transaction already takes: useWeeklyLanding catches, sets
+  // `failed`, and Home draws its ordinary content with no cycle at all.
+  if (!settled.exists()) {
+    throw new Error(`weeklyCycles/${id} absent immediately after its own write`);
+  }
+
   return { ...(settled.data() as Omit<WeeklyCycle, 'id'>), id: settled.id };
 }
 

@@ -817,6 +817,45 @@ describe('weeklyCycle.service', () => {
       ]);
     });
 
+    test('THROWS rather than returning a half-cycle when the read-back is absent', async () => {
+      // Should be impossible: the transaction either wrote the document or found
+      // it. Impossible is not handled, though, and the failure mode matters —
+      // spreading an undefined data() yields an object with an id and no
+      // weekStart, which Home would RENDER as a week. An error routes to the
+      // same place a rejected transaction goes: the landing catches it, reports
+      // failed, and Home draws no cycle.
+      mockGetDoc.mockResolvedValue({ exists: () => false, data: () => undefined });
+
+      await expect(
+        ensureCurrentWeeklyCycle(ALICE, {
+          todayIso: '2026-08-31',
+          weekStartDay: 1,
+          latest: expired,
+        })
+      ).rejects.toThrow('absent immediately after its own write');
+    });
+
+    test('no cycle object escapes when the read-back is absent', async () => {
+      // The half-cycle is the thing being prevented, so assert on the value and
+      // not only on the throw: a future refactor that logged and returned a
+      // partial object would still satisfy a rejects-only test if the throw
+      // moved.
+      mockGetDoc.mockResolvedValue({ exists: () => false, data: () => undefined });
+
+      let escaped: unknown = 'nothing returned';
+      try {
+        escaped = await ensureCurrentWeeklyCycle(ALICE, {
+          todayIso: '2026-08-31',
+          weekStartDay: 1,
+          latest: expired,
+        });
+      } catch {
+        // Expected.
+      }
+
+      expect(escaped).toBe('nothing returned');
+    });
+
     test('creates a first cycle for a user who has none', async () => {
       readsBackWhatWasWritten();
 
