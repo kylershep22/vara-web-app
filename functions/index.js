@@ -1021,10 +1021,11 @@ Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}`;
  * function is the mechanism behind the privacy policy's 30-day removal
  * promise, and a source-text regex is not evidence that anything gets deleted.
  *
- * PARTIAL FAILURE IS REPORTED, NOT SWALLOWED. Every Firestore step runs
- * regardless of what failed before it, and the Auth record is deleted only if
- * all of them succeeded. So a failed run leaves an account that can still sign
- * in and press delete again, and that second run is the recovery path.
+ * PARTIAL FAILURE IS REPORTED, NOT SWALLOWED. Every Firestore and Cloud
+ * Storage step runs regardless of what failed before it, and the Auth record
+ * is deleted only if all of them succeeded. So a failed run leaves an account
+ * that can still sign in and press delete again, and that second run is the
+ * recovery path.
  *
  * timeoutSeconds is 540 rather than the old 120: the sweep now touches around
  * sixty targets, and a beta account with real history should not be cut off
@@ -1041,8 +1042,21 @@ exports.deleteAccount = onCall(
         throw new HttpsError("unauthenticated", "Must be logged in to delete account");
       }
 
+      // The Storage handle is built here rather than inside the sweep so a
+      // misconfigured bucket surfaces as a recorded failure (which keeps the
+      // Auth record alive for a retry) instead of an exception that aborts
+      // the run before a single document is deleted.
+      let bucket = null;
+      try {
+        bucket = admin.storage().bucket();
+      } catch (err) {
+        logger.error("Storage bucket unavailable for deletion", {
+          uid, error: err.message,
+        });
+      }
+
       const {counts, failures, authDeleted} = await deleteAccountCompletely(
-          admin.firestore(), admin.auth(), uid,
+          admin.firestore(), admin.auth(), bucket, uid,
       );
 
       if (failures.length > 0) {

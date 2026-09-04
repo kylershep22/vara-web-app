@@ -1,5 +1,5 @@
 /**
- * deleteAccount's sweep, run against the Firestore and Auth EMULATORS.
+ * deleteAccount's sweep, run against the Firestore, Auth and Storage EMULATORS.
  *
  * WHY AN EMULATOR AND NOT A FAKE. The sibling suite
  * (deleteAccountCleanup.test.js) asserts that collection names appear on the
@@ -17,8 +17,9 @@
  * there; if it is not, that is a broken harness and it should look broken.
  *
  * THE PRODUCTION-DATA GUARD below is not paranoia. This file's whole job is
- * deleting users. Without FIRESTORE_EMULATOR_HOST set, firebase-admin talks to
- * the real project, and a passing test run would be a mass deletion.
+ * deleting users, and it deletes Storage prefixes as well as documents.
+ * Without the emulator host variables set, firebase-admin talks to the real
+ * project and a passing test run would be a mass deletion of both.
  */
 
 const admin = require("firebase-admin");
@@ -30,8 +31,11 @@ const {
   MEMBERSHIP_ARRAYS,
   UID_KEYED_DOC_TREES,
   PARENT_SUBCOLLECTIONS,
+  USER_STORAGE_PREFIXES,
+  NESTED_USER_STORAGE_PREFIXES,
   BATCH_LIMIT,
   deleteUserFirestoreData,
+  deleteUserStorageData,
   deleteAccountCompletely,
 } = require("../lib/accountDeletion");
 
@@ -51,10 +55,19 @@ if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
     "so admin.auth().deleteUser() cannot reach a real project.",
   );
 }
+if (!process.env.FIREBASE_STORAGE_EMULATOR_HOST) {
+  throw new Error(
+      "FIREBASE_STORAGE_EMULATOR_HOST is not set. The Storage emulator is " +
+    "required so bucket deletes cannot reach the real bucket - which holds " +
+    "every user's profile photos and the whole content library.",
+  );
+}
 
-admin.initializeApp({projectId: process.env.GCLOUD_PROJECT || "vara-emulator"});
+const projectId = process.env.GCLOUD_PROJECT || "vara-emulator";
+admin.initializeApp({projectId, storageBucket: `${projectId}.appspot.com`});
 const db = admin.firestore();
 const auth = admin.auth();
+const bucket = admin.storage().bucket();
 
 jest.setTimeout(120000);
 
@@ -131,6 +144,50 @@ async function seedUser(uid) {
   }
 
   await Promise.all(writes);
+  await seedUserStorage(uid);
+}
+
+/**
+ * Upload one object under every per-user Storage path shape.
+ *
+ * `groupPosts` gets a group of its own per user so the delimiter listing has
+ * something real to enumerate; the point of that path is that the uid is NOT
+ * the first segment, so a seed that skipped it would leave the one shape most
+ * likely to be got wrong untested.
+ *
+ * @param {string} uid
+ * @return {Promise<void>}
+ */
+async function seedUserStorage(uid) {
+  const uploads = USER_STORAGE_PREFIXES.map(
+      (prefix) => bucket.file(`${prefix}/${uid}/seed.jpg`).save("seeded"),
+  );
+  for (const {prefix} of NESTED_USER_STORAGE_PREFIXES) {
+    uploads.push(
+        bucket.file(`${prefix}/group-${uid}/${uid}/seed.jpg`).save("seeded"),
+    );
+  }
+  await Promise.all(uploads);
+}
+
+/**
+ * Every Storage object still present for a uid, as full object names.
+ *
+ * @param {string} uid
+ * @return {Promise<Array<string>>}
+ */
+async function survivingStorage(uid) {
+  const found = [];
+  for (const prefix of USER_STORAGE_PREFIXES) {
+    const [files] = await bucket.getFiles({prefix: `${prefix}/${uid}/`});
+    files.forEach((f) => found.push(f.name));
+  }
+  for (const {prefix} of NESTED_USER_STORAGE_PREFIXES) {
+    const [files] = await bucket.getFiles({prefix: `${prefix}/`});
+    files.filter((f) => f.name.split("/")[2] === uid)
+        .forEach((f) => found.push(f.name));
+  }
+  return found.sort();
 }
 
 /**
@@ -204,9 +261,13 @@ describe("deleteAccount sweep (emulated Firestore)", () => {
       expect(before.length).toBeGreaterThan(60);
       const subsBefore = await survivingSubDocs(uid);
       expect(subsBefore.length).toBe(8);
+      const storageBefore = await survivingStorage(uid);
+      expect(storageBefore.length).toBe(
+          USER_STORAGE_PREFIXES.length + NESTED_USER_STORAGE_PREFIXES.length,
+      );
 
       await auth.createUser({uid, email: `${uid}@example.test`});
-      result = await deleteAccountCompletely(db, auth, uid);
+      result = await deleteAccountCompletely(db, auth, bucket, uid);
     });
 
     it("reports no failures and deletes the Auth record", async () => {
@@ -224,6 +285,22 @@ describe("deleteAccount sweep (emulated Firestore)", () => {
       // deleting users/{uid} does not delete users/{uid}/moods. Both were
       // orphaned before this slice.
       expect(await survivingSubDocs(uid)).toEqual([]);
+    });
+
+    it("leaves no object under any per-user Storage prefix", async () => {
+      // Profile photos, banners and post attachments. None of this was
+      // deleted before the Storage rider - the privacy policy's 30-day
+      // removal promise covers a user's face as much as their journal.
+      expect(await survivingStorage(uid)).toEqual([]);
+    });
+
+    it("counts a deletion for every Storage prefix it swept", () => {
+      for (const prefix of USER_STORAGE_PREFIXES) {
+        expect(result.counts[`storage:${prefix}/{uid}/`]).toBe(1);
+      }
+      for (const {prefix} of NESTED_USER_STORAGE_PREFIXES) {
+        expect(result.counts[`storage:${prefix}/*/{uid}/`]).toBe(1);
+      }
     });
 
     it("counts a deletion for every collection it swept", () => {
@@ -271,9 +348,14 @@ describe("deleteAccount sweep (emulated Firestore)", () => {
     const survived = await survivingDocs(bystander);
     expect(survived.length).toBeGreaterThan(60);
     expect(await survivingSubDocs(bystander)).toHaveLength(8);
+    // deleteUserFirestoreData does not touch Storage, so BOTH users' objects
+    // are still there - the assertion that matters is the bystander's.
+    expect(await survivingStorage(bystander)).toHaveLength(
+        USER_STORAGE_PREFIXES.length + NESTED_USER_STORAGE_PREFIXES.length,
+    );
   });
 
-  it("removes the uid from shared arrays without deleting the document", async () => {
+  it("removes the uid from a shared array, keeping the doc", async () => {
     // Deleting a group because one member closed their account would destroy
     // everyone else's content.
     const uid = freshUid();
@@ -315,17 +397,96 @@ describe("deleteAccount sweep (emulated Firestore)", () => {
     expect(left.empty).toBe(true);
   });
 
+  it("deletes groupPosts, where the uid is not segment one", async () => {
+    // groupPosts/{groupId}/{uid}/ cannot be reached by a prefix delete: the
+    // groupId sits between the prefix and the owner. This is the shape that
+    // would have been quietly skipped by a prefix-only sweep, so it gets its
+    // own test with a bystander in a DIFFERENT group and a bystander in the
+    // SAME group.
+    const uid = freshUid();
+    const other = freshUid();
+    await bucket.file(`groupPosts/shared-group/${uid}/mine.jpg`).save("a");
+    await bucket.file(`groupPosts/shared-group/${other}/theirs.jpg`).save("b");
+    await bucket.file(`groupPosts/other-group/${other}/theirs.jpg`).save("c");
+
+    const {counts, failures} = await deleteUserStorageData(bucket, uid);
+
+    expect(failures).toEqual([]);
+    expect(counts["storage:groupPosts/*/{uid}/"]).toBe(1);
+    expect(await survivingStorage(uid)).toEqual([]);
+    // The other member's objects survive, in both groups.
+    expect(await survivingStorage(other)).toEqual([
+      `groupPosts/other-group/${other}/theirs.jpg`,
+      `groupPosts/shared-group/${other}/theirs.jpg`,
+    ]);
+  });
+
+  it("never touches the admin-authored content library", async () => {
+    // The bucket's other ten prefixes hold the audio, video and thumbnails
+    // every user reads. Sweeping one of them on an account deletion would
+    // take the library down for everybody - the opposite failure to the one
+    // this rider fixes, and a far worse one.
+    const uid = freshUid();
+    await seedUserStorage(uid);
+    await bucket.file("sleep-audio/story.mp3").save("library");
+    await bucket.file("focus-video/explainer.mp4").save("library");
+    await bucket.file(`protocolAudio/${uid}.mp3`).save("library");
+
+    await deleteUserStorageData(bucket, uid);
+
+    for (const name of [
+      "sleep-audio/story.mp3",
+      "focus-video/explainer.mp4",
+      // Named after the uid on purpose: a sweep that matched on the uid
+      // appearing anywhere in the object name would take this out.
+      `protocolAudio/${uid}.mp3`,
+    ]) {
+      const [exists] = await bucket.file(name).exists();
+      expect(exists).toBe(true);
+    }
+  });
+
+  it("treats an absent Storage prefix as success, not an error", async () => {
+    // A user who never uploaded anything. Cloud Storage has no directories,
+    // so "prefix that was never written" and "prefix already swept" are the
+    // same state - which is what makes the sweep idempotent for free.
+    const uid = freshUid();
+
+    const {counts, failures} = await deleteUserStorageData(bucket, uid);
+
+    expect(failures).toEqual([]);
+    expect(counts).toEqual({});
+  });
+
+  it("records a failure, not a skip, when there is no bucket", async () => {
+    // If the Storage handle could not be built, reporting success would
+    // claim a complete deletion while every profile photo survived. The
+    // failure is what keeps the Auth record alive for a retry.
+    const uid = freshUid();
+    await seedUserStorage(uid);
+
+    const {failures} = await deleteUserStorageData(null, uid);
+
+    expect(failures).toHaveLength(1);
+    expect(failures[0].step).toBe("storage");
+    // ...and nothing was silently deleted on the way to that failure.
+    expect(await survivingStorage(uid)).toHaveLength(
+        USER_STORAGE_PREFIXES.length + NESTED_USER_STORAGE_PREFIXES.length,
+    );
+  });
+
   it("is idempotent: a second run succeeds and deletes nothing", async () => {
     const uid = freshUid();
     await seedUser(uid);
     await auth.createUser({uid, email: `${uid}@example.test`});
 
-    const first = await deleteAccountCompletely(db, auth, uid);
+    const first = await deleteAccountCompletely(db, auth, bucket, uid);
     expect(first.failures).toEqual([]);
     expect(Object.keys(first.counts).length).toBeGreaterThan(60);
 
-    const second = await deleteAccountCompletely(db, auth, uid);
+    const second = await deleteAccountCompletely(db, auth, bucket, uid);
 
+    expect(await survivingStorage(uid)).toEqual([]);
     expect(second.failures).toEqual([]);
     // Nothing left to delete, and the already-missing Auth record is the
     // success case rather than an error.
@@ -369,7 +530,7 @@ describe("deleteAccount sweep (emulated Firestore)", () => {
     }
 
     const faulted = await deleteAccountCompletely(
-        dbWithBrokenCollection("dayBlocks"), auth, uid,
+        dbWithBrokenCollection("dayBlocks"), auth, bucket, uid,
     );
 
     expect(faulted.authDeleted).toBe(false);
@@ -381,13 +542,17 @@ describe("deleteAccount sweep (emulated Firestore)", () => {
     // One broken collection did not pin the ones after it in the list.
     const stranded = await survivingDocs(uid);
     expect(stranded).toEqual([`dayBlocks/${uid}_seed`]);
+    // ...and the Storage sweep ran too, rather than being skipped because
+    // Firestore had already failed.
+    expect(await survivingStorage(uid)).toEqual([]);
 
-    const retry = await deleteAccountCompletely(db, auth, uid);
+    const retry = await deleteAccountCompletely(db, auth, bucket, uid);
 
     expect(retry.failures).toEqual([]);
     expect(retry.counts).toEqual({dayBlocks: 1});
     expect(retry.authDeleted).toBe(true);
     expect(await survivingDocs(uid)).toEqual([]);
+    expect(await survivingStorage(uid)).toEqual([]);
     await expect(auth.getUser(uid)).rejects.toThrow();
   });
 });

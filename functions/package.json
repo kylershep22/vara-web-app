@@ -3,7 +3,7 @@
   "description": "Cloud Functions for Firebase",
   "scripts": {
     "lint": "eslint ./index.js || echo lint ignored",
-    "test": "firebase emulators:exec --only firestore,auth \"jest --testEnvironment=node --runInBand src/__tests__\"",
+    "test": "firebase emulators:exec --only firestore,auth,storage \"jest --testEnvironment=node --runInBand src/__tests__\"",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",

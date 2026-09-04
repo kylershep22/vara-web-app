@@ -23,9 +23,15 @@ const {
   MEMBERSHIP_ARRAYS,
   UID_KEYED_DOC_TREES,
   PARENT_SUBCOLLECTIONS,
+  USER_STORAGE_PREFIXES,
+  NESTED_USER_STORAGE_PREFIXES,
 } = require("../lib/accountDeletion");
 
-/** Every collection name any manifest mentions. */
+/**
+ * Every collection name any manifest mentions.
+ *
+ * @return {Array<string>}
+ */
 function allSweptCollections() {
   return [
     ...USERID_FIELD_COLLECTIONS,
@@ -46,6 +52,8 @@ describe("deleteAccount cleanup manifest", () => {
     expect(USERID_FIELD_COLLECTIONS.length).toBeGreaterThan(45);
     expect(OWNER_FIELD_COLLECTIONS.length).toBeGreaterThan(10);
     expect(UID_KEYED_DOC_TREES.length).toBeGreaterThan(4);
+    expect(USER_STORAGE_PREFIXES.length).toBe(4);
+    expect(NESTED_USER_STORAGE_PREFIXES.length).toBe(1);
   });
 
   it("still sweeps the collections it swept before", () => {
@@ -146,7 +154,7 @@ describe("deleteAccount cleanup manifest", () => {
     }
   });
 
-  it("strips the uid from shared arrays instead of deleting the document", () => {
+  it("strips the uid from a shared array, keeping the doc", () => {
     // Deleting a group because one member closed their account would destroy
     // everyone else's content. These two are the only shared-array cases.
     const shared = MEMBERSHIP_ARRAYS.map((e) => e.collection);
@@ -160,13 +168,54 @@ describe("deleteAccount cleanup manifest", () => {
     }
   });
 
+  it("sweeps every per-user Storage prefix", () => {
+    // storage.rules names exactly five per-user prefixes. Four put the uid
+    // first; groupPosts does not, and lives on its own manifest below.
+    for (const expected of ["users", "avatars", "posts", "communityPosts"]) {
+      expect(USER_STORAGE_PREFIXES).toContain(expected);
+    }
+    expect(NESTED_USER_STORAGE_PREFIXES.map((e) => e.prefix))
+        .toContain("groupPosts");
+  });
+
+  it("keeps groupPosts off the prefix-deletable list", () => {
+    // groupPosts/{groupId}/{uid}/ has the groupId between the prefix and the
+    // owner. Deleting `groupPosts/{uid}/` would match nothing and look like a
+    // clean sweep; deleting `groupPosts/` would take out every group's
+    // attachments. Neither is what the nested manifest does.
+    expect(USER_STORAGE_PREFIXES).not.toContain("groupPosts");
+    for (const entry of NESTED_USER_STORAGE_PREFIXES) {
+      // The segment index the sweep reads the uid from. groupPosts/g/uid/f
+      // splits to [groupPosts, g, uid, f], so the uid is index 2.
+      expect(entry.uidSegment).toBe(2);
+    }
+  });
+
+  it("never sweeps an admin-authored Storage prefix", () => {
+    // These hold the audio, video and thumbnails every user reads. A single
+    // account deletion must not be able to empty the content library.
+    const swept = new Set([
+      ...USER_STORAGE_PREFIXES,
+      ...NESTED_USER_STORAGE_PREFIXES.map((e) => e.prefix),
+    ]);
+    for (const library of [
+      "protocolAudio", "sleep-audio", "breathwork-audio", "movement-audio",
+      "meditation-audio", "movement-video", "movement-thumbs",
+      "coaching-video", "coaching-auido", "focus-video",
+    ]) {
+      expect(swept.has(library)).toBe(false);
+    }
+  });
+
   it("lists every userId-field collection exactly once", () => {
     expect(new Set(USERID_FIELD_COLLECTIONS).size)
         .toBe(USERID_FIELD_COLLECTIONS.length);
   });
 
   it("lists every (collection, field) owner pair exactly once", () => {
-    const keys = OWNER_FIELD_COLLECTIONS.map((e) => e.collection + "." + e.field);
+    const keys = OWNER_FIELD_COLLECTIONS.map(
+        (e) => e.collection + "." + e.field,
+    );
     expect(new Set(keys).size).toBe(keys.length);
   });
 

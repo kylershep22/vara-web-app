@@ -1,5 +1,5 @@
 /**
- * ACCOUNT DELETION — the full per-user Firestore sweep.
+ * ACCOUNT DELETION — the full per-user Firestore and Cloud Storage sweep.
  *
  * WHY THIS IS A MODULE AND NOT AN INLINE BLOCK. It used to live inside the
  * `deleteAccount` onCall handler in functions/index.js, where the only thing
@@ -25,6 +25,11 @@
  *      `reporterId`, `inviterId`, `from`. Same query, different field.
  *   3. The document ID IS the uid (`users/{uid}`, `userPrivate/{uid}`,
  *      `notificationLog/{uid}`). Deleted by path, recursively.
+ *
+ * Cloud Storage has two more shapes, kept in their own manifests below: a
+ * prefix whose FIRST segment after the prefix is the uid (deletable by
+ * prefix), and groupPosts/{groupId}/{uid}/, where the uid is one segment
+ * deeper and the groups have to be enumerated first.
  *
  * NEVER SWEEP A DETERMINISTIC-ID COLLECTION BY RECONSTRUCTING ITS IDS.
  * `dailyLogs` is `${uid}_${date}` and `weeklyCycles` is `${uid}_${weekStart}`
@@ -176,6 +181,47 @@ const UID_KEYED_DOC_TREES = [
 ];
 
 /**
+ * Cloud Storage prefixes where the owner uid is the FIRST path segment, so
+ * every object beneath `<prefix>/<uid>/` belongs to that user and the whole
+ * subtree can be deleted by prefix.
+ *
+ * `communityPosts` has no live write site in either app any more — it is a
+ * legacy prefix that still holds an object. Legacy is exactly the case a
+ * deletion sweep must cover: nothing writes there today, so nothing will
+ * remind anyone it exists, and the object outlives the account forever.
+ *
+ * The other ten prefixes in storage.rules are admin-write-only app-served
+ * media (protocolAudio, sleep-audio, focus-video and friends). They hold no
+ * per-user content and must never be swept — deleting from them on an account
+ * deletion would take the content library down for every user.
+ */
+const USER_STORAGE_PREFIXES = [
+  "users",
+  "avatars",
+  "posts",
+  "communityPosts",
+];
+
+/**
+ * Storage prefixes where the owner uid is NOT the first segment.
+ *
+ * `groupPosts/{groupId}/{uid}/{file}` puts the groupId between the prefix and
+ * the owner, so there is no single prefix that selects one user's objects.
+ * The content is still fully attributable — the uid is a path segment, and
+ * storage.rules gates writes on it — it just needs a listing step: enumerate
+ * the group sub-prefixes, then delete `groupPosts/{groupId}/{uid}/` under
+ * each.
+ *
+ * Enumerated with a delimiter listing rather than by listing every object
+ * under `groupPosts/` and filtering: the delimiter form returns one entry per
+ * group instead of one per file, so the cost tracks the number of groups
+ * rather than the size of the forum.
+ */
+const NESTED_USER_STORAGE_PREFIXES = [
+  {prefix: "groupPosts", uidSegment: 2},
+];
+
+/**
  * Parent collections whose per-document `completions` subcollection has to be
  * swept BEFORE the parents are deleted — once the parent row is gone there is
  * no query that finds its children.
@@ -230,6 +276,52 @@ async function deleteQueryBatched(db, query) {
  */
 async function deleteDocTree(db, ref) {
   await db.recursiveDelete(ref);
+}
+
+/**
+ * Delete every Storage object under a prefix.
+ *
+ * Lists and then deletes rather than calling bucket.deleteFiles(), which does
+ * the same two things but reports nothing back: the count is what makes a
+ * silent no-match visible in the logs and in the tests. A prefix that does not
+ * exist lists as empty and returns 0 — Cloud Storage has no directories, so
+ * "absent prefix" and "prefix with no objects" are the same thing, which is
+ * what makes this idempotent for free.
+ *
+ * @param {Object} bucket an Admin SDK Storage bucket
+ * @param {string} prefix
+ * @return {Promise<number>} objects deleted
+ */
+async function deleteStoragePrefix(bucket, prefix) {
+  const [files] = await bucket.getFiles({prefix});
+  for (const file of files) {
+    await file.delete();
+  }
+  return files.length;
+}
+
+/**
+ * List the immediate sub-prefixes of a Storage prefix.
+ *
+ * `groupPosts/` returns `groupPosts/{groupId}/` for each group, one entry per
+ * group rather than one per object. Paginated explicitly because
+ * autoPaginate would flatten the delimiter grouping away.
+ *
+ * @param {Object} bucket an Admin SDK Storage bucket
+ * @param {string} prefix must end in "/"
+ * @return {Promise<Array<string>>}
+ */
+async function listStorageSubPrefixes(bucket, prefix) {
+  const found = [];
+  let query = {prefix, delimiter: "/", autoPaginate: false};
+  while (query) {
+    const [, nextQuery, apiResponse] = await bucket.getFiles(query);
+    for (const sub of (apiResponse && apiResponse.prefixes) || []) {
+      found.push(sub);
+    }
+    query = nextQuery;
+  }
+  return found;
 }
 
 /**
@@ -335,6 +427,57 @@ async function deleteUserFirestoreData(db, uid) {
 }
 
 /**
+ * Delete every Cloud Storage object belonging to a user.
+ *
+ * Same contract as the Firestore sweep: steps are independent, failures are
+ * collected rather than thrown, and an absent object or prefix is a success
+ * rather than an error, so a re-run is safe.
+ *
+ * A MISSING BUCKET IS A FAILURE, NOT A SKIP. If the Storage handle could not
+ * be built, this returns a failure so the caller leaves the Auth record alive
+ * and the user can retry. Treating it as "nothing to delete" would report a
+ * complete deletion while every profile photo and post image survived — which
+ * is the precise shape of the gap this rider exists to close.
+ *
+ * @param {Object|null} bucket an Admin SDK Storage bucket
+ * @param {string} uid
+ * @return {Promise<{counts: Object, failures: Array<Object>}>}
+ */
+async function deleteUserStorageData(bucket, uid) {
+  const failures = [];
+  const counts = {};
+
+  if (!bucket) {
+    failures.push({
+      step: "storage",
+      message: "no Storage bucket available; user media was not deleted",
+    });
+    return {counts, failures};
+  }
+
+  for (const prefix of USER_STORAGE_PREFIXES) {
+    const name = `storage:${prefix}/{uid}/`;
+    await runStep(failures, counts, name, () => deleteStoragePrefix(
+        bucket, `${prefix}/${uid}/`,
+    ));
+  }
+
+  for (const {prefix} of NESTED_USER_STORAGE_PREFIXES) {
+    const name = `storage:${prefix}/*/{uid}/`;
+    await runStep(failures, counts, name, async () => {
+      const groups = await listStorageSubPrefixes(bucket, `${prefix}/`);
+      let deleted = 0;
+      for (const group of groups) {
+        deleted += await deleteStoragePrefix(bucket, `${group}${uid}/`);
+      }
+      return deleted;
+    });
+  }
+
+  return {counts, failures};
+}
+
+/**
  * Delete a user's Firestore data and then their Auth record.
  *
  * ORDER IS LOAD-BEARING. Auth goes last and only after a fully clean Firestore
@@ -343,14 +486,24 @@ async function deleteUserFirestoreData(db, uid) {
  * undeletable by any path the user has — recovery would need a console
  * operator. Deleting it last makes the retry button the recovery path.
  *
+ * `bucket` is a REQUIRED positional rather than an option with a default,
+ * because the only safe default is "delete nothing from Storage" and that
+ * default would be invisible at the call site. Pass null deliberately and the
+ * sweep records a failure; forget the argument and it does the same.
+ *
  * @param {FirebaseFirestore.Firestore} db
  * @param {Object} auth an admin.auth() instance
+ * @param {Object|null} bucket an Admin SDK Storage bucket
  * @param {string} uid
  * @return {Promise<{counts: Object, failures: Array<Object>,
  *   authDeleted: boolean}>}
  */
-async function deleteAccountCompletely(db, auth, uid) {
-  const {counts, failures} = await deleteUserFirestoreData(db, uid);
+async function deleteAccountCompletely(db, auth, bucket, uid) {
+  const firestore = await deleteUserFirestoreData(db, uid);
+  const storage = await deleteUserStorageData(bucket, uid);
+
+  const counts = {...firestore.counts, ...storage.counts};
+  const failures = [...firestore.failures, ...storage.failures];
 
   if (failures.length > 0) {
     return {counts, failures, authDeleted: false};
@@ -382,7 +535,12 @@ module.exports = {
   MEMBERSHIP_ARRAYS,
   UID_KEYED_DOC_TREES,
   PARENT_SUBCOLLECTIONS,
+  USER_STORAGE_PREFIXES,
+  NESTED_USER_STORAGE_PREFIXES,
   deleteQueryBatched,
+  deleteStoragePrefix,
+  listStorageSubPrefixes,
   deleteUserFirestoreData,
+  deleteUserStorageData,
   deleteAccountCompletely,
 };
