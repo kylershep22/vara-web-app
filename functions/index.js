@@ -108,6 +108,9 @@ const {
 // Wire the module's runtime dependencies once, at cold start.
 setRateLimitDeps({logger, admin});
 
+// Account deletion sweep (the collection manifest lives in the module).
+const {deleteAccountCompletely} = require("./src/lib/accountDeletion");
+
 
 /* ======================================================================
  * Helper Functions
@@ -1010,13 +1013,27 @@ Return as JSON: {"momentsOfJoy": [...], "mindBodyFuel": [...]}`;
  * ====================================================================*/
 
 /**
- * Callable function to delete a user's account and all associated data.
- * Requires authentication. Deletes data from all personal collections,
- * removes user from groups, and finally deletes the Firebase Auth account.
+ * Callable function to delete a user's account and all of their data.
+ *
+ * The sweep itself lives in src/lib/accountDeletion.js, which owns the
+ * collection manifest and the batching. It is a module rather than an inline
+ * block so it can be exercised against a real Firestore per collection — this
+ * function is the mechanism behind the privacy policy's 30-day removal
+ * promise, and a source-text regex is not evidence that anything gets deleted.
+ *
+ * PARTIAL FAILURE IS REPORTED, NOT SWALLOWED. Every Firestore and Cloud
+ * Storage step runs regardless of what failed before it, and the Auth record
+ * is deleted only if all of them succeeded. So a failed run leaves an account
+ * that can still sign in and press delete again, and that second run is the
+ * recovery path.
+ *
+ * timeoutSeconds is 540 rather than the old 120: the sweep now touches around
+ * sixty targets, and a beta account with real history should not be cut off
+ * mid-pass. Being cut off is survivable (see above) but it is not the design.
  */
 exports.deleteAccount = onCall(
     {
-      timeoutSeconds: 120,
+      timeoutSeconds: 540,
       memory: "512MiB",
     },
     async (request) => {
@@ -1025,127 +1042,32 @@ exports.deleteAccount = onCall(
         throw new HttpsError("unauthenticated", "Must be logged in to delete account");
       }
 
-      const db = admin.firestore();
-
-      /**
-       * Delete all docs matching a query in batches of 500.
-       * Loops until no more matching documents remain.
-       */
-      async function deleteQueryBatched(query) {
-        let total = 0;
-        let snapshot = await query.limit(500).get();
-        while (!snapshot.empty) {
-          const batch = db.batch();
-          snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-          await batch.commit();
-          total += snapshot.size;
-          if (snapshot.size < 500) break; // last batch
-          snapshot = await query.limit(500).get();
-        }
-        return total;
-      }
-
-      // Collections where documents have a userId field
-      const personalCollections = [
-        "goals", "habits", "tasks", "journalEntries", "journal_entries",
-        "habitCompletions", "joyMoments", "fourThreeTwoOne",
-        "dailyWellnessScores", "morningCheckIns", "brainMetrics",
-        "neuroplasticitySignals", "nervousSystemSessions", "amccChallenges",
-        "sleepLogs", "sleepRoutineRuns", "puzzleCompletions", "focusSessions",
-        "routines", "weeklyRecaps", "wheelOfLife", "reflections",
-        "masterclassProgress", "audioListens", "audioFavorites",
-        "socialConnections", "natureExposure", "energyCheckins",
-        "gratitudeEntries", "bedtimeRoutines", "emotionalCheckins",
-        "cognitiveReframes", "digitalWellbeing", "brainHealthScores",
-        "notifications", "challengeParticipants", "challengeCheckIns",
-        // Journey slice 1. journeyStates is keyed by uid as its DOCUMENT ID and
-        // could have been deleted by path, but it also carries a userId field
-        // (the rules refuse a forged one), so it belongs on this sweep with its
-        // siblings rather than in a one-off delete below.
-        "journeyStates",
-      ];
-
+      // The Storage handle is built here rather than inside the sweep so a
+      // misconfigured bucket surfaces as a recorded failure (which keeps the
+      // Auth record alive for a retry) instead of an exception that aborts
+      // the run before a single document is deleted.
+      let bucket = null;
       try {
-        // Delete personal data in batches (loops until all docs are deleted)
-        for (const col of personalCollections) {
-          await deleteQueryBatched(
-              db.collection(col).where("userId", "==", uid),
-          );
-        }
-
-        // Delete user's posts
-        await deleteQueryBatched(
-            db.collection("posts").where("userId", "==", uid),
-        );
-
-        // Delete user's DMs and conversations
-        await deleteQueryBatched(
-            db.collection("conversations").where("participants", "array-contains", uid),
-        );
-        await deleteQueryBatched(
-            db.collection("directMessages").where("senderId", "==", uid),
-        );
-
-        // Delete sleep routine (keyed by userId)
-        const sleepRoutineRef = db.collection("sleepRoutines").doc(uid);
-        const sleepRoutineSnap = await sleepRoutineRef.get();
-        if (sleepRoutineSnap.exists) {
-          await sleepRoutineRef.delete();
-        }
-
-        // Delete user's sub-collections (moods, daily plans)
-        const userRef = db.collection("users").doc(uid);
-        await deleteQueryBatched(userRef.collection("moods"));
-
-        // Delete the owner-only private document.
-        //
-        // Added in migration slice 2, deliberately ahead of the rest of the
-        // retention work: userPrivate now holds the most sensitive per-user
-        // data in the system — email, push tokens, the onboarding check-in and
-        // the AI wellness narrative — and it must not outlive the account it
-        // belongs to, least of all during a migration where the same values
-        // also still sit on users/{uid}. Idempotent: deleting a document that
-        // does not exist is a no-op, which is the normal case for a user who
-        // never wrote one.
-        //
-        // The other collections this function does not yet cover remain the
-        // separate retention slice; nothing else here changed.
-        await db.collection("userPrivate").doc(uid).delete();
-
-        // Delete user profile
-        await userRef.delete();
-
-        // Delete connections involving this user
-        await deleteQueryBatched(
-            db.collection("connections").where("participants", "array-contains", uid),
-        );
-
-        // Remove user from group member lists
-        const groupsSnap = await db.collection("groups")
-            .where("members", "array-contains", uid)
-            .get();
-        for (const groupDoc of groupsSnap.docs) {
-          const members = groupDoc.data().members || [];
-          await groupDoc.ref.update({
-            members: members.filter((m) => m !== uid),
-          });
-        }
-
-        // Delete rate limit tracking data
-        const rateLimitsRef = db.collection("rateLimits").doc(uid);
-        const rateLimitsSnap = await rateLimitsRef.get();
-        if (rateLimitsSnap.exists) {
-          await rateLimitsRef.delete();
-        }
-
-        // Delete Firebase Auth account (must be last)
-        await admin.auth().deleteUser(uid);
-
-        logger.info("Account deleted successfully", {uid});
-        return {success: true};
+        bucket = admin.storage().bucket();
       } catch (err) {
-        logger.error("Account deletion failed", {uid, error: err.message});
-        throw new HttpsError("internal", "Failed to delete account. Please contact support.");
+        logger.error("Storage bucket unavailable for deletion", {
+          uid, error: err.message,
+        });
       }
+
+      const {counts, failures, authDeleted} = await deleteAccountCompletely(
+          admin.firestore(), admin.auth(), bucket, uid,
+      );
+
+      if (failures.length > 0) {
+        logger.error("Account deletion incomplete", {uid, failures, counts});
+        throw new HttpsError(
+            "internal",
+            "Failed to delete account. Please try again or contact support.",
+        );
+      }
+
+      logger.info("Account deleted successfully", {uid, counts, authDeleted});
+      return {success: true, deleted: counts};
     },
 );

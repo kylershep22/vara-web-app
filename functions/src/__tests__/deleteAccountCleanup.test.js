@@ -1,73 +1,235 @@
 /**
- * deleteAccount's cleanup list, asserted against the deployed source.
+ * deleteAccount's cleanup MANIFEST, asserted against the exported lists.
  *
- * WHY A SOURCE READ RATHER THAN A REQUIRE. deleteAccount lives in
- * functions/index.js as an onCall handler, and `personalCollections` is a local
- * inside it. Requiring index.js would boot the whole Functions module graph
- * (firebase-admin, every trigger) to reach one array; extracting the array into
- * a module purely to test it would refactor production code this slice has no
- * other reason to touch. Reading the source is the honest middle: it asserts
- * against exactly the text that deploys.
+ * WHY THIS NO LONGER READS SOURCE TEXT. The previous version of this file
+ * regex-parsed `const personalCollections = [...]` out of functions/index.js,
+ * because the array was a local inside an onCall handler and there was nothing
+ * importable to assert against. The sweep now lives in src/lib/accountDeletion,
+ * which exports its manifest, so the test reads the same values the deployed
+ * code iterates. The header note it used to carry — "repoint this test rather
+ * than deleting it" — is what happened here.
  *
- * WHAT IT IS REALLY GUARDING. A collection added to the app but not to this
- * list survives account deletion silently - no error, no log, just orphaned
- * personal data. Nothing else in the repo notices. The regex is paired with a
- * vacuity guard below so a parse that stopped matching cannot pass as a clean
- * sweep.
+ * WHAT IT IS REALLY GUARDING. A collection added to the app but not to a
+ * manifest survives account deletion silently: no error, no log, just orphaned
+ * personal data. Nothing else in the repo notices. This suite is the cheap
+ * always-on half of that guard; deleteAccountSweep.test.js is the half that
+ * proves documents actually disappear.
  */
 
-const fs = require("fs");
-const path = require("path");
+const {
+  USERID_FIELD_COLLECTIONS,
+  OWNER_FIELD_COLLECTIONS,
+  ARRAY_MEMBER_COLLECTIONS,
+  MEMBERSHIP_ARRAYS,
+  UID_KEYED_DOC_TREES,
+  PARENT_SUBCOLLECTIONS,
+  USER_STORAGE_PREFIXES,
+  NESTED_USER_STORAGE_PREFIXES,
+} = require("../lib/accountDeletion");
 
-const source = fs.readFileSync(
-    path.join(__dirname, "..", "..", "index.js"),
-    "utf8",
-);
-
-/** The collection names inside `const personalCollections = [...]`. */
-function personalCollections() {
-  const match = source.match(/const personalCollections = \[(.*?)\];/s);
-  if (!match) {
-    throw new Error(
-        "Could not find `const personalCollections = [...]` in functions/index.js. " +
-      "It was renamed or restructured; repoint this test rather than deleting it.",
-    );
-  }
-  // Comment lines inside the array would otherwise contribute stray quoted
-  // words, so they are stripped before the names are read.
-  const body = match[1].replace(/\/\/[^\n]*/g, "");
-  return [...body.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+/**
+ * Every collection name any manifest mentions.
+ *
+ * @return {Array<string>}
+ */
+function allSweptCollections() {
+  return [
+    ...USERID_FIELD_COLLECTIONS,
+    ...OWNER_FIELD_COLLECTIONS.map((e) => e.collection),
+    ...ARRAY_MEMBER_COLLECTIONS.map((e) => e.collection),
+    ...UID_KEYED_DOC_TREES,
+    ...PARENT_SUBCOLLECTIONS.map((e) => e.collection),
+  ];
 }
 
-describe("deleteAccount cleanup list", () => {
-  it("parses a non-trivial list (guards against a vacuous pass)", () => {
-    // Without this, a regex that silently stopped matching would return [] and
-    // every containment assertion below would fail loudly rather than pass
-    // quietly - but a future change to a `.includes` style assertion would
+describe("deleteAccount cleanup manifest", () => {
+  it("is non-trivial (guards against a vacuous pass)", () => {
+    // Without this, a manifest that had been emptied or renamed to nothing
+    // would make every `toContain` below fail loudly rather than pass
+    // quietly - but a future rewrite towards `.every` style assertions would
     // not. Pin the shape here so the guard survives that rewrite.
-    const cols = personalCollections();
-    expect(Array.isArray(cols)).toBe(true);
-    expect(cols.length).toBeGreaterThan(30);
+    expect(Array.isArray(USERID_FIELD_COLLECTIONS)).toBe(true);
+    expect(USERID_FIELD_COLLECTIONS.length).toBeGreaterThan(45);
+    expect(OWNER_FIELD_COLLECTIONS.length).toBeGreaterThan(10);
+    expect(UID_KEYED_DOC_TREES.length).toBeGreaterThan(4);
+    expect(USER_STORAGE_PREFIXES.length).toBe(4);
+    expect(NESTED_USER_STORAGE_PREFIXES.length).toBe(1);
+  });
+
+  it("still sweeps the collections it swept before", () => {
+    // A spot check, not the full list: the point is that restructuring the
+    // manifest into three shapes did not drop any of the original entries.
+    for (const expected of [
+      "goals", "habits", "tasks", "journalEntries", "journal_entries",
+      "habitCompletions", "joyMoments", "fourThreeTwoOne",
+      "dailyWellnessScores", "morningCheckIns", "brainMetrics",
+      "neuroplasticitySignals", "nervousSystemSessions", "amccChallenges",
+      "sleepLogs", "sleepRoutineRuns", "puzzleCompletions", "focusSessions",
+      "routines", "weeklyRecaps", "wheelOfLife", "reflections",
+      "masterclassProgress", "audioListens", "audioFavorites",
+      "socialConnections", "natureExposure", "energyCheckins",
+      "gratitudeEntries", "bedtimeRoutines", "emotionalCheckins",
+      "cognitiveReframes", "digitalWellbeing", "brainHealthScores",
+      "notifications", "challengeParticipants", "challengeCheckIns",
+      "journeyStates",
+    ]) {
+      expect(USERID_FIELD_COLLECTIONS).toContain(expected);
+    }
   });
 
   it("sweeps journeyStates, so a journey does not outlive the account", () => {
     // journeyStates carries phase history and the destination the user chose.
     // It is keyed by uid as its document ID and also carries a userId field,
     // which is what makes this `where userId ==` sweep reach it.
-    expect(personalCollections()).toContain("journeyStates");
+    expect(USERID_FIELD_COLLECTIONS).toContain("journeyStates");
   });
 
-  it("still sweeps the collections it swept before", () => {
-    // A spot check, not the full list: the point is that adding an entry did
-    // not disturb the existing ones.
-    const cols = personalCollections();
-    for (const expected of ["goals", "habits", "tasks", "journalEntries", "focusSessions"]) {
-      expect(cols).toContain(expected);
+  it("sweeps every behavioural collection the audit found missing", () => {
+    // The seven the roadmap tracked, plus the five its note did not know
+    // about. These are the collections that survived deletion indefinitely
+    // before this slice - each one is a standing breach of the 30-day promise
+    // if it drops off the list again.
+    for (const expected of [
+      "brainStateCheckIns", "protocolSessions", "dailyReflections",
+      "weeklyCycles", "dailyLogs", "downshiftEvents",
+      "dayBlocks", "capturedTasks",
+      "analyticsEvents", "notificationPreferences", "memberships",
+      "hiddenPosts",
+    ]) {
+      expect(USERID_FIELD_COLLECTIONS).toContain(expected);
     }
   });
 
-  it("lists every collection exactly once", () => {
-    const cols = personalCollections();
-    expect(new Set(cols).size).toBe(cols.length);
+  it("sweeps posts by authorId as well as userId", () => {
+    // The mobile client stamps both fields, the web client stamps authorId
+    // only. Sweeping userId alone leaves every web-authored post standing.
+    const postFields = OWNER_FIELD_COLLECTIONS
+        .filter((e) => e.collection === "posts")
+        .map((e) => e.field);
+    expect(postFields).toContain("userId");
+    expect(postFields).toContain("authorId");
+  });
+
+  it("sweeps both sides of every invite pair", () => {
+    // A pending invite names an inviter and an invitee; the deleted account
+    // may be either, and only sweeping one side strands half the rows.
+    const pairs = {
+      groupInvites: ["inviterId", "inviteeId"],
+      challengeInvites: ["inviterId", "inviteeId"],
+      connectionInvites: ["from", "to"],
+    };
+    for (const [collection, fields] of Object.entries(pairs)) {
+      const swept = OWNER_FIELD_COLLECTIONS
+          .filter((e) => e.collection === collection)
+          .map((e) => e.field);
+      expect(swept.sort()).toEqual(fields.sort());
+    }
+  });
+
+  it("recursively deletes every uid-keyed document tree", () => {
+    // Each of these has, or is one feature away from having, subcollections.
+    // A plain document delete strands them permanently.
+    for (const expected of [
+      "users", "userPrivate", "sleepRoutines", "notificationPreferences",
+      "rateLimits", "notificationLog",
+    ]) {
+      expect(UID_KEYED_DOC_TREES).toContain(expected);
+    }
+  });
+
+  it("deletes users/{uid} last of the uid-keyed trees", () => {
+    // users/{uid} is what the rest of the app reads as "this account exists".
+    expect(UID_KEYED_DOC_TREES[UID_KEYED_DOC_TREES.length - 1]).toBe("users");
+  });
+
+  it("sweeps completions subcollections whose parents it deletes", () => {
+    const parents = PARENT_SUBCOLLECTIONS.map((e) => e.collection);
+    expect(parents).toContain("habits");
+    expect(parents).toContain("routines");
+    for (const entry of PARENT_SUBCOLLECTIONS) {
+      expect(entry.subcollection).toBe("completions");
+      // The parent must itself be swept, or the subcollection pass is
+      // reaching for documents nothing ever deletes.
+      expect(USERID_FIELD_COLLECTIONS).toContain(entry.collection);
+    }
+  });
+
+  it("strips the uid from a shared array, keeping the doc", () => {
+    // Deleting a group because one member closed their account would destroy
+    // everyone else's content. These two are the only shared-array cases.
+    const shared = MEMBERSHIP_ARRAYS.map((e) => e.collection);
+    expect(shared).toContain("groups");
+    expect(shared).toContain("challenges");
+    // ...and they must NOT also be on a delete list.
+    for (const collection of shared) {
+      expect(USERID_FIELD_COLLECTIONS).not.toContain(collection);
+      expect(OWNER_FIELD_COLLECTIONS.map((e) => e.collection))
+          .not.toContain(collection);
+    }
+  });
+
+  it("sweeps every per-user Storage prefix", () => {
+    // storage.rules names exactly five per-user prefixes. Four put the uid
+    // first; groupPosts does not, and lives on its own manifest below.
+    for (const expected of ["users", "avatars", "posts", "communityPosts"]) {
+      expect(USER_STORAGE_PREFIXES).toContain(expected);
+    }
+    expect(NESTED_USER_STORAGE_PREFIXES.map((e) => e.prefix))
+        .toContain("groupPosts");
+  });
+
+  it("keeps groupPosts off the prefix-deletable list", () => {
+    // groupPosts/{groupId}/{uid}/ has the groupId between the prefix and the
+    // owner. Deleting `groupPosts/{uid}/` would match nothing and look like a
+    // clean sweep; deleting `groupPosts/` would take out every group's
+    // attachments. Neither is what the nested manifest does.
+    expect(USER_STORAGE_PREFIXES).not.toContain("groupPosts");
+    for (const entry of NESTED_USER_STORAGE_PREFIXES) {
+      // The segment index the sweep reads the uid from. groupPosts/g/uid/f
+      // splits to [groupPosts, g, uid, f], so the uid is index 2.
+      expect(entry.uidSegment).toBe(2);
+    }
+  });
+
+  it("never sweeps an admin-authored Storage prefix", () => {
+    // These hold the audio, video and thumbnails every user reads. A single
+    // account deletion must not be able to empty the content library.
+    const swept = new Set([
+      ...USER_STORAGE_PREFIXES,
+      ...NESTED_USER_STORAGE_PREFIXES.map((e) => e.prefix),
+    ]);
+    for (const library of [
+      "protocolAudio", "sleep-audio", "breathwork-audio", "movement-audio",
+      "meditation-audio", "movement-video", "movement-thumbs",
+      "coaching-video", "coaching-auido", "focus-video",
+    ]) {
+      expect(swept.has(library)).toBe(false);
+    }
+  });
+
+  it("lists every userId-field collection exactly once", () => {
+    expect(new Set(USERID_FIELD_COLLECTIONS).size)
+        .toBe(USERID_FIELD_COLLECTIONS.length);
+  });
+
+  it("lists every (collection, field) owner pair exactly once", () => {
+    const keys = OWNER_FIELD_COLLECTIONS.map(
+        (e) => e.collection + "." + e.field,
+    );
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("never sweeps a shared-content collection", () => {
+    // These hold admin-authored content shared by every user. Deleting rows
+    // from them on an account deletion would take the library down for
+    // everybody, which is the opposite failure to the one this slice fixes.
+    const swept = new Set(allSweptCollections());
+    for (const shared of [
+      "puzzles", "wellnessLibrary", "tags", "masterclasses", "audioLibrary",
+      "educationalContent", "movementContent", "config", "events",
+      "organizations", "adminAnalytics", "groupPrompts",
+    ]) {
+      expect(swept.has(shared)).toBe(false);
+    }
   });
 });
