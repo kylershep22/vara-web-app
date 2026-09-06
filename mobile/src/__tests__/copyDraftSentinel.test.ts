@@ -79,7 +79,17 @@ import * as path from 'path';
 // Everything else the slice added is either Jen-approved (the six protocols,
 // the capture chips) or placeholder-marked safety copy, which carries its own
 // marker and its own merge gate.
-const EXPECTED_SENTINELS = 173;
+// 174 since journey slice 3c-ii: +1 for REPLACEMENT_COPY.confirmedPrimary
+// ('Got it') in screens/journey/removeCapture/copy.ts. Owner Kyle: it is a UI
+// button label, not efficacy-adjacent copy. Everything else the slice added is
+// Jen-authored and approved on delivery (Content Pack v1 §replacement-menus and
+// §decisions-3: the menu title, the eighteen option labels and the three neutral
+// confirmations), which per the pack header enters WITHOUT markers and does not
+// move this number. The one gap is the label on the control that dismisses the
+// confirmation: in Jen's original the deferred reminder step owned that position
+// and it went to slice 9 with the rest, so the pack supplies no word for it.
+//
+const EXPECTED_SENTINELS = 174;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

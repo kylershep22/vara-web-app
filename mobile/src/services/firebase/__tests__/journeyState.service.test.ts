@@ -38,6 +38,7 @@ import {
   recordAdvanceDeclined,
   recordAdvanceOffered,
   recordRemoveCapture,
+  recordRemoveReplacement,
   skipToPhase,
   stepBackToPhase,
 } from '../journeyState.service';
@@ -397,5 +398,58 @@ describe('recordRemoveCapture refuses an empty capture', () => {
   test('free text alone is a target too', async () => {
     await recordRemoveCapture(ALICE, { text: 'scrolling at night' });
     expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('recordRemoveReplacement writes the pick and nothing else', () => {
+  // The 3c-ii seed. THREE FIELDS ON journeyStates, and deliberately nothing in
+  // the routines collection: createRoutine deactivates the user's existing
+  // routine of the same type, the daytime slot has no RoutineType, and an
+  // Activity needs a duration, icon and colour nobody authored. See the field
+  // comment on JourneyState.
+  beforeEach(() => {
+    mockDoc.mockClear();
+    mockUpdateDoc.mockClear();
+  });
+
+  test('writes exactly the three replacement fields plus updatedAt', async () => {
+    await recordRemoveReplacement(ALICE, { optionId: 'morning_outside', slot: 'morning' });
+
+    expect(mockDoc).toHaveBeenCalledWith({ __db: true }, 'journeyStates', ALICE);
+    expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
+    const written = mockUpdateDoc.mock.calls[0][1];
+    expect(Object.keys(written).sort()).toEqual([
+      'removeReplacementAt',
+      'removeReplacementId',
+      'removeReplacementSlot',
+      'updatedAt',
+    ]);
+    expect(written.removeReplacementId).toBe('morning_outside');
+    expect(written.removeReplacementSlot).toBe('morning');
+    expect(written.removeReplacementAt).toEqual({ __serverTimestamp: true });
+    expect(written.updatedAt).toEqual({ __serverTimestamp: true });
+  });
+
+  test('TOUCHES NONE OF THE FIVE CAPTURE FIELDS', async () => {
+    // This is an updateDoc on the same row the capture lives on. Naming a
+    // capture field here would blank a real answer.
+    await recordRemoveReplacement(ALICE, { optionId: 'evening_read', slot: 'evening' });
+    const written = mockUpdateDoc.mock.calls[0][1];
+    for (const field of [
+      'removeFamily',
+      'removeTargetChip',
+      'removeTargetText',
+      'removeTiming',
+      'removeCapturedAt',
+    ]) {
+      expect(written).not.toHaveProperty(field);
+    }
+  });
+
+  test('throws, and writes nothing, when no option was named', async () => {
+    await expect(
+      recordRemoveReplacement(ALICE, { optionId: '', slot: 'day' })
+    ).rejects.toThrow(/no option/i);
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
   });
 });

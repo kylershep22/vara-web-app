@@ -1,5 +1,5 @@
 /**
- * The Remove capture flow as ONE registered screen (slice 3c-i).
+ * The Remove capture flow as ONE registered screen (slices 3c-i and 3c-ii).
  *
  * A nested stack rather than six AppStack registrations, for two reasons:
  * the provider has to sit above every screen in the flow so the in-flight
@@ -9,6 +9,12 @@
  * NO HEADER AND NO GESTURE-DISMISS ON THE SUPPORT SCREEN. Backing out of the
  * support screen by swipe would land the user back on the text they typed,
  * which is the one place this flow must never return them to.
+ *
+ * NO GESTURE-DISMISS ON THE REPLACEMENT SCREEN EITHER, for a different reason:
+ * the capture is already written by the time it mounts, so swiping back lands
+ * on a first-move screen whose work is done. Its primary handles that case by
+ * navigating forward rather than re-writing, and closing the gesture keeps the
+ * common path from reaching it at all.
  */
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -20,6 +26,7 @@ import { ClarifyScreen } from './ClarifyScreen';
 import { SleepScreen } from './SleepScreen';
 import { TimingScreen } from './TimingScreen';
 import { FirstMoveScreen } from './FirstMoveScreen';
+import { ReplacementScreen } from './ReplacementScreen';
 import { SupportScreen } from './SupportScreen';
 
 const Stack = createNativeStackNavigator();
@@ -32,6 +39,11 @@ export const RemoveCaptureNavigator: React.FC = () => (
       <Stack.Screen name={REMOVE_CAPTURE_ROUTES.Sleep} component={SleepScreen} />
       <Stack.Screen name={REMOVE_CAPTURE_ROUTES.Timing} component={TimingScreen} />
       <Stack.Screen name={REMOVE_CAPTURE_ROUTES.FirstMove} component={FirstMoveScreen} />
+      <Stack.Screen
+        name={REMOVE_CAPTURE_ROUTES.Replacement}
+        component={ReplacementScreen}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen
         name={REMOVE_CAPTURE_ROUTES.Support}
         component={SupportScreen}

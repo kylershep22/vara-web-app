@@ -46,6 +46,9 @@ describe('analytics event schema', () => {
         // removeCapture's own suites.
         'journey_remove_capture_dismissed',
         'journey_remove_captured',
+        // Fired by the replacement pick (slice 3c-ii). Wiring proof is
+        // ReplacementScreen.test.tsx.
+        'journey_remove_replacement_chosen',
         // Fired by resolveJourney's migration branch; its wiring proof is
         // resolveJourney.test.ts, which asserts both source values.
         'journey_state_created',

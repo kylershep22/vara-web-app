@@ -18,15 +18,24 @@
  * assertion, which would need a real NavigationContainer and a native-stack
  * mock; that is stated here rather than implied, so nobody reads this as
  * stronger than it is.
+ *
+ * THE DEFAULT CAPTURE IS NON-QUALIFYING SINCE 3c-ii, and that change is
+ * deliberate rather than incidental. This screen is only terminal for a capture
+ * that gets no replacement menu; a behavioral capture with a named slot now
+ * continues to the pick, so leaving the old behavioral/evening default in place
+ * would have quietly turned every "pops the parent" assertion into a test of a
+ * path that no longer ends here. The fork itself is covered in its own block at
+ * the bottom, and the slot predicate in routing.test.ts.
  */
 const mockGoBack = jest.fn();
 const mockParentGoBack = jest.fn();
 const mockGetParent = jest.fn(() => ({ goBack: mockParentGoBack }));
+const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     goBack: mockGoBack,
     getParent: mockGetParent,
-    navigate: jest.fn(),
+    navigate: mockNavigate,
   }),
 }));
 
@@ -70,11 +79,11 @@ jest.mock('../RemoveCaptureScaffold', () => {
 });
 
 const mockCapture = {
-  family: 'behavioral' as const,
-  chipId: 'scroll',
-  chipLabel: 'Getting stuck scrolling',
+  family: 'mental' as string | null,
+  chipId: 'thoughts' as string | null,
+  chipLabel: "Thoughts I can't switch off" as string | null,
   text: null as string | null,
-  timing: 'evening' as const,
+  timing: 'evening' as string | null,
   reset: jest.fn(),
 };
 jest.mock('../RemoveCaptureContext', () => ({
@@ -92,9 +101,9 @@ describe('completing the capture', () => {
     mockRecordRemoveCapture.mockResolvedValue(undefined);
     mockGetParent.mockReturnValue({ goBack: mockParentGoBack });
     Object.assign(mockCapture, {
-      family: 'behavioral',
-      chipId: 'scroll',
-      chipLabel: 'Getting stuck scrolling',
+      family: 'mental',
+      chipId: 'thoughts',
+      chipLabel: "Thoughts I can't switch off",
       text: null,
       timing: 'evening',
     });
@@ -112,7 +121,7 @@ describe('completing the capture', () => {
 
   test('the flow is left with no capture screen still on it', async () => {
     // Popping the parent removes the single AppStack entry that holds the whole
-    // nested stack, so none of the six capture routes remains reachable by
+    // nested stack, so none of the capture routes remains reachable by
     // back. Asserted here as the parent pop, which is the mechanism.
     const { getByTestId } = render(<FirstMoveScreen />);
     fireEvent.press(getByTestId('scaffold-primary'));
@@ -127,8 +136,8 @@ describe('completing the capture', () => {
 
     await waitFor(() => expect(mockRecordRemoveCapture).toHaveBeenCalledTimes(1));
     expect(mockRecordRemoveCapture).toHaveBeenCalledWith('u1', {
-      family: 'behavioral',
-      chipId: 'scroll',
+      family: 'mental',
+      chipId: 'thoughts',
       text: null,
       timing: 'evening',
     });
@@ -189,9 +198,9 @@ describe('when the write fails', () => {
     jest.clearAllMocks();
     mockGetParent.mockReturnValue({ goBack: mockParentGoBack });
     Object.assign(mockCapture, {
-      family: 'behavioral',
-      chipId: 'scroll',
-      chipLabel: 'Getting stuck scrolling',
+      family: 'mental',
+      chipId: 'thoughts',
+      chipLabel: "Thoughts I can't switch off",
       text: null,
       timing: 'evening',
     });
@@ -265,5 +274,123 @@ describe('the read-back', () => {
     expect(getByTestId('remove-capture-echo').props.children).toBe(
       'the thing I keep going back to at night'
     );
+  });
+});
+
+describe('the 3c-ii fork', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRecordRemoveCapture.mockResolvedValue(undefined);
+    mockGetParent.mockReturnValue({ goBack: mockParentGoBack });
+  });
+
+  test.each(['morning', 'day', 'evening'] as const)(
+    'a behavioral capture timed %s CONTINUES to the replacement pick instead of ending here',
+    async (timing) => {
+      Object.assign(mockCapture, {
+        family: 'behavioral',
+        chipId: 'scroll',
+        chipLabel: 'Getting stuck scrolling',
+        text: null,
+        timing,
+      });
+
+      const { getByTestId } = render(<FirstMoveScreen />);
+      fireEvent.press(getByTestId('scaffold-primary'));
+
+      await waitFor(() =>
+        expect(mockNavigate).toHaveBeenCalledWith('RemoveCaptureReplacement', { slot: timing })
+      );
+      // The capture is written exactly once on the way through, and the flow is
+      // NOT left: popping here would strand the pick.
+      expect(mockRecordRemoveCapture).toHaveBeenCalledTimes(1);
+      expect(mockParentGoBack).not.toHaveBeenCalled();
+      expect(mockGoBack).not.toHaveBeenCalled();
+    }
+  );
+
+  test('THE CONTEXT IS NOT CLEARED when the flow continues', async () => {
+    // The replacement screen reads family and timing from the provider to pick
+    // its menu. Clearing here would leave it with no slot and no menu, which is
+    // the shape of the 3c-i walk defect pointed at a new screen.
+    Object.assign(mockCapture, {
+      family: 'behavioral',
+      chipId: 'scroll',
+      chipLabel: 'Getting stuck scrolling',
+      text: null,
+      timing: 'morning',
+    });
+
+    const { getByTestId } = render(<FirstMoveScreen />);
+    fireEvent.press(getByTestId('scaffold-primary'));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+    expect(mockCapture.reset).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['behavioral', 'varies'],
+    ['mental', 'evening'],
+    ['interpersonal', null],
+    ['behavioral', null],
+  ] as const)(
+    'a %s capture timed %s still ENDS here on the scaffold',
+    async (family, timing) => {
+      Object.assign(mockCapture, {
+        family,
+        chipId: 'chip',
+        chipLabel: 'A label',
+        text: null,
+        timing,
+      });
+
+      const { getByTestId } = render(<FirstMoveScreen />);
+      fireEvent.press(getByTestId('scaffold-primary'));
+
+      await waitFor(() => expect(mockParentGoBack).toHaveBeenCalledTimes(1));
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(mockCapture.reset).toHaveBeenCalled();
+    }
+  );
+
+  test('BACKING OUT OF THE PICK AND PRESSING AGAIN NAVIGATES FORWARD, IT DOES NOT REWRITE', async () => {
+    // The screen stays mounted under the pick, so its primary is reachable
+    // again by back. A guard that only returned early would leave a dead
+    // button; a guard that fell through would write the capture twice.
+    Object.assign(mockCapture, {
+      family: 'behavioral',
+      chipId: 'scroll',
+      chipLabel: 'Getting stuck scrolling',
+      text: null,
+      timing: 'evening',
+    });
+
+    const { getByTestId } = render(<FirstMoveScreen />);
+    fireEvent.press(getByTestId('scaffold-primary'));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
+
+    fireEvent.press(getByTestId('scaffold-primary'));
+    fireEvent.press(getByTestId('scaffold-primary'));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(3));
+    expect(mockRecordRemoveCapture).toHaveBeenCalledTimes(1);
+    expect(mockLogEvent).toHaveBeenCalledTimes(1);
+    expect(mockParentGoBack).not.toHaveBeenCalled();
+  });
+
+  test('the primary is live again after continuing, not stuck disabled', async () => {
+    Object.assign(mockCapture, {
+      family: 'behavioral',
+      chipId: 'scroll',
+      chipLabel: 'Getting stuck scrolling',
+      text: null,
+      timing: 'evening',
+    });
+
+    const { getByTestId } = render(<FirstMoveScreen />);
+    fireEvent.press(getByTestId('scaffold-primary'));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+
+    expect(getByTestId('scaffold-primary').props.accessibilityState.disabled).toBe(false);
   });
 });

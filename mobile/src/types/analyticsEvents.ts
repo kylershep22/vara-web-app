@@ -32,7 +32,7 @@
  */
 
 import type { CapacityTier } from '../protocolEngine';
-import type { PhaseKey, RemoveFamily, RemoveTiming } from './models';
+import type { PhaseKey, RemoveFamily, RemoveTiming, ReplacementSlot } from './models';
 
 /**
  * The 12 protocol ids, as a closed union.
@@ -281,6 +281,18 @@ export interface AnalyticsEventMap {
   /** The entry card was dismissed with "I'll name it later". */
   journey_remove_capture_dismissed: Record<string, never>;
   /**
+   * A curated replacement was chosen for a named time slot (slice 3c-ii).
+   *
+   * `optionId` IS A CURATED ID FROM REPLACEMENT_MENUS, never a label and never
+   * text. `slot` is a closed union. The screen that fires this is unreachable
+   * from the free-text path, so there is no user-authored string in scope here
+   * to leak; the type is what keeps it that way if the routing ever changes.
+   */
+  journey_remove_replacement_chosen: {
+    optionId: string;
+    slot: ReplacementSlot;
+  };
+  /**
    * The crisis pre-check did not pass and the support screen was shown.
    *
    * DELIBERATELY BARE. No text, no category, no length, no timing, nothing about
@@ -311,6 +323,7 @@ export type AnalyticsEventName = keyof AnalyticsEventMap;
 const EVENT_NAME_SET: Record<AnalyticsEventName, true> = {
   journey_remove_captured: true,
   journey_remove_capture_dismissed: true,
+  journey_remove_replacement_chosen: true,
   journey_state_created: true,
   safety_precheck_shown: true,
   weekly_close: true,

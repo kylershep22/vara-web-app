@@ -126,3 +126,97 @@ export const CAPTURE_CARD_COPY = {
   cta: 'Name it',
   dismiss: "I'll name it later",
 } as const;
+
+/**
+ * The curated replacement menus (journey slice 3c-ii).
+ *
+ * VERBATIM FROM `Content Pack v1 §replacement-menus`. Jen-authored, approved by
+ * the owner on delivery, so these carry NO drafted-copy sentinel and the
+ * sentinel count does not move for them. The rule is written into the pack
+ * header; do not add markers to approved content.
+ *
+ * NO REMINDER COPY LIVES HERE. The pack's "Want a nudge when that time comes?"
+ * prompt, its two options, and the three reminder-presuming confirmations are
+ * SLICE 9's, deferred by `Content Pack v1 §decisions-3`. If this screen ever
+ * feels like it needs a nudge to be useful, that is the signal the scope split
+ * was wrong, not licence to build one here.
+ *
+ * OPTION IDS ARE STABLE AND SLOT-PREFIXED; the labels are not stored, on the
+ * same contract as the capture chips above. The prefix matters: three labels
+ * repeat across slots ("Step outside", "Read a few pages"), and an unprefixed
+ * id would make a morning pick indistinguishable from a daytime one.
+ */
+export const REPLACEMENT_COPY = {
+  /** Pack title. One title for all three slots; the options are what differ. */
+  title: 'What would you rather do with that time?',
+  /**
+   * NOT A NEW STRING. This is the flow's existing select-confirm label, already
+   * shipped on all four preceding screens (IDENTIFY_COPY, CLARIFY_COPY,
+   * SLEEP_COPY, TIMING_COPY above). Repeating an approved label is not new copy
+   * and the sentinel does not move for it.
+   */
+  primary: "That's the one",
+  /**
+   * The exit from the confirmed state. THE ONE GAP STRING IN THIS SLICE: the
+   * pack supplies the confirmation sentence but no label for the control that
+   * dismisses it, because in Jen's original the reminder step owned that
+   * position and it went to slice 9 with the rest.
+   *
+   * Open tension for the owner: UI Standards section 18 says buttons name the
+   * action, and this one acknowledges rather than names. The alternatives all
+   * read worse here. "I'll do that" re-commits to something the user has just
+   * committed to, and a navigation label ("Back to today") names the mechanism
+   * rather than the intent.
+   */
+  // COPY: draft, not from guidelines doc - pending Kyle
+  confirmedPrimary: 'Got it',
+  /** Shown in place of navigating away when the seed write fails. */
+  saveFailed: 'That did not save. Try again.',
+} as const;
+
+/**
+ * The three slot menus, verbatim. Six options each, single selection only.
+ *
+ * KEYED BY ReplacementSlot, which cannot hold 'varies'. A capture whose timing
+ * varies never reaches this screen; see `replacementSlotFor` in routing.ts.
+ */
+export const REPLACEMENT_MENUS = {
+  morning: [
+    { id: 'morning_get_ready', label: 'Get ready without checking my phone' },
+    { id: 'morning_coffee', label: 'Make coffee or breakfast without scrolling' },
+    { id: 'morning_outside', label: 'Step outside for a few minutes' },
+    { id: 'morning_move', label: 'Move for a few minutes' },
+    { id: 'morning_write', label: 'Write down what matters today' },
+    { id: 'morning_read', label: 'Read a few pages' },
+  ],
+  day: [
+    { id: 'day_break', label: 'Take a real break without my phone' },
+    { id: 'day_walk', label: 'Walk for a few minutes' },
+    { id: 'day_outside', label: 'Step outside' },
+    { id: 'day_eat', label: 'Get something to eat or drink' },
+    { id: 'day_read', label: 'Read a few pages' },
+    { id: 'day_reset', label: 'Reset my space for a few minutes' },
+  ],
+  evening: [
+    { id: 'evening_phone_away', label: 'Put my phone away' },
+    { id: 'evening_read', label: 'Read for a bit' },
+    { id: 'evening_write', label: "Write down what's still on my mind" },
+    { id: 'evening_stretch', label: 'Stretch for a few minutes' },
+    { id: 'evening_tomorrow', label: 'Get tomorrow set up' },
+    { id: 'evening_offscreen', label: 'Do something off-screen' },
+  ],
+} as const;
+
+/**
+ * The neutral confirmations, verbatim from `Content Pack v1 §decisions-3`.
+ *
+ * THESE, NOT THE THREE IN THE PACK'S §replacement-menus DELIVERY. Those three
+ * presume a reminder was set ("We'll bring this up in the morning") and return
+ * only when slice 9 adds the reminder step. Using them here would promise a
+ * nudge this build cannot send.
+ */
+export const REPLACEMENT_CONFIRMATIONS = {
+  morning: "That's your morning option.",
+  day: "That's there when you want it today.",
+  evening: "That's your evening option.",
+} as const;

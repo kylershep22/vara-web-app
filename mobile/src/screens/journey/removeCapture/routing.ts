@@ -10,7 +10,7 @@
  * path could be removed entirely and the flow would still work end to end.
  * That is a requirement of the slice, not an accident of the shape.
  */
-import type { RemoveFamily, RemoveTiming } from '../../../types/models';
+import type { RemoveFamily, RemoveTiming, ReplacementSlot } from '../../../types/models';
 
 /** The screens the flow can be on. */
 export type CaptureStep = 'clarify' | 'sleep' | 'timing' | 'firstMove';
@@ -115,4 +115,36 @@ export function timingForChip(chipId: string): RemoveTiming {
       // nobody named.
       return 'varies';
   }
+}
+
+/**
+ * Does this capture get a curated replacement menu, and for which slot?
+ * (Slice 3c-ii.)
+ *
+ * THE PRINCIPLE IS REPLACE THE BEHAVIOR IN ITS SLOT. Both halves are load
+ * bearing, so both are required and neither is inferred:
+ *
+ *   - BEHAVIORAL ONLY. A mental target is a thought you cannot switch off and
+ *     an interpersonal one is a person; neither vacates a slot that something
+ *     else could fill, so offering "what would you rather do with that time"
+ *     would be answering a question the user did not ask. Those two keep the
+ *     friction, boundary and noticing scaffolds in FIRST_MOVE_BY_FAMILY, which
+ *     this slice does not touch.
+ *   - A NAMED SLOT. 'varies' routes scaffold-only by decision (roadmap section
+ *     13, Sept 2), because a replacement anchored to a time the user does not
+ *     have is worse than none. Absent timing does the same for the same reason.
+ *
+ * WHY THE FREE-TEXT PATH CANNOT REACH THIS. Screen B goes straight to the first
+ * move and never asks timing, so every free-text capture arrives with timing
+ * null and fails the second test. The user's own words therefore cannot appear
+ * on the replacement screen by construction, not merely by discipline. That is
+ * the structural half of the curated-strings-only rule; the tests pin it.
+ */
+export function replacementSlotFor(
+  family: RemoveFamily | null | undefined,
+  timing: RemoveTiming | null | undefined
+): ReplacementSlot | null {
+  if (family !== 'behavioral') return null;
+  if (timing === 'morning' || timing === 'day' || timing === 'evening') return timing;
+  return null;
 }

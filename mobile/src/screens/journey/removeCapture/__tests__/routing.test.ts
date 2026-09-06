@@ -1,5 +1,5 @@
 /**
- * The capture routing table (journey slice 3c-i).
+ * The capture routing table (journey slices 3c-i and 3c-ii).
  *
  * THE WHOLE TABLE IN ONE FILE, asserted as data rather than discovered by
  * walking five screens. The routes are the product decision; the screens just
@@ -9,10 +9,18 @@ import {
   familyForClarifyChip,
   legForIdentifyChip,
   legForSleepChip,
+  replacementSlotFor,
   timingForChip,
   timingTitleFor,
 } from '../routing';
-import { IDENTIFY_CHIPS, SLEEP_CHIPS, CLARIFY_CHIPS, TIMING_CHIPS } from '../copy';
+import {
+  IDENTIFY_CHIPS,
+  SLEEP_CHIPS,
+  CLARIFY_CHIPS,
+  TIMING_CHIPS,
+  REPLACEMENT_MENUS,
+} from '../copy';
+import type { RemoveFamily, RemoveTiming } from '../../../../types/models';
 
 describe('screen A routes every chip', () => {
   test.each([
@@ -104,5 +112,98 @@ describe('the chips path is complete without the free-text path', () => {
       (c) => legForIdentifyChip(c.id).next !== 'clarify'
     );
     expect(withoutClarify).toHaveLength(4);
+  });
+});
+
+describe('the 3c-ii replacement fork', () => {
+  test.each([
+    ['morning', 'morning'],
+    ['day', 'day'],
+    ['evening', 'evening'],
+  ] as const)('a behavioral capture timed %s gets the %s menu', (timing, slot) => {
+    expect(replacementSlotFor('behavioral', timing)).toBe(slot);
+  });
+
+  test("'It varies' NEVER gets a menu, whatever the family", () => {
+    // The Sept 2 decision (roadmap section 13): varies routes scaffold-only,
+    // because a replacement anchored to a time the user does not have is worse
+    // than none.
+    for (const family of ['behavioral', 'mental', 'interpersonal'] as const) {
+      expect(replacementSlotFor(family, 'varies')).toBeNull();
+    }
+  });
+
+  test('a non-behavioral capture NEVER gets a menu, whatever the timing', () => {
+    // A thought you cannot switch off and a person do not vacate a slot, so
+    // "what would you rather do with that time" is not a question they answer.
+    for (const family of ['mental', 'interpersonal'] as const) {
+      for (const timing of ['morning', 'day', 'evening', 'varies'] as const) {
+        expect(replacementSlotFor(family, timing)).toBeNull();
+      }
+    }
+  });
+
+  test('absent family or absent timing gets no menu', () => {
+    expect(replacementSlotFor(null, 'morning')).toBeNull();
+    expect(replacementSlotFor(undefined, 'morning')).toBeNull();
+    expect(replacementSlotFor('behavioral', null)).toBeNull();
+    expect(replacementSlotFor('behavioral', undefined)).toBeNull();
+  });
+
+  test('EXHAUSTIVE over every family and timing pair, so the menu set cannot widen unnoticed', () => {
+    // Anti-vacuity: pins the qualifying set to exactly three of the sixteen
+    // combinations. A test that only asserted the positives would stay green if
+    // the predicate started returning a slot for mental captures too.
+    const families: (RemoveFamily | null)[] = [
+      'behavioral',
+      'mental',
+      'interpersonal',
+      null,
+    ];
+    const timings: (RemoveTiming | null)[] = ['morning', 'day', 'evening', 'varies', null];
+    const qualifying: string[] = [];
+    for (const family of families) {
+      for (const timing of timings) {
+        const slot = replacementSlotFor(family, timing);
+        if (slot) qualifying.push(`${family}/${timing}->${slot}`);
+      }
+    }
+    expect(qualifying.sort()).toEqual([
+      'behavioral/day->day',
+      'behavioral/evening->evening',
+      'behavioral/morning->morning',
+    ]);
+  });
+
+  test('EVERY slot the predicate can return has a menu, so no pick can dead-end', () => {
+    for (const timing of ['morning', 'day', 'evening'] as const) {
+      const slot = replacementSlotFor('behavioral', timing);
+      expect(slot).not.toBeNull();
+      expect(REPLACEMENT_MENUS[slot!]).toHaveLength(6);
+    }
+  });
+
+  test('THE FREE-TEXT PATH CANNOT REACH A MENU, by construction', () => {
+    // Screen B goes straight to the first move and never asks timing, so every
+    // free-text capture arrives with timing null. That is the structural half
+    // of the curated-strings-only rule: the user's own words cannot appear on
+    // the replacement screen because that screen is unreachable from the path
+    // that collects them.
+    expect(legForIdentifyChip('other').next).toBe('clarify');
+    for (const chip of CLARIFY_CHIPS) {
+      const family = familyForClarifyChip(chip.id);
+      // The clarify screen sets no timing at all; null is what the context holds.
+      expect(replacementSlotFor(family, null)).toBeNull();
+    }
+  });
+
+  test('the sleep chips split exactly as the family rule predicts', () => {
+    // Three of the four sleep options are behavioral and land on evening, so
+    // they qualify; "my mind won't switch off" is mental and keeps the scaffold.
+    const qualifying = SLEEP_CHIPS.filter((c) => {
+      const leg = legForSleepChip(c.id);
+      return replacementSlotFor(leg.family ?? null, leg.timing ?? null) !== null;
+    }).map((c) => c.id);
+    expect(qualifying).toEqual(['sleep_phone', 'sleep_late', 'sleep_unsure']);
   });
 });
