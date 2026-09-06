@@ -654,70 +654,107 @@ copy-approvals merge 337b518.
   The contract previously covered only approval and new drafts, and calling this an
   approval would have misreported thirteen unreviewed strings as reviewed.
 
-**Sept 6, 2026 — deleteAccount sweep slice closed on `journey/deleteaccount-sweep`
-(36a8844 Firestore, 9f2cb0f Cloud Storage). Walked. NOT MERGED.**
-- Figures: functions **53 / 4**, from 25 / 3. jest 3080 / 206 · tsc 149 · sentinel 173 ·
-  rules 191 pass / 2 skip all carried unrun — the diff touches functions/, firebase.json
-  and nothing under mobile/src or firestore.rules.
-- The gap was larger than the Sept 1 entry's seven and larger than §3.7's "tracked 18":
-  a rules-plus-service enumeration found **26 Firestore deletion targets** missing.
-  Beyond the seven already named — `dailyReflections`, `analyticsEvents`,
-  `notificationPreferences`, `memberships`, `hiddenPosts`; owner fields that are not
-  called userId (`posts.authorId`, `mutedUsers.muterId`, `postReports.reporterId`, both
-  sides of all three invite collections, `connections` by requesterId/addresseeId/a/b);
-  and five subcollections whose PARENT the old code deleted, which in Firestore strands
-  the children permanently (`users/{uid}/goals`, `/moderationHistory`,
-  `rateLimits/{uid}/requests`, `notificationLog/{uid}/**`, `habits|routines/*/completions`).
-  **The module manifest in `functions/src/lib/accountDeletion.js` is now the authoritative
-  list**, not §3.7 and not the Sept 1 note; §3.7 is unedited because §1–§4 are frozen.
-- Cloud Storage was a stated residual at the Firestore commit and is closed by 9f2cb0f.
-  Four per-user prefixes delete by prefix (`users/`, `avatars/`, `posts/`,
-  `communityPosts/`); `groupPosts/{groupId}/{uid}/` does not, because the groupId sits
-  between the prefix and the owner — swept by delimiter-listing the groups instead.
-  The bucket's ten admin-authored media prefixes are deliberately absent from both
-  manifests and pinned by test: one account deletion must not be able to empty the
-  content library.
-- Every sweep is a QUERY on an owner field, never an ID reconstruction. `weeklyCycles`
-  is `<uid>_<weekStart>` today and auto-ID on every beta account (same legacy-ID
-  boundary the 3b entry proves for the read paths); a constructed ID would miss exactly
-  the oldest accounts. Pinned by a test that asserts the seeded ID does not contain the
-  uid, so it cannot drift into seeding a deterministic ID and still pass.
-- Auth deletion stays LAST and happens only after a clean Firestore and Storage pass.
-  Steps are independent and failures are collected, so one broken collection cannot pin
-  the fifty after it, and a failed run leaves an account that can still sign in and press
-  delete again. **The retry is the recovery path** — do not "fix" anything downstream by
-  moving the Auth delete earlier.
+**Sept 6, 2026 — deleteAccount sweep merged (d3cbd06). Full-spectrum deletion,
+Firestore and Cloud Storage.** Branch commits 36a8844, 9f2cb0f.
+- Figures at merge: functions **53 / 4**, from 25 / 3. jest **3080 / 206** · tsc **149**
+  · sentinel **173** all carried — no mobile suite was touched; the diff is functions/
+  and firebase.json only. Rules 191 pass / 2 skip likewise carried: firestore.rules is
+  not in the diff and the sweep needs no rules change, because Admin SDK writes bypass
+  rules and every added query is a single-field equality or array-contains.
+- SCOPE CORRECTION to this log's own Sept 1 entry, which named seven missed
+  collections. Step 0's rules-plus-service enumeration found **26 deletion targets**.
+  Five had never appeared on any list: `dailyReflections`, `analyticsEvents`,
+  `notificationPreferences`, `memberships`, `hiddenPosts`. Beyond those, three shapes
+  nobody had looked for at all — owner fields not called userId (`posts.authorId`,
+  `mutedUsers.muterId`, `postReports.reporterId`, both sides of all three invite
+  collections, `connections` by requesterId/addresseeId/a/b); five subcollections whose
+  PARENT the old code deleted (Firestore does not cascade, so those rows were stranded
+  permanently: `users/{uid}/goals`, `/moderationHistory`, `rateLimits/{uid}/requests`,
+  `notificationLog/{uid}/**`, `habits|routines/*/completions`); and the
+  **`posts.authorId` hole** — the mobile client stamps both fields but the web client
+  stamps authorId only, so a userId-only sweep left every web-authored post standing.
+- `analyticsEvents` CLOSES A 3c-i FLAG. The uid-keyed `safety_precheck_shown` events
+  recorded there and flagged inferred-sensitive in the 3c-i entry are now deleted with
+  the account. The content firewall keeps payloads free of user text; the uid stamp was
+  always the personal data, and it no longer outlives the account.
+- **MANIFEST-AS-TRUTH.** The exported manifest in `functions/src/lib/accountDeletion.js`
+  is the authoritative collection list — not §3.7's "tracked 18", not the Sept 1 note.
+  §3.7 is left unedited because §1–§4 are frozen. The manifest test fails if a named
+  collection is dropped (verified by mutation, on both the Firestore and Storage lists).
+  **STANDING INSTRUCTION: any slice that adds a collection updates the manifest in the
+  same slice.** Nothing else in the repo notices a miss — no error, no log, just
+  personal data that outlives the account. **Re-run the full Step 0 enumeration when
+  slice 8's `moments` lands**; it did not exist at this slice's Step 0 and was confirmed
+  absent from rules and code.
+- STORAGE EXTENSION (9f2cb0f). Five per-user path patterns, all from storage.rules and
+  every upload call site in mobile/src and web src. Four put the uid first and delete by
+  prefix (`users/`, `avatars/`, `posts/`, `communityPosts/`).
+  `groupPosts/{groupId}/{uid}/` does not — the groupId sits between the prefix and the
+  owner, so `groupPosts/{uid}/` matches nothing and looks clean, while `groupPosts/`
+  would take out every group's attachments. Swept by delimiter-listing the groups and
+  deleting under each, so cost tracks the number of groups rather than the size of the
+  forum. `bucket` is a REQUIRED positional on deleteAccountCompletely: the only safe
+  default is delete-nothing, and that default must never be silent. A DECOY TEST pins
+  that a uid appearing in an object NAME is not ownership — it seeds
+  `protocolAudio/{uid}.mp3` and asserts it survives, alongside sleep-audio and
+  focus-video. One account deletion must not be able to empty the content library.
+- LEGACY AUTO-ID `weeklyCycles` COVERED, and cited so it is not re-litigated:
+  `functions/src/__tests__/deleteAccountSweep.test.js:315-337` seeds via `.add()`
+  alongside a `<uid>_<weekStart>` row, asserts both are deleted, and reads the auto-ID
+  document back by its own ref rather than by the sweep's own query. The
+  `expect(legacy.id).not.toContain(uid)` pin is what stops the test drifting into
+  seeding a deterministic ID and still passing. Same legacy-ID boundary the 3b entry
+  proves for the read paths.
+- MECHANISM. Batches of 500, re-running the SAME query after each commit rather than
+  cursor-paging — a cursor pages forward while the collection shrinks underneath it.
+  `recursiveDelete` for the six uid-keyed document trees, because a plain document
+  delete strands subcollections. Idempotent throughout: every operation is
+  delete-what-matches or delete-this-path, and an absent Storage prefix is
+  indistinguishable from an already-swept one. Steps are independent and failures are
+  collected, so one broken collection cannot pin the fifty after it. **Data first, Auth
+  LAST, and only after a clean pass — the retry is the recovery path.** Do not close any
+  downstream window by moving the Auth delete earlier; that trades a log line for an
+  unrecoverable partial deletion. `timeoutSeconds` 120 to 540.
 - Harness change future slices inherit: `npm test` in functions/ now wraps jest in
   `firebase emulators:exec --only firestore,auth,storage`, and firebase.json gains a
   storage emulator port. The sweep suite THROWS rather than skips when an emulator host
-  variable is absent — a skipped deletion test reads as a clean run.
-- **WALK-CAUGHT DEFECT (Kyle's walk; queued, deliberately NOT built on this branch).**
-  Post-deletion the client logged `Error creating user document: Missing or insufficient
-  permissions` from `userPrivate.service.ts`. An auth/profile-ensure path observed the
-  half-deleted state — auth context still alive, documents already gone — and tried to
-  recreate a user document. Rules rejected it and **no data was resurrected; Kyle's walk
-  verified the account clean**. The fail-closed rules were the backstop, which is the
-  only reason this is a defect and not a data bug.
-  - The window is a DESIGN CONSEQUENCE of Auth-last, not an accident, and closing it by
-    reordering the function would trade a log line for an unrecoverable partial
-    deletion. The fix belongs on the client: **the in-app deletion flow should sign out
-    and tear down listeners BEFORE invoking deleteAccount**, so no client effect can
-    observe the window at all. `mobile/src/hooks/useAccountActions.ts:71-72` currently
-    calls the function first and signs out after, which is the ordering that leaves it
-    open. (That call site was read during this slice's Step 0; the effect that actually
-    fired the write was NOT identified.)
-  - Step 0 when picked up, read-only: **cite the effect that fired the write.** Do not
-    accept the useAccountActions ordering as the diagnosis on its own — it explains why
-    a window exists, not which subscriber woke up inside it, and a sign-out-first change
-    that happens to silence the log is not proof either.
-- Known residuals, each needing its own decision, none built:
-  - Comments and likes the user left inside OTHER people's post documents are array
-    elements on `posts`. Likes are strippable with `likes array-contains uid`; comments
-    are reachable only by a full-collection scan.
-  - Groups and challenges the user OWNED survive ownerless. The uid is removed from
-    every `members` array; deleting the documents would destroy other members' content.
-  - Other-party rows naming the deleted uid are left by choice: `directMessages` sent TO
-    them, `postReports.reportedUserId`, `mutedUsers.mutedUserId`, moderation records.
-  - RevenueCat is platform-side and cannot be reached from here.
+  variable is absent — a skipped deletion test reads as a clean run, and this file's
+  whole job is deleting users.
+- WALKS (Kyle's, 2026-09-06). Full seeded walk — every collection on the manifest, both
+  Storage shapes, and a hand-made auto-ID `weeklyCycles` document — verified to zero on
+  device. Deployed-artifact walk on a light throwaway account verified the same day
+  post-deploy. Deploy was unscoped; `api:deleteAccount` reported a successful update.
+- ACCEPTED RESIDUALS (Kyle, 2026-09-06, both per recommendation):
+  1. Comments and likes the user left inside OTHER users' post documents persist. They
+     are array elements on `posts` with no query that reaches them, they carry a display
+     name only, and persistence is the industry norm. The pre-launch privacy pass should
+     consider a policy clause covering it.
+  2. Groups and challenges the deleted user OWNED survive ownerless. Arguably correct —
+     a group belongs to its members, and deleting it would destroy their content. The
+     uid is removed from every `members` array. Ownership transfer is a future Community
+     item.
+  Not decisions, recorded for completeness: other-party rows naming the deleted uid are
+  left by design (`directMessages` sent TO them, `postReports.reportedUserId`,
+  `mutedUsers.mutedUserId`, moderation records), and RevenueCat is platform-side.
+- **WALK-CAUGHT DEFECT — QUEUED, not this slice.** Post-deletion the client attempted to
+  recreate a user document (`userPrivate.service.ts`, missing-or-insufficient-permissions
+  error): an auth/profile-ensure effect observed the half-deleted window — auth context
+  still alive, documents already gone. Rules rejected it and there was **no
+  resurrection**; the fail-closed rules were the backstop, which is the only reason this
+  is a defect and not a data bug. The window is a design consequence of Auth-last, so the
+  fix belongs on the client: **the in-app deletion flow signs out and tears down
+  listeners before invoking deleteAccount.**
+  `mobile/src/hooks/useAccountActions.ts:71-72` calls the function first and signs out
+  after, which is the ordering that leaves the window open — that is why a window
+  exists, NOT which subscriber woke up inside it. Step 0 when picked up, read-only:
+  **cite the effect that fired the write.** A sign-out-first change that merely silences
+  the log is not proof.
+- PRE-LAUNCH ITEMS ADDED:
+  - `functions.config()` is past its announced March 2026 shutdown and deploys are
+    succeeding on lag. **Migrate to dotenv before the next deploy cycle** — the next
+    deploy is not guaranteed to be as lucky as this one.
+  - `firebase-functions` package upgrade, which carries breaking changes; the emulator
+    suite added by this slice is the net that makes it walkable. CLI update queued with
+    it.
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*
