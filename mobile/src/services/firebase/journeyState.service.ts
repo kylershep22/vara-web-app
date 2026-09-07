@@ -39,6 +39,7 @@ import type {
   PhaseKey,
   RemoveFamily,
   RemoveTiming,
+  ReplacementSlot,
 } from '../../types/models';
 
 const JOURNEY_STATES = 'journeyStates';
@@ -318,6 +319,48 @@ export async function recordRemoveCapture(
     removeTargetText: input.text ?? null,
     removeTiming: input.timing ?? null,
     removeCapturedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Record the curated replacement the user picked for their time slot
+ * (slice 3c-ii).
+ *
+ * A COMMITMENT, NOT A ROUTINE. Nothing here touches the `routines` collection.
+ * See the field comment on JourneyState for why that was rejected rather than
+ * overlooked.
+ *
+ * `removeReplacementAt` is stamped here and ONLY here, so it is the one field
+ * that says a pick happened, on the same contract as `removeCapturedAt`.
+ *
+ * THE OPTION ID IS CURATED AND THE SLOT IS A CLOSED UNION. Neither can carry
+ * the user's own words: the replacement screen is unreachable from the
+ * free-text path (it never asks timing, so it can never qualify), and no
+ * caller has a text field to pass. This function takes no text parameter and
+ * must not grow one.
+ *
+ * updateDoc, not setDoc(merge): a pick only ever follows a capture, which only
+ * ever happens for a user who already has a journey state.
+ */
+export async function recordRemoveReplacement(
+  userId: string,
+  input: { optionId: string; slot: ReplacementSlot }
+): Promise<void> {
+  // AN EMPTY PICK IS NOT A PICK. This is an updateDoc, so writing one would
+  // blank a real choice while stamping a fresh removeReplacementAt. The same
+  // backstop the capture write carries above, for the same reason: the service
+  // is what actually touches the row.
+  if (!input.optionId) {
+    throw new Error(
+      'recordRemoveReplacement called with no option. Refusing to blank an existing pick.'
+    );
+  }
+
+  await updateDoc(doc(requireDb(), JOURNEY_STATES, userId), {
+    removeReplacementId: input.optionId,
+    removeReplacementSlot: input.slot,
+    removeReplacementAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }

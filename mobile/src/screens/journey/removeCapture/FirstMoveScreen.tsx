@@ -21,8 +21,17 @@
  * clarify screen's input chrome and read as an empty editable field. The phase
  * page "In your words" home arrives in slice 5.
  *
- * THE REPLACEMENT OFFER IS NOT HERE. That is 3c-ii; this screen goes straight
- * to done.
+ * THE REPLACEMENT OFFER IS NOT ON THIS SCREEN, but 3c-ii made this screen the
+ * fork that reaches it. A behavioral capture with a named slot continues to the
+ * replacement pick; everything else (mental, interpersonal, and a timing of
+ * 'varies' or none) still ends here on the family scaffold, unchanged.
+ *
+ * THE WRITE STILL HAPPENS EXACTLY ONCE, and the latch is now doing a second
+ * job. When the flow continues, this screen stays mounted underneath the
+ * replacement pick, so its primary is reachable again by back. On that second
+ * press `completedRef` is already true: the capture is NOT rewritten, and the
+ * press navigates forward instead. A guard that only returned early would leave
+ * the user pressing a button that does nothing.
  */
 import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -34,6 +43,8 @@ import { logEvent } from '../../../services/firebase/analyticsEvents.service';
 import { recordRemoveCapture } from '../../../services/firebase/journeyState.service';
 import { logger } from '../../../utils/logger';
 import { RemoveCaptureScaffold } from './RemoveCaptureScaffold';
+import { REMOVE_CAPTURE_ROUTES } from './routes';
+import { replacementSlotFor } from './routing';
 import { useRemoveCapture } from './RemoveCaptureContext';
 import { FIRST_MOVE_BY_FAMILY, FIRST_MOVE_COPY } from './copy';
 
@@ -50,13 +61,37 @@ export const FirstMoveScreen: React.FC = () => {
 
   const move = FIRST_MOVE_BY_FAMILY[family ?? 'behavioral'];
 
+  // THE FORK. Null for every capture that keeps the scaffold and ends here.
+  const slot = replacementSlotFor(family, timing);
+
+  const leave = useCallback(() => {
+    // Pop the PARENT entry, not this stack. See the note at the top.
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.goBack();
+    } else {
+      // No parent means this screen is mounted outside the app stack, which
+      // only happens in a test harness. Falling back keeps that case working
+      // rather than silently doing nothing.
+      navigation.goBack();
+    }
+  }, [navigation]);
+
   // WHAT THE USER ACTUALLY NAMED. Completion is refused without one, because
   // the write is an updateDoc and an empty one would null a real answer while
   // stamping a fresh removeCapturedAt.
   const hasTarget = !!chipId || !!text || !!family;
 
   const onPrimary = useCallback(async () => {
-    if (!user?.uid || saving || completedRef.current) return;
+    if (!user?.uid || saving) return;
+    // ALREADY WRITTEN. Reachable only by backing out of the replacement pick,
+    // which is why this moves the user forward rather than returning silently.
+    // It must never fall through to a second recordRemoveCapture.
+    if (completedRef.current) {
+      if (slot) navigation.navigate(REMOVE_CAPTURE_ROUTES.Replacement, { slot });
+      else leave();
+      return;
+    }
     if (!hasTarget) {
       // Nothing to record. This is only reachable if the flow is re-entered
       // after a completion, which the pop below is what prevents; refusing
@@ -78,17 +113,17 @@ export const FirstMoveScreen: React.FC = () => {
         timing: timing ?? null,
       });
       completedRef.current = true;
-      reset();
-      // Pop the PARENT entry, not this stack. See the note at the top.
-      const parent = navigation.getParent();
-      if (parent) {
-        parent.goBack();
-      } else {
-        // No parent means this screen is mounted outside the app stack, which
-        // only happens in a test harness. Falling back keeps that case working
-        // rather than silently doing nothing.
-        navigation.goBack();
+      // THE CONTEXT IS NOT RESET WHEN THE FLOW CONTINUES. The replacement
+      // screen reads `family` and `timing` from it to choose its menu, so
+      // clearing here would strand it. On the terminal path the parent pop
+      // unmounts the provider, which discards the answers just as reset() did.
+      if (slot) {
+        navigation.navigate(REMOVE_CAPTURE_ROUTES.Replacement, { slot });
+        setSaving(false);
+        return;
       }
+      reset();
+      leave();
     } catch (error) {
       logger.error('[FirstMoveScreen] capture write failed:', error);
       // STAY ON THIS SCREEN. The answers are still in context and the retry
@@ -97,7 +132,7 @@ export const FirstMoveScreen: React.FC = () => {
       setSaveFailed(true);
       setSaving(false);
     }
-  }, [user?.uid, saving, hasTarget, family, chipId, text, timing, reset, navigation]);
+  }, [user?.uid, saving, hasTarget, family, chipId, text, timing, slot, reset, navigation, leave]);
 
   return (
     <RemoveCaptureScaffold

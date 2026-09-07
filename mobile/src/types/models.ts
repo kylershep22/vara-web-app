@@ -720,6 +720,16 @@ export type RemoveFamily = 'behavioral' | 'mental' | 'interpersonal';
 export type RemoveTiming = 'morning' | 'day' | 'evening' | 'varies';
 
 /**
+ * The time slot a curated replacement is anchored to (slice 3c-ii).
+ *
+ * A STRICT SUBSET OF RemoveTiming, and deliberately not RemoveTiming itself:
+ * 'varies' has no menu and never reaches the pick, so a slot type that could
+ * hold it would let a caller construct a state the flow cannot produce. The
+ * narrowing IS the rule, expressed where the compiler can hold it.
+ */
+export type ReplacementSlot = 'morning' | 'day' | 'evening';
+
+/**
  * One closed phase. Appended when a phase is left, never edited afterwards.
  *
  * `exitedAt` and `exitReason` are REQUIRED because an entry is only written at
@@ -815,6 +825,37 @@ export interface JourneyState {
   removeTiming?: RemoveTiming | null;
   /** When the capture completed. THE GATE for the entry card. */
   removeCapturedAt?: Timestamp | null;
+
+  /**
+   * The curated replacement the user picked for their slot (slice 3c-ii).
+   *
+   * ALL THREE ARE OPTIONAL and absent on every document written before this
+   * slice, including every completed 3c-i capture. Absence means "no
+   * replacement was offered or chosen", which is the state of every
+   * non-qualifying capture (mental, interpersonal, or timing 'varies') as well
+   * as of every capture that predates the slice. It is NOT a failure.
+   *
+   * `removeReplacementAt` IS THE ONE THAT SAYS A PICK HAPPENED, on the same
+   * contract as `removeCapturedAt` above. Gate on it and nothing else.
+   *
+   * THIS IS A COMMITMENT, NOT A ROUTINE. It was considered and rejected to seed
+   * these into the `routines` collection: `createRoutine` deactivates the
+   * user's existing routine of the same type, the daytime slot has no home in
+   * `RoutineType`, and an `Activity` needs a duration, icon and colour that
+   * nobody has authored. Surfacing the pick on a phase page is slice 5's; its
+   * ambient reminder is slice 9's. Promoting it into an actual routine would be
+   * a deliberate slice with authored content, never a default.
+   *
+   * NO RULES-LAYER VALIDATION. Unlike the five capture fields above, these three
+   * are not covered by `validRemoveCapture` in firestore.rules. The deployed
+   * block carries no key allowlist so they are accepted as written, and adding
+   * clauses would need a rules deploy this slice does not own.
+   */
+  /** The curated option id, NEVER its display text. Labels are copy. */
+  removeReplacementId?: string | null;
+  removeReplacementSlot?: ReplacementSlot | null;
+  /** When the pick completed. THE GATE for the replacement. */
+  removeReplacementAt?: Timestamp | null;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;
