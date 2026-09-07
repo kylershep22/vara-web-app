@@ -27,6 +27,7 @@ that the strings came from this pack, and the sentinel figure stays flat.
 | [`B2`](#b2) | Advancement offers, two variants | slice 7 |
 | [`C2`](#c2) | Adjustment offer + per-phase alternatives | slice 7 |
 | [`replacement-menus`](#replacement-menus) | Remove replacement menus | slice 3c-ii |
+| [`short-labels`](#short-labels) | 16 `short` labels | slice 4 (A2 route strip), slice 5 (journey map), slice 7 (Today journey line, per §9 item 6) |
 | [`safety-precheck`](#safety-precheck) | Safety pre-check position | pre-launch |
 | [`decisions`](#decisions) | Sept 5 decisions addendum, four flags | multiple, see each |
 
@@ -990,3 +991,171 @@ Then show the constrained in-phase alternatives.
 3. **Replacement-flow reminders move to slice 9.** 3c-ii ships menus without notification scope.
 4. **Change the C2 body** to conditional language:
    **"If this isn't feeling like it's moving yet, we can change the approach without starting over."**
+
+---
+
+# Part three, Sept 6 addition
+
+<a id="short-labels"></a>
+
+# 8. Slice 4 route-strip short labels
+
+**Authored by:** Jen
+**Approved by:** owner on delivery
+**Date:** 2026-09-06
+
+The third length of `PHASE_DISPLAY`, completing the 48. Part one section 2 delivered
+`Title` and `Gloss` only; this section supplies the 16 `short` labels those two were
+always paired with.
+
+**Same rule as the rest of this pack.** These are APPROVED CONTENT. They enter the
+codebase **without** `COPY: draft` markers, they carry no owner comment, and **the
+copy-draft sentinel does not increment for them**. A slice that lands them says in its
+commit message that the strings came from this pack, and the sentinel figure stays flat.
+
+**Where each one renders:** the A2 route strip (slice 4), the journey map (slice 5), and
+the Today journey line (slice 7, subject to §9 item 6, which is still open on `short`
+versus a stage word). One string, three surfaces, so it has to read correctly in all
+three and cannot be tuned for any one of them.
+
+> **EDITORIAL NOTE (not Jen's text).** The section structure and the `Title` line echoed
+> on each cell are editorial, added so the pair can be read together; the `Short` values
+> are Jen's, verbatim. **`§display-strings` stays canonical for titles** — if the echo
+> here and that section ever disagree, that section wins.
+
+---
+
+## Destination: Focus
+
+### Phase 1
+
+**Title (delivered Sept 5, for reference):** Clear what's pulling at your attention
+
+**Short:** Clear the distractions
+
+### Phase 2
+
+**Title (delivered Sept 5, for reference):** Get some headroom back
+
+**Short:** Get some headroom back
+
+### Phase 3
+
+**Title (delivered Sept 5, for reference):** Make focus easier to return to
+
+**Short:** Make focus easier
+
+### Phase 4
+
+**Title (delivered Sept 5, for reference):** Put your attention where it matters
+
+**Short:** Focus on what matters
+
+---
+
+## Destination: Calm
+
+### Phase 1
+
+**Title (delivered Sept 5, for reference):** Clear what keeps your mind running
+
+**Short:** Clear what's keeping you on
+
+### Phase 2
+
+**Title (delivered Sept 5, for reference):** Learn how to come down
+
+**Short:** Come down a notch
+
+### Phase 3
+
+**Title (delivered Sept 5, for reference):** Make switching off easier
+
+**Short:** Make switching off easier
+
+### Phase 4
+
+**Title (delivered Sept 5, for reference):** Protect more of your off time
+
+**Short:** Protect your off time
+
+---
+
+## Destination: Steadier days
+
+### Phase 1
+
+**Title (delivered Sept 5, for reference):** Clear what keeps knocking the day off course
+
+**Short:** Clear what's throwing you off
+
+### Phase 2
+
+**Title (delivered Sept 5, for reference):** Find your way back
+
+**Short:** Find your way back
+
+### Phase 3
+
+**Title (delivered Sept 5, for reference):** Build a few anchors that hold
+
+**Short:** Build anchors that hold
+
+### Phase 4
+
+**Title (delivered Sept 5, for reference):** Shape the day around what matters
+
+**Short:** Shape the day around you
+
+---
+
+## Destination: Energy
+
+### Phase 1
+
+**Title (delivered Sept 5, for reference):** Clear what's draining you
+
+**Short:** Clear what's draining you
+
+### Phase 2
+
+**Title (delivered Sept 5, for reference):** Get some energy back
+
+**Short:** Get some energy back
+
+### Phase 3
+
+**Title (delivered Sept 5, for reference):** Build a steadier baseline
+
+**Short:** Build steadier energy
+
+### Phase 4
+
+**Title (delivered Sept 5, for reference):** Use your energy where you want it
+
+**Short:** Use energy where it matters
+
+---
+
+> **EDITORIAL NOTE (not Jen's text). FIVE SHORTS ARE IDENTICAL TO THEIR TITLES. THAT IS
+> BY DESIGN, NOT A COPY-PASTE ERROR.** Where a title is already short enough to carry the
+> route strip and the map card, Jen repeats it rather than inventing a second phrasing of
+> the same idea; two near-identical strings for one cell would read as a mistake to the
+> user and would drift apart the first time either was edited. **Do not "fix" a duplicate,
+> and do not collapse the two fields into one** — the other eleven cells differ, so the
+> shape stays three-valued.
+>
+> The five, verified identical against `§display-strings` as delivered:
+>
+> | Cell | Title and short |
+> |---|---|
+> | Focus, phase 2 | Get some headroom back |
+> | Calm, phase 3 | Make switching off easier |
+> | Steadier days, phase 2 | Find your way back |
+> | Energy, phase 1 | Clear what's draining you |
+> | Energy, phase 2 | Get some energy back |
+>
+> **A test that asserts all 16 pairs differ will fail, and correctly so.** If slice 5 pins
+> anything about this data, pin the five as expected duplicates rather than pinning
+> distinctness.
+

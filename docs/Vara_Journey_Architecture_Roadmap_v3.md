@@ -286,12 +286,28 @@ deploy. Deploy state lives on Kyle's checklist.
 >   > nothing to render. §6 item 3 always said this correctly: "The 48 display strings
 >   > (**slices 4-5**)".
 >   >
->   > **Slice 4 REMAINS CONTENT-GATED on the 16 `short` strings**, which have been requested
->   > from Jen. Its other gate is clear: A1, A2 and both §9 items are settled. If the strings
->   > do not arrive in time, the slice **splits** — destination/route/write-order first, the
->   > route strip's `short` line second — rather than shipping in-house placeholders on the
->   > screen whose whole job is the bait-and-switch mitigation. That split is a decision, not
->   > a default; it needs Kyle before the slice opens.
+>   > ~~**Slice 4 REMAINS CONTENT-GATED on the 16 `short` strings**, which have been
+>   > requested from Jen.~~ Its other gate is clear: A1, A2 and both §9 items are settled.
+>   > ~~If the strings do not arrive in time, the slice **splits** — destination/route/
+>   > write-order first, the route strip's `short` line second — rather than shipping
+>   > in-house placeholders on the screen whose whole job is the bait-and-switch
+>   > mitigation.~~ The split contingency is moot; the strings arrived.
+>   >
+>   > **RESOLVED 2026-09-06, later the same day. THE GAP IS CLOSED AND SLICE 4 IS
+>   > UNGATED.** Jen delivered the 16 `short` labels as `Content Pack v1 §short-labels`
+>   > (pack part three, section 8), approved on delivery, landing flat under the pack's
+>   > sentinel rule like the rest of her copy. `PHASE_DISPLAY` can now be populated in
+>   > full: 16 × `title` + 16 × `gloss` from `§display-strings`, 16 × `short` from
+>   > `§short-labels`, which is the 48 §3.3 specifies. **Slice 4 has no content gate and no
+>   > open §9 item.** §6 item 3 is satisfied.
+>   >
+>   > Two things the slice still has to carry, neither of them a gate: the **capacity-step
+>   > reframe** (§5's row says the step loses "this week"; the live string is
+>   > `screens/onboarding/v3/copy.ts:74`) is **not pack-covered** and will be in-house copy
+>   > with an owner and a sentinel increment, and **§9 item 6** — whether the Today journey
+>   > line uses `short` or a stage word — is a **slice 7** decision that this delivery does
+>   > not settle, so slice 4 may use `short` on the route strip without presuming the
+>   > Today answer.
 > - **Slice 5 — NO LONGER CONTENT-GATED.** 16 `title` + 16 `gloss` (`§display-strings`) and
 >   Recover's internal structure (`§recover-lanes`, three lanes: Downshift / Refill /
 >   Re-anchor, destination-weighted, labels never shown to the user) are delivered.
