@@ -139,17 +139,52 @@ describe('resolveJourney', () => {
       expect(mockLogEvent).not.toHaveBeenCalled();
     });
 
-    test('reads capacitySeed off the latest cycle (shim 2)', async () => {
+    // THE CAPACITY SEED, RE-HOMED IN SLICE 4. These two tests MOVED here from
+    // the shim they used to pin; they were not deleted and replaced, because
+    // the fallback they describe is still live for every account created
+    // before userPrivate.capacitySeed existed.
+    test('reads capacitySeed off userPrivate, its home since slice 4', async () => {
       mockGetJourneyState.mockResolvedValue(state());
+      mockGetUserPrivate.mockResolvedValue({ uid: UID, capacitySeed: 'limited' });
       mockGetLatestCycle.mockResolvedValue(cycle({ capacityInitial: 'slammed' }));
+
+      const result = await resolveJourney(UID);
+
+      // userPrivate wins outright: the cycle says slammed and is ignored.
+      expect(result.target === 'today' && result.phase.capacitySeed).toBe('limited');
+    });
+
+    test('does not read the weekly cycle at all when userPrivate has a seed', async () => {
+      // The fallback is LAZY, and this is what says so. Without it the read
+      // could quietly return, costing every journey user a Firestore read per
+      // resolve for a value that was never used.
+      mockGetJourneyState.mockResolvedValue(state());
+      mockGetUserPrivate.mockResolvedValue({ uid: UID, capacitySeed: 'limited' });
+
+      await resolveJourney(UID);
+
+      expect(mockGetLatestCycle).not.toHaveBeenCalled();
+    });
+
+    test('falls back to the latest cycle for an account with no seed yet', async () => {
+      // EVERY BETA ACCOUNT IS THIS CASE until it re-onboards, which it never
+      // does. Removing this fallback does not throw; it silently serves
+      // 'normal' to all of them, which is the failure the roadmap section 3.4
+      // amendment describes.
+      mockGetJourneyState.mockResolvedValue(state());
+      mockGetUserPrivate.mockResolvedValue({ uid: UID });
+      mockGetLatestCycle.mockResolvedValue(cycle({ capacityInitial: 'slammed' }));
+
       const result = await resolveJourney(UID);
 
       expect(result.target === 'today' && result.phase.capacitySeed).toBe('slammed');
     });
 
-    test("falls back to 'normal' when there is no cycle to seed from", async () => {
+    test("falls back to 'normal' when there is neither a seed nor a cycle", async () => {
       mockGetJourneyState.mockResolvedValue(state());
+      mockGetUserPrivate.mockResolvedValue(null);
       mockGetLatestCycle.mockResolvedValue(null);
+
       const result = await resolveJourney(UID);
 
       expect(result.target === 'today' && result.phase.capacitySeed).toBe('normal');
@@ -209,6 +244,36 @@ describe('resolveJourney', () => {
       });
     });
 
+    // THE ONCE-ONLY GUARD FOR A2. Home shows the route explanation while
+    // `migratedFrom` is set, so "fires once" is a property of these two tests
+    // together and of nothing else: no flag, no counter, no stored seen-field.
+    // Testing only the first resolve would leave a screen that reappears on
+    // every launch fully green.
+    test('reports migratedFrom on the resolve that CREATES the journey', async () => {
+      mockGetLatestCycle.mockResolvedValue(cycle({ outcome: 'stress' }));
+      mockGetJourneyState.mockResolvedValueOnce(null).mockResolvedValueOnce(
+        state({ destination: 'calm' })
+      );
+
+      const result = await resolveJourney(UID);
+
+      expect(result.target === 'today' && result.migratedFrom).toBe('migration_cycle');
+    });
+
+    test('reports NOTHING on the very next resolve, once the document exists', async () => {
+      // Same account, second launch. Rung (a) answers, and the screen must not
+      // come back. This is the assertion that fails if someone "fixes" the
+      // resolver by reporting the source on every path.
+      mockGetJourneyState.mockResolvedValue(state({ destination: 'calm' }));
+      mockGetUserPrivate.mockResolvedValue({ uid: UID, capacitySeed: 'normal' });
+
+      const result = await resolveJourney(UID);
+
+      expect(result.target).toBe('today');
+      expect(result.target === 'today' && result.migratedFrom).toBeUndefined();
+      expect(mockCreateJourneyState).not.toHaveBeenCalled();
+    });
+
     test("logs journey_state_created with source 'migration_cycle'", async () => {
       mockGetLatestCycle.mockResolvedValue(cycle());
       mockGetJourneyState.mockResolvedValueOnce(null).mockResolvedValueOnce(state());
@@ -235,8 +300,32 @@ describe('resolveJourney', () => {
         destination: 'energy',
         phaseKey: 'remove',
       });
-      // Not even read: the cycle answered first.
-      expect(mockGetUserPrivate).not.toHaveBeenCalled();
+    });
+
+    test('activeOutcome does not leak into the destination even though it is read', async () => {
+      // THIS TEST REPLACES AN ASSERTION THAT userPrivate WAS NEVER READ. That
+      // was true until slice 4 re-homed the capacity seed onto userPrivate, and
+      // the resolver now reads that document on every path. The read economy
+      // changed; the RULE did not, and the rule is what matters: when a cycle
+      // outcome exists, activeOutcome contributes nothing to the destination.
+      //
+      // Pinned separately from the case above so that a future change to when
+      // userPrivate is read cannot quietly turn the precedence rule green by
+      // deleting the assertion that carries it.
+      mockGetLatestCycle.mockResolvedValue(cycle({ outcome: 'energy' }));
+      mockGetUserPrivate.mockResolvedValue({ uid: UID, activeOutcome: 'focus' });
+      mockGetJourneyState.mockResolvedValueOnce(null).mockResolvedValueOnce(
+        state({ destination: 'energy' })
+      );
+
+      await resolveJourney(UID);
+
+      expect(mockLogEvent).toHaveBeenCalledWith(UID, 'journey_state_created', {
+        source: 'migration_cycle',
+      });
+      const created = mockCreateJourneyState.mock.calls[0][1];
+      expect(created.destination).toBe('energy');
+      expect(created.destination).not.toBe('focus');
     });
 
     test('re-reads the created document rather than synthesising it', async () => {

@@ -101,7 +101,41 @@ import * as path from 'path';
 // cleared one commit later; the flat pin is the sum of those two, not evidence
 // that neither happened.
 //
-const EXPECTED_SENTINELS = 173;
+// 165 since journey slice 4a: -8, and this is A FOURTH CASE the contract above
+// does not cover. Not an approval, not a new draft, and not slice 3b's
+// deletion-with-surface. These strings were SUPERSEDED BY APPROVED PACK
+// CONTENT: the screens they lived on still exist, the questions are still
+// asked, and Jen's copy now answers them.
+//
+// The eight, all in screens/onboarding/v3/copy.ts:
+//   - OUTCOME_COPY title, subtitle and primary (3), replaced by
+//     Content Pack v1 section A1. The subtitle has no replacement and was
+//     dropped outright by Kyle on 2026-09-06: it said the user could switch
+//     outcomes any week, which is false under the journey model.
+//   - OUTCOME_BLURBS focus / stress / routines / energy (4), replaced by
+//     section A1's four first-person lines, rekeyed onto DestinationKey.
+//   - CAPACITY_COPY.title (1). NOT a supersession but a CONSOLIDATION: the
+//     onboarding capacity step now asks the daily picker's question, which
+//     already existed, so one of the two strings stopped existing rather than
+//     either being approved.
+//
+// NO OWNER IS NAMED FOR THE DECREMENT, deliberately, and for the same reason
+// the 3b entry names none: nobody signed these off. Calling this an approval
+// would report eight unreviewed strings as reviewed. What happened is that Jen
+// wrote better ones.
+//
+// TWO THINGS THAT LOOK LIKE MOVEMENT AND ARE NOT:
+//   - CAPACITY_COPY.subtitle was redrafted (its old line ended "you can change
+//     it mid-week", wrong twice) and its owner moved from Jen to Kyle. A
+//     drafted string replaced by a drafted string is a SUBSTITUTION, not a +1.
+//     The count does not move for it; the owner comment does.
+//   - PICKER_COPY.capacityQuestion moved to constants/capacityCopy.ts so the
+//     onboarding screen could read it without importing from components/. One
+//     marker out, the same marker in, net zero.
+//
+// The 22 strings slice 4a added are all Jen's, from Content Pack v1 sections
+// A1, A2 and short-labels, and enter WITHOUT markers per the pack header.
+const EXPECTED_SENTINELS = 165;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

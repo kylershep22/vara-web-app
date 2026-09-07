@@ -244,7 +244,9 @@ deploy. Deploy state lives on Kyle's checklist.
 | 3b | **[DONE `7f07413`, 2026-09-04]** Weekly write-set reduction + `WeeklyOpenScreen` retirement + rollover *(row added 2026-09-05 to match §13)* | §3.4 write-set reduced to live-reader fields; `WeeklyOpenScreen`, `OpenYourWeekCard` and `weekly_open` deleted; expiry creates the next cycle in a create-on-absence transaction keyed `<uid>_<weekStart>`. Resolves §9 open item 8. | — | Done |
 | 3c-i | **[DONE `701f2b4`, 2026-09-03]** Remove capture + families + crisis pre-check *(row added 2026-09-05 to match §13)* | Five-path Remove capture; three-family protocol model with family-aware serving and six Jen-approved mental/interpersonal protocols; acknowledgment rotation; client-side crisis pre-check with `SupportScreen`. | Crisis pre-check promoted to a precondition of this slice | Done: two defects caught on the walk |
 | 3c-ii | **[DONE `74ff373`, merged `80ed0f7`, 2026-09-06]** Remove replacement pick + routine seed *(row added 2026-09-05; the slice was split in the §13 Sept 2 entry and never got a row here)* **"routine seed" is not what shipped — see the AMENDED 2026-09-06 block below.** | Curated replacement menus per time slot, one selection only, flow ends on a neutral confirmation; routine seed from the pick. **NO REMINDER SCOPE** — no notification infrastructure, no time picker, no nudge copy. | Content DELIVERED (`Content Pack v1 §replacement-menus` + `§decisions-3`). STOP if the menu appears to need a reminder to be useful; that is the signal the scope split was wrong, not licence to build it | Yes |
-| 4 | **Onboarding: destination + route** | A1 copy reframe on step 2; **new** route screen (A2) at step 3 (open item 1); Capacity step copy loses "this week"; terminal write creates `journeyStates` and the first weekly cycle without outcome; `activeOutcome` → `destination`; write order preserved (`completeOnboarding` last). Migration branch now shows A2. | **[Content-gated]** A1/A2 strings, 16 `short` strings | Yes: full arc + migration |
+| 4 | **[SPLIT 2026-09-07 into 4a and 4b; see the AMENDED block below]** Onboarding: destination + route | A1 copy reframe on step 2; **new** route screen (A2) at step 3 (open item 1); Capacity step copy loses "this week"; terminal write creates `journeyStates` and the first weekly cycle without outcome; `activeOutcome` → `destination`; write order preserved (`completeOnboarding` last). Migration branch now shows A2. | **[Content-gated]** A1/A2 strings, 16 `short` strings | Yes: full arc + migration |
+| 4a | **[DONE, 2026-09-07]** Onboarding destination + route, everything but the outcome | A1 at step 2 (`§A1`, subtitle dropped); **new** A2 route screen at step 3 with the route strip (`§A2`, `§short-labels`); capacity step asks the daily question; terminal writes `journeyStates` + `userPrivate.capacitySeed`, `completeOnboarding` last; `capacitySeed` re-homed off the cycle; migration branch shows A2 once. **The first cycle keeps writing `outcome` exactly as before.** | No content gate; no §9 item | Pending |
+| 4b | **Weekly-cycle outcome retirement** *(row added 2026-09-07; split out of row 4 at slice 4a's Step 0)* | `WeeklyCycle.outcome` and `CreateWeeklyCycleInput.outcome` become optional (`types/models.ts`, `weeklyCycle.service.ts`); guard both render sites (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`); **the 3b rollover at `weeklyCycle.service.ts:251` must carry absence forward instead of defaulting to `'focus'`**; retire `outcomeForDestination` (`journey/destinationBridge.ts`), which exists only for the cycle write. | Fence explicitly INCLUDES the daily-loop render sites and the weekly rollover; that is the point of the row | Yes |
 | 5 | **Practices → journey map + Start here container** | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
 | 6 | **Weekly reset repurpose** | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
 | 7 | **Offers + Today additions** | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
@@ -336,6 +338,32 @@ deploy. Deploy state lives on Kyle's checklist.
 >
 > **Not delivered by this pack:** slice 8 copy (Moments of joy) is still content-gated, and
 > the rewire placeholders in `protocolMatrix.ts` are still placeholders.
+
+> **AMENDED 2026-09-07 (slice 4a closed). ROW 4 SPLIT, AND THE REASON IS A DEFECT
+> NOBODY HAD LOOKED FOR.** Row 4 is left unedited in the §3.4 style. Its scope shipped
+> as **4a** except for one clause, "the first weekly cycle without outcome", which became
+> **4b**.
+>
+> **THE FINDING, recorded here so it is never re-derived.** `ensureCurrentWeeklyCycle`
+> (`weeklyCycle.service.ts:251`) writes `outcome: latest?.outcome ?? DEFAULT_ROLLOVER_OUTCOME`,
+> and that default is **`'focus'`** (`:74`). So a first cycle written WITHOUT an outcome does
+> not stay without one: seven days later the 3b rollover invents `'focus'` for the user and
+> `TodayHeroCard` renders it as though they had chosen it. A user who picked **Calm** at
+> onboarding would be shown **"Focus / Normal"** on their hero in week two, with no error
+> and no log line. **Stopping the onboarding write alone does not remove the outcome axis;
+> it makes the axis lie.** That is the same failure class the §3.4 amendment names about
+> the capacity seed, arriving from the other side.
+>
+> Two further blockers found with it, both cheap on their own and neither sufficient alone:
+> `WeeklyCycle.outcome` is **required** (`types/models.ts:503`), against §3.4's claim that
+> the write-set fields are optional on the type; and both readers index
+> `OUTCOME_LABELS[cycle.outcome]` with no guard on the field
+> (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`), so an absent outcome renders a bare
+> leading slash rather than failing.
+>
+> **4b owns all three together.** Splitting them across slices is what would leave the
+> window open. 4b's fence deliberately includes the daily-loop render sites and the weekly
+> rollover, which is exactly why it could not be smuggled into an onboarding slice.
 
 > **AMENDED 2026-09-06 (slice 3c-ii closed). "ROUTINE SEED" IN THE 3c-ii ROW WAS
 > ASPIRATIONAL AND DID NOT SHIP.** The row above is left unedited in the §3.4 style.
@@ -927,5 +955,80 @@ Branch commit 74ff373. Closes the last of the four slices that slice 3 was split
   live belongs to **slice 9**, per pack `§decisions-3`. The gap between storing the
   commitment and showing it back is real and is one slice wide by design, the same shape
   as 3b's dead-questions window.
+
+**Sept 7, 2026 — slice 4a on branch `journey/slice-4-onboarding-destination`.
+Onboarding asks for a destination, and explains the detour.** Not merged; walk pending.
+- Figures: jest **3163 / 211** (from 3132 / 208) · tsc **149**, unchanged · sentinel
+  **173 -> 165**. Rules **191 / 2** and functions **53 / 4** carried unrun and labelled so:
+  neither `firestore.rules` nor anything under `functions/` is in the diff.
+- **SENTINEL -8, AND IT IS A FOURTH CASE.** Not an approval, not a new draft, not 3b's
+  deletion-with-surface: eight drafted strings were **superseded by approved pack
+  content**. The screens still exist and the questions are still asked; Jen's copy now
+  answers them. Seven from `OUTCOME_COPY` and `OUTCOME_BLURBS`, plus `CAPACITY_COPY.title`,
+  which is a CONSOLIDATION rather than a supersession. **No owner is named**, for the
+  reason the 3b entry gives: nobody signed these off, and calling it an approval would
+  report eight unreviewed strings as reviewed. The 22 strings the slice ADDED are all
+  Jen's and landed flat.
+- The predicted figure was 165 and the measured figure is 165, but **the arithmetic behind
+  it differed**: the capacity-subtitle redraft was expected to be a +1 and is not. It
+  replaced a string that was already drafted, so it is a substitution with an OWNER change
+  (Jen -> Kyle) and the count does not move for it. Eight removals, zero additions.
+- **MANIFEST STATEMENT.** No new collection. The slice writes to `userPrivate`,
+  `weeklyCycles`, `journeyStates` and `users`; all four are on the manifest, `journeyStates`
+  at `functions/src/lib/accountDeletion.js:86`, verified by reading it. **`UserPrivate`
+  gaining a field is not a new collection** and needs no manifest change: the sweep deletes
+  documents, not fields.
+- RULES: unchanged and none needed. `firestore.rules:742-745` gates `userPrivate` on the
+  document ID with **no shape validation and no `hasOnly`**, so the new `capacitySeed`
+  field is accepted as written. Had that block been an allowlist this slice would have
+  needed a rules change and a deploy.
+- **THE SHIM IS RE-HOMED BUT NOT DELETED, and that is deliberate.** `capacitySeed` now
+  comes from `userPrivate.capacitySeed`, written at the onboarding terminal, which is what
+  §4 always specified. The old read off `weeklyCycles.capacityInitial` **survives as a
+  lazy fallback** for accounts that predate the field. Removing it outright would have
+  pinned **every existing beta account** to `'normal'` on their next launch, since none of
+  them has a seed and none will until they re-onboard, which they never do. That is the
+  §3.4 amendment's failure arriving from the read side, so the fallback narrows the shim
+  to the accounts that need it instead of deleting it out from under them. It is lazy, so
+  a user with a seed never reads `weeklyCycles` at all: rung (a) now costs one Firestore
+  read FEWER per resolve than before this slice.
+- The two pinned seed tests **moved rather than being deleted**, and two more joined them:
+  userPrivate wins outright over a disagreeing cycle, and the cycle is not read at all when
+  a seed exists. That second one is what stops the fallback quietly becoming eager.
+- **A2 FIRES ONCE, AND NOTHING STORES THAT.** `resolveJourney` reports `migratedFrom` only
+  on the resolve that CREATES `journeyStates`; every later launch takes rung (a) and reports
+  nothing. The document existing IS the guard, so there is no seen-flag to write, nothing to
+  clean up, and no way for a failed write to strand a user behind the screen. Pinned on both
+  sides: the first resolve reports it, the second does not.
+- **THE ARC TEST WALKS, IT DOES NOT ENUMERATE.** `routes.ts` has warned since slice 2 that
+  `V3_ORDER` drives the step numbers but not the navigate chain, so an inserted screen
+  renumbers the indicator correctly while the arc walks straight past it. A registration or
+  V3_ORDER assertion would pass on exactly that. `v3/__tests__/arc.test.tsx` presses the CTA
+  and asserts where it lands; **mutation-verified** by repointing step 2 at Why, which fails
+  one test and only one. The rename also broke `OnboardingV3ColdOpenScreen`'s literal two
+  files away, and tsc caught that one.
+- Two structural moves the slice made rather than worked around, both for the
+  screens-must-not-import-from-components rule: `CAPACITY_QUESTION` promoted to
+  `constants/capacityCopy.ts` (one string, two surfaces, marker travelled with it, sentinel
+  flat for it), and A2's copy to a new `constants/journeyCopy.ts` because Home renders it
+  too. The vocabulary bridge also moved to `journey/destinationBridge.ts`: it is two pure
+  functions, and importing them from `resolveJourney` dragged Firestore and expo-constants
+  into a screen test.
+- `PHASE_DISPLAY`'s throwing proxy is GONE and all 48 strings are populated. Slice 4a
+  renders only `short`, on the route strip; `title` and `gloss` are held unrendered until
+  slice 5, the same way 3a held Jen's `whyItWorks`. **Five cells have `short` identical to
+  `title` by design** (focus/recover, calm/rewire, routines/recover, energy/remove,
+  energy/recover); the test pins those five as expected duplicates rather than asserting
+  distinctness, because a distinctness test would fail correctly and then be "fixed" by
+  editing one of Jen's strings.
+- `OUTCOME_LABELS` SURVIVES. Onboarding stopped being one of its readers; `TodayHeroCard`
+  and `CloseWeekEntry` still label `cycle.outcome` with it. `OUTCOME_BLURBS` is deleted.
+  `activeOutcome` is no longer WRITTEN but the field is not retired: `resolveJourney` still
+  reads it as the migration branch's second fallback, and every pre-slice account has a real
+  value there.
+- **ROW 4 SPLIT; 4b IS NEW AND CARRIES THE ROLLOVER DEFECT AS ITS RATIONALE.** See the
+  AMENDED 2026-09-07 block in §5 for the finding in full. Short version: a first cycle
+  written without an outcome does not stay without one, because the 3b rollover defaults a
+  missing outcome to `'focus'` a week later.
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*

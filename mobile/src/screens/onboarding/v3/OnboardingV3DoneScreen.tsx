@@ -1,9 +1,9 @@
 /**
- * Step 8 of 8 — Terminal. The only screen in the arc that writes what the arc
+ * Step 10 of 10 — Terminal. The only screen in the arc that writes what the arc
  * collected.
  *
- * It does three things in a fixed order: the private-doc patch, the first
- * weekly cycle, then completion.
+ * It does four things in a fixed order: the private-doc patch, the first weekly
+ * cycle, the journey state, then completion.
  *
  * ORDER IS LOAD-BEARING: everything else lands BEFORE completeOnboarding.
  * Flipping hasCompletedOnboarding re-renders AppNavigator away from the
@@ -15,10 +15,25 @@
  * single write carries every answer and a partial failure cannot leave the
  * document half-populated.
  *
- * SKIPPED FIELDS ARE OMITTED, NOT NULLED. UserPrivate types these as optional
- * strings, and getFloorCommitment already reads absent and empty the same way.
- * Writing null would mean storing "they answered nothing", which is a different
- * fact from "they never answered" and is not one any reader wants.
+ * THE JOURNEY STATE IS WRITTEN THIRD, after the cycle and before completion
+ * (journey slice 4). Position matters in one direction only: it must precede
+ * completeOnboarding, because a user who reaches Home with no journeyStates
+ * document takes the resolver's migration branch and gets a destination
+ * DERIVED from their cycle rather than the one they just chose. Those agree
+ * today, so the bug would be invisible; they stop agreeing the moment slice 4b
+ * takes the outcome off the cycle. Ordering it before the flag flip is what
+ * makes that a non-event.
+ *
+ * `activeOutcome` IS NO LONGER WRITTEN. The destination lives on journeyStates
+ * now. The FIELD is not retired and must not be: resolveJourney still reads it
+ * as the migration branch's second fallback, and every account that predates
+ * this slice has a real value there. What ended is onboarding being one of its
+ * writers.
+ *
+ * SKIPPED FIELDS ARE OMITTED, NOT NULLED. UserPrivate types these as optional,
+ * and getFloorCommitment already reads absent and empty the same way. Writing
+ * null would mean storing "they answered nothing", which is a different fact
+ * from "they never answered" and is not one any reader wants.
  *
  * No back affordance: everything behind it has been answered, and these writes
  * are not meant to be re-run.
@@ -31,6 +46,8 @@ import { OnboardingScaffold } from '../../../components/onboarding/OnboardingSca
 import { Colors, Spacing, Typography } from '../../../constants';
 import { useAuth } from '../../../context/AuthContext';
 import { completeOnboarding } from '../../../services/firebase/onboarding.service';
+import { createJourneyState } from '../../../services/firebase/journeyState.service';
+import { outcomeForDestination } from '../../../journey/destinationBridge';
 import {
   getUserPrivate,
   setUserPrivate,
@@ -49,7 +66,7 @@ import { V3_ROUTES, V3_TOTAL_STEPS, v3StepNumber } from './routes';
 
 export const OnboardingV3DoneScreen: React.FC = () => {
   const { user } = useAuth();
-  const { outcome, whyNote, capacity, floorCommitment, weekStartDay } =
+  const { destination, whyNote, capacity, floorCommitment, weekStartDay } =
     useOnboardingV3();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -62,7 +79,9 @@ export const OnboardingV3DoneScreen: React.FC = () => {
     try {
       // Built conditionally so a skipped answer is absent rather than null.
       const patch: UserPrivatePatch = {};
-      if (outcome) patch.activeOutcome = outcome;
+      // The capacity SEED, not today's capacity. Re-homed here by journey
+      // slice 4 so resolveJourney stops reading it off the weekly cycle.
+      if (capacity) patch.capacitySeed = capacity;
       if (whyNote) patch.whyNote = whyNote;
       if (floorCommitment) patch.floorCommitment = floorCommitment;
       // `!== null` rather than a truthiness check: Sunday is 0, and a falsy
@@ -79,7 +98,16 @@ export const OnboardingV3DoneScreen: React.FC = () => {
       // Open the first weekly cycle. Both answers are required steps, so they
       // are present here; the guard covers the impossible case rather than
       // trapping the user in onboarding over it.
-      if (outcome && capacity) {
+      //
+      // STILL CARRIES AN OUTCOME, deliberately and only for now. Roadmap
+      // section 5's slice 4 row says the first cycle should be created without
+      // one; that half was split out as slice 4b because
+      // `WeeklyCycle.outcome` is a required field with two live readers
+      // (TodayHeroCard, CloseWeekEntry) and because the 3b rollover defaults a
+      // missing outcome to 'focus', which would fabricate one a week later for
+      // a user who chose something else. Nothing downstream of this write moves
+      // in 4a.
+      if (destination && capacity) {
         // THE SETUP WEEK, always. `priorWeekEnd: null` is passed literally
         // rather than read from the user's cycles, and that is load-bearing for
         // the dedup below: on a retry the first cycle DOES exist, so deriving
@@ -112,10 +140,21 @@ export const OnboardingV3DoneScreen: React.FC = () => {
           await createWeeklyCycle(user.uid, {
             weekStart,
             weekEnd,
-            outcome,
+            outcome: outcomeForDestination(destination),
             capacityInitial: capacity,
           });
         }
+      }
+
+      // The journey itself. Every journey opens on Remove (roadmap section 1),
+      // so the phase is not a choice and is not asked for.
+      //
+      // AFTER the cycle and BEFORE completion; see this file's header. Written
+      // unconditionally on the destination alone, because a user without one
+      // cannot have reached this screen and a journey is what Home resolves
+      // against from here on.
+      if (destination) {
+        await createJourneyState(user.uid, { destination, phaseKey: 'remove' });
       }
 
       // LAST. This flips hasCompletedOnboarding, and the navigator re-renders
@@ -133,7 +172,7 @@ export const OnboardingV3DoneScreen: React.FC = () => {
       setFailed(true);
       setBusy(false);
     }
-  }, [busy, user?.uid, outcome, whyNote, capacity, floorCommitment, weekStartDay]);
+  }, [busy, user?.uid, destination, whyNote, capacity, floorCommitment, weekStartDay]);
 
   return (
     <OnboardingScaffold

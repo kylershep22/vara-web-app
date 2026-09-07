@@ -71,34 +71,125 @@ export interface PhaseDisplayCopy {
 }
 
 /**
- * DECLARED SHAPE ONLY. Reading any value THROWS (journey roadmap 3.3).
+ * The 48 display strings: 16 phase-destination cells x title / short / gloss.
  *
- * 16 phase-destination combinations x 3 lengths = 48 strings, all Jen's, none
- * written. The shape lands in slice 3a so the type exists for slice 5 to fill
- * and so the framework words have a declared home the brand guard can point at.
+ * ALL 48 ARE JEN'S, ALL APPROVED, ALL LANDING FLAT. Titles and glosses come
+ * from Content Pack v1 section display-strings; the shorts from section
+ * short-labels, which slice 4 is the first to need. Per the pack header they
+ * carry no `COPY: draft` markers and the copy sentinel does not increment for
+ * them.
  *
- * WHY A THROWING PROXY RATHER THAN AN EMPTY OBJECT OR A CAST. An empty object
- * behind a total type is a lie tsc will happily keep: a screen that read
- * PHASE_DISPLAY.remove.calm.title would compile, render `undefined`, and ship.
- * Throwing turns that into a loud failure in the first test or the first render
- * that touches it, which is the only behavior that makes "declared but not
- * populated" honest.
+ * REPLACES A THROWING PROXY. Until this slice the constant was declared and
+ * deliberately unpopulated, so that reading it failed loudly rather than
+ * rendering `undefined` behind a total type. The strings exist now, so the
+ * proxy has done its job and is gone.
  *
- * NOTHING CONSUMES THIS IN SLICE 3a, deliberately. OUTCOME_LABELS still serves
- * the legacy hero path until the weekly surfaces retire.
+ * SLICE 4 RENDERS ONLY `short`, on the A2 route strip. `title` and `gloss` are
+ * populated here and rendered nowhere: slice 5 owns the journey map and the
+ * phase detail pages. Held-but-unrendered rather than withheld, because a
+ * second partial-population pass is how two halves of one delivery drift.
+ *
+ * FIVE CELLS HAVE `short` IDENTICAL TO `title`, BY DESIGN AND NOT BY MISTAKE:
+ * focus/recover, calm/rewire, routines/recover, energy/remove and
+ * energy/recover. Where a title is already short enough to carry the strip,
+ * Jen repeats it rather than inventing a second phrasing of the same idea. A
+ * test that asserts all 16 pairs differ would fail correctly; pin the five as
+ * expected duplicates instead. See the editorial note at the pack anchor.
  *
  * THE FOUR FRAMEWORK WORDS ARE KEYS HERE, NEVER VALUES (roadmap section 8).
  * `remove | recover | rewire | refocus` are internal vocabulary; what the user
- * reads is the `title`/`short`/`gloss` Jen writes. brandCopyGuard enforces that
- * separation on user-facing string modules.
+ * reads is the title/short/gloss. brandCopyGuard enforces that separation.
  */
 export const PHASE_DISPLAY: Record<
   PhaseKey,
   Record<DestinationKey, PhaseDisplayCopy>
-> = new Proxy({} as Record<PhaseKey, Record<DestinationKey, PhaseDisplayCopy>>, {
-  get(_target, phase) {
-    throw new Error(
-      `PHASE_DISPLAY not populated; slice 5 + Jen's 48 strings (asked for '${String(phase)}')`
-    );
+> = {
+  remove: {
+    focus: {
+      title: "Clear what's pulling at your attention",
+      short: "Clear the distractions",
+      gloss: "Start with the things that keep using up the attention you need elsewhere.",
+    },
+    calm: {
+      title: "Clear what keeps your mind running",
+      short: "Clear what's keeping you on",
+      gloss: "Start with the things that keep following you long after they need to.",
+    },
+    routines: {
+      title: "Clear what keeps knocking the day off course",
+      short: "Clear what's throwing you off",
+      gloss: "Start with the patterns that make the day harder to hold together.",
+    },
+    energy: {
+      title: "Clear what's draining you",
+      short: "Clear what's draining you",
+      gloss: "Start with what seems to take more from the day than it gives back.",
+    },
   },
-});
+  recover: {
+    focus: {
+      title: "Get some headroom back",
+      short: "Get some headroom back",
+      gloss: "Find a few ways to reset when your attention has been stretched too far.",
+    },
+    calm: {
+      title: "Learn how to come down",
+      short: "Come down a notch",
+      gloss: "Find a few reliable ways to leave the noise and pressure of the day behind.",
+    },
+    routines: {
+      title: "Find your way back",
+      short: "Find your way back",
+      gloss: "Practice a few simple resets for when the day gets away from you.",
+    },
+    energy: {
+      title: "Get some energy back",
+      short: "Get some energy back",
+      gloss: "Find the things that help you recover when you're running low.",
+    },
+  },
+  rewire: {
+    focus: {
+      title: "Make focus easier to return to",
+      short: "Make focus easier",
+      gloss: "Build simple patterns that help you start, stay with something, and come back when you get pulled away.",
+    },
+    calm: {
+      title: "Make switching off easier",
+      short: "Make switching off easier",
+      gloss: "Build a few cues that help your mind recognize when it is time to stop carrying the day.",
+    },
+    routines: {
+      title: "Build a few anchors that hold",
+      short: "Build anchors that hold",
+      gloss: "Put simple cues around the parts of the day you want to happen more reliably.",
+    },
+    energy: {
+      title: "Build a steadier baseline",
+      short: "Build steadier energy",
+      gloss: "Make the things that support your energy easier to come back to.",
+    },
+  },
+  refocus: {
+    focus: {
+      title: "Put your attention where it matters",
+      short: "Focus on what matters",
+      gloss: "Use the room you've made on the things you actually want more attention for.",
+    },
+    calm: {
+      title: "Protect more of your off time",
+      short: "Protect your off time",
+      gloss: "Use the room you've made to be more present when the work is done.",
+    },
+    routines: {
+      title: "Shape the day around what matters",
+      short: "Shape the day around you",
+      gloss: "Give your time more structure without packing more into it.",
+    },
+    energy: {
+      title: "Use your energy where you want it",
+      short: "Use energy where it matters",
+      gloss: "Put more of what you have toward the parts of life that matter most.",
+    },
+  },
+};

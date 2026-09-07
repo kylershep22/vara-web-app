@@ -21,6 +21,8 @@
  *
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
+import { CAPACITY_QUESTION } from '../../constants/capacityCopy';
+
 
 /**
  * Time-window labels for the daily picker (roadmap 3b-ii-b).
@@ -117,8 +119,11 @@ export const PICKER_COPY = {
   promptCta: "Set today's capacity",
   // COPY: draft, not from guidelines doc - pending Jen
   title: 'Today',
-  // COPY: draft, not from guidelines doc - pending Jen
-  capacityQuestion: 'How much are you up for today?',
+  // NOT RESTATED. Journey slice 4 moved this string to
+  // constants/capacityCopy.ts because the V3 onboarding capacity screen asks
+  // the same question and screens/ may not import copy from components/. The
+  // marker and its owner travelled with it; this is the same one string.
+  capacityQuestion: CAPACITY_QUESTION,
   timeQuestion: 'How much time can you realistically give this?',
   // COPY: draft, not from guidelines doc - pending Jen
   confirm: 'Confirm',

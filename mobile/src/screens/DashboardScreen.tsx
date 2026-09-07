@@ -39,6 +39,7 @@ import { SetTodayCard } from '../components/dashboard/SetTodayCard';
 import { DailyPickerSheet } from '../components/dashboard/DailyPickerSheet';
 import { ContinuityCard } from '../components/dashboard/ContinuityCard';
 import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
+import { MigrationRouteScreen } from './journey/MigrationRouteScreen';
 import { RemoveCaptureCard } from '../components/dashboard/RemoveCaptureCard';
 import { logEvent } from '../services/firebase/analyticsEvents.service';
 import { useDashboard } from '../hooks/useDashboard';
@@ -148,6 +149,16 @@ const DashboardScreen: React.FC = () => {
   // Session-scoped only. The durable re-offer schedule (retire 7 days, show
   // once more, then a quiet row) is slice 5; see RemoveCaptureCard.
   const [captureDismissed, setCaptureDismissed] = useState(false);
+
+  /**
+   * Dismissal of the post-migration route explanation, FOR THIS SESSION ONLY.
+   *
+   * Nothing persists, and nothing needs to: the resolver reports a migration
+   * only on the resolve that creates the journey, so the next launch does not
+   * offer the screen again whatever this holds. This state exists purely so the
+   * primary can dismiss it without waiting for a re-resolve.
+   */
+  const [routeExplainerDismissed, setRouteExplainerDismissed] = useState(false);
 
   // THE CAPTURE CARD SUPPRESSES ContinuityCard WHILE IT SHOWS (card-ceiling
   // decision, slice 3c-i). Naming the thing to remove is the highest-priority
@@ -259,6 +270,35 @@ const DashboardScreen: React.FC = () => {
 
   if (dataLoading) {
     return <LoadingSpinner message="Loading your wellness dashboard..." />;
+  }
+
+  /**
+   * A2 for a user the resolver just migrated onto the journey (journey slice
+   * 4, roadmap section 4).
+   *
+   * IN PLACE OF HOME, not over it. The screen explains why the app is about to
+   * start them somewhere they did not ask for, and it has one action; rendering
+   * it as an overlay on a Home they can still partly see would make it
+   * dismissable furniture instead of the explanation it is.
+   *
+   * ADDITIVE AND REVERSIBLE. Nothing below this point changed: no daily-loop
+   * read, no card, no gate. Deleting these four lines returns Home to exactly
+   * what it did before, which is the property that let this ship inside a slice
+   * whose fence stops at the daily loop.
+   *
+   * ONCE PER USER, enforced by the resolver rather than here. `migratedFrom` is
+   * set only on the resolve that creates journeyStates; every later launch
+   * takes rung (a) and reports null. The local dismissal below only covers the
+   * rest of this session.
+   */
+  if (weeklyLanding.migratedFrom && weeklyLanding.phase && !routeExplainerDismissed) {
+    return (
+      <MigrationRouteScreen
+        destination={weeklyLanding.phase.destination}
+        phaseKey={weeklyLanding.phase.phaseKey}
+        onContinue={() => setRouteExplainerDismissed(true)}
+      />
+    );
   }
 
   return (

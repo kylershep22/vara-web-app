@@ -156,6 +156,26 @@ export interface UserPrivate {
   weekStartDay?: number;
 
   /**
+   * The capacity tier a day falls back to when the user has not picked one.
+   *
+   * CAPTURED ONCE AT ONBOARDING, and durable. It is NOT today's capacity: the
+   * daily picker writes that to dailyLogs and it is re-answered every day.
+   * This is the seed the journey resolves with on a day with no pick, which is
+   * why it lives at user level and not on any period document.
+   *
+   * ADDED BY JOURNEY SLICE 4 TO CLOSE A SHIM. Until this field existed the seed
+   * was read off the latest weekly cycle's `capacityInitial`
+   * (resolveJourney.ts), because that was the only place an answer was written.
+   * Roadmap section 4 always specified userPrivate as the home; this is that
+   * re-homing, and the read moved here in the same slice.
+   *
+   * OPTIONAL, AND ABSENCE IS NOT AN ERROR. Every account created before this
+   * slice has no value, and the resolver falls back to 'normal' for them, which
+   * is the same answer they were already getting.
+   */
+  capacitySeed?: CapacityTier;
+
+  /**
    * When the user reports having the most capacity. `bucket` is a plain string
    * for the same reason as activeOutcome. An explicit null means asked and
    * cleared, which is distinct from undefined (never captured).

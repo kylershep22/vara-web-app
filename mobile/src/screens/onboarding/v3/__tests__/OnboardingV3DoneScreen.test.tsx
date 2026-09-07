@@ -30,6 +30,10 @@ jest.mock('../../../../services/firebase/weeklyCycle.service', () => ({
   createWeeklyCycle: (...a: any[]) => mockCreateWeeklyCycle(...a),
   getWeeklyCycleForWeek: (...a: any[]) => mockGetCycleForWeek(...a),
 }));
+const mockCreateJourneyState = jest.fn();
+jest.mock('../../../../services/firebase/journeyState.service', () => ({
+  createJourneyState: (...a: any[]) => mockCreateJourneyState(...a),
+}));
 const mockContext = jest.fn();
 jest.mock('../OnboardingV3Context', () => ({
   useOnboardingV3: () => mockContext(),
@@ -77,8 +81,9 @@ describe('OnboardingV3DoneScreen — the setup week', () => {
     mockSetUserPrivate.mockReset().mockResolvedValue(undefined);
     mockCreateWeeklyCycle.mockReset().mockResolvedValue('cycle-1');
     mockGetCycleForWeek.mockReset().mockResolvedValue(null);
+    mockCreateJourneyState.mockReset().mockResolvedValue(undefined);
     mockContext.mockReset().mockReturnValue({
-      outcome: 'focus',
+      destination: 'focus',
       capacity: 'normal',
       whyNote: 'because',
       floorCommitment: 'ten minutes outside',
@@ -142,7 +147,7 @@ describe('OnboardingV3DoneScreen — the setup week', () => {
   describe('the week-start preference', () => {
     test('carries a chosen start day into the private-doc patch', async () => {
       mockContext.mockReturnValue({
-        outcome: 'focus',
+        destination: 'focus',
         capacity: 'normal',
         whyNote: null,
         floorCommitment: null,
@@ -158,7 +163,7 @@ describe('OnboardingV3DoneScreen — the setup week', () => {
       // The one value a `if (weekStartDay)` bug would silently drop, leaving
       // the user on open-date anchoring having explicitly chosen Sunday.
       mockContext.mockReturnValue({
-        outcome: 'focus',
+        destination: 'focus',
         capacity: 'normal',
         whyNote: null,
         floorCommitment: null,
@@ -270,6 +275,98 @@ describe('OnboardingV3DoneScreen — the setup week', () => {
 
       await waitFor(() => expect(screen.getByTestId('v3-done-error')).toBeTruthy());
       expect(mockCompleteOnboarding).not.toHaveBeenCalled();
+    });
+  });
+
+
+  describe('the journey write (slice 4)', () => {
+    test('creates journeyStates with the chosen destination, on Remove', async () => {
+      await finish();
+
+      expect(mockCreateJourneyState).toHaveBeenCalledWith('u1', {
+        destination: 'focus',
+        phaseKey: 'remove',
+      });
+    });
+
+    test('every journey opens on Remove regardless of destination', async () => {
+      // The phase is not a choice and is never read off the arc. If a later
+      // change lets a destination pick its own opening phase, this fails, which
+      // is the point: that is a roadmap section 1 decision, not an edit.
+      for (const destination of ['focus', 'calm', 'routines', 'energy'] as const) {
+        mockCreateJourneyState.mockClear();
+        mockCompleteOnboarding.mockClear();
+        mockContext.mockReturnValue({
+          destination,
+          capacity: 'normal',
+          whyNote: null,
+          floorCommitment: null,
+          weekStartDay: null,
+        });
+
+        await finish();
+
+        expect(mockCreateJourneyState).toHaveBeenCalledWith('u1', {
+          destination,
+          phaseKey: 'remove',
+        });
+      }
+    });
+
+    test('the journey lands BEFORE completion, not after', async () => {
+      // ORDER, not merely presence. A user who reaches Home with no journeyStates
+      // document takes the resolver's migration branch and is given a destination
+      // DERIVED from their cycle instead of the one they just chose. Today those
+      // agree, so the bug would be invisible; slice 4b makes them disagree.
+      const order: string[] = [];
+      mockCreateJourneyState.mockImplementation(async () => {
+        order.push('journey');
+      });
+      mockCompleteOnboarding.mockImplementation(async () => {
+        order.push('complete');
+      });
+
+      await finish();
+
+      expect(order).toEqual(['journey', 'complete']);
+    });
+
+    test('writes the capacity SEED to userPrivate', async () => {
+      await finish();
+
+      expect(mockSetUserPrivate).toHaveBeenCalledWith(
+        'u1',
+        expect.objectContaining({ capacitySeed: 'normal' })
+      );
+    });
+
+    test('no longer writes activeOutcome', async () => {
+      // The FIELD is not retired: resolveJourney still reads it as the migration
+      // branch's second fallback for accounts that predate this slice. What ended
+      // is onboarding being one of its writers.
+      await finish();
+
+      const patch = mockSetUserPrivate.mock.calls[0][1];
+      expect(patch.activeOutcome).toBeUndefined();
+    });
+
+    test("the first cycle still carries an outcome, and 'calm' maps back to 'stress'", async () => {
+      // SLICE 4a CHANGES NOTHING DOWNSTREAM OF THIS WRITE. The cycle keeps its
+      // outcome until slice 4b makes the field optional, guards both readers and
+      // stops the rollover defaulting. The asymmetric pair is the one worth
+      // pinning: DestinationKey says 'calm' where OutcomeKey says 'stress', and a
+      // cast would be three-quarters right.
+      mockContext.mockReturnValue({
+        destination: 'calm',
+        capacity: 'normal',
+        whyNote: null,
+        floorCommitment: null,
+        weekStartDay: null,
+      });
+
+      await finish();
+
+      expect(mockCreateWeeklyCycle.mock.calls[0][1].outcome).toBe('stress');
     });
   });
 });

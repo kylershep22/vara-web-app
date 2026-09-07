@@ -280,9 +280,19 @@ export function useTodayCard(
   const enteredAtIso =
     source !== null && source.kind === 'phase' ? source.phase.enteredAtIso : '';
 
-  // TEMPORARY SHIM - RE-HOMED IN SLICE 4. The phase's own seed is itself read
-  // off the latest cycle's capacityInitial by the resolver, so both sides are
-  // sourced from the same place today.
+  // TWO SOURCES, AND ONLY ONE OF THEM WAS THE SHIM. This comment used to say
+  // the whole thing was re-homed in slice 4; that overstated it.
+  //
+  // The PHASE side is done: since slice 4 `phase.capacitySeed` comes from
+  // userPrivate.capacitySeed, written at onboarding, with the old cycle read
+  // kept in the resolver only as a fallback for accounts predating the field.
+  //
+  // The CYCLE side below is not a shim at all. It is the flag-off path reading
+  // the document it has always read, and it dies with JOURNEY_IA rather than on
+  // any slice's schedule. Do not "finish" the re-homing by pointing it at
+  // userPrivate: an account running with the flag off has no journey, and
+  // giving it the journey's seed would make the two paths disagree about the
+  // same user.
   const capacitySeed =
     source === null
       ? undefined
