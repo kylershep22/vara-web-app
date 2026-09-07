@@ -118,6 +118,28 @@ Record<DestinationKey, { title, short, gloss }>>` — 16 combinations × 3 lengt
 card; `short` is the route strip and Today journey line; `gloss` is the one-line under the title.
 Single source. All 48 strings are Jen's; the copy sentinel count increments in the same commit.
 
+> **AMENDED 2026-09-06 (sentinel rule reconciliation). THE SENTENCE ABOVE IS HALF THE RULE.**
+> It was written before the Content Pack existed and reads as though every display string
+> increments the copy-draft sentinel. The pack's own rule (Content Pack v1, "How to use this
+> file") says the opposite for pack strings. Both are correct, and **the SOURCE of a string
+> decides which applies**:
+>
+> - **Delivered by a content pack** (Jen's, approved on delivery): lands **flat**. No
+>   `COPY: draft` marker, no owner comment, **the sentinel does not increment**. It is
+>   approved content, and the sentinel counts drafted strings.
+> - **Drafted in-house** (anyone filling a gap the pack did not cover): carries the
+>   `COPY: draft` marker **and a named owner**, and **the sentinel increments** by one per
+>   string.
+>
+> So a single commit can land twenty-two pack strings at a flat sentinel and one in-house
+> string that moves it by one. Slice 3c-ii is the worked example: Jen's replacement menus
+> landed flat on the branch, and the one string that was not hers (`'Got it'`, owner Kyle)
+> took the sentinel 173 -> 174 as a draft, then back to **173** when Kyle approved it on
+> device and the follow-up commit cleared the marker. See the §13 Sept 6 3c-ii entry.
+> **A flat sentinel across a copy-bearing slice is not by itself evidence of anything.**
+> Here it is the sum of a +1 and a -1 on the same string. Check where the strings came
+> from and read the notes above `EXPECTED_SENTINELS`, not the pinned number alone.
+
 ### 3.4 Changed: `weeklyCycles` → weekly reset record
 
 Collection name stays (no migration). Per-doc: **keep** `weekStart`, `weekEnd`, `closeCompletedAt`,
@@ -214,14 +236,14 @@ deploy. Deploy state lives on Kyle's checklist.
 
 | # | Slice | Scope fence | Gates | Walk |
 |---|---|---|---|---|
-| 0 | **Prep: split and rescue** **[Next]** | Move `dailyLogDocId`, `upsertDailyLog`, `getDailyLog`, `hasPickedToday`, `DailyLogInput` from `weeklyCycle.service.ts` into `dailyLog.service.ts`. Move `CAPACITY_LABELS/GLOSSES`, `TIME_LABELS/GLOSSES`, `PICKER_COPY` from `screens/weekly/copy.ts` into `components/dashboard/dailyPicker.copy.ts`. Update imports. **Zero behavior change.** | jest green; import graph shows no daily→weekly edge | No (no runtime change) |
+| 0 | **[DONE 2026-09-01]** Prep: split and rescue *(marker corrected 2026-09-06: the row still carried **[Next]** long after §13's Sept 1 entry recorded slices 0-2 merged, main at `ff8939e`)* | Move `dailyLogDocId`, `upsertDailyLog`, `getDailyLog`, `hasPickedToday`, `DailyLogInput` from `weeklyCycle.service.ts` into `dailyLog.service.ts`. Move `CAPACITY_LABELS/GLOSSES`, `TIME_LABELS/GLOSSES`, `PICKER_COPY` from `screens/weekly/copy.ts` into `components/dashboard/dailyPicker.copy.ts`. Update imports. **Zero behavior change.** | jest green; import graph shows no daily→weekly edge | No (no runtime change) |
 | 1 | **Journey types, state, rules** | `PhaseKey`, `DestinationKey`, `PhaseHistoryEntry`, `JourneyState` in `types/models.ts`; `journeyState.service.ts` (get/create/advance/skip/adjust/recordOffer); `firestore.rules` for `journeyStates` (owner read/write, shape-validated) + rules tests; `deleteAccount` list updated; derivations `deriveConsistentDays`, `deriveCalendarDays`, `deriveAdjustDue` as pure functions with tests. | rules tests pass; **[Kyle-gated]** rules deploy | No |
 | 2 | **Resolver + PhaseContext + migration branch** | `resolveJourney`; `useJourneyLanding` replacing `useWeeklyLanding` behind `JOURNEY_IA`; `useTodayCard(uid, phaseContext)`; `DashboardScreen` gate swap; migration branch wiring (route screen reuse deferred to slice 4; interim: write state and land on Today). | Step-0 confirms the four scalar reads are the only seam; STOP if more found | Yes: fresh account, legacy account |
 | 3 | **Matrix rekey + re-tag + outcome-pick retirement** | §3.2 in full; `PHASE_DISPLAY` shape with placeholder strings; retire §3.6 items; `WeeklyCycle` write-set reduced per §3.4; analytics events rekeyed (`journey_*` replaces `weekly_open`; `weekly_close` survives renamed `weekly_reset`). | **[Content-gated]** re-tag mapping + at least one `remove` variant per capacity tier, authored as mark-done protocols with why-card text; STOP if unauthored cells would leave any (phase, capacity) empty | Yes: full daily loop across two phases |
 | 3a | **[DONE `be58b97`, 2026-09-02]** Engine re-key + re-tag + shim removal *(row added 2026-09-05 to match §13)* | The engine speaks `PhaseKey` natively. Jen's three behavioral Remove protocols; retag confirmed (12 rows, zero edits); `legacyOutcomeFor` removed. Retired with the slice: `applyQuickWin`, `countWeeklyCyclesForOutcome`, week-number plumbing, `reshapeParity`. | Content gate met before merge (Remove protocols authored) | Done: real-content walk, all three tiers |
 | 3b | **[DONE `7f07413`, 2026-09-04]** Weekly write-set reduction + `WeeklyOpenScreen` retirement + rollover *(row added 2026-09-05 to match §13)* | §3.4 write-set reduced to live-reader fields; `WeeklyOpenScreen`, `OpenYourWeekCard` and `weekly_open` deleted; expiry creates the next cycle in a create-on-absence transaction keyed `<uid>_<weekStart>`. Resolves §9 open item 8. | — | Done |
 | 3c-i | **[DONE `701f2b4`, 2026-09-03]** Remove capture + families + crisis pre-check *(row added 2026-09-05 to match §13)* | Five-path Remove capture; three-family protocol model with family-aware serving and six Jen-approved mental/interpersonal protocols; acknowledgment rotation; client-side crisis pre-check with `SupportScreen`. | Crisis pre-check promoted to a precondition of this slice | Done: two defects caught on the walk |
-| 3c-ii | **Remove replacement pick + routine seed** *(row added 2026-09-05; the slice was split in the §13 Sept 2 entry and never got a row here)* | Curated replacement menus per time slot, one selection only, flow ends on a neutral confirmation; routine seed from the pick. **NO REMINDER SCOPE** — no notification infrastructure, no time picker, no nudge copy. | Content DELIVERED (`Content Pack v1 §replacement-menus` + `§decisions-3`). STOP if the menu appears to need a reminder to be useful; that is the signal the scope split was wrong, not licence to build it | Yes |
+| 3c-ii | **[DONE `74ff373`, merged `80ed0f7`, 2026-09-06]** Remove replacement pick + routine seed *(row added 2026-09-05; the slice was split in the §13 Sept 2 entry and never got a row here)* **"routine seed" is not what shipped — see the AMENDED 2026-09-06 block below.** | Curated replacement menus per time slot, one selection only, flow ends on a neutral confirmation; routine seed from the pick. **NO REMINDER SCOPE** — no notification infrastructure, no time picker, no nudge copy. | Content DELIVERED (`Content Pack v1 §replacement-menus` + `§decisions-3`). STOP if the menu appears to need a reminder to be useful; that is the signal the scope split was wrong, not licence to build it | Yes |
 | 4 | **Onboarding: destination + route** | A1 copy reframe on step 2; **new** route screen (A2) at step 3 (open item 1); Capacity step copy loses "this week"; terminal write creates `journeyStates` and the first weekly cycle without outcome; `activeOutcome` → `destination`; write order preserved (`completeOnboarding` last). Migration branch now shows A2. | **[Content-gated]** A1/A2 strings, 16 `short` strings | Yes: full arc + migration |
 | 5 | **Practices → journey map + Start here container** | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
 | 6 | **Weekly reset repurpose** | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
@@ -245,11 +267,31 @@ deploy. Deploy state lives on Kyle's checklist.
 > Pack strings are APPROVED and enter the code **without** `COPY: draft` markers — **the
 > sentinel does not increment for them.**
 >
-> - **Slice 4 — NO LONGER CONTENT-GATED.** A1 (`§A1`), A2 (`§A2`) and the 16 `short`
->   strings (`§display-strings`) are delivered. Two §9 open items are resolved by the pack
+> - **Slice 4 — PARTLY DELIVERED. ~~NO LONGER CONTENT-GATED~~ — see the correction below.**
+>   A1 (`§A1`) and A2 (`§A2`) are delivered. Two §9 open items are resolved by the pack
 >   itself: **item 1** route screen sits at **step 3** (pack part one, section 3, decision 1),
 >   and **item 9** the destination label is **"Steadier days"**, not "Routines" (decision 2).
->   Slice 4 now has no open gate.
+>   ~~Slice 4 now has no open gate.~~
+>
+>   > **CORRECTED 2026-09-06. THIS BULLET CLAIMED THE 16 `short` STRINGS WERE DELIVERED.
+>   > THEY WERE NOT, AND THEY STILL ARE NOT.** `§display-strings` delivers **`Title` and
+>   > `Gloss` only** — 32 strings, not 48. The pack says so in its own header ("slice 5
+>   > display strings (16 title + 16 gloss)") and its section is titled "Slice 5 display
+>   > strings"; the word `short` appears nowhere in the pack as a display string. The
+>   > mis-statement came from this block, not from Jen.
+>   >
+>   > `short` is slice 4's field, not slice 5's: `PhaseDisplayCopy` (`constants/journey.ts:60-71`)
+>   > documents it as **the route strip and the Today journey line**, and the route strip is
+>   > A2, the screen slice 4 builds. `PHASE_DISPLAY` is still a throwing proxy, so there is
+>   > nothing to render. §6 item 3 always said this correctly: "The 48 display strings
+>   > (**slices 4-5**)".
+>   >
+>   > **Slice 4 REMAINS CONTENT-GATED on the 16 `short` strings**, which have been requested
+>   > from Jen. Its other gate is clear: A1, A2 and both §9 items are settled. If the strings
+>   > do not arrive in time, the slice **splits** — destination/route/write-order first, the
+>   > route strip's `short` line second — rather than shipping in-house placeholders on the
+>   > screen whose whole job is the bait-and-switch mitigation. That split is a decision, not
+>   > a default; it needs Kyle before the slice opens.
 > - **Slice 5 — NO LONGER CONTENT-GATED.** 16 `title` + 16 `gloss` (`§display-strings`) and
 >   Recover's internal structure (`§recover-lanes`, three lanes: Downshift / Refill /
 >   Re-anchor, destination-weighted, labels never shown to the user) are delivered.
@@ -278,6 +320,28 @@ deploy. Deploy state lives on Kyle's checklist.
 >
 > **Not delivered by this pack:** slice 8 copy (Moments of joy) is still content-gated, and
 > the rewire placeholders in `protocolMatrix.ts` are still placeholders.
+
+> **AMENDED 2026-09-06 (slice 3c-ii closed). "ROUTINE SEED" IN THE 3c-ii ROW WAS
+> ASPIRATIONAL AND DID NOT SHIP.** The row above is left unedited in the §3.4 style.
+> What shipped is a **slot-anchored intention**: three absent-safe fields on
+> `journeyStates` (`removeReplacementId` / `removeReplacementSlot` / `removeReplacementAt`),
+> a commitment record and nothing more. **No routine is created, and none should be read
+> into the row's wording.**
+>
+> The routines path was examined and rejected on two independent grounds (full reasoning in
+> the §13 entry): seeding through `createRoutine` calls `deactivateRoutinesOfType` and would
+> **silently deactivate a routine the user wrote themselves**, and the non-destructive
+> variant would require inventing duration, icon and colour content nobody has authored.
+> Jen's replacement options are single actions, not multi-step sequences, so the routine
+> shape was wrong for the content as well as risky for the user's data.
+>
+> **Any future promotion of a stored intention into an actual routine is a deliberate slice
+> with authored content and an explicit user action. It is never a default and never a
+> migration.**
+>
+> **Board status, superseding the 2026-09-05 note above** (left unedited; it was true on its
+> date): rows 3a, 3b, 3c-i and 3c-ii are **all merged**. **Slice 4 is the next slice**, and
+> per the correction inside the pack block it is still gated on the 16 `short` strings.
 
 **Ordering rationale.** 0 makes everything after it smaller and reversible. 1–2 land the model
 behind a flag without touching content. 3 is the content-dependent core and the point of no return
@@ -756,5 +820,96 @@ Firestore and Cloud Storage.** Branch commits 36a8844, 9f2cb0f.
   - `firebase-functions` package upgrade, which carries breaking changes; the emulator
     suite added by this slice is the net that makes it walkable. CLI update queued with
     it.
+
+**Sept 6, 2026 — slice 3c-ii merged (80ed0f7). Remove replacement pick, slot-anchored.**
+Branch commit 74ff373. Closes the last of the four slices that slice 3 was split into;
+**slice 4 is now next.**
+- Figures at close: jest **3132 / 208** · tsc **149** · sentinel **173**. Rules
+  **191 / 2** and functions **53 / 4** are CARRIED UNRUN and labelled so: neither
+  `firestore.rules` nor anything under `functions/` is in the diff, so there was nothing
+  for either suite to react to. Carried-unrun is not the same claim as measured-green, and
+  the next slice's Step 0 should treat them as inherited rather than verified here.
+- **SENTINEL: THE MERGE MESSAGE SAYS 174 AND THE CLOSED STATE IS 173. BOTH ARE RIGHT.**
+  The branch landed `REPLACEMENT_COPY.confirmedPrimary` (`'Got it'`) as a DRAFT, +1, which
+  is the figure `80ed0f7` records. Kyle then **approved it on device on 2026-09-06 during
+  the walk itself**, and the marker was cleared in a follow-up commit on main, -1. The pin
+  is back at **173**. Read `80ed0f7`'s 174 as **branch state, not closed state**; the
+  slice closes flat.
+- That flat close is a trap for the next Step 0, so it is spelled out here: **173 before
+  the slice and 173 after does not mean no copy moved.** A draft landed and was approved
+  one commit later, and the 3b set that last parked on 173 is a different set of strings
+  entirely. The two entries in `copyDraftSentinel.test.ts` above `EXPECTED_SENTINELS`
+  carry the +1 and the -1 separately for exactly this reason; do not collapse them.
+- Owner Kyle, because it is a UI button label rather than efficacy-adjacent copy, and
+  reviewed in place — in the confirmed state it dismisses — rather than off a list. Every
+  other string the slice added is Jen's and landed FLAT from the start, no markers and no
+  increment, per the pack's sentinel rule: the menu title, the eighteen option labels and
+  the three neutral confirmations. This is the first commit where both rules applied at
+  once, and §3.3 now carries the reconciliation.
+- WHY AN IN-HOUSE STRING WAS NEEDED AT ALL, since the pack covered the flow: the label on
+  the control that dismisses the confirmation has **no word in the pack**. In Jen's
+  original that position belonged to the deferred reminder step, which went to slice 9
+  with the rest of `§decisions-3`. Removing the reminder left the position without a
+  label. The tension with UI Standards section 18 (buttons name the action, this one
+  acknowledges) is recorded at the string
+  (`screens/journey/removeCapture/copy.ts:157-177`) and was **resolved in favour of
+  shipping it** at the approval. The absence of a marker there now means it was weighed,
+  not that it was never questioned; revising the string reopens the section 18 tension.
+- SHIPPED: a replacement pick screen for **time-anchored behavioral captures**. Jen's
+  slot-matched menus verbatim from `Content Pack v1 §replacement-menus`. Single select,
+  six options per slot, and a slot-matched neutral confirmation to end the flow.
+  Non-behavioral captures and `timing = varies` keep the existing scaffolds and **never
+  see a menu** — there is no slot to match, and a menu without a slot would be a generic
+  list of suggestions, which is not what the content is.
+- **DESIGN DECISION (Kyle, 2026-09-06): THE REPLACEMENT IS A SLOT-ANCHORED INTENTION, NOT
+  A ROUTINE.** Stored as three absent-safe fields on `journeyStates` —
+  `removeReplacementId`, `removeReplacementSlot`, `removeReplacementAt`. **The routines
+  path was rejected, on two grounds that are independent of each other:**
+  1. Seeding through `createRoutine` calls `deactivateRoutinesOfType`, so creating the
+     seed would **silently deactivate a routine the user had authored themselves**. A
+     capture flow that quietly turns off the user's own work is a data-loss defect
+     wearing a feature's clothes, and it would have been invisible until they went
+     looking for the routine.
+  2. The non-destructive variant avoids that but requires **inventing duration, icon and
+     colour content that nobody has authored**. That is unauthored content entering the
+     app through an engineering decision, which is the thing the content gates exist to
+     stop.
+  Independently of both: **Jen's options are single actions, not multi-step sequences.**
+  The routine shape was wrong for the content even before the two mechanics above.
+- **ROADMAP CORRECTION.** "Routine seed" in the §5 3c-ii row was aspirational and never
+  shipped under that meaning. The row is annotated in place, §3.4 style, rather than
+  rewritten. **Any future promotion of a stored intention into an actual routine is a
+  deliberate slice with authored content and an explicit user action — never a default,
+  never a migration.**
+- **MANIFEST STATEMENT — the first exercise of the deleteAccount sweep's standing rule.**
+  This slice writes to `journeyStates` and to nothing else. `journeyStates` is already on
+  the manifest at `functions/src/lib/accountDeletion.js:86`. **Verified by reading the
+  manifest, not assumed from the sweep's Sept 6 entry.** No new collection, so no manifest
+  change. Recording the check even when the answer is "no change" is the point of the
+  rule: the failure mode it guards against is a slice that never asked.
+- RULES: unchanged, and correctly so. The three new fields are accepted absent-safe by
+  the existing `journeyStates` block (`firestore.rules:986-996`), which validates named
+  fields and **has no `hasOnly` clause**, so an unlisted field is permitted rather than
+  rejected. Had the block been written as an allowlist this slice would have needed a
+  rules change and a deploy; it was not, so it did not.
+- **SLOT INFERENCE, the one place the flow does not ask.** The sleep path never puts the
+  timing question to the user; its evening slot is **derived from the sleep sub-answer**.
+  Everywhere else in the capture the slot is user-stated. Flagged here because an inferred
+  slot is a different kind of value from a stated one and a later reader should not assume
+  uniformity. Walked.
+- COMPLETION reuses the 3c-i parent-pop pattern with the `completedRef` latch. **No
+  capture screen survives on the stack.** Walked, including system back and the
+  swipe-back refusal.
+- WALKS (Kyle's, 2026-09-06), all steps: morning and evening paths; `varies` and
+  non-behavioral confirmed to show **no menu**; the Firestore field shape; the `routines`
+  collection **byte-untouched before and after** (the direct check on the rejected design,
+  rather than trusting that the code path is absent); offline retry **writes once**;
+  VoiceOver across the six-row menu; xxxLarge text.
+- SURFACING: **invisible today.** Nothing renders the stored intention until slice 5's
+  phase detail page, which as a result now has **real user state to render on day one**
+  rather than an empty shell. The ambient reminder that would make the intention feel
+  live belongs to **slice 9**, per pack `§decisions-3`. The gap between storing the
+  commitment and showing it back is real and is one slice wide by design, the same shape
+  as 3b's dead-questions window.
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*

@@ -89,7 +89,19 @@ import * as path from 'path';
 // confirmation: in Jen's original the deferred reminder step owned that position
 // and it went to slice 9 with the rest, so the pack supplies no word for it.
 //
-const EXPECTED_SENTINELS = 174;
+// 173 since the 3c-ii follow-up: -1, AN APPROVAL. Owner Kyle, 2026-09-06, for
+// REPLACEMENT_COPY.confirmedPrimary ('Got it') -- the same string the +1 above
+// added, signed off on device during the 3c-ii walk and the marker cleared in
+// the follow-up commit rather than on the branch. Reviewed in place, in the
+// confirmed state it dismisses, which is the form the user meets it in.
+//
+// THE NUMBER RETURNS TO 173 BUT THE SET IS NOT THE 3b SET. Two unrelated
+// changes have parked on this value now, and a reader diffing pins alone would
+// see no movement across the whole of slice 3c-ii. The draft landed and was
+// cleared one commit later; the flat pin is the sum of those two, not evidence
+// that neither happened.
+//
+const EXPECTED_SENTINELS = 173;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

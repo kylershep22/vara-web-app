@@ -162,13 +162,19 @@ export const REPLACEMENT_COPY = {
    * dismisses it, because in Jen's original the reminder step owned that
    * position and it went to slice 9 with the rest.
    *
-   * Open tension for the owner: UI Standards section 18 says buttons name the
-   * action, and this one acknowledges rather than names. The alternatives all
-   * read worse here. "I'll do that" re-commits to something the user has just
-   * committed to, and a navigation label ("Back to today") names the mechanism
-   * rather than the intent.
+   * Tension with UI Standards section 18, RESOLVED IN FAVOUR OF SHIPPING IT.
+   * Section 18 says buttons name the action, and this one acknowledges rather
+   * than names. The alternatives all read worse here: "I'll do that" re-commits
+   * to something the user has just committed to, and a navigation label ("Back
+   * to today") names the mechanism rather than the intent.
+   *
+   * APPROVED by Kyle on device, 2026-09-06, during the 3c-ii walk, and the
+   * draft marker cleared in the follow-up commit. Owner Kyle because it is a UI
+   * button label rather than efficacy-adjacent copy. Read in place, in the
+   * confirmed state it dismisses, rather than off a list. Revising it reopens
+   * the section 18 tension above; do not treat the absence of a marker as
+   * meaning nobody weighed it.
    */
-  // COPY: draft, not from guidelines doc - pending Kyle
   confirmedPrimary: 'Got it',
   /** Shown in place of navigating away when the seed write fails. */
   saveFailed: 'That did not save. Try again.',
