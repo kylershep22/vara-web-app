@@ -135,8 +135,9 @@ describe('OnboardingV3WeekStartScreen', () => {
 });
 
 describe('the V3 arc shape', () => {
-  test('is nine steps', () => {
-    expect(V3_TOTAL_STEPS).toBe(9);
+  test('is ten steps', () => {
+    // Nine until journey slice 4 inserted the A2 route explanation at step 3.
+    expect(V3_TOTAL_STEPS).toBe(10);
   });
 
   test('week-start sits between the floor and the first win', () => {

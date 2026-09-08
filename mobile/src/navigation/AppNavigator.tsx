@@ -122,7 +122,8 @@ import type { OnboardingSrStep } from '../constants/onboardingStressRecovery';
 import { OnboardingV3Provider } from '../screens/onboarding/v3/OnboardingV3Context';
 import { V3_ROUTES } from '../screens/onboarding/v3/routes';
 import { OnboardingV3ColdOpenScreen } from '../screens/onboarding/v3/OnboardingV3ColdOpenScreen';
-import { OnboardingV3OutcomeScreen } from '../screens/onboarding/v3/OnboardingV3OutcomeScreen';
+import { OnboardingV3DestinationScreen } from '../screens/onboarding/v3/OnboardingV3DestinationScreen';
+import { OnboardingV3RouteScreen } from '../screens/onboarding/v3/OnboardingV3RouteScreen';
 import { OnboardingV3WhyScreen } from '../screens/onboarding/v3/OnboardingV3WhyScreen';
 import { OnboardingV3CapacityScreen } from '../screens/onboarding/v3/OnboardingV3CapacityScreen';
 import { OnboardingV3FloorScreen } from '../screens/onboarding/v3/OnboardingV3FloorScreen';
@@ -210,7 +211,8 @@ const OnboardingNavigator = ({ initialStep }: { initialStep?: OnboardingSrStep }
           }}
         >
           <OnboardingStack.Screen name={V3_ROUTES.ColdOpen} component={OnboardingV3ColdOpenScreen} />
-          <OnboardingStack.Screen name={V3_ROUTES.Outcome} component={OnboardingV3OutcomeScreen} />
+          <OnboardingStack.Screen name={V3_ROUTES.Destination} component={OnboardingV3DestinationScreen} />
+          <OnboardingStack.Screen name={V3_ROUTES.Route} component={OnboardingV3RouteScreen} />
           <OnboardingStack.Screen name={V3_ROUTES.Why} component={OnboardingV3WhyScreen} />
           <OnboardingStack.Screen name={V3_ROUTES.Capacity} component={OnboardingV3CapacityScreen} />
           <OnboardingStack.Screen name={V3_ROUTES.Floor} component={OnboardingV3FloorScreen} />

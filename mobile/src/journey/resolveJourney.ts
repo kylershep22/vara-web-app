@@ -35,6 +35,10 @@
  * is keyed on PhaseKey now, so nothing needs to translate a destination back
  * into an outcome. The remaining legacy direction lives in the engine as
  * `legacyPhaseFor` and dies with the JOURNEY_IA flag.
+ *
+ * `outcomeForDestination` below is NOT that function coming back. It has one
+ * caller, the onboarding terminal, and it exists only because
+ * `WeeklyCycle.outcome` is still required. Slice 4b removes both.
  */
 import {
   createJourneyState,
@@ -49,7 +53,14 @@ import type {
   PhaseKey,
   RemoveFamily,
 } from '../types/models';
+import { destinationForOutcome } from './destinationBridge';
 import type { JourneyMigrationSource } from '../types/analyticsEvents';
+
+// Re-exported because it is now part of this module's RESULT and not just
+// an analytics payload field: useJourneyLanding and Home both name it.
+// Re-exported rather than moved so the analytics event map stays the one
+// place the source strings are defined.
+export type { JourneyMigrationSource };
 import type { CapacityTier, OutcomeKey } from '../protocolEngine';
 import { logger } from '../utils/logger';
 import { toIsoDate } from '../utils/weekStart';
@@ -70,11 +81,19 @@ export interface PhaseContext {
   /**
    * The tier a day falls back to when it has not been picked.
    *
-   * TEMPORARY - REMOVED IN SLICE 3. Sourced from the latest weekly cycle's
-   * `capacityInitial` because that is still the only place a seed is written.
-   * Slice 4 re-homes it onto the journey itself; until then the journey path
-   * borrows the weekly one rather than inventing a second answer that would
-   * disagree with the flag-off path on the same account.
+   * RE-HOMED IN SLICE 4, and this comment used to say "REMOVED IN SLICE 3" on
+   * its first line while its body said slice 4. It is now
+   * `userPrivate.capacitySeed`, written once by the onboarding terminal, which
+   * is what roadmap section 4 always specified.
+   *
+   * THE WEEKLY CYCLE IS STILL READ, BUT ONLY AS A FALLBACK, and only for
+   * accounts that predate the field. Removing the old read outright would have
+   * pinned every EXISTING beta user to 'normal' the moment they next opened
+   * the app, since none of them has a seed on userPrivate and none will until
+   * they re-onboard, which they never do. That is the failure the section 3.4
+   * amendment names: it does not throw, it just quietly serves everyone the
+   * wrong tier. The fallback narrows the shim to the accounts that need it
+   * instead of deleting it out from under them.
    */
   capacitySeed: CapacityTier;
   /** journeyState.updatedAt in millis. See the note on this interface. */
@@ -110,19 +129,36 @@ export interface PhaseContext {
 }
 
 export type JourneyResolution =
-  | { target: 'today'; phase: PhaseContext }
+  | {
+      target: 'today';
+      phase: PhaseContext;
+      /**
+       * Set ONLY on the resolve that created the journey, and undefined on
+       * every resolve after it.
+       *
+       * THIS IS WHAT MAKES THE MIGRATION ROUTE SCREEN FIRE ONCE. Home shows A2
+       * when this is present. The next launch takes rung (a), which never sets
+       * it, so the screen cannot come back: the journeyStates document existing
+       * IS the once-only guard, and no flag, counter or stored "seen" field is
+       * needed to enforce it. A user who force-quits on A2 sees it once more
+       * and then never again, which is the correct answer for a screen that
+       * explains something they may not have read.
+       */
+      migratedFrom?: JourneyMigrationSource;
+    }
   | { target: 'legacy' };
 
 /**
- * OutcomeKey -> DestinationKey.
+ * The vocabulary bridge MOVED to journey/destinationBridge.ts in slice 4, and
+ * is re-exported here so existing importers keep working.
  *
- * The only asymmetric pair is stress -> calm. The other three are spelled the
- * same in both vocabularies, which is exactly why this must be a function and
- * not a cast: three-quarters right is what makes a cast survive review.
+ * WHY IT MOVED. It is two pure functions over two string unions, and this
+ * module reaches Firestore and analytics. The onboarding terminal needs the
+ * destination -> outcome direction, and importing it from here pulled the whole
+ * service layer into a screen. A vocabulary mapping should cost nothing to
+ * import.
  */
-export function destinationForOutcome(outcome: OutcomeKey): DestinationKey {
-  return outcome === 'stress' ? 'calm' : outcome;
-}
+export { destinationForOutcome, outcomeForDestination } from './destinationBridge';
 
 /**
  * journeyState.enteredAt as an ISO date, tolerant of the shapes Firestore
@@ -174,6 +210,33 @@ export function uidDigest(uid: string): string {
 }
 
 /**
+ * The capacity seed for a user, from its home with a legacy fallback.
+ *
+ * ORDER IS THE WHOLE POINT. userPrivate.capacitySeed is the answer whenever it
+ * exists, which is every account onboarded from slice 4 onward. Only when it is
+ * absent does the latest weekly cycle's `capacityInitial` answer, and that is
+ * there solely for accounts created before the field existed.
+ *
+ * THE CYCLE READ IS LAZY, so the common path does not pay for it: a user with a
+ * seed never touches weeklyCycles here at all.
+ *
+ * 'normal' LAST, for a user with neither, which is the same fallback this had
+ * before the re-homing.
+ *
+ * WHEN THE FALLBACK CAN GO. When no account without a seed can still be
+ * reached, or when slice 4b retires `capacityInitial` writes. Deleting it
+ * before then does not fail: it silently serves 'normal' to every existing beta
+ * user, which is the correct-looking bug the section 3.4 amendment describes.
+ */
+async function resolveCapacitySeed(uid: string): Promise<CapacityTier> {
+  const priv = await getUserPrivate(uid);
+  if (priv?.capacitySeed) return priv.capacitySeed;
+
+  const latest = await getLatestWeeklyCycle(uid);
+  return latest?.capacityInitial ?? 'normal';
+}
+
+/**
  * Resolve where Home should land this user.
  *
  * READ-THEN-MAYBE-WRITE. The only write is the migration create on rungs (b)
@@ -188,11 +251,6 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
   try {
     // ---- (a) already on the journey ----
     const existing = await getJourneyState(uid);
-    const latest = await getLatestWeeklyCycle(uid);
-
-    // The seed is read from the weekly cycle on BOTH paths (shim 2), so it is
-    // read once here rather than twice below.
-    const capacitySeed: CapacityTier = latest?.capacityInitial ?? 'normal';
 
     if (existing) {
       return {
@@ -200,7 +258,7 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
         phase: {
           phaseKey: existing.phaseKey,
           destination: existing.destination,
-          capacitySeed,
+          capacitySeed: await resolveCapacitySeed(uid),
           revisionToken: revisionOf(existing),
           removeFamily: existing.removeFamily ?? undefined,
           enteredAtIso: enteredAtIsoOf(existing),
@@ -210,6 +268,11 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
     }
 
     // ---- (b) and (c) the migration branch ----
+    // The cycle is read HERE now, not above. Rung (a) stopped needing it when
+    // the seed moved to userPrivate, so a user already on the journey costs one
+    // Firestore read fewer per resolve than before this slice.
+    const latest = await getLatestWeeklyCycle(uid);
+
     let destination: DestinationKey | null = null;
     let source: JourneyMigrationSource | null = null;
 
@@ -253,10 +316,16 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
 
     return {
       target: 'today',
+      // A2 fires off this, once. See JourneyResolution.
+      migratedFrom: source,
       phase: {
         phaseKey: created.phaseKey,
         destination: created.destination,
-        capacitySeed,
+        // A migrating account predates userPrivate.capacitySeed by definition,
+        // so this is the legacy cycle read almost every time. Routed through
+        // the same helper anyway rather than reading `latest` directly, so
+        // there is one answer to "where does a seed come from" and not two.
+        capacitySeed: await resolveCapacitySeed(uid),
         revisionToken: revisionOf(created),
         // A journey created a moment ago has no capture yet, by construction.
         removeFamily: undefined,

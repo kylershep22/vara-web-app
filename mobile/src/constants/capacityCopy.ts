@@ -35,3 +35,27 @@ export const CAPACITY_GLOSSES = {
   limited: 'Some room, so be selective.',
   slammed: 'Very little room. Keep the bar realistic.',
 } as const;
+
+/**
+ * The capacity question itself. TWO SURFACES ASK IT, WHICH IS WHY IT IS HERE.
+ *
+ * Moved verbatim out of PICKER_COPY (components/dashboard/dailyPicker.copy.ts)
+ * by journey slice 4, for the reason that module's own header gives: files
+ * under screens/ must never import copy from components/, and the V3
+ * onboarding capacity screen is under screens/. Anything with a non-daily
+ * reader belongs in constants/ instead. Same move CAPACITY_LABELS and
+ * CAPACITY_GLOSSES made in slice 0, for the same rule.
+ *
+ * NOT A NEW STRING, and the sentinel does not move for it. It is the one that
+ * already shipped on the daily picker, relocated with its marker and its owner
+ * intact. The onboarding screen previously asked a DIFFERENT question ("How
+ * much room does this week have?"); that string is deleted, and this one now
+ * answers for both surfaces.
+ *
+ * ONE QUESTION, TWO SCOPES, DELIBERATELY. The picker asks it about today and
+ * stores a daily answer; onboarding asks it once and stores a seed the day
+ * falls back to when it has not been picked. Asking it in the same words is
+ * the point: the user is being taught the question they will meet every day.
+ */
+// COPY: draft, not from guidelines doc - pending Jen
+export const CAPACITY_QUESTION = 'How much are you up for today?';

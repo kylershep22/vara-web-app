@@ -32,7 +32,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { JOURNEY_IA } from '../constants/dashboardConfig';
-import { resolveJourney, type PhaseContext } from '../journey/resolveJourney';
+import {
+  resolveJourney,
+  type JourneyMigrationSource,
+  type PhaseContext,
+} from '../journey/resolveJourney';
 import { useWeeklyLanding } from './useWeeklyLanding';
 import type { WeeklyEntryTarget } from '../screens/weekly/weeklyEntry';
 import type { WeeklyCycle } from '../types/models';
@@ -49,6 +53,15 @@ export interface JourneyLanding {
   cycle: WeeklyCycle | null;
   /** The journey context behind a 'today' answer. null on every legacy path. */
   phase: PhaseContext | null;
+  /**
+   * Set for ONE resolve only: the one that migrated this user onto the journey.
+   *
+   * Home shows the route explanation (A2) while this is present. It is null on
+   * every other pass, including every subsequent launch, because the resolver
+   * only sets it on the create. Nothing here decides how often the screen
+   * appears; the journeyStates document does.
+   */
+  migratedFrom: JourneyMigrationSource | null;
   loading: boolean;
   failed: boolean;
   refresh: () => void;
@@ -58,6 +71,9 @@ export function useJourneyLanding(uid: string | undefined): JourneyLanding {
   const weekly = useWeeklyLanding(uid);
 
   const [phase, setPhase] = useState<PhaseContext | null>(null);
+  const [migratedFrom, setMigratedFrom] = useState<JourneyMigrationSource | null>(
+    null
+  );
   // null means "the resolver has not answered yet for this pass", which is a
   // different state from 'legacy' and must not render as one: treating it as
   // legacy for a frame would flash the weekly surface at a journey user.
@@ -91,6 +107,7 @@ export function useJourneyLanding(uid: string | undefined): JourneyLanding {
     // no journey state is created for a user who has not set a floor.
     if (!JOURNEY_IA || !uid || weeklyTarget === null || weeklyTarget === 'floor') {
       setPhase(null);
+      setMigratedFrom(null);
       setResolved(null);
       return () => {
         activeRef.current = false;
@@ -102,9 +119,14 @@ export function useJourneyLanding(uid: string | undefined): JourneyLanding {
       if (!activeRef.current) return;
       if (result.target === 'today') {
         setPhase(result.phase);
+        // `?? null` rather than the raw value: the field is optional on the
+        // resolution and undefined would read as "not yet answered" in this
+        // hook's own vocabulary, where null means answered-and-empty.
+        setMigratedFrom(result.migratedFrom ?? null);
         setResolved('today');
       } else {
         setPhase(null);
+        setMigratedFrom(null);
         setResolved('legacy');
       }
     })();
@@ -131,6 +153,8 @@ export function useJourneyLanding(uid: string | undefined): JourneyLanding {
       target: weekly.target,
       cycle: weekly.cycle,
       phase: null,
+      // Nothing migrates with the flag off, because nothing resolves.
+      migratedFrom: null,
       loading: weekly.loading,
       failed: weekly.failed,
       refresh: weekly.refresh,
@@ -143,6 +167,9 @@ export function useJourneyLanding(uid: string | undefined): JourneyLanding {
       target: 'floor',
       cycle: null,
       phase: null,
+      // The floor gate short-circuits before the resolver runs, so nothing has
+      // migrated and A2 must not appear over the floor screen.
+      migratedFrom: null,
       loading: weekly.loading,
       failed: weekly.failed,
       refresh,
@@ -156,6 +183,7 @@ export function useJourneyLanding(uid: string | undefined): JourneyLanding {
       // has expired, which the render gates on rather than assuming.
       cycle: weekly.cycle,
       phase,
+      migratedFrom,
       loading: weekly.loading,
       failed: weekly.failed,
       refresh,
@@ -167,6 +195,7 @@ export function useJourneyLanding(uid: string | undefined): JourneyLanding {
       target: weekly.target,
       cycle: weekly.cycle,
       phase: null,
+      migratedFrom: null,
       loading: weekly.loading,
       failed: weekly.failed,
       refresh,
@@ -180,6 +209,7 @@ export function useJourneyLanding(uid: string | undefined): JourneyLanding {
     target: null,
     cycle: null,
     phase: null,
+    migratedFrom: null,
     loading: true,
     failed: weekly.failed,
     refresh,

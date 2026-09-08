@@ -22,7 +22,7 @@ export const OnboardingV3ColdOpenScreen: React.FC = () => {
       title={COLD_OPEN_COPY.title}
       subtitle={COLD_OPEN_COPY.subtitle}
       primaryLabel={COLD_OPEN_COPY.primary}
-      onPrimary={() => navigation.navigate(V3_ROUTES.Outcome)}
+      onPrimary={() => navigation.navigate(V3_ROUTES.Destination)}
       decorativeIcon={Sunrise}
       centerContent
     />

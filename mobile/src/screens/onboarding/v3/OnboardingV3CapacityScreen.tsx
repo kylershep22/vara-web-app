@@ -1,8 +1,14 @@
 /**
- * Step 4 of 8 — Capacity. Single-select over the THREE shipped tiers.
+ * Step 5 of 10 — Capacity. Single-select over the THREE shipped tiers.
  *
- * NOT SKIPPABLE: with the outcome, this pair is what selectProtocol() resolves,
- * so the terminal has nothing to open a cycle with if it is missing.
+ * NOT SKIPPABLE: with the destination, this pair is what the terminal needs,
+ * and the answer is also the SEED the daily picker falls back to on a day the
+ * user has not picked (roadmap section 4). It is written to
+ * userPrivate.capacitySeed, which is where resolveJourney reads it from since
+ * journey slice 4 retired the read off the weekly cycle.
+ *
+ * THE TITLE IS THE DAILY PICKER'S QUESTION, deliberately the same string. See
+ * CAPACITY_COPY in copy.ts for why the week-scoped one it replaced was wrong.
  *
  * Rendered from CAPACITY_TIERS, which is capacity-DESCENDING (normal, limited,
  * slammed) and is the single ordering source the engine's tier-step helpers also
@@ -14,6 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { OnboardingScaffold } from '../../../components/onboarding/OnboardingScaffold';
 import { CAPACITY_TIERS, type CapacityTier } from '../../../protocolEngine';
+import { CAPACITY_QUESTION } from '../../../constants/capacityCopy';
 import { CAPACITY_COPY, CAPACITY_GLOSSES, CAPACITY_LABELS } from './copy';
 import { useOnboardingV3 } from './OnboardingV3Context';
 import { V3_ROUTES, V3_TOTAL_STEPS, v3StepNumber } from './routes';
@@ -29,7 +36,7 @@ export const OnboardingV3CapacityScreen: React.FC = () => {
     <OnboardingScaffold
       currentStep={v3StepNumber(V3_ROUTES.Capacity)}
       totalSteps={V3_TOTAL_STEPS}
-      title={CAPACITY_COPY.title}
+      title={CAPACITY_QUESTION}
       subtitle={CAPACITY_COPY.subtitle}
       primaryLabel={CAPACITY_COPY.primary}
       primaryDisabled={!capacity}

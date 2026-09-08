@@ -17,7 +17,8 @@
  * V2 arc cannot see it and nothing outside onboarding can reach it.
  */
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import type { CapacityTier, OutcomeKey } from '../../../protocolEngine';
+import type { CapacityTier } from '../../../protocolEngine';
+import type { DestinationKey } from '../../../types/models';
 
 /** A reminder time, matching the ReminderTime shape the notif prefs store uses. */
 export interface V3ReminderTime {
@@ -26,8 +27,14 @@ export interface V3ReminderTime {
 }
 
 export interface OnboardingV3State {
-  /** Single-select, required to leave the outcome screen. */
-  outcome: OutcomeKey | null;
+  /**
+   * Single-select, required to leave the destination screen (A1).
+   *
+   * A DestinationKey, not an OutcomeKey, since journey slice 4. The terminal
+   * still writes an OutcomeKey onto the first weekly cycle, and derives it here
+   * rather than carrying both: two fields for one answer is how they drift.
+   */
+  destination: DestinationKey | null;
   /** Free text, skippable. Null means skipped, which is distinct from ''. */
   whyNote: string | null;
   /** One of the three tiers, required to leave the capacity screen. */
@@ -45,7 +52,7 @@ export interface OnboardingV3State {
 }
 
 export interface OnboardingV3Value extends OnboardingV3State {
-  setOutcome: (outcome: OutcomeKey) => void;
+  setDestination: (destination: DestinationKey) => void;
   setWhyNote: (note: string | null) => void;
   setCapacity: (capacity: CapacityTier) => void;
   setFloorCommitment: (floor: string | null) => void;
@@ -54,7 +61,7 @@ export interface OnboardingV3Value extends OnboardingV3State {
 }
 
 const EMPTY: OnboardingV3State = {
-  outcome: null,
+  destination: null,
   whyNote: null,
   capacity: null,
   floorCommitment: null,
@@ -72,7 +79,7 @@ export const OnboardingV3Provider: React.FC<{ children: React.ReactNode }> = ({
   const value = useMemo<OnboardingV3Value>(
     () => ({
       ...state,
-      setOutcome: (outcome) => setState((s) => ({ ...s, outcome })),
+      setDestination: (destination) => setState((s) => ({ ...s, destination })),
       setWhyNote: (whyNote) => setState((s) => ({ ...s, whyNote })),
       setCapacity: (capacity) => setState((s) => ({ ...s, capacity })),
       setFloorCommitment: (floorCommitment) =>
