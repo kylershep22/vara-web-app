@@ -155,7 +155,24 @@ import * as path from 'path';
 // written after is labelled from the journey's destination; neither map is ever
 // indexed with the other's key. Sharing them to save three strings would trade
 // a sentinel count for the seam this whole slice exists to keep straight.
-const EXPECTED_SENTINELS = 168;
+//
+// 165 since the 4b follow-up: -3, AN APPROVAL. Owner Kyle, 2026-09-07, for
+// 'Focus', 'Calm' and 'Energy' in DESTINATION_SUMMARY_LABELS -- the same three
+// the +3 above added. Signed off on device during the 4b walk, read in the
+// summary line they occupy rather than off a list, and the markers cleared in
+// the follow-up commit rather than on the branch.
+//
+// THE PARTIAL-APPROVAL ODDITY IS CLOSED, not merely reduced. That map is now
+// fully approved: three by Kyle here, 'Steadier days' flat from the pack. The
+// note above explaining why only three of four counted is history rather than
+// a live caveat, and the map's own doc comment says so.
+//
+// THE NUMBER RETURNS TO 165 AND THE SET IS THE SAME SET. Unlike the 3b/3c-ii
+// pair that both parked on 173, this is a +3 and a -3 on the same three
+// strings one commit apart. A reader diffing pins alone would see no movement
+// across slice 4b; the flat pin is the sum of those two, not evidence that
+// neither happened.
+const EXPECTED_SENTINELS = 165;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

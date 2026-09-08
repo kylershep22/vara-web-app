@@ -1080,8 +1080,8 @@ carries what was left out.
 **Sept 7, 2026 — slice 4b on branch `journey/slice-4b-outcome-retirement`. The weekly
 cycle stops carrying an outcome.** Not merged; walk pending. Closes the clause split out
 of row 4 at slice 4a's Step 0.
-- Figures: jest **3179 / 211** (from 3163 / 211) · tsc **149**, unchanged · sentinel
-  **165 -> 168**. Rules **191 / 2** and functions **53 / 4** carried unrun: neither
+- Figures at close: jest **3179 / 211** (from 3163 / 211) · tsc **149**, unchanged ·
+  sentinel **165**. Rules **191 / 2** and functions **53 / 4** carried unrun: neither
   `firestore.rules` nor anything under `functions/` is in the diff.
 - **THE DEFAULT IS GONE.** `DEFAULT_ROLLOVER_OUTCOME` (`'focus'`) is deleted and the
   rollover carries absence forward: `...(latest?.outcome ? { outcome: latest.outcome } : {})`.
@@ -1119,14 +1119,25 @@ of row 4 at slice 4a's Step 0.
   would put post-4b accounts there. The alternative was to default a phase, which would
   serve content chosen from an outcome the user never picked, silently. Serving nothing is
   visibly wrong; serving the wrong thing is not.
-- SENTINEL **+3**, owner Kyle: `'Focus'`, `'Calm'` and `'Energy'` in
-  `DESTINATION_SUMMARY_LABELS`. **Three and not four** because `routines` reads "Steadier
-  days", which is approved (pack part one section 3, decision 2, resolving §9 item 9) and
-  carries no marker. A partially-approved map is unusual enough to state rather than leave
-  to be rediscovered. `OUTCOME_LABELS` already spells two of those words identically; they
-  are new strings anyway because the two maps are keyed on different unions, and sharing
-  them to save three sentinel entries would trade a count for the seam this slice exists
-  to keep straight.
+- **SENTINEL: THE BRANCH SAYS 168 AND THE CLOSED STATE IS 165. BOTH ARE RIGHT.** The
+  branch landed `'Focus'`, `'Calm'` and `'Energy'` in `DESTINATION_SUMMARY_LABELS` as
+  drafts, +3, owner Kyle. **Kyle then approved all three on device on 2026-09-07 during
+  the walk itself**, read in the summary line they occupy rather than off a list, and the
+  markers were cleared in a follow-up commit, -3. The pin is back at **165**. Same shape
+  as the 3c-ii close: read the branch figure as branch state, not closed state.
+  **`routines` was never part of either move** — it reads "Steadier days", approved via
+  pack part one section 3 decision 2 (resolving §9 item 9), and carried no marker at any
+  point. The map landed three-drafted-one-approved, which was flagged at the time as an
+  oddity; **that oddity is now closed rather than left standing**, and the map's own doc
+  comment records it.
+- The flat pin across slice 4b is a **+3 and a -3 on the same three strings**, one commit
+  apart. Unlike the 3b/3c-ii pair that both parked on 173 with different sets, this is
+  literally the same three; a reader diffing pins alone would see no movement across the
+  whole slice and would be wrong twice.
+- `OUTCOME_LABELS` already spells two of those words identically. They are separate
+  strings anyway because the two maps are keyed on different unions, and sharing them to
+  save three sentinel entries would have traded a count for the seam this slice exists to
+  keep straight.
 - `outcomeForDestination` is RETIRED with its only caller. It existed for one slice, for
   the terminal's cycle write, and the file it lived in now carries a note not to
   reintroduce it: anything that appears to need an OutcomeKey from a DestinationKey is

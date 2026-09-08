@@ -44,17 +44,26 @@ import type { DestinationKey } from '../types/models';
  * indexed with the other union's key.
  *
  * `routines` READS "Steadier days" per roadmap section 9 item 9, resolved: the
- * user wants steadier days, routines are the mechanism. That string is approved
- * (Content Pack v1 part one section 3, decision 2) and carries no marker. The
- * other three are drafted.
+ * user wants steadier days, routines are the mechanism. Approved via Content
+ * Pack v1 part one section 3, decision 2.
+ *
+ * FULLY APPROVED, AND THE MAP NO LONGER MIXES TWO STATES. It landed in slice 4b
+ * with three drafted entries and one approved one, which was worth flagging at
+ * the time and is now closed: **'Focus', 'Calm' and 'Energy' were approved by
+ * Kyle on device on 2026-09-07**, during the 4b walk, read in the position they
+ * actually occupy rather than off a list. "Steadier days" was already flat from
+ * the pack. No entry here carries a marker and the sentinel does not count any
+ * of them.
+ *
+ * THE FOUR ARE REVISED TOGETHER OR NOT AT ALL. They are one control's worth of
+ * vocabulary: three one-word labels and one two-word label that only reads
+ * right beside them. Changing one alone is how a set like this drifts into
+ * looking accidental.
  */
 export const DESTINATION_SUMMARY_LABELS: Record<DestinationKey, string> = {
-  // COPY: draft, not from guidelines doc - pending Kyle
   focus: 'Focus',
-  // COPY: draft, not from guidelines doc - pending Kyle
   calm: 'Calm',
   routines: 'Steadier days',
-  // COPY: draft, not from guidelines doc - pending Kyle
   energy: 'Energy',
 };
 
