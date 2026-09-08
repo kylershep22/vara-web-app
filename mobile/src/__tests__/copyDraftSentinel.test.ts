@@ -135,7 +135,27 @@ import * as path from 'path';
 //
 // The 22 strings slice 4a added are all Jen's, from Content Pack v1 sections
 // A1, A2 and short-labels, and enter WITHOUT markers per the pack header.
-const EXPECTED_SENTINELS = 165;
+//
+// 168 since journey slice 4b: +3 for DESTINATION_SUMMARY_LABELS in
+// constants/journeyCopy.ts -- 'Focus', 'Calm' and 'Energy'. Owner Kyle: they
+// are one-word UI labels, not efficacy-adjacent copy.
+//
+// WHY THREE AND NOT FOUR. The map has four entries; `routines` reads 'Steadier
+// days', which is APPROVED (Content Pack v1 part one section 3, decision 2,
+// resolving roadmap section 9 item 9) and therefore carries no marker and does
+// not count. A partially-approved map is unusual enough to say out loud rather
+// than leave to be rediscovered.
+//
+// WHY NEW STRINGS AT ALL, when OUTCOME_LABELS already spells 'Focus' and
+// 'Energy' identically. The two maps are keyed on DIFFERENT UNIONS:
+// OUTCOME_LABELS on `focus | stress | routines | energy`, this one on
+// `focus | calm | routines | energy`. Three keys coincide and one does not,
+// which is exactly the shape that makes reusing the first map look safe. A
+// cycle written before slice 4b is labelled from its stored outcome; one
+// written after is labelled from the journey's destination; neither map is ever
+// indexed with the other's key. Sharing them to save three strings would trade
+// a sentinel count for the seam this whole slice exists to keep straight.
+const EXPECTED_SENTINELS = 168;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

@@ -10,6 +10,7 @@ import { fireEvent, render } from '@testing-library/react-native';
 
 import { CloseWeekEntry } from '../CloseWeekEntry';
 import { OUTCOME_LABELS } from '../../../screens/weekly/copy';
+import { DESTINATION_SUMMARY_LABELS } from '../../../constants/journeyCopy';
 import { TODAY_COPY } from '../dailyPicker.copy';
 import type { WeeklyCycle } from '../../../types/models';
 
@@ -146,5 +147,66 @@ describe('CloseWeekEntry', () => {
       expect(screen.queryByText(/%/)).toBeNull();
       expect(screen.queryByText(/streak|congrat|well done|nice work|score/i)).toBeNull();
     });
+  });
+});
+
+describe('the closed-week detail across both cycle shapes (slice 4b)', () => {
+  /** A cycle with the outcome genuinely absent, not set to undefined. */
+  // NO CAST; see the note in TodayHeroCard.test.tsx. Omitting an optional
+  // field by destructuring is the proof that it is genuinely optional.
+  const journeyEra = (): WeeklyCycle => {
+    // The discarded binding IS the omission; naming it is how the field gets
+    // dropped, so it is unused on purpose.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { outcome, ...rest } = cycle();
+    return rest;
+  };
+
+  test('a LEGACY closed week still names its outcome', () => {
+    const screen = render(
+      <CloseWeekEntry closed cycle={cycle({ outcome: 'routines' })} onPress={jest.fn()} />
+    );
+
+    expect(screen.getByText(OUTCOME_LABELS.routines)).toBeTruthy();
+  });
+
+  test('a JOURNEY-ERA closed week names the destination', () => {
+    const screen = render(
+      <CloseWeekEntry
+        closed
+        cycle={journeyEra()}
+        destination="calm"
+        onPress={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText(DESTINATION_SUMMARY_LABELS.calm)).toBeTruthy();
+  });
+
+  test('a legacy outcome wins over a destination when both are present', () => {
+    const screen = render(
+      <CloseWeekEntry
+        closed
+        cycle={cycle({ outcome: 'routines' })}
+        destination="calm"
+        onPress={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText(OUTCOME_LABELS.routines)).toBeTruthy();
+    expect(screen.queryByText(DESTINATION_SUMMARY_LABELS.calm)).toBeNull();
+  });
+
+  test('with NEITHER, the detail line is absent and the acknowledgment stands alone', () => {
+    // Not "Unknown" and not a default. An anonymous seven days is a better
+    // thing to close than a week labelled with a value nobody chose.
+    const screen = render(
+      <CloseWeekEntry closed cycle={journeyEra()} onPress={jest.fn()} />
+    );
+
+    expect(screen.queryByTestId('home-week-closed-outcome')).toBeNull();
+    // The acknowledgment itself must survive, or this would be "the whole card
+    // disappeared" passing as "the label disappeared".
+    expect(screen.getByTestId('home-week-closed')).toBeTruthy();
   });
 });

@@ -36,9 +36,8 @@
  * into an outcome. The remaining legacy direction lives in the engine as
  * `legacyPhaseFor` and dies with the JOURNEY_IA flag.
  *
- * `outcomeForDestination` below is NOT that function coming back. It has one
- * caller, the onboarding terminal, and it exists only because
- * `WeeklyCycle.outcome` is still required. Slice 4b removes both.
+ * `outcomeForDestination` briefly existed for the onboarding terminal and was
+ * removed again in slice 4b, along with the cycle write that needed it.
  */
 import {
   createJourneyState,
@@ -158,7 +157,7 @@ export type JourneyResolution =
  * service layer into a screen. A vocabulary mapping should cost nothing to
  * import.
  */
-export { destinationForOutcome, outcomeForDestination } from './destinationBridge';
+export { destinationForOutcome } from './destinationBridge';
 
 /**
  * journeyState.enteredAt as an ISO date, tolerant of the shapes Firestore

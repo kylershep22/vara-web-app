@@ -520,7 +520,25 @@ export interface WeeklyCycle {
    * That fallback is why this needs no backfill.
    */
   weekEnd?: string;
-  outcome: OutcomeKey;
+  /**
+   * The outcome the week was opened on. LEGACY, AND OPTIONAL SINCE SLICE 4b.
+   *
+   * TWO SHAPES COEXIST INDEFINITELY AND THERE IS NO MIGRATION. Every cycle
+   * written before slice 4b HAS this field; nothing written after it does.
+   * Absence is not a defect and must never be repaired: it is what a cycle
+   * created under the journey model looks like, and the journey's destination
+   * lives on `journeyStates` where it belongs.
+   *
+   * §3.4 always said the write-set fields stay optional so legacy documents
+   * still parse. For this one that was never actually done, so slice 4b
+   * executes §3.4 rather than amending it.
+   *
+   * READERS MUST BRANCH, NOT DEFAULT. Substituting a value for an absent
+   * outcome is the failure this slice exists to remove: the rollover used to
+   * do exactly that and would show a user who chose Calm a week labelled
+   * Focus, with no error and no log line.
+   */
+  outcome?: OutcomeKey;
   /** The tier forecast at the weekly open. Never overwritten. */
   capacityInitial: CapacityTier;
   /**

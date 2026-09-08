@@ -47,7 +47,6 @@ import { Colors, Spacing, Typography } from '../../../constants';
 import { useAuth } from '../../../context/AuthContext';
 import { completeOnboarding } from '../../../services/firebase/onboarding.service';
 import { createJourneyState } from '../../../services/firebase/journeyState.service';
-import { outcomeForDestination } from '../../../journey/destinationBridge';
 import {
   getUserPrivate,
   setUserPrivate,
@@ -99,14 +98,11 @@ export const OnboardingV3DoneScreen: React.FC = () => {
       // are present here; the guard covers the impossible case rather than
       // trapping the user in onboarding over it.
       //
-      // STILL CARRIES AN OUTCOME, deliberately and only for now. Roadmap
-      // section 5's slice 4 row says the first cycle should be created without
-      // one; that half was split out as slice 4b because
-      // `WeeklyCycle.outcome` is a required field with two live readers
-      // (TodayHeroCard, CloseWeekEntry) and because the 3b rollover defaults a
-      // missing outcome to 'focus', which would fabricate one a week later for
-      // a user who chose something else. Nothing downstream of this write moves
-      // in 4a.
+      // NO OUTCOME (slice 4b). The first cycle is a cadence record and a
+      // capacity seed; where the user is going lives on journeyStates, written
+      // a few lines below. Slice 4a still wrote one here because the field was
+      // required and the rollover would have fabricated a replacement anyway;
+      // 4b removed both of those, so the write can finally stop.
       if (destination && capacity) {
         // THE SETUP WEEK, always. `priorWeekEnd: null` is passed literally
         // rather than read from the user's cycles, and that is load-bearing for
@@ -140,7 +136,6 @@ export const OnboardingV3DoneScreen: React.FC = () => {
           await createWeeklyCycle(user.uid, {
             weekStart,
             weekEnd,
-            outcome: outcomeForDestination(destination),
             capacityInitial: capacity,
           });
         }

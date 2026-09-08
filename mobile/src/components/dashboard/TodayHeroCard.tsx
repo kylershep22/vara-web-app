@@ -27,9 +27,10 @@ import { Check } from 'lucide-react-native';
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import type { ResolvedProtocolVariant } from '../../protocolEngine';
 import { OUTCOME_LABELS } from '../../screens/weekly/copy';
+import { DESTINATION_SUMMARY_LABELS } from '../../constants/journeyCopy';
 import { CAPACITY_LABELS } from '../../constants/capacityCopy';
 import { TODAY_COPY } from './dailyPicker.copy';
-import type { WeeklyCycle } from '../../types/models';
+import type { DestinationKey, WeeklyCycle } from '../../types/models';
 import { resolveWeekEnd } from '../../utils/weekStart';
 import { weekdayNameForIso } from '../../utils/weekdayLabels';
 import { CardHeading } from './CardHeading';
@@ -74,6 +75,17 @@ export interface TodayHeroCardProps {
    * unchanged in both states.
    */
   cycle?: WeeklyCycle | null;
+  /**
+   * The journey's destination, for the summary line when the cycle has no
+   * outcome (slice 4b).
+   *
+   * THE TWO ARE NOT ALTERNATIVES THAT MEAN THE SAME THING. `cycle.outcome` is
+   * what a legacy week was opened on; this is where the journey is going. A
+   * pre-4b cycle has an outcome and is labelled from it, unchanged. A cycle
+   * created under the journey model has none, and this is what the line names
+   * instead. When neither is present the line is omitted rather than guessed.
+   */
+  destination?: DestinationKey | null;
   protocol: ResolvedProtocolVariant;
   /** Rendered only when present; the hook reads it only on slammed weeks. */
   floorCommitment: string | null;
@@ -94,6 +106,7 @@ export interface TodayHeroCardProps {
 
 export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
   cycle,
+  destination,
   protocol,
   floorCommitment,
   completed,
@@ -175,9 +188,28 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
         below does not match. `selectProtocol` stamps the capacity it resolved
         onto the protocol, so reading it back from there makes the label and the
         action the same fact by construction rather than by agreement. */}
+    {/* THE FRAME LABEL, from whichever axis this account actually has.
+        Slice 4b, and the branch order is the rule:
+
+          1. `cycle.outcome`, for every pre-4b week. Reads OUTCOME_LABELS,
+             keyed `focus | stress | routines | energy`. Byte-identical to
+             what it rendered before, which is the point.
+          2. `destination`, for a week created under the journey model. Reads
+             DESTINATION_SUMMARY_LABELS, keyed `focus | calm | routines |
+             energy`. A DIFFERENT UNION and a different map; neither is ever
+             indexed with the other's key.
+          3. Neither: the label and its separator are omitted and the line
+             opens on the capacity. Not "Unknown", not a default outcome.
+             Substituting a value here is the bug this slice removed from the
+             rollover, and it would be no better on a render path. */}
     {!!cycle && (
       <Text style={styles.weekSummary} testID="home-today-summary">
-        {OUTCOME_LABELS[cycle.outcome]} / {CAPACITY_LABELS[protocol.capacity]}
+        {cycle.outcome
+          ? `${OUTCOME_LABELS[cycle.outcome]} / `
+          : destination
+            ? `${DESTINATION_SUMMARY_LABELS[destination]} / `
+            : ''}
+        {CAPACITY_LABELS[protocol.capacity]}
         {!!cycle.weekEnd &&
           ` · ${TODAY_COPY.runsThrough.replace('{day}', weekdayNameForIso(resolveWeekEnd(cycle.weekStart, cycle.weekEnd)))}`}
       </Text>

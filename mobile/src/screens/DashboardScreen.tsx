@@ -384,6 +384,11 @@ const DashboardScreen: React.FC = () => {
                          card omits its week-summary line rather than naming a
                          week that is over. */
                       cycle={weeklyLanding.cycle}
+                      /* Slice 4b. Labels the summary line for a cycle created
+                         under the journey model, which carries no outcome.
+                         Null on the legacy path, where the cycle labels
+                         itself. */
+                      destination={weeklyLanding.phase?.destination}
                       protocol={todayCard.protocol}
                       floorCommitment={todayCard.floorCommitment}
                       completed={todayCard.completed}
@@ -446,6 +451,8 @@ const DashboardScreen: React.FC = () => {
                     <CloseWeekEntry
                       closed={!!weeklyLanding.cycle.closeCompletedAt}
                       cycle={weeklyLanding.cycle}
+                      /* Slice 4b, same reason as the hero above. */
+                      destination={weeklyLanding.phase?.destination}
                       onPress={openClose}
                     />
                   )}

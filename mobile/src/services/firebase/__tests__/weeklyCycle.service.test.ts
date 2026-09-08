@@ -126,21 +126,49 @@ describe('weeklyCycle.service', () => {
     // to trust. These two assert the boundary in both directions, so adding a
     // field back without a reader fails here rather than in review.
     test('writes exactly the fields that are still read, and no others', async () => {
+      // NO OUTCOME SINCE SLICE 4b. No caller supplies one, so no new cycle
+      // carries one; the key is absent rather than present-and-undefined,
+      // because Firestore rejects undefined outright.
+      await createWeeklyCycle(ALICE, {
+        weekStart: WEEK,
+        weekEnd: WEEK_END,
+        capacityInitial: 'limited',
+      });
+      expect(Object.keys(mockAddDoc.mock.calls[0][1]).sort()).toEqual([
+        'capacityInitial',
+        'createdAt',
+        'updatedAt',
+        'userId',
+        'weekEnd',
+        'weekStart',
+      ]);
+    });
+
+    test('omits outcome entirely rather than writing undefined or null', async () => {
+      await createWeeklyCycle(ALICE, {
+        weekStart: WEEK,
+        weekEnd: WEEK_END,
+        capacityInitial: 'limited',
+      });
+      const written = mockAddDoc.mock.calls[0][1];
+      expect(written).not.toHaveProperty('outcome');
+      // The distinction matters on read: an absent field means the journey
+      // model, a stored null would mean "this week had no outcome", and only
+      // one of those is true.
+      expect('outcome' in written).toBe(false);
+    });
+
+    test('still writes an outcome when a caller explicitly supplies one', async () => {
+      // The parameter survives 4b for the legacy shape. Nothing supplies it
+      // today; if something ever does, it must reach the document rather than
+      // being silently dropped.
       await createWeeklyCycle(ALICE, {
         weekStart: WEEK,
         weekEnd: WEEK_END,
         outcome: 'stress',
         capacityInitial: 'limited',
       });
-      expect(Object.keys(mockAddDoc.mock.calls[0][1]).sort()).toEqual([
-        'capacityInitial',
-        'createdAt',
-        'outcome',
-        'updatedAt',
-        'userId',
-        'weekEnd',
-        'weekStart',
-      ]);
+      expect(mockAddDoc.mock.calls[0][1].outcome).toBe('stress');
     });
 
     test.each(['capacityCurrent', 'protocolId'])(
@@ -675,6 +703,86 @@ describe('weeklyCycle.service', () => {
         data: () => txStore.get(keyOf(ref)),
         id: 'rolled',
       }));
+
+    // THE ROLLOVER AND THE OUTCOME (journey slice 4b). This branch used to read
+    // `latest?.outcome ?? DEFAULT_ROLLOVER_OUTCOME`, and that single `??` is
+    // why slice 4a could not retire the onboarding write on its own: a cycle
+    // created without an outcome acquired one seven days later, invented here,
+    // and the hero rendered it as the user's own choice.
+    //
+    // BOTH SHAPES ARE PINNED, and both are needed. Propagation alone would pass
+    // with the default restored; absence alone would pass on a rollover that
+    // dropped the field for everyone, which would silently unlabel every legacy
+    // account's weeks.
+    describe('the outcome across a rollover', () => {
+      const legacy = { ...expired };
+      const journeyEra = (() => {
+        const c = { ...expired };
+        delete (c as any).outcome;
+        return c;
+      })();
+
+      test('propagates the outcome forward from a legacy cycle', async () => {
+        readsBackWhatWasWritten();
+
+        await ensureCurrentWeeklyCycle(ALICE, {
+          todayIso: '2026-08-31',
+          weekStartDay: 1,
+          latest: legacy,
+        });
+
+        const written = Array.from(txStore.values())[0] as any;
+        expect(written.outcome).toBe('focus');
+      });
+
+      test('carries ABSENCE forward from a cycle that has none', async () => {
+        readsBackWhatWasWritten();
+
+        await ensureCurrentWeeklyCycle(ALICE, {
+          todayIso: '2026-08-31',
+          weekStartDay: 1,
+          latest: journeyEra,
+        });
+
+        const written = Array.from(txStore.values())[0] as any;
+        expect(written).not.toHaveProperty('outcome');
+      });
+
+      test("NEVER substitutes 'focus' for a missing outcome", async () => {
+        // The named regression. If this ever passes with a value, a user who
+        // chose Calm is being shown Focus in week two, with no error and no log
+        // line. The assertion is deliberately on the VALUE and not only on the
+        // key, so restoring the default fails here rather than somewhere quiet.
+        readsBackWhatWasWritten();
+
+        await ensureCurrentWeeklyCycle(ALICE, {
+          todayIso: '2026-08-31',
+          weekStartDay: 1,
+          latest: journeyEra,
+        });
+
+        const written = Array.from(txStore.values())[0] as any;
+        expect(written.outcome).toBeUndefined();
+      });
+
+      test('still defaults the CAPACITY, which is a different question', async () => {
+        // Capacity is required on every cycle and every reader expects a tier.
+        // Removing the outcome default is not an argument for removing this
+        // one, and this test is what stops the next reader assuming it was.
+        readsBackWhatWasWritten();
+        const noCapacity = { ...journeyEra };
+        delete (noCapacity as any).capacityInitial;
+
+        await ensureCurrentWeeklyCycle(ALICE, {
+          todayIso: '2026-08-31',
+          weekStartDay: 1,
+          latest: noCapacity,
+        });
+
+        const written = Array.from(txStore.values())[0] as any;
+        expect(written.capacityInitial).toBe('normal');
+      });
+    });
 
     test('does nothing when the week is still live', async () => {
       const result = await ensureCurrentWeeklyCycle(ALICE, {

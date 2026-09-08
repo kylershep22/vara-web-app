@@ -31,8 +31,9 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import { OUTCOME_LABELS } from '../../screens/weekly/copy';
+import { DESTINATION_SUMMARY_LABELS } from '../../constants/journeyCopy';
 import { TODAY_COPY } from './dailyPicker.copy';
-import type { WeeklyCycle } from '../../types/models';
+import type { DestinationKey, WeeklyCycle } from '../../types/models';
 import { addDaysIso, resolveWeekEnd } from '../../utils/weekStart';
 import { weekdayNameForIso } from '../../utils/weekdayLabels';
 
@@ -43,12 +44,22 @@ export interface CloseWeekEntryProps {
   closed: boolean;
   /** The week being closed. Read only for the closed summary. */
   cycle: WeeklyCycle;
+  /**
+   * The journey's destination, for the closed summary when the week carries no
+   * outcome (slice 4b).
+   *
+   * A pre-4b week names its own stored outcome and never reaches this. A week
+   * created under the journey model has none, and this names where the user is
+   * going instead. With neither, the detail line is omitted.
+   */
+  destination?: DestinationKey | null;
   onPress: () => void;
 }
 
 export const CloseWeekEntry: React.FC<CloseWeekEntryProps> = ({
   closed,
   cycle,
+  destination,
   onPress,
 }) =>
   closed ? (
@@ -56,10 +67,24 @@ export const CloseWeekEntry: React.FC<CloseWeekEntryProps> = ({
       <Text style={styles.closedLabel}>{TODAY_COPY.weekClosed}</Text>
 
       {/* What the week WAS, so the acknowledgment names the thing being closed
-          rather than closing an anonymous seven days. */}
-      <Text style={styles.closedDetail} testID="home-week-closed-outcome">
-        {OUTCOME_LABELS[cycle.outcome]}
-      </Text>
+          rather than closing an anonymous seven days.
+
+          THREE STATES SINCE SLICE 4b, in this order. A pre-4b week names its
+          stored outcome through OUTCOME_LABELS, unchanged. A week created under
+          the journey model has no outcome and names the DESTINATION through
+          DESTINATION_SUMMARY_LABELS, a different union and a different map. A
+          week with neither renders NO detail line at all: the acknowledgment
+          above still stands on its own, and an anonymous seven days is a better
+          thing to close than a week labelled with a value nobody chose. */}
+      {cycle.outcome ? (
+        <Text style={styles.closedDetail} testID="home-week-closed-outcome">
+          {OUTCOME_LABELS[cycle.outcome]}
+        </Text>
+      ) : destination ? (
+        <Text style={styles.closedDetail} testID="home-week-closed-outcome">
+          {DESTINATION_SUMMARY_LABELS[destination]}
+        </Text>
+      ) : null}
 
       {/* Where the next one begins. Gated on a REAL stored boundary for the
           same reason the end-date clause is: without one, resolveWeekEnd falls

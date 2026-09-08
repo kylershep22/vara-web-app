@@ -350,12 +350,16 @@ describe('OnboardingV3DoneScreen — the setup week', () => {
       expect(patch.activeOutcome).toBeUndefined();
     });
 
-    test("the first cycle still carries an outcome, and 'calm' maps back to 'stress'", async () => {
-      // SLICE 4a CHANGES NOTHING DOWNSTREAM OF THIS WRITE. The cycle keeps its
-      // outcome until slice 4b makes the field optional, guards both readers and
-      // stops the rollover defaulting. The asymmetric pair is the one worth
-      // pinning: DestinationKey says 'calm' where OutcomeKey says 'stress', and a
-      // cast would be three-quarters right.
+    test('the first cycle carries NO outcome (slice 4b)', async () => {
+      // THIS ASSERTION IS THE INVERSE OF THE ONE IT REPLACES. Slice 4a pinned
+      // that the cycle still carried an outcome and that 'calm' mapped back to
+      // 'stress', because the field was required and the rollover would have
+      // fabricated a replacement anyway. 4b removed both, so the write stops.
+      //
+      // Not `toBeUndefined()` on a property that was never passed: the key must
+      // be ABSENT from the input, because Firestore rejects an undefined value
+      // and a stored null would claim the week had no outcome rather than that
+      // the field does not apply.
       mockContext.mockReturnValue({
         destination: 'calm',
         capacity: 'normal',
@@ -366,7 +370,27 @@ describe('OnboardingV3DoneScreen — the setup week', () => {
 
       await finish();
 
-      expect(mockCreateWeeklyCycle.mock.calls[0][1].outcome).toBe('stress');
+      expect(mockCreateWeeklyCycle.mock.calls[0][1]).not.toHaveProperty('outcome');
+    });
+
+    test('the destination still reaches journeyStates, which is where it lives now', async () => {
+      // The pair that matters: the cycle loses the axis and the journey keeps it.
+      // If both ever went absent, a user would have chosen a destination that
+      // nothing recorded.
+      mockContext.mockReturnValue({
+        destination: 'calm',
+        capacity: 'normal',
+        whyNote: null,
+        floorCommitment: null,
+        weekStartDay: null,
+      });
+
+      await finish();
+
+      expect(mockCreateJourneyState).toHaveBeenCalledWith('u1', {
+        destination: 'calm',
+        phaseKey: 'remove',
+      });
     });
   });
 });
