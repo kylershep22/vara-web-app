@@ -1077,71 +1077,73 @@ carries what was left out.
   `weeklyCycle.service.ts:251` carrying absence forward instead of defaulting. Splitting
   them across slices is what would leave the window open.
 
-**Sept 7, 2026 — slice 4b on branch `journey/slice-4b-outcome-retirement`. The weekly
-cycle stops carrying an outcome.** Not merged; walk pending. Closes the clause split out
-of row 4 at slice 4a's Step 0.
+**Sept 7, 2026 — slice 4b merged (29116cc). The weekly cycle stops carrying an
+outcome.** Branch commits 5fe20e2 plus the approval rider 21d71d8. Closes the clause
+split out of row 4 at slice 4a's Step 0.
 - Figures at close: jest **3179 / 211** (from 3163 / 211) · tsc **149**, unchanged ·
   sentinel **165**. Rules **191 / 2** and functions **53 / 4** carried unrun: neither
   `firestore.rules` nor anything under `functions/` is in the diff.
-- **THE DEFAULT IS GONE.** `DEFAULT_ROLLOVER_OUTCOME` (`'focus'`) is deleted and the
-  rollover carries absence forward: `...(latest?.outcome ? { outcome: latest.outcome } : {})`.
-  A legacy cycle still propagates its outcome indefinitely; a journey-era cycle propagates
-  nothing. **Mutation-verified**: restoring the `??` default fails two tests, one of which
-  asserts on the VALUE rather than only the key, so a restored default cannot pass by
-  writing something else.
-  `DEFAULT_ROLLOVER_CAPACITY` STAYS and the code says why. Capacity is still required on
-  every cycle and every reader expects a tier; removing one default is not an argument for
-  removing the other, and a test pins that it still applies.
-- **BOTH SHAPES COEXIST INDEFINITELY. THERE IS NO MIGRATION, AND ABSENCE IS NEVER
-  REPAIRED.** Every pre-4b cycle has an outcome and renders exactly as before. Nothing
-  written from here on has one. Each render site pins both shapes, and the pair is the
-  point: a change that fixed one by breaking the other would pass either test alone.
-- **WHICH UNION EACH RENDER SITE SPEAKS, after this slice.** `TodayHeroCard` and
-  `CloseWeekEntry` speak **both, in one fixed order, and never cross them**:
-  `cycle.outcome` through `OUTCOME_LABELS` (`focus | stress | routines | energy`) first,
-  then `destination` through the new `DESTINATION_SUMMARY_LABELS`
-  (`focus | calm | routines | energy`). Three keys are spelled identically and one is not,
-  which is exactly what makes reusing one map for the other look safe in review. Neither
-  map is ever indexed with the other union's key, and a test asserts that `calm` renders
-  "Calm" and not `OUTCOME_LABELS.stress`.
-- **WITH NEITHER, NOTHING IS SUBSTITUTED.** The hero's summary line opens on the capacity
-  with no label and no separator; the closed-week detail line is omitted entirely and the
-  acknowledgment stands alone. Not "Unknown", not a default. Substituting a value on a
-  render path would be the same defect this slice removed from the rollover, only later in
-  the pipeline. The close-entry test also asserts the CARD survives, so "the label
-  disappeared" cannot pass as "the whole card disappeared".
-- **THE FLAG-OFF PATH HAS A REAL CONSEQUENCE, RECORDED RATHER THAN PAPERED OVER.**
-  `useTodayCard.ts` resolves the legacy phase through `legacyPhaseFor(cycle.outcome)`, and
-  that call is now guarded. For a cycle with no outcome it yields `undefined`, which the
-  effect already treats as "no day to serve": protocol null, nothing picked, no error.
-  So **with `JOURNEY_IA` off, an account onboarded after 4b has no daily action.** The
-  flag ships ON and is the revert lever, so nobody is in that state today, but a revert
-  would put post-4b accounts there. The alternative was to default a phase, which would
-  serve content chosen from an outcome the user never picked, silently. Serving nothing is
-  visibly wrong; serving the wrong thing is not.
-- **SENTINEL: THE BRANCH SAYS 168 AND THE CLOSED STATE IS 165. BOTH ARE RIGHT.** The
-  branch landed `'Focus'`, `'Calm'` and `'Energy'` in `DESTINATION_SUMMARY_LABELS` as
-  drafts, +3, owner Kyle. **Kyle then approved all three on device on 2026-09-07 during
-  the walk itself**, read in the summary line they occupy rather than off a list, and the
-  markers were cleared in a follow-up commit, -3. The pin is back at **165**. Same shape
-  as the 3c-ii close: read the branch figure as branch state, not closed state.
-  **`routines` was never part of either move** — it reads "Steadier days", approved via
-  pack part one section 3 decision 2 (resolving §9 item 9), and carried no marker at any
-  point. The map landed three-drafted-one-approved, which was flagged at the time as an
-  oddity; **that oddity is now closed rather than left standing**, and the map's own doc
-  comment records it.
-- The flat pin across slice 4b is a **+3 and a -3 on the same three strings**, one commit
+- **SENTINEL: 168 AT THE BRANCH, 165 AT THE CLOSE, AND BOTH ARE RIGHT.** `5fe20e2` landed
+  `'Focus'`, `'Calm'` and `'Energy'` in `DESTINATION_SUMMARY_LABELS` as drafts, +3, owner
+  Kyle. **Kyle approved all three on device on 2026-09-07 during the walk**, read in the
+  summary line they occupy rather than off a list, and the rider `21d71d8` cleared the
+  markers, -3. `routines` was never part of either move: it reads "Steadier days",
+  approved via pack part one section 3 decision 2, and carried no marker at any point. The
+  map landed three-drafted-one-approved and is now **fully approved**; that oddity is
+  closed rather than left standing.
+- The flat pin across the slice is a **+3 and a -3 on the same three strings**, one commit
   apart. Unlike the 3b/3c-ii pair that both parked on 173 with different sets, this is
-  literally the same three; a reader diffing pins alone would see no movement across the
-  whole slice and would be wrong twice.
-- `OUTCOME_LABELS` already spells two of those words identically. They are separate
-  strings anyway because the two maps are keyed on different unions, and sharing them to
-  save three sentinel entries would have traded a count for the seam this slice exists to
-  keep straight.
-- `outcomeForDestination` is RETIRED with its only caller. It existed for one slice, for
-  the terminal's cycle write, and the file it lived in now carries a note not to
-  reintroduce it: anything that appears to need an OutcomeKey from a DestinationKey is
-  reaching for the retired axis. `destinationForOutcome` survives; it reads a legacy field
+  literally the same three: a reader diffing pinned numbers alone would see no movement
+  across slice 4b and would be wrong twice.
+- SHIPPED: `WeeklyCycle.outcome` and `CreateWeeklyCycleInput.outcome` are **optional**,
+  which **executes §3.4 as written rather than amending it** — that section always said
+  the write-set fields stay optional so legacy documents parse, and for this one it had
+  never actually been done. New cycles write **no outcome**. The rollover **carries
+  absence forward** and `DEFAULT_ROLLOVER_OUTCOME` is **deleted**. Both render sites branch
+  **outcome -> destination -> neither**.
+- **PRECEDENCE, AND IT IS LOAD-BEARING: A STORED OUTCOME WINS OVER A DESTINATION WHERE
+  BOTH EXIST.** A migrated beta account has both, and the week it already ran keeps the
+  label it ran under. Relabelling it would rewrite the user's own history, quietly, on a
+  surface they use to remember what they did.
+- **THE TWO UNIONS ARE NEVER CROSSED.** `OUTCOME_LABELS` is keyed
+  `focus | stress | routines | energy`; `DESTINATION_SUMMARY_LABELS` is keyed
+  `focus | calm | routines | energy`. Three keys are spelled identically and one is not,
+  which is exactly what makes reusing one map for the other look safe in review. Pinned by
+  a test asserting that `calm` renders **"Calm"** and **never** `OUTCOME_LABELS.stress`.
+- **ABSENCE IS NEVER SUBSTITUTED.** No "Unknown", no default label. The hero's summary line
+  opens on the capacity with **no separator**; the close entry **omits the detail line**
+  and the acknowledgment stands alone. Substituting a value on a render path is the
+  rollover defect moved later in the pipeline, and it would be no more visible there. The
+  close-entry test also asserts the CARD survives, so "the label disappeared" cannot pass
+  as "the whole card disappeared".
+- **THE DEFAULT IS GONE, AND THAT IS THE WHOLE SLICE.** `DEFAULT_ROLLOVER_OUTCOME`
+  (`'focus'`) is deleted; the rollover writes
+  `...(latest?.outcome ? { outcome: latest.outcome } : {})`. A legacy cycle propagates its
+  outcome indefinitely; a journey-era cycle propagates nothing. **Mutation-verified**:
+  restoring the `??` default fails two tests, one asserting on the **value** and not only
+  the key, so a restored default cannot pass by writing something else.
+- **`DEFAULT_ROLLOVER_CAPACITY` IS DELIBERATELY KEPT.** Capacity is still required on every
+  cycle and every reader expects a tier. A comment and a test both record why, because
+  **"we deleted one default" is precisely the reasoning that would delete the other**.
+- **FENCE CALL AT `useTodayCard.ts:265`.** The slice fence said STOP if absence handling
+  needed the daily capacity loop. A **one-line absence guard** was made instead of
+  stopping, on the grounds that it is a call-site guard rather than a change to protocol
+  serving, and that the type change does not compile without it.
+  **The consequence is recorded rather than smoothed over:** the flag-off path derives the
+  phase from `cycle.outcome`, so **with `JOURNEY_IA` flipped OFF, an account onboarded
+  after 4b has no daily action.** The flag ships ON, so nobody is in that state — but
+  **the revert lever is now partial**: reverting would leave post-4b accounts without a
+  daily action. The alternative was defaulting a phase, which serves content chosen from
+  an outcome the user never picked, silently; serving nothing is visibly wrong, serving
+  the wrong thing is not. **Not walkable** without flipping the flag on a post-4b account,
+  which is why it is written down here instead.
+- **TEST-FIXTURE NOTE WORTH KEEPING.** The first attempt at an outcome-less fixture used a
+  cast, which **compiled against a type that still required the field** and would have
+  hidden the one thing these tests exist to prove. The fixtures **omit `outcome` by
+  destructuring** instead, so the omission itself type-checks.
+- `outcomeForDestination` is RETIRED with its only caller, and its file carries a note not
+  to reintroduce it: anything that appears to need an OutcomeKey from a DestinationKey is
+  reaching for the retired axis. `destinationForOutcome` survives — it reads a legacy field
   to derive a live one and is not its round-trip partner.
 - `CreateWeeklyCycleInput.outcome` is **optional and no longer supplied by anyone**. Kept
   rather than deleted so the function still mirrors the model field it writes, and written
@@ -1150,15 +1152,20 @@ of row 4 at slice 4a's Step 0.
   apply. **If it still has no supplier by the time the JOURNEY_IA flag is removed, delete
   it** rather than leaving a parameter nothing sets.
 - MANIFEST: **no new collection, and no collection changed.** The slice writes to
-  `weeklyCycles`, already on the manifest; it removes a field from that write and adds
-  none. The sweep deletes documents, not fields, so nothing there moves.
+  `weeklyCycles`, already on the manifest, and **removes a field from an existing swept
+  write**. The sweep deletes documents, not fields, so nothing there moves.
 - RULES: **absent-safe, no change needed.** The `weeklyCycles` block validates ownership
-  only — `allow create: if isAuthenticated() && isOwner(request.resource.data.userId)` —
-  with no shape validation and no required-field list, so a document written without
+  only, with no shape validation and no required-field list, so a document written without
   `outcome` is accepted exactly as one written with it.
-- Test-shape note worth keeping: the fixtures that build an outcome-less cycle **omit the
-  field by destructuring rather than casting**. A cast would have compiled against a type
-  that still required it, which is the one thing these tests are supposed to prove is no
-  longer true.
+- **WALK (Kyle's, 2026-09-07).** Legacy account: renders its outcome and **propagates it
+  through a forced rollover**. Fresh account: **no `outcome` key at all** on the first
+  cycle, the hero reads **Calm and not Stress**, and a forced rollover produces a
+  **still-outcome-less** cycle with the destination label holding. Edge case and
+  regression pass both clean.
+- **OPEN NOTE FOR JEN, non-blocking.** The hero now labels weeks by destination:
+  "Focus / Normal", "Calm / Normal", **"Steadier days / Normal"**. Three terse nouns and
+  one phrase. Whether the short three should move to the register of the fourth, or the
+  fourth to theirs, is **her call** — the four are revised together or not at all, which
+  is recorded at the map.
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*
