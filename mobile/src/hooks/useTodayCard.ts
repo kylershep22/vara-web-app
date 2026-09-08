@@ -258,11 +258,31 @@ export function useTodayCard(
   // either, and destination only ORDERS a cell: with no weights authored the
   // ordering is the identity, so this choice changes nothing today and is the
   // reason the flag-off path is still byte-identical.
+  //
+  // THE CYCLE BRANCH IS GUARDED SINCE SLICE 4b, and the guard is not cosmetic.
+  // `cycle.outcome` became optional when the journey model stopped writing it,
+  // so this is the one call site that has to say what the FLAG-OFF path does
+  // for a cycle that has none.
+  //
+  // It resolves to undefined, which the effect below already treats as "no day
+  // to serve": protocol null, nothing picked, no error. That is a real
+  // consequence and is recorded rather than papered over. With JOURNEY_IA off,
+  // an account onboarded after slice 4b has a cycle with no outcome and
+  // therefore no daily action. The flag is the revert lever and it ships ON, so
+  // nobody is in that state today, but a revert would put post-4b accounts
+  // there.
+  //
+  // THE ALTERNATIVE WAS TO DEFAULT, AND THAT IS THE BUG THIS SLICE REMOVED.
+  // Substituting a phase here would serve a user content chosen from an outcome
+  // they never picked, silently, which is the rollover defect wearing different
+  // clothes. Serving nothing is visibly wrong; serving the wrong thing is not.
   const phaseKey: PhaseKey | undefined =
     source === null
       ? undefined
       : source.kind === 'cycle'
-        ? legacyPhaseFor(source.cycle.outcome)
+        ? source.cycle.outcome
+          ? legacyPhaseFor(source.cycle.outcome)
+          : undefined
         : source.phase.phaseKey;
 
   const destination: DestinationKey =

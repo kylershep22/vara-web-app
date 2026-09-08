@@ -67,11 +67,18 @@ const WEEKLY_CYCLES = 'weeklyCycles';
 const DOWNSHIFT_EVENTS = 'downshiftEvents';
 
 /**
- * What a rolled-over cycle carries when there is no previous one to carry
- * forward. Matches resolveJourney's own fallbacks so the two cannot disagree
- * about a user with no history.
+ * The capacity a rolled-over cycle carries when there is no previous one to
+ * carry it forward from.
+ *
+ * DEFAULT_ROLLOVER_OUTCOME STOOD BESIDE THIS AND IS GONE (slice 4b). It was
+ * `'focus'`, and it is the reason this slice exists: a cycle written without an
+ * outcome did not stay without one, because the rollover substituted that
+ * default a week later and the hero then rendered it as though the user had
+ * chosen it. A capacity default is a different thing: capacity is still a
+ * required field on every cycle, every reader expects a tier, and 'normal' is
+ * the same answer the rest of the app falls back to. Do not read the removal of
+ * one as an argument for removing the other.
  */
-const DEFAULT_ROLLOVER_OUTCOME: OutcomeKey = 'focus';
 const DEFAULT_ROLLOVER_CAPACITY: CapacityTier = 'normal';
 
 /** What ensureCurrentWeeklyCycle needs. `latest` is null for a first cycle. */
@@ -99,7 +106,17 @@ export interface CreateWeeklyCycleInput {
   weekStart: string;
   /** Inclusive last day. */
   weekEnd: string;
-  outcome: OutcomeKey;
+  /**
+   * OPTIONAL SINCE SLICE 4b, and no caller supplies it any more.
+   *
+   * The onboarding terminal was the only one, and it stopped: a cycle created
+   * under the journey model carries no outcome. Kept on the input rather than
+   * deleted so this function still mirrors the model field it writes, and so a
+   * caller that legitimately needs to record a legacy outcome has a way to say
+   * so. It is NOT a default and NOT plumbing for a value nobody sets: when it
+   * is absent, the field is not written at all.
+   */
+  outcome?: OutcomeKey;
   capacityInitial: CapacityTier;
 }
 
@@ -168,8 +185,12 @@ export async function createWeeklyCycle(
     // Stored, never re-derived. A later change to the user's chosen start day
     // must not be able to move the end of a week already in progress.
     weekEnd: input.weekEnd,
-    outcome: input.outcome,
     capacityInitial: input.capacityInitial,
+    // OMITTED, NOT NULLED, when the caller supplies none (slice 4b). Firestore
+    // rejects an undefined value outright, and a stored null would mean "this
+    // week had no outcome", which is a different and wronger claim than the
+    // field simply not being there. No caller supplies one today.
+    ...(input.outcome ? { outcome: input.outcome } : {}),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -244,12 +265,22 @@ export async function ensureCurrentWeeklyCycle(
   const id = weeklyCycleDocId(userId, plan.weekStart);
   const ref = doc(requireDb(), WEEKLY_CYCLES, id);
 
+  // CARRIES ABSENCE FORWARD (slice 4b). The outcome is propagated when the
+  // previous cycle HAS one, which is every pre-4b account and stays true for
+  // them indefinitely, and is left off entirely when it does not.
+  //
+  // IT USED TO DEFAULT TO 'focus' HERE, and that single `??` is the whole
+  // reason slice 4a could not retire the onboarding write on its own. A cycle
+  // created without an outcome would acquire one seven days later, invented by
+  // this line, and TodayHeroCard would render it as the user's own choice. No
+  // error, no log, and a Calm user shown "Focus". Restoring a default here
+  // restores that bug.
   const created = {
     userId,
     weekStart: plan.weekStart,
     weekEnd: plan.weekEnd,
-    outcome: latest?.outcome ?? DEFAULT_ROLLOVER_OUTCOME,
     capacityInitial: latest?.capacityInitial ?? DEFAULT_ROLLOVER_CAPACITY,
+    ...(latest?.outcome ? { outcome: latest.outcome } : {}),
   };
 
   await runTransaction(requireDb(), async (tx) => {

@@ -25,6 +25,48 @@
  */
 import type { DestinationKey } from '../types/models';
 
+/**
+ * The destination named in ONE WORD (or two), for the positions that used to
+ * name the week's outcome: the Home hero's summary line and the closed-week
+ * detail line.
+ *
+ * NOT `DESTINATION_LABELS` FROM THE ONBOARDING COPY MODULE, and the two must
+ * not be merged. Those are A1's first-person options the user chooses between
+ * ("Switch off more easily"); these are the same four destinations named in
+ * the register a summary line needs. Different job, different length, different
+ * grammatical person.
+ *
+ * NOT `OUTCOME_LABELS` EITHER, and this is the seam worth being careful about.
+ * That map is keyed `focus | stress | routines | energy`; this one is keyed
+ * `focus | calm | routines | energy`. Three keys are spelled the same and one
+ * is not, which is exactly the shape that makes a cast look right. Each render
+ * site reads whichever map matches the value it holds, and neither map is ever
+ * indexed with the other union's key.
+ *
+ * `routines` READS "Steadier days" per roadmap section 9 item 9, resolved: the
+ * user wants steadier days, routines are the mechanism. Approved via Content
+ * Pack v1 part one section 3, decision 2.
+ *
+ * FULLY APPROVED, AND THE MAP NO LONGER MIXES TWO STATES. It landed in slice 4b
+ * with three drafted entries and one approved one, which was worth flagging at
+ * the time and is now closed: **'Focus', 'Calm' and 'Energy' were approved by
+ * Kyle on device on 2026-09-07**, during the 4b walk, read in the position they
+ * actually occupy rather than off a list. "Steadier days" was already flat from
+ * the pack. No entry here carries a marker and the sentinel does not count any
+ * of them.
+ *
+ * THE FOUR ARE REVISED TOGETHER OR NOT AT ALL. They are one control's worth of
+ * vocabulary: three one-word labels and one two-word label that only reads
+ * right beside them. Changing one alone is how a set like this drifts into
+ * looking accidental.
+ */
+export const DESTINATION_SUMMARY_LABELS: Record<DestinationKey, string> = {
+  focus: 'Focus',
+  calm: 'Calm',
+  routines: 'Steadier days',
+  energy: 'Energy',
+};
+
 export const A2_COPY = {
   sharedTitle: "We won't start by giving you more to do.",
   primary: 'Start there',

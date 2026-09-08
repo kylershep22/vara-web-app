@@ -11,6 +11,7 @@ import { render } from '@testing-library/react-native';
 import { TodayHeroCard } from '../TodayHeroCard';
 import { OUTCOME_LABELS } from '../../../screens/weekly/copy';
 import { CAPACITY_LABELS } from '../../../constants/capacityCopy';
+import { DESTINATION_SUMMARY_LABELS } from '../../../constants/journeyCopy';
 import { TODAY_COPY } from '../dailyPicker.copy';
 import { PROTOCOL_MATRIX } from '../../../protocolEngine';
 import type { WeeklyCycle } from '../../../types/models';
@@ -181,5 +182,86 @@ describe('TodayHeroCard', () => {
       expect(screen.getByTestId('home-today-quickwin')).toBeTruthy();
       expect(screen.getByText(TODAY_COPY.quickWinHeading)).toBeTruthy();
     });
+  });
+});
+
+describe('the summary label across both cycle shapes (slice 4b)', () => {
+  // BOTH SHAPES COEXIST INDEFINITELY AND THERE IS NO MIGRATION. Every cycle a
+  // beta account already has carries an outcome; nothing written from 4b
+  // onwards does. Each test pins one of the two, and the PAIR is the point: a
+  // change that fixed one by breaking the other would pass either alone.
+
+  /** A cycle with the outcome genuinely absent, not set to undefined. */
+  // NO CAST. `outcome` is optional on WeeklyCycle since slice 4b, so omitting
+  // it by destructuring type-checks on its own -- which is itself part of what
+  // this suite is asserting. A cast here would have hidden a type that still
+  // required the field.
+  const journeyEra = (over: Partial<WeeklyCycle> = {}): WeeklyCycle => {
+    // The discarded binding IS the omission; naming it is how the field gets
+    // dropped, so it is unused on purpose.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { outcome, ...rest } = cycle(over);
+    return rest;
+  };
+
+  const summaryOf = (props: Record<string, unknown>) =>
+    textOf(
+      render(
+        <TodayHeroCard
+          protocol={{ ...PROTOCOL_MATRIX.recover.normal[0], quickWinActive: false }}
+          floorCommitment={null}
+          completed={false}
+          saving={false}
+          saveFailed={false}
+          onMarkDone={jest.fn()}
+          {...props}
+        />
+      ).getByTestId('home-today-summary')
+    );
+
+  test('a LEGACY cycle renders its outcome, exactly as before', () => {
+    const summary = summaryOf({ cycle: cycle({ outcome: 'routines' }) });
+
+    expect(summary).toContain(OUTCOME_LABELS.routines);
+  });
+
+  test('a legacy cycle ignores the destination even when one is passed', () => {
+    // A migrated beta account has BOTH: an outcome on its old weeks and a
+    // destination on its journey. The stored outcome wins, because relabelling
+    // a week the user already ran rewrites their history.
+    const summary = summaryOf({
+      cycle: cycle({ outcome: 'routines' }),
+      destination: 'calm',
+    });
+
+    expect(summary).toContain(OUTCOME_LABELS.routines);
+    expect(summary).not.toContain(DESTINATION_SUMMARY_LABELS.calm);
+  });
+
+  test('a JOURNEY-ERA cycle renders the destination instead', () => {
+    const summary = summaryOf({ cycle: journeyEra(), destination: 'calm' });
+
+    expect(summary).toContain(DESTINATION_SUMMARY_LABELS.calm);
+  });
+
+  test('the two maps are never crossed: calm renders Calm, not Stress', () => {
+    // OUTCOME_LABELS is keyed focus|stress|routines|energy;
+    // DESTINATION_SUMMARY_LABELS is keyed focus|calm|routines|energy. Three
+    // keys are spelled the same and one is not, which is what makes a cast look
+    // right in review.
+    const summary = summaryOf({ cycle: journeyEra(), destination: 'calm' });
+
+    expect(summary).toContain(DESTINATION_SUMMARY_LABELS.calm);
+    expect(summary).not.toContain(OUTCOME_LABELS.stress);
+  });
+
+  test('with NEITHER, the line opens on the capacity and invents nothing', () => {
+    const summary = summaryOf({ cycle: journeyEra() });
+
+    expect(summary).toContain(CAPACITY_LABELS.normal);
+    // No label and no separator. Asserted on the separator too, so a future
+    // change that rendered a bare label with no slash would still fail.
+    expect(summary.trimStart().startsWith(CAPACITY_LABELS.normal)).toBe(true);
+    expect(summary).not.toContain('/');
   });
 });

@@ -135,6 +135,43 @@ import * as path from 'path';
 //
 // The 22 strings slice 4a added are all Jen's, from Content Pack v1 sections
 // A1, A2 and short-labels, and enter WITHOUT markers per the pack header.
+//
+// 168 since journey slice 4b: +3 for DESTINATION_SUMMARY_LABELS in
+// constants/journeyCopy.ts -- 'Focus', 'Calm' and 'Energy'. Owner Kyle: they
+// are one-word UI labels, not efficacy-adjacent copy.
+//
+// WHY THREE AND NOT FOUR. The map has four entries; `routines` reads 'Steadier
+// days', which is APPROVED (Content Pack v1 part one section 3, decision 2,
+// resolving roadmap section 9 item 9) and therefore carries no marker and does
+// not count. A partially-approved map is unusual enough to say out loud rather
+// than leave to be rediscovered.
+//
+// WHY NEW STRINGS AT ALL, when OUTCOME_LABELS already spells 'Focus' and
+// 'Energy' identically. The two maps are keyed on DIFFERENT UNIONS:
+// OUTCOME_LABELS on `focus | stress | routines | energy`, this one on
+// `focus | calm | routines | energy`. Three keys coincide and one does not,
+// which is exactly the shape that makes reusing the first map look safe. A
+// cycle written before slice 4b is labelled from its stored outcome; one
+// written after is labelled from the journey's destination; neither map is ever
+// indexed with the other's key. Sharing them to save three strings would trade
+// a sentinel count for the seam this whole slice exists to keep straight.
+//
+// 165 since the 4b follow-up: -3, AN APPROVAL. Owner Kyle, 2026-09-07, for
+// 'Focus', 'Calm' and 'Energy' in DESTINATION_SUMMARY_LABELS -- the same three
+// the +3 above added. Signed off on device during the 4b walk, read in the
+// summary line they occupy rather than off a list, and the markers cleared in
+// the follow-up commit rather than on the branch.
+//
+// THE PARTIAL-APPROVAL ODDITY IS CLOSED, not merely reduced. That map is now
+// fully approved: three by Kyle here, 'Steadier days' flat from the pack. The
+// note above explaining why only three of four counted is history rather than
+// a live caveat, and the map's own doc comment says so.
+//
+// THE NUMBER RETURNS TO 165 AND THE SET IS THE SAME SET. Unlike the 3b/3c-ii
+// pair that both parked on 173, this is a +3 and a -3 on the same three
+// strings one commit apart. A reader diffing pins alone would see no movement
+// across slice 4b; the flat pin is the sum of those two, not evidence that
+// neither happened.
 const EXPECTED_SENTINELS = 165;
 
 const mobileRoot = path.resolve(__dirname, '../..');

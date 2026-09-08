@@ -246,7 +246,7 @@ deploy. Deploy state lives on Kyle's checklist.
 | 3c-ii | **[DONE `74ff373`, merged `80ed0f7`, 2026-09-06]** Remove replacement pick + routine seed *(row added 2026-09-05; the slice was split in the §13 Sept 2 entry and never got a row here)* **"routine seed" is not what shipped — see the AMENDED 2026-09-06 block below.** | Curated replacement menus per time slot, one selection only, flow ends on a neutral confirmation; routine seed from the pick. **NO REMINDER SCOPE** — no notification infrastructure, no time picker, no nudge copy. | Content DELIVERED (`Content Pack v1 §replacement-menus` + `§decisions-3`). STOP if the menu appears to need a reminder to be useful; that is the signal the scope split was wrong, not licence to build it | Yes |
 | 4 | **[SPLIT 2026-09-07 into 4a and 4b; see the AMENDED block below]** Onboarding: destination + route | A1 copy reframe on step 2; **new** route screen (A2) at step 3 (open item 1); Capacity step copy loses "this week"; terminal write creates `journeyStates` and the first weekly cycle without outcome; `activeOutcome` → `destination`; write order preserved (`completeOnboarding` last). Migration branch now shows A2. | **[Content-gated]** A1/A2 strings, 16 `short` strings | Yes: full arc + migration |
 | 4a | **[DONE `ea58022`, merged `d317c4d`, 2026-09-07]** Onboarding destination + route, everything but the outcome | A1 at step 2 (`§A1`, subtitle dropped); **new** A2 route screen at step 3 with the route strip (`§A2`, `§short-labels`); capacity step asks the daily question; terminal writes `journeyStates` + `userPrivate.capacitySeed`, `completeOnboarding` last; `capacitySeed` re-homed off the cycle; migration branch shows A2 once. **The first cycle keeps writing `outcome` exactly as before.** | No content gate; no §9 item | Done 2026-09-07: four destination arcs, migration path with two relaunches, Firestore shape verified |
-| 4b | **Weekly-cycle outcome retirement** *(row added 2026-09-07; split out of row 4 at slice 4a's Step 0)* | `WeeklyCycle.outcome` and `CreateWeeklyCycleInput.outcome` become optional (`types/models.ts`, `weeklyCycle.service.ts`); guard both render sites (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`); **the 3b rollover at `weeklyCycle.service.ts:251` must carry absence forward instead of defaulting to `'focus'`**; retire `outcomeForDestination` (`journey/destinationBridge.ts`), which exists only for the cycle write. | Fence explicitly INCLUDES the daily-loop render sites and the weekly rollover; that is the point of the row | Yes |
+| 4b | **[DONE, 2026-09-07; walk pending]** Weekly-cycle outcome retirement *(row added 2026-09-07; split out of row 4 at slice 4a's Step 0)* | `WeeklyCycle.outcome` and `CreateWeeklyCycleInput.outcome` become optional (`types/models.ts`, `weeklyCycle.service.ts`); guard both render sites (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`); **the 3b rollover at `weeklyCycle.service.ts:251` must carry absence forward instead of defaulting to `'focus'`**; retire `outcomeForDestination` (`journey/destinationBridge.ts`), which exists only for the cycle write. | Fence explicitly INCLUDES the daily-loop render sites and the weekly rollover; that is the point of the row | Yes |
 | 5 | **Practices → journey map + Start here container** | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
 | 6 | **Weekly reset repurpose** | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
 | 7 | **Offers + Today additions** | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
@@ -1076,5 +1076,89 @@ carries what was left out.
   (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`), and the rollover branch at
   `weeklyCycle.service.ts:251` carrying absence forward instead of defaulting. Splitting
   them across slices is what would leave the window open.
+
+**Sept 7, 2026 — slice 4b on branch `journey/slice-4b-outcome-retirement`. The weekly
+cycle stops carrying an outcome.** Not merged; walk pending. Closes the clause split out
+of row 4 at slice 4a's Step 0.
+- Figures at close: jest **3179 / 211** (from 3163 / 211) · tsc **149**, unchanged ·
+  sentinel **165**. Rules **191 / 2** and functions **53 / 4** carried unrun: neither
+  `firestore.rules` nor anything under `functions/` is in the diff.
+- **THE DEFAULT IS GONE.** `DEFAULT_ROLLOVER_OUTCOME` (`'focus'`) is deleted and the
+  rollover carries absence forward: `...(latest?.outcome ? { outcome: latest.outcome } : {})`.
+  A legacy cycle still propagates its outcome indefinitely; a journey-era cycle propagates
+  nothing. **Mutation-verified**: restoring the `??` default fails two tests, one of which
+  asserts on the VALUE rather than only the key, so a restored default cannot pass by
+  writing something else.
+  `DEFAULT_ROLLOVER_CAPACITY` STAYS and the code says why. Capacity is still required on
+  every cycle and every reader expects a tier; removing one default is not an argument for
+  removing the other, and a test pins that it still applies.
+- **BOTH SHAPES COEXIST INDEFINITELY. THERE IS NO MIGRATION, AND ABSENCE IS NEVER
+  REPAIRED.** Every pre-4b cycle has an outcome and renders exactly as before. Nothing
+  written from here on has one. Each render site pins both shapes, and the pair is the
+  point: a change that fixed one by breaking the other would pass either test alone.
+- **WHICH UNION EACH RENDER SITE SPEAKS, after this slice.** `TodayHeroCard` and
+  `CloseWeekEntry` speak **both, in one fixed order, and never cross them**:
+  `cycle.outcome` through `OUTCOME_LABELS` (`focus | stress | routines | energy`) first,
+  then `destination` through the new `DESTINATION_SUMMARY_LABELS`
+  (`focus | calm | routines | energy`). Three keys are spelled identically and one is not,
+  which is exactly what makes reusing one map for the other look safe in review. Neither
+  map is ever indexed with the other union's key, and a test asserts that `calm` renders
+  "Calm" and not `OUTCOME_LABELS.stress`.
+- **WITH NEITHER, NOTHING IS SUBSTITUTED.** The hero's summary line opens on the capacity
+  with no label and no separator; the closed-week detail line is omitted entirely and the
+  acknowledgment stands alone. Not "Unknown", not a default. Substituting a value on a
+  render path would be the same defect this slice removed from the rollover, only later in
+  the pipeline. The close-entry test also asserts the CARD survives, so "the label
+  disappeared" cannot pass as "the whole card disappeared".
+- **THE FLAG-OFF PATH HAS A REAL CONSEQUENCE, RECORDED RATHER THAN PAPERED OVER.**
+  `useTodayCard.ts` resolves the legacy phase through `legacyPhaseFor(cycle.outcome)`, and
+  that call is now guarded. For a cycle with no outcome it yields `undefined`, which the
+  effect already treats as "no day to serve": protocol null, nothing picked, no error.
+  So **with `JOURNEY_IA` off, an account onboarded after 4b has no daily action.** The
+  flag ships ON and is the revert lever, so nobody is in that state today, but a revert
+  would put post-4b accounts there. The alternative was to default a phase, which would
+  serve content chosen from an outcome the user never picked, silently. Serving nothing is
+  visibly wrong; serving the wrong thing is not.
+- **SENTINEL: THE BRANCH SAYS 168 AND THE CLOSED STATE IS 165. BOTH ARE RIGHT.** The
+  branch landed `'Focus'`, `'Calm'` and `'Energy'` in `DESTINATION_SUMMARY_LABELS` as
+  drafts, +3, owner Kyle. **Kyle then approved all three on device on 2026-09-07 during
+  the walk itself**, read in the summary line they occupy rather than off a list, and the
+  markers were cleared in a follow-up commit, -3. The pin is back at **165**. Same shape
+  as the 3c-ii close: read the branch figure as branch state, not closed state.
+  **`routines` was never part of either move** — it reads "Steadier days", approved via
+  pack part one section 3 decision 2 (resolving §9 item 9), and carried no marker at any
+  point. The map landed three-drafted-one-approved, which was flagged at the time as an
+  oddity; **that oddity is now closed rather than left standing**, and the map's own doc
+  comment records it.
+- The flat pin across slice 4b is a **+3 and a -3 on the same three strings**, one commit
+  apart. Unlike the 3b/3c-ii pair that both parked on 173 with different sets, this is
+  literally the same three; a reader diffing pins alone would see no movement across the
+  whole slice and would be wrong twice.
+- `OUTCOME_LABELS` already spells two of those words identically. They are separate
+  strings anyway because the two maps are keyed on different unions, and sharing them to
+  save three sentinel entries would have traded a count for the seam this slice exists to
+  keep straight.
+- `outcomeForDestination` is RETIRED with its only caller. It existed for one slice, for
+  the terminal's cycle write, and the file it lived in now carries a note not to
+  reintroduce it: anything that appears to need an OutcomeKey from a DestinationKey is
+  reaching for the retired axis. `destinationForOutcome` survives; it reads a legacy field
+  to derive a live one and is not its round-trip partner.
+- `CreateWeeklyCycleInput.outcome` is **optional and no longer supplied by anyone**. Kept
+  rather than deleted so the function still mirrors the model field it writes, and written
+  only when present: omitted, never nulled, because Firestore rejects `undefined` and a
+  stored null would claim the week had no outcome rather than that the field does not
+  apply. **If it still has no supplier by the time the JOURNEY_IA flag is removed, delete
+  it** rather than leaving a parameter nothing sets.
+- MANIFEST: **no new collection, and no collection changed.** The slice writes to
+  `weeklyCycles`, already on the manifest; it removes a field from that write and adds
+  none. The sweep deletes documents, not fields, so nothing there moves.
+- RULES: **absent-safe, no change needed.** The `weeklyCycles` block validates ownership
+  only — `allow create: if isAuthenticated() && isOwner(request.resource.data.userId)` —
+  with no shape validation and no required-field list, so a document written without
+  `outcome` is accepted exactly as one written with it.
+- Test-shape note worth keeping: the fixtures that build an outcome-less cycle **omit the
+  field by destructuring rather than casting**. A cast would have compiled against a type
+  that still required it, which is the one thing these tests are supposed to prove is no
+  longer true.
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*

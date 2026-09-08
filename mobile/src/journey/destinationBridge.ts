@@ -29,25 +29,16 @@ export function destinationForOutcome(outcome: OutcomeKey): DestinationKey {
 }
 
 /**
- * DestinationKey -> OutcomeKey. The inverse, and TEMPORARY.
+ * `outcomeForDestination`, the inverse, STOOD HERE AND IS GONE (slice 4b).
  *
- * EXISTS FOR EXACTLY ONE CALLER: the onboarding terminal, which still opens the
- * first weekly cycle with an `outcome` because `WeeklyCycle.outcome` is a
- * required field with two live readers. Slice 4a deliberately changed nothing
- * downstream of that write.
+ * It existed for exactly one caller, the onboarding terminal, and only because
+ * `WeeklyCycle.outcome` was a required field. 4b made the field optional and
+ * stopped the terminal supplying it, so nothing needs to translate a
+ * destination back into an outcome any more.
  *
- * DIES IN SLICE 4b, which makes the field optional, guards both readers and
- * stops the rollover defaulting to 'focus'. When the cycle no longer carries an
- * outcome, nothing needs to translate a destination back into one and this
- * function has no callers left. Do not grow a second caller in the meantime: if
- * something else appears to need an OutcomeKey from a DestinationKey it is
- * reaching for the retired axis, and the answer is to stop it rather than to
- * reuse this.
- *
- * NOT A REVIVAL OF `legacyOutcomeFor`, which slice 3a removed from the ENGINE
- * path. That one translated on every protocol resolution; this one runs once
- * per user, at onboarding, to fill a field that is on its way out.
+ * DO NOT REINTRODUCE IT. Anything that appears to need an OutcomeKey derived
+ * from a DestinationKey is reaching for the retired axis, and the answer is to
+ * stop it rather than to restore the bridge. The surviving direction above is
+ * not its round-trip partner: it reads a legacy field to derive a live one,
+ * once, for accounts that predate the journey model.
  */
-export function outcomeForDestination(destination: DestinationKey): OutcomeKey {
-  return destination === 'calm' ? 'stress' : destination;
-}
