@@ -149,8 +149,20 @@ const protocol = (
     // Populate this array deliberately, per variant, as part of authoring that
     // integration. Do not bulk-fill it by title match.
     //
-    // Slice 5 owns the authoring. Until then this stays empty and the daily
-    // serve launches nothing.
+    // NOT SLICE 5, AND NOT ENGINEERING'S TO AUTHOR AT ALL (Kyle, 2026-09-09;
+    // journey roadmap section 5, the 2026-09-09 amendment). Which runnable
+    // practice supports which daily protocol is a CLINICAL JUDGMENT. It belongs
+    // to Jen, arrives as a delivered table, and is built as its own small slice
+    // against that table. Slice 5 was named as the owner here and no longer is;
+    // an engineer choosing the pairings is unauthored content entering the app
+    // through an engineering decision, which is the thing the content gates
+    // exist to stop.
+    //
+    // SO THIS STAYS EMPTY, AND THE EMPTINESS IS THE DOCUMENTED STATE RATHER
+    // THAN AN OUTSTANDING TASK. The bridge is empty, the daily serve launches
+    // nothing, and no surface reads this field. Anyone finding it empty has
+    // found the recorded state, not a gap to close. The two-systems rule above
+    // is what makes that safe rather than merely empty.
     supportingPracticeIds: [],
     ...fields,
     name,

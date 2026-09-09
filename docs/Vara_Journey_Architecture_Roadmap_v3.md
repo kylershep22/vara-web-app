@@ -247,7 +247,10 @@ deploy. Deploy state lives on Kyle's checklist.
 | 4 | **[SPLIT 2026-09-07 into 4a and 4b; see the AMENDED block below]** Onboarding: destination + route | A1 copy reframe on step 2; **new** route screen (A2) at step 3 (open item 1); Capacity step copy loses "this week"; terminal write creates `journeyStates` and the first weekly cycle without outcome; `activeOutcome` → `destination`; write order preserved (`completeOnboarding` last). Migration branch now shows A2. | **[Content-gated]** A1/A2 strings, 16 `short` strings | Yes: full arc + migration |
 | 4a | **[DONE `ea58022`, merged `d317c4d`, 2026-09-07]** Onboarding destination + route, everything but the outcome | A1 at step 2 (`§A1`, subtitle dropped); **new** A2 route screen at step 3 with the route strip (`§A2`, `§short-labels`); capacity step asks the daily question; terminal writes `journeyStates` + `userPrivate.capacitySeed`, `completeOnboarding` last; `capacitySeed` re-homed off the cycle; migration branch shows A2 once. **The first cycle keeps writing `outcome` exactly as before.** | No content gate; no §9 item | Done 2026-09-07: four destination arcs, migration path with two relaunches, Firestore shape verified |
 | 4b | **[DONE, 2026-09-07; walk pending]** Weekly-cycle outcome retirement *(row added 2026-09-07; split out of row 4 at slice 4a's Step 0)* | `WeeklyCycle.outcome` and `CreateWeeklyCycleInput.outcome` become optional (`types/models.ts`, `weeklyCycle.service.ts`); guard both render sites (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`); **the 3b rollover at `weeklyCycle.service.ts:251` must carry absence forward instead of defaulting to `'focus'`**; retire `outcomeForDestination` (`journey/destinationBridge.ts`), which exists only for the cycle write. | Fence explicitly INCLUDES the daily-loop render sites and the weekly rollover; that is the point of the row | Yes |
-| 5 | **Practices → journey map + Start here container** | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
+| 5 | **[SPLIT 2026-09-09 into 5a, 5b and 5c; the `supportingPracticeIds` authoring is REMOVED from the slice, not deferred inside it; see the AMENDED block below]** Practices → journey map + Start here container | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
+| 5a | **[Next]** Journey map + the phase-path component *(row added 2026-09-09 with the split)* | `JourneyMapScreen` replaces `PracticesHubScreen` at `ROUTES.PillarPractices`; four phase rows carrying `title` + `gloss` from `PHASE_DISPLAY` (both already populated, held unrendered since 4a); card states derived from `journeyStates` (`phaseKey` / `history` / `skipped`), never stored; the phase-path component built ONCE here and adopted by `RouteStrip` in the same slice (4a known gap 2). Every destination the four hub cards reach today keeps a working entry point. Tab label, screen title and intro UNCHANGED. | No content gate, no §9 item, no build rule. Map state labels are in-house copy: named owner, sentinel increments | Yes |
+| 5b | **[Queued]** Phase detail pages ×4 *(row added 2026-09-09 with the split)* | `refocus` re-houses the Focus hub; `recover` re-houses Energy, Stress Recovery and Routines under the `§recover-lanes` destination weighting; `remove` renders the 3c-ii stored intention, which is real user state on day one; **`rewire` ships as an explicit, scoped stub** — decided now, not discovered at Step 0. **Sleep is NOT re-housed** (see the AMENDED block below). | Page chrome is in-house copy. The catalog-to-grid bridge stays empty and is not this slice's problem | Yes |
+| 5c | **[Queued]** Start here container *(row added 2026-09-09 with the split)* | `StartHereRow` over `VideoPlayerModal`, collapsed/expanded state persisted per surface, `explainerPath` as a data field with a placeholder path (§6 item 9). Practices surface only; slice 7 mounts the Today instance. **Free-floating**: touches neither `PHASE_DISPLAY` nor `journeyStates`. | Videos are data, not a gate. `VideoPlayerModal` and `useVideoSource` are §3.5-unchanged and are wrapped, never edited | Yes |
 | 6 | **Weekly reset repurpose** | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
 | 7 | **Offers + Today additions** | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. | rules; **[Content-gated]** copy | Yes |
@@ -386,6 +389,104 @@ deploy. Deploy state lives on Kyle's checklist.
 > **Board status, superseding the 2026-09-05 note above** (left unedited; it was true on its
 > date): rows 3a, 3b, 3c-i and 3c-ii are **all merged**. **Slice 4 is the next slice**, and
 > per the correction inside the pack block it is still gated on the 16 `short` strings.
+
+> **AMENDED 2026-09-09 (decisions taken before the 5a brief; Kyle). ROW 5 SPLITS INTO
+> 5a / 5b / 5c, AND ONE PIECE OF ITS SCOPE LEAVES THE BUILD ENTIRELY.** Row 5 is left
+> unedited above in the §3.4 style; rows 5a, 5b and 5c carry what actually ships. Nothing
+> here was learned at a Step 0 — all five were decided off a read-only board review, which
+> is why none of them is written as a discovery.
+>
+> **1. `supportingPracticeIds` AUTHORING IS OUT OF SLICE 5. NOT DEFERRED WITHIN IT, OUT OF
+> IT.** This supersedes the 2026-09-05 pack block above (left unedited; it was true on its
+> date), which reads "Slice 5 owns that authoring."
+>
+> **Why it is not engineering's to do:** which runnable practice supports which daily
+> protocol is a **CLINICAL JUDGMENT**, not a wiring decision. It belongs to Jen, arrives as
+> a delivered table, and is built as its own small slice against that table. An engineer
+> choosing the pairings is the same failure the content gates exist to prevent — unauthored
+> content entering the app through an engineering decision — and it is the exact reasoning
+> that rejected the 3c-ii routine seed.
+>
+> **What that means for the field: nothing changes, and the nothing is the point.**
+> `supportingPracticeIds: []` on every variant, the bridge stays empty, the daily serve
+> continues to launch nothing, and **that state is DOCUMENTED AND ACCEPTED rather than
+> outstanding**. Anyone who finds the array empty has found the recorded state, not a gap to
+> close. The `protocolMatrix.ts` comment is amended in the same breath as this block, so the
+> code no longer names slice 5 as the owner.
+>
+> **`§decisions-2`'s two-systems rule still stands and is unaffected**: the runnable practice
+> catalog and the daily protocol grid share no id space, and no Recover surface may reference
+> a runnable-practice ID by title match. That rule survives the authoring leaving; it is what
+> makes the empty array safe rather than merely empty.
+>
+> **CONSEQUENCE WORTH STATING PLAINLY: the 5a/5b/5c arc now has NO gate of any kind.** No
+> content gate, no §9 item, no build rule. This was the only one it could have carried.
+>
+> **2. SLEEP IS DROPPED FROM THE RE-HOUSE LIST. A DELIBERATE DROP, NOT AN OMISSION.** Row 5
+> names "Energy/Stress/Routines/**Sleep** (recover)". Sleep is not re-housed, and the
+> reasoning is recorded here so it is never re-derived as something 5b forgot.
+>
+> Sleep is **not one of the four Practices hub cards**, so there is nothing to re-house from
+> the launcher. The Sleep Library screen exists and is registered
+> (`AppNavigator.tsx:689-699`) but has **no live entry point**: its only two referents in
+> `src/` are `constants/brainInsightsCopy.ts:34`, a copy constant, and
+> `constants/featureDiscovery.ts:369`, one of the five known-dead featureDiscovery
+> `navigationTarget`s that are inert because `ComingUpSection` is unmounted. Re-housing it
+> would mean **giving a dark screen its first entry point inside a slice about the journey
+> map**, which is a product decision wearing a re-house's clothes.
+>
+> The screen is left registered and byte-untouched. If Sleep should be reachable, that is its
+> own decision with its own surface and its own walk, never a rider on slice 5.
+>
+> **3. REWIRE'S DETAIL PAGE IS AN EXPLICIT STUB IN 5b, SCOPED NOW.** Rewire is the one phase
+> with no content behind it: its matrix cells are placeholders and unreachable (§13, Sept 2),
+> and the pack explicitly does not deliver them ("the rewire placeholders in
+> `protocolMatrix.ts` are still placeholders"). The page ships **honest, calm and scoped** —
+> it says what the phase is for and does not pretend to content that nobody has authored, and
+> it does not read as an error or as a locked door (§8: "Locked" does not exist in the UI
+> vocabulary).
+>
+> **This is the row's own logic applied one level down.** The row already lets the map ship
+> without recover's interior. A stub page under a live map card is the same trade, and
+> deciding it here means 5b's Step 0 finds a scoped stub rather than an unauthored phase.
+>
+> **4. TAB LABEL AND MAP SCREEN TITLE: OPEN, AND ROUTED TO JEN** alongside the 4b hero-label
+> question (§13, slice 4b, OPEN NOTE FOR JEN — the four destination labels are revised
+> together or not at all). **5a ships today's labels UNCHANGED**: tab `Practices`
+> (`AppNavigator.tsx:582`), screen title `Practices` and intro `Pick a place to start.`
+> (`PracticesHubScreen.tsx:210,213`), all carrying their existing `COPY: draft` markers and
+> their existing owner, so the sentinel does not move for them.
+>
+> **Why unchanged rather than redrafted:** the screen whose name IS the tab is the worst
+> place to ship an in-house replacement nobody approved, and a label invented in 5a would
+> have to be un-invented when Jen answers. Carrying a drafted string forward is cheap;
+> replacing an approved-looking one is not.
+>
+> **NOT A DECISION, A PREDICTION FOR 5a's BRIEF:** the four card labels and four descriptors
+> on `PracticesHubScreen` (eight drafted strings, `PracticesHubScreen.tsx:152-201`) go
+> wherever the launcher goes. If 5a deletes them with the surface, that is 3b's
+> delete-with-surface case and the sentinel drops by eight with no owner named; if 5b's
+> detail pages carry them, it does not move. **Predict which in the brief.** The pillar-hub
+> HOLD in the guidelines doc (§7 has no slot for Stress Recovery) means they may not be
+> rewritten either way.
+>
+> **5. THE SPLIT, AND THE ORDER IT RUNS IN.** 5a → 5b, because 5b's pages are reached from
+> 5a's map and a detail page with no parent is the `FocusHubScreen` unreachable-surface shape
+> again (`AppNavigator.tsx:533`: registered nowhere because nothing navigated to it). **5c
+> free-floats** — it touches neither `PHASE_DISPLAY` nor `journeyStates` and can land before,
+> between or after the other two.
+>
+> **THE PHASE-PATH COMPONENT BELONGS TO 5a AND IS ADOPTED BY `RouteStrip` IN THE SAME
+> SLICE**, per 4a's known gap 2. Scoped once for two surfaces: building it twice is how the
+> route strip and the map end up disagreeing about what a phase looks like, and the second
+> build is always the one that never happens.
+>
+> **6. DO NOT INHERIT "STATELESS" AS A FENCE.** Row 5's parenthetical says `JourneyMapScreen`
+> replaces the launcher with the "same stateless shape", and the same row says "card states
+> from `journeyStates`". The parenthetical describes the **config-array idiom**, not the data
+> posture. `PracticesHubScreen.tsx:3-5` says of itself "It holds no state, reads no data";
+> the map cannot, because DONE / WHERE YOU ARE / AHEAD / SKIPPED are read from
+> `journeyStates`. The row stays unedited; the brief must not fence 5a out of reading.
 
 **Ordering rationale.** 0 makes everything after it smaller and reversible. 1–2 land the model
 behind a flag without touching content. 3 is the content-dependent core and the point of no return
