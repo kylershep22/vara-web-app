@@ -192,7 +192,26 @@ import * as path from 'path';
 // supersession-by-pack: it is a MOVE, and a move is sentinel-neutral by
 // definition. The file path in the per-file listing changes and the number does
 // not. Do not read the 9 appearing under a new path as nine new drafts.
-const EXPECTED_SENTINELS = 169;
+//
+// 165 since the 5a rider: -4, AN APPROVAL. Owner Kyle, 2026-09-09, for the same
+// four strings the +4 above added -- 'Where you are', 'Done', 'Ahead' and
+// 'Skipped' in PHASE_STATE_LABELS. Signed off on device during the 5a walk,
+// read on the map rows they occupy rather than off a list, and the markers
+// cleared on the branch before the merge rather than in a follow-up on main.
+//
+// THE PIN RETURNS TO 165 AND THE SET IS NOT THE SAME SET, which is the opposite
+// of the 4b case one entry above and the reason both notes stay. 4b was a +3
+// and a -3 on three identical strings. Here the number that left (165, the 4a
+// close) and the number that returned (165, this rider) bracket a slice that
+// ALSO moved nine strings between files without changing the count. A reader
+// diffing 5a's start against its end sees no movement and would be wrong three
+// times: four drafted, four approved, nine relocated. Read the notes, not the
+// number.
+//
+// STILL DRAFTED AND UNTOUCHED BY THIS RIDER: the nine carried strings in
+// screens/journey/JourneyMapScreen.tsx. Four card labels, four descriptors and
+// 'Pick a place to start.', all pending Jen, none of them Kyle's to clear.
+const EXPECTED_SENTINELS = 165;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');
