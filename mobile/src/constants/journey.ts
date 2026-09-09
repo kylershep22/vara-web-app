@@ -60,6 +60,26 @@ export const ADVANCE_CALENDAR_CEILING_DAYS = 14;
  */
 export const ADJUST_CONSECUTIVE_NOT_MOVING = 2;
 
+/**
+ * Where one phase sits relative to the user, for the journey map's row states
+ * (roadmap section 1: DONE / WHERE YOU ARE / AHEAD / SKIPPED).
+ *
+ * A KEY, NOT A LABEL. The four words the user reads live in
+ * constants/journeyCopy.ts; this union is what the derivation returns and what
+ * the path component switches on. Same separation as PhaseKey and
+ * PHASE_DISPLAY.
+ *
+ * DERIVED AT READ TIME, NEVER STORED. journeyStates holds phase, history and
+ * skipped; which of these four states a row is in falls out of those three and
+ * out of PHASE_ORDER. A stored copy would be the counter problem again in a
+ * different shape.
+ *
+ * 'ahead' IS NOT 'locked'. Roadmap section 8: every practice is runnable at all
+ * times and nothing in the UI may read as a closed door. The word marks
+ * position, not permission.
+ */
+export type PhaseState = 'done' | 'current' | 'ahead' | 'skipped';
+
 /** One phase-destination pair's three lengths of display copy. */
 export interface PhaseDisplayCopy {
   /** The map card. */

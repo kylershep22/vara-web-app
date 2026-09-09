@@ -172,7 +172,27 @@ import * as path from 'path';
 // strings one commit apart. A reader diffing pins alone would see no movement
 // across slice 4b; the flat pin is the sum of those two, not evidence that
 // neither happened.
-const EXPECTED_SENTINELS = 165;
+// 169 since journey slice 5a: +4, A NEW DRAFT. Owner Kyle, 2026-09-09, for
+// 'Done', 'Where you are', 'Ahead' and 'Skipped' in PHASE_STATE_LABELS
+// (constants/journeyCopy.ts) -- the four row states on the journey map.
+//
+// NOT PACK CONTENT, WHICH IS WHY THEY COUNT. Content Pack v1 delivers 16
+// titles, 16 glosses and 16 shorts and NO state vocabulary at all; roadmap
+// section 1 writes these four in capitals as prose describing what the map
+// shows, which is a specification of the concept and not approved copy. Kyle
+// owns them because they are UI labels rather than efficacy-adjacent text, and
+// they are reviewed in place on the map rather than off a list.
+//
+// THE NINE THAT MOVED HOUSE AND DID NOT COUNT. The same slice deleted
+// PracticesHubScreen and carried its nine drafted strings into
+// JourneyMapScreen unchanged: four card labels, four descriptors and the
+// 'Pick a place to start.' line. Nobody approved them, nobody redrafted them,
+// and their surface did not stop existing -- it was replaced by one that still
+// renders them. So this is neither 3b's deletion-with-surface nor 4a's
+// supersession-by-pack: it is a MOVE, and a move is sentinel-neutral by
+// definition. The file path in the per-file listing changes and the number does
+// not. Do not read the 9 appearing under a new path as nine new drafts.
+const EXPECTED_SENTINELS = 169;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

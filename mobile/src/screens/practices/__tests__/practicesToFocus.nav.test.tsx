@@ -1,4 +1,16 @@
-// Restore-Focus path — IA restructure step 4a.
+// Restore-Focus path — IA restructure step 4a, REPOINTED AT THE MAP in journey
+// slice 5a.
+//
+// THE TAB ROOT CHANGED AND THIS SUITE DID NOT CHANGE ITS QUESTION. 5a replaced
+// PracticesHubScreen with JourneyMapScreen, and the four cards moved across
+// with it. What this file asserts is unchanged and is the reason it survives
+// the swap rather than being rewritten: every one of the four destinations is
+// still reachable from the Practices tab, proved by arriving on it.
+//
+// THAT MATTERS MORE AFTER 5a, NOT LESS. This screen is still the only navigator
+// to ROUTES.PillarFocus and ROUTES.PillarStressRecovery in the app. If 5b moves
+// the cards onto the phase detail pages, this suite is what fails when a
+// destination is dropped on the way.
 //
 // THE point of this slice, asserted end to end through a REAL navigator rather
 // than a mocked `navigate` spy:
@@ -60,6 +72,15 @@ jest.mock('../../../components/ai/GuidePill', () => ({
   GuidePill: () => null,
 }));
 
+// The map reads journeyStates on focus. Resolved to null here on purpose: this
+// suite is about ARRIVAL at the four destinations, and the absent-state render
+// is the one that proves the doors work for a user the path cannot draw. The
+// path's own states are covered in screens/journey/__tests__.
+const mockGetJourneyState = jest.fn();
+jest.mock('../../../services/firebase/journeyState.service', () => ({
+  getJourneyState: (...a: any[]) => mockGetJourneyState(...a),
+}));
+
 import React from 'react';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import {
@@ -70,7 +91,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { Text } from 'react-native';
 
-import { PracticesHubScreen } from '../PracticesHubScreen';
+import { JourneyMapScreen } from '../../journey/JourneyMapScreen';
 import { FocusHubScreen } from '../../Focus/FocusHubScreen';
 import { FocusRhythmsScreen } from '../../Focus/FocusRhythmsScreen';
 import { EnergyHubScreen } from '../../Energy/EnergyHubScreen';
@@ -108,7 +129,7 @@ function renderStack() {
       <Stack.Navigator initialRouteName={ROUTES.PillarPractices}>
         <Stack.Screen
           name={ROUTES.PillarPractices}
-          component={PracticesHubScreen}
+          component={JourneyMapScreen}
           options={{ headerShown: false }}
         />
         {/* Same options these carry in AppNavigator: a former tab root pushed
@@ -153,6 +174,7 @@ function renderStack() {
 beforeEach(() => {
   mockGetFocusRhythms.mockResolvedValue([]);
   mockSaveFocusRhythms.mockResolvedValue(undefined);
+  mockGetJourneyState.mockResolvedValue(null);
 });
 
 describe('Practices → Focus: the step-4a restore path', () => {
@@ -164,7 +186,7 @@ describe('Practices → Focus: the step-4a restore path', () => {
     // the only thing it exists to prove.
     const { getByTestId, queryByTestId } = renderStack();
 
-    expect(getByTestId('practices-hub')).toBeTruthy();
+    expect(getByTestId('journey-map')).toBeTruthy();
     expect(queryByTestId('focus-hub')).toBeNull();
     expect(queryByTestId('energy-hub')).toBeNull();
     expect(queryByTestId('focus-rhythms')).toBeNull();
@@ -177,7 +199,7 @@ describe('Practices → Focus: the step-4a restore path', () => {
 
     expect(queryByTestId('focus-hub')).toBeNull();
 
-    fireEvent.press(getByTestId('practices-hub-card-focus-time'));
+    fireEvent.press(getByTestId('journey-map-card-focus-time'));
 
     // Arriving on the hub is the assertion. This is what was impossible
     // between step 2 and step 4a.
@@ -187,7 +209,7 @@ describe('Practices → Focus: the step-4a restore path', () => {
   it('reaches Focus rhythms from inside the Focus hub, unchanged', async () => {
     const { getByTestId, queryByTestId } = renderStack();
 
-    fireEvent.press(getByTestId('practices-hub-card-focus-time'));
+    fireEvent.press(getByTestId('journey-map-card-focus-time'));
     await waitFor(() => expect(getByTestId('focus-hub')).toBeTruthy());
     expect(queryByTestId('focus-rhythms')).toBeNull();
 
@@ -202,7 +224,7 @@ describe('Practices → Focus: the step-4a restore path', () => {
 
     expect(queryByTestId('energy-hub')).toBeNull();
 
-    fireEvent.press(getByTestId('practices-hub-card-energy'));
+    fireEvent.press(getByTestId('journey-map-card-energy'));
 
     await waitFor(() => expect(getByTestId('energy-hub')).toBeTruthy());
   });
@@ -210,7 +232,7 @@ describe('Practices → Focus: the step-4a restore path', () => {
   it('leaves the Focus hub able to reach the timer, as before', async () => {
     const { getByTestId } = renderStack();
 
-    fireEvent.press(getByTestId('practices-hub-card-focus-time'));
+    fireEvent.press(getByTestId('journey-map-card-focus-time'));
     await waitFor(() => expect(getByTestId('focus-hub')).toBeTruthy());
 
     // The primary card still targets the timer. FocusTimer is not registered in
@@ -228,7 +250,7 @@ describe('Practices → Routines: the step-4b-i wiring', () => {
 
     expect(queryByTestId('plan-stub')).toBeNull();
 
-    fireEvent.press(getByTestId('practices-hub-card-routines'));
+    fireEvent.press(getByTestId('journey-map-card-routines'));
 
     await waitFor(() => expect(getByTestId('plan-stub')).toBeTruthy());
   });
@@ -236,7 +258,7 @@ describe('Practices → Routines: the step-4b-i wiring', () => {
   it('arrives carrying the param that selects the routines sub-tab', async () => {
     const { getByTestId } = renderStack();
 
-    fireEvent.press(getByTestId('practices-hub-card-routines'));
+    fireEvent.press(getByTestId('journey-map-card-routines'));
 
     // Not the same assertion as the unit test's `navigate` spy. This one proves
     // the param SURVIVES the navigator and is readable off `route.params` at the
@@ -249,7 +271,7 @@ describe('Practices → Routines: the step-4b-i wiring', () => {
   it('pushes the builder over the hub, leaving a back path to Practices', async () => {
     const { getByTestId, navRef } = renderStack();
 
-    fireEvent.press(getByTestId('practices-hub-card-routines'));
+    fireEvent.press(getByTestId('journey-map-card-routines'));
     await waitFor(() => expect(getByTestId('plan-stub')).toBeTruthy());
 
     // PUSHED, not replaced. A card that swapped the tab root would strand the
@@ -265,7 +287,7 @@ describe('Practices → Routines: the step-4b-i wiring', () => {
   it('lands back on Practices when the back path is taken', async () => {
     const { getByTestId, navRef } = renderStack();
 
-    fireEvent.press(getByTestId('practices-hub-card-routines'));
+    fireEvent.press(getByTestId('journey-map-card-routines'));
     await waitFor(() => expect(getByTestId('plan-stub')).toBeTruthy());
 
     // The other half of the assertion above: not just that a back path exists,
@@ -273,7 +295,7 @@ describe('Practices → Routines: the step-4b-i wiring', () => {
     // written down.
     act(() => navRef.goBack());
 
-    await waitFor(() => expect(getByTestId('practices-hub')).toBeTruthy());
+    await waitFor(() => expect(getByTestId('journey-map')).toBeTruthy());
   });
 });
 
@@ -283,7 +305,7 @@ describe('Practices → Stress Recovery: the step-4b-ii-a page', () => {
 
     expect(queryByTestId('stress-recovery-list')).toBeNull();
 
-    fireEvent.press(getByTestId('practices-hub-card-stress-recovery'));
+    fireEvent.press(getByTestId('journey-map-card-stress-recovery'));
 
     await waitFor(() => expect(getByTestId('stress-recovery-list')).toBeTruthy());
   });
@@ -291,7 +313,7 @@ describe('Practices → Stress Recovery: the step-4b-ii-a page', () => {
   it('arrives on a page that carries its own framing, not a bare list', async () => {
     const { getByTestId, findAllByText } = renderStack();
 
-    fireEvent.press(getByTestId('practices-hub-card-stress-recovery'));
+    fireEvent.press(getByTestId('journey-map-card-stress-recovery'));
     await waitFor(() => expect(getByTestId('stress-recovery-list')).toBeTruthy());
 
     // The framing is the entire reason this pillar exists as a page rather than
@@ -313,7 +335,7 @@ describe('Practices → Stress Recovery: the step-4b-ii-a page', () => {
   it('pushes over the hub, leaving a back path to Practices', async () => {
     const { getByTestId, navRef } = renderStack();
 
-    fireEvent.press(getByTestId('practices-hub-card-stress-recovery'));
+    fireEvent.press(getByTestId('journey-map-card-stress-recovery'));
     await waitFor(() => expect(getByTestId('stress-recovery-list')).toBeTruthy());
 
     expect(navRef.canGoBack()).toBe(true);
@@ -324,6 +346,6 @@ describe('Practices → Stress Recovery: the step-4b-ii-a page', () => {
 
     act(() => navRef.goBack());
 
-    await waitFor(() => expect(getByTestId('practices-hub')).toBeTruthy());
+    await waitFor(() => expect(getByTestId('journey-map')).toBeTruthy());
   });
 });
