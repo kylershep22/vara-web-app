@@ -11,6 +11,7 @@
  * That is a requirement of the slice, not an accident of the shape.
  */
 import type { RemoveFamily, RemoveTiming, ReplacementSlot } from '../../../types/models';
+import { REPLACEMENT_MENUS } from './copy';
 
 /** The screens the flow can be on. */
 export type CaptureStep = 'clarify' | 'sleep' | 'timing' | 'firstMove';
@@ -147,4 +148,35 @@ export function replacementSlotFor(
   if (family !== 'behavioral') return null;
   if (timing === 'morning' || timing === 'day' || timing === 'evening') return timing;
   return null;
+}
+
+/**
+ * The display label for a stored replacement pick, or null (slice 5b-i).
+ *
+ * THE STORED VALUE IS AN ID AND ONLY AN ID (`removeReplacementId`,
+ * types/models.ts). This is the one place that turns it back into words, so a
+ * relabelled menu option changes one string in copy.ts and every surface that
+ * shows a past pick follows.
+ *
+ * ABSENT-SAFE ON EVERY INPUT, and that is the whole reason it returns null
+ * rather than a fallback string:
+ *   - No pick was ever made. Every mental capture, every interpersonal one,
+ *     every 'varies' timing and every capture predating slice 3c-ii is in this
+ *     state, and it is not a failure.
+ *   - A slot that is not one of the three menus.
+ *   - AN ID THAT NO LONGER EXISTS, which is the case worth building for. The
+ *     menus are copy and copy gets rewritten; an id retired after a user picked
+ *     it must render as nothing rather than as an empty row, a raw id, or a
+ *     cheerful stand-in for a choice the app can no longer name.
+ *
+ * The caller decides what absence looks like. Nothing here invents a label.
+ */
+export function labelForReplacement(
+  slot: ReplacementSlot | null | undefined,
+  optionId: string | null | undefined
+): string | null {
+  if (!slot || !optionId) return null;
+  const menu = REPLACEMENT_MENUS[slot];
+  if (!menu) return null;
+  return menu.find((option) => option.id === optionId)?.label ?? null;
 }

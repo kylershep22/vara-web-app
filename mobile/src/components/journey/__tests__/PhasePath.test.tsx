@@ -8,7 +8,7 @@
 // serves one surface at the other's expense fails here rather than on a device.
 
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { PhasePath } from '../PhasePath';
 import { PHASE_DISPLAY, PHASE_ORDER } from '../../../constants/journey';
@@ -189,10 +189,12 @@ describe('PhasePath', () => {
     expect(screen.queryByText(/%/)).toBeNull();
   });
 
-  test('no row is pressable in this slice', () => {
-    // 5a has no phase detail page to open, so a row that looked tappable would
-    // be a promise the app cannot keep. 5b adds the destination and the
-    // affordance together; this fails when one arrives without the other.
+  test('no row is pressable without a handler', () => {
+    // A2's shape, and the half of 5a's pairing pin that SURVIVES 5b-i. The
+    // route explainer passes no handler and its rows must stay inert: a row
+    // that looked tappable on an onboarding screen would be a promise the flow
+    // cannot keep. RouteStrip's own suite asserts the same thing through the
+    // component A2 actually renders.
     render(
       <PhasePath
         destination="focus"
@@ -208,6 +210,61 @@ describe('PhasePath', () => {
       expect(row.props.accessibilityRole).toBeUndefined();
       expect(row.props.onClick).toBeUndefined();
     }
+  });
+
+  test('every row is a button when a handler is given, including AHEAD rows', () => {
+    // THE OTHER HALF OF 5a's PAIRING PIN, INVERTED BY DESIGN. 5a asserted no row
+    // was pressable because there was nowhere to go; 5b-i built the pages, so
+    // that assertion became "not pressable WITHOUT a handler" above and this one
+    // took its place. The pairing still holds: neither test passes if the
+    // affordance and the destination come apart.
+    //
+    // ALL FOUR, NOT JUST THE VISITED ONES. Roadmap section 8: AHEAD opens. A
+    // path where only the current and completed rows led somewhere would draw
+    // the locked door the model does not have.
+    const onPressPhase = jest.fn();
+    render(
+      <PhasePath
+        destination="focus"
+        states={MIXED}
+        copy="full"
+        stateLabels={PHASE_STATE_LABELS}
+        showStateLabels
+        onPressPhase={onPressPhase}
+      />
+    );
+
+    for (const phase of PHASE_ORDER) {
+      const row = screen.getByTestId(`phase-path-${phase}`);
+      expect(row.props.accessibilityRole).toBe('button');
+      onPressPhase.mockClear();
+      fireEvent.press(row);
+      expect(onPressPhase).toHaveBeenCalledWith(phase);
+    }
+  });
+
+  test('the spoken label does not change when the row becomes a button', () => {
+    // The chevron is an affordance, not content. If it ever reached the label,
+    // VoiceOver would read "chevron right" as part of the phase.
+    const states: PhaseStates = { ...ALL_AHEAD, remove: 'current' };
+    const inert = render(
+      <PhasePath destination="calm" states={states} copy="full" stateLabels={PHASE_STATE_LABELS} showStateLabels />
+    );
+    const inertLabel = inert.getByTestId('phase-path-remove').props.accessibilityLabel;
+    inert.unmount();
+
+    render(
+      <PhasePath
+        destination="calm"
+        states={states}
+        copy="full"
+        stateLabels={PHASE_STATE_LABELS}
+        showStateLabels
+        onPressPhase={jest.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('phase-path-remove').props.accessibilityLabel).toBe(inertLabel);
   });
 
   test('every state is renderable, including the ones nothing produces yet', () => {

@@ -137,6 +137,11 @@ export const ROUTES = {
   // nested stack, so the flow's own six route names stay inside their own
   // navigator and cannot collide with anything here.
   RemoveCapture: 'RemoveCapture',
+  // One phase, explained (journey slice 5b-i). ONE route for all four pages,
+  // taking `{ phase, destination }`: the pages differ by which phase they are
+  // about, and four registrations of one screen would be four places to keep in
+  // step. Its only parent is the journey map.
+  JourneyPhase: 'JourneyPhase',
   WeeklyClose: 'WeeklyClose',
 
   // --- Dev-only AppStack screens (__DEV__) ---

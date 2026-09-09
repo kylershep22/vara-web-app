@@ -30,11 +30,12 @@
  * marked with a lock: section 8 says every practice is runnable at all times
  * and AHEAD opens.
  *
- * NOT PRESSABLE, AND THAT IS THIS SLICE'S SCOPE RATHER THAN AN OVERSIGHT. In
- * 5a there is nowhere for a row to go: the phase detail pages are slice 5b.
- * Rows carry no chevron, no button role and no press affordance, so nothing
- * invites a tap that would do nothing. 5b adds the destination and the
- * interaction together.
+ * PRESSABLE ONLY WHEN THERE IS SOMEWHERE TO GO. `onPressPhase` is optional, and
+ * its absence is A2's shape: no chevron, no button role, no press affordance, so
+ * nothing invites a tap that would do nothing. 5a shipped with no caller passing
+ * it because the phase detail pages did not exist; 5b-i adds the pages and the
+ * handler in the same slice, which is what 5a's pairing test was holding out for.
+ * A2 still passes nothing and is still inert.
  *
  * NO MOTION, SO NOTHING TO REDUCE. The path is static: no entrance animation,
  * no fill, no stagger. `useReducedMotion` is not wired here because there is no
@@ -46,16 +47,17 @@
  * brandCopyGuard enforces it on the source.
  */
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Spacing, Typography } from '../../constants';
 import { PHASE_DISPLAY, PHASE_ORDER } from '../../constants/journey';
 import type { PhaseState } from '../../constants/journey';
 import type { PhaseStates } from '../../journey/phaseStates';
-import type { DestinationKey } from '../../types/models';
+import type { DestinationKey, PhaseKey } from '../../types/models';
 
 const MARKER_SIZE = 12;
+const MIN_TOUCH_TARGET = 48;
 const RAIL_WIDTH = 24;
 
 /**
@@ -92,6 +94,16 @@ export interface PhasePathProps {
   stateLabels?: Partial<Record<PhaseState, string>>;
   /** Draw the state words as well as speaking them. */
   showStateLabels?: boolean;
+  /**
+   * Open this phase's detail page. OMIT for a path with no destination.
+   *
+   * Passing it turns every row into a button with a chevron and a 48pt floor;
+   * omitting it leaves the rows exactly as inert as they were in 5a. There is no
+   * per-row opt out, and that is deliberate: AHEAD OPENS (roadmap section 8), so
+   * a path where some rows lead somewhere and others do not would draw the
+   * locked door the model does not have.
+   */
+  onPressPhase?: (phase: PhaseKey) => void;
   testID?: string;
 }
 
@@ -128,6 +140,7 @@ export const PhasePath: React.FC<PhasePathProps> = ({
   copy,
   stateLabels,
   showStateLabels = false,
+  onPressPhase,
   testID = 'phase-path',
 }) => (
   <View style={styles.path} testID={testID}>
@@ -140,10 +153,22 @@ export const PhasePath: React.FC<PhasePathProps> = ({
       const isFirst = index === 0;
       const isLast = index === PHASE_ORDER.length - 1;
 
+      // One element either way, so the rail and the content below are written
+      // once. A pressable row is a button with a 48pt floor; an inert one is the
+      // plain grouped View A2 has always rendered.
+      const Row: React.ElementType = onPressPhase ? TouchableOpacity : View;
+      const rowProps = onPressPhase
+        ? {
+            onPress: () => onPressPhase(phase),
+            accessibilityRole: 'button' as const,
+            style: [styles.row, styles.rowPressable],
+          }
+        : { style: styles.row };
+
       return (
-        <View
+        <Row
           key={phase}
-          style={styles.row}
+          {...rowProps}
           testID={`${testID}-${phase}`}
           accessible
           accessibilityLabel={spokenLabel([primary, stateLabel, gloss])}
@@ -182,7 +207,18 @@ export const PhasePath: React.FC<PhasePathProps> = ({
               </Text>
             ) : null}
           </View>
-        </View>
+
+          {onPressPhase ? (
+            <Icon
+              name="chevron-right"
+              size={24}
+              color={Colors.mutedSageGray}
+              // The row already speaks its whole label; a second announcement
+              // for the affordance would read the chevron out as content.
+              importantForAccessibility="no"
+            />
+          ) : null}
+        </Row>
       );
     })}
   </View>
@@ -196,6 +232,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     paddingVertical: Spacing.sm,
+  },
+  // Only when the row is a button. UI Standards 16: every touch target 48 or
+  // larger. A short title on a one-line row falls under that on its own.
+  rowPressable: {
+    minHeight: MIN_TOUCH_TARGET,
+    alignItems: 'center',
   },
   rail: {
     width: RAIL_WIDTH,

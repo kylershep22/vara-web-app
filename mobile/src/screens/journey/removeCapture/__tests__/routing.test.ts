@@ -7,6 +7,7 @@
  */
 import {
   familyForClarifyChip,
+  labelForReplacement,
   legForIdentifyChip,
   legForSleepChip,
   replacementSlotFor,
@@ -205,5 +206,45 @@ describe('the 3c-ii replacement fork', () => {
       return replacementSlotFor(leg.family ?? null, leg.timing ?? null) !== null;
     }).map((c) => c.id);
     expect(qualifying).toEqual(['sleep_phone', 'sleep_late', 'sleep_unsure']);
+  });
+});
+
+describe('labelForReplacement, the 5b-i lookup', () => {
+  test('resolves a stored id back to its menu label', () => {
+    const pick = REPLACEMENT_MENUS.morning[2];
+    expect(labelForReplacement('morning', pick.id)).toBe(pick.label);
+  });
+
+  test('resolves in every slot, and never crosses slots', () => {
+    // Ids are slot-prefixed today, so a cross-slot lookup returning null is the
+    // menus being separate rather than the prefix doing the work. Asserted so a
+    // future flat id space cannot silently make one slot answer for another.
+    for (const slot of ['morning', 'day', 'evening'] as const) {
+      for (const option of REPLACEMENT_MENUS[slot]) {
+        expect(labelForReplacement(slot, option.id)).toBe(option.label);
+        for (const other of ['morning', 'day', 'evening'] as const) {
+          if (other === slot) continue;
+          expect(labelForReplacement(other, option.id)).toBeNull();
+        }
+      }
+    }
+  });
+
+  test('returns null for an id the menus no longer carry', () => {
+    // THE CASE THIS FUNCTION EXISTS FOR. The menus are copy and copy gets
+    // rewritten; a pick whose option was retired must render as nothing rather
+    // than as a raw id or a stand-in for a choice the app can no longer name.
+    expect(labelForReplacement('evening', 'evening_retired_option')).toBeNull();
+  });
+
+  test('is absent-safe on every input', () => {
+    // Every mental capture, every interpersonal one, every 'varies' timing and
+    // every capture predating slice 3c-ii arrives here with nulls. None of them
+    // is a failure and none may throw.
+    expect(labelForReplacement(null, null)).toBeNull();
+    expect(labelForReplacement(undefined, undefined)).toBeNull();
+    expect(labelForReplacement('morning', null)).toBeNull();
+    expect(labelForReplacement(null, 'morning_move')).toBeNull();
+    expect(labelForReplacement('morning', '')).toBeNull();
   });
 });

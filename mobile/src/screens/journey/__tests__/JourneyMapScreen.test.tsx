@@ -7,14 +7,18 @@
 //
 // The count assertion is inherited from the launcher's suite and keeps its
 // meaning: FOUR cards, each going somewhere real. It held at two until Routines
-// had a destination and at three until Stress Recovery had a page. It now also
-// guards the other direction, since 5b will move these cards onto the phase
-// detail pages and a card dropped on the way would leave FocusHubScreen and
-// StressRecoveryScreen with no caller in the app at all.
+// had a destination and at three until Stress Recovery had a page.
+//
+// THE CARDS ARE NOT GOING ANYWHERE (slice 5b-i, decision 3). This file used to
+// say 5b would move them onto the phase detail pages; that clause is superseded,
+// because a phase page is an explanation and not a second launcher. This screen
+// remains the only navigator to ROUTES.PillarFocus and
+// ROUTES.PillarStressRecovery in the app, so the count keeps guarding both
+// directions for as long as that is true.
 
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, within } from '@testing-library/react-native';
 
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
@@ -197,6 +201,26 @@ describe('JourneyMapScreen — the map', () => {
     }
   });
 
+  it('opens the phase page from every row, carrying phase and destination', async () => {
+    // ALL FOUR ROWS, INCLUDING THE ONES AHEAD. Roadmap section 8: AHEAD opens.
+    // A map where only the current and completed rows led somewhere would draw
+    // the locked door the model does not have.
+    const { getByTestId } = render(<JourneyMapScreen />);
+
+    await waitFor(() => expect(getByTestId('journey-map-path')).toBeTruthy());
+
+    for (const phase of PHASE_ORDER) {
+      mockNavigate.mockClear();
+      fireEvent.press(getByTestId(`journey-map-path-${phase}`));
+      expect(mockNavigate).toHaveBeenCalledWith(ROUTES.JourneyPhase, {
+        phase,
+        // The destination travels with the phase so the page renders its title
+        // and body even when its own read fails. The fixture is 'calm'.
+        destination: 'calm',
+      });
+    }
+  });
+
   it('shows no count, fraction or ordinal', async () => {
     const { getByText, queryByText } = render(<JourneyMapScreen />);
 
@@ -220,11 +244,20 @@ describe('JourneyMapScreen — every destination stays reachable', () => {
   it('has exactly four tappable cards, and every one of them navigates', async () => {
     // The no-dead-ends rule with teeth. A fifth card must not appear without a
     // destination, and a fourth must not disappear without one taking its place.
-    const { getByTestId, UNSAFE_getAllByType } = render(<JourneyMapScreen />);
+    //
+    // SCOPED TO THE CARD BLOCK SINCE 5b-i. It used to count every
+    // TouchableOpacity on the screen, which was exact while the map rows were
+    // inert and became wrong the moment they became buttons: the count went to
+    // eight and the test failed without anything being broken. Counting inside
+    // the destinations container asserts the same thing and says which four it
+    // means, so the two pressable groups can change independently.
+    const { getByTestId } = render(<JourneyMapScreen />);
 
     await waitFor(() => expect(getByTestId('journey-map-destinations')).toBeTruthy());
 
-    const cards = UNSAFE_getAllByType(TouchableOpacity);
+    const cards = within(getByTestId('journey-map-destinations')).UNSAFE_getAllByType(
+      TouchableOpacity
+    );
     expect(cards).toHaveLength(CARD_IDS.length);
 
     for (const id of CARD_IDS) {

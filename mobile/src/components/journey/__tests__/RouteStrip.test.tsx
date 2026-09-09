@@ -66,6 +66,25 @@ describe('RouteStrip', () => {
     }
   });
 
+  test('A2 rows are not pressable, after the map made rows pressable', () => {
+    // ADDED IN 5b-i, AND IT IS THE POINT OF THE SLICE'S FENCE. PhasePath gained
+    // an optional press handler so the journey map's rows could open the phase
+    // pages. The strip must not inherit it: A2 runs during onboarding and once
+    // at migration, there is nowhere for a row to go from either, and a row that
+    // looked tappable there would be a promise the flow cannot keep.
+    //
+    // Asserted through RouteStrip rather than PhasePath because what matters is
+    // what A2 ACTUALLY RENDERS. PhasePath's own suite proves a handler-less path
+    // is inert; this proves the strip never passes one.
+    render(<RouteStrip destination="focus" currentPhase="remove" />);
+
+    for (const phase of PHASE_ORDER) {
+      const row = screen.getByTestId(`journey-route-strip-${phase}`);
+      expect(row.props.accessibilityRole).toBeUndefined();
+      expect(row.props.onClick).toBeUndefined();
+    }
+  });
+
   test('marks the current phase for a screen reader, not only visually', () => {
     // The marker dot carries no text, so the emphasis on the current row is
     // invisible to VoiceOver unless the label says so.

@@ -1376,5 +1376,64 @@ atop the docs split 1c33ceb. First of the three slices row 5 was split into.
 - **OPEN FOR JEN, non-blocking.** `'Done'` is the only one of the four state labels that
   could read as achievement rather than description, which is a register the rest of the
   map avoids. A flatter word is a one-string change if she wants it.
+  *(ANSWERED 2026-09-09 in slice 5b-i: it reads **"Complete"**. Kyle's call, an approved
+  string replacing an approved string, so the sentinel does not move for it. Annotated
+  here rather than rewritten, and the arithmetic is recorded at the pin.)*
+
+**Sept 9, 2026 — slice 5b-i, branch `journey/slice-5b-i-phase-pages` (`af8df3d`). NOT
+MERGED; this entry is a STUB holding one walk finding.** The close entry replaces it in
+full, with figures and a merge SHA, and absorbs the bullet below. It is written now
+because the finding came off the walk and a queued defect that lives only in a
+conversation is a queued defect that gets rediscovered.
+
+- **WALK-CAUGHT DEFECT — QUEUED, NOT THIS SLICE. A MALFORMED `history` FIELD BREAKS
+  TODAY.** Reported by Kyle from the 5b-i walk: a `journeyStates` document whose `history`
+  is an array containing a **string rather than a map** makes Today fail to load, with
+  `Cannot convert undefined value to object` attributed to `useTodayCard`. **Absent
+  documents are handled everywhere; malformed ones are not.** Produced here by console
+  seeding, but the same shape could arrive from a partial write or from a future slice
+  writing the field wrong, so it is not a test-only artifact.
+- **WHAT A READ-ONLY CHECK ESTABLISHED, AND WHAT IT DID NOT.** Recorded separately from
+  the report above because the two do not yet agree, and the next Step 0 should start from
+  the disagreement rather than re-derive it.
+  - **`useTodayCard` does not read `history` at all.** It consumes `PhaseContext`
+    (`phaseKey`, `destination`, `removeFamily`, `enteredAtIso`, `capacitySeed`,
+    `revisionToken`), and `resolveJourney` never reads `history` either: zero hits for
+    `.history` in both files.
+  - **The only reader in the app is `derivePhaseStates`** (`journey/phaseStates.ts:79`),
+    where the shape is assumed twice in one line: `state.history.filter(...)` assumes an
+    ARRAY, and `entry.phaseKey` assumes each element is a MAP.
+  - **On the exact shape reported, that line does not throw.** `['some string'].filter`
+    is fine, `entry.phaseKey` on a string is `undefined`, the match set is empty and the
+    phase resolves to `'done'`. So the seeded document should have produced a WRONG STATE
+    WORD SILENTLY on the map, which is arguably the worse bug, rather than an exception on
+    Today. A `history` that is absent or not an array is the case that throws there, and it
+    throws `filter is not a function`, which is not the reported message.
+  - **NOT REPRODUCED.** No attempt was made to reproduce it on device or in a test, and
+    nothing above contradicts Kyle's observation: it says the reported LOCATION is not a
+    reader of the field, which usually means either the seeded document was malformed in
+    more than `history` or the throw is in a frame the stack attributed upward.
+- **STEP 0 WHEN PICKED UP, read-only: cite the frame that actually throws.** Seed the
+  reported shape, catch the real error, and name the file and line before choosing a fix.
+  The fix is one of two and they are not equivalent:
+  1. **Defensive parsing inside `derivePhaseStates`.** Narrow to entries that are objects
+     carrying a `phaseKey`, ignore the rest. Cheap and local, and it makes the derivation
+     total for any input. It also silently absorbs bad data, which is how a wrong state
+     word ships looking correct.
+  2. **A guard at the read boundary**, in `getJourneyState`
+     (`services/firebase/journeyState.service.ts:69`), which currently spreads
+     `snap.data()` straight through with no validation of any field. One guard there covers
+     every present and future reader instead of each one defending itself, and it is the
+     only place that knows the document came off the wire rather than out of the service.
+  **The second is the likely answer and the first is the likely temptation**, but the
+  choice is a Step 0 finding, not a foregone one: a boundary guard has to decide what a
+  document with an unusable field IS (absent, partial, or an error), and that is a product
+  question about what Today shows, not a parsing question.
+- **THE STANDING SHAPE THIS BELONGS TO.** Every journey read so far has been hardened
+  against ABSENCE and none against MALFORMATION: `getJourneyState` returns null for a
+  missing document and casts anything else; the rules block validates named fields with no
+  `hasOnly`, so an unlisted or wrongly typed field is accepted on write. Whoever takes this
+  should scope it as "the read boundary trusts the document", not as "one field is not
+  parsed".
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*

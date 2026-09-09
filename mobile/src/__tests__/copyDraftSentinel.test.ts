@@ -211,7 +211,36 @@ import * as path from 'path';
 // STILL DRAFTED AND UNTOUCHED BY THIS RIDER: the nine carried strings in
 // screens/journey/JourneyMapScreen.tsx. Four card labels, four descriptors and
 // 'Pick a place to start.', all pending Jen, none of them Kyle's to clear.
-const EXPECTED_SENTINELS = 165;
+//
+// 170 since journey slice 5b-i: +5, A NEW DRAFT. Owner Kyle, 2026-09-09, for
+// the four phase-page bodies in PHASE_PAGE_BODIES and the one lead-in line in
+// PHASE_PAGE_COPY (constants/journeyCopy.ts). Not pack content: Content Pack v1
+// delivers 16 titles, 16 glosses and 16 shorts, and neither it nor the roadmap
+// specifies what a phase detail page says in its own voice.
+//
+// FIVE, AND FIVE IS THE FLOOR RATHER THAN A BUDGET. One body per phase because
+// each of the four pages has to say what its stretch is doing, and one lead-in
+// because a curated replacement label rendered with no line above it is a
+// sentence fragment. The bodies are per PHASE, not per (phase, destination):
+// sixteen would say a third time what Jen's title and gloss already say twice.
+// They are also state-agnostic, so an unreached phase needs no second version
+// and no empty state, which is another four strings not written.
+//
+// 'Done' BECAME 'Complete' IN THE SAME SLICE AND THE SENTINEL DID NOT MOVE FOR
+// IT. Both strings are Kyle's and both were approved; a substitution of an
+// approved string by another approved string is neither a new draft nor an
+// approval, so it has no arithmetic. Recorded because the pin moving 165 -> 170
+// in a commit that also changed a state label invites exactly the wrong
+// reconstruction: the +5 is the five new strings and nothing else.
+//
+// THE NINE ON THE MAP DID NOT MOVE EITHER, AND THIS TIME THAT IS A REVERSAL.
+// The 5a entry above predicted the card block would be re-housed onto the phase
+// pages, taking its nine drafted strings with it for a -9. Decision 3 of
+// 2026-09-09 superseded that: a phase page is an explanation, not a second
+// launcher, so the cards stay on the map and the nine stay where they are. The
+// prediction is deferred, not executed. Do not go looking for the -9 in this
+// slice.
+const EXPECTED_SENTINELS = 170;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

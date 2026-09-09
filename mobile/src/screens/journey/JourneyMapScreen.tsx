@@ -6,20 +6,26 @@
 // pillar cards the launcher used to be, unchanged and still working, because
 // 5a has nowhere else to put them yet.
 //
-// WHY BOTH, AND WHY THIS IS NOT A HALF-MIGRATION. The roadmap re-houses those
-// four destinations onto PHASE DETAIL PAGES, and the detail pages are slice 5b
-// (roadmap section 5, rows 5a/5b). Shipping the map alone would leave
-// FocusHubScreen and StressRecoveryScreen with no caller at all: this screen is
-// the ONLY navigator to ROUTES.PillarFocus and ROUTES.PillarStressRecovery in
-// the whole app. That is precisely how FocusHubScreen went dark for two months
-// after IA step 2, with its own unit suite green the entire time
-// (AppNavigator.tsx:533, and the step-4a restore path suite). The cards stay
-// until the pages that will hold them exist.
+// WHY BOTH, AND IT IS NO LONGER TEMPORARY (Kyle, 2026-09-09, slice 5b-i,
+// decision 3). Row 5b originally said the phase detail pages would re-house
+// these four destinations. THAT CLAUSE IS SUPERSEDED: a phase page is an
+// EXPLANATION, and a page offering three doors would rebuild the toolkit
+// architecture that deleting the launcher removed. So the cards stay here, below
+// the divider, and every destination is reachable exactly as it was.
 //
-// THE MAP ROWS DO NOT NAVIGATE, DELIBERATELY. There is no phase detail page to
-// open in 5a, so the rows carry no chevron, no button role and no press
-// handler: nothing invites a tap that would do nothing. 5b gives them a
-// destination and an interaction in the same slice. See PhasePath's header.
+// This screen is still the ONLY navigator to ROUTES.PillarFocus and
+// ROUTES.PillarStressRecovery in the app, which is why the card block is load
+// bearing rather than decorative: FocusHubScreen went dark for two months after
+// IA step 2 with its own unit suite green the whole time (AppNavigator.tsx:533,
+// and the step-4a restore path suite). WHERE THE PRACTICE CATALOG ULTIMATELY
+// LIVES IS AN OPEN IA QUESTION, logged as open rather than settled here.
+//
+// THE MAP ROWS NAVIGATE, as of 5b-i: each opens that phase's explanation
+// (ROUTES.JourneyPhase). Every row opens, including the ones ahead, because
+// AHEAD OPENS (roadmap section 8) and a path where only some rows led somewhere
+// would draw a locked door the model does not have. 5a shipped them inert with a
+// test pinning that shut; the page and the affordance arrive together, which is
+// what that test was holding out for.
 //
 // TITLE AND TAB LABEL ARE UNCHANGED, AND THAT IS A DECISION (roadmap section 5,
 // amendment 2026-09-09, item 4). "Practices" and "Pick a place to start." are
@@ -27,12 +33,12 @@
 // routed to Jen with the 4b hero-label question. The screen whose name IS the
 // tab is the worst place to ship an in-house replacement nobody approved.
 //
-// NO GUIDE PILL, AND THIS ONE IS NOW AN OPEN QUESTION RATHER THAN A SETTLED NO.
-// The launcher had none because a doorway is not a surface to describe; UI
-// Standards 18 wants one on hubs, and this screen now has content of its own.
-// It is left off here because the pill is not in 5a's fence and because what
-// the Guide may say about a user's journey is an open section 7 deliverable,
-// not a wiring choice. Flagged for disposition rather than decided quietly.
+// NO GUIDE PILL, ANSWERED IN 5b-i (decision 6). Not an open question any more
+// and not a deferral: the Guide's stance, its data-access position and its
+// crisis path are an open section 7 deliverable, and a pill on a surface that
+// displays a user's journey creates expectations the product cannot yet honour.
+// The phase pages carry none either, and no `context.screen` value is wired
+// anywhere "ready for later".
 //
 // READS journeyStates DIRECTLY, not through PhaseContext. The resolver's
 // PhaseContext carries phaseKey, destination, capacitySeed and revisionToken
@@ -62,6 +68,7 @@ import { NAV_TARGETS } from '../../navigation/navTargets';
 import { ROUTES } from '../../navigation/routes';
 import { getJourneyState } from '../../services/firebase/journeyState.service';
 import type { JourneyState } from '../../types/models';
+import type { JourneyPhaseParams } from './JourneyPhaseScreen';
 import { logger } from '../../utils/logger';
 
 const MIN_TOUCH_TARGET = 48;
@@ -90,6 +97,7 @@ type NavigationProp = NativeStackNavigationProp<
     PillarFocus: undefined;
     PillarEnergy: undefined;
     PillarStressRecovery: undefined;
+    JourneyPhase: JourneyPhaseParams;
   } & { [K in typeof NAV_TARGETS.plan]: { tab: 'routines' } }
 >;
 
@@ -108,8 +116,10 @@ interface PillarCardConfig {
 }
 
 // Order, labels, descriptors, icons and destinations are the launcher's,
-// unchanged. Slice 5b re-houses these onto the phase detail pages: Focus & Time
-// under the fourth phase, the other three under the second.
+// unchanged, and they STAY HERE (slice 5b-i decision 3, above). The 5a entry
+// predicted these nine drafted strings might die with the block in 5b; that
+// prediction is deferred, not executed, and the sentinel does not move for them
+// in this slice either.
 const PILLARS: PillarCardConfig[] = [
   {
     id: 'focus-time',
@@ -222,6 +232,17 @@ export function JourneyMapScreen() {
             copy="full"
             stateLabels={PHASE_STATE_LABELS}
             showStateLabels
+            // EVERY ROW OPENS, INCLUDING THE ONES AHEAD (roadmap section 8:
+            // AHEAD opens). The destination travels with the phase so the page
+            // can render its title and body even if its own read fails; the
+            // page re-reads the document for the user's position, which can
+            // change while it is open.
+            onPressPhase={(phase) =>
+              navigation.navigate(ROUTES.JourneyPhase, {
+                phase,
+                destination: journey.destination,
+              })
+            }
             testID="journey-map-path"
           />
         ) : null}
