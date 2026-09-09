@@ -175,6 +175,7 @@ import { CheckInFlowScreen } from '../screens/checkin/CheckInFlowScreen';
 // a launcher in journey slice 5a: it is the journey map, and it reads
 // journeyStates. PracticesHubScreen is deleted, not orphaned.
 import { JourneyMapScreen } from '../screens/journey/JourneyMapScreen';
+import { JourneyPhaseScreen } from '../screens/journey/JourneyPhaseScreen';
 import { LearnHubScreen } from '../screens/learn/LearnHubScreen';
 
 // Create navigators
@@ -1119,6 +1120,28 @@ const MainNavigator = () => {
           options={stackOpts({
             headerShown: false,
             animation: 'slide_from_right',
+          })}
+        />
+        {/* One phase, explained (journey slice 5b-i). Registered on the same
+            terms as the pillar pages above: exactly one parent, the journey
+            map, so headerBackTitle names it rather than falling back to the
+            generic 'Back'. title is empty because the page renders its own
+            heading, which is the destination's title for this phase and is
+            longer than a header bar should carry.
+
+            'Practices' is the back label because that is what the tab still
+            says. The rename to Journey is its own slice after 5b, deliberately
+            not taken mid-arc, and this string moves with it. */}
+        <AppStack.Screen
+          name={ROUTES.JourneyPhase}
+          component={JourneyPhaseScreen}
+          options={stackOpts({
+            ...standardHeaderOptions,
+            headerBackTitle: 'Practices',
+            animation: 'slide_from_right',
+            headerShown: true,
+            title: '',
+            headerShadowVisible: false,
           })}
         />
         {/* The weekly close (spec 8). Entered from Home rather than from

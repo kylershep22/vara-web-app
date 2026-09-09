@@ -24,7 +24,7 @@
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
 import type { PhaseState } from './journey';
-import type { DestinationKey } from '../types/models';
+import type { DestinationKey, PhaseKey } from '../types/models';
 
 /**
  * The destination named in ONE WORD (or two), for the positions that used to
@@ -117,10 +117,75 @@ export const A2_BODIES: Record<DestinationKey, string> = {
  *
  * A2 DOES NOT USE THIS MAP. Its current row says "Starting here", which lives
  * at the route strip: same position, different moment, different sentence.
+ *
+ * `done` READS "Complete", NOT "Done" (Kyle, 2026-09-09, slice 5b-i). A
+ * SUBSTITUTION OF ONE APPROVED STRING BY ANOTHER: both were his, the second
+ * replaces the first on the same day, and the sentinel does not move in either
+ * direction. It is not a new draft and not an approval, so do not count it as
+ * one. "Done" was the only one of the four that could read as achievement
+ * rather than as description, which is a register the rest of the map avoids;
+ * the key stays `done` because the key is vocabulary and the label is copy.
  */
 export const PHASE_STATE_LABELS: Record<PhaseState, string> = {
-  done: 'Done',
+  done: 'Complete',
   current: 'Where you are',
   ahead: 'Ahead',
   skipped: 'Skipped',
 };
+
+/**
+ * What each stretch is doing, one short body per phase (slice 5b-i).
+ *
+ * DRAFTED IN-HOUSE, OWNER KYLE, AND THE SENTINEL MOVES FOR ALL FIVE STRINGS IN
+ * THIS BLOCK. Not pack content: Content Pack v1 delivers 16 titles, 16 glosses
+ * and 16 shorts, and the roadmap never specifies a phase page's body.
+ *
+ * PER PHASE, NOT PER CELL, AND THAT IS DELIBERATE. `PHASE_DISPLAY` already says
+ * what this phase means for THIS destination, in Jen's words, twice over (title
+ * and gloss). A sixteen-cell body would say the same thing a third time and
+ * would be sixteen more strings to keep in agreement with hers. The body answers
+ * the question the destination language cannot: why the journey has this stretch
+ * at all, and why it sits where it sits.
+ *
+ * THE FOUR ARE STATE-AGNOSTIC ON PURPOSE. The same body reads correctly whether
+ * the user is standing in the phase, has finished it, skipped it, or has not
+ * reached it, so an unreached phase needs no second version and no empty state.
+ * A body that changed with position would be four more strings and would make
+ * the page about the user's progress rather than about the stretch.
+ *
+ * NOTHING HERE PROMISES CONTENT. The rewire body in particular says what the
+ * stretch is for and stops: its three protocol variants are the only ones in the
+ * matrix carrying `placeholder: true`, and a body that described practices
+ * nobody has authored would be the placeholder leaking out through the copy.
+ *
+ * NO EM DASHES, NO COUNTS, NO SEQUENCE NUMBERS. "It comes later" is position;
+ * "it is the third stretch" would be a counter (UI Standards 10.7).
+ */
+export const PHASE_PAGE_BODIES: Record<PhaseKey, string> = {
+  // COPY: draft, not from guidelines doc - pending Kyle
+  remove:
+    'Every journey starts here, whatever you came for. Before anything gets added, one thing that keeps taking from you gets smaller. It is the quickest way to get something back.',
+  // COPY: draft, not from guidelines doc - pending Kyle
+  recover:
+    'This stretch is about coming back after the day takes something out of you. You find which small resets actually give you usable room again, so a hard day costs you less than it used to.',
+  // COPY: draft, not from guidelines doc - pending Kyle
+  rewire:
+    'This stretch is about the patterns underneath the day rather than the day itself. It comes later on purpose: it asks more of you than the stretches before it, and it lands better once you have room to work with.',
+  // COPY: draft, not from guidelines doc - pending Kyle
+  refocus:
+    'This stretch is where the room you made gets spent. It goes to the things you wanted more of, rather than to whatever asks loudest.',
+};
+
+/**
+ * The one line the remove page adds when a replacement intention is stored.
+ *
+ * RENDERS ONLY BESIDE A CURATED LABEL, never alone and never with the user's own
+ * words. `removeTargetText` is not echoed on any phase page (Kyle, 2026-09-09):
+ * its single echo point stays at the capture confirmation, because reflecting a
+ * person's own sentence back at them days later is a different act from showing
+ * it to them as they type it.
+ */
+export const PHASE_PAGE_COPY = {
+  // COPY: draft, not from guidelines doc - pending Kyle
+  replacementLeadIn: 'What you chose instead',
+} as const;
