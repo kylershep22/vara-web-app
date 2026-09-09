@@ -248,8 +248,8 @@ deploy. Deploy state lives on Kyle's checklist.
 | 4a | **[DONE `ea58022`, merged `d317c4d`, 2026-09-07]** Onboarding destination + route, everything but the outcome | A1 at step 2 (`§A1`, subtitle dropped); **new** A2 route screen at step 3 with the route strip (`§A2`, `§short-labels`); capacity step asks the daily question; terminal writes `journeyStates` + `userPrivate.capacitySeed`, `completeOnboarding` last; `capacitySeed` re-homed off the cycle; migration branch shows A2 once. **The first cycle keeps writing `outcome` exactly as before.** | No content gate; no §9 item | Done 2026-09-07: four destination arcs, migration path with two relaunches, Firestore shape verified |
 | 4b | **[DONE, 2026-09-07; walk pending]** Weekly-cycle outcome retirement *(row added 2026-09-07; split out of row 4 at slice 4a's Step 0)* | `WeeklyCycle.outcome` and `CreateWeeklyCycleInput.outcome` become optional (`types/models.ts`, `weeklyCycle.service.ts`); guard both render sites (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`); **the 3b rollover at `weeklyCycle.service.ts:251` must carry absence forward instead of defaulting to `'focus'`**; retire `outcomeForDestination` (`journey/destinationBridge.ts`), which exists only for the cycle write. | Fence explicitly INCLUDES the daily-loop render sites and the weekly rollover; that is the point of the row | Yes |
 | 5 | **[SPLIT 2026-09-09 into 5a, 5b and 5c; the `supportingPracticeIds` authoring is REMOVED from the slice, not deferred inside it; see the AMENDED block below]** Practices → journey map + Start here container | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
-| 5a | **[Next]** Journey map + the phase-path component *(row added 2026-09-09 with the split)* | `JourneyMapScreen` replaces `PracticesHubScreen` at `ROUTES.PillarPractices`; four phase rows carrying `title` + `gloss` from `PHASE_DISPLAY` (both already populated, held unrendered since 4a); card states derived from `journeyStates` (`phaseKey` / `history` / `skipped`), never stored; the phase-path component built ONCE here and adopted by `RouteStrip` in the same slice (4a known gap 2). Every destination the four hub cards reach today keeps a working entry point. Tab label, screen title and intro UNCHANGED. | No content gate, no §9 item, no build rule. Map state labels are in-house copy: named owner, sentinel increments | Yes |
-| 5b | **[Queued]** Phase detail pages ×4 *(row added 2026-09-09 with the split)* | `refocus` re-houses the Focus hub; `recover` re-houses Energy, Stress Recovery and Routines under the `§recover-lanes` destination weighting; `remove` renders the 3c-ii stored intention, which is real user state on day one; **`rewire` ships as an explicit, scoped stub** — decided now, not discovered at Step 0. **Sleep is NOT re-housed** (see the AMENDED block below). | Page chrome is in-house copy. The catalog-to-grid bridge stays empty and is not this slice's problem | Yes |
+| 5a | **[DONE `ec943be`, 2026-09-09]** Journey map + the phase-path component *(row added 2026-09-09 with the split)* | `JourneyMapScreen` replaces `PracticesHubScreen` at `ROUTES.PillarPractices`; four phase rows carrying `title` + `gloss` from `PHASE_DISPLAY` (both already populated, held unrendered since 4a); card states derived from `journeyStates` (`phaseKey` / `history` / `skipped`), never stored; the phase-path component built ONCE here and adopted by `RouteStrip` in the same slice (4a known gap 2). Every destination the four hub cards reach today keeps a working entry point. Tab label, screen title and intro UNCHANGED. | No content gate, no §9 item, no build rule. Map state labels are in-house copy: named owner, sentinel increments | Yes |
+| 5b | **[Next]** Phase detail pages ×4 *(row added 2026-09-09 with the split)* | `refocus` re-houses the Focus hub; `recover` re-houses Energy, Stress Recovery and Routines under the `§recover-lanes` destination weighting; `remove` renders the 3c-ii stored intention, which is real user state on day one; **`rewire` ships as an explicit, scoped stub** — decided now, not discovered at Step 0. **Sleep is NOT re-housed** (see the AMENDED block below). | Page chrome is in-house copy. The catalog-to-grid bridge stays empty and is not this slice's problem | Yes |
 | 5c | **[Queued]** Start here container *(row added 2026-09-09 with the split)* | `StartHereRow` over `VideoPlayerModal`, collapsed/expanded state persisted per surface, `explainerPath` as a data field with a placeholder path (§6 item 9). Practices surface only; slice 7 mounts the Today instance. **Free-floating**: touches neither `PHASE_DISPLAY` nor `journeyStates`. | Videos are data, not a gate. `VideoPlayerModal` and `useVideoSource` are §3.5-unchanged and are wrapped, never edited | Yes |
 | 6 | **Weekly reset repurpose** | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
 | 7 | **Offers + Today additions** | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
@@ -1268,5 +1268,113 @@ split out of row 4 at slice 4a's Step 0.
   one phrase. Whether the short three should move to the register of the fourth, or the
   fourth to theirs, is **her call** — the four are revised together or not at all, which
   is recorded at the map.
+
+**Sept 9, 2026 — slice 5a merged (ec943be). The Practices tab stops being a launcher
+and becomes the journey map.** Branch commits 7cc57a2 plus the approval rider b9db7f4,
+atop the docs split 1c33ceb. First of the three slices row 5 was split into.
+- Figures at close: jest **3203 / 213** (from 3179 / 211) · tsc **149**, unchanged ·
+  sentinel **165** (169 at the slice, **-4 on the rider**). Rules **191 / 2** and
+  functions **53 / 4** are CARRIED UNRUN and labelled so: neither `firestore.rules` nor
+  anything under `functions/` is in the diff. Suites +2: three added
+  (`phaseStates`, `PhasePath`, `JourneyMapScreen`), one deleted with its screen
+  (`PracticesHubScreen.test.tsx`).
+- SHIPPED: `JourneyMapScreen` replaces `PracticesHubScreen` at `ROUTES.PillarPractices`.
+  Four phase rows in destination language rendering `title` + `gloss` from
+  `PHASE_DISPLAY` — the half populated and held unrendered since 4a — with row states
+  derived from `journeyStates`. A shared `PhasePath` component draws the four as a
+  connected path and is **adopted by `RouteStrip` in the same slice**, which closes 4a's
+  known gap 2: **A2 now reads as a path rather than four bullets.** No copy changed on
+  A2 and no screen did either.
+- **THE ADOPTION PROOF IS THAT `RouteStrip.test.tsx` IS BYTE-UNCHANGED AND GREEN.**
+  Neither A2 surface was touched: `OnboardingV3RouteScreen` and `MigrationRouteScreen`
+  both render `RouteExplainerBody`, which renders the strip, and the strip became a thin
+  call on the shared component behind identical props and identical testIDs. A rewritten
+  strip suite would have proved nothing about whether behaviour held; leaving it alone is
+  the assertion.
+- **STATE DERIVATION: POSITION DECIDES FIRST, HISTORY ONLY BREAKS THE TIE.** Recorded
+  here because it is easy to re-derive wrongly and the wrong version looks right.
+  `stepBackToPhase` closes the departed phase with exitReason `'adjusted_back'` and moves
+  the user BACKWARDS (`journeyState.service.ts:199-220`), so **a phase can carry a
+  history entry while sitting AHEAD of where the user now is.** History-first would draw
+  a completed check against a phase they are about to meet again. The rule is: current
+  wins; anything after current is AHEAD whatever its history; anything before current is
+  SKIPPED if its LAST closure says so and DONE otherwise. Pinned by its own test.
+- **`skipped[]` IS DELIBERATELY NOT READ**, though the model carries it
+  (`types/models.ts:818`). It is append-only and nothing clears it, so a phase jumped
+  over, stepped back into and then genuinely completed would read SKIPPED forever. The
+  last history entry for a phase is the current truth about it; the array is the record
+  that it was once jumped. Both are correct about different questions and the map asks
+  the first. A test pins that the two agree in every state the service can actually
+  produce.
+- **NOTHING IN THE APP PRODUCES DONE, SKIPPED OR `adjusted_back` TODAY.** `advancePhase`,
+  `skipToPhase` and `stepBackToPhase` have no callers outside the service and its own
+  suite; slice 7 owns the offers. Every real account is at `remove` with an empty history,
+  so three of the four states are unreachable by using the app. All four are pinned by
+  fixtures, and the walk exercised them by console-seeding `journeyStates`. That is the
+  method to reuse when slice 7 makes them reachable for real.
+- **THE FOUR DESTINATION CARDS WERE CARRIED ONTO THE MAP, NOT DELETED**, below a divider
+  under the path. Step 0 found that `PracticesHubScreen` was the ONLY navigator to
+  `ROUTES.PillarFocus` and `ROUTES.PillarStressRecovery` in the whole app: deleting the
+  cards with the launcher would have taken both screens dark, which is the exact IA
+  step-2 failure whose repair this slice's suite repoints. **5b moves them onto the phase
+  detail pages**, and the same suite is what fails if one is dropped on the way.
+- **MAP ROWS DO NOT NAVIGATE, AND A TEST HOLDS THAT SHUT.** There is no detail page to
+  open in 5a, so rows carry no chevron, no button role and no handler; nothing invites a
+  tap that would do nothing. The test fails if an affordance arrives without a
+  destination, so **5b cannot add one without the other**.
+- **THE NINE CARRIED STRINGS, AND WHY THEY ARE A FOURTH-AND-A-HALF CASE.** Four card
+  labels, four descriptors and the `'Pick a place to start.'` intro moved verbatim into
+  the new file with their markers and their pending-Jen owner. Nobody approved them,
+  nobody redrafted them, and their surface did not stop existing — it was replaced by one
+  that still renders them. So this is neither 3b's deletion-with-surface nor 4a's
+  supersession-by-pack: **a MOVE is sentinel-neutral by definition.** The file path in the
+  per-file listing changes and the number does not. The note above `EXPECTED_SENTINELS`
+  says so, because nine drafts appearing under a new path otherwise read as nine new ones.
+  This resolves the prediction the 2026-09-09 amendment asked the brief to make: they
+  carried.
+- **SENTINEL ACROSS THE SLICE: +4, -4, AND NINE RELOCATED.** The four map state labels
+  (`'Where you are'`, `'Done'`, `'Ahead'`, `'Skipped'` in `PHASE_STATE_LABELS`) landed
+  drafted, owner Kyle, taking the pin to 169; Kyle approved all four **on device during
+  the walk, read on the map rows they occupy rather than off a list**, and the rider
+  `b9db7f4` cleared the markers on the branch before the merge, -4.
+  **THE PIN READS 165 AT 4a's CLOSE AND 165 HERE, ON A DIFFERENT SET.** Do not collapse
+  this with the 4b case above it: 4b was a +3 and a -3 on three IDENTICAL strings one
+  commit apart. This is four strings drafted and approved, plus nine relocated with no
+  count change at all. A reader diffing the pinned number across 5a sees no movement and
+  would be wrong three times.
+- **TEST FINDING WORTH KEEPING: THE FRAMEWORK-WORD ASSERTION CANNOT BE A REGEX ON THE
+  MAP.** `PHASE_DISPLAY.recover.energy.gloss` reads "Find the things that help you recover
+  when you're running low." (`constants/journey.ts:168`) — the ordinary English verb
+  inside Jen's approved copy, not the framework key leaking into the UI. A word-boundary
+  regex fails on it, and **the only way to make it pass would be to edit one of her
+  strings**, which is the outcome these pins exist to prevent. Both new suites assert
+  EXACT match on the phase name standing alone, which is what section 8 actually bans.
+  `RouteStrip` keeps its regex and stays green because `short` never contains one of the
+  four.
+- MANIFEST: **no new collection, and nothing written at all.** The slice's only Firestore
+  contact is a READ (`getJourneyState`). `journeyStates` is already on the manifest at
+  `functions/src/lib/accountDeletion.js:86`, **verified by reading it** rather than
+  inherited from the 4a entry. Recording the check when the answer is "no change" is the
+  point of the standing rule.
+- RULES: unchanged and none needed. The slice reads `journeyStates` and writes nothing.
+- **DEFERRED WITH REASONING, both 5b calls, neither an oversight:**
+  1. **`useReducedMotion` is not wired.** The path is static — no entrance, no fill, no
+     stagger — so there is nothing to gate, and a hook whose value nothing reads is
+     coverage theatre rather than coverage. Stated in the component header: a revision
+     that animates anything gates it then.
+  2. **No Guide pill**, and this one CHANGED STATUS rather than staying settled. The
+     launcher had none because a doorway is not a surface to describe, and the standing
+     note said "revisit when the hub has content of its own". It now does. It is still
+     left off because the pill is outside 5a's fence and because what the Guide may say
+     about a user's journey is an open section 7 deliverable, not a wiring choice.
+- **WALK (Kyle's, 2026-09-09), all steps.** Map in the `remove` state; all four cards
+  reaching their destinations with working back paths; all three seeded states including
+  the `adjusted_back` case that proves position-first; on-focus refresh after changing
+  the phase underneath the app; an account with no `journeyStates` document rendering the
+  cards and no path; A2 re-walked on BOTH the onboarding and migration paths; VoiceOver
+  and xxxLarge text on both surfaces.
+- **OPEN FOR JEN, non-blocking.** `'Done'` is the only one of the four state labels that
+  could read as achievement rather than description, which is a register the rest of the
+  map avoids. A flatter word is a one-string change if she wants it.
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*
