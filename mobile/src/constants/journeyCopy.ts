@@ -136,9 +136,16 @@ export const PHASE_STATE_LABELS: Record<PhaseState, string> = {
 /**
  * What each stretch is doing, one short body per phase (slice 5b-i).
  *
- * DRAFTED IN-HOUSE, OWNER KYLE, AND THE SENTINEL MOVES FOR ALL FIVE STRINGS IN
- * THIS BLOCK. Not pack content: Content Pack v1 delivers 16 titles, 16 glosses
- * and 16 shorts, and the roadmap never specifies a phase page's body.
+ * WRITTEN AND APPROVED BY KYLE, 2026-09-09, ON DEVICE. Not pack content: Content
+ * Pack v1 delivers 16 titles, 16 glosses and 16 shorts, and neither it nor the
+ * roadmap specifies what a phase page says in its own voice.
+ *
+ * AUTHORED, NOT DRAFTED-THEN-APPROVED, and the difference is worth the sentence.
+ * These five shipped to the branch as Claude drafts and Kyle REPLACED THE TEXT
+ * during the walk, reading each one on the page it occupies. What is here is his
+ * wording, not a sign-off on someone else's. The absence of markers means the
+ * strings were weighed, not that nobody questioned them. Same reading as
+ * DESTINATION_SUMMARY_LABELS above.
  *
  * PER PHASE, NOT PER CELL, AND THAT IS DELIBERATE. `PHASE_DISPLAY` already says
  * what this phase means for THIS destination, in Jen's words, twice over (title
@@ -162,18 +169,14 @@ export const PHASE_STATE_LABELS: Record<PhaseState, string> = {
  * "it is the third stretch" would be a counter (UI Standards 10.7).
  */
 export const PHASE_PAGE_BODIES: Record<PhaseKey, string> = {
-  // COPY: draft, not from guidelines doc - pending Kyle
   remove:
-    'Every journey starts here, whatever you came for. Before anything gets added, one thing that keeps taking from you gets smaller. It is the quickest way to get something back.',
-  // COPY: draft, not from guidelines doc - pending Kyle
+    "Whatever brought you here, we start by making a little room. Before adding anything new, you'll work on one thing that's been taking too much from you.",
   recover:
-    'This stretch is about coming back after the day takes something out of you. You find which small resets actually give you usable room again, so a hard day costs you less than it used to.',
-  // COPY: draft, not from guidelines doc - pending Kyle
+    "This stretch is about finding your way back after the day takes something out of you. You'll try small resets and notice which ones actually help.",
   rewire:
-    'This stretch is about the patterns underneath the day rather than the day itself. It comes later on purpose: it asks more of you than the stretches before it, and it lands better once you have room to work with.',
-  // COPY: draft, not from guidelines doc - pending Kyle
+    'This stretch is about making what helps easier to come back to. It lands better once you have some room to work with.',
   refocus:
-    'This stretch is where the room you made gets spent. It goes to the things you wanted more of, rather than to whatever asks loudest.',
+    "This stretch is where you use the room you've made on the things you wanted more of, instead of whatever is asking the loudest.",
 };
 
 /**
@@ -184,8 +187,10 @@ export const PHASE_PAGE_BODIES: Record<PhaseKey, string> = {
  * its single echo point stays at the capture confirmation, because reflecting a
  * person's own sentence back at them days later is a different act from showing
  * it to them as they type it.
+ *
+ * KYLE'S, APPROVED ON DEVICE 2026-09-09, on the same terms as the bodies above:
+ * read in the position it occupies, beside a real stored pick.
  */
 export const PHASE_PAGE_COPY = {
-  // COPY: draft, not from guidelines doc - pending Kyle
   replacementLeadIn: 'What you chose instead',
 } as const;

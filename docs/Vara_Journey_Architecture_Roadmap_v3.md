@@ -249,7 +249,8 @@ deploy. Deploy state lives on Kyle's checklist.
 | 4b | **[DONE, 2026-09-07; walk pending]** Weekly-cycle outcome retirement *(row added 2026-09-07; split out of row 4 at slice 4a's Step 0)* | `WeeklyCycle.outcome` and `CreateWeeklyCycleInput.outcome` become optional (`types/models.ts`, `weeklyCycle.service.ts`); guard both render sites (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`); **the 3b rollover at `weeklyCycle.service.ts:251` must carry absence forward instead of defaulting to `'focus'`**; retire `outcomeForDestination` (`journey/destinationBridge.ts`), which exists only for the cycle write. | Fence explicitly INCLUDES the daily-loop render sites and the weekly rollover; that is the point of the row | Yes |
 | 5 | **[SPLIT 2026-09-09 into 5a, 5b and 5c; the `supportingPracticeIds` authoring is REMOVED from the slice, not deferred inside it; see the AMENDED block below]** Practices → journey map + Start here container | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
 | 5a | **[DONE `ec943be`, 2026-09-09]** Journey map + the phase-path component *(row added 2026-09-09 with the split)* | `JourneyMapScreen` replaces `PracticesHubScreen` at `ROUTES.PillarPractices`; four phase rows carrying `title` + `gloss` from `PHASE_DISPLAY` (both already populated, held unrendered since 4a); card states derived from `journeyStates` (`phaseKey` / `history` / `skipped`), never stored; the phase-path component built ONCE here and adopted by `RouteStrip` in the same slice (4a known gap 2). Every destination the four hub cards reach today keeps a working entry point. Tab label, screen title and intro UNCHANGED. | No content gate, no §9 item, no build rule. Map state labels are in-house copy: named owner, sentinel increments | Yes |
-| 5b | **[Next]** Phase detail pages ×4 *(row added 2026-09-09 with the split)* | `refocus` re-houses the Focus hub; `recover` re-houses Energy, Stress Recovery and Routines under the `§recover-lanes` destination weighting; `remove` renders the 3c-ii stored intention, which is real user state on day one; **`rewire` ships as an explicit, scoped stub** — decided now, not discovered at Step 0. **Sleep is NOT re-housed** (see the AMENDED block below). | Page chrome is in-house copy. The catalog-to-grid bridge stays empty and is not this slice's problem | Yes |
+| 5b | **[PARTLY SHIPPED as 5b-i, `8cc461c`, 2026-09-09; the re-house clause below is SUPERSEDED and the remainder is OPEN, see the Sept 9 5b-i entry in section 13]** Phase detail pages ×4 *(row added 2026-09-09 with the split)* | `refocus` re-houses the Focus hub; `recover` re-houses Energy, Stress Recovery and Routines under the `§recover-lanes` destination weighting; `remove` renders the 3c-ii stored intention, which is real user state on day one; **`rewire` ships as an explicit, scoped stub** — decided now, not discovered at Step 0. **Sleep is NOT re-housed** (see the AMENDED block below). | Page chrome is in-house copy. The catalog-to-grid bridge stays empty and is not this slice's problem | Yes |
+| 5b-i | **[DONE `8cc461c`, 2026-09-09]** Phase explanation pages *(row added 2026-09-09 at the close)* | Four phase detail pages on one route (`ROUTES.JourneyPhase`, params `phase` + `destination`), reachable from every journey map row: destination `title` + `gloss`, one state-agnostic body per phase, a state eyebrow, back to the map. `PhasePath` gains an optional `onPressPhase`; A2 passes none and stays inert. Remove page renders the 3c-ii stored intention through an absent-safe resolver. **NOT a practice browser**, and the four destination cards STAY ON THE MAP. | No content gate, no §9 item. Five page strings drafted in-house then rewritten and approved by Kyle on device | Done 2026-09-09: four pages, two destinations, three seeded states, both remove-page paths |
 | 5c | **[Queued]** Start here container *(row added 2026-09-09 with the split)* | `StartHereRow` over `VideoPlayerModal`, collapsed/expanded state persisted per surface, `explainerPath` as a data field with a placeholder path (§6 item 9). Practices surface only; slice 7 mounts the Today instance. **Free-floating**: touches neither `PHASE_DISPLAY` nor `journeyStates`. | Videos are data, not a gate. `VideoPlayerModal` and `useVideoSource` are §3.5-unchanged and are wrapped, never edited | Yes |
 | 6 | **Weekly reset repurpose** | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
 | 7 | **Offers + Today additions** | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
@@ -1380,60 +1381,119 @@ atop the docs split 1c33ceb. First of the three slices row 5 was split into.
   string replacing an approved string, so the sentinel does not move for it. Annotated
   here rather than rewritten, and the arithmetic is recorded at the pin.)*
 
-**Sept 9, 2026 — slice 5b-i, branch `journey/slice-5b-i-phase-pages` (`af8df3d`). NOT
-MERGED; this entry is a STUB holding one walk finding.** The close entry replaces it in
-full, with figures and a merge SHA, and absorbs the bullet below. It is written now
-because the finding came off the walk and a queued defect that lives only in a
-conversation is a queued defect that gets rediscovered.
-
+**Sept 9, 2026 — slice 5b-i merged (8cc461c). Four phase pages that explain the journey
+rather than sell a toolkit.** Branch commits af8df3d and 3fe00a0, plus the copy rider that
+follows this entry on main. First of the two slices row 5b was split into.
+- Figures at close: jest **3226 / 214** (from 3203 / 213) · tsc **149**, unchanged ·
+  sentinel **165** (170 at the merge, **-5 on the rider**). Rules **191 / 2** and functions
+  **53 / 4** CARRIED UNRUN and labelled so: neither `firestore.rules` nor anything under
+  `functions/` is in the diff.
+- SHIPPED: four phase detail pages on ONE route (`ROUTES.JourneyPhase`, params `phase` +
+  `destination`), reachable from every row of the journey map. `PhasePath` gained an
+  optional `onPressPhase`; A2 stays inert because `RouteStrip` passes nothing, so neither
+  onboarding screen nor `RouteExplainerBody` was touched.
+- **A PHASE PAGE IS AN EXPLANATION, NOT A PRACTICE BROWSER** (Kyle, with Jen consulted,
+  2026-09-09). Each page carries the destination's title and gloss from `PHASE_DISPLAY`,
+  one body, a state eyebrow and a back path. No destination cards, no category cards, no
+  practice lists.
+- **THE LANES STAY SERVING-SIDE ONLY.** Downshift / Refill / Re-anchor never appear as page
+  structure and are never mapped onto Energy's Regulate / Rest / Fuel. **Re-anchor having
+  no Energy counterpart is EVIDENCE THE TWO TAXONOMIES ARE SEPARATE, not a prompt to invent
+  a fourth category.** `§recover-lanes` answers "what should Vara favour for this user
+  today", which is a serving question; it does not answer "what categories does this page
+  show", which is the question nobody asked. A page offering three doors would have
+  reintroduced the toolkit architecture that deleting the 5a launcher removed, one level
+  down and out of sight.
+- **CONSEQUENCE, LOGGED AS OPEN RATHER THAN SETTLED: the four destination cards stay on the
+  map**, below the divider, unchanged. **Row 5b's re-house clause is superseded.** Every
+  destination is reachable exactly as it was. **WHERE THE PRACTICE CATALOG ULTIMATELY LIVES
+  IS AN OPEN IA QUESTION and this slice does not answer it** — it declines to answer it in
+  a slice about explanations, which is different from answering it by leaving things where
+  they are.
+- **REVERSAL, RECORDED EXPLICITLY BECAUSE THE 5a ENTRY PREDICTED OTHERWISE.** 5a predicted
+  the card block would die in 5b and take its nine drafted strings with it, a -9. **It did
+  not.** The cards stay, so `'Pick a place to start.'` and the eight card strings are
+  untouched and still pending Jen. The prediction is **deferred, not executed**; do not go
+  looking for the -9 in this slice. Annotated at the map, in its suite, and at the pin.
+- **NO PER-ROW PRESS OPT-OUT. Every row opens, including the ones AHEAD.** A path where
+  only the current and completed rows led somewhere would draw the locked door the model
+  does not have. This is section 8 applied to INTERACTION rather than only to copy: "Locked
+  does not exist in the UI vocabulary" is not satisfied by avoiding the word while shipping
+  the affordance.
+- **`enteredAt` / `exitedAt` ARE DELIBERATELY NOT RENDERED.** Every history entry carries
+  both, so a page could say how long a phase took. **A duration is a count wearing a date's
+  clothes**, and section 8 bans the count.
+- **`removeTargetText` IS ECHOED NOWHERE.** The remove page renders the resolved
+  replacement label and nothing else, through a new absent-safe `labelForReplacement`
+  (`screens/journey/removeCapture/routing.ts`) that returns null for a slot or id it cannot
+  resolve. **Walked: a broken id makes the section VANISH ENTIRELY** — no empty row, no raw
+  id, no stand-in for a choice the app can no longer name. The field's single echo point
+  stays at the capture confirmation, where the user is looking at what they just typed.
+- **NO GUIDE PILL, and the map's header no longer calls it an open question.** The Guide's
+  stance, its data-access position and its crisis path are an open product deliverable; a
+  pill on a surface that displays a user's journey creates expectations the product cannot
+  yet honour. **No `context.screen` value is wired anywhere "ready for later"**, because an
+  unused vocabulary entry is how the decision gets made by whoever types the next one.
+- `'Done'` BECAME `'Complete'` (Kyle, 2026-09-09): an approved string replacing an approved
+  string, **sentinel-neutral**, no arithmetic. It closes the open item the 5a entry left
+  for Jen, which is annotated in place above.
+- **THE 5a PAIRING PIN DID ITS JOB.** Map rows were pinned non-pressable precisely so the
+  affordance and the destination had to arrive together, and they did. **Three 5a tests
+  changed:** "no row is pressable in this slice" became "no row is pressable WITHOUT a
+  handler" and gained an inverse; the map's four-card count is now scoped with `within` to
+  the destinations block, because it used to count every `TouchableOpacity` on the screen
+  and went to eight the moment rows became buttons; and **`RouteStrip.test.tsx` LOST ITS
+  BYTE-UNCHANGED PROPERTY** by gaining one assertion. That property was 5a's adoption
+  proof and has served it. A2's inertness is now asserted through what A2 actually renders,
+  which is the stronger statement.
 - **WALK-CAUGHT DEFECT — QUEUED, NOT THIS SLICE. A MALFORMED `history` FIELD BREAKS
-  TODAY.** Reported by Kyle from the 5b-i walk: a `journeyStates` document whose `history`
-  is an array containing a **string rather than a map** makes Today fail to load, with
-  `Cannot convert undefined value to object` attributed to `useTodayCard`. **Absent
-  documents are handled everywhere; malformed ones are not.** Produced here by console
-  seeding, but the same shape could arrive from a partial write or from a future slice
-  writing the field wrong, so it is not a test-only artifact.
-- **WHAT A READ-ONLY CHECK ESTABLISHED, AND WHAT IT DID NOT.** Recorded separately from
-  the report above because the two do not yet agree, and the next Step 0 should start from
-  the disagreement rather than re-derive it.
-  - **`useTodayCard` does not read `history` at all.** It consumes `PhaseContext`
-    (`phaseKey`, `destination`, `removeFamily`, `enteredAtIso`, `capacitySeed`,
-    `revisionToken`), and `resolveJourney` never reads `history` either: zero hits for
-    `.history` in both files.
-  - **The only reader in the app is `derivePhaseStates`** (`journey/phaseStates.ts:79`),
-    where the shape is assumed twice in one line: `state.history.filter(...)` assumes an
-    ARRAY, and `entry.phaseKey` assumes each element is a MAP.
-  - **On the exact shape reported, that line does not throw.** `['some string'].filter`
-    is fine, `entry.phaseKey` on a string is `undefined`, the match set is empty and the
-    phase resolves to `'done'`. So the seeded document should have produced a WRONG STATE
-    WORD SILENTLY on the map, which is arguably the worse bug, rather than an exception on
-    Today. A `history` that is absent or not an array is the case that throws there, and it
-    throws `filter is not a function`, which is not the reported message.
-  - **NOT REPRODUCED.** No attempt was made to reproduce it on device or in a test, and
-    nothing above contradicts Kyle's observation: it says the reported LOCATION is not a
-    reader of the field, which usually means either the seeded document was malformed in
-    more than `history` or the throw is in a frame the stack attributed upward.
-- **STEP 0 WHEN PICKED UP, read-only: cite the frame that actually throws.** Seed the
-  reported shape, catch the real error, and name the file and line before choosing a fix.
-  The fix is one of two and they are not equivalent:
-  1. **Defensive parsing inside `derivePhaseStates`.** Narrow to entries that are objects
-     carrying a `phaseKey`, ignore the rest. Cheap and local, and it makes the derivation
-     total for any input. It also silently absorbs bad data, which is how a wrong state
-     word ships looking correct.
-  2. **A guard at the read boundary**, in `getJourneyState`
-     (`services/firebase/journeyState.service.ts:69`), which currently spreads
-     `snap.data()` straight through with no validation of any field. One guard there covers
-     every present and future reader instead of each one defending itself, and it is the
-     only place that knows the document came off the wire rather than out of the service.
-  **The second is the likely answer and the first is the likely temptation**, but the
-  choice is a Step 0 finding, not a foregone one: a boundary guard has to decide what a
-  document with an unusable field IS (absent, partial, or an error), and that is a product
-  question about what Today shows, not a parsing question.
-- **THE STANDING SHAPE THIS BELONGS TO.** Every journey read so far has been hardened
-  against ABSENCE and none against MALFORMATION: `getJourneyState` returns null for a
-  missing document and casts anything else; the rules block validates named fields with no
-  `hasOnly`, so an unlisted or wrongly typed field is accepted on write. Whoever takes this
-  should scope it as "the read boundary trusts the document", not as "one field is not
-  parsed".
+  TODAY.** A `journeyStates` document whose `history` is an array containing a **string
+  rather than a map** makes Today fail to load, with `Cannot convert undefined value to
+  object` attributed to `useTodayCard`. Absent documents are handled everywhere; malformed
+  ones are not. Produced by console seeding during this walk, but the same shape could
+  arrive from a partial write or a future slice writing the field wrong.
+  - **THE REPORT AND THE READ-ONLY CHECK DISAGREE, AND THEY ARE KEPT SEPARATE SO THE NEXT
+    STEP 0 STARTS FROM THE DISAGREEMENT rather than re-deriving it.** `useTodayCard` **does
+    not read `history` at all** — it consumes `PhaseContext` (`phaseKey`, `destination`,
+    `removeFamily`, `enteredAtIso`, `capacitySeed`, `revisionToken`), and `resolveJourney`
+    does not read it either. **The only reader in the app is `derivePhaseStates`**
+    (`journey/phaseStates.ts:79`), where the shape is assumed twice in one line:
+    `state.history.filter(...)` assumes an array and `entry.phaseKey` assumes each element
+    is a map.
+  - **ON THE EXACT SHAPE SEEDED, THAT LINE DOES NOT THROW.** `['a string'].filter` is fine,
+    `entry.phaseKey` is `undefined`, the match set is empty and the phase resolves to
+    `'done'` — **a wrong state word that looks correct, which is arguably worse than the
+    exception.** The case that throws there is `history` absent or not an array, and it
+    throws `filter is not a function`, which is not the reported message. **NOT
+    REPRODUCED**, and none of this contradicts the observation: it says the reported
+    LOCATION is not a reader of the field.
+  - **SCOPE IT AS "THE READ BOUNDARY TRUSTS THE DOCUMENT", NOT "ONE FIELD IS NOT PARSED".**
+    `getJourneyState` (`services/firebase/journeyState.service.ts:69`) spreads `snap.data()`
+    through with no validation of any field, and the `journeyStates` rules block validates
+    named fields with **no `hasOnly`**, so a wrongly typed field is accepted on write. Every
+    journey read so far is hardened against ABSENCE and none against MALFORMATION.
+  - **TWO CANDIDATE FIXES, FRAMED AND NOT CHOSEN.** (1) Defensive parsing inside
+    `derivePhaseStates`: cheap, local, makes the derivation total, and silently absorbs bad
+    data, which is how a wrong state word ships looking right. (2) A guard at
+    `getJourneyState`: covers every present and future reader instead of each defending
+    itself, but forces a product question first — **what IS a document with an unusable
+    field: absent, partial, or an error?** That is a question about what Today shows, not
+    about parsing. The second is the likely answer and the first is the likely temptation.
+- **WALK (Kyle's, 2026-09-09), all steps.** All four pages across two destinations; the
+  seeded Complete, Skipped and `adjusted_back` states, the last confirming a stepped-back
+  phase reads Ahead and not Complete; on-focus refresh with the phase changed underneath
+  the app; the remove page with a stored intention, with a retired id, and with no pick at
+  all; a free-text account confirming no echo of the user's own words; A2 unchanged on both
+  the onboarding and migration paths; VoiceOver and xxxLarge text on both the map and a
+  page.
+- **COPY RIDER, and it is not an approval.** Kyle **rewrote** all four phase-page bodies
+  and the replacement lead-in on device during the walk and approved his own wording; the
+  markers were cleared and the pin went 170 to 165 in a follow-up commit on main.
+  **THE STRINGS ON DEVICE AT 8cc461c ARE NOT THE STRINGS THAT SHIP.** Anyone reconstructing
+  this slice's copy from the merge commit will read five strings that were replaced hours
+  later. Arithmetically a replacement behaves exactly like an approval, -1 per string,
+  which is why the note at the pin says so out loud: the number cannot tell "approved five
+  strings" from "rewrote five strings after rejecting them", and those are different facts
+  about how much review the copy has had.
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*

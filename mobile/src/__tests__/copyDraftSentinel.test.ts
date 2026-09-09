@@ -240,7 +240,28 @@ import * as path from 'path';
 // launcher, so the cards stay on the map and the nine stay where they are. The
 // prediction is deferred, not executed. Do not go looking for the -9 in this
 // slice.
-const EXPECTED_SENTINELS = 170;
+//
+// 165 since the 5b-i rider: -5. Owner Kyle, 2026-09-09, for the four phase-page
+// bodies and the replacement lead-in.
+//
+// A REPLACEMENT OF THE DRAFTED TEXT BY ITS OWNER, NOT AN APPROVAL OF IT, and the
+// distinction is the whole reason this note is longer than the arithmetic. Kyle
+// did not sign off the strings that were on the branch; he REWROTE all five on
+// device during the walk, reading each on the page it occupies, and what ships
+// is his wording. THE STRINGS ON DEVICE AT MERGE 8cc461c ARE NOT THE STRINGS
+// THAT SHIP. Anyone reconstructing this slice's copy from the merge commit will
+// read four bodies and a lead-in that were replaced hours later.
+//
+// This is a fifth case for the contract at the top of this file, which covers
+// approval, new drafts, 3b's deletion-with-surface and 4a's supersession-by-pack.
+// Arithmetically it behaves exactly like an approval, -1 per string, which is
+// precisely why it needs saying: the number cannot tell the two apart, and
+// "Kyle approved five strings" and "Kyle wrote five strings after rejecting five"
+// are different facts about how much review the copy has had.
+//
+// 'Complete' IS NOT PART OF THIS -5. It was already approved-for-approved at the
+// merge and carried no marker to clear.
+const EXPECTED_SENTINELS = 165;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');
