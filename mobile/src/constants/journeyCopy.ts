@@ -23,6 +23,7 @@
  *
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
+import type { PhaseState } from './journey';
 import type { DestinationKey } from '../types/models';
 
 /**
@@ -86,4 +87,40 @@ export const A2_BODIES: Record<DestinationKey, string> = {
     "Before we build another routine, we'll start with what's knocking the day off course. You'll make one small change there today, then we'll build from what that gives back.",
   energy:
     "Before we ask you to do more, we'll start with what's draining you. You'll make one small change there today, then we'll build from what that gives back.",
+};
+
+/**
+ * The four words the journey map puts on a row (roadmap section 1: DONE /
+ * WHERE YOU ARE / AHEAD / SKIPPED).
+ *
+ * WRITTEN IN-HOUSE AND APPROVED, OWNER KYLE, 2026-09-09. These are NOT pack
+ * content. Roadmap section 1 writes them in capitals as prose about what the
+ * map shows; the Content Pack delivers 16 titles, 16 glosses and 16 shorts and
+ * no state vocabulary at all. Sentence case here because they are UI labels
+ * rather than a spec's shouted list.
+ *
+ * APPROVED ON DEVICE, READ IN SITU. All four were signed off during the slice
+ * 5a walk, on the map rows they occupy rather than off a list, and their
+ * `COPY: draft` markers were cleared in the same rider that records it. The
+ * absence of a marker here means they were weighed, not that nobody asked.
+ *
+ * WORDS, NOT COUNTS. "Where you are" is the whole position report: no ordinal,
+ * no "step 2", no "1 of 4" (UI Standards 10.7, roadmap section 8).
+ *
+ * "Ahead" IS NOT "Locked", and the word was chosen for that. Section 8 says
+ * every practice is runnable at all times and AHEAD opens; a word like "Later"
+ * or "Not yet" would imply a door the app does not have.
+ *
+ * "Skipped" IS NEUTRAL AND STAYS NEUTRAL. It records what the user chose, and
+ * the user is allowed to have chosen it. Nothing here may acquire a nudge, a
+ * consequence, or a way back that reads as a correction.
+ *
+ * A2 DOES NOT USE THIS MAP. Its current row says "Starting here", which lives
+ * at the route strip: same position, different moment, different sentence.
+ */
+export const PHASE_STATE_LABELS: Record<PhaseState, string> = {
+  done: 'Done',
+  current: 'Where you are',
+  ahead: 'Ahead',
+  skipped: 'Skipped',
 };

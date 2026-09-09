@@ -1,0 +1,234 @@
+// The shared phase path: one component, two surfaces.
+//
+// WHAT THIS FILE IS FOR that RouteStrip.test.tsx is not: the strip suite pins
+// A2's contract and is deliberately untouched by slice 5a, so it doubles as the
+// proof that adoption changed no behaviour there. This one pins the union the
+// component has to satisfy for BOTH callers — the map's four states and full
+// copy, the strip's short copy and silent state words — so a future change that
+// serves one surface at the other's expense fails here rather than on a device.
+
+import React from 'react';
+import { render, screen } from '@testing-library/react-native';
+
+import { PhasePath } from '../PhasePath';
+import { PHASE_DISPLAY, PHASE_ORDER } from '../../../constants/journey';
+import type { PhaseState } from '../../../constants/journey';
+import { PHASE_STATE_LABELS } from '../../../constants/journeyCopy';
+import type { PhaseStates } from '../../../journey/phaseStates';
+
+const ALL_AHEAD: PhaseStates = {
+  remove: 'ahead',
+  recover: 'ahead',
+  rewire: 'ahead',
+  refocus: 'ahead',
+};
+
+const MIXED: PhaseStates = {
+  remove: 'done',
+  recover: 'skipped',
+  rewire: 'current',
+  refocus: 'ahead',
+};
+
+describe('PhasePath', () => {
+  test('renders all four phases, in PHASE_ORDER', () => {
+    render(<PhasePath destination="focus" states={ALL_AHEAD} copy="short" />);
+
+    for (const phase of PHASE_ORDER) {
+      expect(screen.getByTestId(`phase-path-${phase}`)).toBeTruthy();
+    }
+  });
+
+  test('copy="full" renders title and gloss, never short', () => {
+    render(<PhasePath destination="calm" states={MIXED} copy="full" />);
+
+    for (const phase of PHASE_ORDER) {
+      const cell = PHASE_DISPLAY[phase].calm;
+      expect(screen.getByText(cell.title)).toBeTruthy();
+      expect(screen.getByText(cell.gloss)).toBeTruthy();
+      // Five cells ship `short` identical to `title` by design, so a blanket
+      // "short is absent" assertion would fail on Jen's own content. Skip those
+      // and check the rest, which is the same shape the strip suite uses.
+      if (cell.short !== cell.title) {
+        expect(screen.queryByText(cell.short)).toBeNull();
+      }
+    }
+  });
+
+  test('copy="short" renders short only, never title or gloss', () => {
+    render(<PhasePath destination="calm" states={ALL_AHEAD} copy="short" />);
+
+    for (const phase of PHASE_ORDER) {
+      const cell = PHASE_DISPLAY[phase].calm;
+      expect(screen.getByText(cell.short)).toBeTruthy();
+      expect(screen.queryByText(cell.gloss)).toBeNull();
+      if (cell.title !== cell.short) {
+        expect(screen.queryByText(cell.title)).toBeNull();
+      }
+    }
+  });
+
+  test('renders the requested destination column and no other', () => {
+    // Without this, a path hard-wired to one destination passes every loop
+    // above for that destination and fails nothing for the other three.
+    render(<PhasePath destination="energy" states={ALL_AHEAD} copy="full" />);
+
+    for (const phase of PHASE_ORDER) {
+      const wrong = PHASE_DISPLAY[phase].routines.title;
+      if (wrong === PHASE_DISPLAY[phase].energy.title) continue;
+      expect(screen.queryByText(wrong)).toBeNull();
+    }
+  });
+
+  test('draws a state word per row when asked, and the right one', () => {
+    render(
+      <PhasePath
+        destination="focus"
+        states={MIXED}
+        copy="full"
+        stateLabels={PHASE_STATE_LABELS}
+        showStateLabels
+      />
+    );
+
+    expect(screen.getByTestId('phase-path-remove-state')).toHaveTextContent(
+      PHASE_STATE_LABELS.done
+    );
+    expect(screen.getByTestId('phase-path-recover-state')).toHaveTextContent(
+      PHASE_STATE_LABELS.skipped
+    );
+    expect(screen.getByTestId('phase-path-rewire-state')).toHaveTextContent(
+      PHASE_STATE_LABELS.current
+    );
+    expect(screen.getByTestId('phase-path-refocus-state')).toHaveTextContent(
+      PHASE_STATE_LABELS.ahead
+    );
+  });
+
+  test('speaks the state even when it is not drawn', () => {
+    // A2's shape. The marker carries no text, so without this the emphasis on
+    // the current row is invisible to a screen reader.
+    render(
+      <PhasePath
+        destination="focus"
+        states={{ ...ALL_AHEAD, remove: 'current' }}
+        copy="short"
+        stateLabels={{ current: 'Starting here.' }}
+        showStateLabels={false}
+      />
+    );
+
+    expect(screen.queryByTestId('phase-path-remove-state')).toBeNull();
+    expect(
+      screen.getByLabelText(`${PHASE_DISPLAY.remove.focus.short}. Starting here.`)
+    ).toBeTruthy();
+  });
+
+  test('the spoken row carries title, state and gloss in the order they are seen', () => {
+    render(
+      <PhasePath
+        destination="focus"
+        states={MIXED}
+        copy="full"
+        stateLabels={PHASE_STATE_LABELS}
+        showStateLabels
+      />
+    );
+
+    const cell = PHASE_DISPLAY.rewire.focus;
+    expect(
+      screen.getByLabelText(`${cell.title}. ${PHASE_STATE_LABELS.current}. ${cell.gloss}`)
+    ).toBeTruthy();
+  });
+
+  test('never renders a framework word AS A LABEL', () => {
+    // Roadmap section 8: remove / recover / rewire / refocus are keys, never
+    // values. brandCopyGuard covers the source files; this covers the render.
+    //
+    // EXACT MATCH, NOT A WORD-BOUNDARY REGEX, AND THE DIFFERENCE IS JEN'S COPY.
+    // The strip's suite can use a regex because `short` never contains one of
+    // the four; the map renders glosses, and PHASE_DISPLAY.recover.energy.gloss
+    // reads "Find the things that help you recover when you're running low."
+    // That is the ordinary English verb inside approved content, not the
+    // framework key leaking into the UI. A regex here fails on it, and the only
+    // way to make it pass would be to edit one of Jen's strings, which is the
+    // outcome this suite exists to prevent. What section 8 actually bans is the
+    // key standing on its own as the name of a phase, which is what is asserted.
+    render(
+      <PhasePath
+        destination="energy"
+        states={MIXED}
+        copy="full"
+        stateLabels={PHASE_STATE_LABELS}
+        showStateLabels
+      />
+    );
+
+    for (const phase of PHASE_ORDER) {
+      expect(screen.queryByText(phase)).toBeNull();
+      expect(screen.queryByText(phase.toUpperCase())).toBeNull();
+    }
+  });
+
+  test('shows no count, fraction or ordinal anywhere', () => {
+    // UI Standards 10.7 and roadmap section 8. The path is wayfinding, not a
+    // progress bar, and the cheapest way for it to become one is a helpful
+    // "1 of 4" added later by someone who did not read the header.
+    render(
+      <PhasePath
+        destination="routines"
+        states={MIXED}
+        copy="full"
+        stateLabels={PHASE_STATE_LABELS}
+        showStateLabels
+      />
+    );
+
+    expect(screen.queryByText(/\d+\s*(of|\/)\s*\d+/)).toBeNull();
+    expect(screen.queryByText(/step\s*\d/i)).toBeNull();
+    expect(screen.queryByText(/%/)).toBeNull();
+  });
+
+  test('no row is pressable in this slice', () => {
+    // 5a has no phase detail page to open, so a row that looked tappable would
+    // be a promise the app cannot keep. 5b adds the destination and the
+    // affordance together; this fails when one arrives without the other.
+    render(
+      <PhasePath
+        destination="focus"
+        states={MIXED}
+        copy="full"
+        stateLabels={PHASE_STATE_LABELS}
+        showStateLabels
+      />
+    );
+
+    for (const phase of PHASE_ORDER) {
+      const row = screen.getByTestId(`phase-path-${phase}`);
+      expect(row.props.accessibilityRole).toBeUndefined();
+      expect(row.props.onClick).toBeUndefined();
+    }
+  });
+
+  test('every state is renderable, including the ones nothing produces yet', () => {
+    // skipToPhase and stepBackToPhase have no callers until slice 7, so
+    // 'skipped' and a mid-route 'done' cannot be produced by using the app. A
+    // state that renders as a blank marker would not be noticed until then.
+    const states: PhaseState[] = ['done', 'current', 'ahead', 'skipped'];
+    for (const state of states) {
+      const { unmount } = render(
+        <PhasePath
+          destination="focus"
+          states={{ remove: state, recover: state, rewire: state, refocus: state }}
+          copy="full"
+          stateLabels={PHASE_STATE_LABELS}
+          showStateLabels
+        />
+      );
+      expect(screen.getAllByText(PHASE_STATE_LABELS[state]).length).toBe(
+        PHASE_ORDER.length
+      );
+      unmount();
+    }
+  });
+});

@@ -7,11 +7,22 @@
  * detour is a route rather than a diversion, so it shows all four steps at
  * once, with the first marked as where they are about to begin.
  *
+ * NOW A THIN CALL ON PhasePath (slice 5a). Everything the strip used to draw
+ * itself, it now shares with the journey map: same four rows, same order, same
+ * markers, same emphasis on the row the user is standing on. What survives here
+ * is only what A2 does differently, which is three things: it renders `short`,
+ * it draws no state words, and its current row says "Starting here" rather than
+ * "Where you are", because A2 is spoken to someone who has not started.
+ *
+ * A2 LOOKS DIFFERENT AFTER THIS SLICE, AND THAT IS THE POINT (slice 4a's known
+ * gap 2). The four rows used to be bullets, which undersold the sequence on the
+ * one screen whose job is to make the detour read as a route. They are now
+ * joined by a rail and read as a path. No copy changed.
+ *
  * RENDERS `short` AND ONLY `short`. PHASE_DISPLAY carries three lengths per
- * cell; `title` belongs to slice 5's map card and `gloss` to the line beneath
- * it. Reaching for either here would put map copy on an onboarding screen and
- * make two surfaces that must stay independently editable share a string by
- * accident.
+ * cell; `title` and `gloss` belong to the map card. Reaching for either here
+ * would put map copy on an onboarding screen and make two surfaces that must
+ * stay independently editable share a string by accident.
  *
  * THE FRAMEWORK WORDS NEVER APPEAR. `remove | recover | rewire | refocus` are
  * keys used to look copy up; what renders is Jen's. Roadmap section 8, and
@@ -25,11 +36,20 @@
  * not keep.
  */
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Spacing, Typography } from '../../constants';
-import { PHASE_DISPLAY, PHASE_ORDER } from '../../constants/journey';
+import { phaseStatesForRoute } from '../../journey/phaseStates';
 import type { DestinationKey, PhaseKey } from '../../types/models';
+import { PhasePath } from './PhasePath';
+
+/**
+ * Spoken on the current row, never drawn.
+ *
+ * NOT A `COPY: draft` STRING AND NOT IN journeyCopy.ts. It is an accessibility
+ * phrase that exists to make the spoken strip match the seen one, it has been
+ * in place since slice 4a, and it is the only line the strip owns. The four
+ * words the MAP shows are copy, are drafted, and live in constants/journeyCopy.
+ */
+const STARTING_HERE = 'Starting here.';
 
 interface RouteStripProps {
   destination: DestinationKey;
@@ -47,61 +67,14 @@ export const RouteStrip: React.FC<RouteStripProps> = ({
   currentPhase = 'remove',
   testID = 'journey-route-strip',
 }) => (
-  <View style={styles.strip} testID={testID}>
-    {PHASE_ORDER.map((phase) => {
-      const current = phase === currentPhase;
-      return (
-        <View key={phase} style={styles.row} testID={`${testID}-${phase}`}>
-          <View style={[styles.marker, current && styles.markerCurrent]} />
-          <Text
-            style={[styles.label, current && styles.labelCurrent]}
-            /* The marker is decorative and carries no text, so the emphasis on
-               the current row is invisible to a screen reader. Saying it here
-               is the only way the spoken strip matches the seen one. */
-            accessibilityLabel={
-              current
-                ? `${PHASE_DISPLAY[phase][destination].short}. Starting here.`
-                : PHASE_DISPLAY[phase][destination].short
-            }
-          >
-            {PHASE_DISPLAY[phase][destination].short}
-          </Text>
-        </View>
-      );
-    })}
-  </View>
+  <PhasePath
+    destination={destination}
+    states={phaseStatesForRoute(currentPhase)}
+    copy="short"
+    stateLabels={{ current: STARTING_HERE }}
+    showStateLabels={false}
+    testID={testID}
+  />
 );
-
-const styles = StyleSheet.create({
-  strip: {
-    marginTop: Spacing.lg,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: Spacing.sm,
-  },
-  marker: {
-    width: Spacing.sm,
-    height: Spacing.sm,
-    borderRadius: Spacing.sm / 2,
-    backgroundColor: Colors.border,
-    marginTop: Spacing.xs,
-    marginRight: Spacing.md,
-  },
-  markerCurrent: {
-    backgroundColor: Colors.primary,
-  },
-  label: {
-    flex: 1,
-    fontSize: Typography.fontSize.base,
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
-    color: Colors.textSecondary,
-  },
-  labelCurrent: {
-    color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-});
 
 export default RouteStrip;

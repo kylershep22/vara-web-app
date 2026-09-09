@@ -172,6 +172,45 @@ import * as path from 'path';
 // strings one commit apart. A reader diffing pins alone would see no movement
 // across slice 4b; the flat pin is the sum of those two, not evidence that
 // neither happened.
+// 169 since journey slice 5a: +4, A NEW DRAFT. Owner Kyle, 2026-09-09, for
+// 'Done', 'Where you are', 'Ahead' and 'Skipped' in PHASE_STATE_LABELS
+// (constants/journeyCopy.ts) -- the four row states on the journey map.
+//
+// NOT PACK CONTENT, WHICH IS WHY THEY COUNT. Content Pack v1 delivers 16
+// titles, 16 glosses and 16 shorts and NO state vocabulary at all; roadmap
+// section 1 writes these four in capitals as prose describing what the map
+// shows, which is a specification of the concept and not approved copy. Kyle
+// owns them because they are UI labels rather than efficacy-adjacent text, and
+// they are reviewed in place on the map rather than off a list.
+//
+// THE NINE THAT MOVED HOUSE AND DID NOT COUNT. The same slice deleted
+// PracticesHubScreen and carried its nine drafted strings into
+// JourneyMapScreen unchanged: four card labels, four descriptors and the
+// 'Pick a place to start.' line. Nobody approved them, nobody redrafted them,
+// and their surface did not stop existing -- it was replaced by one that still
+// renders them. So this is neither 3b's deletion-with-surface nor 4a's
+// supersession-by-pack: it is a MOVE, and a move is sentinel-neutral by
+// definition. The file path in the per-file listing changes and the number does
+// not. Do not read the 9 appearing under a new path as nine new drafts.
+//
+// 165 since the 5a rider: -4, AN APPROVAL. Owner Kyle, 2026-09-09, for the same
+// four strings the +4 above added -- 'Where you are', 'Done', 'Ahead' and
+// 'Skipped' in PHASE_STATE_LABELS. Signed off on device during the 5a walk,
+// read on the map rows they occupy rather than off a list, and the markers
+// cleared on the branch before the merge rather than in a follow-up on main.
+//
+// THE PIN RETURNS TO 165 AND THE SET IS NOT THE SAME SET, which is the opposite
+// of the 4b case one entry above and the reason both notes stay. 4b was a +3
+// and a -3 on three identical strings. Here the number that left (165, the 4a
+// close) and the number that returned (165, this rider) bracket a slice that
+// ALSO moved nine strings between files without changing the count. A reader
+// diffing 5a's start against its end sees no movement and would be wrong three
+// times: four drafted, four approved, nine relocated. Read the notes, not the
+// number.
+//
+// STILL DRAFTED AND UNTOUCHED BY THIS RIDER: the nine carried strings in
+// screens/journey/JourneyMapScreen.tsx. Four card labels, four descriptors and
+// 'Pick a place to start.', all pending Jen, none of them Kyle's to clear.
 const EXPECTED_SENTINELS = 165;
 
 const mobileRoot = path.resolve(__dirname, '../..');

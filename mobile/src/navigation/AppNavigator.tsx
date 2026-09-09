@@ -170,9 +170,11 @@ import { StressRecoveryScreen } from '../screens/StressRecovery/StressRecoverySc
 // Phase 2 sub-step 2.5 — production CheckInFlow screen wrapper.
 import { CheckInFlowScreen } from '../screens/checkin/CheckInFlowScreen';
 
-// IA restructure step 2 — the two new tab roots. Shells: no logic, no data,
-// nothing tappable. Content lands in steps 3-5.
-import { PracticesHubScreen } from '../screens/practices/PracticesHubScreen';
+// IA restructure step 2 — the two new tab roots. Learn is still a shell.
+// Practices stopped being one in step 4a (a pillar launcher) and stopped being
+// a launcher in journey slice 5a: it is the journey map, and it reads
+// journeyStates. PracticesHubScreen is deleted, not orphaned.
+import { JourneyMapScreen } from '../screens/journey/JourneyMapScreen';
 import { LearnHubScreen } from '../screens/learn/LearnHubScreen';
 
 // Create navigators
@@ -519,7 +521,7 @@ const BottomTabsNavigator = () => {
  * that must stay Home):
  *
  *   Home      → DashboardScreen     (Today; unchanged)
- *   Practices → PracticesHubScreen  (a pillar launcher as of step 4a)
+ *   Practices → JourneyMapScreen    (the journey map, as of journey slice 5a)
  *   Learn     → LearnHubScreen      (SHELL; content in a later step)
  *   Community → CommunityNavigator  (unchanged)
  *
@@ -577,8 +579,14 @@ const FivePillarTabs = () => {
       />
       <BottomTabs.Screen
         name={ROUTES.PillarPractices}
-        component={PracticesHubScreen}
+        component={JourneyMapScreen}
         options={tabOpts({
+          // LABEL UNCHANGED ON PURPOSE (roadmap section 5, amendment
+          // 2026-09-09, item 4). The screen behind this tab is now the journey
+          // map; whether the tab keeps the word "Practices" is Jen's call,
+          // routed with the 4b hero-label question. The route NAME stays
+          // PillarPractices regardless: renaming a registered route breaks
+          // every deep link that names it, for a cosmetic gain.
           tabBarLabel: 'Practices',
           tabBarIcon: ({ color, size }) => (
             <Icon name="leaf" size={size} color={color} />
