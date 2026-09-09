@@ -249,9 +249,9 @@ deploy. Deploy state lives on Kyle's checklist.
 | 4b | **[DONE, 2026-09-07; walk pending]** Weekly-cycle outcome retirement *(row added 2026-09-07; split out of row 4 at slice 4a's Step 0)* | `WeeklyCycle.outcome` and `CreateWeeklyCycleInput.outcome` become optional (`types/models.ts`, `weeklyCycle.service.ts`); guard both render sites (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`); **the 3b rollover at `weeklyCycle.service.ts:251` must carry absence forward instead of defaulting to `'focus'`**; retire `outcomeForDestination` (`journey/destinationBridge.ts`), which exists only for the cycle write. | Fence explicitly INCLUDES the daily-loop render sites and the weekly rollover; that is the point of the row | Yes |
 | 5 | **[SPLIT 2026-09-09 into 5a, 5b and 5c; the `supportingPracticeIds` authoring is REMOVED from the slice, not deferred inside it; see the AMENDED block below]** Practices → journey map + Start here container | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
 | 5a | **[DONE `ec943be`, 2026-09-09]** Journey map + the phase-path component *(row added 2026-09-09 with the split)* | `JourneyMapScreen` replaces `PracticesHubScreen` at `ROUTES.PillarPractices`; four phase rows carrying `title` + `gloss` from `PHASE_DISPLAY` (both already populated, held unrendered since 4a); card states derived from `journeyStates` (`phaseKey` / `history` / `skipped`), never stored; the phase-path component built ONCE here and adopted by `RouteStrip` in the same slice (4a known gap 2). Every destination the four hub cards reach today keeps a working entry point. Tab label, screen title and intro UNCHANGED. | No content gate, no §9 item, no build rule. Map state labels are in-house copy: named owner, sentinel increments | Yes |
-| 5b | **[PARTLY SHIPPED as 5b-i, `8cc461c`, 2026-09-09; the re-house clause below is SUPERSEDED and the remainder is OPEN, see the Sept 9 5b-i entry in section 13]** Phase detail pages ×4 *(row added 2026-09-09 with the split)* | `refocus` re-houses the Focus hub; `recover` re-houses Energy, Stress Recovery and Routines under the `§recover-lanes` destination weighting; `remove` renders the 3c-ii stored intention, which is real user state on day one; **`rewire` ships as an explicit, scoped stub** — decided now, not discovered at Step 0. **Sleep is NOT re-housed** (see the AMENDED block below). | Page chrome is in-house copy. The catalog-to-grid bridge stays empty and is not this slice's problem | Yes |
+| 5b | **[SHIPPED as 5b-i, `8cc461c`, 2026-09-09; remainder DISPERSED, see the 2026-09-09 block; the re-house clause below is SUPERSEDED]** Phase detail pages ×4 *(row added 2026-09-09 with the split)* | `refocus` re-houses the Focus hub; `recover` re-houses Energy, Stress Recovery and Routines under the `§recover-lanes` destination weighting; `remove` renders the 3c-ii stored intention, which is real user state on day one; **`rewire` ships as an explicit, scoped stub** — decided now, not discovered at Step 0. **Sleep is NOT re-housed** (see the AMENDED block below). | Page chrome is in-house copy. The catalog-to-grid bridge stays empty and is not this slice's problem | Yes |
 | 5b-i | **[DONE `8cc461c`, 2026-09-09]** Phase explanation pages *(row added 2026-09-09 at the close)* | Four phase detail pages on one route (`ROUTES.JourneyPhase`, params `phase` + `destination`), reachable from every journey map row: destination `title` + `gloss`, one state-agnostic body per phase, a state eyebrow, back to the map. `PhasePath` gains an optional `onPressPhase`; A2 passes none and stays inert. Remove page renders the 3c-ii stored intention through an absent-safe resolver. **NOT a practice browser**, and the four destination cards STAY ON THE MAP. | No content gate, no §9 item. Five page strings drafted in-house then rewritten and approved by Kyle on device | Done 2026-09-09: four pages, two destinations, three seeded states, both remove-page paths |
-| 5c | **[Queued]** Start here container *(row added 2026-09-09 with the split)* | `StartHereRow` over `VideoPlayerModal`, collapsed/expanded state persisted per surface, `explainerPath` as a data field with a placeholder path (§6 item 9). Practices surface only; slice 7 mounts the Today instance. **Free-floating**: touches neither `PHASE_DISPLAY` nor `journeyStates`. | Videos are data, not a gate. `VideoPlayerModal` and `useVideoSource` are §3.5-unchanged and are wrapped, never edited | Yes |
+| 5c | **[Next]** Start here container *(row added 2026-09-09 with the split)* | `StartHereRow` over `VideoPlayerModal`, collapsed/expanded state persisted per surface, `explainerPath` as a data field with a placeholder path (§6 item 9). Practices surface only; slice 7 mounts the Today instance. **Free-floating**: touches neither `PHASE_DISPLAY` nor `journeyStates`. | Videos are data, not a gate. `VideoPlayerModal` and `useVideoSource` are §3.5-unchanged and are wrapped, never edited | Yes |
 | 6 | **Weekly reset repurpose** | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
 | 7 | **Offers + Today additions** | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. | rules; **[Content-gated]** copy | Yes |
@@ -488,6 +488,32 @@ deploy. Deploy state lives on Kyle's checklist.
 > posture. `PracticesHubScreen.tsx:3-5` says of itself "It holds no state, reads no data";
 > the map cannot, because DONE / WHERE YOU ARE / AHEAD / SKIPPED are read from
 > `journeyStates`. The row stays unedited; the brief must not fence 5a out of reading.
+>
+> **7. ADDED 2026-09-09 AT THE 5b-i CLOSE. ROW 5b IS SHIPPED, AND THERE IS NO 5b-ii.**
+> The row was split into 5b-i and 5b-ii while the 5b brief was being written: 5b-i the four
+> pages, 5b-ii "the pages get their own content". **5b-i shipped and the remainder did not
+> survive contact with the decisions above.** It was not cancelled and it was not deferred;
+> its three pieces went to three different places, and each one is now somewhere with an
+> owner. Recorded here so nobody re-derives 5b-ii as a slice that went missing.
+>
+> - **The remove page's stored intention SHIPPED IN 5b-i.** It was the largest piece of the
+>   proposed remainder and it turned out to cost one absent-safe resolver and one lead-in
+>   line, so it went in with the pages rather than waiting for a slice of its own. See the
+>   Sept 9 5b-i entry.
+> - **The recover page's lane structure WAS REMOVED BY DECISION 1 ABOVE**, not postponed.
+>   Downshift / Refill / Re-anchor stay serving-side and are never page structure, so there
+>   is no lane work left to schedule. The question that made it look like a slice — how the
+>   lanes map onto Energy's Regulate / Rest / Fuel — was answered by deciding they do not
+>   map at all.
+> - **The daily-protocol to supporting-practice integration LEFT SLICE 5 ENTIRELY** on
+>   2026-09-09 (item 1 above). It is Jen's `supportingPracticeIds` table, delivered as
+>   content, built as its own small slice against that table, and gated on the table
+>   arriving. It was never 5b-ii's to hold.
+>
+> **WHAT THIS LEAVES.** 5c is the only unshipped piece of row 5 and is therefore next. The
+> open IA question the 5b-i entry logs — where the practice catalog ultimately lives — is a
+> genuine open question and is **not** a hidden 5b-ii: it is an IA decision with no slice
+> attached, and attaching one is a product call rather than a scheduling gap.
 
 **Ordering rationale.** 0 makes everything after it smaller and reversible. 1–2 land the model
 behind a flag without touching content. 3 is the content-dependent core and the point of no return
