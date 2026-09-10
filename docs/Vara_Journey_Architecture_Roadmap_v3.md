@@ -252,8 +252,8 @@ deploy. Deploy state lives on Kyle's checklist.
 | 5b | **[SHIPPED as 5b-i, `8cc461c`, 2026-09-09; remainder DISPERSED, see the 2026-09-09 block; the re-house clause below is SUPERSEDED]** Phase detail pages ×4 *(row added 2026-09-09 with the split)* | `refocus` re-houses the Focus hub; `recover` re-houses Energy, Stress Recovery and Routines under the `§recover-lanes` destination weighting; `remove` renders the 3c-ii stored intention, which is real user state on day one; **`rewire` ships as an explicit, scoped stub** — decided now, not discovered at Step 0. **Sleep is NOT re-housed** (see the AMENDED block below). | Page chrome is in-house copy. The catalog-to-grid bridge stays empty and is not this slice's problem | Yes |
 | 5b-i | **[DONE `8cc461c`, 2026-09-09]** Phase explanation pages *(row added 2026-09-09 at the close)* | Four phase detail pages on one route (`ROUTES.JourneyPhase`, params `phase` + `destination`), reachable from every journey map row: destination `title` + `gloss`, one state-agnostic body per phase, a state eyebrow, back to the map. `PhasePath` gains an optional `onPressPhase`; A2 passes none and stays inert. Remove page renders the 3c-ii stored intention through an absent-safe resolver. **NOT a practice browser**, and the four destination cards STAY ON THE MAP. | No content gate, no §9 item. Five page strings drafted in-house then rewritten and approved by Kyle on device | Done 2026-09-09: four pages, two destinations, three seeded states, both remove-page paths |
 | 5c | **[DONE `55a403a`, 2026-09-10]** Start here container *(row added 2026-09-09 with the split)* **Shipped with a NULL path, not the placeholder path this row and §6 item 9 specify — see the Sept 10 §13 entry and the §6 item 9 amendment.** | `StartHereRow` over `VideoPlayerModal`, collapsed/expanded state persisted per surface, `explainerPath` as a data field with a placeholder path (§6 item 9). Practices surface only; slice 7 mounts the Today instance. **Free-floating**: touches neither `PHASE_DISPLAY` nor `journeyStates`. | Videos are data, not a gate. `VideoPlayerModal` and `useVideoSource` are §3.5-unchanged and are wrapped, never edited | Yes |
-| 6 | **[Next]** Weekly reset repurpose *(marked 2026-09-10 at slice 5c's close; row 5 is complete and 6 is the next unshipped row.* **NOT content-gated — the §Content-gated tag in this row's Gates cell below is superseded.** *C1 was delivered in Content Pack v1 (`§C1`) and the 2026-09-05 amendment removed the gate; the engine contract is resolved at `§decisions-1`. Its one remaining gate is **§9 item 4**, ContinuityCard ship-or-retire — a DECISION, not content. Correction made 2026-09-10: the marking note first written at 5c's close called this row content-gated, which was wrong on both the amendment and the pack.)* | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
-| 7 | **Offers + Today additions** | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
+| 6 | **[DONE `a19b54b`, 2026-09-10]** Weekly reset repurpose *(branch commits `ef26118` and rider `f0bac71`. Marked DONE at the merge; the prior **[Next]** note is kept below because its gate correction is still the record of what this row was and was not blocked on.* *Written at slice 5c's close; row 5 was complete and 6 was the next unshipped row.* **NOT content-gated — the §Content-gated tag in this row's Gates cell below is superseded.** *C1 was delivered in Content Pack v1 (`§C1`) and the 2026-09-05 amendment removed the gate; the engine contract is resolved at `§decisions-1`. Its one remaining gate is **§9 item 4**, ContinuityCard ship-or-retire — a DECISION, not content. Correction made 2026-09-10: the marking note first written at 5c's close called this row content-gated, which was wrong on both the amendment and the pack.)* | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
+| 7 | **[Next]** Offers + Today additions *(marked 2026-09-10 at slice 6's merge. Ungated: §9 items 2, 3, 5 and 6 were all discharged in the 2026-09-10 resolutions block and B2/C2 arrived early in Content Pack v1. Build the `§decisions-4` conditional C2 body, never the pack's own section 5 version.* **Inherits three things from slice 6 rather than discovering them:** *the read is present-tense about the live week; `deriveAdjustDue` gets its first production caller here and `getWeeklyCyclesSince` its first ever; and `phaseKeyAtRead` exists so a read can be attributed to the phase it was given about. Slice 7 also owns the first real walk of `StartHereRow`'s first-open transition and of a mounted video.)* | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. | rules; **[Content-gated]** copy | Yes |
 | 9 | **Behavioral protocol screen + remind-later** | The Daily Action Launcher behavioral screen (protocol, why, mark done, remind me later) for `remove` protocols; one-off later-today notification (`scheduleLocalNotification` DATE trigger), `scheduledAt` on `DailyLog`, third card state, cancellation bookkeeping; OS-settings redirect after denial. | Completion semantics decision (mockup v1 E1 open item) | Yes |
 
@@ -800,6 +800,27 @@ Referral rewards · Aging photo (declined, recorded so it is not re-raised) · H
 moves to Insights) · Calendar sync · Org entitlement resolver · `weeklyEngine` rename pass (now:
 `journeyEngine` naming lands with slice 3; residual renames after) · Offline-resilience slice ·
 Start-day edit surface · Coach 500 fix · B2B2C coach channel.
+
+> **ANNOTATED 2026-09-10 (slice 6). `weeklyCycles.closeNote` IS AN INPUT TO THE TWO INSIGHTS
+> ITEMS ABOVE, and this note exists so it is not mistaken for dead data.**
+>
+> The weekly reset writes a free-text note that **nothing in the app reads**, deliberately
+> (Kyle, 2026-09-10). It is **user reflection destined for Insights**, not telemetry: it is
+> permanently barred from the analytics payload by `types/analyticsEvents.ts`, which is the
+> content firewall's single most-stated rule. The field has been written since the weekly
+> close shipped and has never had a reader.
+>
+> **THE DEPENDENCY IS RECORDED IN BOTH DIRECTIONS ON PURPOSE.** The reset's own comments say
+> the note is for Insights; without this half, whoever builds **Insights data view** or the
+> **reframe layer** would reasonably scope it from `dailyLogs` and phase history alone,
+> because those are the collections the journey model talks about. Stored weekly notes are
+> the qualitative half, they accumulate one per user per week from now, and they are the
+> highest-value qualitative data in the product (spec 8.3).
+>
+> **CONSEQUENCE FOR THE RESET'S COPY, which is not Insights' problem but is caused by it:**
+> `noteQuestion` and `notePlaceholder` must not promise a return that has not shipped. Today
+> they ask and say nothing about where the answer goes, which is honest while nothing reads
+> it. The day Insights reads these, that copy is revisited **as part of that slice**.
 
 ---
 
@@ -1784,5 +1805,133 @@ absorbed into this one and deleted — both are not kept).
   as of Aug 15 and died with the `chore/legacy-removal` sweep, which deleted ten dead source
   files between the Aug 30 TB-3 pin and `ff8939e`. The stale figure lived only in CC's memory
   index, now corrected. Nothing in this document needed changing.
+
+**Sept 10, 2026 — slice 6 merged (`a19b54b`). The weekly close becomes the weekly felt
+read.** Branch commits `ef26118` (the slice) and `f0bac71` (the close-language rider).
+- Figures at close: jest **3223 / 214** · tsc **149** · sentinel **148** · lint errors
+  **1102**. Rules **191 pass / 2 skip** and functions **53 / 4** carried forward UNRUN:
+  neither `firestore.rules` nor `functions/` appears in either diff. **Gate keys attested by
+  Kyle on 2026-09-10.**
+- **SHIPPED: five questions became one.** `WeeklyCloseScreen` asks Jen's C1 question, flavoured
+  by the user's destination (`Content Pack v1 §C1`), with three answers and an optional note,
+  and writes `phaseRead` + `phaseKeyAtRead`. Retired with their surfaces: the three 1-to-5
+  ratings, the floor question, and the four adjustment options. `ContinuityCard` and its whole
+  chain removed — the card, `weeklyContinuity.ts`, `computeContinuity`, `WeeklyRecord`, the
+  engine barrel export, the three copy strings, `useTodayCard`'s continuity read and its
+  `isClosed` dep. `floorMet` left the screen, `CloseWeeklyCycleInput` and the write, which is
+  §3.4's conditional discharging as written.
+- **`same` -> `unclear` IS A SEMANTIC CHANGE, NOT A RENAME, AND THE CHECK IS ANSWERED.**
+  `derive.ts:162-166` asked for production verification rather than a repo inference, on the
+  grounds that surviving `same` values could not be silently relabeled. **Kyle ran it: a
+  collection-group query on `weeklyCycles` filtered `phaseRead != null` returned ZERO
+  documents.** Nothing had ever written the field, in the repo or in production, so the
+  re-spec carried no migration and rewrote nothing a user had said. `PhaseRead` is now
+  `'moving' | 'not_moving' | 'unclear'`. `deriveAdjustDue` needed **no logic change**: the
+  `every` already required two literal `not_moving` values, so `unclear` broke a run by
+  construction before it had a name.
+- **THE READ IS PRESENT-TENSE ABOUT THE LIVE WEEK, AND THAT IS A DECISION.** Rollover creates
+  the next cycle before Home renders (slice 3b), so `getLatestWeeklyCycle` always returns the
+  week the user is IN rather than the one that just ended. Jen's §C1 copy is written in that
+  tense and reads correctly against it. Recorded on the screen and on the service so **slice 7
+  does not re-derive it**, and so `phaseKeyAtRead` is unambiguous about which week's phase it
+  names.
+- **NO-PHASE BEHAVIOUR, and the rejected alternative is the more useful half.** With no phase
+  the reset renders the note without a question and writes `closeNote` + `closeCompletedAt`
+  only. That is a **DEFINED value, not a degraded one**: `derive.ts:109-112` already specifies
+  absence as "not answered", breaking an adjustment run exactly as a `moving` read would, and
+  silence is not a complaint. **Rejected: a destination-neutral fifth question.** It would put
+  in-house copy on the one screen whose entire content is Jen's four, and it would risk a
+  `phaseRead` with no `phaseKeyAtRead` — the exact hazard `models.ts:601-607` names.
+- **ROUTE PARAMS OVER A SCREEN-LEVEL READ, decided on the flag-off path.** `JOURNEY_IA` off
+  does not delete `journeyStates` documents, so a `getJourneyState` call on the reset screen
+  **would answer even with the flag off** — precisely the read the flag exists to gate.
+  Params also keep one resolution per session: `phase` is null on **three live paths**, not
+  only flag-off (rung (d) with no derivable destination, and any thrown resolve), and a screen
+  read could succeed where Home's failed, leaving two surfaces disagreeing about the same user
+  in the same session.
+- **THE CONFIRMATION RENDERS.** Jen's line holds for **1500ms** — the house number, reused
+  from `OnboardingConfirmationScreen` and `AnimatedCheckbox` rather than invented — between
+  the awaited write and the navigate, **invariant by answer** as the pack instructs.
+  **Backgrounding costs nothing as a property of ORDERING rather than of handling:** the write
+  commits before the confirmation renders, so JS suspending and resuming changes only when the
+  user arrives on Home, not whether their week closed. No `AppState` wiring, because there is
+  no outcome for it to change. Replacing the form also removes the save control, so a second
+  write is unreachable.
+- **`closeNote` IS WRITTEN AND READ BY NOTHING, DELIBERATELY** (Kyle, 2026-09-10). It is user
+  reflection destined for **Insights** (§11), not telemetry, and it is permanently barred from
+  the analytics payload. **Its copy must not promise a return that has not shipped.** §11 is
+  annotated in the other direction on the same date, so Insights is not scoped from `dailyLogs`
+  and phase history alone and the stored notes are not later mistaken for dead data.
+- **NOTHING READS `phaseRead` IN PRODUCTION EITHER.** `deriveAdjustDue` has no production
+  caller until slice 7, and neither does `getWeeklyCyclesSince`, the query written in slice 1
+  to feed it. **A write with no reader, stated so it is not read as a gap.**
+- **CLOSE-LANGUAGE PASS (Kyle, 2026-09-10), in the rider.** The screen no longer closes
+  anything: against a present-tense read, "close your week" taught the wrong mental model by
+  framing a forward-looking check-in as a filing action on something finished, and "save"
+  foregrounded data persistence rather than what the user came to do. Navigator title
+  `'Close your week'` -> `CLOSE_COPY.screenTitle` `'Weekly reset'`, **moved out of
+  `AppNavigator.tsx` into `copy.ts`** because user-facing copy does not live in the navigator
+  — as a hardcoded literal it had sat outside the sentinel's reach for the whole life of the
+  screen. Heading `'Your week'` -> `'Check in on your week'`. CTA `'Save and close the week'`
+  -> `'Finish'`.
+- **THE "RESET" COLLISION IS CONSIDERED AND ACCEPTED, NOT AN OVERSIGHT.** The word already
+  carries practice meaning in this app — small resets, the guided reset, Jen's Recover lanes
+  — where it means a thing you DO in a few minutes. This is a weekly instrument, met once a
+  week from Home, in a stack header, with no practice in sight. The contexts are far enough
+  apart that the collision is acceptable. Recorded at the string itself so **a future reader
+  re-argues it rather than "fixing" it**.
+- **CAUGHT OUTSIDE THE BRIEF:** `'Your week'` was an **exact duplicate of the Insights route's
+  navigator title** (`AppNavigator.tsx:647`), so two different screens announced themselves
+  with the same three words. Both of this screen's strings have moved off it. **Insights is
+  untouched and flagged** rather than edited from inside this slice's fence.
+- **SENTINEL 167 -> 152 -> 148.** The slice's -15 is **deletion with surface** (the 3b case,
+  no owner named, because nobody signed those off — the questions stopped being asked):
+  seven rating keys, five floor keys and two adjustment keys in `screens/weekly/copy.ts`, plus
+  the single marker in `dailyPicker.copy.ts` covering all three continuity strings.
+  `ADJUSTMENT_LABELS`' four entries also went and **cost nothing**, having never carried
+  markers. The rider's -4 is **replacement by the owner** (the 5b-i case, not an approval:
+  Kyle wrote the words that ship after rejecting all four) for `heading`, `save`,
+  `noteQuestion` and `required`, **plus one free relocation** — `screenTitle` was unmarked
+  before and after, so the pin did not move, **but the two absences mean opposite things**:
+  unmarked before because it sat where nobody had looked, unmarked after because Kyle approved
+  it. The gate's coverage grew by one string while the number stood still.
+- **`noteQuestion` AND `required` WERE REWRITTEN TWICE IN ONE DAY ACROSS TWO COMMITS**, and
+  only the second rewrite is in the -4. The slice itself substituted draft for draft (the
+  originals presupposed the retired floor question), which has no arithmetic. **Anyone
+  reconstructing the copy from `ef26118` alone reads two strings that do not ship.**
+- **CONTRACT MISS, SELF-REPORTED AND BACKFILLED.** The slice-6 commit moved the pin 167 -> 152
+  and named its fifteen strings and their case **in the commit message**, which the contract
+  requires, but did not write the ledger entry in `copyDraftSentinel.test.ts` that every prior
+  pin change has. The rider wrote both entries and **marked the 152 one as late**. Both halves
+  are the mechanism: a commit message is found only by someone who already knows to look.
+- **TWO BUILD TRAPS WORTH KEEPING, both caught on this slice:**
+  - **An expect-error directive written as PROSE inside a line comment is still parsed as a
+    directive.** An explanatory note about a *removed* directive became an unused one and
+    failed the build. Spell the name out rather than writing it literally when documenting it.
+  - **`renderReset(undefined)` triggers the DEFAULT PARAMETER.** All four no-phase tests were
+    silently rendering WITH a phase and asserting against the wrong screen — the
+    vacuous-green shape, and it was caught by inspection rather than by the suite. Fixed with
+    a separate `renderNoPhase()` helper and the trap recorded in the file.
+- **WALK (Kyle's, 2026-09-10). Gate keys attested.** Full reset flow across two destinations,
+  all three answers, the confirmation and its edges (background during the hold, back during
+  the hold, offline save then retry), and a Firestore field check: `phaseRead` and
+  `phaseKeyAtRead` both present, `phaseKeyAtRead` matching the phase the map shows, **no
+  `floorMet` written**. Home confirmed with **no continuity count** anywhere below the fold.
+  Copy re-checked against the rider's new strings **after** the rider landed.
+- **INHERITED WALK DEBT, THREE OF FOUR CLEARED.** The Guide pill migration (`87bcef6`), the
+  onboarding circumplex rehost (PR #27, `01e42d7`) and the dashboard completion acknowledgment
+  (`0185197`) were all walked and passed, closing debt that had been carried since before 5a.
+- **STILL OUTSTANDING, AND THIS IS THE SECOND WALK IT HAS BEEN DEFERRED THROUGH: 5c's
+  first-open transition for `StartHereRow` was NOT observed.** `constants/startHere.ts` was
+  still null at walk time, so there was nothing to open. It needs a **test-clip run**: marker
+  absent, gloss present, tap, gloss vanishes, marker persists across relaunch. **Slice 7 mounts
+  the Today instance and is the first slice that both mounts a real video and can validate this
+  path; its walk carries the burden or the item is dead.**
+- **LINT ERRORS ENTER THE PINS AT 1102**, unchanged from baseline and not introduced by this
+  slice. **First appearance of the figure here, and its provenance is UNEXAMINED:** it is a
+  standing count nobody has triaged, not a clean bill. Recorded so the next slice compares
+  against it rather than discovering it, and so a later reader does not read a flat 1102 as
+  evidence the tree is lint-clean.
+
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*
