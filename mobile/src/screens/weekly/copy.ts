@@ -75,112 +75,138 @@ export const OUTCOME_LABELS = {
  */
 
 /**
- * The adjustment options offered at the close (spec 8.4).
+ * ADJUSTMENT_KEYS AND ADJUSTMENT_LABELS STOOD HERE and are deleted with the
+ * question they answered (journey slice 6).
  *
- * THE IDS ARE PERSISTED AND THE LABELS ARE NOT. `adjustmentSelected` on the
- * weekly cycle stores an ID from this list, so an ID may never change once a
- * user has closed a week against it: a rename would orphan every stored row.
- * The labels below are placeholders and are expected to be rewritten; that
- * rewrite must not touch the keys.
+ * The close offered exactly one adjustment for next week (spec 8.4). Slice 3b
+ * stopped STORING the choice and slice 6 stops ASKING for it: the weekly
+ * surface is one felt read and a note, and "what should change next week" is
+ * the C2 adjust screen's job, offered when two consecutive not_moving reads
+ * say the approach is not working. An always-on menu asked every user to
+ * re-plan every week whether or not anything was wrong.
  *
- * Spec 8.4 says the app offers exactly ONE adjustment for next week, hard
- * enforced. This slice offers a small fixed set and enforces a single choice in
- * the UI. The app PROPOSING the one adjustment from the user's own note is the
- * AI Coach mechanic (spec 14), a later slice.
+ * THE IDS WENT WITH THE LABELS, and that is safe only because nothing stores
+ * them. The old header here warned that an id may never change once a user has
+ * closed a week against it, which was true while `adjustmentSelected` was
+ * written; 3b retired that write (roadmap section 3.4) and no row written since
+ * carries one. Rows written BEFORE 3b still hold their string values, unread
+ * and untouched: `WeeklyCycle.adjustmentSelected` stays on the model as an
+ * optional legacy field so those documents keep parsing.
+ *
+ * `ADJUSTMENT_IDS` in types/analyticsEvents.ts was the redeclared twin of this
+ * list, pinned to it by types/__tests__/analyticsEvents.test.ts. Both sides are
+ * deleted in this slice, because the event no longer carries the field.
  */
-export const ADJUSTMENT_KEYS = [
-  'smaller-daily-action',
-  'same-again',
-  'different-time',
-  'different-outcome',
-] as const;
-
-export type AdjustmentKey = (typeof ADJUSTMENT_KEYS)[number];
-
-export const ADJUSTMENT_LABELS: Record<AdjustmentKey, string> = {
-  'smaller-daily-action': 'Make the daily action smaller',
-  'same-again': 'Keep everything the same',
-  'different-time': 'Do it at a different time of day',
-  'different-outcome': 'Focus on something else',
-};
 
 /**
- * The weekly close (spec 8). Target under 90 seconds, so every question is one
- * tap except the note, which is skippable.
+ * The weekly reset (spec 8, repurposed by journey slice 6). One felt read, one
+ * optional note, and an acknowledgment. Every answer is one tap.
  *
- * Three constraints for whoever replaces these strings:
+ * FOUR STRINGS HERE ARE KYLE'S OWN AND CARRY NO MARKER, WHICH IS A DECISION
+ * RATHER THAN AN OMISSION (2026-09-10). `screenTitle`, `heading`, `save` and
+ * `noteQuestion` and `required` were not drafted by CC and then signed off:
+ * Kyle wrote the words that ship. They enter flat for the same reason
+ * DESTINATION_SUMMARY_LABELS' four entries do, and that map's own header makes
+ * the same statement for the same reason: an unmarked string in a file where
+ * every neighbour carries a marker should read as weighed, not as forgotten.
  *
- *   1. NOTHING HERE IS A GRADE. The ratings are a reading, not a score; the
- *      floor question is not a pass or a fail. No percentage, no total out of
- *      five, no "you managed", no red.
- *   2. THE FLOOR QUESTION IS THE ONE THAT FEEDS CONTINUITY, and a user who
- *      answers no has to feel able to say so. Phrasing that makes no the wrong
- *      answer produces a false yes, and a false yes is worse than a broken run:
- *      it makes the one number in the product a lie.
- *   3. What held, as a count of days completed (spec 8.1), is NOT on this
- *      screen. Nothing writes daily completion yet, so the count would be zero
- *      for everyone. Spec 8's own rule says to suppress a debrief with no data
- *      rather than show an empty one. It returns with the completion CTA.
+ * The arithmetic case is the 5b-i rider's, not an approval. Kyle REPLACED the
+ * drafted text rather than approving it, which costs the same -1 per string and
+ * is a different fact about how much review the copy has had. The sentinel
+ * cannot tell those apart; this comment can.
+ *
+ * WHAT IS STILL DRAFTED HERE, so the mix is legible: `notePlaceholder`,
+ * `noteSkip` and `saveFailed`, all pending Jen, plus the whole of FLOOR_COPY
+ * and ENTRY_COPY above.
+ *
+ * THE QUESTION AND ITS ANSWERS ARE NOT IN THIS FILE. They are Jen's, approved,
+ * and they live in constants/journeyCopy.ts as RESET_QUESTIONS, RESET_ANSWERS
+ * and RESET_CONFIRMATION, because the question varies by DESTINATION and the
+ * destination vocabulary already lives there beside A2_BODIES. What is left
+ * here is the chrome around them.
+ *
+ * WHAT LEFT WITH SLICE 6, so a later reader does not go looking:
+ *
+ *   - THE THREE 1-TO-5 RATINGS (spec 8.2). Nothing ever read them. 3b stopped
+ *     storing them and left the questions on screen for one slice, documented
+ *     as a real gap; this is the slice that stops asking. A weekly instrument
+ *     with a rating scale on it is a score whatever the copy says, and the
+ *     felt read replaces all three with one direction.
+ *   - THE FLOOR QUESTION and its four strings. It was the only input to
+ *     continuity, continuity is retired (roadmap section 9 R4), and section
+ *     3.4's "floorMet survives only if continuity ships" resolves to no. This
+ *     is NOT the floor commitment: UserPrivate.floorCommitment and
+ *     FLOOR_COPY above are untouched and still gate the weekly entry.
+ *   - THE ADJUSTMENT MENU. See the block above.
+ *
+ * Two constraints for whoever replaces the strings below:
+ *
+ *   1. NOTHING HERE IS A GRADE. There is no total, no scale, and no right
+ *      answer. The acknowledgment is identical whichever answer was given.
+ *   2. THE NOTE IS THE ONE FREE-TEXT FIELD and it is genuinely skippable. It
+ *      is also permanently barred from analytics: types/analyticsEvents.ts is
+ *      the guard, not reviewer discipline.
  */
 export const CLOSE_COPY = {
-  // COPY: draft, not from guidelines doc - pending Jen
-  heading: 'Your week',
+  // KYLE'S, 2026-09-10. THE NAVIGATOR TITLE, AND IT LIVES HERE RATHER THAN IN
+  // AppNavigator BECAUSE USER-FACING COPY DOES NOT LIVE IN THE NAVIGATOR. It
+  // sat inline at AppNavigator.tsx as a hardcoded literal from the day the
+  // close shipped, which meant it was outside the sentinel's reach: unmarked
+  // not because anyone had cleared it but because nobody had ever looked. That
+  // is a hole in the gate's coverage, not an approval, and moving the string is
+  // what closes it.
+  //
+  // "CLOSE YOUR WEEK" IS GONE BECAUSE THE SCREEN NO LONGER CLOSES ANYTHING.
+  // Slice 6 decision 2 made the read PRESENT TENSE about the live stretch
+  // rather than a retrospective on the week that ended, so "close" taught the
+  // wrong mental model: it framed a forward-looking check-in as a filing
+  // action on something finished.
+  //
+  // "RESET" COLLIDES WITH PRACTICE VOCABULARY AND WAS CHOSEN ANYWAY. The word
+  // already means something in this app: small resets, the guided reset, and
+  // Jen's Recover lanes all use it for a thing you DO in a few minutes. This
+  // is a weekly instrument, met once a week from Home, in a stack header, with
+  // no practice in sight. The contexts are far enough apart that the collision
+  // is acceptable. Recorded as a considered choice so a later reader does not
+  // "fix" it, and so the alternative is re-argued rather than assumed.
+  screenTitle: 'Weekly reset',
 
-  // COPY: draft, not from guidelines doc - pending Jen
-  // Spec 8.2. Weekly, never daily.
-  ratingsHeading: 'How did the week feel?',
-  // COPY: draft, not from guidelines doc - pending Jen
-  ratingHint: 'One tap each. There is no right answer.',
-  // COPY: draft, not from guidelines doc - pending Jen
-  ratingFocus: 'Focus',
-  // COPY: draft, not from guidelines doc - pending Jen
-  ratingRecovery: 'Recovery',
-  // COPY: draft, not from guidelines doc - pending Jen
-  ratingEnergy: 'Energy',
-  // COPY: draft, not from guidelines doc - pending Jen
-  // The ends of the 1-5 scale, so the numbers mean something without implying
-  // that 5 is a pass and 1 is a failure.
-  ratingLow: 'Low',
-  // COPY: draft, not from guidelines doc - pending Jen
-  ratingHigh: 'High',
+  // KYLE'S, 2026-09-10. It read 'Your week', which named the subject without
+  // saying what the screen wanted. It also duplicated the Insights route's
+  // navigator title exactly (AppNavigator.tsx), so two different screens
+  // announced themselves with the same three words; this one now says what it
+  // is for and that collision is gone.
+  heading: 'Check in on your week',
 
-  // COPY: draft, not from guidelines doc - pending Jen
-  // The floor question (spec 10.1 commitment, open item #10 Option A). Asked
-  // plainly, answered either way, and never framed as pass or fail.
-  floorHeading: 'Your floor',
-  // COPY: draft, not from guidelines doc - pending Jen
-  floorQuestion: "Did you do the one thing you named, even on this week's hardest days?",
-  // COPY: draft, not from guidelines doc - pending Jen
-  floorYes: 'Yes, I did that',
-  // COPY: draft, not from guidelines doc - pending Jen
-  floorNo: 'No, not this week',
-  // Shown under the no option so the answer carries no penalty. Derived from
-  // guidelines 0.5's stated pattern ("Missing a day does not erase previous
-  // progress"), which is a rule for this slot rather than a string for it.
-  // COPY: draft, not from guidelines doc - pending Jen
-  floorNoReassurance: "Either answer is fine. A hard week doesn't undo the ones before it.",
-
-  // COPY: draft, not from guidelines doc - pending Jen
-  // Spec 8.3, the brief Jen owns. The highest-value qualitative data in the
-  // product, and the one free-text field in the close.
-  noteQuestion: 'What was the load like on the days it did not happen?',
+  // KYLE'S, 2026-09-10. Twice-rewritten, and the first rewrite is why the
+  // second was needed. The original read "What was the load like on the days it
+  // did not happen?", which only parsed underneath the floor question that
+  // asked whether the user held their commitment; that question retired with
+  // continuity, so the note referred to something nobody had been asked. CC's
+  // replacement, "Anything you want to note about the week?", fixed the
+  // reference and invited nothing: an open prompt that points nowhere collects
+  // blanks. This one asks for something a person can actually retrieve.
+  noteQuestion: 'Anything from this week you want to remember?',
   // COPY: draft, not from guidelines doc - pending Jen
   notePlaceholder: 'A line, if you want to',
   // COPY: draft, not from guidelines doc - pending Jen
   noteSkip: 'You can leave this blank.',
 
-  // COPY: draft, not from guidelines doc - pending Jen
-  // Spec 8.4. Exactly one, hard enforced.
-  adjustmentHeading: 'One change for next week',
-  // COPY: draft, not from guidelines doc - pending Jen
-  adjustmentHint: 'Pick one.',
-
-  // COPY: draft, not from guidelines doc - pending Jen
-  save: 'Save and close the week',
-  // COPY: draft, not from guidelines doc - pending Jen
-  // Shown while the button is disabled, so the reason is on screen rather than
-  // implied by a greyed control.
-  required: 'Answer the three ratings, the floor question and pick one change.',
+  // KYLE'S, 2026-09-10. It read 'Save and close the week', wrong twice over:
+  // "close" for the reason at screenTitle, and "save" because it foregrounds
+  // data persistence, which is not what the user came here to do. A button
+  // names the action from the user's side, and from theirs this is the end of
+  // a short weekly check-in.
+  save: 'Finish',
+  // KYLE'S, 2026-09-10. It named the three ratings, the floor question and the
+  // adjustment, none of which the screen asks any more; CC's replacement,
+  // "Answer the question above to continue.", pointed at a position rather than
+  // at a thing and read flatter than everything around it. This one names what
+  // is being asked for.
+  //
+  // IT APPEARS TWICE and has to work in both: as a line under the disabled
+  // button, and as that button's accessibilityHint while disabled.
+  required: 'Choose how this feels to continue.',
   // COPY: draft, not from guidelines doc - pending Jen
   saveFailed: 'That did not save. Your week is unchanged. Try again.',
 } as const;

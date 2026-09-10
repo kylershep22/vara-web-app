@@ -23,11 +23,11 @@
 
 const mockCountForOutcome = jest.fn();
 const mockGetDailyLog = jest.fn();
+const mockGetLogsSince = jest.fn();
 const mockUpsertDailyLog = jest.fn();
-const mockGetCyclesForUser = jest.fn();
 jest.mock('../../services/firebase/weeklyCycle.service', () => ({
   countWeeklyCyclesForOutcome: (...a: any[]) => mockCountForOutcome(...a),
-  getWeeklyCyclesForUser: (...a: any[]) => mockGetCyclesForUser(...a),
+  getWeeklyCyclesForUser: jest.fn(),
 }));
 
 jest.mock('../../services/firebase/dailyLog.service', () => {
@@ -36,6 +36,7 @@ jest.mock('../../services/firebase/dailyLog.service', () => {
     // The real predicate, so this suite cannot drift from the one definition.
     hasPickedToday: actual.hasPickedToday,
     getDailyLog: (...a: any[]) => mockGetDailyLog(...a),
+    getDailyLogsSince: (...a: any[]) => mockGetLogsSince(...a),
     upsertDailyLog: (...a: any[]) => mockUpsertDailyLog(...a),
   };
 });
@@ -114,7 +115,7 @@ describe('useTodayCard across the day boundary', () => {
       });
     mockCountForOutcome.mockReset().mockResolvedValue(2);
     mockUpsertDailyLog.mockReset().mockResolvedValue(undefined);
-    mockGetCyclesForUser.mockReset().mockResolvedValue([]);
+    mockGetLogsSince.mockReset().mockResolvedValue([]);
     mockGetDailyLog.mockReset().mockImplementation(async (_uid: string, date: string) =>
       date === MONDAY ? log(MONDAY, { protocolCompleted: true }) : null
     );
@@ -204,20 +205,41 @@ const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
 });
 
 describe('reload identity on the PhaseContext path (journey slice 2)', () => {
-  // THE RELOAD PROBE IS THE CONTINUITY READ, not the week-number query it was
-  // in slice 2. `countWeeklyCyclesForOutcome` retired with applyQuickWin in
-  // slice 3a.
+  // THE RELOAD PROBE IS THE CONSISTENCY READ as of slice 6. It has been three
+  // things: the week-number query in slice 2 (retired with applyQuickWin in
+  // 3a), then the continuity read (retired with the count in slice 6), now
+  // `getDailyLogsSince`.
+  //
+  // IT IS THE RIGHT ONE FOR THIS BLOCK SPECIFICALLY. It runs once per effect
+  // run and ONLY on the PhaseContext path, because it is gated on
+  // `enteredAtIso`, which the legacy cycle path never supplies. This describe
+  // block is the PhaseContext path, so the probe cannot be satisfied by a
+  // legacy read wandering in.
   //
   // NOT `getDailyLog`: that fires TWICE per load on an unpicked day (today,
   // then yesterday for the sheet pre-fill), so counting it would read every
-  // single load as two. `loadWeeklyContinuity` runs exactly once per effect
-  // run, which is the property a reload probe needs.
+  // single load as two. NOT `getFloorCommitment` either: it is conditional on
+  // a 'slammed' day, so it would be absent for most fixtures and the counts
+  // would be zero rather than wrong, which is the failure mode that looks
+  // like a passing test.
   beforeEach(() => {
     mockCountForOutcome.mockReset().mockResolvedValue(1);
     mockGetDailyLog.mockReset().mockResolvedValue(null);
+    mockGetLogsSince.mockReset().mockResolvedValue([]);
     mockUpsertDailyLog.mockReset().mockResolvedValue(undefined);
-    mockGetCyclesForUser.mockReset().mockResolvedValue([]);
   });
+
+  /**
+   * The shared fixture WITH a phase-entry date, which is what arms the probe.
+   *
+   * `phase()` deliberately leaves `enteredAtIso` empty so the other suites in
+   * this file assert the day's load and nothing else. This block needs the
+   * consistency read to actually fire, so it supplies one. It is CONSTANT
+   * across every rerender below, so it can never be the thing causing a
+   * refetch: the token and the phase key are.
+   */
+  const journeyPhase = (over: Partial<PhaseContext> = {}): PhaseContext =>
+    phase({ enteredAtIso: MONDAY, ...over });
 
   test('a NEW PhaseContext object with identical values does NOT refetch', async () => {
     // The journey path has the same problem the cycle path solved with
@@ -225,12 +247,12 @@ describe('reload identity on the PhaseContext path (journey slice 2)', () => {
     // depending on the object would refetch the protocol on every Home focus.
     const { rerender } = renderHook(
       ({ p }: { p: PhaseContext }) => useTodayCard('u1', phaseSource(p)),
-      { initialProps: { p: phase() } }
+      { initialProps: { p: journeyPhase() } }
     );
-    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockGetLogsSince).toHaveBeenCalledTimes(1));
 
-    rerender({ p: phase() });
-    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1));
+    rerender({ p: journeyPhase() });
+    await waitFor(() => expect(mockGetLogsSince).toHaveBeenCalledTimes(1));
   });
 
   test('a BUMPED revisionToken DOES refetch', async () => {
@@ -238,12 +260,12 @@ describe('reload identity on the PhaseContext path (journey slice 2)', () => {
     // state changes. That is the one thing that has to re-arm the load.
     const { rerender } = renderHook(
       ({ p }: { p: PhaseContext }) => useTodayCard('u1', phaseSource(p)),
-      { initialProps: { p: phase({ revisionToken: 1 }) } }
+      { initialProps: { p: journeyPhase({ revisionToken: 1 }) } }
     );
-    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockGetLogsSince).toHaveBeenCalledTimes(1));
 
-    rerender({ p: phase({ revisionToken: 2 }) });
-    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(2));
+    rerender({ p: journeyPhase({ revisionToken: 2 }) });
+    await waitFor(() => expect(mockGetLogsSince).toHaveBeenCalledTimes(2));
   });
 
   test('a phase ADVANCE refetches even if the token has not resolved yet', async () => {
@@ -252,11 +274,11 @@ describe('reload identity on the PhaseContext path (journey slice 2)', () => {
     // carries both for exactly this window.
     const { rerender } = renderHook(
       ({ p }: { p: PhaseContext }) => useTodayCard('u1', phaseSource(p)),
-      { initialProps: { p: phase({ phaseKey: 'remove', revisionToken: 0 }) } }
+      { initialProps: { p: journeyPhase({ phaseKey: 'remove', revisionToken: 0 }) } }
     );
-    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockGetLogsSince).toHaveBeenCalledTimes(1));
 
-    rerender({ p: phase({ phaseKey: 'recover', revisionToken: 0 }) });
-    await waitFor(() => expect(mockGetCyclesForUser).toHaveBeenCalledTimes(2));
+    rerender({ p: journeyPhase({ phaseKey: 'recover', revisionToken: 0 }) });
+    await waitFor(() => expect(mockGetLogsSince).toHaveBeenCalledTimes(2));
   });
 });

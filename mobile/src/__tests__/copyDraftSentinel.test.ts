@@ -287,7 +287,83 @@ import * as path from 'path';
 // it occupies during the walk, and these two cannot be read that way until there
 // is a video to hang them on. Expect them to sit at draft across more than one
 // slice; that is the mechanism working, not a stalled approval.
-const EXPECTED_SENTINELS = 167;
+//
+// 152 since journey slice 6: -15, DELETION WITH SURFACE. The 3b case, and no
+// owner is named because nobody signed these off: the questions they asked
+// stopped being asked. Fourteen in screens/weekly/copy.ts and one in
+// components/dashboard/dailyPicker.copy.ts.
+//
+//   - CLOSE_COPY's seven rating keys: ratingsHeading, ratingHint, ratingFocus,
+//     ratingRecovery, ratingEnergy, ratingLow, ratingHigh. The three 1-to-5
+//     rows went with them. Slice 3b had already stopped STORING the answers and
+//     left the questions on screen for one slice, documented as a real gap;
+//     this is the slice that stopped asking.
+//   - CLOSE_COPY's five floor keys: floorHeading, floorQuestion, floorYes,
+//     floorNo, floorNoReassurance. floorMet was the only input to the
+//     continuity count and the count is retired (roadmap section 9 R4).
+//   - CLOSE_COPY's two adjustment keys: adjustmentHeading, adjustmentHint.
+//   - TODAY_COPY's continuityHeading marker in dailyPicker.copy.ts, which
+//     covered all three continuity strings; continuityCount and
+//     continuityCountOne carried none of their own, so three strings left for
+//     one decrement.
+//
+// ADJUSTMENT_LABELS' FOUR ENTRIES ALSO WENT AND COST NOTHING. They never
+// carried markers, so four user-facing strings left the app without moving this
+// number. Worth saying because the arithmetic otherwise implies the adjustment
+// menu was two strings.
+//
+// THE EIGHT C1 STRINGS THE SLICE ADDED DO NOT COUNT: four destination
+// questions, three answers and the confirmation, all Jen's from Content Pack v1
+// section C1, entering flat per the pack header. The screen's whole content is
+// now approved copy; what is left marked is the chrome around it.
+//
+// THIS ENTRY WAS WRITTEN AT THE RIDER, NOT AT THE PIN CHANGE, and that is a
+// contract miss worth recording rather than quietly backfilling. The slice-6
+// commit moved 167 -> 152 and named the fifteen strings and the case in its
+// COMMIT MESSAGE, which the contract above requires, but did not add the note
+// here, which every prior pin change has. Both halves are the mechanism; a
+// commit message is found only by someone who already knows to look.
+//
+// 148 since the slice 6 rider: -4. Owner Kyle, 2026-09-10, in
+// screens/weekly/copy.ts.
+//
+// THE 5b-i CASE, A REPLACEMENT BY THE OWNER RATHER THAN AN APPROVAL. Kyle did
+// not sign off the four strings on the branch; he WROTE the words that ship,
+// after rejecting all four. Arithmetically identical to an approval at -1 each,
+// which is exactly why it is named: "Kyle approved four strings" and "Kyle
+// rewrote four strings he had rejected" are different facts about how much
+// review the copy has had, and the number cannot tell them apart.
+//
+//   - heading: 'Your week' -> 'Check in on your week'.
+//   - save: 'Save and close the week' -> 'Finish'.
+//   - noteQuestion: -> 'Anything from this week you want to remember?'
+//   - required: -> 'Choose how this feels to continue.'
+//
+// noteQuestion AND required WERE REWRITTEN TWICE IN TWO COMMITS and only the
+// second rewrite is in this decrement. The slice itself replaced both drafts
+// with different drafts (a substitution, no arithmetic, per the 4a note on
+// CAPACITY_COPY.subtitle) because the originals referred to the retired floor
+// question. Anyone reconstructing this from the slice commit will read two
+// strings that were replaced the same day.
+//
+// A FIFTH STRING MOVED AND COST NOTHING, and it is the one worth reading twice.
+// The weekly reset's NAVIGATOR TITLE was a hardcoded literal in
+// AppNavigator.tsx from the day the close shipped ('Close your week'); it now
+// lives in CLOSE_COPY as `screenTitle` and reads 'Weekly reset'. Unmarked
+// before, unmarked after, so the pin does not move.
+//
+// BUT THE TWO ABSENCES MEAN OPPOSITE THINGS. Before, it was unmarked because it
+// sat in the navigator where nobody had ever looked -- a hole in this gate's
+// coverage, not an approval. After, it is unmarked because Kyle wrote and
+// approved it. The warrant improved by a whole category and the number did not
+// move at all, which is the clearest example so far of why these notes exist.
+// It is a MOVE by the 5a definition and sentinel-neutral by it; it is also the
+// gate's own coverage growing by one string.
+//
+// STILL DRAFTED IN screens/weekly/copy.ts: notePlaceholder, noteSkip and
+// saveFailed on the reset, plus the whole of FLOOR_COPY and ENTRY_COPY. Thirteen
+// in the file. None of them Kyle's to clear; the floor and entry sets are Jen's.
+const EXPECTED_SENTINELS = 148;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

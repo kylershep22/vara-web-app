@@ -34,9 +34,10 @@
  * further down before adding a new writer.
  *
  * NOT HERE: energyRating (belongs to the derived-energy-window feature, S11).
- * Do not invent it ahead of its slice. floorMet IS here now, written by
- * closeWeeklyCycle and by nothing else: open item #10 resolved as Option A,
- * self-reported at the close rather than derived from daily completion.
+ * Do not invent it ahead of its slice. NOT HERE EITHER, as of journey slice 6:
+ * floorMet. closeWeeklyCycle was its only writer and it retired with the
+ * continuity count it fed; the field stays on the model for legacy rows.
+ * `phaseRead` plus `phaseKeyAtRead` is what the weekly reset writes now.
  *
  * Uses requireDb() so the Firestore handle is narrowed to non-null, keeping this
  * module clear of the "Firestore | null is not assignable" errors the raw `db`
@@ -58,7 +59,12 @@ import {
 } from 'firebase/firestore';
 import { requireDb } from './ensureDb';
 import { isWithinWeek, planWeek, resolveWeekEnd } from '../../utils/weekStart';
-import type { DownshiftEvent, WeeklyCycle } from '../../types/models';
+import type {
+  DownshiftEvent,
+  PhaseKey,
+  PhaseRead,
+  WeeklyCycle,
+} from '../../types/models';
 // Type-only import from the engine barrel: erased at compile time, so this does
 // NOT wire the weekly engine into the running app.
 import type { CapacityTier, OutcomeKey } from '../../protocolEngine';
@@ -415,7 +421,7 @@ export async function getWeeklyCyclesForUser(userId: string): Promise<WeeklyCycl
  * `orderBy weekStart desc` combination requires a composite index, and
  * firestore.indexes.json currently has no weeklyCycles entry at all, so this
  * call FAILS against production. Whichever slice first needs ordered history
- * (the weekly close / continuity) must add the index before calling it. Nothing
+ * (the weekly reset) must add the index before calling it. Nothing
  * calls it today; getLatestWeeklyCycle above is the index-free alternative.
  */
 export async function getRecentWeeklyCycles(
@@ -447,32 +453,59 @@ export async function updateWeeklyCycle(
 }
 
 /**
- * What the user answers at the weekly close (S8).
+ * What the user answers at the weekly reset (S8, repurposed by journey slice 6).
  *
  * `closeCompletedAt` is deliberately NOT here: the service stamps it, exactly
  * as it stamps updatedAt. A caller cannot supply a server timestamp through a
  * field typed `Timestamp` without a cast, and a cast on a completion time is
  * how a client clock ends up deciding when a week closed.
+ *
+ * `floorMet` STOOD HERE AND IS GONE (slice 6). It was the only input to
+ * continuity; continuity is retired (roadmap section 9 R4), which discharges
+ * section 3.4's "floorMet survives only if continuity ships" as written. The
+ * MODEL field stays optional on WeeklyCycle so pre-slice-6 documents keep
+ * parsing, and the booleans already stored stay stored: removing a write path
+ * is not migrating data. Do not re-add it to give the screen a second question.
  */
 export interface CloseWeeklyCycleInput {
   /** Skippable (S8.3). Omitted from the write when blank rather than stored as ''. */
   closeNote?: string;
-  /** Self-reported: did they hold their floor this week? (open item #10, Option A). */
-  floorMet: boolean;
+  /**
+   * The user's felt read on whether the phase is working (C1).
+   *
+   * OPTIONAL, AND ABSENCE IS A DEFINED VALUE RATHER THAN A GAP. The reset
+   * screen can render without a phase (the JOURNEY_IA-off path, and any
+   * resolve that fell back to legacy), and with no phase there is no
+   * destination to ask the question about. `journey/derive.ts` already
+   * specifies absence as "not answered": it breaks an adjustment run exactly
+   * as a 'moving' read would, without counting against the user. A
+   * destination-neutral question invented to fill the slot would be worse than
+   * the silence.
+   */
+  phaseRead?: PhaseRead;
+  /**
+   * Which phase the read above was given about.
+   *
+   * TRAVELS WITH phaseRead OR NOT AT ALL. A read attributed to the wrong phase
+   * silently feeds the adjustment threshold (see the field's note on
+   * WeeklyCycle), so the write below refuses to store one without the other
+   * rather than trusting every caller to pass both.
+   */
+  phaseKeyAtRead?: PhaseKey;
 }
 
 /**
- * Complete a week (S8). The ONLY writer of floorMet, and the first and only
- * writer of the close fields.
+ * Complete a week (S8). The first and only writer of the close fields, and as
+ * of slice 6 the only writer of `phaseRead` anywhere in the app.
  *
- * ONE updateDoc ON ONE DOCUMENT. Everything the close captures lives on the
+ * ONE updateDoc ON ONE DOCUMENT. Everything the reset captures lives on the
  * cycle, so there is nothing to batch and nothing to fan out: the write either
- * lands whole or not at all, and a failed close leaves the week exactly as it
+ * lands whole or not at all, and a failed reset leaves the week exactly as it
  * was. Do not add a second collection here without revisiting that.
  *
  * Fields are listed one by one rather than spread from `input`. That is not
  * ceremony: it is what guarantees a caller cannot smuggle `capacityCurrent`,
- * `capacityInitial`, `outcome` or `protocolId` into the close. The close records
+ * `capacityInitial`, `outcome` or `protocolId` into the close. The reset records
  * how the week went; it never re-writes what the week WAS. `capacityInitial`
  * especially is the weekly forecast, and the gap between it and where the user
  * landed is the S7 instrumentation.
@@ -481,22 +514,35 @@ export interface CloseWeeklyCycleInput {
  * weeklyCycles, which reads the stored userId of the document being updated;
  * passing one here would be decoration that the client could get wrong.
  *
- * NOTE ON floorMet AND CONTINUITY: this boolean is the whole of what continuity
- * consumes. No tier is written alongside it and none may be added, or the
- * invariant that continuity is measured against the floor and never against
- * capacity stops holding at the storage layer.
+ * WHICH WEEK THIS ATTACHES TO IS A DECISION, NOT AN ACCIDENT (slice 6). The
+ * caller passes the cycle from `getLatestWeeklyCycle`, and because
+ * `ensureCurrentWeeklyCycle` rolls the next week over before Home renders, that
+ * is always the LIVE week rather than the one that just ended. The read is
+ * therefore present tense and about the week the user is IN, which is the tense
+ * Jen's C1 copy is written in. Recorded here so the next reader does not
+ * re-derive it, and so `phaseKeyAtRead` is unambiguous about which week's phase
+ * it names.
  */
 export async function closeWeeklyCycle(
   cycleId: string,
   input: CloseWeeklyCycleInput
 ): Promise<void> {
   const note = input.closeNote?.trim();
+  // BOTH OR NEITHER. A phaseRead with no phaseKeyAtRead is the failure the
+  // model field warns about: slice 7 reads the pair, and a read whose phase is
+  // unknown cannot be attributed to the phase it was given about. Firestore
+  // rejects `undefined`, so these are omitted rather than nulled; absent is
+  // already the "not answered" value every reader expects.
+  const read =
+    input.phaseRead && input.phaseKeyAtRead
+      ? { phaseRead: input.phaseRead, phaseKeyAtRead: input.phaseKeyAtRead }
+      : {};
 
   await updateDoc(doc(requireDb(), WEEKLY_CYCLES, cycleId), {
     // Skipped means absent, not empty. An '' would read back as "they answered
     // and said nothing", which is a different fact from "they skipped it".
     ...(note ? { closeNote: note } : {}),
-    floorMet: input.floorMet,
+    ...read,
     closeCompletedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -510,8 +556,8 @@ export async function closeWeeklyCycle(
  * Append a capacity-change event. Covers BOTH directions despite the collection
  * name; `fromCapacity`/`toCapacity` carry which way it went.
  *
- * Recording this has no bearing on continuity, which is measured against the
- * floor commitment and never against a capacity tier.
+ * Recording this had no bearing on continuity, which is itself retired
+ * (journey slice 6). Nothing derived from these rows feeds a count.
  */
 export async function createDownshiftEvent(
   userId: string,

@@ -6,11 +6,12 @@
  * can each legitimately be null after a completed capture, so gating on any of
  * them would re-offer the flow to someone who had already finished it.
  *
- * IT SUPPRESSES ContinuityCard WHILE IT SHOWS, per the card-ceiling decision.
- * Naming the thing to remove is the highest-priority action a Remove-phase user
- * has; a continuity count is a below-the-fold read on a weekly loop that is
- * being retired. The suppression is one conditional in DashboardScreen and it
- * lifts the moment the capture completes or is dismissed.
+ * IT USED TO SUPPRESS ContinuityCard WHILE IT SHOWED, per the card-ceiling
+ * decision, on the reasoning that a continuity count was a below-the-fold read
+ * on a weekly loop that was being retired. IT NO LONGER SUPPRESSES ANYTHING:
+ * the count itself retired in journey slice 6 (roadmap section 9 R4), so the
+ * ternary in DashboardScreen is a plain condition again. This card's own
+ * showing condition never depended on that trade and is unchanged.
  *
  * DISMISS IS "I'LL NAME IT LATER", NOT "NO". The re-offer schedule (retire for
  * 7 days, show once more, then a quiet row) is NOT BUILT IN THIS SLICE. Today

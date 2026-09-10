@@ -190,7 +190,6 @@ function todayCardState(over: Record<string, unknown> = {}) {
     markDone: jest.fn(),
     saving: false,
     saveFailed: false,
-    continuity: 0,
     // Every case in this suite is about a day that has been answered: it is
     // the close entry under test, not the picker. The pre-pick state has its
     // own suite.
@@ -232,7 +231,21 @@ describe('Home — the weekly-close entry', () => {
       fireEvent.press(await screen.findByTestId('home-close-entry'));
 
       expect(order).toEqual(['event', 'navigate']);
-      expect(mockNavigate).toHaveBeenCalledWith('WeeklyClose');
+      // A PARAMS OBJECT RIDES ALONG as of slice 6, and in THIS suite both
+      // values are undefined on purpose. The suite keeps the real resolver
+      // and does not mock journeyState.service, so resolveJourney falls back
+      // to 'legacy' and Home has no phase to pass. That is a real path, not a
+      // harness gap: it is what a resolver failure looks like, and the reset
+      // renders its note without a question for it.
+      //
+      // The populated-params case is asserted in the journeyLanding suite,
+      // which mocks the resolver and therefore HAS a phase. Both are needed:
+      // this one proves undefined is passed cleanly rather than crashing, and
+      // that one proves the values arrive when they exist.
+      expect(mockNavigate).toHaveBeenCalledWith('WeeklyClose', {
+        phase: undefined,
+        destination: undefined,
+      });
     });
   });
 

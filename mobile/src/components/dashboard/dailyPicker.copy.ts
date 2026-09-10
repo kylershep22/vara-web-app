@@ -139,15 +139,19 @@ export const PICKER_COPY = {
 
 /**
  * The Today surface, which is HOME. There is no standalone Today screen: these
- * strings are read by the dashboard components (TodayHeroCard, ContinuityCard,
- * CloseWeekEntry) and, as of journey slice 0, they live beside those components
- * rather than in the weekly copy module.
+ * strings are read by the dashboard components (TodayHeroCard, CloseWeekEntry)
+ * and, as of journey slice 0, they live beside those components rather than in
+ * the weekly copy module.
  *
  * SOME OF THESE ARE WEEKLY STRINGS ON A DAILY SURFACE. `closeEntry`,
- * `weekClosed`, `nextWeekStarts`, `runsThrough` and the three continuity keys
- * describe the weekly loop. They moved here because every reader is a dashboard
- * component, not because they outlive the weekly loop. Expect the slice that
- * retires it to take them and leave the daily keys behind.
+ * `weekClosed`, `nextWeekStarts` and `runsThrough` describe the weekly loop.
+ * They moved here because every reader is a dashboard component, not because
+ * they outlive the weekly loop. Expect the slice that retires it to take them
+ * and leave the daily keys behind.
+ *
+ * THE THREE CONTINUITY KEYS WERE IN THAT LIST AND HAVE NOW GONE THAT WAY
+ * (journey slice 6), which is what the sentence above predicted: they were
+ * deleted with ContinuityCard rather than rewritten.
  *
  * Three keys were deleted with that screen: `weekHeading`, `loadFailed` and
  * `retry`. Home has no section heading above the week summary, and it renders
@@ -170,28 +174,20 @@ export const TODAY_COPY = {
   // 3b-i): capacity is answered per day now, so there is no weekly tier to
   // re-plan and no ladder to sit at the end of.
 
-  // Continuity (spec 1, surfaced below the fold per spec 9). A COUNT of
-  // unbroken weeks. Never a percentage, never a bar, never a fraction of a
-  // target, and nothing red: the number can only go up or start again, and no
-  // phrasing here may imply a user is behind. Nothing renders at all when the
-  // count is zero, so there is no string for "0 weeks".
-  // TWO TOKENS ARE LOAD-BEARING AND NEITHER IS OBVIOUS FROM THIS FILE.
-  // `{count}` is substituted by ContinuityCard, so dropping it silently drops
-  // the number. And ContinuityCard's test asserts the singular branch by the
-  // literal "1 week ", so the numeral has to survive here: "First full week"
-  // reads better and fails that test, which is a copy constraint worth knowing
-  // before the next pass rewrites these.
+  // THE THREE CONTINUITY STRINGS STOOD HERE and are deleted with the card that
+  // rendered them (journey slice 6, roadmap section 9 R4). They named a run of
+  // unbroken weeks below the fold on Home.
   //
-  // OPEN FOR JEN, deliberately not resolved here. Guidelines 0.5's own examples
-  // stay declarative, pairing a fact with a plain reaction. The two count lines
-  // below append an evaluation instead ("That's real progress." / "Nice work.")
-  // to a number that is already below the fold. That may be one beat more than
-  // this surface needs, and the quieter alternative is to let the count stand
-  // on its own. A voice call, not a correctness one.
-  // COPY: draft, not from guidelines doc - pending Jen
-  continuityHeading: "What you've kept going",
-  continuityCount: "{count} weeks holding your floor. That's real progress.",
-  continuityCountOne: '1 week holding your floor. Nice work.',
+  // THE OPEN VOICE QUESTION ON THEM IS MOOT RATHER THAN ANSWERED, and that is
+  // worth saying so nobody goes looking for the answer: it asked whether the
+  // two count lines should keep their evaluative tail ("That's real progress.")
+  // or let the number stand on its own. There is no number now. A visible count
+  // of consistent weeks is functionally a streak whatever the sentence after it
+  // says, which is the decision that removed all three.
+  //
+  // NOTHING REPLACES THEM IN THIS FILE. The opacity they answered is real and
+  // is answered qualitatively elsewhere; a quieter number would be the same
+  // mistake with better copy.
 
   // COPY: draft, not from guidelines doc - pending Jen
   // Entry to the weekly close (spec 8), on Home. The real trigger is an elapsed

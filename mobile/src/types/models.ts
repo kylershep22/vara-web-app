@@ -471,11 +471,11 @@ export interface Membership {
 // stranger, and the rules tests assert that directly so a later coach slice
 // cannot widen it quietly.
 //
-// `floorMet` is SELF-REPORTED AT THE WEEKLY CLOSE (open item #10, resolved in
-// the weekly-close slice: Option A). The user answers whether they held their
-// floor that week and the answer is stored on the cycle; nothing derives it
-// from daily completion. That is what computeContinuity() consumes, one boolean
-// per week, and it is deliberately independent of the capacity tier.
+// `floorMet` WAS SELF-REPORTED AT THE WEEKLY CLOSE and is no longer asked,
+// written or read (journey slice 6). It fed the continuity count, one boolean
+// per week, independent of the capacity tier; the count is retired outright
+// (roadmap section 9 R4) and the engine function that consumed it is deleted.
+// The field stays on the type below for the rows that already carry it.
 //
 // `energyRating` is absent: it belongs to the derived-energy-window feature
 // (S11), not to this slice.
@@ -490,10 +490,10 @@ export interface Membership {
  * the signal that tells us whether the weekly forecast is doing its job (S7's
  * instrumentation guardrail). Overwriting the forecast would destroy it.
  *
- * Continuity is NOT stored here. It is derived from floor outcomes by
- * computeContinuity(), and it is measured against the floor commitment, never
- * against a capacity tier — which is why no tier on this document may ever feed
- * a continuity calculation.
+ * NOTHING ON THIS DOCUMENT IS A COUNTER, and nothing here may become one. The
+ * continuity count was derived from the `floorMet` booleans below rather than
+ * stored, which was the right shape for the wrong feature: it retired whole in
+ * journey slice 6 (roadmap section 9 R4). A derived count is still a count.
  */
 export interface WeeklyCycle {
   /** Mirrors the document ID (auto-ID). */
@@ -575,27 +575,34 @@ export interface WeeklyCycle {
    */
   adjustmentSelected?: string;
   /**
-   * Did the user hold their floor commitment this week? SELF-REPORTED at the
-   * close (open item #10, Option A), never derived from daily completion.
+   * LEGACY, NO LONGER WRITTEN AND NO LONGER READ (journey slice 6). Did the
+   * user hold their floor commitment this week? Self-reported at the close.
    *
-   * THE ONLY INPUT TO CONTINUITY. Absent on every cycle written before the
-   * close slice and on any week the user never closed, and absent reads as
-   * not-met, so continuity counts from the first closed week. That is correct,
-   * not a gap to backfill.
+   * IT WAS THE ONLY INPUT TO CONTINUITY, and continuity is retired (roadmap
+   * section 9 R4), which discharges section 3.4's "floorMet survives only if
+   * continuity ships" as written. The question left the screen, the field left
+   * CloseWeeklyCycleInput, and computeContinuity was deleted outright.
    *
-   * Note what it is NOT measured against: no capacity tier feeds this, so a
-   * slammed week that held the floor counts exactly as much as a normal one.
+   * KEPT OPTIONAL ON THE TYPE so pre-slice-6 documents still parse, on the same
+   * terms as the ratings above. The booleans already stored stay stored: this
+   * slice removed a write path, which is not the same act as migrating data.
+   *
+   * NOT UserPrivate.floorCommitment. Similar name, different field, still very
+   * much alive: it is the user's named commitment and resolveWeeklyEntry still
+   * routes to the floor screen when it is absent.
    */
   floorMet?: boolean;
 
   /**
    * The user's read on whether the journey phase is working, answered at the
-   * weekly close (Journey roadmap Section 1). Two consecutive 'not_moving'
+   * weekly reset (Journey roadmap Section 1). Two consecutive 'not_moving'
    * reads are what offer an adjustment.
    *
-   * TYPE ONLY IN THIS SLICE. Nothing writes it until slice 6, so it is absent
-   * on every row that exists today and readers must treat absence as "not
-   * answered" rather than as any particular read.
+   * WRITTEN SINCE SLICE 6 by closeWeeklyCycle and by nothing else. STILL
+   * OPTIONAL, and absence is a defined value rather than a gap: it is absent on
+   * every row written before slice 6, on any week the user did not reset, and
+   * on a reset taken with no phase resolved. Readers must treat absence as "not
+   * answered" rather than as any particular read. See journey/derive.ts.
    */
   phaseRead?: PhaseRead;
   /**
@@ -690,7 +697,8 @@ export interface DailyLog {
  * people are re-setting daily, the weekly forecast is not working and we need to
  * know it rather than guess.
  *
- * Recording a tier change here has no bearing on continuity. See computeContinuity().
+ * Recording a tier change here had no bearing on continuity, which is itself
+ * retired (journey slice 6). Nothing on this document feeds a count.
  */
 export interface DownshiftEvent {
   /** Mirrors the document ID (auto-ID). */
@@ -729,9 +737,30 @@ export type DestinationKey = 'focus' | 'calm' | 'routines' | 'energy';
 
 /**
  * The user's own read on whether the phase is working, answered at the weekly
- * close. Three states, no scale: this is a direction, not a score.
+ * reset. Three states, no scale: this is a direction, not a score.
+ *
+ * RE-SPEC'D IN SLICE 6, AND THE MIDDLE STATE CHANGED MEANING RATHER THAN
+ * SPELLING. It was `same` and it is now `unclear` (Content Pack v1
+ * `decisions` section 1, roadmap section 3.4's 2026-09-05 amendment):
+ *
+ *   'same'    meant the user reports NO CHANGE. An answer about the journey.
+ *   'unclear' means the user CANNOT TELL. An answer about their own confidence.
+ *
+ * "No change" is a substantive answer; "hard to tell" is the absence of one, so
+ * this was never a rename and a future reader must not treat it as one. The
+ * neutrality rules attach to `unclear` and were never true of `same`: see
+ * `journey/derive.ts` (`deriveAdjustDue`), which carries the full contract and
+ * is the only reader.
+ *
+ * THE RE-SPEC WAS FREE, AND THE CHECK THAT ESTABLISHED THAT IS RECORDED SO
+ * NOBODY RE-RUNS IT. `derive.ts` asked for production verification rather than
+ * a repo inference, and Kyle ran it on 2026-09-10: a collection-group query on
+ * `weeklyCycles` filtered `phaseRead != null` returned ZERO documents. Nothing
+ * had ever written the field, in the repo or in production, so re-specifying
+ * rewrote nothing a user said and carried no migration. Slice 6 is the first
+ * writer.
  */
-export type PhaseRead = 'moving' | 'same' | 'not_moving';
+export type PhaseRead = 'moving' | 'not_moving' | 'unclear';
 
 /** Why a phase ended. Every history entry carries exactly one. */
 export type PhaseExitReason = 'advanced' | 'skipped' | 'adjusted_back';

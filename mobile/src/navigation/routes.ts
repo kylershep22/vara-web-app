@@ -118,8 +118,9 @@ export const ROUTES = {
   // not the daily surface itself.
   //
   // THERE IS NO WeeklyToday ROUTE, deliberately. Today is Home (the tab above),
-  // which renders the day's action, the capacity re-set, the continuity count
-  // and the close entry. A standalone Today screen existed while Home was still
+  // which renders the day's action and the weekly reset entry. That list was
+  // longer: the capacity re-set retired in roadmap 3b-i and the continuity
+  // count in slice 6, and neither has a successor in that slot. A standalone Today screen existed while Home was still
   // the daily Situation x State engine; it was deleted once Home took the
   // surface over, because two Todays meant the same content under two titles
   // and a back gesture between them. Do not re-add one: Home resolves the entry

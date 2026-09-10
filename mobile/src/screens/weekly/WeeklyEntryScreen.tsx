@@ -6,9 +6,9 @@
 // so it can be tested without a navigator.
 //
 // TODAY IS HOME. There is no standalone Today screen: Home renders the day's
-// action, the capacity re-set, the continuity count and the close entry, and it
-// resolves this same rule inline through useWeeklyLanding because a tab cannot
-// be replaced into. This guard still exists for the flows that reach it from
+// action and the weekly reset entry (the capacity re-set retired in roadmap
+// 3b-i, the continuity count in slice 6), and it resolves this same rule inline
+// through useWeeklyLanding because a tab cannot be replaced into. This guard still exists for the flows that reach it from
 // inside the weekly stack, and it now sends 'today' to the tab.
 //
 // THIS IS THE REUSABLE SEAM. The progressive onboarding in spec 18 will satisfy

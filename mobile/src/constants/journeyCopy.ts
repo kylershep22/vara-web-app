@@ -24,7 +24,7 @@
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
 import type { PhaseState } from './journey';
-import type { DestinationKey, PhaseKey } from '../types/models';
+import type { DestinationKey, PhaseKey, PhaseRead } from '../types/models';
 
 /**
  * The destination named in ONE WORD (or two), for the positions that used to
@@ -194,3 +194,64 @@ export const PHASE_PAGE_BODIES: Record<PhaseKey, string> = {
 export const PHASE_PAGE_COPY = {
   replacementLeadIn: 'What you chose instead',
 } as const;
+
+/**
+ * The weekly reset's felt read (C1, slice 6).
+ *
+ * JEN'S, APPROVED ON DELIVERY. `Content Pack v1 section C1`, landing FLAT under
+ * the pack's own rule: pack strings carry no `COPY: draft` marker and the
+ * sentinel does not count them.
+ *
+ * ONE QUESTION PER DESTINATION, AND ONLY THE DESTINATION LANGUAGE VARIES. The
+ * pack's instruction is exact: "Keep the structure identical and change only
+ * the destination language." All four ask the same thing in the same shape,
+ * which is what stops the four reading as four different products. Same
+ * discipline as A2_BODIES above, and the same "routines reads Steadier days"
+ * mapping DESTINATION_SUMMARY_LABELS uses.
+ *
+ * NOT A SCORE AND NOT A SCALE. Three answers, no numbers, no midpoint that
+ * reads as a pass mark. The screen that renders these had three 1-to-5 rating
+ * rows until this slice; they are gone, and nothing here may reintroduce a
+ * measurement.
+ */
+export const RESET_QUESTIONS: Record<DestinationKey, string> = {
+  focus: "Does this feel like it's moving you toward better focus?",
+  calm: "Does this feel like it's helping you switch off more easily?",
+  routines: "Does this feel like it's moving you toward steadier days?",
+  energy: "Does this feel like it's helping you have a little more energy left?",
+};
+
+/**
+ * The three answers, in the order the pack lists them.
+ *
+ * THE ORDER IS THE PACK'S AND IS NOT A RANKING. "Hard to tell" sits last
+ * because it is the answer about the user's own confidence rather than about
+ * the journey, not because it is the worst one. Nothing in the render may imply
+ * a best answer: no numbers, no colour that reads as good or bad, and the
+ * confirmation below is identical whichever is tapped.
+ *
+ * `value` IS THE PERSISTED PhaseRead AND THE LABEL IS NOT. The mapping is the
+ * engine contract at `Content Pack v1 decisions section 1`, carried in full at
+ * `journey/derive.ts`. A label rewrite must never touch a value: the values are
+ * stored on weeklyCycles and feed the adjustment threshold.
+ */
+export const RESET_ANSWERS: ReadonlyArray<{ value: PhaseRead; label: string }> = [
+  { value: 'moving', label: 'Yes, I can feel a difference' },
+  { value: 'not_moving', label: 'Not really yet' },
+  { value: 'unclear', label: 'Hard to tell' },
+];
+
+/**
+ * What the app says back, once.
+ *
+ * IT NEVER VARIES BY ANSWER. The pack says so in its own words: "Do not change
+ * the confirmation depending on the answer. The purpose of this screen is to
+ * listen, not reward or reassure." A confirmation that brightened for 'moving'
+ * would turn the question into a test with a right answer, and a false 'moving'
+ * makes the one signal the adjustment offer reads a lie.
+ *
+ * IT IS ALSO THE REGISTER OF THE WHOLE INSTRUMENT: the app heard, and nothing
+ * dramatic follows. That is why it has a surface at all rather than being
+ * dropped for want of one.
+ */
+export const RESET_CONFIRMATION = "Got it. We'll keep that in mind this week.";

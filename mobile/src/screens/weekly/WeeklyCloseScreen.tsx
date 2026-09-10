@@ -1,32 +1,49 @@
-// The weekly close (spec 8). Target under 90 seconds, so it is ONE scrolling
-// screen and not a wizard: three one-tap ratings, one one-tap floor question,
-// one optional line of text, one adjustment. Every answer is a single press,
+// The weekly reset (spec 8, repurposed by journey slice 6). Target well under
+// 90 seconds, so it is ONE short scrolling screen and not a wizard: one felt
+// read, one optional line of text, one save. Every answer is a single press,
 // and nothing is behind a "next".
 //
+// WHAT IT ASKS is Jen's C1 question, and WHICH question depends on where the
+// user is going: the four destination variants live in constants/journeyCopy.ts
+// (RESET_QUESTIONS) beside the rest of the destination vocabulary. Three
+// answers, no scale, no right one.
+//
 // WHAT IT WRITES: one updateDoc on the current cycle, through closeWeeklyCycle.
-// `floorMet` is the answer to the floor question and is the only thing
-// continuity reads, which is why the question is asked plainly and why saying
-// no is offered as a normal answer rather than a confession.
+// `phaseRead` and `phaseKeyAtRead` travel together or not at all.
 //
-// DELIBERATELY ABSENT, each for a stated reason:
-//   - "What held", the count of days completed (spec 8.1). Nothing writes daily
-//     completion yet, so the count would be zero for every user. Spec 8's own
-//     consolidation rule says to suppress a debrief with no data rather than
-//     show an empty one. It returns with the completion CTA.
-//   - The optional post to a group (spec 8.5, Section 15). Community is not
-//     enabled, so there is no affordance for it: a disabled control that does
-//     nothing is worse than an absent one.
-//   - An AI-proposed adjustment. Spec 8.4 wants the app to offer the one
-//     change; proposing it from the user's own note is the AI Coach mechanic
-//     (spec 14). This slice offers a fixed set and enforces the single choice.
+// THE READ IS PRESENT TENSE AND ABOUT THE LIVE WEEK, WHICH IS A DECISION.
+// `getLatestWeeklyCycle` always returns the week the user is IN, because
+// `ensureCurrentWeeklyCycle` rolls the next week over before Home renders
+// (journey slice 3b). So the reset never attaches to the week that just ended,
+// and Jen's copy is written in the tense that matches. Recorded here and on the
+// service so slice 7 does not re-derive it.
 //
-// HOW IT IS REACHED: a dev entry on Today. The real trigger is an elapsed week,
-// and wiring that into the entry guard is a tracked follow-up, not this slice.
-// This screen deliberately does not check whether the week has actually ended:
+// WHAT LEFT WITH SLICE 6, each with its reason:
+//   - THE THREE 1-TO-5 RATINGS (spec 8.2). Nothing ever read them; slice 3b
+//     stopped storing them and left them on screen for one slice, documented as
+//     a real gap. This is the slice that stops asking. A weekly instrument with
+//     a 1-to-5 scale on it is a score whatever the copy says.
+//   - THE FLOOR QUESTION. It was the only input to continuity, and continuity
+//     is retired (roadmap section 9 R4). Not the floor COMMITMENT, which is a
+//     different field and is untouched.
+//   - THE ADJUSTMENT MENU. "What should change next week" is the C2 adjust
+//     screen's job, offered when two consecutive not_moving reads say the
+//     approach is not working, rather than asked of everybody every week.
+//
+// STILL DELIBERATELY ABSENT:
+//   - "What held", the count of days completed (spec 8.1). It is a counter, and
+//     roadmap section 8 bars counters outright.
+//   - The optional post to a group (spec 8.5). Community is not enabled, so
+//     there is no affordance for it.
+//
+// HOW IT IS REACHED: an entry on Home. The real trigger is an elapsed week, and
+// wiring that into the entry guard is a tracked follow-up, not this slice. This
+// screen deliberately does not check whether the week has actually ended:
 // faking a boundary would be worse than not having one.
 //
-// Nothing here is a grade. The ratings have no total, the floor question has no
-// right answer, and the only coral on the screen is a save failure.
+// Nothing here is a grade. The question has no right answer, the confirmation
+// is identical whichever answer was given, and the only coral on the screen is
+// a save failure.
 //
 // No animation, so Reduce Motion has nothing to suppress.
 
@@ -43,85 +60,119 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';
+import {
+  RESET_ANSWERS,
+  RESET_CONFIRMATION,
+  RESET_QUESTIONS,
+} from '../../constants/journeyCopy';
 import { useAuth } from '../../context/AuthContext';
 import {
   closeWeeklyCycle,
   getLatestWeeklyCycle,
 } from '../../services/firebase/weeklyCycle.service';
 import { logEvent } from '../../services/firebase/analyticsEvents.service';
-import { toFailureReason, type WeeklyRating } from '../../types/analyticsEvents';
-import type { WeeklyCycle } from '../../types/models';
+import { toFailureReason } from '../../types/analyticsEvents';
+import type { DestinationKey, PhaseKey, PhaseRead, WeeklyCycle } from '../../types/models';
 import { logger } from '../../utils/logger';
 import { ROUTES } from '../../navigation/routes';
-import { loadWeeklyContinuity } from './weeklyContinuity';
-import {
-  ADJUSTMENT_KEYS,
-  ADJUSTMENT_LABELS,
-  CLOSE_COPY,
-  ENTRY_COPY,
-  type AdjustmentKey,
-} from './copy';
+import { CLOSE_COPY, ENTRY_COPY } from './copy';
 
 const MIN_TOUCH_TARGET = 48;
 
 /**
- * Spec 8.2: 1-5, one tap. The scale is fixed, so it is built once here.
+ * How long the confirmation holds before Home.
  *
- * Typed as the schema's `WeeklyRating` rather than inferred, which pins the
- * rendered scale to the one the event payload accepts: adding a 6 here would
- * fail to compile rather than fail silently at the call site.
+ * THE HOUSE NUMBER, not a new one: OnboardingConfirmationScreen and
+ * AnimatedCheckbox both hold a quiet acknowledgment for exactly this long.
+ * Long enough to read one short line, short enough that it never becomes a
+ * screen the user has to dismiss.
  */
-const RATING_VALUES: readonly WeeklyRating[] = [1, 2, 3, 4, 5];
+const CONFIRMATION_MS = 1500;
 
-/** The three weekly ratings, in the order spec 8.2 lists them. */
-const RATINGS = [
-  { key: 'focus', label: CLOSE_COPY.ratingFocus },
-  { key: 'recovery', label: CLOSE_COPY.ratingRecovery },
-  { key: 'energy', label: CLOSE_COPY.ratingEnergy },
-] as const;
+/**
+ * Where the user is going, and which phase they are in, supplied by Home.
+ *
+ * PARAMS RATHER THAN A READ ON THIS SCREEN, and the flag-off path is what
+ * decided it. Home already resolves the journey once per session and already
+ * passes `destination` to the close entry card; a second `getJourneyState` call
+ * here would answer even with JOURNEY_IA OFF, because the documents persist
+ * from when the flag was on, which is exactly the read the flag exists to gate.
+ * It would also let this screen and Home disagree about the same user in the
+ * same session when a resolve fell back to legacy.
+ *
+ * BOTH OPTIONAL, because both are absent on every path where Home has no phase:
+ * the flag off, a resolver failure, and rung (d) with no derivable destination.
+ * They travel as a pair; see the render.
+ */
+export interface WeeklyCloseParams {
+  phase?: PhaseKey;
+  destination?: DestinationKey;
+}
 
-type RatingKey = (typeof RATINGS)[number]['key'];
+type WeeklyCloseRoute = RouteProp<{ WeeklyClose: WeeklyCloseParams }, 'WeeklyClose'>;
 
 export function WeeklyCloseScreen() {
   // Two verbs, and which one is used carries meaning. `replace` is the no-cycle
   // bail-out back to the entry guard, a stack-to-stack move. `navigate` is the
-  // post-close terminal: Home is a TAB, so it is reached through its navigator
+  // post-reset terminal: Home is a TAB, so it is reached through its navigator
   // and cannot be replaced into.
   const navigation = useNavigation<{
     replace: (route: string) => void;
     navigate: (route: string, params?: object) => void;
   }>();
+  const route = useRoute<WeeklyCloseRoute>();
   const { user } = useAuth();
+
+  // BOTH OR NEITHER, resolved once here so the render and the write cannot
+  // disagree about whether there is a phase. `route.params` is undefined when
+  // Home navigated without any, which is the ordinary flag-off case rather
+  // than an error.
+  const phase = route.params?.phase;
+  const destination = route.params?.destination;
+  const hasPhase = !!phase && !!destination;
 
   const [cycle, setCycle] = useState<WeeklyCycle | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  /**
-   * The run of unbroken weeks coming INTO the week being closed, for telemetry
-   * only. Nothing on this screen renders it — the close is not a scoreboard.
-   *
-   * null when the read failed, which is not 0. Read once on mount rather than
-   * after the write, so the close does not have to wait on a second query
-   * before it can navigate.
-   */
-  const [continuity, setContinuity] = useState<number | null>(null);
 
-  const [ratings, setRatings] = useState<Partial<Record<RatingKey, WeeklyRating>>>({});
-  const [floorMet, setFloorMet] = useState<boolean | null>(null);
+  const [read, setRead] = useState<PhaseRead | null>(null);
   const [note, setNote] = useState('');
-  const [adjustment, setAdjustment] = useState<AdjustmentKey | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
+  /**
+   * The write has landed and the confirmation is on screen.
+   *
+   * It REPLACES the form rather than sitting under it, which is also what makes
+   * a second write impossible: the save control is gone by the time this is
+   * true.
+   */
+  const [saved, setSaved] = useState(false);
 
   // Held in a ref and kept OUT of the effect deps, for the same reason as on
   // Today: useNavigation hands back a fresh object on some renders, and a
   // navigation object in the deps turns a failed load into a retry loop.
   const navigationRef = useRef(navigation);
   navigationRef.current = navigation;
+
+  /**
+   * The confirmation's timer, held so unmount can clear it.
+   *
+   * WITHOUT THIS, backing out during the hold navigates from an unmounted
+   * screen. Both exits land on Home either way, so clearing it costs the user
+   * nothing and removes the warning.
+   */
+  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (exitTimer.current) clearTimeout(exitTimer.current);
+    },
+    []
+  );
 
   const uid = user?.uid;
 
@@ -141,19 +192,8 @@ export function WeeklyCloseScreen() {
           return;
         }
         setCycle(latest);
-
-        // Best effort, and deliberately after the cycle is set. This value is
-        // telemetry and nothing else, so it may never be the reason a user
-        // cannot close their week: caught here rather than folded into the
-        // outer catch for exactly that reason.
-        try {
-          const run = await loadWeeklyContinuity(uid);
-          if (active) setContinuity(run);
-        } catch (error) {
-          logger.error('[WeeklyClose] continuity read failed:', error);
-        }
       } catch (error) {
-        logger.error('[WeeklyClose] load failed:', error);
+        logger.error('[WeeklyReset] load failed:', error);
         if (active) setLoadFailed(true);
       }
     };
@@ -166,24 +206,14 @@ export function WeeklyCloseScreen() {
 
   const retryLoad = useCallback(() => setAttempt((n) => n + 1), []);
 
-  const pickRating = useCallback((key: RatingKey, value: WeeklyRating) => {
-    setRatings((current) => ({ ...current, [key]: value }));
-  }, []);
-
-  // Every answer except the note is required: the ratings and the adjustment
-  // because the close has nothing to record without them, and the floor answer
-  // because it is what continuity consumes. The note is the one skippable
-  // field (spec 8.3).
-  const answered =
-    ratings.focus !== undefined &&
-    ratings.recovery !== undefined &&
-    ratings.energy !== undefined &&
-    floorMet !== null &&
-    adjustment !== null;
+  // The read is the one required answer, and only when there is a question to
+  // answer. The note is skippable (spec 8.3), so a reset taken with no phase
+  // has nothing required and saves on arrival.
+  const answered = !hasPhase || read !== null;
   const canSave = answered && !!cycle && !saving;
 
   /**
-   * Write the close. One document, one updateDoc, so there is no partial state
+   * Write the reset. One document, one updateDoc, so there is no partial state
    * to recover from: it lands whole or the week is untouched.
    *
    * closeCompletedAt is not passed. The service stamps it with the server
@@ -191,68 +221,65 @@ export function WeeklyCloseScreen() {
    */
   const save = useCallback(async () => {
     // `uid` is in the guard alongside the others so the event below has a
-    // non-null owner without a cast. It cannot actually be missing here — a
+    // non-null owner without a cast. It cannot actually be missing here - a
     // cycle only exists because the effect above ran, and the effect only runs
-    // with a uid — but the type has no way to know that.
+    // with a uid - but the type has no way to know that.
     if (!cycle || !canSave || !uid) return;
-    // Narrowing for TypeScript AND the last line of defence for the invariant:
-    // the button is disabled until every answer exists, and this returns rather
-    // than writing a half-answered close if that ever stops being true.
-    if (
-      ratings.focus === undefined ||
-      ratings.recovery === undefined ||
-      ratings.energy === undefined ||
-      floorMet === null ||
-      adjustment === null
-    ) {
-      return;
-    }
+
+    // THE PAIR IS BUILT ONCE and used by both the write and the event, so the
+    // stored value and the recorded value cannot drift. Undefined on the
+    // no-phase path, which the service turns into an omitted field and the
+    // event records as null.
+    const storedRead = hasPhase && read ? read : undefined;
+    const storedPhase = storedRead ? phase : undefined;
 
     setSaving(true);
     setSaveFailed(false);
     try {
-      // THE RATINGS AND THE ADJUSTMENT ARE COLLECTED AND NOT STORED, for one
-      // slice only. Nothing has ever read them and slice 6 drops the questions
-      // outright (roadmap §5 row 6, C1: one felt read plus a note), so this
-      // slice stops the write and slice 6 stops the asking. Until then the
-      // screen asks three ratings and an adjustment and discards the answers,
-      // which is a real gap and is recorded as such rather than papered over.
-      // Do NOT re-add these fields to make the screen feel honest; remove the
-      // questions instead, on the slice that owns them.
       await closeWeeklyCycle(cycle.id, {
         closeNote: note,
-        floorMet,
+        phaseRead: storedRead,
+        phaseKeyAtRead: storedPhase,
       });
 
       // Telemetry (spec 20), after the write lands and never before it.
       //
       // NOTE WHAT IS NOT HERE. `note` is in scope four lines above, it is the
-      // one free-text answer in the close, and a short one would clear the
+      // one free-text answer in the reset, and a short one would clear the
       // writer's length backstop untouched. The payload type is what makes
       // adding it a build error rather than a review comment; the key-set test
       // in this screen's suite is the second lock.
       //
-      // Skipped entirely when the continuity read failed. A required count has
-      // no honest value to stand in for it, and 0 would state something about
-      // the user that was never read.
+      // IT FIRES UNCONDITIONALLY NOW. It used to be skipped whenever the
+      // continuity read had failed, because `continuityBeforeClose` was
+      // required and had no honest stand-in; that field retired with the count
+      // and nothing is left that can be missing. A reset that saved is a reset
+      // that is recorded.
       //
-      // Its own try/catch, deliberately, and nothing awaited: the user's week is
-      // already closed by this point and no telemetry defect may be able to
+      // Its own try/catch, deliberately, and nothing awaited: the user's week
+      // is already closed by this point and no telemetry defect may be able to
       // strand them on a screen whose work is done.
       try {
-        if (continuity !== null) {
-          logEvent(uid, 'weekly_close', {
-            ratingFocus: ratings.focus,
-            ratingRecovery: ratings.recovery,
-            ratingEnergy: ratings.energy,
-            adjustmentSelected: adjustment,
-            floorMet,
-            continuityBeforeClose: continuity,
-          });
-        }
+        logEvent(uid, 'weekly_close', {
+          phaseRead: storedRead ?? null,
+          phaseKeyAtRead: storedPhase ?? null,
+        });
       } catch {
         // Never the user's problem.
       }
+
+      // THE CONFIRMATION, AND THEN HOME. Jen's line is the register of the
+      // whole instrument: the app heard, and nothing dramatic follows. It is
+      // rendered rather than skipped for want of a surface, and it holds for a
+      // fixed beat rather than waiting for a tap, because a control here would
+      // be asking the user to acknowledge the acknowledgment.
+      //
+      // The write is already committed, so backgrounding during the hold costs
+      // nothing: JS suspends, the timer fires on resume, and the user lands on
+      // Home with a week that is closed. There is no AppState wiring because
+      // there is no outcome for it to change.
+      setSaving(false);
+      setSaved(true);
 
       // Back to HOME, which is the Today surface. There is one Today, and
       // landing on the standalone screen instead put the user on a second copy
@@ -262,17 +289,14 @@ export function WeeklyCloseScreen() {
       // is already the root beneath this stack. navigate pops back to that
       // existing Main rather than stacking a second one, which also drops this
       // completed ritual off the back gesture.
-      //
-      // Home re-resolves its week on focus, and the continuity count follows
-      // the close through useTodayCard's isClosed dependency. Home is already
-      // mounted when this lands, so unlike the Today screen it does NOT re-read
-      // for free; that dependency is what replaces the free remount.
-      navigation.navigate(ROUTES.Main, { screen: ROUTES.Home });
+      exitTimer.current = setTimeout(() => {
+        navigationRef.current.navigate(ROUTES.Main, { screen: ROUTES.Home });
+      }, CONFIRMATION_MS);
     } catch (error) {
-      logger.error('[WeeklyClose] close write failed:', error);
+      logger.error('[WeeklyReset] close write failed:', error);
 
-      // The close is one updateDoc, so a rejection means nothing landed and the
-      // user has lost five answers. Nothing else records that: logger.error is
+      // The reset is one updateDoc, so a rejection means nothing landed and the
+      // user has lost their answers. Nothing else records that: logger.error is
       // __DEV__-gated, so on device this failure currently leaves no trace at
       // all.
       //
@@ -286,11 +310,11 @@ export function WeeklyCloseScreen() {
       }
 
       // Every answer is kept, so the user retries the save rather than
-      // answering five questions again.
+      // answering again.
       setSaveFailed(true);
       setSaving(false);
     }
-  }, [cycle, canSave, ratings, floorMet, note, adjustment, navigation, continuity, uid]);
+  }, [cycle, canSave, uid, hasPhase, read, phase, note]);
 
   if (loadFailed) {
     return (
@@ -323,6 +347,27 @@ export function WeeklyCloseScreen() {
     );
   }
 
+  // THE CONFIRMATION REPLACES THE FORM. Announced to screen readers through
+  // accessibilityLiveRegion, because a user who cannot see the swap gets no
+  // other signal that the reset landed.
+  if (saved) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.center}>
+          <Text
+            style={styles.confirmation}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="text"
+            maxFontSizeMultiplier={1.3}
+            testID="weekly-close-confirmation"
+          >
+            {RESET_CONFIRMATION}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <KeyboardAvoidingView
@@ -334,78 +379,43 @@ export function WeeklyCloseScreen() {
           keyboardShouldPersistTaps="handled"
           testID="weekly-close"
         >
-          <Text style={styles.heading}>{CLOSE_COPY.heading}</Text>
+          <Text style={styles.heading} maxFontSizeMultiplier={1.3}>
+            {CLOSE_COPY.heading}
+          </Text>
 
-          {/* Three ratings (spec 8.2). Weekly, one tap each, no total. */}
-          <Text style={styles.sectionLabel}>{CLOSE_COPY.ratingsHeading}</Text>
-          <Text style={styles.hint}>{CLOSE_COPY.ratingHint}</Text>
-          {RATINGS.map(({ key, label }) => (
-            <View key={key} style={styles.ratingRow} testID={`weekly-close-rating-${key}`}>
-              <Text style={styles.ratingLabel}>{label}</Text>
-              <View style={styles.scale}>
-                {RATING_VALUES.map((value) => (
-                  <TouchableOpacity
-                    key={value}
-                    style={[
-                      styles.scaleOption,
-                      ratings[key] === value && styles.scaleOptionSelected,
-                    ]}
-                    onPress={() => pickRating(key, value)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: ratings[key] === value }}
-                    accessibilityLabel={`${label}: ${value}`}
-                    testID={`weekly-close-rating-${key}-${value}`}
-                  >
-                    <Text
-                      style={[
-                        styles.scaleLabel,
-                        ratings[key] === value && styles.scaleLabelSelected,
-                      ]}
-                    >
-                      {value}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <View style={styles.scaleEnds}>
-                <Text style={styles.scaleEnd}>{CLOSE_COPY.ratingLow}</Text>
-                <Text style={styles.scaleEnd}>{CLOSE_COPY.ratingHigh}</Text>
-              </View>
+          {/* THE FELT READ (C1). Rendered only when Home resolved a phase,
+              because the question names the destination and there is no
+              destination-neutral version of it. With no phase the reset is the
+              note alone, and the cycle is written with no read at all:
+              journey/derive.ts already defines absence as "not answered", and
+              silence is a better record than a question nobody was asked. */}
+          {hasPhase && destination && (
+            <View style={styles.card} testID="weekly-close-read">
+              <Text style={styles.question} maxFontSizeMultiplier={1.3}>
+                {RESET_QUESTIONS[destination]}
+              </Text>
+              {RESET_ANSWERS.map(({ value, label }) => (
+                <TouchableOpacity
+                  key={value}
+                  style={[styles.option, read === value && styles.optionSelected]}
+                  onPress={() => setRead(value)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: read === value }}
+                  accessibilityLabel={label}
+                  testID={`weekly-close-read-${value}`}
+                >
+                  <Text style={styles.optionLabel} maxFontSizeMultiplier={1.3}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          ))}
-
-          {/* The floor question (open item #10, Option A). Self-reported, and
-              the ONLY input to continuity. Both answers are offered as ordinary
-              answers: a phrasing that makes "no" the wrong one produces a false
-              yes, and a false yes makes the count meaningless. */}
-          <View style={styles.card} testID="weekly-close-floor">
-            <Text style={styles.sectionLabel}>{CLOSE_COPY.floorHeading}</Text>
-            <Text style={styles.question}>{CLOSE_COPY.floorQuestion}</Text>
-            <TouchableOpacity
-              style={[styles.option, floorMet === true && styles.optionSelected]}
-              onPress={() => setFloorMet(true)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: floorMet === true }}
-              accessibilityLabel={CLOSE_COPY.floorYes}
-              testID="weekly-close-floor-yes"
-            >
-              <Text style={styles.optionLabel}>{CLOSE_COPY.floorYes}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.option, floorMet === false && styles.optionSelected]}
-              onPress={() => setFloorMet(false)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: floorMet === false }}
-              accessibilityLabel={CLOSE_COPY.floorNo}
-              testID="weekly-close-floor-no"
-            >
-              <Text style={styles.optionLabel}>{CLOSE_COPY.floorNo}</Text>
-            </TouchableOpacity>
-            <Text style={styles.hint}>{CLOSE_COPY.floorNoReassurance}</Text>
-          </View>
+          )}
 
           {/* One free-text question (spec 8.3), skippable. */}
-          <Text style={styles.sectionLabel}>{CLOSE_COPY.noteQuestion}</Text>
+          <Text style={styles.sectionLabel} maxFontSizeMultiplier={1.3}>
+            {CLOSE_COPY.noteQuestion}
+          </Text>
           <TextInput
             style={styles.input}
             value={note}
@@ -413,31 +423,13 @@ export function WeeklyCloseScreen() {
             placeholder={CLOSE_COPY.notePlaceholder}
             placeholderTextColor={Colors.mutedSageGray}
             multiline
+            maxFontSizeMultiplier={1.3}
             accessibilityLabel={CLOSE_COPY.noteQuestion}
             testID="weekly-close-note"
           />
-          <Text style={styles.hint}>{CLOSE_COPY.noteSkip}</Text>
-
-          {/* Exactly one adjustment (spec 8.4), hard enforced: picking another
-              replaces the choice rather than adding to it, and the stored value
-              is a single key, not a list. */}
-          <Text style={styles.sectionLabel}>{CLOSE_COPY.adjustmentHeading}</Text>
-          <Text style={styles.hint}>{CLOSE_COPY.adjustmentHint}</Text>
-          <View style={styles.options} testID="weekly-close-adjustments">
-            {ADJUSTMENT_KEYS.map((key) => (
-              <TouchableOpacity
-                key={key}
-                style={[styles.option, adjustment === key && styles.optionSelected]}
-                onPress={() => setAdjustment(key)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: adjustment === key }}
-                accessibilityLabel={ADJUSTMENT_LABELS[key]}
-                testID={`weekly-close-adjustment-${key}`}
-              >
-                <Text style={styles.optionLabel}>{ADJUSTMENT_LABELS[key]}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <Text style={styles.hint} maxFontSizeMultiplier={1.3}>
+            {CLOSE_COPY.noteSkip}
+          </Text>
 
           {/* One document, so a failure means nothing landed and the week is
               exactly as it was. Say so, in coral, and keep every answer. */}
@@ -460,12 +452,18 @@ export function WeeklyCloseScreen() {
             {saving ? (
               <ActivityIndicator color={Colors.surface} />
             ) : (
-              <Text style={styles.saveLabel}>{CLOSE_COPY.save}</Text>
+              <Text style={styles.saveLabel} maxFontSizeMultiplier={1.3}>
+                {CLOSE_COPY.save}
+              </Text>
             )}
           </TouchableOpacity>
 
           {!answered && !saving && (
-            <Text style={styles.required} testID="weekly-close-required">
+            <Text
+              style={styles.required}
+              maxFontSizeMultiplier={1.3}
+              testID="weekly-close-required"
+            >
               {CLOSE_COPY.required}
             </Text>
           )}
@@ -515,61 +513,15 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
     marginBottom: Spacing.md,
   },
-  ratingRow: {
-    marginBottom: Spacing.lg,
-  },
-  ratingLabel: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.softCharcoal,
-    marginBottom: Spacing.sm,
-  },
-  scale: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  scaleOption: {
-    flex: 1,
-    minHeight: MIN_TOUCH_TARGET,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    backgroundColor: Colors.surface,
-  },
-  // Selection is carried by the border and the label weight, the same way the
-  // weekly open marks a chosen option. No fill, so no rating reads as "good".
-  scaleOptionSelected: {
-    borderColor: Colors.evergreenTeal,
-  },
-  scaleLabel: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.softCharcoal,
-  },
-  scaleLabelSelected: {
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.evergreenTeal,
-  },
-  scaleEnds: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xs,
-  },
-  scaleEnd: {
-    ...TextStyles.bodySmall,
-    color: Colors.mutedSageGray,
-  },
+  // The one raised surface on the screen, so the question reads as the thing
+  // being asked rather than as another paragraph. The note sits flat beneath
+  // it: two tiers, and the primary one is the read.
   card: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.divider,
     backgroundColor: Colors.surface,
     padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  options: {
-    gap: Spacing.sm,
     marginBottom: Spacing.lg,
   },
   option: {
@@ -583,6 +535,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     marginBottom: Spacing.sm,
   },
+  // Selection is carried by the border and nothing else. No fill, so no answer
+  // reads as the good one.
   optionSelected: {
     borderColor: Colors.evergreenTeal,
   },
@@ -603,6 +557,13 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
     textAlignVertical: 'top',
     marginBottom: Spacing.sm,
+  },
+  // Charcoal on the plain background, centred, and alone on the screen. Not
+  // teal, not a card, not a tick: it is the app saying it heard, not a reward.
+  confirmation: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.softCharcoal,
+    textAlign: 'center',
   },
   error: {
     ...TextStyles.bodySmall,

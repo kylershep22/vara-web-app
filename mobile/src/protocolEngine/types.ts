@@ -19,8 +19,9 @@
  * It is not `WeeklyProtocol` either, which is what it used to be called. The
  * object is one variant entry in a matrix cell — it carries `variantKey` and
  * `timeClass` — and the cadence it is served at lives in the selection call,
- * not in the object. The genuinely weekly things in this module (`WeeklyRecord`,
- * the quick-win week rule) keep their names on purpose.
+ * not in the object. The genuinely weekly things in this module used to keep
+ * their names on purpose; both of them (`WeeklyRecord` and the quick-win week
+ * rule) have since retired, so `ProtocolVariant` is simply the right name now.
  */
 
 import type { DestinationKey, PhaseKey, RemoveFamily } from '../types/models';
@@ -203,16 +204,12 @@ export interface ResolvedProtocolVariant extends ProtocolVariant {
 }
 
 /**
- * One completed week, as input to the continuity calculation.
+ * `WeeklyRecord` STOOD HERE and is deleted with the continuity calculation it
+ * fed (journey slice 6, roadmap section 9 R4).
  *
- * This type deliberately carries NO capacity tier. Continuity is measured
- * against the floor commitment and never against the tier (spec Section 1), and
- * leaving the tier off the type is what stops that invariant from regressing.
- * Do not add a tier field here.
+ * It carried a week-start and a `floorMet` boolean and deliberately no capacity
+ * tier, because continuity was measured against the floor commitment and never
+ * against the tier. That invariant retires with the count rather than being
+ * relaxed: nothing measures unbroken weeks any more, and if a run of anything
+ * ever returns it is a new product decision rather than this type coming back.
  */
-export interface WeeklyRecord {
-  /** Week-start date, injected by the caller. Never read from the clock here. */
-  weekStart: string;
-  /** Did the user meet their floor commitment that week? */
-  floorMet: boolean;
-}

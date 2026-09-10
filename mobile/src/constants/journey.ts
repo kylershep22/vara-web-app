@@ -56,7 +56,9 @@ export const ADVANCE_CALENDAR_CEILING_DAYS = 14;
  *
  * TWO, not one. A single flat week is normal and offering to change course on
  * it would be noise; two in a row is a signal. The reads must be CONSECUTIVE,
- * so a 'same' or 'moving' week in between resets the run.
+ * so an 'unclear' or 'moving' week in between breaks the run. 'unclear' breaks
+ * it the way an unanswered week does, without counting against the user: only
+ * explicit 'not_moving' accumulates. Full contract at journey/derive.ts.
  */
 export const ADJUST_CONSECUTIVE_NOT_MOVING = 2;
 
