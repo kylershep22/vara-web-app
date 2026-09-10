@@ -5,10 +5,15 @@
 // without the test having to reach into a real Firestore.
 //
 // WHAT THIS SUITE IS REALLY GUARDING is the offer reset. Every phase change
-// has to clear all four offer/decline timestamps, and forgetting one is
-// silent: a stale advanceDeclinedAt would suppress the next phase's advance
-// offer forever with nothing in the logs to say so. Each phase-change test
-// asserts all four, deliberately, rather than trusting a spread.
+// has to clear ALL the offer bookkeeping, and forgetting one is silent: a stale
+// advanceDeclinedAt would demote the next phase's advance offer to the map
+// forever with nothing in the logs to say so, and a stale advanceExposures
+// would spend the next phase's budget before its offer had been shown once.
+// Each phase-change test asserts every field, deliberately, rather than
+// trusting a spread.
+//
+// SEVEN FIELDS SINCE SLICE 7a, not four. ALL_OFFER_FIELDS below is the list, and
+// it is what makes adding an eighth without resetting it a red build.
 const mockDoc = jest.fn((..._a: any[]) => ({ __ref: true, builtFrom: _a }));
 const mockGetDoc = jest.fn((..._a: any[]): any => undefined);
 const mockSetDoc = jest.fn((..._a: any[]): any => undefined);
@@ -21,6 +26,9 @@ jest.mock('firebase/firestore', () => ({
   setDoc: (...a: any[]) => mockSetDoc(...a),
   updateDoc: (...a: any[]) => mockUpdateDoc(...a),
   serverTimestamp: () => mockServerTimestamp(),
+  // Echoes its argument so a test can assert "this field was incremented by 1"
+  // without a real Firestore to resolve the sentinel against.
+  increment: (n: number) => ({ __increment: n }),
 }));
 // requireDb() reads `db` from this module, so mocking it here narrows the handle
 // for the service without needing to mock ensureDb itself.
@@ -36,7 +44,7 @@ import {
   recordAdjustDeclined,
   recordAdjustOffered,
   recordAdvanceDeclined,
-  recordAdvanceOffered,
+  recordAdvanceExposure,
   recordRemoveCapture,
   recordRemoveReplacement,
   skipToPhase,
@@ -65,6 +73,9 @@ function stored(over: Partial<JourneyState> = {}): Record<string, unknown> {
     advanceDeclinedAt: null,
     adjustOfferedAt: null,
     adjustDeclinedAt: null,
+    advanceExposures: 0,
+    advanceFirstOfferedOn: null,
+    advanceLastExposedOn: null,
     createdAt: { seconds: 100 },
     updatedAt: { seconds: 100 },
     ...over,
@@ -79,7 +90,21 @@ const ALL_OFFER_FIELDS = [
   'advanceDeclinedAt',
   'adjustOfferedAt',
   'adjustDeclinedAt',
+  'advanceExposures',
+  'advanceFirstOfferedOn',
+  'advanceLastExposedOn',
 ];
+
+/** What CLEARED_OFFERS must write. The three exposure fields joined in 7a. */
+const CLEARED = {
+  advanceOfferedAt: null,
+  advanceDeclinedAt: null,
+  adjustOfferedAt: null,
+  adjustDeclinedAt: null,
+  advanceExposures: 0,
+  advanceFirstOfferedOn: null,
+  advanceLastExposedOn: null,
+};
 
 describe('journeyState.service', () => {
   beforeEach(() => {
@@ -136,17 +161,25 @@ describe('journeyState.service', () => {
       expect(written.skipped).toEqual([]);
     });
 
-    test('opens with all four offer timestamps null', async () => {
+    test('opens with every offer field at its cleared value', async () => {
       await createJourneyState(ALICE, { destination: 'focus', phaseKey: 'remove' });
       const written = mockSetDoc.mock.calls[0][1];
       for (const field of ALL_OFFER_FIELDS) {
-        expect(written[field]).toBeNull();
+        expect(written[field]).toEqual(CLEARED[field as keyof typeof CLEARED]);
       }
     });
 
-    test('stores NO counter of any kind', async () => {
-      // Section 3.1: counters are derived, never stored. A consistentDays
-      // field appearing here is the regression this test exists to catch.
+    test('stores NO DERIVABLE counter', async () => {
+      // Section 3.1: counters that can be recomputed are derived, never stored.
+      // A consistentDays field appearing here is the regression this test
+      // exists to catch.
+      //
+      // `advanceExposures` IS STORED AND IS NOT A COUNTER-EXAMPLE. Nothing else
+      // in the system records that a card was on screen - the analytics log is
+      // `allow read: if false` even for its owner - so there is nothing for it
+      // to be a second copy of and nothing for it to drift from. The full
+      // argument is at the field in types/models.ts. This test names the two
+      // fields that ARE derivable, deliberately, rather than banning the shape.
       await createJourneyState(ALICE, { destination: 'focus', phaseKey: 'remove' });
       const written = mockSetDoc.mock.calls[0][1];
       expect(written).not.toHaveProperty('consistentDays');
@@ -210,7 +243,7 @@ describe('journeyState.service', () => {
       );
       await advancePhase(ALICE);
       for (const field of ALL_OFFER_FIELDS) {
-        expect(patch()[field]).toBeNull();
+        expect(patch()[field]).toEqual(CLEARED[field as keyof typeof CLEARED]);
       }
     });
 
@@ -272,7 +305,7 @@ describe('journeyState.service', () => {
       );
       await skipToPhase(ALICE, 'rewire');
       for (const field of ALL_OFFER_FIELDS) {
-        expect(patch()[field]).toBeNull();
+        expect(patch()[field]).toEqual(CLEARED[field as keyof typeof CLEARED]);
       }
     });
 
@@ -317,7 +350,7 @@ describe('journeyState.service', () => {
       );
       await stepBackToPhase(ALICE, 'remove');
       for (const field of ALL_OFFER_FIELDS) {
-        expect(patch()[field]).toBeNull();
+        expect(patch()[field]).toEqual(CLEARED[field as keyof typeof CLEARED]);
       }
     });
 
@@ -336,7 +369,6 @@ describe('journeyState.service', () => {
 
   describe('offer bookkeeping', () => {
     const cases: Array<[string, (uid: string) => Promise<void>, string]> = [
-      ['recordAdvanceOffered', recordAdvanceOffered, 'advanceOfferedAt'],
       ['recordAdvanceDeclined', recordAdvanceDeclined, 'advanceDeclinedAt'],
       ['recordAdjustOffered', recordAdjustOffered, 'adjustOfferedAt'],
       ['recordAdjustDeclined', recordAdjustDeclined, 'adjustDeclinedAt'],
@@ -354,8 +386,72 @@ describe('journeyState.service', () => {
     });
 
     test('every setter refreshes updatedAt', async () => {
-      await recordAdvanceOffered(ALICE);
+      await recordAdvanceDeclined(ALICE);
       expect(patch().updatedAt).toEqual({ __serverTimestamp: true });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // recordAdvanceExposure (slice 7a)
+  //
+  // `recordAdvanceOffered` STOOD IN THE TABLE ABOVE AND IS GONE. It wrote
+  // advanceOfferedAt alone, never had a caller, and is a strict subset of this
+  // function; two writers of one field where only one keeps the exposure
+  // bookkeeping is a coin flip for whoever picks next.
+  // -------------------------------------------------------------------------
+  describe('recordAdvanceExposure', () => {
+    test('addresses journeyStates/{uid}', async () => {
+      await recordAdvanceExposure(ALICE, '2026-09-10', null);
+      expect(mockDoc).toHaveBeenCalledWith({ __db: true }, 'journeyStates', ALICE);
+    });
+
+    test('increments the exposure count by exactly one', async () => {
+      // increment(), not a read-modify-write. The document always exists by the
+      // time an offer can be shown, so the featureDiscovery caveat about
+      // increment resetting an absent counter to 1 does not apply here.
+      await recordAdvanceExposure(ALICE, '2026-09-10', null);
+      expect(patch().advanceExposures).toEqual({ __increment: 1 });
+    });
+
+    test('anchors the cap on the FIRST exposure', async () => {
+      await recordAdvanceExposure(ALICE, '2026-09-10', null);
+      expect(patch().advanceFirstOfferedOn).toBe('2026-09-10');
+    });
+
+    test('does NOT move the anchor on a later exposure', async () => {
+      // The whole reason advanceFirstOfferedOn exists as its own field. If this
+      // slid forward with each exposure the seven-day cap could never fire, and
+      // that is precisely what reusing advanceOfferedAt would have done.
+      await recordAdvanceExposure(ALICE, '2026-09-14', '2026-09-10');
+      expect(patch().advanceFirstOfferedOn).toBe('2026-09-10');
+    });
+
+    test('stamps the day gate with today', async () => {
+      await recordAdvanceExposure(ALICE, '2026-09-14', '2026-09-10');
+      expect(patch().advanceLastExposedOn).toBe('2026-09-14');
+    });
+
+    test('refreshes advanceOfferedAt as the last-shown time', async () => {
+      await recordAdvanceExposure(ALICE, '2026-09-10', null);
+      expect(patch().advanceOfferedAt).toEqual({ __serverTimestamp: true });
+    });
+
+    test('refreshes updatedAt', async () => {
+      // Deliberate, and it costs one protocol refetch per calendar day: the
+      // bump feeds revisionToken and Home re-resolves on focus. Omitting it
+      // would save the refetch by making the document's own last-changed field
+      // lie about when it last changed.
+      await recordAdvanceExposure(ALICE, '2026-09-10', null);
+      expect(patch().updatedAt).toEqual({ __serverTimestamp: true });
+    });
+
+    test('touches no adjust field and no phase field', async () => {
+      await recordAdvanceExposure(ALICE, '2026-09-10', null);
+      expect(patch()).not.toHaveProperty('adjustOfferedAt');
+      expect(patch()).not.toHaveProperty('adjustDeclinedAt');
+      expect(patch()).not.toHaveProperty('advanceDeclinedAt');
+      expect(patch()).not.toHaveProperty('phaseKey');
+      expect(patch()).not.toHaveProperty('enteredAt');
     });
   });
 });

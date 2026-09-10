@@ -32,6 +32,13 @@
  */
 
 import type { CapacityTier } from '../protocolEngine';
+// Type-only, therefore erased at compile time: this does NOT wire the journey
+// derivations into anything that reads the event map at runtime. Imported
+// rather than restated as a local union so the two can never drift, which is
+// the opposite call from JourneyMigrationSource below - that one is DEFINED
+// here because its strings exist only to be recorded, while the two doors are
+// an engine concept that happens to be worth recording.
+import type { AdvanceDoor } from '../journey/derive';
 import type {
   PhaseKey,
   PhaseRead,
@@ -176,6 +183,9 @@ export type WeeklyEntryRoute = (typeof WEEKLY_ENTRY_ROUTES)[number];
  *   - `screen_view`. High volume by an order of magnitude, and route names are
  *     open strings that would need their own closed union. Its own slice.
  */
+/** The two advancement doors, minus the not-due case a payload cannot carry. */
+type AdvanceDoorName = Exclude<AdvanceDoor, null>;
+
 export interface AnalyticsEventMap {
   /**
    * A week was closed: the weekly reset was answered and saved.
@@ -306,6 +316,59 @@ export interface AnalyticsEventMap {
     slot: ReplacementSlot;
   };
   /**
+   * The advancement offer occupied Today for one calendar day (slice 7a).
+   *
+   * ONE PER CALENDAR DAY AT MOST, because the day gate that bounds the write
+   * bounds this too: both happen in `recordAdvanceExposure`'s call site, behind
+   * `shouldRecordExposure`. So the row count IS the exposure count, and a
+   * user with four of these in one phase is a bug report rather than a heavy
+   * user.
+   *
+   * `door` IS WHICH THRESHOLD OPENED IT, and it is the reason this event is
+   * worth having. 'consistency' and 'ceiling' catch opposite users - one doing
+   * the work, one stuck - and the accept rate of the two is the first real
+   * evidence about whether the ceiling is serving anyone or just interrupting
+   * them. Both values are closed unions the engine produced, not content.
+   *
+   * NO COUNT IN THE PAYLOAD. Not the exposure number, not consistent days, not
+   * days in phase. The firewall's rule is about user content, and these would
+   * pass it, but section 8's counter ban is about what the product is FOR and
+   * a per-user tally reconstructable from the log is the thing it bans wearing
+   * a warehouse. The ordinal is recoverable by counting rows if it is ever
+   * genuinely needed.
+   */
+  journey_advance_offered: { door: AdvanceDoorName };
+  /**
+   * The user opened the preview and committed. The phase changed.
+   *
+   * FIRED FROM THE COMMIT, NOT FROM THE CARD. "See what's next" mutates
+   * nothing and fires nothing; this event means `advancePhase` succeeded, so
+   * accepted-over-offered is a real conversion rate and not a click rate.
+   *
+   * NO `door` HERE, AND ITS ABSENCE IS DELIBERATE. The commit happens on the
+   * phase page, which knows the user's stored state but not `consistentDays`,
+   * so it cannot say which threshold opened the offer without a dailyLogs read
+   * it has never done. Passing the door through navigation would have supplied
+   * it from Today and left it empty on the map path, and defaulting it would
+   * have invented an answer. The door is already on the `offered` row, these
+   * rows are uid-keyed and time-ordered, and joining an accept to the most
+   * recent offer recovers it exactly. Recording a value this surface cannot
+   * know would be worse than recording none.
+   */
+  journey_advance_accepted: Record<string, never>;
+  /**
+   * The user declined. Either "Keep going here" on the card, or "Not yet" on
+   * the preview page.
+   *
+   * `from` SEPARATES THE TWO, and the distinction is the point: declining
+   * without looking and declining after looking are different answers about the
+   * offer, and collapsing them would hide which one the copy is failing.
+   *
+   * NO `door`, for the same reason as `accepted` above: only one of the two
+   * origins can know it, so neither reports it.
+   */
+  journey_advance_declined: { from: 'card' | 'preview' };
+  /**
    * The crisis pre-check did not pass and the support screen was shown.
    *
    * DELIBERATELY BARE. No text, no category, no length, no timing, nothing about
@@ -334,6 +397,9 @@ export type AnalyticsEventName = keyof AnalyticsEventMap;
  * to the map above without adding it here is a tsc error.
  */
 const EVENT_NAME_SET: Record<AnalyticsEventName, true> = {
+  journey_advance_offered: true,
+  journey_advance_accepted: true,
+  journey_advance_declined: true,
   journey_remove_captured: true,
   journey_remove_capture_dismissed: true,
   journey_remove_replacement_chosen: true,

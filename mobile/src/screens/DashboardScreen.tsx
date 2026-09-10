@@ -26,6 +26,7 @@ import { Colors, Spacing, Typography } from '../constants';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../components/shared/ScreenHeader';
 import { GuidePill } from '../components/ai/GuidePill';
 import { DASHBOARD_SUPPRESS, JOURNEY_IA } from '../constants/dashboardConfig';
+import { PHASE_ORDER } from '../constants/journey';
 
 // The one illustration on Home: a watercolor header band. Raster asset (WebP)
 // rendered via ScreenHeader's expo-image layer, never an SVG icon.
@@ -40,6 +41,12 @@ import { DailyPickerSheet } from '../components/dashboard/DailyPickerSheet';
 import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
 import { MigrationRouteScreen } from './journey/MigrationRouteScreen';
 import { RemoveCaptureCard } from '../components/dashboard/RemoveCaptureCard';
+import { AdvancementCard } from '../components/dashboard/AdvancementCard';
+import { JourneyLine } from '../components/dashboard/JourneyLine';
+import { StartHereRow } from '../components/journey/StartHereRow';
+import { JOURNEY_LINE_LABEL, TODAY_START_HERE_GLOSS } from '../constants/journeyCopy';
+import { journeyActionFor } from '../journey/journeyAction';
+import { useAdvanceOffer } from '../hooks/useAdvanceOffer';
 import { logEvent } from '../services/firebase/analyticsEvents.service';
 import { useDashboard } from '../hooks/useDashboard';
 import { useJourneyLanding } from '../hooks/useJourneyLanding';
@@ -159,20 +166,59 @@ const DashboardScreen: React.FC = () => {
    */
   const [routeExplainerDismissed, setRouteExplainerDismissed] = useState(false);
 
-  // THE SUPPRESSION CLAUSE THAT STOOD HERE IS GONE, AND SO IS WHAT IT
-  // SUPPRESSED. Slice 3c-i made this card hide ContinuityCard while it showed,
-  // "transitional until 3b/slice 6" - and slice 6 is where the count retires
-  // outright (roadmap section 9 R4). There is nothing left below the fold to
-  // trade against, so this is a plain condition again. The condition itself
-  // never changed: it was always one field and one comparison, because the
-  // other four capture fields can each legitimately be null after a completed
-  // capture and gating on any of them would re-offer the flow to someone who
-  // had already finished it.
-  const showRemoveCapture =
-    JOURNEY_IA &&
-    weeklyLanding.phase?.phaseKey === 'remove' &&
-    !weeklyLanding.phase.hasRemoveCapture &&
-    !captureDismissed;
+  // ---- The ONE journey-action slot (slice 7a decision 3) ----
+  //
+  // `showRemoveCapture` STOOD HERE AS ITS OWN BOOLEAN and is gone, folded into
+  // journeyActionFor with the other two offers. The capture card was never in
+  // competition with anything before: 3c-i shipped it beside a continuity count
+  // that has since retired, and until this slice there was no second offer for
+  // it to contend with. There is now. If it looks like a card it occupies
+  // attention like a card, so it takes its turn in one slot rather than
+  // rendering alongside whatever else is due.
+  //
+  // ITS CONDITION IS UNCHANGED, only relocated: phase is 'remove', there is no
+  // removeCapturedAt, and it has not been dismissed this session. The one term
+  // that did NOT move is `JOURNEY_IA`, and it was redundant rather than
+  // dropped - useJourneyLanding sets `phase` to null whenever the flag is off
+  // (useJourneyLanding.ts:108-115), so `phaseKey === null` already covers every
+  // state this term covered. journeyActionFor documents that at its input.
+  const advanceOffer = useAdvanceOffer({
+    uid: user?.uid,
+    phase: weeklyLanding.phase,
+    consistentDays: todayCard.consistentDays,
+    todayIso: todayCard.todayIso,
+  });
+
+  const journeyAction = journeyActionFor({
+    phaseKey: weeklyLanding.phase?.phaseKey ?? null,
+    hasRemoveCapture: weeklyLanding.phase?.hasRemoveCapture ?? false,
+    captureDismissed,
+    // Slice 7b supplies the adjust placement and its card. The BRANCH exists in
+    // journeyActionFor and is pinned by a priority test; this literal is what
+    // makes it unreachable at runtime until then. It is a constant rather than
+    // an omission so that 7b changes one expression, not a signature.
+    adjustPlacement: 'hidden',
+    advancePlacement: advanceOffer.placement,
+  });
+
+  // Opening the next phase's page. IT MUTATES NOTHING (decision 4): the offer
+  // stays live, its exposure is already spent for today, and the only control
+  // that changes a phase is "Start this" on the page this opens. The page works
+  // out for itself that it is being previewed; nothing is passed to say so.
+  const openAdvancePreview = useCallback(() => {
+    const phase = weeklyLanding.phase;
+    if (!phase) return;
+    const idx = PHASE_ORDER.indexOf(phase.phaseKey);
+    if (idx === -1 || idx >= PHASE_ORDER.length - 1) return;
+    (navigation as unknown as {
+      navigate: (s: string, p?: object) => void;
+    }).navigate(ROUTES.JourneyPhase, {
+      phase: PHASE_ORDER[idx + 1],
+      destination: phase.destination,
+    });
+    // navigation is stable for the life of the screen; the phase is not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weeklyLanding.phase]);
 
   // The weekly reset (spec 8). `navigate`, not `replace`: Home is a tab, so the
   // reset is pushed OVER it exactly as the floor flow is below.
@@ -396,6 +442,26 @@ const DashboardScreen: React.FC = () => {
                 states now. The hero alone swaps below. */}
             {weeklyLanding.target === 'today' && (weeklyLanding.cycle || weeklyLanding.phase) && (
                 <>
+                  {/* ---- The journey line (D1, roadmap section 9 R6) ----
+
+                      ABOVE THE HERO, because the two questions run in that
+                      order: where am I, then what should I do today. Below the
+                      hero it would be a footnote to the day's action rather
+                      than the context the day's action sits inside.
+
+                      A TEXT ROW, NOT A CARD, so section 8's three-card ceiling
+                      is untouched by it. It has no press target at all: a
+                      tappable line here would be a second call to action above
+                      the one real one. Rendered only under the journey, because
+                      there is no phase to name on the legacy path. */}
+                  {weeklyLanding.phase && (
+                    <JourneyLine
+                      label={JOURNEY_LINE_LABEL}
+                      phaseKey={weeklyLanding.phase.phaseKey}
+                      destination={weeklyLanding.phase.destination}
+                    />
+                  )}
+
                   {/* THE ONLY THING THE PICK GATES. Unpicked, the whole hero is
                       the prompt: no protocol title, no quick win, no completion
                       control, because there is no day's action to complete
@@ -446,13 +512,33 @@ const DashboardScreen: React.FC = () => {
                       always been a sibling with its own `closed` prop and is
                       untouched by the removal. */}
 
-                  {/* WAS A TERNARY against ContinuityCard until slice 6, which
-                      retired the count. Nothing replaces it in this slot: the
-                      opacity concern it answered is real and is answered
-                      qualitatively instead, by the app noticing out loud and by
-                      the journey visibly progressing, not by another number
-                      wearing a different name (roadmap section 9 R4). */}
-                  {showRemoveCapture && (
+                  {/* ---- The ONE journey-action slot (slice 7a decision 3) ----
+
+                      THE CONTINUITY COUNT HELD THIS SLOT UNTIL SLICE 6 and was
+                      retired outright (roadmap section 9 R4). What fills it now
+                      is not a replacement for that count: the opacity concern
+                      the count answered is still answered qualitatively, by the
+                      app noticing out loud and by the journey visibly
+                      progressing. What sits here is the app's one proactive
+                      offer, and there is at most one of them.
+
+                      EXACTLY ONE OF THESE RENDERS, EVER, and which one is
+                      decided by journeyActionFor rather than by the order they
+                      appear in below. Three sibling conditions on one variable,
+                      never nested ternaries: the priority is a product rule
+                      (capture beats adjust beats advance) and it is tested as a
+                      function, not inferred from JSX by whoever reads it next.
+
+                      Gated with the hero on the same three conditions: a load
+                      that failed shows no controls for a week it could not
+                      read, which is how the Today screen behaves too.
+
+                      THE CAPACITY RE-SET USED TO SIT HERE TOO, under its own
+                      `!closeCompletedAt` gate, and is retired (roadmap 3b-i):
+                      capacity is answered per day now, so there is no weekly
+                      tier to re-plan. The close entry below has always been a
+                      sibling with its own `closed` prop and is untouched. */}
+                  {journeyAction === 'capture' && (
                     <RemoveCaptureCard
                       onOpen={() => go(ROUTES.RemoveCapture)}
                       onDismiss={() => {
@@ -463,6 +549,38 @@ const DashboardScreen: React.FC = () => {
                       }}
                     />
                   )}
+
+                  {/* 'adjust' IS DELIBERATELY UNRENDERED IN 7a. The branch is
+                      real in journeyActionFor and pinned by an ordering test;
+                      slice 7b supplies the C2 card that fills it. It cannot be
+                      reached at runtime here because `adjustPlacement` is the
+                      literal 'hidden' at the call site above, so this is a gap
+                      with a lock on it rather than a hole. */}
+
+                  {journeyAction === 'advance' && advanceOffer.door !== null && (
+                    <AdvancementCard
+                      variant={advanceOffer.door}
+                      onSeeNext={openAdvancePreview}
+                      onKeepGoing={advanceOffer.dismiss}
+                    />
+                  )}
+
+                  {/* Start here, the Today instance (slice 7a; the container is
+                      5c's and is not edited here).
+
+                      A ROW, NOT A CARD, so it sits inside the ceiling rather
+                      than becoming a fourth card. IT RENDERS NOTHING TODAY:
+                      START_HERE_PATHS.today is null until Jen's video lands in
+                      the bucket, and slice 5c decision 1 makes a null path and a
+                      failed resolve the same outcome, which is absence. Mounted
+                      now anyway, because the day the file exists the only change
+                      is a string in constants/startHere.ts. */}
+                  <StartHereRow
+                    surface="today"
+                    userId={user?.uid}
+                    gloss={TODAY_START_HERE_GLOSS}
+                    testID="home-start-here"
+                  />
 
                   {/* Replaced by a plain acknowledgment once the week has been
                       closed. closeCompletedAt rides in on the cycle already

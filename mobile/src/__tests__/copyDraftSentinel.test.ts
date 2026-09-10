@@ -363,7 +363,58 @@ import * as path from 'path';
 // STILL DRAFTED IN screens/weekly/copy.ts: notePlaceholder, noteSkip and
 // saveFailed on the reset, plus the whole of FLOOR_COPY and ENTRY_COPY. Thirteen
 // in the file. None of them Kyle's to clear; the floor and entry sets are Jen's.
-const EXPECTED_SENTINELS = 148;
+//
+// 151 since journey slice 7a: +3. Owner Kyle, 2026-09-10, all three new drafts,
+// none of them an approval or a deletion. Two were approved as drafts BEFORE
+// the slice was written (Kyle, in the slice 7a brief); the third was not, and
+// it is named as a deviation below rather than folded in with them.
+//
+//   - JOURNEY_LINE_LABEL in constants/journeyCopy.ts: 'Where you are'. The
+//     eyebrow above Today's journey line. Required, not decorative: several of
+//     Jen's sixteen approved `short` strings are imperative-shaped ("Clear the
+//     distractions"), and standing alone above the hero an imperative reads as
+//     TODAY'S INSTRUCTION rather than as journey context.
+//   - TODAY_START_HERE_GLOSS in constants/journeyCopy.ts: the one line under
+//     Today's Start here row. A gloss per surface is slice 5c's shape, because
+//     the two videos explain different things (roadmap section 6 item 9).
+//   - ADVANCE_PREVIEW_COPY.failed: 'That did not go through. Try again.' The
+//     advancement preview's write-failure line.
+//
+// THE THIRD ONE WAS NOT IN THE APPROVED SET, AND SAYING SO IS THE POINT.
+// Step 0 listed the copy this slice needed and Kyle approved two new drafts at
+// 148 -> 150. The commit control then needed an error state to satisfy UI
+// Standards 18, and there was no honest way to get one for free: the nearest
+// existing string is TodayHeroCard's local `saveFailed`, which is JEN'S and
+// drafted, so reusing it would have meant either importing a dashboard card's
+// private copy into a journey screen or duplicating a string under the wrong
+// owner. Shipping no error state was the other option and it fails section 18
+// outright. A named deviation at +1 is the cheapest honest answer; it is
+// flagged in the slice report and in the commit message rather than absorbed.
+//
+// JEN'S PACK STRINGS LANDED IN THIS SLICE AND COST NOTHING, which is the pack
+// rule working as designed rather than an omission here. ADVANCEMENT_COPY's two
+// titles, two bodies and its primary are Content Pack v1 section B2, approved on
+// delivery, and carry no markers.
+//
+// THREE MORE OF KYLE'S OWN STRINGS ALSO LANDED FLAT, on the PHASE_PAGE_BODIES
+// precedent (authored by the owner, not a sign-off on someone else's draft):
+// ADVANCEMENT_COPY.secondary 'Keep going here', and ADVANCE_PREVIEW_COPY's
+// 'Start this' and 'Not yet'.
+//
+// AND ONE OF THEM RETIRED THREE WORDINGS WITHOUT MOVING THE NUMBER. 'Keep going
+// here' replaces the pack's "Keep working here" (B2 variant one) and "Stay here"
+// (B2 variant two), and supersedes roadmap section 8's third wording for the
+// same action, "stay a while longer". None of the three carried a marker - two
+// were pack strings and one was in a document, not in src - so the pin does not
+// move. Recorded so nobody re-derives the retired pair from the pack later and
+// reads the divergence as a transcription error.
+//
+// QUEUED, NOT DONE: JOURNEY_LINE_LABEL is the same three words as
+// PHASE_STATE_LABELS.current. Deliberate rather than a stale copy, and argued at
+// the constant. Whether the two should collapse into one symbol is Kyle's call
+// to make while reading both surfaces on the walk; collapsing decrements this
+// pin by one.
+const EXPECTED_SENTINELS = 151;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

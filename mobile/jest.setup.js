@@ -70,6 +70,41 @@ jest.mock('expo-linear-gradient', () => ({
   LinearGradient: 'LinearGradient',
 }));
 
+// Same failure, same fix, one layer further out (journey slice 7a). `expo` and
+// `expo-video` are what VideoPlayerModal imports, and both reach
+// expo-modules-core's EventEmitter at import time. Nothing needed them until
+// slice 7a mounted StartHereRow on Home: the Practices mount was only ever
+// exercised by StartHereRow's own suite, which mocks VideoPlayerModal outright,
+// so the transitive import never reached a screen test before.
+//
+// MOCKED GLOBALLY RATHER THAN PER SUITE, deliberately. The alternative was
+// mocking StartHereRow inside each of the four DashboardScreen suites, which
+// would have made Home's Today mount invisible to every screen-level test and
+// left the next screen to adopt the row hitting this same wall from scratch.
+jest.mock('expo', () => ({
+  useEvent: () => null,
+}));
+
+// AsyncStorage, via the package's own shipped mock (journey slice 7a). Reached
+// for the same reason as the two above: StartHereRow's collapse marker is
+// AsyncStorage-backed, and mounting the row on Home put that import on a screen
+// for the first time. Suites that already mock it locally are unaffected - a
+// per-file jest.mock still wins over this one.
+jest.mock(
+  '@react-native-async-storage/async-storage',
+  () => require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+jest.mock('expo-video', () => ({
+  VideoView: 'VideoView',
+  useVideoPlayer: () => ({
+    play: jest.fn(),
+    pause: jest.fn(),
+    replace: jest.fn(),
+    release: jest.fn(),
+  }),
+}));
+
 // Set required environment variables for tests
 process.env.REACT_APP_FIREBASE_API_KEY = 'test-api-key';
 process.env.REACT_APP_FIREBASE_AUTH_DOMAIN = 'test.firebaseapp.com';

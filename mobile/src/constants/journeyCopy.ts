@@ -255,3 +255,136 @@ export const RESET_ANSWERS: ReadonlyArray<{ value: PhaseRead; label: string }> =
  * dropped for want of one.
  */
 export const RESET_CONFIRMATION = "Got it. We'll keep that in mind this week.";
+
+/**
+ * The advancement offer, B2 (slice 7a).
+ *
+ * JEN'S, APPROVED ON DELIVERY. `Content Pack v1 section B2`, landing FLAT under
+ * the pack's own rule: pack strings carry no `COPY: draft` marker and the
+ * sentinel does not count them. Both variants arrived early; they were marked
+ * "not on her list yet" and were delivered anyway in the Sept 5 pack.
+ *
+ * TWO VARIANTS BECAUSE TWO DOORS OPEN THE OFFER, and they are not
+ * interchangeable. `consistency` fires when the user has actually been coming
+ * back and can therefore say so. `ceiling` fires on elapsed time with too few
+ * completed days to describe the behaviour as regular, so it deliberately names
+ * NOTHING about what the user did. Serving the consistency line to a ceiling
+ * user would tell them they had been consistent when the reason they are seeing
+ * a card at all is that they were not. `deriveAdvanceDoor` is what chooses.
+ *
+ * RECOGNIZE -> OFFER -> PRESERVE CHOICE (roadmap section 9 R2). Never achieve ->
+ * unlock -> reward. Neither body says what the next phase CONTAINS, and that
+ * withholding is the decision rather than an omission: a list of contents is a
+ * pitch, and a pitch has to be sold. The user chooses to look, and the preview
+ * page is where looking happens.
+ *
+ * NOTHING HERE MAY EVER IMPLY EARNED PERMISSION. Every practice is runnable at
+ * all times (section 8), so permission was never Vara's to grant, and copy that
+ * implied otherwise would invent a lock the product does not have. This is a
+ * standing rule for every future advancement state, not this card's alone.
+ *
+ * NO NUMBERS. Neither variant may name the eight, the fourteen, the exposures
+ * or the days remaining.
+ *
+ * `secondary` IS ONE STRING FOR BOTH VARIANTS, AND THAT IS A CHANGE. The pack
+ * ships "Keep working here" on variant one and "Stay here" on variant two, and
+ * section 8 carries a third wording, "stay a while longer". Three wordings for
+ * one action across two cards a user may see in sequence is how a decline starts
+ * looking like three different doors. KYLE'S WORDING, landing flat on the
+ * PHASE_PAGE_BODIES precedent above: authored by the owner, not a sign-off on
+ * someone else's draft.
+ */
+export const ADVANCEMENT_COPY = {
+  consistency: {
+    title: "There's something to build on here.",
+    body: "You've been coming back to this regularly. Want to see what Vara can build from it next?",
+  },
+  ceiling: {
+    title: 'Ready to try the next part?',
+    body: "You've spent some time working here. You can keep going, or see what comes next and decide if it feels right.",
+  },
+  primary: "See what's next",
+  secondary: 'Keep going here',
+} as const;
+
+/**
+ * The advancement preview page's two controls, and its one failure line.
+ *
+ * PREVIEW BEFORE COMMIT (slice 7a decision 4). "See what's next" promises a
+ * look and must not mutate anything, so the offer's primary opens the next
+ * phase's page and the commitment happens there, in front of the thing being
+ * committed to. That also disposes of B2's missing accept-confirmation: the
+ * resulting state is visible immediately on return, so there is nothing for a
+ * toast to announce.
+ *
+ * `startThis` AND `notYet` ARE KYLE'S WORDING, flat on the PHASE_PAGE_BODIES
+ * precedent. The pack has nothing for a screen it did not know about.
+ *
+ * "Start this", NOT "Start this phase" OR "Begin". The framework words never
+ * reach a user (section 8), and "begin" reads as ceremony on a page whose whole
+ * argument is that this is an ordinary next step.
+ */
+export const ADVANCE_PREVIEW_COPY = {
+  startThis: 'Start this',
+  notYet: 'Not yet',
+  // COPY: draft, not from guidelines doc - pending Kyle
+  failed: 'That did not go through. Try again.',
+} as const;
+
+/**
+ * The label above Today's journey line (D1, slice 7a, roadmap section 9 R6).
+ *
+ * THE LABEL IS REQUIRED, NOT DECORATIVE, and that is the reason this constant
+ * exists at all. The line renders `PHASE_DISPLAY[phase][destination].short`, and
+ * several of those sixteen approved strings are imperative-shaped: "Come down a
+ * notch", "Clear the distractions". Standing alone above the hero, an imperative
+ * reads as TODAY'S INSTRUCTION rather than as journey context, which would put a
+ * second thing that looks like an action above the one real action on the
+ * screen. The label is what makes the line answer "where am I" instead.
+ *
+ * ABOVE THE HERO, because the order of the two questions is "where am I" then
+ * "what should I do today". A journey line below the day's action would be a
+ * footnote to it.
+ *
+ * NOT A CARD, NOT A CTA, NO STAGE WORD, NO NUMBER. Section 8 keeps the three
+ * card ceiling and this is a text row inside it. Stage words were rejected
+ * outright at R6: "Stretch 2" and "Stage B" are implementation concepts wearing
+ * UX clothes, meaningless without a legend, and a legend on Today is a second
+ * thing to read before the daily action.
+ *
+ * IT IS THE SAME THREE WORDS AS `PHASE_STATE_LABELS.current` ABOVE, AND THAT IS
+ * DELIBERATE RATHER THAN A STALE COPY. The map's state word and this label make
+ * the same statement to a user, and one vocabulary across two surfaces is worth
+ * more than a second phrasing invented to avoid looking duplicated.
+ *
+ * IT IS A SEPARATE CONSTANT ANYWAY, and the reason is what would happen if it
+ * were not: `PHASE_STATE_LABELS.current` labels one ROW of the map as the row
+ * the user is standing on, and if it were ever narrowed to say something
+ * row-specific, Today's journey line would silently follow it. The two jobs are
+ * close enough to share words and not close enough to share a symbol.
+ *
+ * QUEUED FOR THE WALK: whether these should collapse into one constant is
+ * Kyle's call to make while reading both surfaces, not one to settle from the
+ * file. Collapsing is a two-line change and decrements the sentinel by one.
+ */
+// COPY: draft, not from guidelines doc - pending Kyle
+export const JOURNEY_LINE_LABEL = 'Where you are';
+
+/**
+ * The one line under Today's Start here row.
+ *
+ * A PROP AT THE MOUNT, NOT A SHARED CONSTANT, is the shape slice 5c chose and
+ * this honours it: both surfaces call the row the same thing, so
+ * `START_HERE_LABEL` is shared, but each surface's video explains a DIFFERENT
+ * thing (roadmap section 6 item 9 - the map on Practices, what drives results
+ * and why the order on Today), so the gloss belongs to the mount. It lives here
+ * rather than inline in DashboardScreen because a user-facing string in a screen
+ * body is a string outside the sentinel's habitual reach, which is the trap the
+ * slice 6 rider caught with the navigator title.
+ *
+ * IT DESCRIBES THE VIDEO, NOT THE JOURNEY. The row is an explainer, and a gloss
+ * that promised an outcome would make a short video carry a claim.
+ */
+// COPY: draft, not from guidelines doc - pending Kyle
+export const TODAY_START_HERE_GLOSS =
+  'A short video on what actually helps, and why the order matters.';

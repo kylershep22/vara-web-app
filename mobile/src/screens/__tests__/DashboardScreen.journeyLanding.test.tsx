@@ -171,6 +171,12 @@ const PHASE = {
   revisionToken: 99,
   enteredAtIso: '',
   hasRemoveCapture: true,
+  // Slice 7a. Cleared values: a phase nobody has been offered anything in, so
+  // the tests that predate the slot see exactly what they saw before it.
+  advanceDeclined: false,
+  advanceExposures: 0,
+  advanceFirstOfferedOn: null,
+  advanceLastExposedOn: null,
 };
 
 function todayCard(over: Record<string, unknown> = {}) {
@@ -189,6 +195,13 @@ function todayCard(over: Record<string, unknown> = {}) {
     confirmPick: jest.fn(),
     pickSaving: false,
     pickFailed: false,
+    // Slice 7a. Home feeds both to useAdvanceOffer, and `todayIso` in
+    // particular is load bearing: it is the ONE definition of today on this
+    // screen, and the offer's day gate compares against it. Omitted, the
+    // calendar derivation reads NaN and the ceiling door never opens, which
+    // silently makes every advancement assertion pass for the wrong reason.
+    consistentDays: 0,
+    todayIso: '2026-09-10',
     ...over,
   };
 }
@@ -196,19 +209,31 @@ function todayCard(over: Record<string, unknown> = {}) {
 /** The source argument Home most recently handed useTodayCard. */
 const lastSource = () => mockUseTodayCard.mock.calls.at(-1)?.[1];
 
+/**
+ * The default world every describe in this file starts from.
+ *
+ * EXTRACTED IN SLICE 7a, and the reason is a bug it caught rather than tidiness.
+ * This body lived inline in the describe below, so the describes added by 7a
+ * inherited nothing and ran against whatever mock state the previous block
+ * happened to leave behind. Two of them passed on that residue and one crashed,
+ * which is the order-dependent, vacuous-green shape: the passes were as wrong as
+ * the failure, they just did not say so. Every describe now primes explicitly.
+ */
+function primeHome() {
+  jest.clearAllMocks();
+  mockUseFocusEffect.mockImplementation(() => {});
+  mockTodayCard.mockReturnValue(todayCard());
+  mockGetFloor.mockResolvedValue('Ten minutes of quiet');
+  mockGetLatestCycle.mockResolvedValue(liveCycle);
+  mockGetUserPrivate.mockResolvedValue({ weekStartDay: null });
+  // Rollover returns the week it just made. Distinct id, so an assertion can
+  // tell the rolled week apart from the expired one it replaced.
+  mockEnsureCycle.mockResolvedValue({ ...liveCycle, id: 'cycle-rolled' });
+  mockResolveJourney.mockResolvedValue({ target: 'today', phase: PHASE });
+}
+
 describe('DashboardScreen under JOURNEY_IA', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockUseFocusEffect.mockImplementation(() => {});
-    mockTodayCard.mockReturnValue(todayCard());
-    mockGetFloor.mockResolvedValue('Ten minutes of quiet');
-    mockGetLatestCycle.mockResolvedValue(liveCycle);
-    mockGetUserPrivate.mockResolvedValue({ weekStartDay: null });
-    // Rollover returns the week it just made. Distinct id, so an assertion can
-    // tell the rolled week apart from the expired one it replaced.
-    mockEnsureCycle.mockResolvedValue({ ...liveCycle, id: 'cycle-rolled' });
-    mockResolveJourney.mockResolvedValue({ target: 'today', phase: PHASE });
-  });
+  beforeEach(primeHome);
 
   test('HANDS useTodayCard THE PHASE, not the cycle', async () => {
     // The whole slice in one assertion. Home still HAS a cycle here (the weekly
@@ -362,5 +387,149 @@ describe('DashboardScreen under JOURNEY_IA', () => {
 
     await waitFor(() => expect(lastSource()?.kind).toBe('cycle'));
     expect(lastSource().cycle.id).toBe('c1');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The ONE journey-action slot, the journey line and the Start here mount
+// (slice 7a).
+//
+// THESE ARE SCREEN-LEVEL ASSERTIONS AND THE UNIT TESTS DO NOT COVER THEM.
+// journeyActionFor's priority is pinned in journey/__tests__/journeyAction.test.ts
+// against the pure function; what is asserted here is that Home actually ASKS it
+// and renders the single answer. A screen that computed the right action and
+// then rendered two cards anyway would pass every unit test in the slice.
+// ---------------------------------------------------------------------------
+describe('DashboardScreen - the journey-action slot', () => {
+  beforeEach(primeHome);
+
+  const dueForAdvance = {
+    ...PHASE,
+    // Captured, so the capture card yields, and entered long enough ago that
+    // the ceiling door is open.
+    hasRemoveCapture: true,
+    enteredAtIso: '2026-01-01',
+    advanceDeclined: false,
+    advanceExposures: 0,
+    advanceFirstOfferedOn: null,
+    advanceLastExposedOn: null,
+  };
+
+  test('renders the capture card and NOT the advancement card', async () => {
+    // Capture beats advance, asserted with both live. This is the pair that a
+    // screen rendering siblings rather than one slot would fail.
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: { ...dueForAdvance, phaseKey: 'remove', hasRemoveCapture: false },
+    });
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-remove-capture')).toBeTruthy());
+    expect(queryByTestId('home-advancement')).toBeNull();
+  });
+
+  test('renders the advancement card once the capture is done', async () => {
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: dueForAdvance });
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-advancement')).toBeTruthy());
+    expect(queryByTestId('home-remove-capture')).toBeNull();
+  });
+
+  test('renders NEITHER when nothing is due', async () => {
+    // The slot is absent, not an empty card. Today keeps one primary action.
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: { ...PHASE, hasRemoveCapture: true, enteredAtIso: '2026-09-10' },
+    });
+    const { queryByTestId, getByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-journey-line')).toBeTruthy());
+    expect(queryByTestId('home-advancement')).toBeNull();
+    expect(queryByTestId('home-remove-capture')).toBeNull();
+  });
+
+  test('a DEMOTED advancement offer leaves the slot empty', async () => {
+    // Three exposures spent. R3: the map is where it lives now, and Today must
+    // not re-promote it.
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: {
+        ...dueForAdvance,
+        advanceExposures: 3,
+        advanceFirstOfferedOn: '2026-09-08',
+        advanceLastExposedOn: '2026-09-09',
+      },
+    });
+    const { queryByTestId, getByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-journey-line')).toBeTruthy());
+    expect(queryByTestId('home-advancement')).toBeNull();
+  });
+
+  test('"See what\'s next" opens the NEXT phase and mutates nothing', async () => {
+    // PHASE_ORDER is remove -> recover, and the destination travels with it so
+    // the page renders even if its own read fails.
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: dueForAdvance });
+    const { getByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-advancement')).toBeTruthy());
+
+    fireEvent.press(getByTestId('home-advancement-see-next'));
+    expect(mockNavigate).toHaveBeenCalledWith('JourneyPhase', {
+      phase: 'recover',
+      destination: PHASE.destination,
+    });
+  });
+});
+
+describe('DashboardScreen - the journey line', () => {
+  beforeEach(primeHome);
+
+  test('renders ABOVE the hero, as a text row', async () => {
+    // The order is "where am I" then "what should I do today". Asserted by
+    // position in the tree rather than by presence, because presence alone
+    // would pass for a line rendered underneath the day's action.
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: PHASE });
+    const { getByTestId, toJSON } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-journey-line')).toBeTruthy());
+
+    // Walked rather than JSON.stringify'd: the rendered tree carries a
+    // RefreshControl whose props close a cycle back to their own fiber, so
+    // serialising it throws. The walk is depth-first in render order, which is
+    // the order the user reads down the screen.
+    const ids: string[] = [];
+    const walk = (node: any): void => {
+      if (!node || typeof node !== 'object') return;
+      if (Array.isArray(node)) return node.forEach(walk);
+      const id = node.props?.testID;
+      if (typeof id === 'string') ids.push(id);
+      (node.children ?? []).forEach(walk);
+    };
+    walk(toJSON());
+
+    const line = ids.indexOf('home-journey-line');
+    const hero = ids.indexOf('home-today-hero');
+    // Both present, so a -1 from either cannot make the comparison pass.
+    expect(line).toBeGreaterThan(-1);
+    expect(hero).toBeGreaterThan(-1);
+    expect(line).toBeLessThan(hero);
+  });
+
+  test('is absent on the legacy path, where there is no phase to name', async () => {
+    mockResolveJourney.mockResolvedValue({ target: 'legacy' });
+    const { queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(queryByTestId('home-journey-line')).toBeNull());
+  });
+});
+
+describe('DashboardScreen - the Start here Today mount', () => {
+  beforeEach(primeHome);
+
+  test('renders nothing while the Today video does not exist', async () => {
+    // START_HERE_PATHS.today is null and slice 5c decision 1 makes a null path
+    // and a failed resolve the same outcome. The mount is here so that the day
+    // the file lands the only change is a string in constants/startHere.ts;
+    // until then this is deliberately invisible, and this test says so rather
+    // than leaving a reader to wonder whether the mount is wired.
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: PHASE });
+    const { queryByTestId, getByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-journey-line')).toBeTruthy());
+    expect(queryByTestId('home-start-here')).toBeNull();
   });
 });

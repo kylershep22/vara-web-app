@@ -201,6 +201,12 @@ const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
   // what keeps these suites asserting the day's load and nothing else.
   enteredAtIso: '',
   hasRemoveCapture: false,
+  // Slice 7a. Cleared values: this factory builds a phase nobody has been
+  // offered anything in, which is what every test in this file assumes.
+  advanceDeclined: false,
+  advanceExposures: 0,
+  advanceFirstOfferedOn: null,
+  advanceLastExposedOn: null,
   ...over,
 });
 

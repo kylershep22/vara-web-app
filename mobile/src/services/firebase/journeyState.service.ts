@@ -6,11 +6,20 @@
  * helper here takes a uid and none of them takes a document ID: there is
  * nothing to look up. The rules gate on the ID path rather than on a field.
  *
- * NO COUNTERS ARE STORED. Consistent days and calendar days are derived at
- * read time by src/journey/derive.ts from dailyLogs and `enteredAt`. This
- * module writes decisions and timestamps; it never writes a tally. If a future
- * slice wants a counter here, that is the wrong fix; see the JourneyState
- * comment in types/models.ts.
+ * NO DERIVABLE COUNTER IS STORED. Consistent days and calendar days are derived
+ * at read time by src/journey/derive.ts from dailyLogs and `enteredAt`. If a
+ * future slice wants to store either of those, that is the wrong fix; see the
+ * JourneyState comment in types/models.ts.
+ *
+ * THIS SENTENCE USED TO READ "it never writes a tally" AND SLICE 7a MADE THAT
+ * FALSE. `recordAdvanceExposure` below increments `advanceExposures`. The rule
+ * is narrower than the old wording and the field carries the full argument at
+ * its declaration in types/models.ts: section 8 bans counters a USER READS, and
+ * this model bans counters that DUPLICATE something derivable. An exposure
+ * count is neither. It is never rendered, and nothing else in the system
+ * records that a card was on screen, so there is no second copy for it to drift
+ * from. Read the field comment before adding a second tally on its precedent;
+ * the precedent is narrow on purpose.
  *
  * PHASE ORDER COMES FROM PHASE_ORDER, never from the PhaseKey union's
  * declaration order.
@@ -25,6 +34,7 @@
 import {
   doc,
   getDoc,
+  increment,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -52,17 +62,31 @@ export interface CreateJourneyStateInput {
 }
 
 /**
- * The four offer/decline timestamps, cleared.
+ * Every piece of offer bookkeeping, cleared.
  *
- * SPELLED OUT IN ONE PLACE because every phase change has to reset all four
- * and forgetting one is silent: a stale `advanceDeclinedAt` would suppress the
- * next phase's advance offer forever, and nothing would log that it had.
+ * SPELLED OUT IN ONE PLACE because every phase change has to reset all of it
+ * and forgetting one is silent: a stale `advanceDeclinedAt` would demote the
+ * next phase's advance offer to the journey forever, and nothing would log that
+ * it had.
+ *
+ * SPREAD AT EXACTLY FOUR SITES - createJourneyState, advancePhase, skipToPhase
+ * and stepBackToPhase - which is why adding a field here is the whole of the
+ * work rather than the first quarter of it. Do not inline these values at a
+ * call site; the next field added would then reset in three places out of four.
+ *
+ * THE THREE EXPOSURE FIELDS JOINED IN SLICE 7a and are not optional additions.
+ * A count or a date surviving a phase transition would spend the incoming
+ * phase's exposure budget, or fire its seven-day cap, before its offer had ever
+ * been shown once (roadmap section 9 R3).
  */
 const CLEARED_OFFERS = {
   advanceOfferedAt: null,
   advanceDeclinedAt: null,
   adjustOfferedAt: null,
   adjustDeclinedAt: null,
+  advanceExposures: 0,
+  advanceFirstOfferedOn: null,
+  advanceLastExposedOn: null,
 } as const;
 
 /** One user's journey state, or null before they have started one. */
@@ -225,20 +249,61 @@ export async function stepBackToPhase(userId: string, target: PhaseKey): Promise
 // ---------------------------------------------------------------------------
 // Offer bookkeeping
 //
-// Four one-field setters rather than one parameterised helper. The field names
+// One setter per event rather than one parameterised helper. The field names
 // are the API: a recordOffer(kind) would push the choice into a string and
 // lose the compile-time check that the caller meant advance rather than adjust.
+//
+// THE ADVANCE SIDE IS NO LONGER ONE FIELD PER SETTER (slice 7a). Recording an
+// exposure moves four fields that only mean anything together - the count, the
+// two date anchors and the last-shown timestamp - so splitting them into four
+// setters would let a caller record half an exposure. What the rule above
+// forbids is parameterising over KIND, and that still holds: nothing here takes
+// 'advance' | 'adjust' as an argument.
 // ---------------------------------------------------------------------------
 
-/** The advance offer was shown. */
-export async function recordAdvanceOffered(userId: string): Promise<void> {
+/**
+ * The advance offer occupied Today for one calendar day (slice 7a, R3).
+ *
+ * REPLACES `recordAdvanceOffered`, WHICH IS DELETED RATHER THAN LEFT BESIDE IT.
+ * That helper wrote `advanceOfferedAt` alone, had no caller in its whole life,
+ * and is a strict subset of this one. Shipping both would leave two writers of
+ * the same field where only one maintains the exposure bookkeeping, and the
+ * next person would have a fifty-fifty chance of picking the one that silently
+ * fails to count.
+ *
+ * THE CALLER MUST HAVE PASSED THE DAY GATE FIRST. This function does not check
+ * it, deliberately: the gate is a pure predicate over state the caller already
+ * holds (`shouldRecordExposure` in journey/offerPlacement.ts), and duplicating
+ * it here would put the rule in two places and invite a caller to skip its own.
+ * A second call on the same day writes the same date back and DOUBLE-COUNTS the
+ * exposure, so the gate is not decorative.
+ *
+ * `advanceFirstOfferedOn` IS WRITTEN IDEMPOTENTLY, not conditionally. The
+ * caller passes the value it already has and this writes `?? todayIso`, so the
+ * second and third exposures rewrite the same date rather than needing a
+ * read-modify-write or a branch here.
+ *
+ * `increment(1)` IS SAFE HERE and the featureDiscovery caveat does not apply.
+ * That module's warning is about `increment` against a document that may not
+ * exist yet, where the sentinel resets a counter to 1. A user cannot be offered
+ * advancement without a journeyStates document, so this always lands on an
+ * existing row.
+ */
+export async function recordAdvanceExposure(
+  userId: string,
+  todayIso: string,
+  firstOfferedOn: string | null
+): Promise<void> {
   await updateDoc(doc(requireDb(), JOURNEY_STATES, userId), {
     advanceOfferedAt: serverTimestamp(),
+    advanceExposures: increment(1),
+    advanceFirstOfferedOn: firstOfferedOn ?? todayIso,
+    advanceLastExposedOn: todayIso,
     updatedAt: serverTimestamp(),
   });
 }
 
-/** The user said not yet to advancing. Suppresses the offer for this phase. */
+/** The user said not yet to advancing. Demotes the offer to the journey. */
 export async function recordAdvanceDeclined(userId: string): Promise<void> {
   await updateDoc(doc(requireDb(), JOURNEY_STATES, userId), {
     advanceDeclinedAt: serverTimestamp(),

@@ -39,6 +39,14 @@ describe('analytics event schema', () => {
       // that does not exist.
       expect([...ANALYTICS_EVENT_NAMES].sort()).toEqual([
         'floor_set',
+        // The advancement offer (slice 7a). All three have wiring proofs:
+        // `_offered` and `_declined` from the card in useAdvanceOffer.test.ts,
+        // `_accepted` and `_declined` from the preview page in
+        // JourneyPhaseScreen.test.tsx. `_declined` is fired from BOTH origins
+        // and its `from` dimension is asserted at each.
+        'journey_advance_accepted',
+        'journey_advance_declined',
+        'journey_advance_offered',
         // Fired by the Remove capture flow (slice 3c-i). Wiring proof is
         // removeCapture's own suites.
         'journey_remove_capture_dismissed',
