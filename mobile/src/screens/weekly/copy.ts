@@ -102,6 +102,23 @@ export const OUTCOME_LABELS = {
  * The weekly reset (spec 8, repurposed by journey slice 6). One felt read, one
  * optional note, and an acknowledgment. Every answer is one tap.
  *
+ * FOUR STRINGS HERE ARE KYLE'S OWN AND CARRY NO MARKER, WHICH IS A DECISION
+ * RATHER THAN AN OMISSION (2026-09-10). `screenTitle`, `heading`, `save` and
+ * `noteQuestion` and `required` were not drafted by CC and then signed off:
+ * Kyle wrote the words that ship. They enter flat for the same reason
+ * DESTINATION_SUMMARY_LABELS' four entries do, and that map's own header makes
+ * the same statement for the same reason: an unmarked string in a file where
+ * every neighbour carries a marker should read as weighed, not as forgotten.
+ *
+ * The arithmetic case is the 5b-i rider's, not an approval. Kyle REPLACED the
+ * drafted text rather than approving it, which costs the same -1 per string and
+ * is a different fact about how much review the copy has had. The sentinel
+ * cannot tell those apart; this comment can.
+ *
+ * WHAT IS STILL DRAFTED HERE, so the mix is legible: `notePlaceholder`,
+ * `noteSkip` and `saveFailed`, all pending Jen, plus the whole of FLOOR_COPY
+ * and ENTRY_COPY above.
+ *
  * THE QUESTION AND ITS ANSWERS ARE NOT IN THIS FILE. They are Jen's, approved,
  * and they live in constants/journeyCopy.ts as RESET_QUESTIONS, RESET_ANSWERS
  * and RESET_CONFIRMATION, because the question varies by DESTINATION and the
@@ -131,30 +148,65 @@ export const OUTCOME_LABELS = {
  *      the guard, not reviewer discipline.
  */
 export const CLOSE_COPY = {
-  // COPY: draft, not from guidelines doc - pending Jen
-  heading: 'Your week',
+  // KYLE'S, 2026-09-10. THE NAVIGATOR TITLE, AND IT LIVES HERE RATHER THAN IN
+  // AppNavigator BECAUSE USER-FACING COPY DOES NOT LIVE IN THE NAVIGATOR. It
+  // sat inline at AppNavigator.tsx as a hardcoded literal from the day the
+  // close shipped, which meant it was outside the sentinel's reach: unmarked
+  // not because anyone had cleared it but because nobody had ever looked. That
+  // is a hole in the gate's coverage, not an approval, and moving the string is
+  // what closes it.
+  //
+  // "CLOSE YOUR WEEK" IS GONE BECAUSE THE SCREEN NO LONGER CLOSES ANYTHING.
+  // Slice 6 decision 2 made the read PRESENT TENSE about the live stretch
+  // rather than a retrospective on the week that ended, so "close" taught the
+  // wrong mental model: it framed a forward-looking check-in as a filing
+  // action on something finished.
+  //
+  // "RESET" COLLIDES WITH PRACTICE VOCABULARY AND WAS CHOSEN ANYWAY. The word
+  // already means something in this app: small resets, the guided reset, and
+  // Jen's Recover lanes all use it for a thing you DO in a few minutes. This
+  // is a weekly instrument, met once a week from Home, in a stack header, with
+  // no practice in sight. The contexts are far enough apart that the collision
+  // is acceptable. Recorded as a considered choice so a later reader does not
+  // "fix" it, and so the alternative is re-argued rather than assumed.
+  screenTitle: 'Weekly reset',
 
-  // COPY: draft, not from guidelines doc - pending Jen
-  // REWRITTEN IN SLICE 6. It read "What was the load like on the days it did
-  // not happen?", which only made sense underneath the floor question that
-  // asked whether the user held their commitment. That question is retired, so
-  // the note had to stop referring to it. Open and unleading on purpose: this
-  // is the highest-value qualitative field in the product (spec 8.3) and a
-  // prompt that names a problem collects answers about that problem.
-  noteQuestion: 'Anything you want to note about the week?',
+  // KYLE'S, 2026-09-10. It read 'Your week', which named the subject without
+  // saying what the screen wanted. It also duplicated the Insights route's
+  // navigator title exactly (AppNavigator.tsx), so two different screens
+  // announced themselves with the same three words; this one now says what it
+  // is for and that collision is gone.
+  heading: 'Check in on your week',
+
+  // KYLE'S, 2026-09-10. Twice-rewritten, and the first rewrite is why the
+  // second was needed. The original read "What was the load like on the days it
+  // did not happen?", which only parsed underneath the floor question that
+  // asked whether the user held their commitment; that question retired with
+  // continuity, so the note referred to something nobody had been asked. CC's
+  // replacement, "Anything you want to note about the week?", fixed the
+  // reference and invited nothing: an open prompt that points nowhere collects
+  // blanks. This one asks for something a person can actually retrieve.
+  noteQuestion: 'Anything from this week you want to remember?',
   // COPY: draft, not from guidelines doc - pending Jen
   notePlaceholder: 'A line, if you want to',
   // COPY: draft, not from guidelines doc - pending Jen
   noteSkip: 'You can leave this blank.',
 
-  // COPY: draft, not from guidelines doc - pending Jen
-  save: 'Save and close the week',
-  // COPY: draft, not from guidelines doc - pending Jen
-  // REWRITTEN IN SLICE 6. It named the three ratings, the floor question and
-  // the adjustment. One answer is required now. Shown while the button is
-  // disabled, so the reason is on screen rather than implied by a greyed
-  // control.
-  required: 'Answer the question above to continue.',
+  // KYLE'S, 2026-09-10. It read 'Save and close the week', wrong twice over:
+  // "close" for the reason at screenTitle, and "save" because it foregrounds
+  // data persistence, which is not what the user came here to do. A button
+  // names the action from the user's side, and from theirs this is the end of
+  // a short weekly check-in.
+  save: 'Finish',
+  // KYLE'S, 2026-09-10. It named the three ratings, the floor question and the
+  // adjustment, none of which the screen asks any more; CC's replacement,
+  // "Answer the question above to continue.", pointed at a position rather than
+  // at a thing and read flatter than everything around it. This one names what
+  // is being asked for.
+  //
+  // IT APPEARS TWICE and has to work in both: as a line under the disabled
+  // button, and as that button's accessibilityHint while disabled.
+  required: 'Choose how this feels to continue.',
   // COPY: draft, not from guidelines doc - pending Jen
   saveFailed: 'That did not save. Your week is unchanged. Try again.',
 } as const;

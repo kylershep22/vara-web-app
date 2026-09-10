@@ -77,6 +77,7 @@ import { WeeklyEntryScreen } from '../screens/weekly/WeeklyEntryScreen';
 import { FloorCommitmentScreen } from '../screens/weekly/FloorCommitmentScreen';
 import { RemoveCaptureNavigator } from '../screens/journey/removeCapture/RemoveCaptureNavigator';
 import { WeeklyCloseScreen } from '../screens/weekly/WeeklyCloseScreen';
+import { CLOSE_COPY } from '../screens/weekly/copy';
 import {
   CommunityScreen,
   GroupsScreen,
@@ -1144,11 +1145,18 @@ const MainNavigator = () => {
             headerShadowVisible: false,
           })}
         />
-        {/* The weekly close (spec 8). Entered from Home rather than from
-            the guard: the real trigger is an elapsed week, and faking a
-            week boundary to reach it would be worse than not having one.
-            Returns to Home, which gates the entry on closeCompletedAt so the
-            close reads as finished rather than repeatable. */}
+        {/* The weekly reset (spec 8, repurposed by journey slice 6). Entered
+            from Home rather than from the guard: the real trigger is an
+            elapsed week, and faking a week boundary to reach it would be
+            worse than not having one. Returns to Home, which gates the entry
+            on closeCompletedAt so the reset reads as finished rather than
+            repeatable.
+
+            THE TITLE IS READ FROM copy.ts, NOT SPELLED HERE. It was a
+            hardcoded literal until 2026-09-10, which put a user-facing string
+            outside the copy sentinel's reach for the whole life of the screen.
+            Route names and header options are navigation config; the words a
+            user reads are not. */}
         <AppStack.Screen
           name={ROUTES.WeeklyClose}
           component={WeeklyCloseScreen}
@@ -1156,7 +1164,7 @@ const MainNavigator = () => {
             ...standardHeaderOptions,
             animation: 'slide_from_right',
             headerShown: true,
-            title: 'Close your week',
+            title: CLOSE_COPY.screenTitle,
             headerShadowVisible: false,
           })}
         />
