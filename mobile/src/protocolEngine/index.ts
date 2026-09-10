@@ -22,7 +22,6 @@ export type {
   TimeClass,
   ProtocolVariant,
   ResolvedProtocolVariant,
-  WeeklyRecord,
 } from './types';
 
 export {
@@ -53,7 +52,13 @@ export {
 // gentleness is a property Jen authors into the Remove protocols themselves
 // (roadmap 3.2). Its only week-number source, countWeeklyCyclesForOutcome,
 // retired with it.
-export { computeContinuity } from './continuity';
+// RETIRED in journey slice 6: `computeContinuity` and the `WeeklyRecord` type
+// above it. The continuity count was a visible run of unbroken weeks on Today,
+// and a visible count of consistent days is functionally a streak whatever it
+// is called (roadmap section 9 R4). The whole chain went, not a null through
+// it: the card, its copy, the storage-to-engine mapper, the engine function and
+// the type it consumed. Nothing replaces it, and no replacement Today metric
+// may be added here.
 // RETIRED with the in-week re-set (roadmap 3b-i): `nextTierDown` / `nextTierUp`
 // walked the capacity ladder one rung for that control and had no other caller.
 // CAPACITY_TIERS above is still the single place the order lives.

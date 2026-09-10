@@ -37,7 +37,6 @@ const CARD_OVERLAP = Spacing.xl;
 import { TodayHeroCard } from '../components/dashboard/TodayHeroCard';
 import { SetTodayCard } from '../components/dashboard/SetTodayCard';
 import { DailyPickerSheet } from '../components/dashboard/DailyPickerSheet';
-import { ContinuityCard } from '../components/dashboard/ContinuityCard';
 import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
 import { MigrationRouteScreen } from './journey/MigrationRouteScreen';
 import { RemoveCaptureCard } from '../components/dashboard/RemoveCaptureCard';
@@ -160,26 +159,51 @@ const DashboardScreen: React.FC = () => {
    */
   const [routeExplainerDismissed, setRouteExplainerDismissed] = useState(false);
 
-  // THE CAPTURE CARD SUPPRESSES ContinuityCard WHILE IT SHOWS (card-ceiling
-  // decision, slice 3c-i). Naming the thing to remove is the highest-priority
-  // action a Remove-phase user has; the continuity count is a below-the-fold
-  // read on a weekly loop that is being retired. Continuity returns the moment
-  // the capture completes or is dismissed.
+  // THE SUPPRESSION CLAUSE THAT STOOD HERE IS GONE, AND SO IS WHAT IT
+  // SUPPRESSED. Slice 3c-i made this card hide ContinuityCard while it showed,
+  // "transitional until 3b/slice 6" - and slice 6 is where the count retires
+  // outright (roadmap section 9 R4). There is nothing left below the fold to
+  // trade against, so this is a plain condition again. The condition itself
+  // never changed: it was always one field and one comparison, because the
+  // other four capture fields can each legitimately be null after a completed
+  // capture and gating on any of them would re-offer the flow to someone who
+  // had already finished it.
   const showRemoveCapture =
     JOURNEY_IA &&
     weeklyLanding.phase?.phaseKey === 'remove' &&
     !weeklyLanding.phase.hasRemoveCapture &&
     !captureDismissed;
 
-  // The weekly close (spec 8). `navigate`, not `replace`: Home is a tab, so the
-  // close is pushed OVER it exactly as the floor and open flows are below.
+  // The weekly reset (spec 8). `navigate`, not `replace`: Home is a tab, so the
+  // reset is pushed OVER it exactly as the floor flow is below.
+  //
+  // IT CARRIES THE PHASE (slice 6). The reset asks a destination-flavoured
+  // question and stores which phase the answer was about, and Home has both
+  // already: it resolved the journey once for this session and hands the same
+  // answer down here that it hands to the hero and the entry card. The
+  // alternative was a second getJourneyState read on the reset screen, which
+  // would answer even with JOURNEY_IA off - the documents outlive the flag -
+  // and could disagree with Home when a resolve fell back to legacy.
+  //
+  // UNDEFINED IS A REAL AND EXPECTED VALUE, not a bug to default away: the flag
+  // off, a failed resolve and rung (d) all reach here with no phase, and the
+  // reset renders its note without a question rather than inventing one.
+  //
+  // `phase` IS NOW A DEPENDENCY. The previous comment here said navigation was
+  // stable for the life of the screen and that was the whole dep story; it no
+  // longer is, and an empty array would pin the first resolved phase forever.
+  const phaseKey = weeklyLanding.phase?.phaseKey;
+  const phaseDestination = weeklyLanding.phase?.destination;
   const goToClose = useCallback(() => {
-    (navigation as unknown as { navigate: (s: string) => void }).navigate(
-      ROUTES.WeeklyClose
-    );
-    // navigation is stable for the life of the screen.
+    (navigation as unknown as {
+      navigate: (s: string, p?: object) => void;
+    }).navigate(ROUTES.WeeklyClose, {
+      phase: phaseKey,
+      destination: phaseDestination,
+    });
+    // navigation is stable for the life of the screen; the two params are not.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [phaseKey, phaseDestination]);
   const openClose = useWeeklyCloseEntry(user?.uid, goToClose);
 
   // Re-resolve whenever Home regains focus, so returning from the floor or open
@@ -414,16 +438,21 @@ const DashboardScreen: React.FC = () => {
                       read, which is how the Today screen behaves too.
 
                       THE CAPACITY RE-SET USED TO SIT HERE, between the hero and
-                      the continuity count, under its own `!closeCompletedAt`
+                      the continuity count that slice 6 also retired, under its
+                      own `!closeCompletedAt`
                       gate. It is retired (roadmap 3b-i): capacity is answered
                       per day now, so there is no weekly tier to re-plan. Its
                       gate went with it; the close acknowledgment below has
                       always been a sibling with its own `closed` prop and is
                       untouched by the removal. */}
 
-                  {/* ONE CONDITIONAL, per the card-ceiling decision. Either the
-                      capture card or the continuity count, never both. */}
-                  {showRemoveCapture ? (
+                  {/* WAS A TERNARY against ContinuityCard until slice 6, which
+                      retired the count. Nothing replaces it in this slot: the
+                      opacity concern it answered is real and is answered
+                      qualitatively instead, by the app noticing out loud and by
+                      the journey visibly progressing, not by another number
+                      wearing a different name (roadmap section 9 R4). */}
+                  {showRemoveCapture && (
                     <RemoveCaptureCard
                       onOpen={() => go(ROUTES.RemoveCapture)}
                       onDismiss={() => {
@@ -433,9 +462,6 @@ const DashboardScreen: React.FC = () => {
                         }
                       }}
                     />
-                  ) : (
-                    /* Self-hides at 0 and on a failed read; see ContinuityCard. */
-                    <ContinuityCard continuity={todayCard.continuity} />
                   )}
 
                   {/* Replaced by a plain acknowledgment once the week has been

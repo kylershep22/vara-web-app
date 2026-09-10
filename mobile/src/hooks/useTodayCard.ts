@@ -36,9 +36,10 @@
  * That is a property of the schema, not behavior implemented here, and it is
  * why this hook re-reads the log by date rather than by cycle.
  *
- * ALSO HERE, ported from WeeklyTodayScreen so Home can serve the whole Today
- * surface: the continuity count (spec 1). It is SECONDARY to the day's action
- * and may never block it.
+ * THE CONTINUITY COUNT WAS ALSO HERE and retired with the card that rendered
+ * it (journey slice 6, roadmap section 9 R4). This hook no longer reads
+ * anything weekly: the day's protocol, the day's log and the phase's consistent
+ * days are all it serves.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
@@ -59,7 +60,6 @@ import {
 } from '../services/firebase/dailyLog.service';
 import { deriveConsistentDays } from '../journey/derive';
 import { getFloorCommitment } from '../services/firebase/userPrivate.service';
-import { loadWeeklyContinuity } from '../screens/weekly/weeklyContinuity';
 import type { WeeklyCycle } from '../types/models';
 import type { PhaseContext } from '../journey/resolveJourney';
 import type { DestinationKey, PhaseKey, RemoveFamily } from '../types/models';
@@ -81,13 +81,6 @@ export interface TodayCard {
   saving: boolean;
   /** The completion write failed; the card shows it and stays tappable. */
   saveFailed: boolean;
-  /**
-   * Unbroken weeks (spec 1). null when the read failed, which is NOT the same
-   * as 0: zero is a claim about the user, an unreadable history is not. The
-   * render silences both, and has to be able to tell them apart anyway.
-   */
-  continuity: number | null;
-
   /**
    * Has the user answered today's picker? Read through `hasPickedToday`, which
    * is the ONE definition; nothing here re-derives it.
@@ -122,7 +115,6 @@ const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
   failed: false,
   saving: false,
   saveFailed: false,
-  continuity: null,
   picked: false,
   prefillCapacity: 'normal',
   prefillTime: DEFAULT_TIME_CLASS,
@@ -169,7 +161,6 @@ export function useTodayCard(
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
-  const [continuity, setContinuity] = useState<number | null>(null);
   const [picked, setPicked] = useState(false);
   const [prefillCapacity, setPrefillCapacity] = useState<CapacityTier>('normal');
   const [prefillTime, setPrefillTime] = useState<TimeClass>(DEFAULT_TIME_CLASS);
@@ -319,24 +310,16 @@ export function useTodayCard(
       : source.kind === 'cycle'
         ? source.cycle.capacityInitial
         : source.phase.capacitySeed;
-  // A BOOLEAN, never `closeCompletedAt` itself. The close writes floorMet,
-  // which is the only input to continuity, and it changes none of the three
-  // fields above — so without this the count below would never refresh after a
-  // close now that Home, rather than a freshly mounted Today screen, is where
-  // the close returns to.
+  // `isClosed` STOOD HERE AND IS GONE (journey slice 6). It existed for exactly
+  // one job, stated in its own comment: re-running this effect after a weekly
+  // close so the continuity count below the fold would refresh. The count is
+  // retired, and nothing else this effect reads changes when a week closes -
+  // the reset writes closeNote, closeCompletedAt and phaseRead, none of which
+  // feeds the day's log, protocol, floor or consistent-day count.
   //
-  // The Timestamp cannot be the dependency: Firestore rebuilds it as a new
-  // object on every read, so depending on it would refetch on every focus
-  // resolve and defeat the memoization the three lines above exist for. This
-  // flips false -> true at most once per cycle, which is once per week.
-  //
-  // THE JOURNEY SIDE HAS NO CLOSE, so it contributes `false` rather than
-  // borrowing the cycle's. A journey user's week-number count refreshes on
-  // `revisionToken` instead, which moves whenever the phase does. This is the
-  // one of the four reads with no journey equivalent, and inventing one would
-  // have meant reaching back into a cycle the day no longer depends on.
-  const isClosed =
-    source !== null && source.kind === 'cycle' && !!source.cycle.closeCompletedAt;
+  // HOME'S CLOSED ACKNOWLEDGMENT DOES NOT DEPEND ON IT and did not before:
+  // DashboardScreen reads `closeCompletedAt` off `weeklyLanding.cycle`, which
+  // its focus effect re-resolves on every return to the tab.
 
   useEffect(() => {
     activeRef.current = true;
@@ -345,7 +328,6 @@ export function useTodayCard(
       setProtocol(null);
       setFloorCommitment(null);
       setCompleted(false);
-      setContinuity(null);
       setPicked(false);
       setLoading(false);
       return () => {
@@ -355,29 +337,6 @@ export function useTodayCard(
 
     setLoading(true);
     setFailed(false);
-
-    // Continuity (spec 1) rides the same effect as everything else, so any
-    // reload picks up a close that happened in between. It is committed
-    // SEPARATELY rather than folded into the commit below, which is the one
-    // deliberate departure from WeeklyTodayScreen.tsx:166-173: there the read
-    // gates the whole screen, but on Home the hero and its completion CTA
-    // already render as soon as their own reads land, and making the primary
-    // action wait on a count below the fold would be a regression to Home
-    // rather than a port onto it.
-    //
-    // Not pre-cleared, so a reload leaves the previous count on screen until
-    // the new one lands instead of blinking through nothing.
-    loadWeeklyContinuity(uid)
-      .then((run) => {
-        if (activeRef.current) setContinuity(run);
-      })
-      .catch((error) => {
-        // Best effort, and it cannot take Home down with it. null rather than
-        // 0: showing a zero here would state something about the user that was
-        // never read.
-        logger.error('[useTodayCard] continuity read failed:', error);
-        if (activeRef.current) setContinuity(null);
-      });
 
     (async () => {
       try {
@@ -477,7 +436,6 @@ export function useTodayCard(
     removeFamily,
     enteredAtIso,
     capacitySeed,
-    isClosed,
     todayIso,
     reloadToken,
   ]);
@@ -576,7 +534,6 @@ export function useTodayCard(
     markDone,
     saving,
     saveFailed,
-    continuity,
     picked,
     prefillCapacity,
     prefillTime,

@@ -48,19 +48,19 @@ import { logEvent, __sessionId } from '../analyticsEvents.service';
 
 const ALICE = 'alice123';
 
-/** The one safe weekly_open payload, spelled once. */
+/** The one safe weekly_close payload, spelled once. */
 // The sample event these tests write through. WAS `weekly_open`, which retired
-// with WeeklyOpenScreen in journey slice 3b; `weekly_close` replaces it because
-// the firewall tests need the same two shapes to push against, a closed union
-// (`ratingFocus`) and a stable-id slot (`adjustmentSelected`). Nothing here is
-// about the close in particular.
+// with WeeklyOpenScreen in journey slice 3b; `weekly_close` replaced it, and
+// slice 6 reduced it to the two fields below. Nothing here is about the reset
+// in particular: these tests need a payload of closed unions to push arbitrary
+// content against, and this is one.
+//
+// IT GOT SMALLER, WHICH MAKES THE FIREWALL TESTS SHARPER RATHER THAN WEAKER.
+// The excess-key assertions push a `closeNote` at a two-key shape now instead
+// of a six-key one, and `ExactParams` has to reject it either way.
 const CLOSE_PARAMS = {
-  ratingFocus: 3,
-  ratingRecovery: 3,
-  ratingEnergy: 3,
-  adjustmentSelected: 'same-again',
-  floorMet: true,
-  continuityBeforeClose: 2,
+  phaseRead: 'moving',
+  phaseKeyAtRead: 'remove',
 } as const;
 
 /** Let the swallowed floating promise inside logEvent settle. */
@@ -90,12 +90,8 @@ describe('analyticsEvents.service', () => {
       expect(payload.userId).toBe(ALICE);
       expect(payload.event).toBe('weekly_close');
       expect(payload.params).toEqual({
-        ratingFocus: 3,
-        ratingRecovery: 3,
-        ratingEnergy: 3,
-        adjustmentSelected: 'same-again',
-        floorMet: true,
-        continuityBeforeClose: 2,
+        phaseRead: 'moving',
+        phaseKeyAtRead: 'remove',
       });
     });
 
@@ -286,16 +282,16 @@ describe('analyticsEvents.service', () => {
 
       logEvent(ALICE, 'weekly_close', {
         ...CLOSE_PARAMS,
-        // @ts-expect-error - ratingFocus is a fixed union, not a string
-        ratingFocus: journalBody,
+        // @ts-expect-error - phaseRead is a three-member union, not a string
+        phaseRead: journalBody,
       });
     });
 
     test('rejects an arbitrary string in a stable-id slot', () => {
       logEvent(ALICE, 'weekly_close', {
         ...CLOSE_PARAMS,
-        // @ts-expect-error - adjustmentSelected is a fixed key list, not a string
-        adjustmentSelected: 'whatever the user typed',
+        // @ts-expect-error - phaseKeyAtRead is the four phase keys, not a string
+        phaseKeyAtRead: 'whatever the user typed',
       });
     });
 
@@ -305,7 +301,7 @@ describe('analyticsEvents.service', () => {
     });
 
     test('rejects a payload missing a required field', () => {
-      // @ts-expect-error - weekly_open requires all three fields
+      // @ts-expect-error - weekly_close requires both of its fields
       logEvent(ALICE, 'weekly_close', { outcome: 'focus' });
     });
 
@@ -315,12 +311,8 @@ describe('analyticsEvents.service', () => {
     // characters — so the type is the entire guard.
 
     const CLOSE_PARAMS = {
-      ratingFocus: 4,
-      ratingRecovery: 2,
-      ratingEnergy: 3,
-      adjustmentSelected: 'smaller-daily-action',
-      floorMet: true,
-      continuityBeforeClose: 3,
+      phaseRead: 'not_moving',
+      phaseKeyAtRead: 'recover',
     } as const;
 
     test('accepts the safe weekly_close payload', () => {
@@ -334,24 +326,27 @@ describe('analyticsEvents.service', () => {
 
       logEvent(ALICE, 'weekly_close', {
         ...CLOSE_PARAMS,
-        // @ts-expect-error - the one free-text answer in the close has no slot, ever
+        // @ts-expect-error - the one free-text answer in the reset has no slot, ever
         closeNote,
       });
     });
 
-    test('rejects a rating outside the five-point scale', () => {
-      logEvent(ALICE, 'weekly_close', {
-        ...CLOSE_PARAMS,
-        // @ts-expect-error - ratings are five taps, not an arbitrary number
-        ratingFocus: 7,
-      });
-    });
+    // TWO REJECTION TESTS STOOD HERE and retired with the fields they guarded
+    // (journey slice 6): a rating outside the 1-to-5 scale, and an adjustment
+    // id outside the offered set. The reset asks neither question, and an
+    // expect-error directive on a field that no longer exists would pass for
+    // the wrong reason — it would be "used" by the unknown-key error rather
+    // than by the type error it was written for.
+    //
+    // Note the directive name is spelled out rather than written literally
+    // above: tsc reads it as a directive wherever it appears in a line
+    // comment, prose or not, and an unused one fails the build.
 
-    test('rejects an adjustment id outside the offered set', () => {
+    test('rejects a phase read outside the three answers', () => {
       logEvent(ALICE, 'weekly_close', {
         ...CLOSE_PARAMS,
-        // @ts-expect-error - adjustmentSelected is the four-member union, not a string
-        adjustmentSelected: 'whatever they typed',
+        // @ts-expect-error - 'same' was the pre-slice-6 middle state and is not a PhaseRead
+        phaseRead: 'same',
       });
     });
 

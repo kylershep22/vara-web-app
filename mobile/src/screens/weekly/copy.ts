@@ -75,112 +75,86 @@ export const OUTCOME_LABELS = {
  */
 
 /**
- * The adjustment options offered at the close (spec 8.4).
+ * ADJUSTMENT_KEYS AND ADJUSTMENT_LABELS STOOD HERE and are deleted with the
+ * question they answered (journey slice 6).
  *
- * THE IDS ARE PERSISTED AND THE LABELS ARE NOT. `adjustmentSelected` on the
- * weekly cycle stores an ID from this list, so an ID may never change once a
- * user has closed a week against it: a rename would orphan every stored row.
- * The labels below are placeholders and are expected to be rewritten; that
- * rewrite must not touch the keys.
+ * The close offered exactly one adjustment for next week (spec 8.4). Slice 3b
+ * stopped STORING the choice and slice 6 stops ASKING for it: the weekly
+ * surface is one felt read and a note, and "what should change next week" is
+ * the C2 adjust screen's job, offered when two consecutive not_moving reads
+ * say the approach is not working. An always-on menu asked every user to
+ * re-plan every week whether or not anything was wrong.
  *
- * Spec 8.4 says the app offers exactly ONE adjustment for next week, hard
- * enforced. This slice offers a small fixed set and enforces a single choice in
- * the UI. The app PROPOSING the one adjustment from the user's own note is the
- * AI Coach mechanic (spec 14), a later slice.
+ * THE IDS WENT WITH THE LABELS, and that is safe only because nothing stores
+ * them. The old header here warned that an id may never change once a user has
+ * closed a week against it, which was true while `adjustmentSelected` was
+ * written; 3b retired that write (roadmap section 3.4) and no row written since
+ * carries one. Rows written BEFORE 3b still hold their string values, unread
+ * and untouched: `WeeklyCycle.adjustmentSelected` stays on the model as an
+ * optional legacy field so those documents keep parsing.
+ *
+ * `ADJUSTMENT_IDS` in types/analyticsEvents.ts was the redeclared twin of this
+ * list, pinned to it by types/__tests__/analyticsEvents.test.ts. Both sides are
+ * deleted in this slice, because the event no longer carries the field.
  */
-export const ADJUSTMENT_KEYS = [
-  'smaller-daily-action',
-  'same-again',
-  'different-time',
-  'different-outcome',
-] as const;
-
-export type AdjustmentKey = (typeof ADJUSTMENT_KEYS)[number];
-
-export const ADJUSTMENT_LABELS: Record<AdjustmentKey, string> = {
-  'smaller-daily-action': 'Make the daily action smaller',
-  'same-again': 'Keep everything the same',
-  'different-time': 'Do it at a different time of day',
-  'different-outcome': 'Focus on something else',
-};
 
 /**
- * The weekly close (spec 8). Target under 90 seconds, so every question is one
- * tap except the note, which is skippable.
+ * The weekly reset (spec 8, repurposed by journey slice 6). One felt read, one
+ * optional note, and an acknowledgment. Every answer is one tap.
  *
- * Three constraints for whoever replaces these strings:
+ * THE QUESTION AND ITS ANSWERS ARE NOT IN THIS FILE. They are Jen's, approved,
+ * and they live in constants/journeyCopy.ts as RESET_QUESTIONS, RESET_ANSWERS
+ * and RESET_CONFIRMATION, because the question varies by DESTINATION and the
+ * destination vocabulary already lives there beside A2_BODIES. What is left
+ * here is the chrome around them.
  *
- *   1. NOTHING HERE IS A GRADE. The ratings are a reading, not a score; the
- *      floor question is not a pass or a fail. No percentage, no total out of
- *      five, no "you managed", no red.
- *   2. THE FLOOR QUESTION IS THE ONE THAT FEEDS CONTINUITY, and a user who
- *      answers no has to feel able to say so. Phrasing that makes no the wrong
- *      answer produces a false yes, and a false yes is worse than a broken run:
- *      it makes the one number in the product a lie.
- *   3. What held, as a count of days completed (spec 8.1), is NOT on this
- *      screen. Nothing writes daily completion yet, so the count would be zero
- *      for everyone. Spec 8's own rule says to suppress a debrief with no data
- *      rather than show an empty one. It returns with the completion CTA.
+ * WHAT LEFT WITH SLICE 6, so a later reader does not go looking:
+ *
+ *   - THE THREE 1-TO-5 RATINGS (spec 8.2). Nothing ever read them. 3b stopped
+ *     storing them and left the questions on screen for one slice, documented
+ *     as a real gap; this is the slice that stops asking. A weekly instrument
+ *     with a rating scale on it is a score whatever the copy says, and the
+ *     felt read replaces all three with one direction.
+ *   - THE FLOOR QUESTION and its four strings. It was the only input to
+ *     continuity, continuity is retired (roadmap section 9 R4), and section
+ *     3.4's "floorMet survives only if continuity ships" resolves to no. This
+ *     is NOT the floor commitment: UserPrivate.floorCommitment and
+ *     FLOOR_COPY above are untouched and still gate the weekly entry.
+ *   - THE ADJUSTMENT MENU. See the block above.
+ *
+ * Two constraints for whoever replaces the strings below:
+ *
+ *   1. NOTHING HERE IS A GRADE. There is no total, no scale, and no right
+ *      answer. The acknowledgment is identical whichever answer was given.
+ *   2. THE NOTE IS THE ONE FREE-TEXT FIELD and it is genuinely skippable. It
+ *      is also permanently barred from analytics: types/analyticsEvents.ts is
+ *      the guard, not reviewer discipline.
  */
 export const CLOSE_COPY = {
   // COPY: draft, not from guidelines doc - pending Jen
   heading: 'Your week',
 
   // COPY: draft, not from guidelines doc - pending Jen
-  // Spec 8.2. Weekly, never daily.
-  ratingsHeading: 'How did the week feel?',
-  // COPY: draft, not from guidelines doc - pending Jen
-  ratingHint: 'One tap each. There is no right answer.',
-  // COPY: draft, not from guidelines doc - pending Jen
-  ratingFocus: 'Focus',
-  // COPY: draft, not from guidelines doc - pending Jen
-  ratingRecovery: 'Recovery',
-  // COPY: draft, not from guidelines doc - pending Jen
-  ratingEnergy: 'Energy',
-  // COPY: draft, not from guidelines doc - pending Jen
-  // The ends of the 1-5 scale, so the numbers mean something without implying
-  // that 5 is a pass and 1 is a failure.
-  ratingLow: 'Low',
-  // COPY: draft, not from guidelines doc - pending Jen
-  ratingHigh: 'High',
-
-  // COPY: draft, not from guidelines doc - pending Jen
-  // The floor question (spec 10.1 commitment, open item #10 Option A). Asked
-  // plainly, answered either way, and never framed as pass or fail.
-  floorHeading: 'Your floor',
-  // COPY: draft, not from guidelines doc - pending Jen
-  floorQuestion: "Did you do the one thing you named, even on this week's hardest days?",
-  // COPY: draft, not from guidelines doc - pending Jen
-  floorYes: 'Yes, I did that',
-  // COPY: draft, not from guidelines doc - pending Jen
-  floorNo: 'No, not this week',
-  // Shown under the no option so the answer carries no penalty. Derived from
-  // guidelines 0.5's stated pattern ("Missing a day does not erase previous
-  // progress"), which is a rule for this slot rather than a string for it.
-  // COPY: draft, not from guidelines doc - pending Jen
-  floorNoReassurance: "Either answer is fine. A hard week doesn't undo the ones before it.",
-
-  // COPY: draft, not from guidelines doc - pending Jen
-  // Spec 8.3, the brief Jen owns. The highest-value qualitative data in the
-  // product, and the one free-text field in the close.
-  noteQuestion: 'What was the load like on the days it did not happen?',
+  // REWRITTEN IN SLICE 6. It read "What was the load like on the days it did
+  // not happen?", which only made sense underneath the floor question that
+  // asked whether the user held their commitment. That question is retired, so
+  // the note had to stop referring to it. Open and unleading on purpose: this
+  // is the highest-value qualitative field in the product (spec 8.3) and a
+  // prompt that names a problem collects answers about that problem.
+  noteQuestion: 'Anything you want to note about the week?',
   // COPY: draft, not from guidelines doc - pending Jen
   notePlaceholder: 'A line, if you want to',
   // COPY: draft, not from guidelines doc - pending Jen
   noteSkip: 'You can leave this blank.',
 
   // COPY: draft, not from guidelines doc - pending Jen
-  // Spec 8.4. Exactly one, hard enforced.
-  adjustmentHeading: 'One change for next week',
-  // COPY: draft, not from guidelines doc - pending Jen
-  adjustmentHint: 'Pick one.',
-
-  // COPY: draft, not from guidelines doc - pending Jen
   save: 'Save and close the week',
   // COPY: draft, not from guidelines doc - pending Jen
-  // Shown while the button is disabled, so the reason is on screen rather than
-  // implied by a greyed control.
-  required: 'Answer the three ratings, the floor question and pick one change.',
+  // REWRITTEN IN SLICE 6. It named the three ratings, the floor question and
+  // the adjustment. One answer is required now. Shown while the button is
+  // disabled, so the reason is on screen rather than implied by a greyed
+  // control.
+  required: 'Answer the question above to continue.',
   // COPY: draft, not from guidelines doc - pending Jen
   saveFailed: 'That did not save. Your week is unchanged. Try again.',
 } as const;

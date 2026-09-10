@@ -392,13 +392,14 @@ describe('weeklyCycle.service', () => {
   });
 
   // -------------------------------------------------------------------------
-  // closeWeeklyCycle — the weekly close (spec 8)
+  // closeWeeklyCycle — the weekly reset (spec 8, repurposed by slice 6)
   // -------------------------------------------------------------------------
 
   describe('closeWeeklyCycle', () => {
     const closeInput = (over: Record<string, unknown> = {}) => ({
       closeNote: 'the days it slipped were the late ones',
-      floorMet: true,
+      phaseRead: 'not_moving' as const,
+      phaseKeyAtRead: 'remove' as const,
       ...over,
     });
 
@@ -482,29 +483,70 @@ describe('weeklyCycle.service', () => {
       });
     });
 
-    describe('floorMet (open item #10, self-reported)', () => {
-      test('records a met floor', async () => {
-        await closeWeeklyCycle('cycle1', closeInput({ floorMet: true }));
+    describe('the felt read (C1, slice 6)', () => {
+      // THREE floorMet TESTS STOOD HERE and retired with the field. It was the
+      // only input to the continuity count, and the count is retired outright
+      // (roadmap section 9 R4).
 
-        expect(mockUpdateDoc.mock.calls[0][1].floorMet).toBe(true);
-      });
+      test.each(['moving', 'not_moving', 'unclear'] as const)(
+        'stores %s as given',
+        async (value) => {
+          await closeWeeklyCycle('cycle1', closeInput({ phaseRead: value }));
 
-      test('records a missed floor as false, not as an omission', async () => {
-        // A missed week has to be STORED as false. Omitting it would be
-        // indistinguishable from a week that was never closed, and continuity
-        // would then treat "I did not hold it" and "I never answered" the same
-        // way by accident rather than by decision.
-        await closeWeeklyCycle('cycle1', closeInput({ floorMet: false }));
+          expect(mockUpdateDoc.mock.calls[0][1].phaseRead).toBe(value);
+        }
+      );
+
+      test('stores the phase the read was given about, beside the read', async () => {
+        await closeWeeklyCycle(
+          'cycle1',
+          closeInput({ phaseRead: 'moving', phaseKeyAtRead: 'recover' })
+        );
 
         const written = mockUpdateDoc.mock.calls[0][1];
-        expect(written.floorMet).toBe(false);
-        expect(written).toHaveProperty('floorMet');
+        expect(written.phaseRead).toBe('moving');
+        expect(written.phaseKeyAtRead).toBe('recover');
+      });
+
+      test('writes NEITHER when the read is absent', async () => {
+        // The no-phase path: no destination to ask about, so nothing to store.
+        // Absent, never null. journey/derive.ts defines absence as "not
+        // answered"; a null would be a value the readers do not expect.
+        await closeWeeklyCycle(
+          'cycle1',
+          closeInput({ phaseRead: undefined, phaseKeyAtRead: undefined })
+        );
+
+        const written = mockUpdateDoc.mock.calls[0][1];
+        expect(written).not.toHaveProperty('phaseRead');
+        expect(written).not.toHaveProperty('phaseKeyAtRead');
+      });
+
+      test('writes NEITHER when only one half arrives', async () => {
+        // BOTH OR NEITHER, enforced here rather than trusted at the call site.
+        // A read with no phase silently feeds the adjustment threshold under
+        // whatever phase happens to be current when slice 7 reads it back.
+        await closeWeeklyCycle('cycle1', closeInput({ phaseKeyAtRead: undefined }));
+        expect(mockUpdateDoc.mock.calls[0][1]).not.toHaveProperty('phaseRead');
+
+        mockUpdateDoc.mockClear();
+
+        await closeWeeklyCycle('cycle1', closeInput({ phaseRead: undefined }));
+        expect(mockUpdateDoc.mock.calls[0][1]).not.toHaveProperty('phaseKeyAtRead');
+      });
+
+      test('never writes floorMet, whatever the caller passes', async () => {
+        // The field is off the input type, so this needs a cast: the guard
+        // being tested is the explicit field list in the service, not tsc.
+        await closeWeeklyCycle('cycle1', closeInput({ floorMet: true }) as any);
+
+        expect(mockUpdateDoc.mock.calls[0][1]).not.toHaveProperty('floorMet');
       });
 
       test('carries no capacity tier alongside it', async () => {
-        // Continuity is judged against the floor and never against the tier.
-        // The moment a tier rides along on this write, that invariant stops
-        // holding at the storage layer.
+        // The reset reports how the week went; it never rewrites what the week
+        // was. The moment a tier rides along on this write, the forecast that
+        // S7's instrumentation depends on stops being trustworthy.
         await closeWeeklyCycle('cycle1', closeInput());
 
         const written = mockUpdateDoc.mock.calls[0][1];
@@ -542,10 +584,13 @@ describe('weeklyCycle.service', () => {
         expect(mockUpdateDoc.mock.calls[0][1]).not.toHaveProperty('closeNote');
       });
 
-      test('the rest of the close still lands when the note is skipped', async () => {
+      test('the rest of the reset still lands when the note is skipped', async () => {
         await closeWeeklyCycle('cycle1', closeInput({ closeNote: undefined }));
 
-        expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({ floorMet: true });
+        expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({
+          phaseRead: 'not_moving',
+          phaseKeyAtRead: 'remove',
+        });
       });
     });
 
@@ -559,7 +604,8 @@ describe('weeklyCycle.service', () => {
         expect(Object.keys(mockUpdateDoc.mock.calls[0][1]).sort()).toEqual([
           'closeCompletedAt',
           'closeNote',
-          'floorMet',
+          'phaseKeyAtRead',
+          'phaseRead',
           'updatedAt',
         ]);
       });
@@ -594,10 +640,19 @@ describe('weeklyCycle.service', () => {
         expect(written).not.toHaveProperty('createdAt');
       });
 
-      test('stores no computed continuity, which is derived and never persisted', async () => {
-        await closeWeeklyCycle('cycle1', closeInput({ continuity: 7 }) as any);
+      test('stores no count of any kind, however it is smuggled in', async () => {
+        // This used to name the continuity count specifically. That count is
+        // retired (slice 6), and the test is kept because the rule it protects
+        // outlived it: nothing on a weekly cycle may be a tally, and the
+        // explicit field list in the service is what enforces it.
+        await closeWeeklyCycle(
+          'cycle1',
+          closeInput({ continuity: 7, consistentDays: 4 }) as any
+        );
 
-        expect(mockUpdateDoc.mock.calls[0][1]).not.toHaveProperty('continuity');
+        const written = mockUpdateDoc.mock.calls[0][1];
+        expect(written).not.toHaveProperty('continuity');
+        expect(written).not.toHaveProperty('consistentDays');
       });
     });
   });

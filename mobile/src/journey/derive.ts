@@ -96,7 +96,7 @@ export function deriveAdvanceDue(input: AdvanceDueInput): boolean {
  *
  * TWO CONSECUTIVE 'not_moving' WEEKLY READS (Section 1). One flat week is
  * normal and offering to change course on it would be noise. The reads must be
- * consecutive, so a 'same' or 'moving' week between two not_moving weeks
+ * consecutive, so an 'unclear' or 'moving' week between two not_moving weeks
  * breaks the run and the offer does not fire.
  *
  * CONSECUTIVE IS JUDGED BY weekEnd ORDER, not by array order. The caller may
@@ -137,33 +137,29 @@ export function deriveAdvanceDue(input: AdvanceDueInput): boolean {
  * moving before advancing" requirement would be a separate product decision, to
  * be taken deliberately and never inferred from this field.
  *
- * THE ABOVE IS SLICE 6'S TARGET CONTRACT, NOT TODAY'S TYPE. The shipped type is
- * `PhaseRead = 'moving' | 'same' | 'not_moving'` (types/models.ts).
+ * THE CONTRACT ABOVE IS NOW THE SHIPPED TYPE (slice 6). `PhaseRead` is
+ * `'moving' | 'not_moving' | 'unclear'` in types/models.ts, and this function
+ * needed no change to honour it: the `every` below already required two
+ * literal 'not_moving' values, so 'unclear' broke the run by construction
+ * before it had a name.
  *
- * `same` -> `unclear` IS A SEMANTIC CHANGE, NOT A RENAME. Do not treat it as a
- * spelling fix and do not read 'same' as today's spelling of 'unclear'. They
- * mean different things:
+ * `same` -> `unclear` WAS A SEMANTIC CHANGE, NOT A RENAME, and the distinction
+ * is kept here because the field's meaning depends on it:
  *
  *   'same'    = the user reports NO CHANGE. A real read about the journey.
  *   'unclear' = the user CANNOT TELL. A read about their own confidence.
  *
  * "No change" is a substantive answer; "hard to tell" is the absence of one.
- * Collapsing the first into the second would convert a reported flat week into
- * an uncertain one, and vice versa. The neutrality rules above attach to
- * `unclear` and were never true of `same`.
+ * The neutrality rules above attach to `unclear` and were never true of `same`.
  *
- * STEP-0 CHECK FOR SLICE 6, BEFORE ANY TYPE CHANGE. Determine whether any
- * `phaseRead` values are STORED. As of this commit NOTHING WRITES THE FIELD:
- * `phaseRead` and `phaseKeyAtRead` appear in `types/models.ts` and are read only
- * here, and there is no writer in `src/` or `functions/src/` (slice 6 adds the
- * write per roadmap section 3.4). So the expected answer is zero stored values
- * and the change is a clean re-spec with no migration.
- *
- * VERIFY IT RATHER THAN ASSUMING IT. "No writer in the repo" is a repo fact;
- * "no stored values" is a production-data fact, and this repo does not know the
- * state of production. Confirm against real data before deciding. If any `same`
- * values DO exist they cannot be silently relabeled, and the disposition of
- * those documents is a product decision, not a migration detail.
+ * THE STEP-0 CHECK THIS COMMENT USED TO ASK FOR IS ANSWERED, and the answer is
+ * recorded here so it is never re-run on a guess. It said the repo could see no
+ * writer but could not see production, and that any surviving `same` values
+ * could not be silently relabeled. Kyle ran the query on 2026-09-10: a
+ * collection-group read of `weeklyCycles` filtered `phaseRead != null` returned
+ * ZERO documents. No value had ever been stored, so the re-spec rewrote nothing
+ * a user said and needed no migration. Slice 6's weekly reset is the first
+ * writer of the field.
  *
  * Declined suppresses, on the same placeholder policy as deriveAdvanceDue.
  */

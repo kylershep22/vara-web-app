@@ -203,7 +203,7 @@ export interface WeekPlanInput {
  *     day, which is the invariant that keeps the anchor from drifting.
  *
  * NO CYCLE MAY OVERLAP THE ONE BEFORE IT. Two cycles covering the same days
- * corrupts both the per-outcome week count and the continuity history, and
+ * corrupts the per-outcome week count and the weekly history, and
  * nothing downstream would ever notice. The guard below pushes a replacement
  * week to the first anchor AFTER the outgoing one, which is forward-dated and
  * correct rather than overlapping.

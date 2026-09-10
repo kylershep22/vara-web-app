@@ -287,7 +287,7 @@ import * as path from 'path';
 // it occupies during the walk, and these two cannot be read that way until there
 // is a video to hang them on. Expect them to sit at draft across more than one
 // slice; that is the mechanism working, not a stalled approval.
-const EXPECTED_SENTINELS = 167;
+const EXPECTED_SENTINELS = 152;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

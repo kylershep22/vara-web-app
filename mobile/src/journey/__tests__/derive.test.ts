@@ -197,17 +197,57 @@ describe('deriveAdjustDue', () => {
     ).toBe(true);
   });
 
-  test("a 'same' read between two not_moving weeks breaks the run", () => {
+  test("an 'unclear' read between two not_moving weeks breaks the run", () => {
+    // WAS 'same' UNTIL SLICE 6, and the middle state changed meaning rather
+    // than spelling: 'same' was "no change", 'unclear' is "cannot tell". The
+    // assertion is the same because the behaviour is: only explicit not_moving
+    // accumulates, so anything else in the window fails the run.
     expect(
       deriveAdjustDue(
         [
           cycle('2026-08-09', 'not_moving'),
-          cycle('2026-08-16', 'same'),
+          cycle('2026-08-16', 'unclear'),
           cycle('2026-08-23', 'not_moving'),
         ],
         null
       )
     ).toBe(false);
+  });
+
+  test("an 'unclear' read is NEUTRAL: it breaks a run without accumulating", () => {
+    // The two halves of neutrality, asserted together because either alone
+    // would pass for the wrong reason. It must not be read as 'moving' and it
+    // must not be read as 'not_moving': a pair of unclear weeks is not an
+    // adjustment signal, and neither is an unclear week following a not_moving
+    // one. It behaves exactly as an unanswered week does (see below).
+    expect(
+      deriveAdjustDue(
+        [cycle('2026-08-16', 'unclear'), cycle('2026-08-23', 'unclear')],
+        null
+      )
+    ).toBe(false);
+    expect(
+      deriveAdjustDue(
+        [cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', 'unclear')],
+        null
+      )
+    ).toBe(false);
+  });
+
+  test("'unclear' and an unanswered week are indistinguishable to the threshold", () => {
+    // The contract's own words: "It behaves exactly as an unanswered week
+    // does." Asserted as an equality rather than as two separate falses, so a
+    // future change that made uncertainty count would have to break this
+    // deliberately rather than slip past two independent assertions.
+    const withUnclear = deriveAdjustDue(
+      [cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', 'unclear')],
+      null
+    );
+    const withSilence = deriveAdjustDue(
+      [cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', undefined)],
+      null
+    );
+    expect(withUnclear).toBe(withSilence);
   });
 
   test("a 'moving' read as the most recent week breaks the run", () => {

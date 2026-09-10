@@ -32,7 +32,13 @@
  */
 
 import type { CapacityTier } from '../protocolEngine';
-import type { PhaseKey, RemoveFamily, RemoveTiming, ReplacementSlot } from './models';
+import type {
+  PhaseKey,
+  PhaseRead,
+  RemoveFamily,
+  RemoveTiming,
+  ReplacementSlot,
+} from './models';
 
 /**
  * The 12 protocol ids, as a closed union.
@@ -114,35 +120,26 @@ export function toFailureReason(error: unknown): FailureReason {
 }
 
 /**
- * The weekly close's 1-5 scale (spec 8.2), as a closed union rather than
- * `number`.
+ * `WeeklyRating` AND `ADJUSTMENT_IDS` STOOD HERE and retired together in
+ * journey slice 6, with the questions that produced them.
  *
- * A rating is one of five taps, not a quantity, so the tighter type costs
- * nothing and rules out a value that was computed rather than chosen.
+ * `WeeklyRating` was the weekly close's 1-to-5 scale (spec 8.2). `ADJUSTMENT_IDS`
+ * was the redeclared twin of `screens/weekly/copy.ts`'s `ADJUSTMENT_KEYS`,
+ * pinned to it by `types/__tests__/analyticsEvents.test.ts` so the two could not
+ * drift; both sides and the pinning test are gone, because there is no longer a
+ * list to keep in step.
+ *
+ * THE "ALREADY PERMANENT" ARGUMENT FOR THE IDS EXPIRED BEFORE THEY DID, and the
+ * order matters. It held while `adjustmentSelected` was stored, since a rename
+ * would have orphaned rows. Slice 3b stopped that write (roadmap section 3.4),
+ * so no row written since carries one and the ids were free to delete rather
+ * than merely free to leave alone. Pre-3b rows keep their stored strings,
+ * unread; `WeeklyCycle.adjustmentSelected` stays optional on the model for them.
+ *
+ * The reasoning that put them here is still live for `ProtocolId` above:
+ * redeclare rather than import when a `types/` module would otherwise reach
+ * into `screens/`, then pin the two with a test.
  */
-export type WeeklyRating = 1 | 2 | 3 | 4 | 5;
-
-/**
- * The adjustment ids offered at the close (spec 8.4).
- *
- * REDECLARED, NOT IMPORTED. The ids live in `screens/weekly/copy.ts`, and a
- * module under `types/` reaching into `screens/` is the wrong direction — this
- * file is imported BY screens. So the union is spelled again here and pinned to
- * the real list by `types/__tests__/analyticsEvents.test.ts`, which is the same
- * trade `ProtocolId` makes above: redeclare, then test the two together so they
- * cannot drift apart unnoticed.
- *
- * These ids are already permanent — `copy.ts` notes that a rename would orphan
- * every stored `adjustmentSelected` — so pinning to them costs nothing.
- */
-export const ADJUSTMENT_IDS = [
-  'smaller-daily-action',
-  'same-again',
-  'different-time',
-  'different-outcome',
-] as const;
-
-export type AdjustmentKey = (typeof ADJUSTMENT_IDS)[number];
 
 /**
  * Where the weekly entry guard sent the user (spec 6.1, 10.1).
@@ -168,42 +165,58 @@ export type WeeklyEntryRoute = (typeof WEEKLY_ENTRY_ROUTES)[number];
  *     control is retired (roadmap 3b-i): capacity is answered per day now, so
  *     there is no weekly tier to move, no transition to log and no write to
  *     fail. Its `reset_failed` event went with it.
- *   - a continuity event. Continuity is a pure function of the `floorMet` field
- *     already on every stored cycle, so an aggregation job derives it exactly and
- *     retroactively. It rides as a FIELD on `weekly_close`, where it has one
- *     natural trigger, rather than firing on every Today load.
+ *   - anything about continuity. The count is retired outright (roadmap
+ *     section 9 R4): it was a run of unbroken weeks on Today, and a visible
+ *     count of consistent weeks is functionally a streak whatever it is called.
+ *     `continuityBeforeClose` rode as a field on `weekly_close` until slice 6
+ *     and went with it. The stored `floorMet` booleans it was derived from are
+ *     still on pre-slice-6 cycles, so an aggregation job could still compute it
+ *     COLD if there is ever a reason to; nothing in the app computes or shows
+ *     it, and no replacement Today metric may be added.
  *   - `screen_view`. High volume by an order of magnitude, and route names are
  *     open strings that would need their own closed union. Its own slice.
  */
 export interface AnalyticsEventMap {
   /**
-   * A week was closed.
+   * A week was closed: the weekly reset was answered and saved.
+   *
+   * THE NAME IS DELIBERATELY NOT `weekly_reset`, though the screen is called
+   * the reset now. Renaming splits the historical series at an arbitrary date,
+   * nobody owns the migration, and it buys register consistency in a place no
+   * user ever sees. `weekly_close`, `weekly_close_failed` and
+   * `weekly_close_entry` keep their names permanently. Roadmap section 5 row 3
+   * anticipated the rename; this is the decision not to take it.
    *
    * `closeNote` IS NOT HERE AND MAY NEVER BE. It is the one free-text answer in
-   * the close (spec 8.3), it is in scope two lines from the call site, and it is
+   * the reset (spec 8.3), it is in scope two lines from the call site, and it is
    * short enough that the writer's length backstop would not catch it. This
    * declaration is the whole guard.
    *
-   * `continuityBeforeClose` is a count, never a target and never a score. It is
-   * named for the side of the boundary it sits on because this collection is
-   * designed to be read COLD: nobody querying it will have this file open, and
-   * a name that has to be looked up to be trusted is a name that will be
-   * guessed at instead.
+   * FOUR FIELDS LEFT IN SLICE 6: the three ratings and the adjustment, with the
+   * questions that produced them, plus `floorMet` and `continuityBeforeClose`
+   * with continuity. What remains is the felt read and nothing else, which is
+   * the whole of what the screen now asks.
+   *
+   * NULLABLE, NOT OPTIONAL, and the distinction is the house convention rather
+   * than a preference: see `journey_remove_captured` below, whose `family` and
+   * `timing` do the same. The keys are always written; null means the reset was
+   * taken with no phase resolved, so there was no destination to ask the
+   * question about and no phase to attribute an answer to. That is a real path
+   * (JOURNEY_IA off, and any resolve that fell back to legacy), not an error,
+   * and reading it as "answered nothing" rather than "did not close" matters.
+   *
+   * Both are closed unions the user selected from or the app resolved, never
+   * derived content, which is why they are safe to record.
    */
   weekly_close: {
-    ratingFocus: WeeklyRating;
-    ratingRecovery: WeeklyRating;
-    ratingEnergy: WeeklyRating;
-    adjustmentSelected: AdjustmentKey;
-    floorMet: boolean;
-    /** Unbroken-week run ENTERING this week (pre-close). The post-close run is floorMet ? n+1 : 0, derived at read time — not stored. */
-    continuityBeforeClose: number;
+    phaseRead: PhaseRead | null;
+    phaseKeyAtRead: PhaseKey | null;
   };
   /**
    * A close was answered in full and then failed to save.
    *
    * Worth its own event because the write is a single `updateDoc`: a rejection
-   * means nothing landed and the user lost five answers. Nothing else records
+   * means nothing landed and the user lost their answers. Nothing else records
    * that today — the screen's `logger.error` is `__DEV__`-gated, so on-device
    * failures currently leave no trace anywhere.
    */

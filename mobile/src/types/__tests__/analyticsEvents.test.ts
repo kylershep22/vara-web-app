@@ -11,17 +11,14 @@
 // honest against the matrix.
 
 import {
-  ADJUSTMENT_IDS,
   ANALYTICS_EVENT_NAMES,
   WEEKLY_ENTRY_ROUTES,
   protocolIdFor,
   toFailureReason,
-  type AdjustmentKey,
   type WeeklyEntryRoute,
 } from '../analyticsEvents';
 import { CAPACITY_TIERS, PROTOCOL_MATRIX } from '../../protocolEngine';
 import { PHASE_ORDER } from '../../constants/journey';
-import { ADJUSTMENT_KEYS, type AdjustmentKey as CopyAdjustmentKey } from '../../screens/weekly/copy';
 import type { WeeklyEntryTarget } from '../../screens/weekly/weeklyEntry';
 
 /**
@@ -65,17 +62,15 @@ describe('analytics event schema', () => {
   });
 
   describe('the redeclared unions', () => {
-    // Both are spelled twice on purpose: the originals live under screens/, and
-    // types/ must not import screens/. These are the tripwires for that trade.
-
-    test('the adjustment ids match the ones the close actually offers', () => {
-      expect([...ADJUSTMENT_IDS]).toEqual([...ADJUSTMENT_KEYS]);
-    });
-
-    test('the adjustment key type matches the one the close screen uses', () => {
-      const pinned: MutuallyAssignable<AdjustmentKey, CopyAdjustmentKey> = true;
-      expect(pinned).toBe(true);
-    });
+    // Spelled twice on purpose: the original lives under screens/, and types/
+    // must not import screens/. This is the tripwire for that trade.
+    //
+    // TWO ADJUSTMENT TESTS STOOD HERE and went with the questions they pinned
+    // (journey slice 6). They tied ADJUSTMENT_IDS to the close screen's
+    // ADJUSTMENT_KEYS, value and type. Both lists are deleted: the close no
+    // longer offers an adjustment menu and the event no longer carries the
+    // field, so there is nothing left to keep in step. The pattern they
+    // demonstrated is still live in the route test below.
 
     test('the entry routes match the guard targets', () => {
       const pinned: MutuallyAssignable<WeeklyEntryRoute, WeeklyEntryTarget> = true;

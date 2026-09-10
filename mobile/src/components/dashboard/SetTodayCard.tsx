@@ -2,9 +2,8 @@
  * The pre-pick hero (roadmap 3b-ii-b). What Home shows before today has been
  * answered.
  *
- * IT REPLACES THE HERO, NOT THE CARD. Everything below it on Home (continuity,
- * the weekly close entry, the content cards) renders exactly as it does after a
- * pick. The day's action is the only thing that depends on an answer, so it is
+ * IT REPLACES THE HERO, NOT THE CARD. Everything below it on Home (the weekly
+ * reset entry, the content cards) renders exactly as it does after a pick. The day's action is the only thing that depends on an answer, so it is
  * the only thing that waits for one.
  *
  * AN ALL-DAY RESTING STATE, NOT A PRE-MODAL FLASH. Skipping the picker is a

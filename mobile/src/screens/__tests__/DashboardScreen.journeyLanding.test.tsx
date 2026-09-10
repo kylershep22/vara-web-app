@@ -133,7 +133,7 @@ jest.mock('../../services/firebase/analyticsEvents.service', () => ({
 }));
 
 import React from 'react';
-import { act, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import DashboardScreen from '../DashboardScreen';
 import { PROTOCOL_MATRIX } from '../../protocolEngine';
@@ -183,7 +183,6 @@ function todayCard(over: Record<string, unknown> = {}) {
     markDone: jest.fn(),
     saving: false,
     saveFailed: false,
-    continuity: 3,
     picked: true,
     prefillCapacity: 'normal',
     prefillTime: 'medium',
@@ -242,6 +241,27 @@ describe('DashboardScreen under JOURNEY_IA', () => {
     expect(getByTestId('home-close-entry')).toBeTruthy();
   });
 
+  test('HANDS THE RESET THE PHASE when it opens it (slice 6)', async () => {
+    // The reset asks a destination-flavoured question and stores which phase
+    // the answer was about, and Home is the only place that has resolved
+    // either. Params rather than a second getJourneyState read on the reset
+    // screen: that read would answer even with JOURNEY_IA off, because the
+    // documents outlive the flag.
+    //
+    // ASSERTED AGAINST THE FIXTURE'S OWN VALUES, not against 'remove'/'focus'
+    // spelled twice. PHASE is destination 'calm', so a wiring that passed the
+    // hero's destination, or a hard-coded default, fails here.
+    const { getByTestId } = render(<DashboardScreen />);
+
+    await waitFor(() => expect(getByTestId('home-close-entry')).toBeTruthy());
+    fireEvent.press(getByTestId('home-close-entry'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('WeeklyClose', {
+      phase: PHASE.phaseKey,
+      destination: PHASE.destination,
+    });
+  });
+
   test('ROLLS AN EXPIRED WEEK OVER and shows the week furniture for the new one', async () => {
     // BEFORE ROLLOVER this asserted the opposite: an expired week meant no
     // cycle, so the summary and the close entry were both suppressed and Home
@@ -293,8 +313,12 @@ describe('DashboardScreen under JOURNEY_IA', () => {
 
     const { getByTestId, queryByTestId } = render(<DashboardScreen />);
     await waitFor(() => expect(getByTestId('home-remove-capture')).toBeTruthy());
-    // Suppressed while the card is up, per the card-ceiling decision.
-    expect(queryByTestId('home-continuity')).toBeNull();
+    // THE SUPPRESSION ASSERTION THAT STOOD HERE HAS NO SUCCESSOR, and that is
+    // the honest outcome rather than a gap: it checked that the capture card
+    // hid ContinuityCard, and the count retired in slice 6 (roadmap section 9
+    // R4). Nothing renders in that slot now, so there is nothing to suppress
+    // and nothing to assert. The card's own appear/disappear behaviour is what
+    // this test is really about and is asserted in full below.
 
     // The capture lands.
     mockResolveJourney.mockResolvedValue({
@@ -306,7 +330,6 @@ describe('DashboardScreen under JOURNEY_IA', () => {
     });
 
     await waitFor(() => expect(queryByTestId('home-remove-capture')).toBeNull());
-    expect(getByTestId('home-continuity')).toBeTruthy();
   });
 
   test('the card stays up while the capture is still outstanding', async () => {

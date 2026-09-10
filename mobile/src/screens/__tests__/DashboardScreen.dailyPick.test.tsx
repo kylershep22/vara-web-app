@@ -7,8 +7,10 @@
 // the day and must render identically in both states.
 //
 // That last part is the regression this file exists for. The gate used to
-// include `todayCard.protocol`, so a null protocol blanked the continuity count
-// and the weekly close entry along with the hero.
+// include `todayCard.protocol`, so a null protocol blanked the weekly reset
+// entry along with the hero. The continuity count was the other thing it
+// blanked; the count retired in slice 6 and the reset entry is what is left
+// below the hero to hold this gate honest.
 
 const mockUseFocusEffect = jest.fn();
 jest.mock('@react-navigation/native', () => ({
@@ -150,7 +152,6 @@ function todayCard(over: Record<string, unknown> = {}) {
     markDone: jest.fn(),
     saving: false,
     saveFailed: false,
-    continuity: 3,
     picked: true,
     prefillCapacity: 'normal',
     prefillTime: 'medium',
@@ -208,11 +209,10 @@ describe('Home — before the day is answered', () => {
   });
 
   test('everything BELOW the hero still renders', async () => {
-    // The regression guard. These answer to the week, not to the day.
+    // The regression guard. This answers to the week, not to the day.
     const screen = await renderHome({ picked: false });
 
     await screen.findByTestId('home-set-today');
-    expect(screen.getByTestId('home-continuity')).toBeTruthy();
     expect(screen.getByTestId('home-close-entry')).toBeTruthy();
   });
 
@@ -386,7 +386,6 @@ describe('Home — once the day is answered', () => {
     const screen = await renderHome({ picked: true });
 
     await screen.findByTestId('home-today-hero');
-    expect(screen.getByTestId('home-continuity')).toBeTruthy();
     expect(screen.getByTestId('home-close-entry')).toBeTruthy();
   });
 });
