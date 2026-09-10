@@ -237,16 +237,16 @@ deploy. Deploy state lives on Kyle's checklist.
 | # | Slice | Scope fence | Gates | Walk |
 |---|---|---|---|---|
 | 0 | **[DONE 2026-09-01]** Prep: split and rescue *(marker corrected 2026-09-06: the row still carried **[Next]** long after §13's Sept 1 entry recorded slices 0-2 merged, main at `ff8939e`)* | Move `dailyLogDocId`, `upsertDailyLog`, `getDailyLog`, `hasPickedToday`, `DailyLogInput` from `weeklyCycle.service.ts` into `dailyLog.service.ts`. Move `CAPACITY_LABELS/GLOSSES`, `TIME_LABELS/GLOSSES`, `PICKER_COPY` from `screens/weekly/copy.ts` into `components/dashboard/dailyPicker.copy.ts`. Update imports. **Zero behavior change.** | jest green; import graph shows no daily→weekly edge | No (no runtime change) |
-| 1 | **Journey types, state, rules** | `PhaseKey`, `DestinationKey`, `PhaseHistoryEntry`, `JourneyState` in `types/models.ts`; `journeyState.service.ts` (get/create/advance/skip/adjust/recordOffer); `firestore.rules` for `journeyStates` (owner read/write, shape-validated) + rules tests; `deleteAccount` list updated; derivations `deriveConsistentDays`, `deriveCalendarDays`, `deriveAdjustDue` as pure functions with tests. | rules tests pass; **[Kyle-gated]** rules deploy | No |
-| 2 | **Resolver + PhaseContext + migration branch** | `resolveJourney`; `useJourneyLanding` replacing `useWeeklyLanding` behind `JOURNEY_IA`; `useTodayCard(uid, phaseContext)`; `DashboardScreen` gate swap; migration branch wiring (route screen reuse deferred to slice 4; interim: write state and land on Today). | Step-0 confirms the four scalar reads are the only seam; STOP if more found | Yes: fresh account, legacy account |
-| 3 | **Matrix rekey + re-tag + outcome-pick retirement** | §3.2 in full; `PHASE_DISPLAY` shape with placeholder strings; retire §3.6 items; `WeeklyCycle` write-set reduced per §3.4; analytics events rekeyed (`journey_*` replaces `weekly_open`; `weekly_close` survives renamed `weekly_reset`). | **[Content-gated]** re-tag mapping + at least one `remove` variant per capacity tier, authored as mark-done protocols with why-card text; STOP if unauthored cells would leave any (phase, capacity) empty | Yes: full daily loop across two phases |
+| 1 | **[DONE 2026-09-01, main at `ff8939e`]** Journey types, state, rules *(marker added 2026-09-10: the row carried no status at all, though §13's Sept 1 entry records slices 0-2 merged)* | `PhaseKey`, `DestinationKey`, `PhaseHistoryEntry`, `JourneyState` in `types/models.ts`; `journeyState.service.ts` (get/create/advance/skip/adjust/recordOffer); `firestore.rules` for `journeyStates` (owner read/write, shape-validated) + rules tests; `deleteAccount` list updated; derivations `deriveConsistentDays`, `deriveCalendarDays`, `deriveAdjustDue` as pure functions with tests. | rules tests pass; **[Kyle-gated]** rules deploy | No |
+| 2 | **[DONE 2026-09-01, main at `ff8939e`]** Resolver + PhaseContext + migration branch *(marker added 2026-09-10 with row 1's; JOURNEY_IA shipped ON at this merge)* | `resolveJourney`; `useJourneyLanding` replacing `useWeeklyLanding` behind `JOURNEY_IA`; `useTodayCard(uid, phaseContext)`; `DashboardScreen` gate swap; migration branch wiring (route screen reuse deferred to slice 4; interim: write state and land on Today). | Step-0 confirms the four scalar reads are the only seam; STOP if more found | Yes: fresh account, legacy account |
+| 3 | **[SPLIT into 3a, 3b, 3c-i and 3c-ii; never shipped under this number — see the AMENDED 2026-09-05 block below]** Matrix rekey + re-tag + outcome-pick retirement *(marker added 2026-09-10: the row carried no status. It is NOT covered by §13's Sept 1 entry, which records slices 0-2 only; all four successor rows are merged, so no work is outstanding here)* | §3.2 in full; `PHASE_DISPLAY` shape with placeholder strings; retire §3.6 items; `WeeklyCycle` write-set reduced per §3.4; analytics events rekeyed (`journey_*` replaces `weekly_open`; `weekly_close` survives renamed `weekly_reset`). | **[Content-gated]** re-tag mapping + at least one `remove` variant per capacity tier, authored as mark-done protocols with why-card text; STOP if unauthored cells would leave any (phase, capacity) empty | Yes: full daily loop across two phases |
 | 3a | **[DONE `be58b97`, 2026-09-02]** Engine re-key + re-tag + shim removal *(row added 2026-09-05 to match §13)* | The engine speaks `PhaseKey` natively. Jen's three behavioral Remove protocols; retag confirmed (12 rows, zero edits); `legacyOutcomeFor` removed. Retired with the slice: `applyQuickWin`, `countWeeklyCyclesForOutcome`, week-number plumbing, `reshapeParity`. | Content gate met before merge (Remove protocols authored) | Done: real-content walk, all three tiers |
 | 3b | **[DONE `7f07413`, 2026-09-04]** Weekly write-set reduction + `WeeklyOpenScreen` retirement + rollover *(row added 2026-09-05 to match §13)* | §3.4 write-set reduced to live-reader fields; `WeeklyOpenScreen`, `OpenYourWeekCard` and `weekly_open` deleted; expiry creates the next cycle in a create-on-absence transaction keyed `<uid>_<weekStart>`. Resolves §9 open item 8. | — | Done |
 | 3c-i | **[DONE `701f2b4`, 2026-09-03]** Remove capture + families + crisis pre-check *(row added 2026-09-05 to match §13)* | Five-path Remove capture; three-family protocol model with family-aware serving and six Jen-approved mental/interpersonal protocols; acknowledgment rotation; client-side crisis pre-check with `SupportScreen`. | Crisis pre-check promoted to a precondition of this slice | Done: two defects caught on the walk |
 | 3c-ii | **[DONE `74ff373`, merged `80ed0f7`, 2026-09-06]** Remove replacement pick + routine seed *(row added 2026-09-05; the slice was split in the §13 Sept 2 entry and never got a row here)* **"routine seed" is not what shipped — see the AMENDED 2026-09-06 block below.** | Curated replacement menus per time slot, one selection only, flow ends on a neutral confirmation; routine seed from the pick. **NO REMINDER SCOPE** — no notification infrastructure, no time picker, no nudge copy. | Content DELIVERED (`Content Pack v1 §replacement-menus` + `§decisions-3`). STOP if the menu appears to need a reminder to be useful; that is the signal the scope split was wrong, not licence to build it | Yes |
 | 4 | **[SPLIT 2026-09-07 into 4a and 4b; see the AMENDED block below]** Onboarding: destination + route | A1 copy reframe on step 2; **new** route screen (A2) at step 3 (open item 1); Capacity step copy loses "this week"; terminal write creates `journeyStates` and the first weekly cycle without outcome; `activeOutcome` → `destination`; write order preserved (`completeOnboarding` last). Migration branch now shows A2. | **[Content-gated]** A1/A2 strings, 16 `short` strings | Yes: full arc + migration |
 | 4a | **[DONE `ea58022`, merged `d317c4d`, 2026-09-07]** Onboarding destination + route, everything but the outcome | A1 at step 2 (`§A1`, subtitle dropped); **new** A2 route screen at step 3 with the route strip (`§A2`, `§short-labels`); capacity step asks the daily question; terminal writes `journeyStates` + `userPrivate.capacitySeed`, `completeOnboarding` last; `capacitySeed` re-homed off the cycle; migration branch shows A2 once. **The first cycle keeps writing `outcome` exactly as before.** | No content gate; no §9 item | Done 2026-09-07: four destination arcs, migration path with two relaunches, Firestore shape verified |
-| 4b | **[DONE, 2026-09-07; walk pending]** Weekly-cycle outcome retirement *(row added 2026-09-07; split out of row 4 at slice 4a's Step 0)* | `WeeklyCycle.outcome` and `CreateWeeklyCycleInput.outcome` become optional (`types/models.ts`, `weeklyCycle.service.ts`); guard both render sites (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`); **the 3b rollover at `weeklyCycle.service.ts:251` must carry absence forward instead of defaulting to `'focus'`**; retire `outcomeForDestination` (`journey/destinationBridge.ts`), which exists only for the cycle write. | Fence explicitly INCLUDES the daily-loop render sites and the weekly rollover; that is the point of the row | Yes |
+| 4b | **[DONE `29116cc`, 2026-09-07; walk not applicable, see entry]** Weekly-cycle outcome retirement *(row added 2026-09-07; split out of row 4 at slice 4a's Step 0. Marker reworded 2026-09-10: it read "walk pending", which read as an outstanding action. Kyle walked the slice on 2026-09-07 — legacy and fresh accounts, both rollovers. The one path that stays unwalked is the flag-off path, and §13's 4b entry records it as structurally unwalkable: it needs `JOURNEY_IA` OFF on a post-4b account, a state no user is in)* | `WeeklyCycle.outcome` and `CreateWeeklyCycleInput.outcome` become optional (`types/models.ts`, `weeklyCycle.service.ts`); guard both render sites (`TodayHeroCard.tsx:180`, `CloseWeekEntry.tsx:61`); **the 3b rollover at `weeklyCycle.service.ts:251` must carry absence forward instead of defaulting to `'focus'`**; retire `outcomeForDestination` (`journey/destinationBridge.ts`), which exists only for the cycle write. | Fence explicitly INCLUDES the daily-loop render sites and the weekly rollover; that is the point of the row | Yes |
 | 5 | **[SPLIT 2026-09-09 into 5a, 5b and 5c; the `supportingPracticeIds` authoring is REMOVED from the slice, not deferred inside it; see the AMENDED block below]** Practices → journey map + Start here container | B1: `JourneyMapScreen` replaces `PracticesHubScreen` config launcher (same stateless shape); card states from `journeyStates`; phase detail pages re-house Focus hub (refocus), Energy/Stress/Routines/Sleep (recover); `StartHereRow` container over `VideoPlayerModal` with collapsed/expanded state persisted per surface; `explainerPath` data field. | **[Content-gated]** 16 `title` + 16 `gloss` strings; recover internal structure (detail page only; map ships without it) | Yes |
 | 5a | **[DONE `ec943be`, 2026-09-09]** Journey map + the phase-path component *(row added 2026-09-09 with the split)* | `JourneyMapScreen` replaces `PracticesHubScreen` at `ROUTES.PillarPractices`; four phase rows carrying `title` + `gloss` from `PHASE_DISPLAY` (both already populated, held unrendered since 4a); card states derived from `journeyStates` (`phaseKey` / `history` / `skipped`), never stored; the phase-path component built ONCE here and adopted by `RouteStrip` in the same slice (4a known gap 2). Every destination the four hub cards reach today keeps a working entry point. Tab label, screen title and intro UNCHANGED. | No content gate, no §9 item, no build rule. Map state labels are in-house copy: named owner, sentinel increments | Yes |
 | 5b | **[SHIPPED as 5b-i, `8cc461c`, 2026-09-09; remainder DISPERSED, see the 2026-09-09 block; the re-house clause below is SUPERSEDED]** Phase detail pages ×4 *(row added 2026-09-09 with the split)* | `refocus` re-houses the Focus hub; `recover` re-houses Energy, Stress Recovery and Routines under the `§recover-lanes` destination weighting; `remove` renders the 3c-ii stored intention, which is real user state on day one; **`rewire` ships as an explicit, scoped stub** — decided now, not discovered at Step 0. **Sleep is NOT re-housed** (see the AMENDED block below). | Page chrome is in-house copy. The catalog-to-grid bridge stays empty and is not this slice's problem | Yes |
@@ -593,6 +593,31 @@ Reordered from her Part 12 to match the slice sequence. Items marked ★ are not
   advancement card when live. The journey line is a text row, not a card.
 - **Moments of joy is one tap, optional, never counted.** "Gratitude" appears nowhere.
 - **No em dashes in user-facing copy. Coral for genuine errors only. Reduce Motion respected.**
+- **Advancement recognizes; it never grants permission.** Recognize -> offer -> preserve
+  choice. Never achieve -> unlock -> reward, and never enumerate what the next phase contains.
+  Vara may recognize what the user has been doing; it must never imply they earned permission
+  to continue. **This supersedes the trailing clause of the no-counter tripwire above, "The
+  advancement screen names practices"** — that clause is left unedited; it is this same
+  question decided the other way, before the register was settled. *(Kyle, 2026-09-10;
+  standing rule for every advancement state, not slice 7's alone. Full reasoning at §9 R2.)*
+
+> **STANDING PRINCIPLE — ADDED 2026-09-10 (Kyle). ASK ONLY FOR INFORMATION THAT CHANGES HOW
+> VARA HELPS NEXT.**
+>
+> Capacity changes today's practice, so ask it. Available time changes today's practice, so
+> ask it. A weekly not-moving read changes the approach, so ask it. A continuity count changes
+> nothing Vara serves, so do not show it. Confirmation that the user really did the thing does
+> not improve Vara's next action, so believe the tap. Whether they tapped "Do it now" is
+> useful interaction state and is not evidence of completion.
+>
+> This is the durable form of the rule the brand docs have been applying case by case: it
+> decides new feature ideas in advance rather than requiring a values argument each time. Vara
+> can know a great deal internally while staying light to use.
+>
+> *Decided alongside the §9 resolutions of the same date, and generalized from them: §9 R4
+> (the continuity count) and §9 R7 (completion is declared, never verified) are this principle
+> applied to two surfaces. New surfaces are decided against the principle, not against those
+> two precedents.*
 
 ---
 
@@ -601,14 +626,160 @@ Reordered from her Part 12 to match the slice sequence. Items marked ★ are not
 | # | Item | Needed by | Lean |
 |---|---|---|---|
 | 1 | Route screen position: step 3 (after destination) vs Jen's step 5 | Slice 4 | **RESOLVED 2026-09-05: step 3.** Content Pack v1 part one, section 3, decision 1 |
-| 2 | Ceiling-met advancement copy register | Slice 7 | Honest, no practices named, door open |
-| 3 | Advancement card persistence on Today | Slice 7 | 3 days, then map only |
-| 4 | Continuity: ship (floor question survives in C1) or retire | Slice 6 | Retire for beta; revisit with data |
-| 5 | Adjust counter re-arm after "keep going as is" | Slice 7 | Re-arm; copy acknowledges the prior choice |
-| 6 | Today journey line: `short` string vs a stage word | Slice 7 | `short` |
-| 7 | Evening-protocol completion semantics (commit-time vs follow-through) | Slice 9 | Commit-time |
+| 2 | Ceiling-met advancement copy register | Slice 7 | Honest, no practices named, door open → **RESOLVED 2026-09-10** (lean held and sharpened), block **R2** |
+| 3 | Advancement card persistence on Today | Slice 7 | 3 days, then map only → **RESOLVED 2026-09-10: lean REJECTED** (exposures, not elapsed days), block **R3** |
+| 4 | Continuity: ship (floor question survives in C1) or retire | Slice 6 | Retire for beta; revisit with data → **RESOLVED 2026-09-10: retire** (lean held), block **R4** |
+| 5 | Adjust counter re-arm after "keep going as is" | Slice 7 | Re-arm; copy acknowledges the prior choice → **RESOLVED 2026-09-10: re-arm, but the copy clause is REJECTED**, block **R5** |
+| 6 | Today journey line: `short` string vs a stage word | Slice 7 | `short` → **RESOLVED 2026-09-10: `short`** (lean held), block **R6** |
+| 7 | Evening-protocol completion semantics (commit-time vs follow-through) | Slice 9 | Commit-time → **RESOLVED 2026-09-10: lean REJECTED**, user-declared or naturally completed, block **R7** |
 | 8 | `WeeklyOpenScreen`: collapse to weekStart+confirm, or retire and create cycles on rollover | **RESOLVED Sept 1: retire; rollover creation is a slice 3b requirement** (under JOURNEY_IA the weekly open is unreachable, so expired weeks must self-renew or the weekly reset ritual dies) | — |
 | 9 | "Steadier days" vs "Routines" as the destination label | Slice 4 | **RESOLVED 2026-09-05: "Steadier days".** Content Pack v1 part one, section 3, decision 2. Governs the DESTINATION label only; the Practices hub card is a separate string |
+
+> **RESOLVED 2026-09-10 (Kyle). ITEMS 2, 3, 4, 5, 6 AND 7 ARE ALL DECIDED. §9 CARRIES NO OPEN
+> ITEM.** The item text and the Lean column above are left unedited in the §3.4 style. **The
+> Lean is what was thought before the decision, not what was decided** — three of these six
+> leans were rejected in whole or in part, and the rows say which. Cite these as **§9 R2**
+> through **§9 R7**. The gate sweep at the end of this block is part of the resolution.
+
+**R2 — Ceiling-met advancement copy register: RECOGNIZE -> OFFER -> PRESERVE CHOICE.**
+
+> Never **achieve -> unlock -> reward**. The card recognizes what the user has been doing,
+> offers what is next, and leaves the choice visibly theirs.
+>
+> **DO NOT ENUMERATE WHAT THE NEXT PHASE CONTAINS.** It reveals itself after the user chooses
+> to look. Enumeration is what turns the card promotional: a list of contents is a pitch, and
+> a pitch has to be sold. Withholding it keeps the offer honest — the user is choosing to
+> look, not accepting a described package.
+>
+> **STANDING RULE FOR ALL FUTURE ADVANCEMENT STATES, NOT SLICE 7's ALONE: Vara may recognize
+> what the user has been doing; it must never imply they earned permission to continue.**
+> Every practice is runnable always (§8), so permission was never Vara's to grant, and copy
+> that implies otherwise invents a lock the product does not have. Carried into §8 as a
+> tripwire so it decides the next advancement surface without this block being re-read.
+>
+> **THIS OVERTURNS A STANDING §8 CLAUSE, WHICH IS WHY IT IS CALLED OUT RATHER THAN ASSUMED.**
+> §8's no-counter tripwire ends "**The advancement screen names practices**". It does not.
+> That clause was written when the register was undecided and naming practices looked like the
+> honest alternative to a number; the decision above is that **a list of contents is a pitch**
+> whether or not the items are practices. The §8 line is left unedited in the §3.4 style and
+> superseded by the new tripwire added there on the same date. The lean recorded in the table
+> ("no practices named") always pointed this way — the tripwire was the outlier, not the lean.
+
+**R3 — Advancement card persistence on Today: 3 ELIGIBLE TODAY EXPOSURES, max one per calendar day, hard cap 7 calendar days, then map only.**
+
+> **THE LEAN'S UNIT IS REJECTED.** It read "3 days, then map only". **Calendar days alone are
+> a poor proxy for whether the offer was seen:** a user who does not open the app for two days
+> has not been shown anything, and a time-only rule spends the offer on days they were absent.
+> Persistence is therefore counted in **exposures the user could actually have seen**.
+>
+> - **3 eligible Today exposures**, **maximum one per calendar day**.
+> - **Hard cap 7 calendar days**, after which it demotes to the map whether or not three
+>   exposures were spent. The cap exists so a rare opener cannot carry a stale offer for a
+>   month.
+> - **Dismiss** ("Keep working here") removes it **immediately**. **Accept** resolves it.
+>   **Ignoring it consumes one exposure** — that is what an exposure is for.
+> - After demotion: **no badge, no "you haven't responded" language, no re-promotion.** The
+>   map is where the offer lives after that, not a quieter place to keep asking.
+
+**R4 — Continuity: RETIRE FOR BETA. `ContinuityCard` does not ship, and there is no replacement Today metric.**
+
+> **A visible count of consistent days is functionally a streak whatever it is called.** It
+> teaches "can I keep this number going" alongside "did today help", and **those two
+> incentives eventually conflict** — on the day they do, the number wins and the practice
+> loses. §8 already says **no counter, ever, anywhere**; this is that rule applied to the one
+> counter that had an argument for it.
+>
+> **NO REPLACEMENT TODAY METRIC.** The opacity concern the card was answering is **real** — a
+> user should be able to tell that something is happening — and it is solved
+> **qualitatively**: the app noticing out loud, and the journey visibly progressing. Not with
+> another number wearing a different name.
+>
+> **REVERSIBLE, AND THAT IS PART OF THE DECISION.** If beta users miss it, reinstating is a
+> small slice. Retiring it now means beta measures the product **without** the counter, which
+> is the condition there is no data on; shipping it means never learning whether it was
+> needed.
+>
+> **Consequence for §3.4, left unedited there:** its conditional "`floorMet` survives **only
+> if** continuity ships" now resolves to **`floorMet` does not survive**. That is the
+> conditional discharging as written, not a new decision.
+>
+> **Consequence for slice 6:** its last gate is discharged and the row's "`ContinuityCard`
+> disposition per open item 4" reads **retire**. The transitional ContinuityCard suppression
+> shipped with 3c-i (§13, Sept 3, "transitional until 3b/slice 6") stops being transitional.
+
+**R5 — Adjust counter re-arm after a decline: RE-ARM, capped at two proactive offers.**
+
+> After "keep going as is" the counter **re-arms**: **two further consecutive `not_moving`
+> reads offer again.** A decline answers this week, not the practice.
+>
+> **THE LEAN'S COPY CLAUSE IS REJECTED.** It read "copy acknowledges the prior choice". The
+> copy carries the continuity with the word **"still"** and nothing more. **No narration of
+> the prior choice** — "you chose to keep going last time" **reads as a case file**, and being
+> quoted back to yourself is the opposite of the peer posture §8 requires of a decline.
+>
+> **CAP PROACTIVE OFFERS AT TWO.** After a second decline Vara **stops surfacing** the adjust
+> offer on Today. "Try a different approach" **stays available from the journey page**: the
+> door is open, Vara just stops knocking.
+>
+> **THE CAP IS A BETA-TUNABLE, NOT A LAW.** The trigger is a genuinely stuck user, and whether
+> two is the right number is **a thing to watch rather than settle now**. Build it as a named
+> constant with the tunable status in its comment, not as a literal inside the derivation.
+
+**R6 — Today journey line: the approved `short` field, styled as a quiet eyebrow.**
+
+> D1's journey line renders **`short`** (`Content Pack v1 §short-labels`, 16 strings, approved
+> on delivery 2026-09-06). `PhaseDisplayCopy` (`constants/journey.ts`) already documents the
+> field as the route strip **and the Today journey line**, so this is the field arriving where
+> it was specified.
+>
+> **STAGE WORDS ARE REJECTED.** "Stretch 2", "Stage B" are **implementation concepts wearing
+> UX clothes**: they mean nothing without a legend, and a legend on Today is a second thing to
+> read before the daily action. §8's framework-words tripwire is the same instinct one level
+> down.
+>
+> **STYLE: A QUIET EYEBROW.** A small label line above the `short`, **in the same pattern the
+> phase pages already use for their state word** (5b-i's state eyebrow) — reuse, not a new
+> idiom. **Never a card and never a CTA competing with the daily action:** §8's three-card
+> ceiling holds and the journey line is a text row.
+
+**R7 — Evening-protocol completion semantics: USER-DECLARED OR NATURALLY COMPLETED.**
+
+> **THE LEAN IS REJECTED.** It read "commit-time", which would mark the protocol done when the
+> user taps "Do it now". **"Do it now" and "Done" describe different events, and a control
+> must not claim an outcome it did not produce.**
+>
+> The rule:
+> - Tapping **"Do it now"** opens the action and **keeps the user on the surface**.
+> - The user taps **"Mark it done"** when they have done it.
+> - A **Vara-guided practice completing in the player** is **natural completion**.
+> - **Starting, committing or scheduling is NOT completion.**
+> - **Vara NEVER follows up to verify.** Believe the tap.
+>
+> **CONSEQUENCE FOR SLICE 9's STEP 0, written here so it is designed rather than inherited:
+> committed and completed become DISTINCT STATES and the model must carry both.** Row 9's
+> `scheduledAt` and third card state land **on top of** that distinction, not beside it. Step 0
+> establishes what today's `DailyLog` actually stores before anything writes a second state;
+> collapsing the two back into one field is the failure this resolution exists to prevent.
+
+> **GATE SWEEP, 2026-09-10. NOTHING IN §5 OR §9 IS DECISION-GATED AFTER THIS BLOCK.**
+>
+> **§9:** all nine items are resolved — 1 and 9 by Content Pack v1 (2026-09-05), 8 by slice 3b
+> (2026-09-04), and 2, 3, 4, 5, 6, 7 here. No item is carried.
+>
+> **§5:** **slice 6's** single remaining gate was item 4 — discharged, and row 6's marking note
+> named it as the last one. **Slice 7's** gates were items 2, 3, 5 and 6 — all four discharged;
+> the 2026-09-05 pack block's "**Remaining gates are decision-only:** §9 items 2, 3, 5, 6" is
+> left unedited above and is **superseded here**, as is its "Slice 6 is decision-gated on that
+> one item". **Slice 9's** Gates cell reads "Completion semantics decision (mockup v1 E1 open
+> item)" — that is item 7, discharged. Rows 0-5c are shipped and carry no gate.
+>
+> **WHAT REMAINS ANYWHERE IN §5 IS CONTENT, NOT DECISIONS**, and none of it blocks the next
+> row: **slice 8** copy (Moments of joy) is still content-gated on Jen; the
+> `supportingPracticeIds` table is Jen's clinical judgment and its slice is gated on the table
+> arriving (2026-09-09 amendment, item 1), which is not a §5 row; and the tab-label /
+> map-screen-title question is routed to Jen with the four destination labels (2026-09-09
+> amendment, item 4, and §13's 4b open note), affecting no built row. **Slice 6 and slice 7 are
+> both fully unblocked.**
 
 ---
 
