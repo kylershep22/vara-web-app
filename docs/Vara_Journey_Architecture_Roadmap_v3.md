@@ -251,8 +251,8 @@ deploy. Deploy state lives on Kyle's checklist.
 | 5a | **[DONE `ec943be`, 2026-09-09]** Journey map + the phase-path component *(row added 2026-09-09 with the split)* | `JourneyMapScreen` replaces `PracticesHubScreen` at `ROUTES.PillarPractices`; four phase rows carrying `title` + `gloss` from `PHASE_DISPLAY` (both already populated, held unrendered since 4a); card states derived from `journeyStates` (`phaseKey` / `history` / `skipped`), never stored; the phase-path component built ONCE here and adopted by `RouteStrip` in the same slice (4a known gap 2). Every destination the four hub cards reach today keeps a working entry point. Tab label, screen title and intro UNCHANGED. | No content gate, no §9 item, no build rule. Map state labels are in-house copy: named owner, sentinel increments | Yes |
 | 5b | **[SHIPPED as 5b-i, `8cc461c`, 2026-09-09; remainder DISPERSED, see the 2026-09-09 block; the re-house clause below is SUPERSEDED]** Phase detail pages ×4 *(row added 2026-09-09 with the split)* | `refocus` re-houses the Focus hub; `recover` re-houses Energy, Stress Recovery and Routines under the `§recover-lanes` destination weighting; `remove` renders the 3c-ii stored intention, which is real user state on day one; **`rewire` ships as an explicit, scoped stub** — decided now, not discovered at Step 0. **Sleep is NOT re-housed** (see the AMENDED block below). | Page chrome is in-house copy. The catalog-to-grid bridge stays empty and is not this slice's problem | Yes |
 | 5b-i | **[DONE `8cc461c`, 2026-09-09]** Phase explanation pages *(row added 2026-09-09 at the close)* | Four phase detail pages on one route (`ROUTES.JourneyPhase`, params `phase` + `destination`), reachable from every journey map row: destination `title` + `gloss`, one state-agnostic body per phase, a state eyebrow, back to the map. `PhasePath` gains an optional `onPressPhase`; A2 passes none and stays inert. Remove page renders the 3c-ii stored intention through an absent-safe resolver. **NOT a practice browser**, and the four destination cards STAY ON THE MAP. | No content gate, no §9 item. Five page strings drafted in-house then rewritten and approved by Kyle on device | Done 2026-09-09: four pages, two destinations, three seeded states, both remove-page paths |
-| 5c | **[Next]** Start here container *(row added 2026-09-09 with the split)* | `StartHereRow` over `VideoPlayerModal`, collapsed/expanded state persisted per surface, `explainerPath` as a data field with a placeholder path (§6 item 9). Practices surface only; slice 7 mounts the Today instance. **Free-floating**: touches neither `PHASE_DISPLAY` nor `journeyStates`. | Videos are data, not a gate. `VideoPlayerModal` and `useVideoSource` are §3.5-unchanged and are wrapped, never edited | Yes |
-| 6 | **Weekly reset repurpose** | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
+| 5c | **[DONE `55a403a`, 2026-09-10]** Start here container *(row added 2026-09-09 with the split)* **Shipped with a NULL path, not the placeholder path this row and §6 item 9 specify — see the Sept 10 §13 entry and the §6 item 9 amendment.** | `StartHereRow` over `VideoPlayerModal`, collapsed/expanded state persisted per surface, `explainerPath` as a data field with a placeholder path (§6 item 9). Practices surface only; slice 7 mounts the Today instance. **Free-floating**: touches neither `PHASE_DISPLAY` nor `journeyStates`. | Videos are data, not a gate. `VideoPlayerModal` and `useVideoSource` are §3.5-unchanged and are wrapped, never edited | Yes |
+| 6 | **[Next]** Weekly reset repurpose *(marked 2026-09-10 at slice 5c's close; row 5 is complete and 6 is the next unshipped row.* **NOT content-gated — the §Content-gated tag in this row's Gates cell below is superseded.** *C1 was delivered in Content Pack v1 (`§C1`) and the 2026-09-05 amendment removed the gate; the engine contract is resolved at `§decisions-1`. Its one remaining gate is **§9 item 4**, ContinuityCard ship-or-retire — a DECISION, not content. Correction made 2026-09-10: the marking note first written at 5c's close called this row content-gated, which was wrong on both the amendment and the pack.)* | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
 | 7 | **Offers + Today additions** | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. | rules; **[Content-gated]** copy | Yes |
 | 9 | **Behavioral protocol screen + remind-later** | The Daily Action Launcher behavioral screen (protocol, why, mark done, remind me later) for `remove` protocols; one-off later-today notification (`scheduleLocalNotification` DATE trigger), `scheduledAt` on `DailyLog`, third card state, cancellation bookkeeping; OS-settings redirect after denial. | Completion semantics decision (mockup v1 E1 open item) | Yes |
@@ -541,12 +541,19 @@ Reordered from her Part 12 to match the slice sequence. Items marked ★ are not
 4. **A1 / A2 copy** (slice 4). A2 is the bait-and-switch mitigation for the whole journey.
 5. **Recover's internal structure** (slice 5 detail page). Starting shape: regulate, sleep, fuel,
    movement. Moved to the top of her list; the strings depend on knowing what the phase contains.
-6. **C1 weekly reset copy** (slice 6).
+6. **C1 weekly reset copy** (slice 6). *(DELIVERED — Content Pack v1 `§C1`: four destination-flavoured questions, three answer options, the confirmation line. The 2026-09-05 §5 amendment removed slice 6's content gate on the strength of it. Annotated 2026-09-10; this item is closed.)*
 7. ★ **B2 advancement copy, two variants** (slice 7): threshold-met (names what held) and
    ceiling-met (nothing to name; door open regardless).
 8. ★ **C2 adjust alternatives, 2–3 per phase** (slice 7): constrained choice inside the phase.
 9. **Start here videos ×2** (Today: what drives results and why the order; Practices: how the map
    works). Containers ship in slice 5 with a placeholder path; videos are data.
+   *(AMENDED 2026-09-10 at slice 5c's close: the container shipped with a **null** path, not a
+   placeholder one. Decision 1 makes a null path and a path that fails to resolve the same
+   outcome — nothing renders — so a dead placeholder would look identical while firing a
+   Storage round trip and an ungated `logger.error` on every Practices mount, for every user,
+   until the file exists. The day a file lands in the bucket the only change is the string in
+   `constants/startHere.ts`. Practices carries a null path too, so **neither video is on screen
+   for anyone yet** and this item is still fully open.)*
 10. **Moments of joy copy** (slice 8).
 11. **Rewire prompts** — post slice 9, gated on the crisis pre-check (§7).
 12. **Learn deep dives per blocker** — independent of the build; publish as ready.
@@ -1522,48 +1529,89 @@ follows this entry on main. First of the two slices row 5b was split into.
   strings" from "rewrote five strings after rejecting them", and those are different facts
   about how much review the copy has had.
 
-**Sept 10, 2026 — slice 5c, branch `journey/slice-5c-start-here` (`c381e07`). NOT
-MERGED; this entry is a STUB holding one walk finding.** The close entry replaces it in
-full, with figures and a merge SHA, and absorbs the bullets below. Written now for the
-same reason 5b-i's was: the finding came off a walk, and it is a DESIGN item handed to a
-later slice, which is exactly the kind of thing that survives only if it is written down.
-
-- **WALK-REPORTED AS A DEFECT, INVESTIGATED, NOT A DEFECT.** Kyle reported from the
-  2026-09-10 walk that the row "never collapses": still expanded after closing the player
-  and after a force-quit, which reads as the collapse marker failing to persist. A
-  temporary instrumented run on the branch settled it in the other direction. **The
-  mechanism works and nothing in 5c is being changed for this.**
-- **WHAT THE PROBE RUN SHOWED.** The walk account already carried a marker from an earlier
-  session: the mount effect read `marker=1789042411721` on its first and only run and set
-  `collapsed` true, so the row was **already collapsed on arrival** and there was never a
-  transition to observe. Every subsequent tap correctly reported `collapsed=true` and
-  `willWrite=false`, which is decision 2's "the first open is the one that collapses it"
-  behaving exactly as written. The probe's per-instance id was stable across the whole run:
-  **no remount, and no dep-change re-fire of the effect.** The two hypotheses the Step 0
-  had left live are both dead.
-- **THE REAL FINDING, AND IT IS A DESIGN ITEM FOR SLICE 7: THE TWO STATES ARE NOT
-  DISTINGUISHABLE ON DEVICE.** Collapsed and expanded differ only in whether the one-line
-  gloss renders. Kyle's words: it "did not read as a state change to me." That is not a
-  regression against the spec — `StartHereRow`'s header calls the collapse a
-  **de-emphasis rather than a state the user drives**, deliberately, because section 18
-  wants one primary action and a row whose first tap only reveals a second tap fails it.
-  The walk is the evidence that de-emphasis-by-subtraction is *too* quiet to read as
-  anything at all.
-- **WHY IT IS SLICE 7's AND NOT 5c's.** `START_HERE_PATHS` ships with both surfaces null
-  (see the constant's header), so on merge this slice renders **nothing for any user** and
-  there is no legibility problem in front of anyone yet. The row becomes visible the day a
-  video lands in the bucket, and **slice 7 is the first slice that mounts a real one** —
-  on Today, inside section 8's three-card ceiling, where the same two states have to read
-  next to the hero and the advancement card. Designing the distinction now, against a row
-  nobody can see, would be deciding it without the surface that has to carry it.
-- **WHAT SLICE 7 HAS TO ANSWER, framed and not chosen.** Does the collapsed row need a mark
-  of its own (a treatment on the label, a changed icon, a "watched" affordance), or does
-  the expanded state need to be *more* than one extra line so that losing it registers?
-  Note the constraint that shapes the answer: **it is a row and not a card** (decision 7),
-  and section 8 has no room for a fourth card, so whatever distinguishes the two states has
-  to fit inside a row's worth of height on both surfaces.
-- **INSTRUMENTATION REMOVED.** The probe touched only `StartHereRow.tsx`, plus a local
-  `START_HERE_PATHS.practices` test path needed to make the row appear at all. Both reverted;
-  the branch is `c381e07` plus nothing.
+**Sept 10, 2026 — slice 5c merged (`55a403a`). Start here container; row 5 is complete.**
+Branch commits `c381e07` (the slice) and `fe59c19` (a stub entry for the walk finding, now
+absorbed into this one and deleted — both are not kept).
+- Figures at close: jest **3259 / 217** · tsc **149** · sentinel **167** (+2, both DRAFTED,
+  owner Kyle). Rules **191 pass / 2 skip** and functions **53 / 4** are carried forward
+  UNRUN: neither `firestore.rules` nor `functions/` appears in the diff.
+- **SHIPPED: `StartHereRow` over `VideoPlayerModal`,** mounted on the journey map below the
+  title and above the path, where it holds ONE position across all three of that screen's
+  states — loading, journey-absent and drawn. Under the path it would slide down the moment
+  the `journeyStates` read landed, which is a layout shift on the calmest surface in the app
+  for no gain. `VideoPlayerModal` and `useVideoSource` are byte-unchanged (§3.5), wrapped and
+  never edited. **Built keyed by SURFACE from the first commit**, not Practices-only: slice 7
+  mounts Today by passing a different key and its own gloss. Building it for one surface is
+  how slice 7 ends up writing a second one, and the second build is the one that never happens.
+- **DECISION 1, AND IT IS THE DECISIVE CALL IN THE SLICE: NO VIDEO MEANS NO ROW.** The
+  container resolves the path on mount and renders NOTHING when it is null or fails to
+  resolve — no row, no placeholder, no disabled affordance, no message. Absence and failure
+  are the same outcome deliberately. **Both paths ship null, which is a departure from §6
+  item 9's "placeholder path" and §6 item 9 is amended to record it.** A dead placeholder
+  renders identically, because resolution fails and decision 1 treats failure as absence —
+  what it ALSO does is fire a Storage round trip and an ungated `logger.error` on every
+  Practices mount, for every user, until the file exists. A recurring error line about a file
+  nobody has uploaded reads as a defect to the next person in the device logs.
+- **THE RESOLVE GATE, WORTH KEEPING BECAUSE IT GENERALISES.** `useVideoSource` returns
+  `{ url: null, loading: false }` on its very first render, before its own effect has run, so
+  **"still resolving" and "resolved to nothing" are not distinguishable from the loading
+  flag.** The row keys on `url` and never on `loading`, which answers both with nothing — the
+  correct answer to each — and is why there is no flash. **Second gate:** the collapse marker
+  is `boolean | null` with null meaning UNDECIDED rather than not-collapsed, so a
+  maybe-collapsed marker cannot render an expanded row that collapses a frame later. Nothing
+  renders until both answers are in.
+- **ONE TAP, NOT TWO.** The row IS the button, and opening the video is what collapses it.
+  There is no expand control, no chevron, and no second tap between a user and the thing the
+  row offers; §18 wants one primary action, and a row whose first tap only revealed a second
+  tap would fail that on a surface already carrying four destination cards. **The write
+  happens on the way IN**, so a user who opens the video and kills the app has still opened it.
+- **PERSISTENCE.** AsyncStorage, `@vara/startHereOpenedAt:{surface}:{userId}`, **uid-scoped
+  from the first commit**, `logger.warn`-swallowed on both read and write per the
+  `firstShiftFooterMarker` precedent (a failed read costs an expanded row, a failed write
+  costs one more expansion; neither is fatal to the render). **A single key-construction site,
+  not exported to production code** — read and write cannot drift apart.
+  `hooks/useNotificationOptInCards.ts:27` remains keyed with no uid in it; that is recorded as
+  a separate queued defect, deliberately **not copied and not fixed here**.
+- **NO RULES CHANGE AND NO DEPLOY.** Paths stay under `focus-video/`, which
+  `storage.rules:137-141` already opens to any signed-in user. A test asserts that any
+  non-null path carries that prefix, so a future move to a better-named folder has to go
+  through rules first rather than silently 403 every playback — the trap `coaching-auido` in
+  the same file is still sitting in. The folder being named for the slice that created it
+  rather than for what it holds is naming debt: recorded, queued, not paid here.
+- **TWO STRINGS LEFT AT DRAFT DELIBERATELY, owner Kyle:** `'Start here'` and
+  `'A short video on how this works.'` They **cannot be disposed of the way the 5b-i bodies
+  were.** Kyle approves copy by reading it on the page it occupies, and neither string is on
+  screen for any user until a video exists. Expect them to sit at draft across more than one
+  slice; that is the correct state, not an oversight, and the sentinel carrying them at 167
+  is the honest number.
+- **WALK STATUS, STATED PLAINLY SO IT IS NOT LATER MISTAKEN FOR WALKED BEHAVIOUR.** The
+  shipped state is INVISIBLE — both paths null — so **there was nothing to walk at merge.**
+  Against a test clip the row was exercised and behaved: the collapsed state, on-tap open,
+  persistence across relaunch, second-account uid scoping, and both the failed-path and
+  null-path renders. **The FIRST-OPEN TRANSITION — marker absent, tap, gloss vanishes, marker
+  written — was NOT observed on device.** Every observation was made on an account that
+  already carried a marker. **Slice 7 is the first slice that both mounts a real video and
+  validates that path, and its walk carries that burden.**
+- **WALK-CAUGHT NON-DEFECT, RECORDED WITH ITS DIAGNOSIS BECAUSE THE INVESTIGATION IS THE
+  USEFUL ARTEFACT.** The row appeared not to collapse: still expanded after closing the
+  player and after a force-quit, which reads exactly like a marker that never persists. A
+  temporary instrumented run settled it the other way. The mount effect read
+  `marker=<present>` and set `collapsed` true on arrival, and every tap reported
+  `collapsed=true willWrite=false`, under a **stable per-instance id — no remount, and no
+  dep-change re-fire.** **The mechanism was correct; the account was already collapsed.**
+- **WHAT THE RUN ACTUALLY EXPOSED, AND IT GOES TO SLICE 7 AS A DESIGN ITEM: the collapsed and
+  expanded states are not visually distinguishable on device.** The gloss line disappearing
+  was the only difference, and it did not register as a state change **to the person who
+  specified the feature.** Framed as **revisiting a deliberate decision, not fixing an
+  oversight**: `StartHereRow`'s own header argues the collapse is a de-emphasis rather than a
+  state the user drives, and this is the evidence that de-emphasis-by-subtraction is too
+  quiet to read as anything at all. **Constraint inherited by whoever answers it:** Today's
+  three-card ceiling (§8) means the distinction has to fit inside a row's height, so
+  "make it a card" is not available.
+- **FOOTNOTE, since it was queried during this slice and resolved.** The tsc baseline is
+  **149**; every §13 tsc figure has been correct since the Sept 1 entry. **158** was accurate
+  as of Aug 15 and died with the `chore/legacy-removal` sweep, which deleted ten dead source
+  files between the Aug 30 TB-3 pin and `ff8939e`. The stale figure lived only in CC's memory
+  index, now corrected. Nothing in this document needed changing.
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*
