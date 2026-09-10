@@ -72,6 +72,30 @@ jest.mock('../../../components/ai/GuidePill', () => ({
   GuidePill: () => null,
 }));
 
+// SLICE 5c. The map now mounts StartHereRow, which imports VideoPlayerModal and
+// through it expo-video. Mocked at the component rather than the hook because it
+// is the IMPORT that has to be stopped: expo-video reaches this suite as a
+// native module and dies on `EventEmitter` before a single test runs. The hook
+// is mocked alongside it so no Storage resolution is attempted either.
+//
+// NOT A WEAKER SUITE FOR IT. The row renders nothing here in any case: both
+// entries in START_HERE_PATHS are null on main, so there is no video to resolve
+// and slice 5c decision 1 renders no row. What this file asserts, arrival at the
+// four destinations, is untouched by an element that is not on the screen.
+jest.mock('../../../components/video/VideoPlayerModal', () => ({
+  VideoPlayerModal: () => null,
+}));
+jest.mock('../../../hooks/useVideoSource', () => ({
+  useVideoSource: () => ({ url: null, loading: false, error: null, retry: () => undefined }),
+}));
+// The row's collapse marker reaches AsyncStorage at module load, and the native
+// module is null under jest without a stub. Nothing here reads it back: the row
+// never renders in this suite, so the read is made and discarded.
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: () => Promise.resolve(null),
+  setItem: () => Promise.resolve(),
+}));
+
 // The map reads journeyStates on focus. Resolved to null here on purpose: this
 // suite is about ARRIVAL at the four destinations, and the absent-state render
 // is the one that proves the doors work for a user the path cannot draw. The

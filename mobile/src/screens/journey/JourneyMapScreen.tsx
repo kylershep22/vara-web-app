@@ -40,6 +40,15 @@
 // The phase pages carry none either, and no `context.screen` value is wired
 // anywhere "ready for later".
 //
+// START HERE SITS ABOVE THE PATH, AND IT IS THE FIRST PRODUCTION CONTAINER OVER
+// VideoPlayerModal (slice 5c). It renders NOTHING until its video resolves, and
+// neither video exists yet, so this mount is invisible on merge and that is the
+// intended state: the mechanism ships now, the videos are Jen's data and arrive
+// later (roadmap section 6 item 9). The row is deliberately outside the journey
+// read — it is a sibling of the loading branch, never a child of it, so the
+// explainer does not disappear for the users whose journey document is slow,
+// absent or unreadable.
+//
 // READS journeyStates DIRECTLY, not through PhaseContext. The resolver's
 // PhaseContext carries phaseKey, destination, capacitySeed and revisionToken
 // (resolveJourney.ts:77) and deliberately no history: the daily loop has no use
@@ -60,6 +69,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { PhasePath } from '../../components/journey/PhasePath';
+import { StartHereRow } from '../../components/journey/StartHereRow';
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { PHASE_STATE_LABELS } from '../../constants/journeyCopy';
 import { useAuth } from '../../context/AuthContext';
@@ -216,6 +226,29 @@ export function JourneyMapScreen() {
             Practices
           </Text>
         </View>
+
+        {/* ABOVE THE PATH AND BELOW THE TITLE, AND IT NEVER MOVES. Placing it
+            under the path would make it slide down the moment the journey read
+            lands, which is a layout shift on the calmest surface in the app for
+            no gain. Here it holds one position across all three of this screen's
+            states: loading, journey-absent and drawn. It also puts orientation
+            second on the page, which is where section 8 puts it on Today. */}
+        {/* SECTION 1 DOES NOT PIN THIS. Its sentence lists what the tab contains
+            ("vertical stack, destination titles, visible state labels, one-line
+            gloss, Start here collapsing after first play"); the first four are
+            attributes of the SAME stack, so the list is an enumeration of
+            features and not a top-to-bottom layout. */}
+        {/* OUTSIDE THE JOURNEY READ ENTIRELY. It is a sibling of the loading
+            branch and of the path, not a child of either, so a slow or failed
+            journeyStates read cannot take the explainer down with it. Slice 5c's
+            fence: the row touches neither PHASE_DISPLAY nor journeyStates. */}
+        <StartHereRow
+          surface="practices"
+          userId={uid}
+          // COPY: draft, not from guidelines doc - pending Kyle
+          gloss={'A short video on how this works.'}
+          testID="journey-map-start-here"
+        />
 
         {loading ? (
           <ActivityIndicator
