@@ -41,6 +41,34 @@ jest.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'u1' } }),
 }));
 
+// SLICE 5c. The screen now mounts StartHereRow, which resolves a Storage path
+// and reads a local marker. Both are faked here so the map's own assertions stay
+// about the map: the default is a video that has not resolved, which is what
+// every user sees today, and which renders no row at all.
+const mockUseVideoSource = jest.fn();
+jest.mock('../../../hooks/useVideoSource', () => ({
+  useVideoSource: (path: string | null) => mockUseVideoSource(path),
+}));
+
+jest.mock('../../../constants/startHere', () => ({
+  START_HERE_PATHS: { practices: 'focus-video/test_explainer_v1.mp4', today: null },
+  START_HERE_LABEL: 'Start here',
+}));
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: () => Promise.resolve(null),
+  setItem: () => Promise.resolve(),
+}));
+
+jest.mock('../../../components/video/VideoPlayerModal', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    VideoPlayerModal: (props: Record<string, unknown>) =>
+      React.createElement(View, { testID: 'video-player-modal-stub', ...props }),
+  };
+});
+
 import { JourneyMapScreen } from '../JourneyMapScreen';
 import { DESTINATION_KEYS, PHASE_DISPLAY, PHASE_ORDER } from '../../../constants/journey';
 import { PHASE_STATE_LABELS } from '../../../constants/journeyCopy';
@@ -80,6 +108,16 @@ beforeEach(() => {
   mockNavigate.mockClear();
   mockGetJourneyState.mockReset();
   mockGetJourneyState.mockResolvedValue(journeyFixture());
+  mockUseVideoSource.mockReset();
+  // No video resolved: the shipped state, and the state in which the row does
+  // not exist. Every assertion in this file except the two below runs against a
+  // screen with no Start here on it, exactly as main does today.
+  mockUseVideoSource.mockReturnValue({
+    url: null,
+    loading: false,
+    error: null,
+    retry: jest.fn(),
+  });
 });
 
 describe('JourneyMapScreen — the map', () => {
@@ -332,5 +370,75 @@ describe('JourneyMapScreen — every destination stays reachable', () => {
         expect(queryByText(PHASE_DISPLAY[phase][destination].title)).toBeNull();
       }
     }
+  });
+});
+
+describe('JourneyMapScreen — Start here', () => {
+  it('shows nothing at all while no explainer has been authored', async () => {
+    // The shipped state of slice 5c, asserted at the mount rather than only at
+    // the component. Both paths in constants/startHere.ts are null on main, so
+    // the row cannot resolve and the map looks exactly as it did before.
+    const { queryByTestId } = render(<JourneyMapScreen />);
+
+    await waitFor(() => expect(queryByTestId('journey-map-loading')).toBeNull());
+    expect(queryByTestId('journey-map-start-here')).toBeNull();
+  });
+
+  it('renders while the journey read is still in flight', async () => {
+    // THE INDEPENDENCE THAT THE PLACEMENT EXISTS TO GIVE IT. The row is a
+    // sibling of the loading branch, never a child of it, so a slow
+    // journeyStates read cannot take the explainer down with it. A never
+    // settling read holds the screen in its loading state for the assertion.
+    mockUseVideoSource.mockReturnValue({
+      url: 'https://example.test/clip.mp4',
+      loading: false,
+      error: null,
+      retry: jest.fn(),
+    });
+    mockGetJourneyState.mockReturnValue(new Promise(() => undefined));
+
+    const { getByTestId } = render(<JourneyMapScreen />);
+
+    await waitFor(() => expect(getByTestId('journey-map-start-here')).toBeTruthy());
+    // Still loading: the path has not been drawn, and the row is there anyway.
+    expect(getByTestId('journey-map-loading')).toBeTruthy();
+  });
+
+  it('renders for a user the map cannot draw at all', async () => {
+    // Same guarantee from the other side, and the same shape as the four
+    // destination cards' absent-state tests above: a user with no journey
+    // document still gets the explainer.
+    mockUseVideoSource.mockReturnValue({
+      url: 'https://example.test/clip.mp4',
+      loading: false,
+      error: null,
+      retry: jest.fn(),
+    });
+    mockGetJourneyState.mockResolvedValue(null);
+
+    const { getByTestId, queryByTestId } = render(<JourneyMapScreen />);
+
+    await waitFor(() => expect(getByTestId('journey-map-start-here')).toBeTruthy());
+    expect(queryByTestId('journey-map-path')).toBeNull();
+  });
+
+  it('leaves the four destination cards untouched when it appears', async () => {
+    // The count assertion above is scoped to the destinations block precisely so
+    // a fifth pressable elsewhere on the screen cannot break it. This is the
+    // other half of that: the row appearing must not add or remove a card.
+    mockUseVideoSource.mockReturnValue({
+      url: 'https://example.test/clip.mp4',
+      loading: false,
+      error: null,
+      retry: jest.fn(),
+    });
+
+    const { getByTestId } = render(<JourneyMapScreen />);
+
+    await waitFor(() => expect(getByTestId('journey-map-start-here')).toBeTruthy());
+    const cards = within(getByTestId('journey-map-destinations')).UNSAFE_getAllByType(
+      TouchableOpacity
+    );
+    expect(cards).toHaveLength(CARD_IDS.length);
   });
 });

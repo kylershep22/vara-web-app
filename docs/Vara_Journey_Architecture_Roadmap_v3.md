@@ -1522,4 +1522,48 @@ follows this entry on main. First of the two slices row 5b was split into.
   strings" from "rewrote five strings after rejecting them", and those are different facts
   about how much review the copy has had.
 
+**Sept 10, 2026 — slice 5c, branch `journey/slice-5c-start-here` (`c381e07`). NOT
+MERGED; this entry is a STUB holding one walk finding.** The close entry replaces it in
+full, with figures and a merge SHA, and absorbs the bullets below. Written now for the
+same reason 5b-i's was: the finding came off a walk, and it is a DESIGN item handed to a
+later slice, which is exactly the kind of thing that survives only if it is written down.
+
+- **WALK-REPORTED AS A DEFECT, INVESTIGATED, NOT A DEFECT.** Kyle reported from the
+  2026-09-10 walk that the row "never collapses": still expanded after closing the player
+  and after a force-quit, which reads as the collapse marker failing to persist. A
+  temporary instrumented run on the branch settled it in the other direction. **The
+  mechanism works and nothing in 5c is being changed for this.**
+- **WHAT THE PROBE RUN SHOWED.** The walk account already carried a marker from an earlier
+  session: the mount effect read `marker=1789042411721` on its first and only run and set
+  `collapsed` true, so the row was **already collapsed on arrival** and there was never a
+  transition to observe. Every subsequent tap correctly reported `collapsed=true` and
+  `willWrite=false`, which is decision 2's "the first open is the one that collapses it"
+  behaving exactly as written. The probe's per-instance id was stable across the whole run:
+  **no remount, and no dep-change re-fire of the effect.** The two hypotheses the Step 0
+  had left live are both dead.
+- **THE REAL FINDING, AND IT IS A DESIGN ITEM FOR SLICE 7: THE TWO STATES ARE NOT
+  DISTINGUISHABLE ON DEVICE.** Collapsed and expanded differ only in whether the one-line
+  gloss renders. Kyle's words: it "did not read as a state change to me." That is not a
+  regression against the spec — `StartHereRow`'s header calls the collapse a
+  **de-emphasis rather than a state the user drives**, deliberately, because section 18
+  wants one primary action and a row whose first tap only reveals a second tap fails it.
+  The walk is the evidence that de-emphasis-by-subtraction is *too* quiet to read as
+  anything at all.
+- **WHY IT IS SLICE 7's AND NOT 5c's.** `START_HERE_PATHS` ships with both surfaces null
+  (see the constant's header), so on merge this slice renders **nothing for any user** and
+  there is no legibility problem in front of anyone yet. The row becomes visible the day a
+  video lands in the bucket, and **slice 7 is the first slice that mounts a real one** —
+  on Today, inside section 8's three-card ceiling, where the same two states have to read
+  next to the hero and the advancement card. Designing the distinction now, against a row
+  nobody can see, would be deciding it without the surface that has to carry it.
+- **WHAT SLICE 7 HAS TO ANSWER, framed and not chosen.** Does the collapsed row need a mark
+  of its own (a treatment on the label, a changed icon, a "watched" affordance), or does
+  the expanded state need to be *more* than one extra line so that losing it registers?
+  Note the constraint that shapes the answer: **it is a row and not a card** (decision 7),
+  and section 8 has no room for a fourth card, so whatever distinguishes the two states has
+  to fit inside a row's worth of height on both surfaces.
+- **INSTRUMENTATION REMOVED.** The probe touched only `StartHereRow.tsx`, plus a local
+  `START_HERE_PATHS.practices` test path needed to make the row appear at all. Both reverted;
+  the branch is `c381e07` plus nothing.
+
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*

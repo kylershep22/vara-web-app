@@ -261,7 +261,33 @@ import * as path from 'path';
 //
 // 'Complete' IS NOT PART OF THIS -5. It was already approved-for-approved at the
 // merge and carried no marker to clear.
-const EXPECTED_SENTINELS = 165;
+//
+// 167 since journey slice 5c: +2, NEW DRAFTED COPY. Owner Kyle (UI strings), the
+// ordinary up-direction case. The Start here row is net-new surface and no
+// string for it existed anywhere in src/ before this slice.
+//
+// The two, and why the set is not larger:
+//   - `START_HERE_LABEL` in constants/startHere.ts — the row's own name, and the
+//     player header's title when it opens. ONE string for both surfaces and both
+//     positions. Roadmap sections 1 and 8 both call the element "Start here" on
+//     Today and on the map, so a second copy at slice 7's mount is how one gets
+//     revised and the other does not.
+//   - the row's one-line gloss at its mount in JourneyMapScreen.tsx. A PROP, not
+//     a shared constant, because each surface's video explains a different thing
+//     (section 6 item 9: how the map works here, what drives results on Today).
+//     Slice 7 drafts its own; drafting Today's here would put a string nobody
+//     will walk in front of that slice as though it had been decided.
+//
+// NEITHER STRING IS ON SCREEN FOR ANY USER TODAY, and that is worth saying at
+// the pin rather than only at the row. Slice 5c decision 1: no video means no
+// row, and both entries in START_HERE_PATHS are null because neither explainer
+// has been authored. The strings are drafted, counted and unreachable until a
+// file lands in the bucket. THE USUAL DISPOSITION ROUTE DOES NOT WORK ON THEM:
+// the 5b-i rider cleared five markers because Kyle read each string on the page
+// it occupies during the walk, and these two cannot be read that way until there
+// is a video to hang them on. Expect them to sit at draft across more than one
+// slice; that is the mechanism working, not a stalled approval.
+const EXPECTED_SENTINELS = 167;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');
