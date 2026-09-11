@@ -2324,10 +2324,10 @@ four ways. Corrected here so the next seeded walk does not rediscover them:
 - lint 1101 errors / 1344 warnings. Rules **191/2** and functions **53/4** carried unrun: this
   slice changes neither, and `firestore.rules` is untouched.
 
-**ATTESTATIONS (Kyle):**
+**ATTESTATIONS (Kyle, 2026-09-11):**
 
-- Suites green at the figures above: _______________
-- Device walk passed, steps A through G: _______________
+- **Suites green at the figures above:** tsc 149 / jest 3400 of 221 / sentinel 150. ATTESTED.
+- **Device walk passed, steps A through G:** ATTESTED, 2026-09-11.
 
 ---
 
