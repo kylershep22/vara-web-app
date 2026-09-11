@@ -15,6 +15,7 @@ import { render } from '@testing-library/react-native';
 import { JourneyLine } from '../JourneyLine';
 import { PHASE_DISPLAY, PHASE_ORDER, DESTINATION_KEYS } from '../../../constants/journey';
 import { JOURNEY_LINE_LABEL } from '../../../constants/journeyCopy';
+import type { DestinationKey, PhaseKey } from '../../../types/models';
 
 describe('JourneyLine - the approved short, for every cell', () => {
   test('renders the label and the short for all sixteen pairs', () => {
@@ -121,5 +122,51 @@ describe('JourneyLine - what it must not become', () => {
         unmount();
       }
     }
+  });
+});
+
+// DEFENCE IN DEPTH, NOT THE FIX (slice 7e). The fix is the read boundary in
+// resolveJourney, which is pinned in that module's own suite; these four cases
+// pin that the component cannot take Home down even if a key ever reaches it by
+// some route nobody has thought of.
+//
+// EVERY CASE HERE IS UNREACHABLE TO THE COMPILER, which is why the props are
+// cast. A key outside the union cannot be written by a client; it arrives from
+// an Admin SDK write, and the types stop describing the data at that boundary.
+describe('JourneyLine - a key it cannot render', () => {
+  const unrenderable: Array<[string, PhaseKey, DestinationKey]> = [
+    // Verbatim from slice 7b's walk: a trailing space typed into the console.
+    ['a trailing space on a real phase key', 'remove ' as PhaseKey, 'focus'],
+    ['a phase key outside the union', 'reboot' as PhaseKey, 'focus'],
+    ['a destination outside the union', 'remove', 'stress' as DestinationKey],
+    ['both outside the union', 'reboot' as PhaseKey, 'stress' as DestinationKey],
+  ];
+
+  test.each(unrenderable)('%s does not throw', (_name, phaseKey, destination) => {
+    expect(() =>
+      render(
+        <JourneyLine
+          label={JOURNEY_LINE_LABEL}
+          phaseKey={phaseKey}
+          destination={destination}
+        />
+      )
+    ).not.toThrow();
+  });
+
+  // NOTHING RENDERS, NOT A PLACEHOLDER. The line answers "where am I" and there
+  // is no honest answer from a document nobody can read; its absence is a state
+  // Today already has on every legacy-path launch.
+  test.each(unrenderable)('%s renders nothing at all', (_name, phaseKey, destination) => {
+    const { queryByTestId } = render(
+      <JourneyLine
+        label={JOURNEY_LINE_LABEL}
+        phaseKey={phaseKey}
+        destination={destination}
+      />
+    );
+
+    expect(queryByTestId('home-journey-line')).toBeNull();
+    expect(queryByTestId('home-journey-line-short')).toBeNull();
   });
 });

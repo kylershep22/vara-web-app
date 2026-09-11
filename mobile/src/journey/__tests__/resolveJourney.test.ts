@@ -37,6 +37,7 @@ jest.mock('../../utils/logger', () => ({
 
 import { destinationForOutcome, resolveJourney, uidDigest } from '../resolveJourney';
 import { legacyPhaseFor } from '../../protocolEngine';
+import { DESTINATION_KEYS, PHASE_ORDER } from '../../constants/journey';
 
 const UID = 'alice123';
 
@@ -209,6 +210,103 @@ describe('resolveJourney', () => {
       const result = await resolveJourney(UID);
 
       expect(result.target === 'today' && result.phase.revisionToken).toBe(0);
+    });
+  });
+
+  // ---- rung (a): the read boundary (slice 7e) ----
+  //
+  // THE TYPES DO NOT PROTECT THIS RUNG AND THAT IS THE WHOLE SUBJECT. Both
+  // fields are declared as closed unions on JourneyState, so every case below
+  // is unreachable to the compiler and reachable from the Firebase console. The
+  // casts are the point, not a shortcut: they are how a test reproduces a
+  // document the app itself cannot write.
+  //
+  // EACH CASE ASSERTS THREE THINGS, and all three are load bearing. The target
+  // is 'legacy', so Home keeps the surface it already had. The warn fires
+  // ONCE - a resolver that warned per field would put two lines in Sentry for
+  // one bad document. And the digest is logged rather than the uid, which is
+  // the second failure the head of this file names.
+  describe('rung (a): a document with keys nothing can render', () => {
+    const malformed = (over: Record<string, unknown>) =>
+      mockGetJourneyState.mockResolvedValue(state(over));
+
+    const cases: Array<[string, Record<string, unknown>]> = [
+      ['phaseKey absent', { phaseKey: undefined }],
+      // VERBATIM FROM THE WALK. A trailing space typed into the console field,
+      // which is what took Home down on `main` during slice 7b's walk. It is
+      // the fixture rather than an illustration because it is the only one of
+      // these five that has actually happened.
+      ['phaseKey "remove " with a trailing space', { phaseKey: 'remove ' }],
+      ['phaseKey outside the union', { phaseKey: 'reboot' }],
+      ['destination absent', { destination: undefined }],
+      ['destination outside the union', { destination: 'stress' }],
+    ];
+
+    test.each(cases)('%s resolves to legacy', async (_name, over) => {
+      malformed(over);
+      const result = await resolveJourney(UID);
+
+      expect(result.target).toBe('legacy');
+    });
+
+    test.each(cases)('%s warns exactly once, on the digest', async (_name, over) => {
+      malformed(over);
+      await resolveJourney(UID);
+
+      expect(mockWarn).toHaveBeenCalledTimes(1);
+      expect(mockWarn.mock.calls[0][1]).toBe(uidDigest(UID));
+      expect(JSON.stringify(mockWarn.mock.calls[0])).not.toContain(UID);
+    });
+
+    // 'stress' IS THE ONE NEAR MISS WORTH ITS OWN ASSERTION. It is a real key
+    // in the WEEKLY vocabulary and reads 'calm' in this one, so a document
+    // carrying it looks correct to a human reading the console. It must not be
+    // bridged here: destinationForOutcome exists for the migration rungs, where
+    // a legacy outcome is being converted once, and reusing it at rung (a)
+    // would silently rewrite a stored journey's destination on every read.
+    test('an OutcomeKey in the destination field is not bridged, it is refused', async () => {
+      malformed({ destination: 'stress' });
+      const result = await resolveJourney(UID);
+
+      expect(result.target).toBe('legacy');
+      expect(mockCreateJourneyState).not.toHaveBeenCalled();
+    });
+
+    // THE GUARD MUST NOT WRITE. A read path that repaired the document would
+    // hide the data problem the warning exists to surface, and would do it
+    // from the one code path that runs on every launch.
+    test('REPAIRS NOTHING. No write and no analytics event', async () => {
+      malformed({ phaseKey: 'remove ' });
+      await resolveJourney(UID);
+
+      expect(mockCreateJourneyState).not.toHaveBeenCalled();
+      expect(mockLogEvent).not.toHaveBeenCalled();
+    });
+
+    // The guard sits ahead of every other read off the document, so a malformed
+    // row costs one Firestore read and not three. Asserted through the seed
+    // reads because they are the observable half of that ordering.
+    test('short-circuits BEFORE the capacity seed reads', async () => {
+      malformed({ phaseKey: 'reboot' });
+      await resolveJourney(UID);
+
+      expect(mockGetUserPrivate).not.toHaveBeenCalled();
+      expect(mockGetLatestCycle).not.toHaveBeenCalled();
+    });
+
+    // The other direction, and it is what stops the guard being vacuous: the
+    // four valid phase keys and the four valid destinations all still resolve.
+    test('all sixteen valid pairs still resolve to today, with no warning', async () => {
+      for (const phaseKey of PHASE_ORDER) {
+        for (const destination of DESTINATION_KEYS) {
+          mockWarn.mockClear();
+          mockGetJourneyState.mockResolvedValue(state({ phaseKey, destination }));
+          const result = await resolveJourney(UID);
+
+          expect(result.target).toBe('today');
+          expect(mockWarn).not.toHaveBeenCalled();
+        }
+      }
     });
   });
 
