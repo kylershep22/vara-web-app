@@ -50,6 +50,8 @@ import type { RouteProp } from '@react-navigation/native';
 import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
 import { PHASE_DISPLAY, PHASE_ORDER } from '../../constants/journey';
 import {
+  ADJUST_ALTERNATIVES,
+  ADJUST_COPY,
   ADVANCE_PREVIEW_COPY,
   PHASE_PAGE_BODIES,
   PHASE_PAGE_COPY,
@@ -60,10 +62,11 @@ import { derivePhaseStates } from '../../journey/phaseStates';
 import {
   advancePhase,
   getJourneyState,
+  recordAdjustChoice,
   recordAdvanceDeclined,
 } from '../../services/firebase/journeyState.service';
 import { logEvent } from '../../services/firebase/analyticsEvents.service';
-import type { JourneyState } from '../../types/models';
+import type { AdjustChoiceId, JourneyState } from '../../types/models';
 import { logger } from '../../utils/logger';
 import { labelForReplacement } from './removeCapture/routing';
 
@@ -91,6 +94,12 @@ export function JourneyPhaseScreen() {
   // page has exactly two controls and neither has a third state.
   const [committing, setCommitting] = useState(false);
   const [commitFailed, setCommitFailed] = useState(false);
+  // The door's three states: shut, open, answered. Separate from the commit
+  // pair above because they belong to a different control on a page that never
+  // shows both (see the door block below).
+  const [doorOpen, setDoorOpen] = useState(false);
+  const [chosen, setChosen] = useState<AdjustChoiceId | null>(null);
+  const [chooseFailed, setChooseFailed] = useState(false);
 
   const read = useCallback(async (): Promise<JourneyState | null> => {
     if (!uid) return null;
@@ -149,6 +158,40 @@ export function JourneyPhaseScreen() {
       ? PHASE_ORDER[currentIdx + 1]
       : null;
   const isPreview = !!journey && phase === nextPhase && !!journey.advanceOfferedAt;
+
+  // ---- The door: "Try a different approach" (slice 7b, section 9 R5) ----
+  //
+  // DERIVED, NOT PASSED, ON EXACTLY THE PRECEDENT PREVIEW MODE SET ABOVE, and
+  // for the same reason: R5 says the door stays open after the two-offer cap
+  // stops the card, so the door has to be reachable by a route that knows
+  // nothing about the offer. Every journey map row opens this page, including
+  // the current one, so map -> this page IS that route with no change to the
+  // map. A route param would have given Today's path a control the map's path
+  // lacked, and the cap would have closed the door it was promised to leave
+  // open.
+  //
+  // `adjustOfferedAt` IS THE CONDITION AND IT IS EXACT. It is non-null if and
+  // only if the adjustment offer has occupied Today at least once in this
+  // phase, which is the definition of "this user has qualified". The
+  // alternative was recomputing eligibility here, which needs the weekly cycles
+  // and therefore a read this screen has never done. The stored timestamp
+  // answers the same question off a document already in hand. CLEARED_OFFERS
+  // nulls it on every phase change, which is what makes the door last exactly
+  // one phase.
+  //
+  // THE CURRENT PHASE ONLY, AND THAT IS WHAT KEEPS IT CLEAR OF PREVIEW MODE.
+  // The alternatives are per-phase and they change how the user works on the
+  // stretch they are standing in; offering them on a page about a phase the
+  // user has finished or not reached would be offering to adjust something
+  // they are not doing. Preview mode requires `phase === nextPhase` and this
+  // requires `phase === journey.phaseKey`, and PHASE_ORDER[idx + 1] is never
+  // PHASE_ORDER[idx], so the two blocks are MUTUALLY EXCLUSIVE BY CONSTRUCTION
+  // rather than by a guard someone has to remember. Asserted by test.
+  //
+  // A USER WHO HAS NEVER BEEN OFFERED SEES NOTHING, on the same terms browsing
+  // ahead shows no commit control: browsing is not an invitation.
+  const isAdjustDoor =
+    !!journey && phase === journey.phaseKey && !!journey.adjustOfferedAt;
 
   // THE STATE EYEBROW IS SUPPRESSED IN PREVIEW (Kyle, slice 7a). The state word
   // answers "where am I"; the preview answers "shall I go here". Rendering
@@ -215,6 +258,44 @@ export function JourneyPhaseScreen() {
   // user asked to leave; a failed decline costs them one more sighting of a
   // card they can dismiss again, which is a smaller harm than trapping them on
   // a page because a write failed.
+  // Recording a choice. IT IS THE ONLY WRITE THE DOOR MAKES, and it is
+  // deliberately not a phase mutation of any kind: adjusting is about HOW the
+  // user works on this stretch, never about leaving it.
+  //
+  // RECORDED, NOT HONOURED, AS OF SLICE 7b. Nothing in the protocol serving
+  // path reads `adjustChoice` yet; slice 7c is scoped to consuming it. The
+  // confirmation is worded for exactly that state and must not be rewritten
+  // into a claim that today's practice has already changed.
+  //
+  // NO NAVIGATION ON SUCCESS, unlike the advance commit. There is nowhere to
+  // go back to that would show the result, because there is no result to show
+  // yet; the honest response is the confirmation in place. The user leaves when
+  // they are ready.
+  const onChoose = useCallback(
+    async (choice: AdjustChoiceId) => {
+      if (!uid || chosen) return;
+      setChooseFailed(false);
+      try {
+        await recordAdjustChoice(uid, choice);
+        logEvent(uid, 'journey_adjust_chosen', {
+          optionId: choice,
+          // The page cannot tell whether the user arrived from the card or from
+          // the map, and it does not need to: what the dimension separates is
+          // answering a proactive offer from going looking, and every arrival
+          // at THIS page is the second of those. The card's own primary lands
+          // here too, so 'card' is recorded by nothing and the union keeps it
+          // for a surface that may answer in place later.
+          from: 'phase_page',
+        });
+        setChosen(choice);
+      } catch (e) {
+        logger.error('[JourneyPhase] adjust choice failed:', e);
+        setChooseFailed(true);
+      }
+    },
+    [uid, chosen]
+  );
+
   const onNotYet = useCallback(() => {
     if (uid) {
       logEvent(uid, 'journey_advance_declined', { from: 'preview' });
@@ -257,6 +338,90 @@ export function JourneyPhaseScreen() {
             <Text style={styles.intentionValue} maxFontSizeMultiplier={MAX_FONT_SCALE}>
               {replacement}
             </Text>
+          </View>
+        ) : null}
+
+        {/* ---- The door, on the current phase only ----
+
+            AT THE BOTTOM, AFTER THE EXPLANATION, for the reason the commit
+            block below gives: the user reads what this stretch is before being
+            asked anything about it. A control above the body would make the
+            page an offer with an explanation attached.
+
+            SHUT BY DEFAULT. The page is an explanation first and the door is
+            one line on it; opening three options unprompted would make every
+            visit to this page a question. */}
+        {isAdjustDoor ? (
+          <View style={styles.door} testID="journey-phase-adjust">
+            {chosen ? (
+              <Text
+                style={styles.doorConfirmation}
+                maxFontSizeMultiplier={MAX_FONT_SCALE}
+                testID="journey-phase-adjust-confirmation"
+              >
+                {ADJUST_COPY.confirmation}
+              </Text>
+            ) : doorOpen ? (
+              <>
+                <Text style={styles.doorIntro} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+                  {ADJUST_COPY.alternativesIntro}
+                </Text>
+
+                {/* KEYED BY PHASE, NEVER BY ORDINAL. See ADJUST_ALTERNATIVES. */}
+                {ADJUST_ALTERNATIVES[phase].map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={styles.option}
+                    onPress={() => void onChoose(option.id)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={option.label}
+                    accessibilityHint={option.body}
+                    testID={`journey-phase-adjust-${option.id}`}
+                  >
+                    <Text
+                      style={styles.optionLabel}
+                      maxFontSizeMultiplier={MAX_FONT_SCALE}
+                    >
+                      {option.label}
+                    </Text>
+                    <Text
+                      style={styles.optionBody}
+                      maxFontSizeMultiplier={MAX_FONT_SCALE}
+                    >
+                      {option.body}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+
+                {chooseFailed ? (
+                  <Text
+                    style={styles.error}
+                    maxFontSizeMultiplier={MAX_FONT_SCALE}
+                    testID="journey-phase-adjust-error"
+                  >
+                    {ADJUST_COPY.failed}
+                  </Text>
+                ) : null}
+              </>
+            ) : (
+              <TouchableOpacity
+                style={styles.doorCta}
+                onPress={() => setDoorOpen(true)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={ADJUST_COPY.primary}
+                accessibilityHint="Shows other ways to work on this part of your journey"
+                testID="journey-phase-adjust-open"
+              >
+                <Text
+                  style={styles.doorCtaLabel}
+                  maxFontSizeMultiplier={MAX_FONT_SCALE}
+                >
+                  {ADJUST_COPY.primary}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : null}
 
@@ -367,6 +532,59 @@ const styles = StyleSheet.create({
   },
   commit: {
     marginTop: Spacing.xl,
+  },
+  // The door gets the same top divider the stored-intention block uses, so it
+  // reads as a second section of the page rather than as a trailing control.
+  door: {
+    marginTop: Spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
+    paddingTop: Spacing.lg,
+  },
+  // OUTLINED, NOT FILLED. A filled teal here would compete with "Start this" on
+  // the preview page for the same slot on the same screen, and would make a
+  // quiet door read as the page's purpose. The teal label keeps it clearly
+  // tappable at the same 48pt reach.
+  doorCta: {
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: Layout.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.evergreenTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+  },
+  doorCtaLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.evergreenTeal,
+  },
+  doorIntro: {
+    ...TextStyles.bodySmall,
+    color: Colors.mutedSageGray,
+    marginBottom: Spacing.sm,
+  },
+  doorConfirmation: {
+    ...TextStyles.body,
+    color: Colors.softCharcoal,
+  },
+  option: {
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: Layout.borderRadius.md,
+    backgroundColor: Colors.dewSageLight,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    marginTop: Spacing.sm,
+  },
+  optionLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.softCharcoal,
+  },
+  optionBody: {
+    ...TextStyles.bodySmall,
+    color: Colors.mutedSageGray,
+    marginTop: Spacing['2xs'],
   },
   cta: {
     minHeight: MIN_TOUCH_TARGET,

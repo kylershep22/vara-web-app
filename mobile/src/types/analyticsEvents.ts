@@ -40,6 +40,7 @@ import type { CapacityTier } from '../protocolEngine';
 // an engine concept that happens to be worth recording.
 import type { AdvanceDoor } from '../journey/derive';
 import type {
+  AdjustChoiceId,
   PhaseKey,
   PhaseRead,
   RemoveFamily,
@@ -369,6 +370,52 @@ export interface AnalyticsEventMap {
    */
   journey_advance_declined: { from: 'card' | 'preview' };
   /**
+   * The adjustment offer occupied Today (slice 7b, roadmap section 9 R5).
+   *
+   * BARE, AND THE ABSENCES ARE EACH A DECISION. No door, because unlike
+   * advancement there is only one way in: two consecutive not_moving reads.
+   * No count of which offer this is, because that is the cap's bookkeeping and
+   * putting it here would make a number the product refuses to show a number
+   * the product reports on. No phase either: `journey_state_created` and the
+   * advance events do not carry one, and the phase is recoverable from the
+   * user's own journey document for any analysis that needs it.
+   */
+  journey_adjust_offered: Record<string, never>;
+  /**
+   * The user declined the adjustment offer with "Keep going for now".
+   *
+   * ONE ORIGIN, SO NO `from` DIMENSION, and the asymmetry with
+   * `journey_advance_declined` is real rather than an oversight. Advancement
+   * can be declined from the card or from the preview page, and which one
+   * matters because declining after looking is a different answer. Adjustment
+   * has exactly one decline control, on the card: the phase page's door offers
+   * the alternatives and has nothing to decline, because leaving a page is not
+   * an answer and must not be recorded as one.
+   */
+  journey_adjust_declined: Record<string, never>;
+  /**
+   * The user chose one of the in-phase alternatives.
+   *
+   * `optionId` IS A CURATED ID FROM A CLOSED UNION OF TWELVE, never a label and
+   * never the user's own words. That is what makes it safe under the content
+   * firewall, and the type is the enforcement rather than a convention.
+   *
+   * `from` SEPARATES THE TWO DOORS and this one earns its dimension where the
+   * decline above does not. 'card' is a user answering a proactive offer;
+   * 'phase_page' is a user who went looking, which includes every user past the
+   * two-offer cap. Whether the door gets used after Vara stops knocking is the
+   * question R5's cap is a bet about, and this field is the only place it can
+   * be answered.
+   *
+   * IT RECORDS A CHOICE, NOT AN OUTCOME. As of 7b nothing consumes the choice
+   * (slice 7c does), so this event says the user asked for a change and not
+   * that one was made.
+   */
+  journey_adjust_chosen: {
+    optionId: AdjustChoiceId;
+    from: 'card' | 'phase_page';
+  };
+  /**
    * The crisis pre-check did not pass and the support screen was shown.
    *
    * DELIBERATELY BARE. No text, no category, no length, no timing, nothing about
@@ -400,6 +447,9 @@ const EVENT_NAME_SET: Record<AnalyticsEventName, true> = {
   journey_advance_offered: true,
   journey_advance_accepted: true,
   journey_advance_declined: true,
+  journey_adjust_offered: true,
+  journey_adjust_declined: true,
+  journey_adjust_chosen: true,
   journey_remove_captured: true,
   journey_remove_capture_dismissed: true,
   journey_remove_replacement_chosen: true,

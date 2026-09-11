@@ -447,6 +447,80 @@ import * as path from 'path';
 // a state that would settle it - the journey line reads correctly on device but
 // its label was not read against the alternatives, and the Start here gloss sat
 // under a test clip rather than under Jen's video.
+//
+// 150 THROUGH JOURNEY SLICE 7b: NO CHANGE, AND THE ZERO IS THE ENTRY. The slice
+// landed THIRTY-TWO new strings on the C2 adjustment surfaces and not one of
+// them is drafted, so the number is unmoved. Recorded here anyway, because a
+// slice that adds this much copy and moves the count by nothing is exactly the
+// shape that looks like an omission to whoever audits this file next. It is
+// not.
+//
+// THE TOTAL WAS FIRST WRITTEN AS TWENTY-NINE AND WAS WRONG (corrected
+// 2026-09-11, Kyle). It was also partitioned into three groups that summed to
+// thirty-one, so the headline and its own breakdown disagreed. Counted off the
+// declarations: ADJUST_COPY has EIGHT keys, and ADJUST_ALTERNATIVES has four
+// phases of three options carrying a label and a body each, which is
+// TWENTY-FOUR. Eight plus twenty-four is thirty-two. The partition below sums
+// to that, and it is five ways rather than three because ownership and ROUTE
+// TO ZERO are different questions: two of Kyle's five reach flat by different
+// routes and a ledger that merges them loses the distinction it exists to keep.
+//
+//   - TWENTY-SIX ARE JEN'S, FROM `Content Pack v1 section 5`, LANDING FLAT
+//     under the pack's own rule: the C2 title, the C2 confirmation, and the
+//     twelve alternative labels with their twelve bodies from the adjustment
+//     sets. Pack strings carry no marker and this suite does not count them.
+//   - ONE IS JEN'S FROM `decisions section 4`: ADJUST_COPY.bodyFirst, the final
+//     C2 body, verbatim. Also pack, also flat. The body in section 5's own
+//     delivery is SUPERSEDED and was not built.
+//   - THREE ARE KYLE'S, AUTHORED AND FLAT on the PHASE_PAGE_BODIES precedent:
+//     ADJUST_COPY.primary, ADJUST_COPY.alternativesIntro and ADJUST_COPY.failed.
+//     Written by the owner, not signed off on someone else's draft, which is
+//     the distinction that precedent exists to mark. `primary` is the
+//     prose-to-copy promotion described at the foot of this entry.
+//   - ONE IS KYLE'S BY REPLACEMENT: ADJUST_COPY.decline.
+//   - ONE IS KYLE'S AS A NEW DRAFT CLEARED BY OWNER SIGN-OFF:
+//     ADJUST_COPY.bodySecond.
+//
+// The last two are the cases this ledger is actually for, and they are set out
+// in full below.
+//
+// ONE IS A REPLACEMENT BY OWNER, logged on the precedent PHASE_STATE_LABELS.done
+// set when "Done" became "Complete": a string of Kyle's superseding a wording
+// that already existed moves this count in NEITHER direction, because it is not
+// a new draft and it is not an approval.
+//
+//   - ADJUST_COPY.decline, 'Keep going for now', RETIRES the "keep going as is"
+//     gloss that roadmap sections 3.1 and 8 both use for this control. That
+//     gloss was the roadmap describing a control in passing, never copy, and
+//     shipping it would have put a description where a label belongs.
+//
+// ADJUST_COPY.bodySecond IS A NEW IN-HOUSE DRAFT, NOT A REPLACEMENT, and this
+// entry was CORRECTED on 2026-09-11 (Kyle) from the reading it shipped with.
+// The distinction is the whole contract of this file and it was got wrong:
+// "replacement by owner" requires a wording that ALREADY EXISTED to supersede,
+// and the pack has no second-offer body at all. Superseding an absence is not
+// superseding anything. It is a new string on a C2 surface, and C2 is Jen's.
+//
+// SO IT COUNTS AS +1 AND THEN -1 ON OWNER SIGN-OFF IN THE SAME COMMIT, which
+// nets to zero by a route that is materially different from the replacement
+// route above, and the difference is what a later reader needs:
+//
+//   - The +1 is real. A new drafted string landed on an efficacy-adjacent
+//     surface, and this file's job is to know that.
+//   - The -1 is KYLE SIGNING IT OFF AS OWNER, 2026-09-11. Per the contract at
+//     the top of this file, two owners is not a loophole and which one applies
+//     is a property of the copy: C2 body copy is Jen's, so Kyle's sign-off here
+//     carries a WEAKER WARRANT than a Jen review of the same text would, and
+//     the contract requires saying which. This is the weaker one.
+//   - **IT IS PENDING JEN REVIEW** and that is an open item, not a formality.
+//     It is one word from her approved first body, which is the strongest thing
+//     that can be said for it and is not the same as her having written it. If
+//     she revises §decisions-4's body, this string moves with it.
+//
+// ADJUST_COPY.primary, 'Try a different approach', is Kyle's too and is flat as
+// a prose-to-copy promotion: roadmap section 9 R5 writes those words as prose
+// about what stays available, and PHASE_STATE_LABELS took exactly that reading
+// of section 1's prose.
 const EXPECTED_SENTINELS = 150;
 
 const mobileRoot = path.resolve(__dirname, '../..');

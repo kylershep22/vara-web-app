@@ -20,8 +20,19 @@
  * journey map row opens, including the ones ahead (JourneyMapScreen.tsx:267-277,
  * roadmap section 8 "AHEAD opens"). Collapsing 'journey' into 'hidden' would
  * make a demoted offer vanish, which is the failure this union exists to name.
+ *
+ * TWO OFFERS LIVE HERE NOW (slice 7b). `placeAdvanceOffer` and
+ * `placeAdjustOffer` share this module and share the `OfferPlacement` union,
+ * and they deliberately do NOT share a policy: advancement is bounded by an
+ * exposure budget and a calendar cap, adjustment by the weekly question itself
+ * and a two-offer cap. The argument for keeping them apart is at
+ * `placeAdjustOffer`. What they share is the SHAPE - eligibility in, placement
+ * out, no Firestore, no clock - and the meaning of 'journey', which for
+ * advancement is the map's next-phase row and for adjustment is the phase
+ * page's door.
  */
 import {
+  ADJUST_MAX_PROACTIVE_OFFERS,
   ADVANCE_MAX_TODAY_EXPOSURES,
   ADVANCE_TODAY_CAP_DAYS,
 } from '../constants/journey';
@@ -83,6 +94,70 @@ export function placeAdvanceOffer(input: AdvancePlacementInput): OfferPlacement 
   ) {
     return 'journey';
   }
+  return 'today';
+}
+
+
+export interface AdjustPlacementInput {
+  /** From `deriveAdjustDue`. This module never recomputes eligibility. */
+  due: boolean;
+  /** `journeyStates.adjustDeclines`. How many proactive offers were refused. */
+  declines: number;
+}
+
+/**
+ * Place the adjustment offer.
+ *
+ * THE PROACTIVE WINDOW, STATED AS A RULE RATHER THAN INHERITED AS AN
+ * IMPLEMENTATION CONSEQUENCE (slice 7b):
+ *
+ *   A proactive adjustment offer remains eligible on Today until the user acts
+ *   or a newer read supersedes the pair, whichever comes first.
+ *
+ * That sentence is the specification. It is written here because it is
+ * otherwise invisible: it falls out of slice 6's present-tense read, of
+ * rollover not carrying `phaseRead` forward, and of `deriveAdjustDue`'s window
+ * being reads rather than weeks, and nobody tracing one of those three files
+ * alone would find it. Each clause has a mechanism:
+ *
+ *   - "until the user acts" - declining and choosing an alternative both stamp
+ *     the re-arm floor, so both drop `due` to false on the next resolve.
+ *   - "or a newer read supersedes the pair" - the next weekly reset writes a
+ *     third read into the window, which displaces the older of the two. If that
+ *     read is not_moving the offer stays due on a fresher pair; if it is
+ *     anything else the run breaks.
+ *   - "whichever comes first" - there is no third exit. In particular MERE TIME
+ *     IS NOT ONE. A rolled-over week the user has not answered is not a read
+ *     and does not displace anything.
+ *
+ * NO EXPOSURE MODEL, AND THIS IS A DECISION RATHER THAN AN OMISSION. R3's
+ * exposure budget, its one-per-day gate and its seven-day calendar cap are
+ * SCOPED TO ADVANCEMENT ONLY, and the two offers are not analogous. The
+ * advancement offer is due indefinitely once a threshold is crossed, so without
+ * a budget it would sit on Today forever; the adjustment offer is due only
+ * while the user's two most recent reads both say not_moving, so the weekly
+ * question already bounds it. Adding a counter here would spend an offer on
+ * days the user was absent and withdraw a live complaint nobody answered.
+ *
+ *   1. Not due                -> hidden. Nothing to surface anywhere.
+ *   2. Cap spent              -> journey. Vara stops knocking; the door stays.
+ *   3. Otherwise              -> today.
+ *
+ * 'journey' IS THE PHASE PAGE'S DOOR, and that is what makes the cap humane
+ * rather than a silencing. R5: "the door is open, Vara just stops knocking."
+ * `JourneyPhaseScreen` renders "Try a different approach" for the rest of the
+ * phase on the strength of `adjustOfferedAt`, which the first exposure stamps,
+ * so a capped user loses the card and keeps the agency. Collapsing this branch
+ * into 'hidden' would take both.
+ *
+ * NOTHING RE-PROMOTES FROM THE CAP. There is no branch back to 'today' once
+ * `declines` has reached the cap, and there is no way for `declines` to fall:
+ * it is only ever incremented, and only ever cleared by a phase change through
+ * CLEARED_OFFERS. A new phase is a new set of offers, which is correct.
+ */
+export function placeAdjustOffer(input: AdjustPlacementInput): OfferPlacement {
+  if (!input.due) return 'hidden';
+  if (input.declines >= ADJUST_MAX_PROACTIVE_OFFERS) return 'journey';
   return 'today';
 }
 

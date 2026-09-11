@@ -283,6 +283,9 @@ const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
   advanceExposures: 0,
   advanceFirstOfferedOn: null,
   advanceLastExposedOn: null,
+  adjustArmedFromIso: null,
+  adjustDeclines: 0,
+  adjustOffered: false,
   ...over,
 });
 

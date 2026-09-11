@@ -21,7 +21,7 @@ import {
   ADVANCE_CALENDAR_CEILING_DAYS,
   ADVANCE_MIN_CONSISTENT_DAYS,
 } from '../../constants/journey';
-import type { DailyLog, PhaseRead, WeeklyCycle } from '../../types/models';
+import type { DailyLog, PhaseKey, PhaseRead, WeeklyCycle } from '../../types/models';
 
 const ENTERED = '2026-08-10';
 
@@ -46,13 +46,45 @@ function completedRun(from: string, n: number): DailyLog[] {
   return out;
 }
 
-const cycle = (weekEnd: string, phaseRead?: PhaseRead): WeeklyCycle =>
+/**
+ * A cycle whose week starts and ends on the same day.
+ *
+ * DEGENERATE ON PURPOSE, and it stays that way for every case where the span
+ * does not matter: it keeps the weekEnd-keyed cases readable. Where the
+ * DIFFERENCE between weekStart and weekEnd is the thing under test - which is
+ * every re-arm floor case - use `week()` below, which takes both.
+ */
+const cycle = (
+  weekEnd: string,
+  phaseRead?: PhaseRead,
+  phaseKeyAtRead: PhaseKey = 'remove'
+): WeeklyCycle =>
   ({
     id: 'c-' + weekEnd,
     userId: 'alice',
     weekStart: weekEnd,
     weekEnd,
     phaseRead,
+    // Slice 6 writes the read and the phase together or not at all, so a cycle
+    // WITH a read always has one. Absent when there is no read, matching what
+    // closeWeeklyCycle actually stores.
+    ...(phaseRead ? { phaseKeyAtRead } : {}),
+  }) as unknown as WeeklyCycle;
+
+/** A cycle with a real seven-day span. The floor compares against weekStart. */
+const week = (
+  weekStart: string,
+  weekEnd: string,
+  phaseRead?: PhaseRead,
+  phaseKeyAtRead: PhaseKey = 'remove'
+): WeeklyCycle =>
+  ({
+    id: 'c-' + weekStart,
+    userId: 'alice',
+    weekStart,
+    weekEnd,
+    phaseRead,
+    ...(phaseRead ? { phaseKeyAtRead } : {}),
   }) as unknown as WeeklyCycle;
 
 describe('the thresholds are the ones Section 1 specifies', () => {
@@ -227,16 +259,24 @@ describe('deriveAdvanceDoor - which door, and which copy', () => {
 });
 
 describe('deriveAdjustDue', () => {
+  // Every case below reads the SAME phase, so `phaseKeyAtRead` matches unless a
+  // test says otherwise, and starts with no floor. The two arguments that are
+  // not the cycles are spelled out at each call rather than defaulted in a
+  // helper: they are the two rules this slice added, and hiding them behind a
+  // default is how a test stops asserting the thing it is named for.
+  const due = (
+    cyclesOldestFirst: WeeklyCycle[],
+    armedFromIso: string | null = null,
+    phaseKey: PhaseKey = 'remove'
+  ) => deriveAdjustDue({ cyclesOldestFirst, phaseKey, armedFromIso });
+
   test('is NOT due on a single not_moving read', () => {
-    expect(deriveAdjustDue([cycle('2026-08-16', 'not_moving')], null)).toBe(false);
+    expect(due([cycle('2026-08-16', 'not_moving')])).toBe(false);
   });
 
   test('IS due on two consecutive not_moving reads', () => {
     expect(
-      deriveAdjustDue(
-        [cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', 'not_moving')],
-        null
-      )
+      due([cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', 'not_moving')])
     ).toBe(true);
   });
 
@@ -244,100 +284,234 @@ describe('deriveAdjustDue', () => {
     // WAS 'same' UNTIL SLICE 6, and the middle state changed meaning rather
     // than spelling: 'same' was "no change", 'unclear' is "cannot tell". The
     // assertion is the same because the behaviour is: only explicit not_moving
-    // accumulates, so anything else in the window fails the run.
+    // accumulates, so anything else IN THE WINDOW fails the run.
     expect(
-      deriveAdjustDue(
-        [
-          cycle('2026-08-09', 'not_moving'),
-          cycle('2026-08-16', 'unclear'),
-          cycle('2026-08-23', 'not_moving'),
-        ],
-        null
-      )
+      due([
+        cycle('2026-08-09', 'not_moving'),
+        cycle('2026-08-16', 'unclear'),
+        cycle('2026-08-23', 'not_moving'),
+      ])
     ).toBe(false);
   });
 
   test("an 'unclear' read is NEUTRAL: it breaks a run without accumulating", () => {
     // The two halves of neutrality, asserted together because either alone
     // would pass for the wrong reason. It must not be read as 'moving' and it
-    // must not be read as 'not_moving': a pair of unclear weeks is not an
-    // adjustment signal, and neither is an unclear week following a not_moving
-    // one. It behaves exactly as an unanswered week does (see below).
+    // must not be read as 'not_moving'.
     expect(
-      deriveAdjustDue(
-        [cycle('2026-08-16', 'unclear'), cycle('2026-08-23', 'unclear')],
-        null
-      )
+      due([cycle('2026-08-16', 'unclear'), cycle('2026-08-23', 'unclear')])
     ).toBe(false);
     expect(
-      deriveAdjustDue(
-        [cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', 'unclear')],
-        null
-      )
+      due([cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', 'unclear')])
     ).toBe(false);
-  });
-
-  test("'unclear' and an unanswered week are indistinguishable to the threshold", () => {
-    // The contract's own words: "It behaves exactly as an unanswered week
-    // does." Asserted as an equality rather than as two separate falses, so a
-    // future change that made uncertainty count would have to break this
-    // deliberately rather than slip past two independent assertions.
-    const withUnclear = deriveAdjustDue(
-      [cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', 'unclear')],
-      null
-    );
-    const withSilence = deriveAdjustDue(
-      [cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', undefined)],
-      null
-    );
-    expect(withUnclear).toBe(withSilence);
   });
 
   test("a 'moving' read as the most recent week breaks the run", () => {
     expect(
-      deriveAdjustDue(
-        [cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', 'moving')],
-        null
+      due([cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', 'moving')])
+    ).toBe(false);
+  });
+
+  // -------------------------------------------------------------------------
+  // THE WINDOW IS READS, NOT WEEKS (slice 7b amendment 4).
+  //
+  // This pair REPLACES two slice-1 tests that asserted the opposite rule: that
+  // an unanswered week broke a run exactly as a 'moving' read would, and that
+  // 'unclear' and silence were indistinguishable to the threshold. Both were
+  // true of the old derivation and both are deliberately false now. They are
+  // called out rather than quietly deleted because a reader who remembers them
+  // should find the decision, not a gap.
+  // -------------------------------------------------------------------------
+  test('an UNANSWERED week does not occupy a slot in the window', () => {
+    // The rollover case, and the reason the rule changed. The next week's
+    // cycle is created before Home renders and carries no phaseRead, so under
+    // the old rule it displaced one of the two reads and withdrew a live offer
+    // from a user who had not been asked anything yet.
+    expect(
+      due([
+        cycle('2026-08-16', 'not_moving'),
+        cycle('2026-08-23', 'not_moving'),
+        cycle('2026-08-30', undefined),
+      ])
+    ).toBe(true);
+  });
+
+  test("'unclear' and an unanswered week are NO LONGER indistinguishable", () => {
+    // Uncertainty is an answer about the user's own confidence; absence is no
+    // answer at all. Asserted as an inequality, so a change that collapsed the
+    // two back together would have to break this deliberately.
+    const withUnclear = due([
+      cycle('2026-08-16', 'not_moving'),
+      cycle('2026-08-23', 'not_moving'),
+      cycle('2026-08-30', 'unclear'),
+    ]);
+    const withSilence = due([
+      cycle('2026-08-16', 'not_moving'),
+      cycle('2026-08-23', 'not_moving'),
+      cycle('2026-08-30', undefined),
+    ]);
+    expect(withUnclear).toBe(false);
+    expect(withSilence).toBe(true);
+    expect(withUnclear).not.toBe(withSilence);
+  });
+
+  test('silence still never ACCUMULATES toward the threshold', () => {
+    // The half of the old rule that survives. Excluding silence from the
+    // window must not have turned it into a read: two unanswered weeks are not
+    // a complaint, and one not_moving beside any number of them is still one.
+    expect(due([cycle('2026-08-16', undefined), cycle('2026-08-23', undefined)])).toBe(
+      false
+    );
+    expect(
+      due([
+        cycle('2026-08-09', 'not_moving'),
+        cycle('2026-08-16', undefined),
+        cycle('2026-08-23', undefined),
+      ])
+    ).toBe(false);
+  });
+
+  // -------------------------------------------------------------------------
+  // THE SERVICE OWNS THE ORDERING (slice 7b).
+  // -------------------------------------------------------------------------
+  test('CONSUMES the caller ordering and does not re-sort', () => {
+    // The contract with getWeeklyCyclesSince, asserted as a behaviour rather
+    // than trusted as a comment. The array below is in an order NO sort would
+    // produce from its own weekEnds: if this function re-established order it
+    // would read the 'moving' week as most recent and return false. Reading the
+    // array as given, the last two are the two not_moving weeks.
+    expect(
+      due([
+        cycle('2026-08-30', 'moving'),
+        cycle('2026-08-09', 'not_moving'),
+        cycle('2026-08-16', 'not_moving'),
+      ])
+    ).toBe(true);
+  });
+
+  test('a row with NO weekEnd is ordered by the caller, not re-sorted to the front', () => {
+    // The live disagreement Step 0 caught. `weekEnd` became a stored field
+    // partway through, so rows without one exist and they are the OLDEST.
+    // getWeeklyCyclesSince resolves them from weekStart and may place one LAST;
+    // the old sort here read `weekEnd ?? ''` and placed it FIRST. Two
+    // definitions of "newest", and the wrong two weeks read with nothing
+    // failing. Here the legacy row is the most recent and it is 'moving', so a
+    // re-sort would hide it and wrongly return true.
+    const legacy = {
+      id: 'legacy',
+      userId: 'alice',
+      weekStart: '2026-08-24',
+      phaseRead: 'moving' as PhaseRead,
+      phaseKeyAtRead: 'remove' as PhaseKey,
+    } as unknown as WeeklyCycle;
+    expect(
+      due([cycle('2026-08-10', 'not_moving'), cycle('2026-08-17', 'not_moving'), legacy])
+    ).toBe(false);
+  });
+
+  test('is not due with fewer than two reads', () => {
+    expect(due([])).toBe(false);
+  });
+
+  // -------------------------------------------------------------------------
+  // READS ABOUT THIS PHASE ONLY (slice 7b).
+  // -------------------------------------------------------------------------
+  test('reads given about a DIFFERENT phase do not qualify', () => {
+    // Day one of a new phase, with two not_moving reads about the stretch the
+    // user has just left. They are a true account of that stretch and say
+    // nothing about this one, so offering to adjust this one on its first day
+    // would be acting on evidence about something else.
+    expect(
+      due(
+        [
+          cycle('2026-08-16', 'not_moving', 'remove'),
+          cycle('2026-08-23', 'not_moving', 'remove'),
+        ],
+        null,
+        'recover'
       )
     ).toBe(false);
   });
 
-  test('an UNANSWERED week is not a not_moving week', () => {
-    // phaseRead is absent on every cycle written before slice 6. Silence is
-    // not a complaint, and must not accumulate toward the threshold.
+  test('a read with NO phase attached is excluded rather than assumed', () => {
+    const orphan = {
+      id: 'orphan',
+      userId: 'alice',
+      weekStart: '2026-08-23',
+      weekEnd: '2026-08-23',
+      phaseRead: 'not_moving' as PhaseRead,
+    } as unknown as WeeklyCycle;
+    expect(due([cycle('2026-08-16', 'not_moving'), orphan])).toBe(false);
+  });
+
+  // -------------------------------------------------------------------------
+  // THE RE-ARM FLOOR (slice 7b, section 9 R5).
+  // -------------------------------------------------------------------------
+  test('a decline excludes the weeks that triggered it, INCLUDING the live one', () => {
+    // THE CASE THE FLOOR EXISTS FOR, and the one a weekEnd floor would fail.
+    // The offer can only be on Today when the newest read is not_moving, and
+    // the newest read always belongs to the LIVE week, whose weekEnd is today
+    // or later. A decline on 2026-08-25 therefore sits INSIDE the week ending
+    // 2026-08-30: a `weekEnd > decline` floor keeps that week and the same two
+    // reads re-trigger on the next render. Its weekStart is 2026-08-24, so a
+    // weekStart floor excludes it.
+    const triggering = [
+      cycle('2026-08-23', 'not_moving'),
+      week('2026-08-24', '2026-08-30', 'not_moving'),
+    ];
+    expect(due(triggering)).toBe(true);
+    expect(due(triggering, '2026-08-25')).toBe(false);
+  });
+
+  test("the floor is STRICT, so a decline on a week's first day still excludes it", () => {
     expect(
-      deriveAdjustDue(
-        [cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', undefined)],
-        null
-      )
+      due([cycle('2026-08-23', 'not_moving'), week('2026-08-24', '2026-08-30', 'not_moving')],
+        '2026-08-24')
     ).toBe(false);
   });
 
-  test('reads the two most recent by weekEnd, NOT by array order', () => {
-    // The caller hands these over in whatever order the query returned. An
-    // unsorted input silently reading the wrong two weeks is the failure the
-    // sort exists to prevent, so the input here is deliberately shuffled.
+  test('TWO FURTHER consecutive not_moving reads offer again', () => {
+    // R5's re-arm, end to end. The two weeks that triggered the first offer are
+    // below the floor; the two after it are above it and both not_moving.
     expect(
-      deriveAdjustDue(
+      due(
         [
           cycle('2026-08-23', 'not_moving'),
-          cycle('2026-08-09', 'moving'),
-          cycle('2026-08-16', 'not_moving'),
+          week('2026-08-24', '2026-08-30', 'not_moving'),
+          week('2026-08-31', '2026-09-06', 'not_moving'),
+          week('2026-09-07', '2026-09-13', 'not_moving'),
         ],
-        null
+        '2026-08-25'
       )
     ).toBe(true);
   });
 
-  test('is not due with fewer than two cycles', () => {
-    expect(deriveAdjustDue([], null)).toBe(false);
+  test('ONE further not_moving read is not enough to re-arm', () => {
+    expect(
+      due(
+        [
+          cycle('2026-08-23', 'not_moving'),
+          week('2026-08-24', '2026-08-30', 'not_moving'),
+          week('2026-08-31', '2026-09-06', 'not_moving'),
+        ],
+        '2026-08-25'
+      )
+    ).toBe(false);
   });
 
-  test('a decline suppresses an otherwise-due offer', () => {
+  test('not_moving -> unclear -> not_moving does NOT re-arm', () => {
+    // The consecutiveness rule, applied to the re-armed window specifically.
+    // Three reads above the floor, two of them not_moving, and they are not
+    // adjacent: the two most recent are unclear and not_moving.
     expect(
-      deriveAdjustDue(
-        [cycle('2026-08-16', 'not_moving'), cycle('2026-08-23', 'not_moving')],
-        { seconds: 1 }
+      due(
+        [
+          week('2026-08-24', '2026-08-30', 'not_moving'),
+          week('2026-08-31', '2026-09-06', 'not_moving'),
+          week('2026-09-07', '2026-09-13', 'unclear'),
+          week('2026-09-14', '2026-09-20', 'not_moving'),
+        ],
+        '2026-08-25'
       )
     ).toBe(false);
   });

@@ -156,6 +156,53 @@ export interface PhaseContext {
   advanceExposures: number;
   advanceFirstOfferedOn: string | null;
   advanceLastExposedOn: string | null;
+
+  /**
+   * The adjustment offer's re-arm floor, as an ISO date (slice 7b, R5).
+   *
+   * THE LATEST OF THREE INSTANTS, AND RESOLVING IT HERE IS THE POINT. The
+   * phase's own `enteredAt`, `adjustDeclinedAt` and `adjustChosenAt` are three
+   * ways of saying "start counting again from here", they are all Firestore
+   * Timestamps, and `deriveAdjustDue` compares against `weekStart`, which is an
+   * ISO string. Doing the max and the conversion once here keeps the derivation
+   * pure over primitives with no Timestamp in it, on exactly the precedent
+   * `enteredAtIso` and `advanceDeclined` set above.
+   *
+   * A DATE, NOT AN INSTANT, AND THE PRECISION LOSS IS DELIBERATE. The thing it
+   * is compared against is a week's start date, so anything finer than a day
+   * would be false precision. `weekStart > armedFromIso` is strict, which is
+   * what excludes the week the decline was made in; the argument is at
+   * `AdjustDueInput.armedFromIso`.
+   *
+   * NULL ONLY WHEN NOTHING HAS ESTABLISHED A FLOOR: no decline, no choice, and
+   * an `enteredAt` the server has not resolved yet. Null means no floor rather
+   * than a floor at the epoch, so an unresolved phase does not silently exclude
+   * every read.
+   */
+  adjustArmedFromIso: string | null;
+  /**
+   * How many proactive adjustment offers the user has declined in this phase.
+   *
+   * IT DOES TWO JOBS AND BOTH ARE THE CARD'S. It spends the two-offer cap in
+   * `placeAdjustOffer`, and it picks which of the two bodies is honest: zero is
+   * the first offer, one is the second. NEVER RENDERED AS A NUMBER, and there
+   * is no state in which the user learns what it holds.
+   */
+  adjustDeclines: number;
+  /**
+   * Has the adjustment offer occupied Today at least once in this phase?
+   *
+   * A BOOLEAN, NOT THE TIMESTAMP, on the `advanceDeclined` precedent: the two
+   * readers need the fact and not the instant. It GATES THE DOOR-OPENING WRITE,
+   * which is the whole reason it is carried rather than re-read - without it
+   * `useAdjustOffer` would re-stamp `adjustOfferedAt` on every focus while the
+   * card was up, and each write would bump `revisionToken` and re-resolve.
+   *
+   * THE PHASE PAGE DOES NOT USE THIS. It reads `adjustOfferedAt` off its own
+   * journey document, because it is reachable from the map without Home having
+   * resolved anything.
+   */
+  adjustOffered: boolean;
 }
 
 export type JourneyResolution =
@@ -206,6 +253,48 @@ function enteredAtIsoOf(state: JourneyState): string {
         ? new Date(stamp.seconds * 1000)
         : null;
   return date ? toIsoDate(date) : '';
+}
+
+/**
+ * A Firestore Timestamp as an ISO date, or null for anything unreadable.
+ *
+ * TOLERANT OF THE THREE SHAPES A TIMESTAMP ARRIVES IN, for the reason
+ * `enteredAtIsoOf` above already handles two of them: the SDK returns a
+ * Timestamp with `toDate`, a cached or plain-object read can carry `seconds`,
+ * and a document mid-write carries null until the server resolves the sentinel.
+ * Null for the third is correct: a floor nobody has written yet is not a floor
+ * at the epoch.
+ */
+function timestampToIso(stamp: unknown): string | null {
+  const t = stamp as { toDate?: () => Date; seconds?: number } | null;
+  if (t && typeof t.toDate === 'function') return toIsoDate(t.toDate());
+  if (t && typeof t.seconds === 'number') return toIsoDate(new Date(t.seconds * 1000));
+  return null;
+}
+
+/**
+ * The adjustment re-arm floor: the LATEST of phase entry, decline and choice.
+ *
+ * LATEST, NOT FIRST, AND NOT MERELY THE DECLINE. Each of the three ends a
+ * counting window and starts a fresh one, so the newest of them is the only one
+ * that still binds. Taking the decline alone would let a choice made after it
+ * count reads from before it; taking entry alone would ignore both.
+ *
+ * STRING MAX IS DATE MAX for ISO YYYY-MM-DD, which sorts exactly as it orders
+ * chronologically. Same property `deriveConsistentDays` relies on.
+ *
+ * Nulls drop out rather than defaulting, so a user with no decline and no
+ * choice is floored at their phase entry, and a user whose `enteredAt` has not
+ * resolved yet is floored at whichever of the other two exists, or not at all.
+ */
+function adjustArmedFromIsoOf(state: JourneyState): string | null {
+  const candidates = [
+    enteredAtIsoOf(state) || null,
+    timestampToIso(state.adjustDeclinedAt),
+    timestampToIso(state.adjustChosenAt ?? null),
+  ].filter((iso): iso is string => iso !== null);
+  if (candidates.length === 0) return null;
+  return candidates.reduce((a, b) => (a > b ? a : b));
 }
 
 /** journeyState.updatedAt, in millis, tolerant of the shapes Firestore returns. */
@@ -301,6 +390,9 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
           advanceExposures: existing.advanceExposures ?? 0,
           advanceFirstOfferedOn: existing.advanceFirstOfferedOn ?? null,
           advanceLastExposedOn: existing.advanceLastExposedOn ?? null,
+          adjustArmedFromIso: adjustArmedFromIsoOf(existing),
+          adjustDeclines: existing.adjustDeclines ?? 0,
+          adjustOffered: !!existing.adjustOfferedAt,
         },
       };
     }
@@ -377,6 +469,14 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
         advanceExposures: 0,
         advanceFirstOfferedOn: null,
         advanceLastExposedOn: null,
+        // The floor is the phase's own entry, which is the only one of the
+        // three instants a journey created a moment ago has. Read off the
+        // created document rather than restated as null, because `enteredAt`
+        // is the one value here the server decided and this one does depend on
+        // the round trip the comment above describes.
+        adjustArmedFromIso: adjustArmedFromIsoOf(created),
+        adjustDeclines: 0,
+        adjustOffered: false,
       },
     };
   } catch (error) {

@@ -93,6 +93,32 @@ export const ADVANCE_TODAY_CAP_DAYS = 7;
 export const ADJUST_CONSECUTIVE_NOT_MOVING = 2;
 
 /**
+ * How many PROACTIVE adjustment offers one phase may make before Vara stops
+ * knocking (roadmap section 9 R5).
+ *
+ * A BETA-TUNABLE, NOT A LAW, and R5 says so in those terms: the trigger is a
+ * genuinely stuck user and whether two is the right number is a thing to watch
+ * rather than settle now. It is a named constant precisely so that tuning it is
+ * a one-line product decision instead of an archaeology exercise inside a
+ * derivation. Do not inline this value.
+ *
+ * COUNTED IN DECLINES, AND THE TWO UNITS COINCIDE BY CONSTRUCTION. Every
+ * proactive offer ends in one of three ways: the user acts on it, the week
+ * rolls a newer read over the pair, or the user declines. Only the third leaves
+ * a proactive offer spent-and-refused, and R5's wording is "after a second
+ * decline". So the count of declines IS the count of offers this cap is about.
+ *
+ * THE DOOR IS NOT CAPPED. Hitting this stops the offer occupying TODAY; "Try a
+ * different approach" stays on the phase page for the rest of the phase. R5:
+ * the door is open, Vara just stops knocking. Nothing here may grow into a cap
+ * on the door.
+ *
+ * NEVER RENDERED. There is no state in which a user learns they have one left,
+ * on the same section 8 ban `ADVANCE_MAX_TODAY_EXPOSURES` carries.
+ */
+export const ADJUST_MAX_PROACTIVE_OFFERS = 2;
+
+/**
  * Where one phase sits relative to the user, for the journey map's row states
  * (roadmap section 1: DONE / WHERE YOU ARE / AHEAD / SKIPPED).
  *

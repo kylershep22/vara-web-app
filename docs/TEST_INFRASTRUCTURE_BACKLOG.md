@@ -25,6 +25,28 @@ Format per entry: file/area, what fails, what blocks, suggested fix.
   `firebase/firestore` mocks.
 - **Surfaced:** Phase 0, during normalizer wiring verification.
 
+### No test asserts that a written document is FOUND by the query that reads it
+
+- **Symptom:** a seeded `weeklyCycles` row with the correct document id but no
+  `userId` **field** is invisible to `getWeeklyCyclesSince`
+  (`weeklyCycle.service.ts:642` filters on the FIELD, not the path). The
+  adjustment offer then silently never fires, with every unit test green.
+- **Why the suites miss it:** every `deriveAdjustDue` test hands the derivation
+  an array, and `useAdjustOffer.test.ts` mocks the service. The assertions are
+  real; the thing they assert is not the thing that breaks. Same vacuous-green
+  shape the rules-test harness note already warns about, one layer up.
+- **Not confined to this query.** Any `where('<field>', '==', …)` read has the
+  same gap: the write path and the read path agree only by convention, and
+  nothing fails when they stop agreeing.
+- **Suggested fix:** a round-trip case in the emulator-backed rules harness —
+  write through the real service helper, read back through the real query,
+  assert the row is found. The harness already seeds via the `withAdminDb` shim
+  and can do both halves.
+- **Surfaced:** journey slice 7b walk, 2026-09-11. Logged, not fixed: this is a
+  harness capability, not a slice.
+
+---
+
 ---
 
 ## Closed items

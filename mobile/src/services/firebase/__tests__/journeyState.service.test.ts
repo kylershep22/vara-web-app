@@ -41,6 +41,7 @@ import {
   advancePhase,
   createJourneyState,
   getJourneyState,
+  recordAdjustChoice,
   recordAdjustDeclined,
   recordAdjustOffered,
   recordAdvanceDeclined,
@@ -76,6 +77,9 @@ function stored(over: Partial<JourneyState> = {}): Record<string, unknown> {
     advanceExposures: 0,
     advanceFirstOfferedOn: null,
     advanceLastExposedOn: null,
+    adjustDeclines: 0,
+    adjustChoice: null,
+    adjustChosenAt: null,
     createdAt: { seconds: 100 },
     updatedAt: { seconds: 100 },
     ...over,
@@ -93,9 +97,20 @@ const ALL_OFFER_FIELDS = [
   'advanceExposures',
   'advanceFirstOfferedOn',
   'advanceLastExposedOn',
+  'adjustDeclines',
+  'adjustChoice',
+  'adjustChosenAt',
 ];
 
-/** What CLEARED_OFFERS must write. The three exposure fields joined in 7a. */
+/**
+ * What CLEARED_OFFERS must write. The three exposure fields joined in 7a; the
+ * three adjust fields in 7b.
+ *
+ * THE SPREAD SITES ARE THE REASON THIS CONSTANT IS DUPLICATED HERE RATHER THAN
+ * IMPORTED. CLEARED_OFFERS is module-private by design, and the test asserting
+ * its contents against an import of itself would pass for any contents at all.
+ * This is the second opinion, and it has to be written out by hand to be one.
+ */
 const CLEARED = {
   advanceOfferedAt: null,
   advanceDeclinedAt: null,
@@ -104,6 +119,9 @@ const CLEARED = {
   advanceExposures: 0,
   advanceFirstOfferedOn: null,
   advanceLastExposedOn: null,
+  adjustDeclines: 0,
+  adjustChoice: null,
+  adjustChosenAt: null,
 };
 
 describe('journeyState.service', () => {
@@ -368,10 +386,15 @@ describe('journeyState.service', () => {
   });
 
   describe('offer bookkeeping', () => {
+    // `recordAdjustDeclined` LEFT THIS TABLE IN SLICE 7b. It moves two fields
+    // now - the floor and the cap count - so the table's "touches no other
+    // offer field" assertion is no longer the contract it should be held to.
+    // It gets its own block below rather than a loosened row here, because
+    // loosening the row would also loosen it for the two that are still
+    // single-field writes.
     const cases: Array<[string, (uid: string) => Promise<void>, string]> = [
       ['recordAdvanceDeclined', recordAdvanceDeclined, 'advanceDeclinedAt'],
       ['recordAdjustOffered', recordAdjustOffered, 'adjustOfferedAt'],
-      ['recordAdjustDeclined', recordAdjustDeclined, 'adjustDeclinedAt'],
     ];
 
     cases.forEach(([name, fn, field]) => {
@@ -388,6 +411,77 @@ describe('journeyState.service', () => {
     test('every setter refreshes updatedAt', async () => {
       await recordAdvanceDeclined(ALICE);
       expect(patch().updatedAt).toEqual({ __serverTimestamp: true });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // recordAdjustDeclined (slice 7b, section 9 R5)
+  //
+  // TWO FIELDS, ONE EVENT. The timestamp re-arms the counter and the count
+  // spends the two-offer cap. A write that moved one without the other would
+  // either re-arm without ever capping or cap without re-arming, which is why
+  // this is one setter and not two.
+  // -------------------------------------------------------------------------
+  describe('recordAdjustDeclined', () => {
+    test('stamps the floor AND increments the cap count', async () => {
+      await recordAdjustDeclined(ALICE);
+      expect(patch().adjustDeclinedAt).toEqual({ __serverTimestamp: true });
+      expect(patch().adjustDeclines).toEqual({ __increment: 1 });
+    });
+
+    test('increments rather than setting, so a second decline reaches two', async () => {
+      // The whole reason the field exists: one timestamp cannot count to two.
+      // An overwrite here would make the second decline indistinguishable from
+      // the first and R5's cap unreachable.
+      await recordAdjustDeclined(ALICE);
+      expect(patch().adjustDeclines).not.toBe(1);
+      expect(patch().adjustDeclines).toEqual({ __increment: 1 });
+    });
+
+    test('touches neither the choice nor the advance side', async () => {
+      await recordAdjustDeclined(ALICE);
+      for (const other of [
+        'advanceOfferedAt',
+        'advanceDeclinedAt',
+        'adjustOfferedAt',
+        'advanceExposures',
+        'advanceFirstOfferedOn',
+        'advanceLastExposedOn',
+        'adjustChoice',
+        'adjustChosenAt',
+      ]) {
+        expect(patch()).not.toHaveProperty(other);
+      }
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // recordAdjustChoice (slice 7b)
+  // -------------------------------------------------------------------------
+  describe('recordAdjustChoice', () => {
+    test('writes the curated id and stamps the instant', async () => {
+      await recordAdjustChoice(ALICE, 'make_it_smaller');
+      expect(mockDoc).toHaveBeenCalledWith({ __db: true }, 'journeyStates', ALICE);
+      expect(patch().adjustChoice).toBe('make_it_smaller');
+      expect(patch().adjustChosenAt).toEqual({ __serverTimestamp: true });
+      expect(patch().updatedAt).toEqual({ __serverTimestamp: true });
+    });
+
+    test('does NOT spend the two-offer cap', async () => {
+      // R5 caps offers the user REFUSED. A user who acted got what the offer
+      // was for, so acting must not count toward the cap that silences it.
+      await recordAdjustChoice(ALICE, 'try_another_way');
+      expect(patch()).not.toHaveProperty('adjustDeclines');
+      expect(patch()).not.toHaveProperty('adjustDeclinedAt');
+    });
+
+    test('changes no phase', async () => {
+      // Adjusting is about HOW the user works on this stretch, never about
+      // leaving it. Nothing here may acquire a phaseKey write.
+      await recordAdjustChoice(ALICE, 'come_back_to_why');
+      expect(patch()).not.toHaveProperty('phaseKey');
+      expect(patch()).not.toHaveProperty('enteredAt');
+      expect(patch()).not.toHaveProperty('history');
     });
   });
 

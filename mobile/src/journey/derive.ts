@@ -19,7 +19,7 @@ import {
   ADVANCE_CALENDAR_CEILING_DAYS,
   ADVANCE_MIN_CONSISTENT_DAYS,
 } from '../constants/journey';
-import type { DailyLog, WeeklyCycle } from '../types/models';
+import type { DailyLog, PhaseKey, WeeklyCycle } from '../types/models';
 
 /**
  * How many days in this phase the user actually completed.
@@ -116,6 +116,58 @@ export function deriveAdvanceDue(input: AdvanceDueInput): boolean {
 }
 
 /**
+ * What `deriveAdjustDue` needs. Every term is a primitive or an array the
+ * caller already holds; nothing here reaches Firestore or a clock.
+ */
+export interface AdjustDueInput {
+  /**
+   * The user's weekly cycles since the phase was entered, OLDEST FIRST,
+   * EXACTLY AS `getWeeklyCyclesSince` RETURNED THEM.
+   *
+   * THE ORDERING IS THE SERVICE'S CONTRACT AND THIS FUNCTION CONSUMES IT. See
+   * the header above for why it must not be re-established here.
+   */
+  cyclesOldestFirst: WeeklyCycle[];
+  /**
+   * The phase in progress. Reads given about any other phase are excluded.
+   *
+   * WHY A READ CAN NAME A DIFFERENT PHASE: `phaseKeyAtRead` is stored beside
+   * every read precisely because the phase can change between a close and
+   * whenever the read is next consulted. Two not_moving reads given about the
+   * stretch the user has just LEFT are a true account of that stretch and say
+   * nothing about this one, so they must not offer to adjust it on its first
+   * day.
+   */
+  phaseKey: PhaseKey;
+  /**
+   * The re-arm floor: a cycle counts only if its `weekStart` is STRICTLY after
+   * this date. Null when nothing has established a floor yet.
+   *
+   * THE LATEST OF THREE INSTANTS, resolved once in `PhaseContext` so the
+   * Timestamp-to-ISO conversion happens in one place rather than in every
+   * caller: the phase's own `enteredAt`, `adjustDeclinedAt` and
+   * `adjustChosenAt`. Entering the phase, declining the offer and acting on it
+   * are three different ways of saying "start counting again from here", and
+   * the most recent of them wins.
+   *
+   * `weekStart`, NOT `weekEnd`, AND THE DIFFERENCE IS LOAD BEARING. Step 0 of
+   * this slice caught it: the offer can only be on Today when the NEWEST read
+   * is `not_moving`, and the newest read always belongs to the LIVE week
+   * (`closeWeeklyCycle` attaches it to the live cycle; `ensureCurrentWeeklyCycle`
+   * rolls that cycle over before Home renders). A live week is one whose
+   * `weekEnd` is today or later, so at the decline instant D the triggering
+   * week has `weekEnd >= D` and a `weekEnd > D` floor KEEPS it. The same two
+   * reads would then re-trigger on the very next render, which is the exact
+   * failure the re-arm exists to prevent. Its `weekStart` is on or before D,
+   * so a `weekStart > D` floor excludes it and the count genuinely restarts.
+   *
+   * STRICTLY AFTER, NOT ON-OR-AFTER, for the same reason: a decline taken on
+   * the first day of a week must still exclude that week.
+   */
+  armedFromIso: string | null;
+}
+
+/**
  * Should the app OFFER to adjust the journey?
  *
  * TWO CONSECUTIVE 'not_moving' WEEKLY READS (Section 1). One flat week is
@@ -123,17 +175,43 @@ export function deriveAdvanceDue(input: AdvanceDueInput): boolean {
  * consecutive, so an 'unclear' or 'moving' week between two not_moving weeks
  * breaks the run and the offer does not fire.
  *
- * CONSECUTIVE IS JUDGED BY weekEnd ORDER, not by array order. The caller may
- * hand these over in whatever order the query returned, and an unsorted input
- * silently reading the wrong two weeks is exactly the failure this sorts to
- * avoid. Cycles with no weekEnd sort as empty string and land oldest, which is
- * correct: weekEnd only became a stored field partway through, so a row
- * without one predates every row that has one.
+ * IT CONSUMES `getWeeklyCyclesSince`'s ORDERING AND DOES NOT RE-SORT. THIS IS A
+ * CHANGE IN SLICE 7b AND IT FIXED A LIVE DISAGREEMENT, not a hypothetical one.
+ * This function used to sort by `(a.weekEnd ?? '')`, which lands a row with no
+ * stored `weekEnd` at the OLDEST end as the empty string. The service sorts the
+ * same rows by `resolveWeekEnd(weekStart, weekEnd)`, which resolves that row to
+ * `weekStart + 6` and can place it LAST. `weekEnd` only became a stored field
+ * partway through, so rows without one exist. Two functions with two
+ * definitions of "newest", one of them documented as the authority and the
+ * other silently winning, is how the wrong two weeks get read with nothing
+ * failing. There is now ONE authority: the service, whose fallback-aware
+ * `resolveWeekEnd` ordering is asserted by its own tests and by this module's.
  *
- * AN UNANSWERED WEEK IS NOT A not_moving WEEK. `phaseRead` is absent on every
- * cycle written before slice 6 and on any week the user skipped the question,
- * and absence breaks a run exactly as a 'moving' read would. Silence is not a
- * complaint.
+ * THE WINDOW IS READS, NOT WEEKS (slice 7b, amendment 4). Cycles with no
+ * `phaseRead` are removed BEFORE the two most recent are taken, so a week the
+ * user did not answer does not occupy a slot. This is a DELIBERATE CHANGE from
+ * the rule this comment used to state, which was that absence "breaks a run
+ * exactly as a 'moving' read would":
+ *
+ *   - WHAT IT FIXES. Rollover creates the next week's cycle before Home renders
+ *     and carries `outcome` and `capacityInitial` forward but never
+ *     `phaseRead`. Under the old rule, a blank rolled-over week displaced one of
+ *     the two reads and withdrew a due offer the moment the week turned, from a
+ *     user who had answered not_moving twice and had not yet been asked
+ *     anything. The offer would vanish without the user acting and without a
+ *     newer read contradicting it.
+ *   - WHAT IT PRESERVES. Silence still never accumulates and still never counts
+ *     against the user; it is simply not a read. "Silence is not a complaint"
+ *     is unchanged and is in fact stated more exactly by exclusion than it was
+ *     by breaking the run.
+ *   - WHAT IS NOT AFFECTED. `unclear` IS a read and stays in the window, where
+ *     it breaks the run on the `every` below. Uncertainty is an answer about
+ *     the user's own confidence; absence is no answer at all. The two were
+ *     indistinguishable to the old threshold and are deliberately no longer.
+ *
+ * READS ABOUT THIS PHASE ONLY. `phaseKeyAtRead` must match, and a read with no
+ * phase attached is excluded rather than assumed to be about this one. See
+ * `AdjustDueInput.phaseKey`.
  *
  * C1 THREE-STATE CONTRACT (Content Pack v1, decisions section 1, approved
  * 2026-09-05). The weekly question has exactly three answers and they map:
@@ -145,27 +223,19 @@ export function deriveAdvanceDue(input: AdvanceDueInput): boolean {
  * `unclear` is NEUTRAL, and neutral is a stronger claim than it sounds. It must
  * not count toward the two-consecutive run below, must not RESET a prior
  * not_moving as though the user reported improvement, must not be read as
- * 'moving', and must not be treated as a negative signal anywhere else. It
- * behaves exactly as an unanswered week does: it breaks the run without
- * counting against the user. Uncertainty is not a complaint.
+ * 'moving', and must not be treated as a negative signal anywhere else.
  *
  * ONLY EXPLICIT `not_moving` ACCUMULATES. The `every` below already enforces
  * this by construction: a run needs two literal 'not_moving' values and any
- * other value, present or absent, fails it. Stated here because the rule is a
- * product decision that happens to match the code today, not a property the
- * code would keep on its own through a refactor.
+ * other value fails it. Stated here because the rule is a product decision that
+ * happens to match the code today, not a property the code would keep on its
+ * own through a refactor.
  *
  * C1 NEVER GATES THE ADVANCEMENT OFFER. Advancement stays governed by its own
  * consistency/time eligibility and stays an offer; `phaseRead` is read HERE and
  * nowhere else, and `deriveAdvanceDue` does not read it. Adding a "must report
  * moving before advancing" requirement would be a separate product decision, to
  * be taken deliberately and never inferred from this field.
- *
- * THE CONTRACT ABOVE IS NOW THE SHIPPED TYPE (slice 6). `PhaseRead` is
- * `'moving' | 'not_moving' | 'unclear'` in types/models.ts, and this function
- * needed no change to honour it: the `every` below already required two
- * literal 'not_moving' values, so 'unclear' broke the run by construction
- * before it had a name.
  *
  * `same` -> `unclear` WAS A SEMANTIC CHANGE, NOT A RENAME, and the distinction
  * is kept here because the field's meaning depends on it:
@@ -175,40 +245,42 @@ export function deriveAdvanceDue(input: AdvanceDueInput): boolean {
  *
  * "No change" is a substantive answer; "hard to tell" is the absence of one.
  * The neutrality rules above attach to `unclear` and were never true of `same`.
- *
- * THE STEP-0 CHECK THIS COMMENT USED TO ASK FOR IS ANSWERED, and the answer is
- * recorded here so it is never re-run on a guess. It said the repo could see no
- * writer but could not see production, and that any surviving `same` values
- * could not be silently relabeled. Kyle ran the query on 2026-09-10: a
- * collection-group read of `weeklyCycles` filtered `phaseRead != null` returned
- * ZERO documents. No value had ever been stored, so the re-spec rewrote nothing
- * a user said and needed no migration. Slice 6's weekly reset is the first
+ * Kyle ran the migration check on 2026-09-10: a collection-group read of
+ * `weeklyCycles` filtered `phaseRead != null` returned ZERO documents, so the
+ * re-spec rewrote nothing a user said. Slice 6's weekly reset is the first
  * writer of the field.
  *
- * DECLINED STILL SUPPRESSES HERE, AND THIS IS NOW THE ONLY PLACE THAT DOES.
- * This clause used to read "on the same placeholder policy as
- * deriveAdvanceDue"; that policy is gone from the advance side (slice 7a
- * decision 1 moved it to journey/offerPlacement.ts), so the cross-reference
- * would now point at a rule that no longer exists.
- *
- * IT IS LEFT IN PLACE DELIBERATELY RATHER THAN MOVED TO MATCH. Section 9 R5
- * re-arms the adjust counter after a decline and caps proactive offers at two,
- * and that is slice 7b's scope. Moving the suppression out now would leave the
- * adjust offer with no suppression at all until 7b lands, which is a live
- * behaviour change in a slice that does not own this function. The conservative
- * reading stands one more slice: declined means not due.
+ * ELIGIBILITY ONLY. THE DECLINE NO LONGER SHORT-CIRCUITS HERE, and that is
+ * slice 7b completing what 7a started on the advance side. This function used
+ * to return false outright on a non-null `adjustDeclinedAt`, under a comment
+ * saying the conservative reading would stand "one more slice". This is that
+ * slice. A decline is now a FLOOR on which reads count (see `armedFromIso`),
+ * not a suppression, because R5 re-arms the counter and a suppression cannot
+ * re-arm. WHERE an offer is surfaced, and the two-offer cap on surfacing it,
+ * are `placeAdjustOffer` in journey/offerPlacement.ts. Do not reintroduce a
+ * suppression term here.
  */
-export function deriveAdjustDue(
-  resetsSinceEntry: WeeklyCycle[],
-  adjustDeclinedAt: unknown | null
-): boolean {
-  if (adjustDeclinedAt !== null && adjustDeclinedAt !== undefined) return false;
-  if (resetsSinceEntry.length < ADJUST_CONSECUTIVE_NOT_MOVING) return false;
+export function deriveAdjustDue(input: AdjustDueInput): boolean {
+  const { cyclesOldestFirst, phaseKey, armedFromIso } = input;
 
-  const byWeekEnd = [...resetsSinceEntry].sort((a, b) =>
-    (a.weekEnd ?? '').localeCompare(b.weekEnd ?? '')
+  // ONE FILTER PASS, THREE RULES, AND THE ORDER OF THE CLAUSES IS NOT THE
+  // POLICY - all three must hold. What IS policy is that every one of them runs
+  // BEFORE the two most recent are taken: a cycle excluded here must not
+  // occupy a slot in the window, which is the whole substance of the amendment
+  // above and of the re-arm floor.
+  const window = cyclesOldestFirst.filter(
+    (cycle) =>
+      // A read, not merely a week.
+      cycle.phaseRead !== undefined &&
+      cycle.phaseRead !== null &&
+      // Given about the stretch the user is standing in.
+      cycle.phaseKeyAtRead === phaseKey &&
+      // After the last time the count was armed.
+      (armedFromIso === null || cycle.weekStart > armedFromIso)
   );
-  const mostRecent = byWeekEnd.slice(-ADJUST_CONSECUTIVE_NOT_MOVING);
 
+  if (window.length < ADJUST_CONSECUTIVE_NOT_MOVING) return false;
+
+  const mostRecent = window.slice(-ADJUST_CONSECUTIVE_NOT_MOVING);
   return mostRecent.every((cycle) => cycle.phaseRead === 'not_moving');
 }
