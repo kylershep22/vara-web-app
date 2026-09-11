@@ -325,6 +325,14 @@ export interface AnalyticsEventMap {
    * user with four of these in one phase is a bug report rather than a heavy
    * user.
    *
+   * "OCCUPIED TODAY" MEANS THE CARD DREW, AND IT ONLY MEANS THAT FROM SLICE 7d.
+   * This sentence described the intent from the day it was written and did not
+   * describe the code: until 7d the gate fired on the offer being ELIGIBLE for
+   * Today's one journey-action slot, and capture and C2 both outrank it, so
+   * rows were emitted for a card the user never saw. ROWS WRITTEN BEFORE 7d ARE
+   * NOT COMPARABLE WITH ROWS WRITTEN AFTER IT, and any accept-rate cut that
+   * crosses the merge is measuring two different denominators.
+   *
    * `door` IS WHICH THRESHOLD OPENED IT, and it is the reason this event is
    * worth having. 'consistency' and 'ceiling' catch opposite users - one doing
    * the work, one stuck - and the accept rate of the two is the first real
@@ -379,6 +387,13 @@ export interface AnalyticsEventMap {
    * the product reports on. No phase either: `journey_state_created` and the
    * advance events do not carry one, and the phase is recoverable from the
    * user's own journey document for any analysis that needs it.
+   *
+   * "OCCUPIED TODAY" MEANS THE C2 CARD DREW, from slice 7d. It fired on
+   * ELIGIBILITY before that, and capture outranks adjust, so a user in `remove`
+   * with no capture and two not_moving reads emitted this without C2 ever
+   * appearing. Same caveat as `journey_advance_offered`: rows do not compare
+   * across the 7d merge. It shares its gate with the `adjustOfferedAt` stamp,
+   * so the event count and the phase page's door are the same fact.
    */
   journey_adjust_offered: Record<string, never>;
   /**
