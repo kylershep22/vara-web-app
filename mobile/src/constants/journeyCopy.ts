@@ -24,7 +24,12 @@
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
 import type { PhaseState } from './journey';
-import type { DestinationKey, PhaseKey, PhaseRead } from '../types/models';
+import type {
+  AdjustChoiceId,
+  DestinationKey,
+  PhaseKey,
+  PhaseRead,
+} from '../types/models';
 
 /**
  * The destination named in ONE WORD (or two), for the positions that used to
@@ -419,3 +424,239 @@ export const JOURNEY_LINE_LABEL = 'Where you are';
 // COPY: draft, not from guidelines doc - pending Kyle
 export const TODAY_START_HERE_GLOSS =
   'A short video on what actually helps, and why the order matters.';
+
+/**
+ * The adjustment offer, C2 (slice 7b, roadmap section 9 R5).
+ *
+ * BUILT FROM `Content Pack v1 decisions section 4`, NEVER FROM `section C2`'s
+ * OWN BODY. The pack ships C2 twice and the first one is struck through in the
+ * pack itself: "This hasn't felt very useful lately" was revised out by Jen in
+ * the same-day decisions addendum for overstating what Vara knows. The title is
+ * unchanged between the two versions; the body is not. Anyone who reaches for
+ * section 5's body is reading the superseded delivery.
+ *
+ * THE CARD MUST NEVER NARRATE THE TRIGGER, and the pack says so in its own
+ * words: "Do not tell the user that two negative weekly responses triggered
+ * this." Two not_moving reads tell us the user does not currently feel
+ * movement. They do not tell us the practices were useless, and nothing here
+ * may say or imply either. The prohibition survived the revision and applies to
+ * both versions.
+ *
+ * NO NUMBERS, NO COUNTERS, NO FRAMEWORK WORDS on any of these surfaces. Not the
+ * two reads, not the two offers, not which offer this is.
+ *
+ * TWO BODIES, ONE WORD APART, AND THAT WORD IS THE WHOLE OF R5's CONTINUITY.
+ * R5 REJECTED the copy clause it was leaning toward: "copy acknowledges the
+ * prior choice" reads as a case file, and being quoted back to yourself is the
+ * opposite of the peer posture section 8 requires of a decline. What survived
+ * is the word "still" and nothing more. `adjustDeclines` picks between them;
+ * neither body knows or says how many times the user has been asked.
+ *
+ * OWNERSHIP, string by string, because these come from three places:
+ *
+ *   - `title` and `confirmation` are JEN'S, pack section C2, landing FLAT under
+ *     the pack's own rule: pack strings carry no `COPY: draft` marker and the
+ *     sentinel does not count them.
+ *   - `bodyFirst` is JEN'S, `decisions section 4` final C2 copy, VERBATIM. Also
+ *     flat, also pack.
+ *   - `decline`, `primary`, `alternativesIntro` and `failed` are KYLE'S,
+ *     authored 2026-09-10, landing flat on the PHASE_PAGE_BODIES precedent:
+ *     written by the owner rather than signed off on someone else's draft.
+ *     `decline` REPLACES existing wording and is recorded as such below.
+ *   - `bodySecond` is KYLE'S TOO but is a different case and is logged as one:
+ *     a NEW in-house draft on a C2 surface, cleared by owner sign-off rather
+ *     than by replacement, and PENDING JEN REVIEW. See its declaration.
+ *
+ * `confirmation` SHIPS INERT AND THAT IS DELIBERATE. It is shown when a choice
+ * is recorded, and as of 7b recording is all that happens: the protocol serving
+ * path does not read `adjustChoice` until slice 7c. "We'll work it this way for
+ * now" is a promise about what comes next, which is exactly what a recorded
+ * choice is; it does not claim anything has already changed.
+ */
+export const ADJUST_COPY = {
+  title: "Let's try a different angle.",
+  /**
+   * The first proactive offer. `decisions section 4`, verbatim.
+   *
+   * CONDITIONAL, NOT DECLARATIVE, and Jen's note on why is worth keeping: it
+   * "stays conditional rather than declaring an internal state, explains why
+   * the card exists", and does not say you failed, the practices did not work,
+   * we detected a pattern, or you answered negatively twice.
+   */
+  bodyFirst:
+    "If this isn't feeling like it's moving yet, we can change the approach without starting over.",
+  /**
+   * The second proactive offer. KYLE'S, 2026-09-10.
+   *
+   * A NEW IN-HOUSE DRAFT, NOT A REPLACEMENT, AND IT IS PENDING JEN REVIEW.
+   * The pack writes no second-offer body, so there is no earlier wording for
+   * this to supersede: superseding an absence is not superseding anything. It
+   * landed as a new drafted string on a C2 surface and Kyle signed it off as
+   * owner in the same commit, which is why it carries no marker and why the
+   * sentinel did not move. C2 body copy is Jen's, so that sign-off is the
+   * WEAKER of the two warrants the sentinel contract recognises. The full
+   * entry is in copyDraftSentinel.test.ts.
+   *
+   * WHAT JEN IS BEING ASKED. Not whether the sentence is good in isolation,
+   * but whether the one-word continuity is the right amount. R5 permits
+   * exactly this much and rejected more; if she revises `bodyFirst` in
+   * `decisions section 4`, this string moves with it rather than drifting.
+   *
+   * ONE WORD FROM THE FIRST, AND THE WORD IS "still". That is the entire
+   * continuity R5 permits: it acknowledges that the user has told us this
+   * before without narrating when, how often, or what they chose last time.
+   *
+   * "yet" DROPS WHEN "still" ARRIVES. Keeping both would read as a correction
+   * of the user's own account of their week.
+   */
+  bodySecond:
+    "If this still isn't feeling like it's moving, we can change the approach without starting over.",
+  /**
+   * The primary, on the card and on the phase page's door alike. ONE STRING FOR
+   * ONE ACTION: both open the same three alternatives, and two wordings for one
+   * door is how a door starts looking like two.
+   *
+   * KYLE'S, 2026-09-10. Roadmap section 9 R5 writes these words as prose about
+   * what stays available; they are not pack content, and this is the same
+   * reading `PHASE_STATE_LABELS` took of section 1's prose.
+   */
+  primary: 'Try a different approach',
+  /**
+   * The decline. KYLE'S, 2026-09-10, and a REPLACEMENT BY OWNER: it retires the
+   * "keep going as is" gloss that roadmap sections 3.1 and 8 both use for this
+   * control. That gloss was never copy, it was the roadmap describing the
+   * control in passing, and shipping it would have put a description where a
+   * label belongs.
+   *
+   * "for now" IS THE RE-ARM, SAID IN THE USER'S TERMS. A decline answers this
+   * week, not the practice (R5), and the label says so without narrating
+   * anything about what happens next.
+   */
+  decline: 'Keep going for now',
+  /**
+   * The line above the three alternatives on the phase page. KYLE'S, 2026-09-10.
+   *
+   * IT NAMES THE SHAPE OF THE CHOICE AND NOTHING ELSE. Without it the three
+   * options read as three loose controls under a body about the stretch. With
+   * it they read as one question with three answers.
+   *
+   * "for this stretch" IS THE PHASE, IN THE USER'S TERMS. The framework words
+   * never reach a user (section 8), and "stretch" is the word the phase page
+   * bodies already use.
+   */
+  alternativesIntro: 'Three ways to change the approach for this stretch.',
+  confirmation: "Okay. We'll work it this way for now.",
+  /**
+   * The failure line, when recording a choice does not land. KYLE'S,
+   * 2026-09-10, authored at the point of need rather than after the fact: UI
+   * Standards 18 requires an error state for every control that writes, and
+   * slice 7a's `ADVANCE_PREVIEW_COPY.failed` is the precedent for what one
+   * sounds like here.
+   *
+   * SUPPORTIVE AND SPECIFIC, AND IT NAMES THE RECOVERY. "when ready" is there
+   * because nothing about the user's day has gone wrong and nothing is urgent.
+   */
+  failed: "That didn't save. Try again when ready.",
+} as const;
+
+/** One in-phase alternative: what it is called and what it does. */
+export interface AdjustAlternative {
+  id: AdjustChoiceId;
+  label: string;
+  body: string;
+}
+
+/**
+ * The twelve in-phase alternatives, KEYED BY PHASE (slice 7b).
+ *
+ * JEN'S, `Content Pack v1 section 5`, adjustment sets, landing FLAT under the
+ * pack's rule. Twelve labels and twelve bodies, verbatim.
+ *
+ * KEYED, NEVER ORDINAL, AND THAT IS THE DECISION THIS CONSTANT EXISTS TO MAKE.
+ * The pack names its four sets "first phase", "second phase", "third phase" and
+ * "fourth phase". That mapping onto remove/recover/rewire/refocus is inferable
+ * from PHASE_ORDER, and inferable is precisely what breaks on a reorder:
+ * reordering PHASE_ORDER is a product decision the roadmap explicitly allows
+ * ("a product decision that rewrites every user's path"), and an ordinal
+ * mapping would silently re-attach the recover set to whichever phase landed
+ * second. The ordinal-to-key mapping is asserted once by test and then never
+ * relied on again at runtime.
+ *
+ * THREE PER PHASE, AND THE THREE ARE A SET. The pack's own framing is
+ * "constrained in-phase alternatives": every option keeps the user working on
+ * the same stretch and changes how. None of them is a way out of the phase, and
+ * none may become one. Advancing is B2's job and it is a different offer.
+ *
+ * NO OPTION IS RECOMMENDED, DEFAULTED OR ORDERED BY QUALITY. The pack's order
+ * is the pack's; nothing renders a first choice differently from a third.
+ */
+export const ADJUST_ALTERNATIVES: Record<PhaseKey, readonly AdjustAlternative[]> = {
+  remove: [
+    {
+      id: 'make_it_smaller',
+      label: 'Make it smaller',
+      body: "Keep working on the same thing, but make today's move easier.",
+    },
+    {
+      id: 'try_another_way',
+      label: 'Try another way',
+      body: 'Keep the same target and approach it differently.',
+    },
+    {
+      id: 'work_on_something_else',
+      label: 'Work on something else',
+      body: "Choose a different thing that's taking up too much room.",
+    },
+  ],
+  recover: [
+    {
+      id: 'help_me_come_down',
+      label: 'Help me come down',
+      body: 'Try practices that reduce input and help you leave some of the day behind.',
+    },
+    {
+      id: 'help_me_get_something_back',
+      label: 'Help me get something back',
+      body: 'Lean toward rest, light, movement, and other small ways to restore some capacity.',
+    },
+    {
+      id: 'help_me_get_re_oriented',
+      label: 'Help me get re-oriented',
+      body: 'Use simple resets that help you find your footing when the day feels scattered.',
+    },
+  ],
+  rewire: [
+    {
+      id: 'make_it_easier',
+      label: 'Make it easier',
+      body: 'Shrink the practice until it fits more kinds of days.',
+    },
+    {
+      id: 'put_it_somewhere_better',
+      label: 'Put it somewhere better',
+      body: 'Move it to a point in the day where it has a better chance of happening.',
+    },
+    {
+      id: 'give_it_a_stronger_cue',
+      label: 'Give it a stronger cue',
+      body: 'Connect it to something that already happens without much thought.',
+    },
+  ],
+  refocus: [
+    {
+      id: 'narrow_what_matters',
+      label: 'Narrow what matters',
+      body: 'Choose one thing that deserves more of your attention or energy right now.',
+    },
+    {
+      id: 'give_it_some_room',
+      label: 'Give it some room',
+      body: 'Protect a clear place in the day for it.',
+    },
+    {
+      id: 'come_back_to_why',
+      label: 'Come back to why',
+      body: 'Reconnect this work to what you wanted to change when you started.',
+    },
+  ],
+};

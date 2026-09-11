@@ -7,10 +7,12 @@
  * by checking each in isolation. A test that only ever supplies one offer at a
  * time passes for an implementation with no priority at all.
  *
- * THE ADJUST CASES RUN EVEN THOUGH 7a CANNOT REACH THEM. DashboardScreen passes
- * the literal 'hidden' for `adjustPlacement` until slice 7b, so nothing in the
- * app produces these states yet. They are asserted now so that 7b adds a card to
- * a settled ordering instead of settling the ordering while designing the card.
+ * THE ADJUST CASES ARE REACHABLE FROM SLICE 7b. They were written in 7a against
+ * a call site passing the literal 'hidden', precisely so that the ordering was
+ * settled before the card was designed rather than during it. 7b changed that
+ * one expression to a real placement and changed NOTHING here: not a case, not
+ * an expectation, not the signature. The plan working is the reason this
+ * paragraph is an edit rather than a rewrite.
  */
 import { journeyActionFor, type JourneyActionInput } from '../journeyAction';
 

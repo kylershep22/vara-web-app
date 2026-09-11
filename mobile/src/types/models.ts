@@ -797,6 +797,42 @@ export type RemoveTiming = 'morning' | 'day' | 'evening' | 'varies';
 export type ReplacementSlot = 'morning' | 'day' | 'evening';
 
 /**
+ * One of the twelve in-phase alternatives the adjustment offer serves
+ * (Content Pack v1 section 5, adjustment sets; slice 7b).
+ *
+ * TWELVE IDS, THREE PER PHASE, AND THE GROUPING IS CARRIED BY
+ * `ADJUST_ALTERNATIVES` IN constants/journeyCopy.ts RATHER THAN BY THIS UNION.
+ * A union cannot express "these three belong to remove", and encoding it in the
+ * id spelling would be a second source of truth for the mapping the moment the
+ * two disagreed. This type is the closed set; that map is the per-phase answer.
+ *
+ * IDS, NEVER LABELS. The pack's wording is copy and will be revised; these
+ * survive a revision, and a stored label would orphan every row written before
+ * one. Same contract `removeTargetChip` carries.
+ *
+ * SAFE AS AN ANALYTICS DIMENSION for exactly that reason: a curated id carries
+ * no user content, which is what the analytics content firewall requires of any
+ * string that reaches a payload.
+ */
+export type AdjustChoiceId =
+  // First phase (remove)
+  | 'make_it_smaller'
+  | 'try_another_way'
+  | 'work_on_something_else'
+  // Second phase (recover)
+  | 'help_me_come_down'
+  | 'help_me_get_something_back'
+  | 'help_me_get_re_oriented'
+  // Third phase (rewire)
+  | 'make_it_easier'
+  | 'put_it_somewhere_better'
+  | 'give_it_a_stronger_cue'
+  // Fourth phase (refocus)
+  | 'narrow_what_matters'
+  | 'give_it_some_room'
+  | 'come_back_to_why';
+
+/**
  * One closed phase. Appended when a phase is left, never edited afterwards.
  *
  * `exitedAt` and `exitReason` are REQUIRED because an entry is only written at
@@ -854,11 +890,72 @@ export interface JourneyState {
    * Null rather than optional-absent: a null says "not offered in this phase",
    * which is a different fact from a field that was never modelled, and the
    * derivations branch on it.
+   *
+   * `adjustOfferedAt` GAINED A SECOND JOB IN SLICE 7b and it is the reason the
+   * field is written at all. It is non-null if and only if the adjustment offer
+   * has occupied Today at least once in this phase, which is the exact
+   * condition the phase page's "Try a different approach" door reads. Section 9
+   * R5 caps PROACTIVE offers and then says the door stays open; this field is
+   * what keeps it open, and clearing it on a phase change is what closes it
+   * again. Same contract `advanceOfferedAt` carries for the preview page.
    */
   advanceOfferedAt: Timestamp | null;
   advanceDeclinedAt: Timestamp | null;
   adjustOfferedAt: Timestamp | null;
   adjustDeclinedAt: Timestamp | null;
+
+  /**
+   * How many times the user has declined the adjustment offer in this phase
+   * (slice 7b, roadmap section 9 R5).
+   *
+   * IT EXISTS BECAUSE ONE TIMESTAMP CANNOT COUNT TO TWO. `adjustDeclinedAt` is
+   * a single instant, overwritten by the second decline and indistinguishable
+   * from the first, so R5's "after a second decline Vara stops surfacing the
+   * offer" has nothing to read without this field.
+   *
+   * IT IS THE SAME KIND OF COUNT `advanceExposures` IS, and it clears both of
+   * the bans argued at that field: never rendered, never interpolated into
+   * copy, never an analytics dimension, and not a second copy of anything
+   * derivable. The analytics log is the only other store that would know, and
+   * it is `allow read: if false` even for the owning account.
+   *
+   * IT ALSO PICKS THE CARD'S BODY. Zero declines is the first offer and one is
+   * the second, which is the whole of the continuity R5 asked for: the two
+   * bodies differ by the word "still" and nothing narrates the prior choice.
+   * No separate offer ordinal is stored, because this already is one.
+   *
+   * RESET TO 0 ON EVERY PHASE CHANGE, through CLEARED_OFFERS. A count surviving
+   * a transition would silence the next phase's offer before it had been made.
+   */
+  adjustDeclines: number;
+  /**
+   * Which in-phase alternative the user chose, or null before they choose one
+   * (slice 7b).
+   *
+   * RECORDED, NOT YET HONOURED, AND THAT IS A STATED LIMIT OF SLICE 7b. Nothing
+   * in the protocol serving path reads this field today; consuming it is slice
+   * 7c's whole scope. It is written now rather than later because the choice is
+   * the user's answer to an offer they were made, and an offer whose answer is
+   * discarded is not an offer. The C2 confirmation ships with it and is honest
+   * about what has happened: Vara has the answer, and acts on it from 7c.
+   *
+   * A CURATED ID, NEVER A LABEL AND NEVER THE USER'S WORDS. The twelve ids are
+   * a closed union; the labels are copy and will be rewritten, and a stored
+   * label would orphan every row written before the rewrite. Same contract
+   * `removeTargetChip` carries.
+   */
+  adjustChoice?: AdjustChoiceId | null;
+  /**
+   * When the choice above was made. THE FIELD THAT SAYS A CHOICE HAPPENED, on
+   * the same contract as `removeCapturedAt`: the id alone cannot say it,
+   * because a future id could legitimately be cleared.
+   *
+   * IT IS ALSO A RE-ARM FLOOR. Acting on the offer ends the proactive window
+   * exactly as declining does, so this instant joins `adjustDeclinedAt` and the
+   * phase's own `enteredAt` in the latest-of that `PhaseContext.adjustArmedFromIso`
+   * resolves. See journey/derive.ts.
+   */
+  adjustChosenAt?: Timestamp | null;
 
   /**
    * How many times the advancement offer has occupied Today in this phase

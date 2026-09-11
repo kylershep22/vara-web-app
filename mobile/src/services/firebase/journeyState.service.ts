@@ -42,6 +42,7 @@ import {
 import { requireDb } from './ensureDb';
 import { PHASE_ORDER } from '../../constants/journey';
 import type {
+  AdjustChoiceId,
   DestinationKey,
   JourneyState,
   PhaseExitReason,
@@ -78,6 +79,15 @@ export interface CreateJourneyStateInput {
  * A count or a date surviving a phase transition would spend the incoming
  * phase's exposure budget, or fire its seven-day cap, before its offer had ever
  * been shown once (roadmap section 9 R3).
+ *
+ * THE THREE ADJUST FIELDS JOINED IN SLICE 7b, on exactly the same terms and for
+ * three separate failures. A surviving `adjustDeclines` at the cap would
+ * silence the incoming phase's offer before it had ever been made (section 9
+ * R5). A surviving `adjustChosenAt` would hold the re-arm floor above the new
+ * phase's first weeks, so no read in them could ever count. A surviving
+ * `adjustChoice` would attach a choice made about one stretch to a different
+ * one, which is the same mis-attribution `phaseKeyAtRead` exists to prevent on
+ * the weekly side.
  */
 const CLEARED_OFFERS = {
   advanceOfferedAt: null,
@@ -87,6 +97,9 @@ const CLEARED_OFFERS = {
   advanceExposures: 0,
   advanceFirstOfferedOn: null,
   advanceLastExposedOn: null,
+  adjustDeclines: 0,
+  adjustChoice: null,
+  adjustChosenAt: null,
 } as const;
 
 /** One user's journey state, or null before they have started one. */
@@ -259,6 +272,11 @@ export async function stepBackToPhase(userId: string, target: PhaseKey): Promise
 // setters would let a caller record half an exposure. What the rule above
 // forbids is parameterising over KIND, and that still holds: nothing here takes
 // 'advance' | 'adjust' as an argument.
+//
+// NOR IS THE ADJUST SIDE, FROM SLICE 7b. `recordAdjustDeclined` moves the floor
+// and the cap count together for the same reason: they are two halves of one
+// event, and a caller able to write half of a decline could re-arm the counter
+// without ever capping it.
 // ---------------------------------------------------------------------------
 
 /**
@@ -311,7 +329,22 @@ export async function recordAdvanceDeclined(userId: string): Promise<void> {
   });
 }
 
-/** The adjustment offer was shown. */
+/**
+ * The adjustment offer occupied Today (slice 7b, R5).
+ *
+ * IT IS WHAT OPENS THE PHASE PAGE'S DOOR, and that is the field's real job.
+ * `adjustOfferedAt` is non-null if and only if the offer has been made in this
+ * phase at least once, which is exactly the condition `JourneyPhaseScreen`
+ * reads to decide whether "Try a different approach" belongs on the page. The
+ * same relationship `advanceOfferedAt` has with the preview page.
+ *
+ * WRITTEN ONCE PER PHASE IN PRACTICE, AND HARMLESS TO REPEAT. The caller writes
+ * it on the first render that places the offer on Today, so a second write
+ * merely slides a timestamp nothing measures an interval from. NO DAY GATE IS
+ * NEEDED HERE and none should be added: unlike the advance side there is no
+ * exposure budget to overspend (see `placeAdjustOffer`), so there is nothing a
+ * repeat write can consume.
+ */
 export async function recordAdjustOffered(userId: string): Promise<void> {
   await updateDoc(doc(requireDb(), JOURNEY_STATES, userId), {
     adjustOfferedAt: serverTimestamp(),
@@ -319,10 +352,75 @@ export async function recordAdjustOffered(userId: string): Promise<void> {
   });
 }
 
-/** The user said not yet to adjusting. Suppresses the offer for this phase. */
+/**
+ * The user said not yet to adjusting (slice 7b, R5).
+ *
+ * IT NO LONGER SUPPRESSES, AND THAT SENTENCE REPLACES THE ONE THIS COMMENT USED
+ * TO CARRY. "Suppresses the offer for this phase" was true while
+ * `deriveAdjustDue` short-circuited on the timestamp, and R5 is the decision
+ * that ended it: after a decline the counter RE-ARMS, and two further
+ * consecutive not_moving reads offer again. A decline answers this week, not
+ * the practice.
+ *
+ * SO THE TIMESTAMP IS NOW A FLOOR. It is converted to an ISO date in
+ * `PhaseContext` and only reads from weeks starting strictly after it count.
+ * The full argument, including why the floor compares against `weekStart` and
+ * not `weekEnd`, is at `AdjustDueInput.armedFromIso` in journey/derive.ts.
+ *
+ * TWO FIELDS, ONE EVENT, AND THEY MUST MOVE TOGETHER. The floor re-arms the
+ * counter and the count spends the cap; a write that moved one without the
+ * other would either re-arm without ever capping or cap without re-arming.
+ * That is why this is one setter and not two, and it is the same reasoning
+ * slice 7a applied to the four exposure fields.
+ *
+ * `increment(1)` IS SAFE HERE. A user cannot decline an offer they were never
+ * made, so this always lands on an existing journeyStates document, and the
+ * featureDiscovery caveat about incrementing into absence does not apply. A
+ * document written before this slice has no `adjustDeclines` at all; Firestore
+ * treats the absent field as zero and the first decline writes 1, which is the
+ * correct answer for a user whose first decline this is.
+ */
 export async function recordAdjustDeclined(userId: string): Promise<void> {
   await updateDoc(doc(requireDb(), JOURNEY_STATES, userId), {
     adjustDeclinedAt: serverTimestamp(),
+    adjustDeclines: increment(1),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * The user chose one of the in-phase alternatives (slice 7b).
+ *
+ * RECORDED, NOT HONOURED, AS OF SLICE 7b. Nothing in the protocol serving path
+ * reads `adjustChoice`; consuming it is slice 7c's entire scope. This is
+ * written down here as well as at the model field because the gap is invisible
+ * from the call site: the screen shows a confirmation, the write succeeds, and
+ * nothing about the day changes. The confirmation is worded for exactly that
+ * state ("We'll work it this way for now"), and it must not be rewritten into a
+ * claim that something has already changed until 7c lands.
+ *
+ * IT ENDS THE PROACTIVE WINDOW, which is the one behaviour the choice DOES have
+ * today. `adjustChosenAt` joins the re-arm floor, so acting drops the offer off
+ * Today on the next resolve exactly as declining does. Acting does NOT spend
+ * the two-offer cap: `adjustDeclines` is untouched here, because R5 caps offers
+ * the user refused and a user who acted got what the offer was for.
+ *
+ * A CURATED ID, AND THE TYPE IS THE ENFORCEMENT. `AdjustChoiceId` is a closed
+ * union of twelve, so no caller can pass a label, a free-text string, or an id
+ * from a phase the user is not in. The per-phase grouping lives in
+ * `ADJUST_ALTERNATIVES`; this function does not re-check it, because the only
+ * caller renders its options from that map.
+ *
+ * updateDoc, not setDoc(merge): a choice only ever follows an offer, which only
+ * ever happens for a user who already has a journey state.
+ */
+export async function recordAdjustChoice(
+  userId: string,
+  choice: AdjustChoiceId
+): Promise<void> {
+  await updateDoc(doc(requireDb(), JOURNEY_STATES, userId), {
+    adjustChoice: choice,
+    adjustChosenAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }

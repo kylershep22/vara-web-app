@@ -99,9 +99,13 @@ jest.mock('../../services/firebase/userPrivate.service', () => ({
 }));
 const mockGetLatestCycle = jest.fn();
 const mockEnsureCycle = jest.fn();
+const mockGetCyclesSince = jest.fn(async () => [] as any[]);
 jest.mock('../../services/firebase/weeklyCycle.service', () => ({
   getLatestWeeklyCycle: (...a: any[]) => mockGetLatestCycle(...a),
   ensureCurrentWeeklyCycle: (...a: any[]) => mockEnsureCycle(...a),
+  // Slice 7b. useAdjustOffer reads the weekly phase reads through this, and it
+  // is the ONE read on Home the resolver cannot supply from state in hand.
+  getWeeklyCyclesSince: (...a: any[]) => mockGetCyclesSince(...(a as [])),
 }));
 jest.mock('../../utils/logger', () => ({
   logger: { log: jest.fn(), warn: jest.fn(), error: jest.fn() },
@@ -177,6 +181,11 @@ const PHASE = {
   advanceExposures: 0,
   advanceFirstOfferedOn: null,
   advanceLastExposedOn: null,
+  // Slice 7b, on the same terms: a phase in which no adjustment has been
+  // offered, declined or acted on.
+  adjustArmedFromIso: null,
+  adjustDeclines: 0,
+  adjustOffered: false,
 };
 
 function todayCard(over: Record<string, unknown> = {}) {
@@ -230,6 +239,9 @@ function primeHome() {
   // tell the rolled week apart from the expired one it replaced.
   mockEnsureCycle.mockResolvedValue({ ...liveCycle, id: 'cycle-rolled' });
   mockResolveJourney.mockResolvedValue({ target: 'today', phase: PHASE });
+  // Slice 7b. No weekly reads by default, so every test that predates the
+  // adjust card sees exactly what it saw before: an offer that is not due.
+  mockGetCyclesSince.mockResolvedValue([]);
 }
 
 describe('DashboardScreen under JOURNEY_IA', () => {
@@ -461,6 +473,114 @@ describe('DashboardScreen - the journey-action slot', () => {
     const { queryByTestId, getByTestId } = render(<DashboardScreen />);
     await waitFor(() => expect(getByTestId('home-journey-line')).toBeTruthy());
     expect(queryByTestId('home-advancement')).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // C2 on Today (slice 7b). THE WIRING, not the rule.
+  //
+  // `journeyActionFor` already settles the priority and its own suite asserts
+  // every boundary. What THESE tests prove is that Home passes a real placement
+  // where 7a passed the literal 'hidden', which is the one thing a pure-function
+  // suite cannot see. Without them the adjust branch could stay unreachable and
+  // every existing test would still be green.
+  // -------------------------------------------------------------------------
+  const dueForAdjust = {
+    ...PHASE,
+    hasRemoveCapture: true,
+    enteredAtIso: '2026-08-01',
+    adjustArmedFromIso: '2026-08-01',
+  };
+
+  /** Two consecutive not_moving reads about this phase. */
+  const twoNotMoving = [
+    {
+      id: 'w1',
+      userId: 'u1',
+      weekStart: '2026-08-24',
+      weekEnd: '2026-08-30',
+      phaseRead: 'not_moving',
+      phaseKeyAtRead: 'remove',
+    },
+    {
+      id: 'w2',
+      userId: 'u1',
+      weekStart: '2026-08-31',
+      weekEnd: '2026-09-06',
+      phaseRead: 'not_moving',
+      phaseKeyAtRead: 'remove',
+    },
+  ];
+
+  test('renders the C2 card when two not_moving reads are in', async () => {
+    mockGetCyclesSince.mockResolvedValue(twoNotMoving as any);
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: dueForAdjust });
+    const { getByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-adjustment')).toBeTruthy());
+  });
+
+  test('C2 BEATS B2 when both are due', async () => {
+    // The decision that costs something, asserted through the real wiring. This
+    // user has satisfied the advancement ceiling AND told us twice that nothing
+    // is moving. Offering to move forward would contradict what they said
+    // outright: what the user TELLS us beats what we INFER from taps.
+    mockGetCyclesSince.mockResolvedValue(twoNotMoving as any);
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: { ...dueForAdjust, enteredAtIso: '2026-01-01' },
+    });
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-adjustment')).toBeTruthy());
+    expect(queryByTestId('home-advancement')).toBeNull();
+  });
+
+  test('a CAPPED adjust offer leaves the slot to the advancement card', async () => {
+    // Two declines, so Vara stops knocking about adjusting. Demotion is about
+    // WHERE an offer lives, not about which offer is right to make, so a due
+    // advance takes the slot. The adjust door is still on the phase page.
+    mockGetCyclesSince.mockResolvedValue(twoNotMoving as any);
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: { ...dueForAdjust, enteredAtIso: '2026-01-01', adjustDeclines: 2 },
+    });
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-advancement')).toBeTruthy());
+    expect(queryByTestId('home-adjustment')).toBeNull();
+  });
+
+  test('the capture card still beats C2', async () => {
+    mockGetCyclesSince.mockResolvedValue(twoNotMoving as any);
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: { ...dueForAdjust, hasRemoveCapture: false },
+    });
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-remove-capture')).toBeTruthy());
+    expect(queryByTestId('home-adjustment')).toBeNull();
+  });
+
+  test('one not_moving read is not enough for a card', async () => {
+    mockGetCyclesSince.mockResolvedValue([twoNotMoving[1]] as any);
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: dueForAdjust });
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-journey-line')).toBeTruthy());
+    expect(queryByTestId('home-adjustment')).toBeNull();
+  });
+
+  test('"Try a different approach" opens THIS phase, and mutates nothing', async () => {
+    // The current phase, not the next one: the alternatives are per-phase. The
+    // destination travels with it so the page renders even if its own read
+    // fails, exactly as the advancement preview's navigation does.
+    mockGetCyclesSince.mockResolvedValue(twoNotMoving as any);
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: dueForAdjust });
+    const { getByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-adjustment')).toBeTruthy());
+
+    fireEvent.press(getByTestId('home-adjustment-try-different'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('JourneyPhase', {
+      phase: 'remove',
+      destination: 'calm',
+    });
   });
 
   test('"See what\'s next" opens the NEXT phase and mutates nothing', async () => {

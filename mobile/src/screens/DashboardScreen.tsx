@@ -41,11 +41,13 @@ import { DailyPickerSheet } from '../components/dashboard/DailyPickerSheet';
 import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
 import { MigrationRouteScreen } from './journey/MigrationRouteScreen';
 import { RemoveCaptureCard } from '../components/dashboard/RemoveCaptureCard';
+import { AdjustmentCard } from '../components/dashboard/AdjustmentCard';
 import { AdvancementCard } from '../components/dashboard/AdvancementCard';
 import { JourneyLine } from '../components/dashboard/JourneyLine';
 import { StartHereRow } from '../components/journey/StartHereRow';
 import { JOURNEY_LINE_LABEL, TODAY_START_HERE_GLOSS } from '../constants/journeyCopy';
 import { journeyActionFor } from '../journey/journeyAction';
+import { useAdjustOffer } from '../hooks/useAdjustOffer';
 import { useAdvanceOffer } from '../hooks/useAdvanceOffer';
 import { logEvent } from '../services/firebase/analyticsEvents.service';
 import { useDashboard } from '../hooks/useDashboard';
@@ -189,17 +191,42 @@ const DashboardScreen: React.FC = () => {
     todayIso: todayCard.todayIso,
   });
 
+  const adjustOffer = useAdjustOffer({
+    uid: user?.uid,
+    phase: weeklyLanding.phase,
+    todayIso: todayCard.todayIso,
+  });
+
   const journeyAction = journeyActionFor({
     phaseKey: weeklyLanding.phase?.phaseKey ?? null,
     hasRemoveCapture: weeklyLanding.phase?.hasRemoveCapture ?? false,
     captureDismissed,
-    // Slice 7b supplies the adjust placement and its card. The BRANCH exists in
-    // journeyActionFor and is pinned by a priority test; this literal is what
-    // makes it unreachable at runtime until then. It is a constant rather than
-    // an omission so that 7b changes one expression, not a signature.
-    adjustPlacement: 'hidden',
+    // Slice 7b. THIS IS THE ONE EXPRESSION 7a's comment promised would change:
+    // the literal 'hidden' that made the adjust branch unreachable is now a
+    // real placement, and the signature, the branch and its ordering test are
+    // all untouched. The priority is NOT restructured here - capture beats
+    // adjust beats advance, settled by test in 7a and unedited.
+    adjustPlacement: adjustOffer.placement,
     advancePlacement: advanceOffer.placement,
   });
+
+  // Opening the CURRENT phase's page, where the three in-phase alternatives
+  // are (slice 7b). IT MUTATES NOTHING, on exactly the decision-4 precedent
+  // below: the card's primary promises a look at other approaches and the
+  // choice is made in front of them. The page works out for itself that the
+  // user has qualified, from `adjustOfferedAt` on its own read; nothing is
+  // passed to say so, which is what keeps the door reachable from the map for
+  // a user whose card has been capped away.
+  const openAdjustAlternatives = useCallback(() => {
+    const phase = weeklyLanding.phase;
+    if (!phase) return;
+    (navigation as unknown as {
+      navigate: (s: string, p?: object) => void;
+    }).navigate(ROUTES.JourneyPhase, {
+      phase: phase.phaseKey,
+      destination: phase.destination,
+    });
+  }, [weeklyLanding.phase, navigation]);
 
   // Opening the next phase's page. IT MUTATES NOTHING (decision 4): the offer
   // stays live, its exposure is already spent for today, and the only control
@@ -550,12 +577,20 @@ const DashboardScreen: React.FC = () => {
                     />
                   )}
 
-                  {/* 'adjust' IS DELIBERATELY UNRENDERED IN 7a. The branch is
-                      real in journeyActionFor and pinned by an ordering test;
-                      slice 7b supplies the C2 card that fills it. It cannot be
-                      reached at runtime here because `adjustPlacement` is the
-                      literal 'hidden' at the call site above, so this is a gap
-                      with a lock on it rather than a hole. */}
+                  {/* C2, the adjustment offer (slice 7b). IT SITS ABOVE THE
+                      ADVANCEMENT CARD IN THIS LIST AND THAT IS NOT WHAT ORDERS
+                      THEM: journeyActionFor does, and the sibling conditions
+                      here are deliberately flat so the priority cannot be read
+                      off the JSX. C2 beating B2 is a product rule - what the
+                      user tells us beats what we infer from taps - and it is
+                      tested as a function. */}
+                  {journeyAction === 'adjust' && (
+                    <AdjustmentCard
+                      isSecondOffer={adjustOffer.isSecondOffer}
+                      onTryDifferent={openAdjustAlternatives}
+                      onKeepGoing={adjustOffer.decline}
+                    />
+                  )}
 
                   {journeyAction === 'advance' && advanceOffer.door !== null && (
                     <AdvancementCard

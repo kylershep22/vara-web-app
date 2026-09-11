@@ -39,6 +39,19 @@ describe('analytics event schema', () => {
       // that does not exist.
       expect([...ANALYTICS_EVENT_NAMES].sort()).toEqual([
         'floor_set',
+        // The adjustment offer (slice 7b). All three have wiring proofs:
+        // `_offered` and `_declined` from the card in useAdjustOffer.test.ts,
+        // `_chosen` from the phase page's door in JourneyPhaseScreen.test.tsx,
+        // where the `optionId` and `from` dimensions are both asserted.
+        //
+        // `journey_adjust_declined` IS BARE WHERE ITS ADVANCE TWIN CARRIES A
+        // `from`, and the asymmetry is deliberate. Advancement can be declined
+        // from the card or from the preview page and the difference is
+        // meaningful; adjustment has exactly one decline control, on the card.
+        // Leaving a page is not an answer and is not recorded as one.
+        'journey_adjust_chosen',
+        'journey_adjust_declined',
+        'journey_adjust_offered',
         // The advancement offer (slice 7a). All three have wiring proofs:
         // `_offered` and `_declined` from the card in useAdvanceOffer.test.ts,
         // `_accepted` and `_declined` from the preview page in

@@ -16,10 +16,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 const mockGetJourneyState = jest.fn();
 const mockAdvancePhase = jest.fn(async () => {});
 const mockRecordAdvanceDeclined = jest.fn(async () => {});
+const mockRecordAdjustChoice = jest.fn(async () => {});
 jest.mock('../../../services/firebase/journeyState.service', () => ({
   getJourneyState: (...a: any[]) => mockGetJourneyState(...a),
   advancePhase: (...a: any[]) => mockAdvancePhase(...(a as [])),
   recordAdvanceDeclined: (...a: any[]) => mockRecordAdvanceDeclined(...(a as [])),
+  recordAdjustChoice: (...a: any[]) => mockRecordAdjustChoice(...(a as [])),
 }));
 
 const mockLogEvent = jest.fn();
@@ -49,6 +51,8 @@ jest.mock('@react-navigation/native', () => ({
 import { JourneyPhaseScreen } from '../JourneyPhaseScreen';
 import { DESTINATION_KEYS, PHASE_DISPLAY, PHASE_ORDER } from '../../../constants/journey';
 import {
+  ADJUST_ALTERNATIVES,
+  ADJUST_COPY,
   ADVANCE_PREVIEW_COPY,
   PHASE_PAGE_BODIES,
   PHASE_PAGE_COPY,
@@ -82,6 +86,8 @@ function setParams(phase: string, destination: string) {
 beforeEach(() => {
   mockAdvancePhase.mockClear();
   mockRecordAdvanceDeclined.mockClear();
+  mockRecordAdjustChoice.mockReset();
+  mockRecordAdjustChoice.mockResolvedValue(undefined as never);
   mockLogEvent.mockClear();
   mockGoBack.mockClear();
   mockGetJourneyState.mockReset();
@@ -410,5 +416,220 @@ describe('JourneyPhaseScreen - preview mutates nothing until Start this', () => 
       from: 'preview',
     });
     expect(mockGoBack).toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The phase-page door: "Try a different approach" (slice 7b, section 9 R5).
+//
+// WHY THE DOOR IS ON THIS PAGE AT ALL. R5 caps proactive offers at two and then
+// says the door stays open: "the door is open, Vara just stops knocking." A
+// capped user has to be able to reach the alternatives by a route that knows
+// nothing about the offer, and every journey map row already opens this page,
+// including the current one.
+// ---------------------------------------------------------------------------
+describe('the adjustment door', () => {
+  const qualified = () =>
+    journeyFixture({
+      phaseKey: 'remove',
+      adjustOfferedAt: { seconds: 1 } as any,
+    });
+
+  test('is absent for a user who has never been offered an adjustment', async () => {
+    // Browsing is not an invitation. `adjustOfferedAt` is null on every user
+    // who has not had the card on Today, and the page must show them nothing.
+    mockGetJourneyState.mockResolvedValue(journeyFixture({ adjustOfferedAt: null }));
+    render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(mockGetJourneyState).toHaveBeenCalled());
+    expect(screen.queryByTestId('journey-phase-adjust')).toBeNull();
+  });
+
+  test('appears on the CURRENT phase once the user has qualified', async () => {
+    mockGetJourneyState.mockResolvedValue(qualified());
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+    );
+    expect(screen.getByText(ADJUST_COPY.primary)).toBeTruthy();
+  });
+
+  test('is absent on a phase page that is NOT the current phase', async () => {
+    // The alternatives change how the user works on the stretch they are
+    // standing in. Offering them on a page about a phase the user has finished
+    // or not reached would be offering to adjust something they are not doing.
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('rewire', 'calm');
+    render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(mockGetJourneyState).toHaveBeenCalled());
+    expect(screen.queryByTestId('journey-phase-adjust')).toBeNull();
+  });
+
+  test('SURVIVES THE CAP: the door does not read the decline count', async () => {
+    // The cap's promise, asserted directly. A user who has declined twice has
+    // lost the card and must keep the door; nothing on this page consults
+    // `adjustDeclines`, so the count cannot close it.
+    mockGetJourneyState.mockResolvedValue(
+      journeyFixture({
+        phaseKey: 'remove',
+        adjustOfferedAt: { seconds: 1 } as any,
+        adjustDeclinedAt: { seconds: 2 } as any,
+        adjustDeclines: 2,
+      } as Partial<JourneyState>)
+    );
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+    );
+  });
+
+  test('is shut by default and opens the three alternatives on tap', async () => {
+    mockGetJourneyState.mockResolvedValue(qualified());
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+    );
+    // Shut: the options are not on the page yet.
+    expect(screen.queryByText(ADJUST_COPY.alternativesIntro)).toBeNull();
+
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
+
+    expect(screen.getByText(ADJUST_COPY.alternativesIntro)).toBeTruthy();
+    for (const option of ADJUST_ALTERNATIVES.remove) {
+      expect(screen.getByText(option.label)).toBeTruthy();
+      expect(screen.getByText(option.body)).toBeTruthy();
+    }
+  });
+
+  test('serves THIS phase alternatives, not another phase set', async () => {
+    // The keyed-not-ordinal contract, at the render. A refocus user must never
+    // be shown the remove set.
+    mockGetJourneyState.mockResolvedValue(
+      journeyFixture({ phaseKey: 'refocus', adjustOfferedAt: { seconds: 1 } as any })
+    );
+    setParams('refocus', 'calm');
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+    );
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
+    expect(screen.getByText('Narrow what matters')).toBeTruthy();
+    expect(screen.queryByText('Make it smaller')).toBeNull();
+  });
+
+  test('choosing records the curated id and confirms in place', async () => {
+    mockGetJourneyState.mockResolvedValue(qualified());
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+    );
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-make_it_smaller'));
+
+    await waitFor(() =>
+      expect(mockRecordAdjustChoice).toHaveBeenCalledWith('u1', 'make_it_smaller')
+    );
+    expect(mockLogEvent).toHaveBeenCalledWith('u1', 'journey_adjust_chosen', {
+      optionId: 'make_it_smaller',
+      from: 'phase_page',
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-confirmation')).toBeTruthy()
+    );
+    // NO NAVIGATION ON SUCCESS. There is nowhere to go that would show a
+    // result, because as of 7b the choice is recorded and not yet honoured.
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
+
+  test('choosing CHANGES NO PHASE', async () => {
+    // Adjusting is about how the user works on this stretch, never about
+    // leaving it. The only control on this page that may move a phase is
+    // "Start this", and it is not on screen here.
+    mockGetJourneyState.mockResolvedValue(qualified());
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+    );
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-try_another_way'));
+    await waitFor(() => expect(mockRecordAdjustChoice).toHaveBeenCalled());
+    expect(mockAdvancePhase).not.toHaveBeenCalled();
+  });
+
+  test('a failed write shows the failure line and keeps the options tappable', async () => {
+    // UI Standards 18: every control that writes has an error state. The
+    // options stay on screen because retrying is the recovery the line names.
+    mockRecordAdjustChoice.mockRejectedValueOnce(new Error('offline'));
+    mockGetJourneyState.mockResolvedValue(qualified());
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+    );
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-make_it_smaller'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-error')).toBeTruthy()
+    );
+    expect(screen.getByText(ADJUST_COPY.failed)).toBeTruthy();
+    expect(screen.queryByTestId('journey-phase-adjust-confirmation')).toBeNull();
+    expect(screen.getByTestId('journey-phase-adjust-make_it_smaller')).toBeTruthy();
+  });
+
+  // -------------------------------------------------------------------------
+  // COEXISTENCE WITH 7a's PREVIEW MODE.
+  //
+  // Both are derived on this one screen and both are bottom-of-page blocks.
+  // Preview requires `phase === PHASE_ORDER[idx + 1]`; the door requires
+  // `phase === journey.phaseKey`, which is PHASE_ORDER[idx]. They are mutually
+  // exclusive BY CONSTRUCTION, and the point of testing it is that the
+  // construction is two independent expressions rather than one guard someone
+  // could edit apart.
+  // -------------------------------------------------------------------------
+  test('the door and the preview commit never appear together', async () => {
+    // A user who has been offered BOTH: qualified to adjust, and offered
+    // advancement. On the current phase's page only the door shows.
+    mockGetJourneyState.mockResolvedValue(
+      journeyFixture({
+        phaseKey: 'remove',
+        adjustOfferedAt: { seconds: 1 } as any,
+        advanceOfferedAt: { seconds: 1 } as any,
+      })
+    );
+    setParams('remove', 'calm');
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust')).toBeTruthy()
+    );
+    expect(screen.queryByTestId('journey-phase-commit')).toBeNull();
+  });
+
+  test('on the NEXT phase page the same user gets the preview and no door', async () => {
+    mockGetJourneyState.mockResolvedValue(
+      journeyFixture({
+        phaseKey: 'remove',
+        adjustOfferedAt: { seconds: 1 } as any,
+        advanceOfferedAt: { seconds: 1 } as any,
+      })
+    );
+    setParams('recover', 'calm');
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-commit')).toBeTruthy()
+    );
+    expect(screen.queryByTestId('journey-phase-adjust')).toBeNull();
+  });
+
+  test('the state eyebrow still reads correctly beside the door', async () => {
+    // Preview suppresses the eyebrow because the page is answering "shall I go
+    // here". The door does not: the page is about where the user IS, and that
+    // is exactly what the word says. Pinned so the 7a suppression is not
+    // widened to cover a block it was never about.
+    mockGetJourneyState.mockResolvedValue(qualified());
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust')).toBeTruthy()
+    );
+    expect(screen.getByTestId('journey-phase-state')).toBeTruthy();
+    expect(screen.getByText(PHASE_STATE_LABELS.current)).toBeTruthy();
   });
 });

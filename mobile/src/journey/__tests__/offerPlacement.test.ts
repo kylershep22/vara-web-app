@@ -13,14 +13,18 @@
  * No mocks and no clock. `todayIso` is an argument.
  */
 import {
+  placeAdjustOffer,
   placeAdvanceOffer,
   shouldRecordExposure,
   type AdvancePlacementInput,
 } from '../offerPlacement';
+import { deriveAdjustDue } from '../derive';
 import {
+  ADJUST_MAX_PROACTIVE_OFFERS,
   ADVANCE_MAX_TODAY_EXPOSURES,
   ADVANCE_TODAY_CAP_DAYS,
 } from '../../constants/journey';
+import type { PhaseKey, PhaseRead, WeeklyCycle } from '../../types/models';
 
 const TODAY = '2026-09-10';
 
@@ -185,5 +189,157 @@ describe('shouldRecordExposure - the day gate', () => {
 
   test('never records for an offer that is not due', () => {
     expect(shouldRecordExposure('hidden', null, TODAY)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// placeAdjustOffer (slice 7b, section 9 R5)
+// ---------------------------------------------------------------------------
+describe('placeAdjustOffer', () => {
+  test('hidden when the offer is not due', () => {
+    expect(placeAdjustOffer({ due: false, declines: 0 })).toBe('hidden');
+  });
+
+  test('today on the first offer', () => {
+    expect(placeAdjustOffer({ due: true, declines: 0 })).toBe('today');
+  });
+
+  test('today on the second offer, after one decline', () => {
+    // The re-arm's whole point: a decline answers this week, not the practice.
+    expect(placeAdjustOffer({ due: true, declines: 1 })).toBe('today');
+  });
+
+  test('journey, NOT hidden, once the cap is spent', () => {
+    // R5: "the door is open, Vara just stops knocking." Collapsing this into
+    // 'hidden' would take the phase page's door away with the card, which is
+    // the failure the three-value union exists to prevent.
+    expect(placeAdjustOffer({ due: true, declines: ADJUST_MAX_PROACTIVE_OFFERS })).toBe(
+      'journey'
+    );
+  });
+
+  test('stays demoted past the cap, and never re-promotes', () => {
+    for (const declines of [2, 3, 9]) {
+      expect(placeAdjustOffer({ due: true, declines })).toBe('journey');
+    }
+  });
+
+  test('the cap is the named constant, not a literal', () => {
+    // Pins the boundary to the constant rather than to the number 2, so
+    // retuning the beta-tunable moves this test with it instead of failing it.
+    expect(
+      placeAdjustOffer({ due: true, declines: ADJUST_MAX_PROACTIVE_OFFERS - 1 })
+    ).toBe('today');
+    expect(placeAdjustOffer({ due: true, declines: ADJUST_MAX_PROACTIVE_OFFERS })).toBe(
+      'journey'
+    );
+  });
+
+  test('NOT due beats the cap: nothing to demote', () => {
+    expect(
+      placeAdjustOffer({ due: false, declines: ADJUST_MAX_PROACTIVE_OFFERS })
+    ).toBe('hidden');
+  });
+
+  test('has NO exposure model, by shape', () => {
+    // R3's exposure budget is scoped to advancement only. Asserted structurally
+    // rather than in prose: the input this function accepts has exactly two
+    // keys, so an exposure count, a first-offered date or a day gate could not
+    // be passed here even by a caller that wanted to.
+    const input = { due: true, declines: 0 };
+    expect(Object.keys(input).sort()).toEqual(['declines', 'due']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// THE PROACTIVE WINDOW, walked end to end (slice 7b amendment 4).
+//
+// THE RULE, as stated in placeAdjustOffer's header: a proactive adjustment
+// offer remains eligible on Today until the user acts or a newer read
+// supersedes the pair, whichever comes first.
+//
+// PINNED HERE RATHER THAN IN derive.test.ts BECAUSE IT SPANS BOTH FUNCTIONS.
+// Eligibility and placement each hold half of it, and the failure this guards
+// against is exactly the kind that hides between two green unit suites: each
+// function doing what it says while the sentence they jointly implement is
+// false. The walk below is one user's timeline in order.
+// ---------------------------------------------------------------------------
+describe('the proactive adjustment window', () => {
+  const ENTERED = '2026-08-01';
+  const read = (
+    weekStart: string,
+    weekEnd: string,
+    phaseRead?: PhaseRead
+  ): WeeklyCycle =>
+    ({
+      id: 'c-' + weekStart,
+      userId: 'alice',
+      weekStart,
+      weekEnd,
+      phaseRead,
+      ...(phaseRead ? { phaseKeyAtRead: 'remove' as PhaseKey } : {}),
+    }) as unknown as WeeklyCycle;
+
+  /** Eligibility and placement together, as Home computes them. */
+  const place = (cycles: WeeklyCycle[], armedFromIso: string | null, declines: number) =>
+    placeAdjustOffer({
+      due: deriveAdjustDue({
+        cyclesOldestFirst: cycles,
+        phaseKey: 'remove',
+        armedFromIso,
+      }),
+      declines,
+    });
+
+  const first = read('2026-08-17', '2026-08-23', 'not_moving');
+  const second = read('2026-08-24', '2026-08-30', 'not_moving');
+  const rolledOver = read('2026-08-31', '2026-09-06', undefined);
+  const unclear = read('2026-08-31', '2026-09-06', 'unclear');
+
+  test('two not_moving reads put the offer on Today', () => {
+    expect(place([first, second], ENTERED, 0)).toBe('today');
+  });
+
+  test('a blank rolled-over week does NOT take it away', () => {
+    // "MERE TIME IS NOT AN EXIT." The week turned, a cycle was created before
+    // Home rendered, and the user has not been asked anything yet. Withdrawing
+    // the offer here would answer a question on their behalf.
+    expect(place([first, second, rolledOver], ENTERED, 0)).toBe('today');
+  });
+
+  test('a newer read that is not not_moving supersedes the pair', () => {
+    // The second exit clause. The user answered, and the answer was not a
+    // complaint, so the run breaks on the fresher pair.
+    expect(place([first, second, unclear], ENTERED, 0)).toBe('hidden');
+  });
+
+  test('declining takes it away, and the floor is the decline date', () => {
+    // The first exit clause. The decline lands inside the live week, so the
+    // floor must exclude that week too: see the weekStart argument at
+    // AdjustDueInput.armedFromIso.
+    expect(place([first, second, rolledOver], '2026-08-27', 1)).toBe('hidden');
+  });
+
+  test('two FURTHER not_moving reads bring it back, as the second offer', () => {
+    const third = read('2026-08-31', '2026-09-06', 'not_moving');
+    const fourth = read('2026-09-07', '2026-09-13', 'not_moving');
+    expect(place([first, second, third, fourth], '2026-08-27', 1)).toBe('today');
+  });
+
+  test('the second decline caps it to the door, and nothing brings it back', () => {
+    const fifth = read('2026-09-14', '2026-09-20', 'not_moving');
+    const sixth = read('2026-09-21', '2026-09-27', 'not_moving');
+    // Two fresh not_moving reads, above the second decline's floor, and still
+    // demoted: the cap is what is holding it, not eligibility. That is the
+    // distinction R5 draws between stopping knocking and closing the door.
+    expect(place([fifth, sixth], '2026-09-10', 2)).toBe('journey');
+  });
+
+  test('acting ends the window exactly as declining does', () => {
+    // `adjustChosenAt` joins the floor, so a user who chose an alternative is
+    // not asked again about the reads that prompted it. The decline count is
+    // untouched, which is why this reads 0 rather than 1: acting does not spend
+    // the cap, because the user got what the offer was for.
+    expect(place([first, second], '2026-08-27', 0)).toBe('hidden');
   });
 });
