@@ -255,7 +255,7 @@ deploy. Deploy state lives on Kyle's checklist.
 | 6 | **[DONE `a19b54b`, 2026-09-10]** Weekly reset repurpose *(branch commits `ef26118` and rider `f0bac71`. Marked DONE at the merge; the prior **[Next]** note is kept below because its gate correction is still the record of what this row was and was not blocked on.* *Written at slice 5c's close; row 5 was complete and 6 was the next unshipped row.* **NOT content-gated — the §Content-gated tag in this row's Gates cell below is superseded.** *C1 was delivered in Content Pack v1 (`§C1`) and the 2026-09-05 amendment removed the gate; the engine contract is resolved at `§decisions-1`. Its one remaining gate is **§9 item 4**, ContinuityCard ship-or-retire — a DECISION, not content. Correction made 2026-09-10: the marking note first written at 5c's close called this row content-gated, which was wrong on both the amendment and the pack.)* | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
 | 7 | **[PARTLY SHIPPED as 7a, `b1f5919`, 2026-09-10; 7b is adjustment]** Offers + Today additions *(SPLIT 2026-09-10 at 7a's merge; see the row below and the §13 entry. The row's scope is left unedited in the §3.4 style: 7a took the advancement screen, the offer surfacing rules, the Today journey line, the Today Start here row and the `journey_advance_*` events; 7b takes the C2 adjust screen and the `journey_adjust_*` events. The prior **[Next]** note is kept below because its ungating record still covers both halves.* *Marked 2026-09-10 at slice 6's merge. Ungated: §9 items 2, 3, 5 and 6 were all discharged in the 2026-09-10 resolutions block and B2/C2 arrived early in Content Pack v1. Build the `§decisions-4` conditional C2 body, never the pack's own section 5 version.* **Inherits three things from slice 6 rather than discovering them:** *the read is present-tense about the live week; `deriveAdjustDue` gets its first production caller here and `getWeeklyCyclesSince` its first ever; and `phaseKeyAtRead` exists so a read can be attributed to the phase it was given about. Slice 7 also owns the first real walk of `StartHereRow`'s first-open transition and of a mounted video.)* | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
 | 7b | **[DONE `82e398e`, merged `810dfa8`, 2026-09-11; walked steps A-G and attested before the merge]** Adjustment: C2, the re-arm and the cap *(row added 2026-09-10 at 7a's merge; scope left unedited below, and it shipped as written with three Step-0 amendments recorded in the §13 entry)* | C2 adjust screen on the `§decisions-4` conditional body, NEVER the pack's own section 5 version; per-phase alternatives ×4 mapped through `PHASE_ORDER` (the pack names them by ordinal, not by key); `deriveAdjustDue` gets its first production caller and `getWeeklyCyclesSince` its first ever; **§9 R5's re-arm**, which is a BEHAVIOUR CHANGE to `deriveAdjustDue` and not just a caller — today `adjustDeclinedAt` suppresses for the rest of the phase, and re-arm needs the decline instant used as a floor on which reads count; the **two-offer cap** as a named constant carrying its beta-tunable status in its comment, never a literal inside the derivation; the journey-page door for a capped user; `journey_adjust_*` events. **7a built the `adjust` branch of `journeyActionFor` and left it unreachable behind a literal `'hidden'`** — 7b changes one expression, not a signature, and the capture > adjust > advance ordering is already pinned by test. | No content gate: `§C2` and `§decisions-4` are delivered and §9 R5 is resolved. **Two strings the pack does not supply** and Step 0 must settle: the C2 DECLINE label (§3.1 and §8 both gloss it "keep going as is"; the pack has nothing) and whether R5's "still" names a SECOND-OFFER copy variant Jen has not written. Also unsettled: whether the adjust card uses R3's exposure model at all, which R3 scopes to advancement only | Yes |
-| 7d | **[NEXT]** Advancement exposure gate: spend on the RENDERED slot *(row added 2026-09-11 from the 7b walk)* | `recordAdvanceExposure` fires on `placement === 'today'`, which is eligibility, not on the slot actually being occupied. Observed twice on device during the 7b walk: `advanceOfferedAt` stamped while the CAPTURE card held the slot, and again behind C2. R3's budget counts "occasions the user could actually have seen it" (`constants/journey.ts`), so a budget that drains behind another card is counting the wrong event. **Scope:** get `journeyActionFor`'s answer to `useAdvanceOffer` so the gate reads the rendered slot, and keep the gate-before-write ordering 7a made load bearing. **Step 0 REQUIRED:** this inverts the data flow between `DashboardScreen` and the hook, and the obvious fix (compute the slot inside the hook) would put the precedence rule in two places. **Also settle:** whether exposures already spent behind another card should be forgiven on existing accounts, or left as a one-time undercount. | None | Yes |
+| 7d | **[BUILT `051b673`, branch `journey/slice-7d-exposure-gate`, 2026-09-11; UNMERGED, walk pending]** Advancement exposure gate: spend on the RENDERED slot *(row added 2026-09-11 from the 7b walk)* | `recordAdvanceExposure` fires on `placement === 'today'`, which is eligibility, not on the slot actually being occupied. Observed twice on device during the 7b walk: `advanceOfferedAt` stamped while the CAPTURE card held the slot, and again behind C2. R3's budget counts "occasions the user could actually have seen it" (`constants/journey.ts`), so a budget that drains behind another card is counting the wrong event. **Scope:** get `journeyActionFor`'s answer to `useAdvanceOffer` so the gate reads the rendered slot, and keep the gate-before-write ordering 7a made load bearing. **Step 0 REQUIRED:** this inverts the data flow between `DashboardScreen` and the hook, and the obvious fix (compute the slot inside the hook) would put the precedence rule in two places. **Also settle:** whether exposures already spent behind another card should be forgiven on existing accounts, or left as a one-time undercount. | None | Yes |
 | 7e | Journey read-boundary guard: a malformed `journeyStates` row must not take Home down *(row added 2026-09-11 from the 7b walk)* | `resolveJourney` reads `phaseKey` and `destination` unvalidated (`:378-379`) and `JourneyLine` double-indexes `PHASE_DISPLAY[phaseKey][destination]` (`:63`, `:74`), so a key outside the union throws and an ErrorBoundary takes Home before any journey surface renders. **Reproduced on `main`** with a console-typed `"remove "` (trailing space), so it is pre-existing and not a 7b regression. A client cannot write such a row — `validJourney` gates `phaseKey` on create and update — so the producers are Admin-SDK writes: the console, the cohort reset script, or rows predating the rule. **Scope:** validate both fields in rung (a) against `PHASE_ORDER` and `DESTINATION_KEYS`, fall through to `'legacy'` on failure per the resolver's existing any-failure policy, and `logger.warn` with `uidDigest` and never the raw uid. One branch covers `JourneyLine`, `JourneyMapScreen` and `PhasePath`, which all read the same document. **Sequenced after 7d** because 7d corrupts a live metric every day it stands while this needs a malformed row to bite. | None | Yes: a seeded malformed row |
 | 7c | Honour the recorded adjustment *(row added 2026-09-10 at 7b's close)* | Consume `journeyStates.adjustChoice` in the protocol serving path. 7b RECORDS the user's choice among the twelve in-phase alternatives and does not act on it: nothing outside `journeyState.service.ts` reads the field, and the C2 confirmation ("We'll work it this way for now") is worded for exactly that state. This row closes the gap. **Step 0 REQUIRED** and it is not a formality: the twelve alternatives mean four different things to the engine (shrink the protocol, swap the approach at the same target, re-target, re-slot, re-cue, re-narrow), and what `selectProtocol` can currently express of that is unestablished. Settle what the engine already supports before anything writes a second selection input. **Also settle:** whether a recorded choice persists across a phase change (today `CLEARED_OFFERS` nulls it, which is right while nothing consumes it and may not be once something does), and whether choosing re-arms the weekly read the way a decline does. **Carried from 7b:** the door's write has NO in-flight guard (`onChoose` in `JourneyPhaseScreen.tsx` sets no pending state), which is harmless while the write settles and leaves the page silent when it does not; 7c is already in this code and is where that pending state belongs. | Engine capability, per Step 0 | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. | rules; **[Content-gated]** copy | Yes |
@@ -2120,6 +2120,144 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-09-11 - slice 7d, the exposure gate (`051b673`; branch `journey/slice-7d-exposure-gate`, unmerged, walk pending)
+
+**WHAT SHIPPED.** The two offer writes are gated on the RENDERED slot instead of
+on eligibility. `recordAdvanceExposure` and `recordAdjustOffered` both moved out
+of their offer hooks into siblings below `journeyActionFor` -
+`useAdvanceExposure` and `useAdjustDoorStamp` - and Home withholds the slot
+entirely until the weekly read has answered. `journeyActionFor` is untouched:
+same signature, same branch, same ordering tests.
+
+**THE SPLIT IS FORCED, AND THE BRIEF'S FIRST SHAPE DOES NOT COMPILE.** The plan
+was to pass `journeyActionFor`'s result into `useAdvanceOffer` as an input. That
+is a render-order cycle: `journeyActionFor` takes `advancePlacement` and
+`adjustPlacement` as inputs, which are the hooks' own outputs, so its answer
+cannot be an argument to the hook it is computed from. The smallest shape that
+actually works is to move the WRITE below the answer rather than the answer
+above the write. Each new hook lives in the file of the offer it belongs to, so
+the reasoning stays with its subject, and each returns void - there is no state
+the screen needs from them.
+
+**THREE THINGS STEP 0 SETTLED, read-only, before anything was built:**
+
+1. **B applied, and it was worse than a miscount.** `recordAdjustOffered` had
+   the identical eligibility gate, and `adjustOfferedAt` is the phase page's
+   qualification key. `JourneyPhaseScreen.tsx:173-175` states that the field is
+   non-null *"if and only if the adjustment offer has occupied Today at least
+   once in this phase."* Stamped on placement, that biconditional was false in
+   one direction: a user in `remove` with no capture and two consecutive
+   `not_moving` reads had the door unlocked while the CAPTURE card held the
+   slot, and C2 never drew. Reachable, not contrived.
+2. **A slot gate alone does NOT close the first-frame race.** At the frame
+   before adjust's weekly read lands, `journeyActionFor` genuinely answers
+   `'advance'`, because `placement === 'hidden'` is ambiguous between *not due*
+   and *not read yet*. The card commits and paints, and the effect that spends
+   the exposure runs after that commit. So the gate would have passed and the
+   exposure would still have been spent on a card C2 replaced a render later.
+   The fix needs a settled signal, and `placement` cannot carry one.
+3. **The flicker's fix and the metric's fix are different slices.** Withholding
+   the slot could live in the JSX or in `journeyActionFor`. The JSX is barred by
+   `DashboardScreen.tsx:552-557` - *"which one is decided by journeyActionFor
+   rather than by the order they appear in below"* - and the precedence function
+   is 7a's. Kyle's amendment took the third door: gate the INPUT, computing
+   `journeyActionFor` only once adjust has settled and passing null otherwise.
+   That is the frame-1 loading gate (no phase, no action) extended to the second
+   async read, it touches neither the JSX nor the precedence function, and it
+   fixes the swap and the exposure with one expression.
+
+**`settled` IS KEYED, NOT LATCHED, AND THE FIRST IMPLEMENTATION WAS WRONG.** A
+write-once boolean is set during the FIRST render: `phase` is still null, so
+`enteredAtIso` is the empty string, so the read effect bails - and a bail is an
+answer, so the flag goes true and stays true for the session. It then released
+the slot on exactly the frame it exists to withhold, and the screen test written
+for that frame failed. It is now keyed to `(uid, enteredAtIso)`, the pair that
+decides which read runs: `revisionToken` and `todayIso` re-run the effect
+without changing the key, so a write to the journey document never blanks the
+slot, while a new phase correctly withholds it for one read. **A hung weekly
+read leaves the slot empty until it settles or fails; logged to the
+offline-resilience row as the same class as the phase read above it.**
+
+**`shouldRecordExposure` TAKES A BOOLEAN NOW.** Its header claimed placement was
+passed in so that *"the card is on Today"* and *"today has not been spent"* were
+one decision at one call site, and the first half of that sentence was never
+true. The caller proves the slot; the function still owns the day. A
+`JourneyAction` parameter would have closed an import cycle with
+`journeyAction.ts`, which imports `OfferPlacement` from that module, and Metro
+0.83 does not forgive those.
+
+**THE THIRD VACUOUS-GREEN INSTANCE, AND IT IS WHY THIS SUITE NEVER SAW THE
+DEFECT.** `DashboardScreen.journeyLanding.test.tsx` did not mock
+`journeyState.service`. The real module loaded, `requireDb()` threw against the
+`db: null` mock, both slot writes rejected, and every `.catch` swallowed it. A
+screen that spent an exposure behind the capture card and a screen that spent
+none were indistinguishable, and every test stayed green through two slices.
+Same shape as the rules harness (`reference_rules_test_harness`) and as 7b's
+`getWeeklyCyclesSince` query-contract gap: the assertions were real, and the
+thing they asserted was not the thing that breaks. The mock is added, and all
+six 7d screen tests fail without the gate.
+
+**WHERE THE TESTS LIVE, AND WHY BOTH.** The hook suites prove each hook honours
+the action it is handed; only Home decides what that action is, and only Home
+runs the async read that produced the race. Neither level is sufficient. Both
+harnesses run the REAL `journeyActionFor` between the hooks rather than stubbing
+the action, because a stub would let them pass against a precedence function
+changed underneath them - which is the failure mode this slice is about.
+**Mutation-checked:** reverting either gate to ignore the slot fails 19 tests
+across the three suites, so none of them is green by accident.
+
+**EXPOSURES ALREADY SPENT BEHIND ANOTHER CARD ARE LEFT AS THEY ARE**, per §5 row
+7d's open question. No migration, and no script. `CLEARED_OFFERS`
+(`journeyState.service.ts:92-103`) zeroes `advanceExposures`,
+`advanceFirstOfferedOn`, `advanceLastExposedOn` and nulls `adjustOfferedAt` on
+every phase change, so the overcount is bounded to whatever phase each account
+is standing in now and heals at its next boundary with nothing written and
+nobody touching a document. Forgiving it would mean an Admin-SDK write to live
+`journeyStates` rows, which is a slice of its own and costs more than a bounded
+one-phase undercount against a beta cohort this size.
+
+**BOTH ANALYTICS EVENTS CHANGE MEANING AT THIS MERGE, AND THE DOCS SAY SO.**
+`journey_advance_offered` and `journey_adjust_offered` share their gates with the
+two writes, so the row counts were counting the wrong occasions too. Their type
+comments now carry the caveat: **rows written before 7d and rows written after
+it are not comparable**, and any accept-rate cut crossing the merge is measuring
+two different denominators.
+
+**COPY.** None. No string added, removed or reworded. Sentinel unchanged at
+**150**.
+
+**MANIFEST: NO CHANGE.** No new collection and no new document. The slice writes
+to `journeyStates` and reads `weeklyCycles`, and both are already on the manifest
+at `functions/src/lib/accountDeletion.js:86` and `:92`. **Verified by reading the
+manifest, not assumed.**
+
+**SECTION 18.** One surface change, and it is a timing change rather than a
+visual one: Today's journey-action slot now stays empty for the duration of one
+weekly read on a cold open, instead of drawing the advancement card and swapping
+it for C2. No token, type, radius, elevation or icon changes; no new component;
+no copy; no new pressable, so no new target, role or label; no animation, so
+`useReducedMotion` is not in scope. The empty state is the slot's existing
+absence - nothing renders, not a placeholder or a spinner - which is the same
+thing Home already shows while the phase resolves, and the three-card ceiling is
+unaffected. **The swap this removes was itself a Section 18 problem**: a card
+appearing and being replaced under the user's eyes is a load-stagger, which
+`§18 Interaction` bars.
+
+**BASELINES AT THIS COMMIT: tsc 149 (unchanged), jest 221 suites / 3422 (from
+3400; +22, no new suite file), sentinel 150, lint 1101 errors unchanged and 1350
+warnings (+6 `any` in the new test mock shims, matching the convention already in
+those files).** Rules 191/2 and functions 53/4 carried unrun: this slice touches
+neither.
+
+**THE 7a POST-MERGE OBSERVATION OBLIGATION IS INHERITED, NOT DISCHARGED.** Three
+real calendar days on a FRESH account after 7d merges, per the §5 row. It could
+not be run before now - the §5 amendment block voided it while the counter
+incremented on the wrong event - and it cannot be run against an account whose
+`advanceExposures` was inflated before the fix, because CLEARED_OFFERS only heals
+at a phase boundary. A fresh account is the point, not a convenience.
+
+---
 
 ### 2026-09-11 — slice 7b, the adjustment offer (`82e398e`, merged `810dfa8`; branch `journey/slice-7b-adjustment`, pushed)
 
