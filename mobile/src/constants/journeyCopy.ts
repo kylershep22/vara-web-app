@@ -452,7 +452,11 @@ export const TODAY_START_HERE_GLOSS =
  * is the word "still" and nothing more. `adjustDeclines` picks between them;
  * neither body knows or says how many times the user has been asked.
  *
- * OWNERSHIP, string by string, because these come from three places:
+ * OWNERSHIP, string by string. TWO SOURCES, Jen and Kyle, and the four bullets
+ * below group the strings by how they were authored. They do NOT match the
+ * five-way partition in copyDraftSentinel.test.ts, which splits the same
+ * thirty-two strings by ROUTE TO FLAT and has to sum; that ledger is the
+ * arithmetic and this list is the provenance.
  *
  *   - `title` and `confirmation` are JEN'S, pack section C2, landing FLAT under
  *     the pack's own rule: pack strings carry no `COPY: draft` marker and the
