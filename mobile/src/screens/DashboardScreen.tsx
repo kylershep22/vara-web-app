@@ -47,8 +47,8 @@ import { JourneyLine } from '../components/dashboard/JourneyLine';
 import { StartHereRow } from '../components/journey/StartHereRow';
 import { JOURNEY_LINE_LABEL, TODAY_START_HERE_GLOSS } from '../constants/journeyCopy';
 import { journeyActionFor } from '../journey/journeyAction';
-import { useAdjustOffer } from '../hooks/useAdjustOffer';
-import { useAdvanceOffer } from '../hooks/useAdvanceOffer';
+import { useAdjustDoorStamp, useAdjustOffer } from '../hooks/useAdjustOffer';
+import { useAdvanceExposure, useAdvanceOffer } from '../hooks/useAdvanceOffer';
 import { logEvent } from '../services/firebase/analyticsEvents.service';
 import { useDashboard } from '../hooks/useDashboard';
 import { useJourneyLanding } from '../hooks/useJourneyLanding';
@@ -197,17 +197,68 @@ const DashboardScreen: React.FC = () => {
     todayIso: todayCard.todayIso,
   });
 
-  const journeyAction = journeyActionFor({
-    phaseKey: weeklyLanding.phase?.phaseKey ?? null,
-    hasRemoveCapture: weeklyLanding.phase?.hasRemoveCapture ?? false,
-    captureDismissed,
-    // Slice 7b. THIS IS THE ONE EXPRESSION 7a's comment promised would change:
-    // the literal 'hidden' that made the adjust branch unreachable is now a
-    // real placement, and the signature, the branch and its ordering test are
-    // all untouched. The priority is NOT restructured here - capture beats
-    // adjust beats advance, settled by test in 7a and unedited.
-    adjustPlacement: adjustOffer.placement,
-    advancePlacement: advanceOffer.placement,
+  // THE SLOT IS WITHHELD UNTIL ADJUST HAS ANSWERED (slice 7d). This is the
+  // frame-1 loading gate extended to the second async read on the screen, and
+  // it is the whole of 7d's fix to the first-frame race.
+  //
+  // `weeklyLanding.phase` is null while the journey resolves, and a null
+  // phaseKey already makes `journeyActionFor` return null, so the slot has
+  // always been empty for that read. `useAdjustOffer`'s weekly read is the
+  // SECOND async read below the hero and it had no such gate: its placement is
+  // 'hidden' while `cycles` is still empty, which is indistinguishable from
+  // 'not due'. On a cold open with both offers due that produced a render where
+  // adjust was 'hidden' and advance was 'today', so B2 drew, spent an exposure,
+  // and C2 replaced it a render later.
+  //
+  // ASKING LATER RATHER THAN ANSWERING DIFFERENTLY, and that is deliberate.
+  // `journeyActionFor` is 7a's precedence function and is untouched: it has no
+  // pending value, no fourth input and no new branch. The JSX below is
+  // untouched too - putting `settled` in a sibling condition there would make
+  // the priority readable off the JSX, which is exactly what that function
+  // exists to prevent. The gate is on the INPUT side, at the one call site.
+  //
+  // THE COST IS ON A HUNG READ. A weekly read that never settles leaves the
+  // slot empty rather than wrong, which is the same class of behaviour the
+  // phase read already has above it. Logged to the offline-resilience row.
+  const journeyAction = adjustOffer.settled
+    ? journeyActionFor({
+        phaseKey: weeklyLanding.phase?.phaseKey ?? null,
+        hasRemoveCapture: weeklyLanding.phase?.hasRemoveCapture ?? false,
+        captureDismissed,
+        // Slice 7b. THIS IS THE ONE EXPRESSION 7a's comment promised would
+        // change: the literal 'hidden' that made the adjust branch unreachable
+        // is now a real placement, and the signature, the branch and its
+        // ordering test are all untouched. The priority is NOT restructured
+        // here - capture beats adjust beats advance, settled by test in 7a and
+        // unedited.
+        adjustPlacement: adjustOffer.placement,
+        advancePlacement: advanceOffer.placement,
+      })
+    : null;
+
+  // ---- The two writes the slot owns (slice 7d) ----
+  //
+  // BELOW `journeyActionFor`, NOT INSIDE THE OFFER HOOKS, and the ordering is
+  // the reason both hooks exist. Each write has to know which card actually
+  // OCCUPIES the slot, and only `journeyActionFor` knows that; but it takes
+  // both placements as inputs, so its answer cannot be an argument to either
+  // hook that produced them. The full argument is at the top of
+  // useAdvanceOffer.ts.
+  //
+  // A NULL ACTION WRITES NOTHING, which is what makes the gate above do the
+  // work: the unsettled frame reaches both of these as null.
+  useAdvanceExposure({
+    uid: user?.uid,
+    action: journeyAction,
+    door: advanceOffer.door,
+    phase: weeklyLanding.phase,
+    todayIso: todayCard.todayIso,
+  });
+
+  useAdjustDoorStamp({
+    uid: user?.uid,
+    action: journeyAction,
+    alreadyOffered: weeklyLanding.phase?.adjustOffered ?? false,
   });
 
   // Opening the CURRENT phase's page, where the three in-phase alternatives

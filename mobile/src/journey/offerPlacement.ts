@@ -146,9 +146,11 @@ export interface AdjustPlacementInput {
  * 'journey' IS THE PHASE PAGE'S DOOR, and that is what makes the cap humane
  * rather than a silencing. R5: "the door is open, Vara just stops knocking."
  * `JourneyPhaseScreen` renders "Try a different approach" for the rest of the
- * phase on the strength of `adjustOfferedAt`, which the first exposure stamps,
- * so a capped user loses the card and keeps the agency. Collapsing this branch
- * into 'hidden' would take both.
+ * phase on the strength of `adjustOfferedAt`, which is stamped the first time
+ * the C2 card actually DRAWS (slice 7d; it used to be stamped on this function
+ * returning 'today', which is eligibility and could fire behind the capture
+ * card), so a capped user loses the card and keeps the agency. Collapsing this
+ * branch into 'hidden' would take both.
  *
  * NOTHING RE-PROMOTES FROM THE CAP. There is no branch back to 'today' once
  * `declines` has reached the cap, and there is no way for `declines` to fall:
@@ -173,14 +175,30 @@ export function placeAdjustOffer(input: AdjustPlacementInput): OfferPlacement {
  * recurring is that the re-resolve carries the freshly written
  * `lastExposedOn === todayIso` and this returns false on the next pass.
  *
- * Placement is passed in rather than recomputed so that "the card is on Today"
- * and "today has not been spent" are one decision at one call site.
+ * THE FIRST ARGUMENT WAS AN `OfferPlacement` UNTIL SLICE 7d AND IS NOW A PLAIN
+ * BOOLEAN, because the thing it has to mean changed. This function's header
+ * used to say placement was passed in so that "the card is on Today" and
+ * "today has not been spent" were one decision at one call site. The first
+ * half of that was never true: `placement === 'today'` is ELIGIBILITY for the
+ * one journey-action slot, and `journeyActionFor` decides later and separately
+ * who actually occupies it. An eligible advancement offer sitting behind the
+ * capture card or behind C2 spent an exposure on a card the user could not
+ * see, which is the defect 7d exists to close and which was observed twice on
+ * device during 7b's walk.
+ *
+ * SO THE CALLER NOW PROVES THE SLOT AND THIS STILL OWNS THE DAY. `rendered` is
+ * `journeyActionFor`'s answer reduced to one bit - the advancement card is the
+ * thing occupying the slot on this render - and the two questions are still one
+ * decision at one call site. A BOOLEAN RATHER THAN A `JourneyAction` on
+ * purpose: journeyAction.ts imports `OfferPlacement` from this module, so
+ * taking its union here would close an import cycle, and Metro 0.83 does not
+ * forgive those.
  */
 export function shouldRecordExposure(
-  placement: OfferPlacement,
+  rendered: boolean,
   lastExposedOn: string | null,
   todayIso: string
 ): boolean {
-  if (placement !== 'today') return false;
+  if (!rendered) return false;
   return lastExposedOn !== todayIso;
 }

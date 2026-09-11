@@ -118,6 +118,11 @@ player; behavioral → "Do it now" opens the new behavioral screen.
   weekly). Mechanical rename, post-3b, before it confuses the next reader.
 - **Offline-resilience slice [Queued].** From the notification work: un-timed-out Firestore awaits, a swallowed
   `getDoc` error, throwing-getDoc silent failure in the reminder-persistence path. Distinct from features.
+  **Added 2026-09-11 (journey slice 7d):** `useAdjustOffer`'s weekly read has no timeout, and Home now gates its
+  whole journey-action slot on that read having settled, so a read that hangs rather than rejecting leaves the
+  slot empty for as long as it hangs. Same class as the phase read above it, which gates the entire Today block
+  on the same terms - this is a second instance of an existing shape, not a new one. A read that FAILS is already
+  handled: it settles the flag and the slot releases.
 - **Start-day edit surface [Queued].** First-capture is built; editing an already-set start day is structurally
   free (re-write the preference, takes effect next week) but not yet surfaced.
 - **Coach 500 fix [Queued].** Gates coach-in-nav (Step 6).

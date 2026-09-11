@@ -47,6 +47,39 @@ Format per entry: file/area, what fails, what blocks, suggested fix.
 
 ---
 
+## An unmocked service makes a screen suite blind to every write it makes
+
+**FIXED IN PLACE for one file (journey slice 7d, 2026-09-11); logged because the
+shape is general and the audit is not done.**
+
+`DashboardScreen.journeyLanding.test.tsx` mocked `weeklyCycle.service` and
+`analyticsEvents.service` and did NOT mock `journeyState.service`. Combined with
+the suite's own `jest.mock('../../config/firebase', () => ({ db: null }))`, that
+means the real service module loads, `requireDb()` throws
+(`services/firebase/ensureDb.ts:20-26`), every write rejects, and every caller's
+`.catch` swallows it — by design, because none of these writes may cost the user
+their screen.
+
+- **The consequence is a suite that cannot fail on a write.** A Home that spent
+  an advancement exposure behind the capture card and a Home that spent none
+  were indistinguishable to this file. The 7a exposure-on-eligibility defect
+  lived through two slices and a full suite run because of it, and was found on
+  a device instead.
+- **It is the third instance of one shape**, after the rules harness note and
+  the `getWeeklyCyclesSince` query-contract gap above: the assertions are real,
+  and the thing they assert is not the thing that breaks.
+- **What makes it specifically dangerous** is that the swallowing is CORRECT
+  production behaviour. There is no error to notice, no console noise, and no
+  unhandled rejection — the test environment looks healthy while proving
+  nothing.
+- **Fixed for this file:** `journeyState.service` is now mocked with jest.fn
+  shims, and the six 7d screen tests assert call counts against them.
+- **Not audited:** every other screen suite that mocks `config/firebase` to a
+  null `db` and leaves a write-owning service unmocked has the same hole. A
+  sweep would be a short script — find suites mocking `db: null`, list the
+  service modules they import transitively, and flag the unmocked writers.
+- **Surfaced:** journey slice 7d, 2026-09-11.
+
 ---
 
 ## Closed items

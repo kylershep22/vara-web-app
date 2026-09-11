@@ -107,6 +107,25 @@ jest.mock('../../services/firebase/weeklyCycle.service', () => ({
   // is the ONE read on Home the resolver cannot supply from state in hand.
   getWeeklyCyclesSince: (...a: any[]) => mockGetCyclesSince(...(a as [])),
 }));
+// SLICE 7d. THIS MOCK IS THE POINT OF THE 7d SCREEN TESTS, and its absence is
+// why the exposure defect was invisible to this suite for two slices.
+//
+// Until now `journeyState.service` was left unmocked here. The real module
+// loads, `requireDb()` throws on the `db: null` mock above, both slot writes
+// reject, and every `.catch` swallows it. So the suite could not observe the
+// writes AT ALL: a screen that spent an exposure behind the capture card and a
+// screen that spent none were indistinguishable, and every test stayed green.
+// That is the `reference_rules_test_harness` vacuous-green shape in a third
+// place - the assertions were real, and the thing they asserted was not the
+// thing that breaks.
+const mockRecordExposure = jest.fn(async () => {});
+const mockRecordAdjustOffered = jest.fn(async () => {});
+jest.mock('../../services/firebase/journeyState.service', () => ({
+  recordAdvanceExposure: (...a: any[]) => mockRecordExposure(...(a as [])),
+  recordAdjustOffered: (...a: any[]) => mockRecordAdjustOffered(...(a as [])),
+  recordAdvanceDeclined: jest.fn(async () => {}),
+  recordAdjustDeclined: jest.fn(async () => {}),
+}));
 jest.mock('../../utils/logger', () => ({
   logger: { log: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));
@@ -595,6 +614,190 @@ describe('DashboardScreen - the journey-action slot', () => {
       phase: 'recover',
       destination: PHASE.destination,
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SLICE 7d. THE EXPOSURE IS SPENT ON THE RENDERED SLOT.
+//
+// THESE ARE THE TESTS THAT WOULD HAVE CAUGHT IT, and they have to live at the
+// screen because the defect is in the WIRING. The hooks' own suites can only
+// prove that each honours the action it is handed; only Home decides what that
+// action is, and only Home runs the async weekly read that produced the
+// first-frame race. The hook suites and this one are both necessary and
+// neither is sufficient.
+//
+// EVERY TEST BELOW HAS AN ELIGIBLE ADVANCEMENT OFFER. That is what makes them
+// mean anything: `placement` is 'today' throughout, so a test that sees no
+// exposure is seeing the slot gate work and not an offer that was never due.
+// ---------------------------------------------------------------------------
+describe('DashboardScreen - the exposure spends on the slot (slice 7d)', () => {
+  beforeEach(primeHome);
+
+  /** Advance is due: captured, and entered long enough ago for the ceiling. */
+  const dueForAdvance = {
+    ...PHASE,
+    hasRemoveCapture: true,
+    enteredAtIso: '2026-01-01',
+  };
+
+  /** Adjust is due too: two consecutive not_moving reads in this phase. */
+  const dueForBoth = { ...dueForAdvance, adjustArmedFromIso: '2026-01-01' };
+
+  const twoNotMoving = [
+    {
+      id: 'w1',
+      userId: 'u1',
+      weekStart: '2026-08-24',
+      weekEnd: '2026-08-30',
+      phaseRead: 'not_moving',
+      phaseKeyAtRead: 'remove',
+    },
+    {
+      id: 'w2',
+      userId: 'u1',
+      weekStart: '2026-08-31',
+      weekEnd: '2026-09-06',
+      phaseRead: 'not_moving',
+      phaseKeyAtRead: 'remove',
+    },
+  ];
+
+  test('NO exposure while the capture card holds the slot', async () => {
+    // Observed on device during 7b's walk: advanceOfferedAt stamped at
+    // 13:30:39 while the capture card was on screen at 13:41.
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: { ...dueForAdvance, hasRemoveCapture: false },
+    });
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-remove-capture')).toBeTruthy());
+    expect(queryByTestId('home-advancement')).toBeNull();
+    expect(mockRecordExposure).not.toHaveBeenCalled();
+  });
+
+  test('NO exposure while C2 holds the slot', async () => {
+    // The half 7b widened. Adjust outranks advance, so the budget drained
+    // behind the adjustment card as well as behind the capture card.
+    mockGetCyclesSince.mockResolvedValue(twoNotMoving as any);
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: dueForBoth });
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-adjustment')).toBeTruthy());
+    expect(queryByTestId('home-advancement')).toBeNull();
+    expect(mockRecordExposure).not.toHaveBeenCalled();
+  });
+
+  test('EXACTLY ONE exposure on a day the advancement card actually draws', async () => {
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: dueForAdvance });
+    const { getByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-advancement')).toBeTruthy());
+    await waitFor(() => expect(mockRecordExposure).toHaveBeenCalledTimes(1));
+    expect(mockRecordExposure).toHaveBeenCalledWith('u1', '2026-09-10', null);
+  });
+
+  test('THE SLOT IS EMPTY WHILE THE WEEKLY READ IS IN FLIGHT, then draws ONE card', async () => {
+    // THE FIRST-FRAME RACE, and it is the test a slot gate alone would not
+    // pass. With the read deferred, adjust's placement is 'hidden' because it
+    // does not know yet - indistinguishable from 'not due' - so before 7d
+    // `journeyActionFor` answered 'advance', B2 painted, an exposure was spent,
+    // and C2 replaced it a render later. Home now withholds the question until
+    // adjust settles: nothing draws, then C2 draws, and B2 never appears at
+    // all. NO SWAP is the assertion, and the exposure count is how we know the
+    // frame did not happen invisibly.
+    let release: (rows: unknown[]) => void = () => {};
+    mockGetCyclesSince.mockReturnValue(
+      new Promise((resolve) => {
+        release = resolve as (rows: unknown[]) => void;
+      }) as any
+    );
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: dueForBoth });
+
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    // The journey line proves Home has rendered the Today block: the slot is
+    // empty because it is withheld, not because nothing has mounted yet.
+    await waitFor(() => expect(getByTestId('home-journey-line')).toBeTruthy());
+    expect(queryByTestId('home-advancement')).toBeNull();
+    expect(queryByTestId('home-adjustment')).toBeNull();
+    expect(queryByTestId('home-remove-capture')).toBeNull();
+    expect(mockRecordExposure).not.toHaveBeenCalled();
+
+    await act(async () => {
+      release(twoNotMoving);
+    });
+    await waitFor(() => expect(getByTestId('home-adjustment')).toBeTruthy());
+    expect(queryByTestId('home-advancement')).toBeNull();
+    expect(mockRecordExposure).not.toHaveBeenCalled();
+  });
+
+  test('a FAILED weekly read still releases the slot', async () => {
+    // The flag settles on rejection too. Otherwise one dropped request would
+    // withhold Today's journey-action card for the rest of the session.
+    mockGetCyclesSince.mockRejectedValue(new Error('offline'));
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: dueForAdvance });
+    const { getByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-advancement')).toBeTruthy());
+    await waitFor(() => expect(mockRecordExposure).toHaveBeenCalledTimes(1));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SLICE 7d. THE DOOR OPENS ON THE CARD DRAWING, NOT ON ELIGIBILITY.
+//
+// `adjustOfferedAt` is the phase page's qualification key: JourneyPhaseScreen
+// renders "Try a different approach" for the rest of the phase on the strength
+// of it. Stamped on eligibility, it unlocked that page for a user who had never
+// been shown C2 at all.
+// ---------------------------------------------------------------------------
+describe('DashboardScreen - the door stamps on the slot (slice 7d)', () => {
+  beforeEach(primeHome);
+
+  const dueForAdjust = {
+    ...PHASE,
+    hasRemoveCapture: true,
+    enteredAtIso: '2026-08-01',
+    adjustArmedFromIso: '2026-08-01',
+  };
+
+  const twoNotMoving = [
+    {
+      id: 'w1',
+      userId: 'u1',
+      weekStart: '2026-08-24',
+      weekEnd: '2026-08-30',
+      phaseRead: 'not_moving',
+      phaseKeyAtRead: 'remove',
+    },
+    {
+      id: 'w2',
+      userId: 'u1',
+      weekStart: '2026-08-31',
+      weekEnd: '2026-09-06',
+      phaseRead: 'not_moving',
+      phaseKeyAtRead: 'remove',
+    },
+  ];
+
+  test('stamps when C2 draws', async () => {
+    mockGetCyclesSince.mockResolvedValue(twoNotMoving as any);
+    mockResolveJourney.mockResolvedValue({ target: 'today', phase: dueForAdjust });
+    const { getByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-adjustment')).toBeTruthy());
+    await waitFor(() => expect(mockRecordAdjustOffered).toHaveBeenCalledWith('u1'));
+  });
+
+  test('DOES NOT stamp while the capture card holds the slot', async () => {
+    // The reachable case, not a contrived one: a user in `remove` who never
+    // made the capture and has told us not_moving twice. Before 7d this
+    // unlocked the phase page's door without C2 ever drawing.
+    mockGetCyclesSince.mockResolvedValue(twoNotMoving as any);
+    mockResolveJourney.mockResolvedValue({
+      target: 'today',
+      phase: { ...dueForAdjust, hasRemoveCapture: false },
+    });
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+    await waitFor(() => expect(getByTestId('home-remove-capture')).toBeTruthy());
+    expect(queryByTestId('home-adjustment')).toBeNull();
+    expect(mockRecordAdjustOffered).not.toHaveBeenCalled();
   });
 });
 

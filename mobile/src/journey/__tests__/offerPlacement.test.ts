@@ -165,30 +165,40 @@ describe('placeAdvanceOffer - the seven-day cap', () => {
   });
 });
 
+// THE FIRST ARGUMENT IS A BOOLEAN FROM SLICE 7d, not an `OfferPlacement`. It
+// used to be the placement, and the placement is ELIGIBILITY for Today's one
+// journey-action slot rather than occupancy of it, so an offer sitting behind
+// the capture card or behind C2 spent an exposure on a card that never drew.
+// The caller now proves the slot from `journeyActionFor`'s answer and reduces
+// it to one bit; this function still owns the day. The old placement cases
+// ('journey', 'hidden') survive below as the `false` case they always meant.
 describe('shouldRecordExposure - the day gate', () => {
-  test('records when the offer is on Today and today is unspent', () => {
-    expect(shouldRecordExposure('today', null, TODAY)).toBe(true);
+  test('records when the advancement card holds the slot and today is unspent', () => {
+    expect(shouldRecordExposure(true, null, TODAY)).toBe(true);
   });
 
   test('REFUSES a second exposure on the same calendar day', () => {
     // The assertion the whole ordering argument rests on. Home re-resolves on
     // every focus, so without this a day of tab switching spends the budget.
-    expect(shouldRecordExposure('today', TODAY, TODAY)).toBe(false);
+    expect(shouldRecordExposure(true, TODAY, TODAY)).toBe(false);
   });
 
   test('records again once the day has rolled over', () => {
-    expect(shouldRecordExposure('today', '2026-09-09', TODAY)).toBe(true);
+    expect(shouldRecordExposure(true, '2026-09-09', TODAY)).toBe(true);
   });
 
-  test('never records for a demoted offer', () => {
-    // A demoted offer is not on Today, so it cannot spend a Today exposure.
-    // Without this the budget would keep draining after demotion and the
-    // seven-day cap would be the only thing still doing any work.
-    expect(shouldRecordExposure('journey', null, TODAY)).toBe(false);
+  test('never records when the card is not the one rendered', () => {
+    // Covers a demoted offer, an undue offer, and - the case 7d exists for -
+    // an offer that is eligible for Today and outranked by another card. All
+    // three arrive here as false, and none of them may spend an exposure.
+    expect(shouldRecordExposure(false, null, TODAY)).toBe(false);
   });
 
-  test('never records for an offer that is not due', () => {
-    expect(shouldRecordExposure('hidden', null, TODAY)).toBe(false);
+  test('an unrendered card cannot spend an exposure on a fresh day either', () => {
+    // The day gate must not be able to rescue a card nobody saw: the slot term
+    // is checked FIRST and short-circuits, so a rolled-over day changes
+    // nothing while the card is not the one drawn.
+    expect(shouldRecordExposure(false, '2026-09-09', TODAY)).toBe(false);
   });
 });
 
