@@ -118,6 +118,17 @@ export const A2_BODIES: Record<DestinationKey, string> = {
  * A2 DOES NOT USE THIS MAP. Its current row says "Starting here", which lives
  * at the route strip: same position, different moment, different sentence.
  *
+ * DELIBERATELY NOT COLLAPSED WITH `JOURNEY_LINE_LABEL` BELOW, WHICH HOLDS THE
+ * SAME THREE WORDS AS `current` TODAY (Kyle, 2026-09-10, slice 7a rider). The
+ * full argument is at that constant; the half that matters HERE is that THIS
+ * MAP IS THE ONE LIKELIER TO BE REVISED. These four labels have to work as a
+ * SET - Complete, Where you are, Ahead, Skipped - and a revision that makes
+ * `current` sit better beside its three siblings need not make sense above a
+ * phase name on Today, where there are no siblings at all.
+ *
+ * So: revise these four freely. Today's journey line does not follow, and that
+ * independence is the reason the two constants exist rather than one.
+ *
  * `done` READS "Complete", NOT "Done" (Kyle, 2026-09-09, slice 5b-i). A
  * SUBSTITUTION OF ONE APPROVED STRING BY ANOTHER: both were his, the second
  * replaces the first on the same day, and the sentinel does not move in either
@@ -323,11 +334,23 @@ export const ADVANCEMENT_COPY = {
  * "Start this", NOT "Start this phase" OR "Begin". The framework words never
  * reach a user (section 8), and "begin" reads as ceremony on a page whose whole
  * argument is that this is an ordinary next step.
+ *
+ * `failed` IS APPROVED, AND IT SHIPPED AS A NAMED DEVIATION BEFORE IT WAS.
+ * Slice 7a's Step 0 listed the copy the slice needed and Kyle approved two new
+ * drafts; this third string was not among them and was added anyway, because the
+ * commit control needs an error state for UI Standards 18 and the only existing
+ * candidate was TodayHeroCard's local `saveFailed`, which is Jen's and drafted.
+ * It landed marked, at a declared +1, flagged in the slice report rather than
+ * absorbed into the approved pair.
+ *
+ * Kyle cleared it on device on 2026-09-10, during walk section I, READ IN THE
+ * FAILURE STATE IT OCCUPIES rather than off a list: airplane mode, "Start this",
+ * the line under the two controls. That is the strongest form this gate's
+ * approval takes, and it is why the marker is gone rather than carried forward.
  */
 export const ADVANCE_PREVIEW_COPY = {
   startThis: 'Start this',
   notYet: 'Not yet',
-  // COPY: draft, not from guidelines doc - pending Kyle
   failed: 'That did not go through. Try again.',
 } as const;
 
@@ -352,20 +375,28 @@ export const ADVANCE_PREVIEW_COPY = {
  * UX clothes, meaningless without a legend, and a legend on Today is a second
  * thing to read before the daily action.
  *
- * IT IS THE SAME THREE WORDS AS `PHASE_STATE_LABELS.current` ABOVE, AND THAT IS
- * DELIBERATE RATHER THAN A STALE COPY. The map's state word and this label make
- * the same statement to a user, and one vocabulary across two surfaces is worth
- * more than a second phrasing invented to avoid looking duplicated.
+ * DELIBERATELY NOT COLLAPSED WITH `PHASE_STATE_LABELS.current`, WHICH HOLDS THE
+ * SAME THREE WORDS TODAY (Kyle, 2026-09-10). This is a decision, not an
+ * oversight, and it is written at BOTH declarations so whoever notices the
+ * duplication finds the reason rather than "fixing" it.
  *
- * IT IS A SEPARATE CONSTANT ANYWAY, and the reason is what would happen if it
- * were not: `PHASE_STATE_LABELS.current` labels one ROW of the map as the row
- * the user is standing on, and if it were ever narrowed to say something
- * row-specific, Today's journey line would silently follow it. The two jobs are
- * close enough to share words and not close enough to share a symbol.
+ * THEY ANSWER DIFFERENT QUESTIONS ON DIFFERENT SURFACES. `PHASE_STATE_LABELS`
+ * is the map's state vocabulary: it labels ONE ROW among four, and its job is to
+ * distinguish that row from the Complete, Ahead and Skipped rows beside it. This
+ * label introduces a SINGLE LINE on Today, where there is nothing to
+ * distinguish it from and its job is to stop an imperative-shaped `short`
+ * reading as today's instruction.
  *
- * QUEUED FOR THE WALK: whether these should collapse into one constant is
- * Kyle's call to make while reading both surfaces, not one to settle from the
- * file. Collapsing is a two-line change and decrements the sentinel by one.
+ * WHAT COLLAPSING WOULD COST: a future revision to the map's state vocabulary
+ * would silently change the Today line. The map has four labels that have to
+ * work as a set, so it is the one likelier to be revised, and the revision that
+ * makes sense beside Complete and Ahead need not make sense above a phase name
+ * on Today. TWO CONSTANTS SHARING A VALUE IS CHEAPER THAN ONE CONSTANT SERVING
+ * TWO MEANINGS. The shared value is not the coupling; a shared symbol would be.
+ *
+ * Sharing the words is itself deliberate while they do share them: one
+ * vocabulary across two surfaces is worth more than a second phrasing invented
+ * to avoid looking duplicated. They are free to diverge, which is the point.
  */
 // COPY: draft, not from guidelines doc - pending Kyle
 export const JOURNEY_LINE_LABEL = 'Where you are';

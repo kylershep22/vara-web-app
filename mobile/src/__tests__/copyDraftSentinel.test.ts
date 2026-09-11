@@ -409,12 +409,45 @@ import * as path from 'path';
 // move. Recorded so nobody re-derives the retired pair from the pack later and
 // reads the divergence as a transcription error.
 //
-// QUEUED, NOT DONE: JOURNEY_LINE_LABEL is the same three words as
-// PHASE_STATE_LABELS.current. Deliberate rather than a stale copy, and argued at
-// the constant. Whether the two should collapse into one symbol is Kyle's call
-// to make while reading both surfaces on the walk; collapsing decrements this
-// pin by one.
-const EXPECTED_SENTINELS = 151;
+// THE COLLAPSE QUESTION IS ANSWERED AND THE ANSWER IS NO (Kyle, 2026-09-10).
+// The line that stood here left it queued for the walk and noted that
+// collapsing JOURNEY_LINE_LABEL into PHASE_STATE_LABELS.current would decrement
+// this pin by one. It will not: the two stay separate, deliberately, and the
+// reasoning is written at BOTH declarations in constants/journeyCopy.ts. They
+// answer different questions on different surfaces, and collapsing them would
+// let a revision to the map's four-label state vocabulary silently change the
+// Today line. No arithmetic follows from this; it is recorded so the -1 is not
+// looked for again.
+//
+// 150 since the slice 7a rider: -1. Owner Kyle, 2026-09-10, for
+// ADVANCE_PREVIEW_COPY.failed, 'That did not go through. Try again.' in
+// constants/journeyCopy.ts.
+//
+// A GENUINE APPROVAL, AND THE SECOND HALF OF A DEVIATION THIS FILE ALREADY
+// NAMED. The +3 entry above records that this string was NOT in the set Kyle
+// approved at Step 0: it was added mid-slice because the advancement preview's
+// commit control needs an error state for UI Standards 18, and the nearest
+// existing candidate was TodayHeroCard's local `saveFailed`, which is Jen's and
+// drafted. It shipped marked, at a declared +1, flagged in the slice report
+// rather than absorbed. This is that deviation closing.
+//
+// READ IN THE STATE IT OCCUPIES, which is why it is an approval and not a
+// clearance. Kyle read it on device during walk section I - airplane mode,
+// "Start this", the line under the two controls - rather than off a list. The
+// 5a definition distinguishes that from a desk sign-off, and this is the
+// stronger case.
+//
+// NOT the 5b-i replacement case. Kyle did not rewrite the words; the string that
+// shipped on the branch is the string that ships. "Kyle approved a string
+// someone drafted" and "Kyle wrote the string that ships" are different facts
+// about how much review the copy has had, and this is the first.
+//
+// STILL DRAFTED FROM SLICE 7a: JOURNEY_LINE_LABEL and TODAY_START_HERE_GLOSS,
+// both in constants/journeyCopy.ts, both Kyle's to clear. Neither was walked in
+// a state that would settle it - the journey line reads correctly on device but
+// its label was not read against the alternatives, and the Start here gloss sat
+// under a test clip rather than under Jen's video.
+const EXPECTED_SENTINELS = 150;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');
