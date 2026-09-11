@@ -449,23 +449,40 @@ import * as path from 'path';
 // under a test clip rather than under Jen's video.
 //
 // 150 THROUGH JOURNEY SLICE 7b: NO CHANGE, AND THE ZERO IS THE ENTRY. The slice
-// landed twenty-nine new strings on the C2 adjustment surfaces and not one of
+// landed THIRTY-TWO new strings on the C2 adjustment surfaces and not one of
 // them is drafted, so the number is unmoved. Recorded here anyway, because a
 // slice that adds this much copy and moves the count by nothing is exactly the
 // shape that looks like an omission to whoever audits this file next. It is
-// not. The twenty-nine break down as:
+// not.
 //
-//   - TWENTY-SIX ARE JEN'S, FROM Content Pack v1, LANDING FLAT under the pack's
-//     own rule: the C2 title, the C2 confirmation, and the twelve alternative
-//     labels with their twelve bodies from section 5's adjustment sets. Pack
-//     strings carry no marker and this suite does not count them.
+// THE TOTAL WAS FIRST WRITTEN AS TWENTY-NINE AND WAS WRONG (corrected
+// 2026-09-11, Kyle). It was also partitioned into three groups that summed to
+// thirty-one, so the headline and its own breakdown disagreed. Counted off the
+// declarations: ADJUST_COPY has EIGHT keys, and ADJUST_ALTERNATIVES has four
+// phases of three options carrying a label and a body each, which is
+// TWENTY-FOUR. Eight plus twenty-four is thirty-two. The partition below sums
+// to that, and it is five ways rather than three because ownership and ROUTE
+// TO ZERO are different questions: two of Kyle's five reach flat by different
+// routes and a ledger that merges them loses the distinction it exists to keep.
+//
+//   - TWENTY-SIX ARE JEN'S, FROM `Content Pack v1 section 5`, LANDING FLAT
+//     under the pack's own rule: the C2 title, the C2 confirmation, and the
+//     twelve alternative labels with their twelve bodies from the adjustment
+//     sets. Pack strings carry no marker and this suite does not count them.
 //   - ONE IS JEN'S FROM `decisions section 4`: ADJUST_COPY.bodyFirst, the final
 //     C2 body, verbatim. Also pack, also flat. The body in section 5's own
 //     delivery is SUPERSEDED and was not built.
-//   - TWO ARE KYLE'S, AUTHORED 2026-09-10, landing flat on the PHASE_PAGE_BODIES
-//     precedent: ADJUST_COPY.alternativesIntro and ADJUST_COPY.failed. Written
-//     by the owner, not signed off on someone else's draft, which is the
-//     distinction that precedent exists to mark.
+//   - THREE ARE KYLE'S, AUTHORED AND FLAT on the PHASE_PAGE_BODIES precedent:
+//     ADJUST_COPY.primary, ADJUST_COPY.alternativesIntro and ADJUST_COPY.failed.
+//     Written by the owner, not signed off on someone else's draft, which is
+//     the distinction that precedent exists to mark. `primary` is the
+//     prose-to-copy promotion described at the foot of this entry.
+//   - ONE IS KYLE'S BY REPLACEMENT: ADJUST_COPY.decline.
+//   - ONE IS KYLE'S AS A NEW DRAFT CLEARED BY OWNER SIGN-OFF:
+//     ADJUST_COPY.bodySecond.
+//
+// The last two are the cases this ledger is actually for, and they are set out
+// in full below.
 //
 // ONE IS A REPLACEMENT BY OWNER, logged on the precedent PHASE_STATE_LABELS.done
 // set when "Done" became "Complete": a string of Kyle's superseding a wording
