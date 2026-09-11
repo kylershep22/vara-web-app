@@ -253,7 +253,8 @@ deploy. Deploy state lives on Kyle's checklist.
 | 5b-i | **[DONE `8cc461c`, 2026-09-09]** Phase explanation pages *(row added 2026-09-09 at the close)* | Four phase detail pages on one route (`ROUTES.JourneyPhase`, params `phase` + `destination`), reachable from every journey map row: destination `title` + `gloss`, one state-agnostic body per phase, a state eyebrow, back to the map. `PhasePath` gains an optional `onPressPhase`; A2 passes none and stays inert. Remove page renders the 3c-ii stored intention through an absent-safe resolver. **NOT a practice browser**, and the four destination cards STAY ON THE MAP. | No content gate, no §9 item. Five page strings drafted in-house then rewritten and approved by Kyle on device | Done 2026-09-09: four pages, two destinations, three seeded states, both remove-page paths |
 | 5c | **[DONE `55a403a`, 2026-09-10]** Start here container *(row added 2026-09-09 with the split)* **Shipped with a NULL path, not the placeholder path this row and §6 item 9 specify — see the Sept 10 §13 entry and the §6 item 9 amendment.** | `StartHereRow` over `VideoPlayerModal`, collapsed/expanded state persisted per surface, `explainerPath` as a data field with a placeholder path (§6 item 9). Practices surface only; slice 7 mounts the Today instance. **Free-floating**: touches neither `PHASE_DISPLAY` nor `journeyStates`. | Videos are data, not a gate. `VideoPlayerModal` and `useVideoSource` are §3.5-unchanged and are wrapped, never edited | Yes |
 | 6 | **[DONE `a19b54b`, 2026-09-10]** Weekly reset repurpose *(branch commits `ef26118` and rider `f0bac71`. Marked DONE at the merge; the prior **[Next]** note is kept below because its gate correction is still the record of what this row was and was not blocked on.* *Written at slice 5c's close; row 5 was complete and 6 was the next unshipped row.* **NOT content-gated — the §Content-gated tag in this row's Gates cell below is superseded.** *C1 was delivered in Content Pack v1 (`§C1`) and the 2026-09-05 amendment removed the gate; the engine contract is resolved at `§decisions-1`. Its one remaining gate is **§9 item 4**, ContinuityCard ship-or-retire — a DECISION, not content. Correction made 2026-09-10: the marking note first written at 5c's close called this row content-gated, which was wrong on both the amendment and the pack.)* | C1: `WeeklyCloseScreen` → one felt read + note; drop ratings and adjustment; write `phaseRead`, `phaseKeyAtRead`; `ContinuityCard` disposition per open item 4. | **[Content-gated]** C1 strings | Yes |
-| 7 | **[Next]** Offers + Today additions *(marked 2026-09-10 at slice 6's merge. Ungated: §9 items 2, 3, 5 and 6 were all discharged in the 2026-09-10 resolutions block and B2/C2 arrived early in Content Pack v1. Build the `§decisions-4` conditional C2 body, never the pack's own section 5 version.* **Inherits three things from slice 6 rather than discovering them:** *the read is present-tense about the live week; `deriveAdjustDue` gets its first production caller here and `getWeeklyCyclesSince` its first ever; and `phaseKeyAtRead` exists so a read can be attributed to the phase it was given about. Slice 7 also owns the first real walk of `StartHereRow`'s first-open transition and of a mounted video.)* | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
+| 7 | **[PARTLY SHIPPED as 7a, `b1f5919`, 2026-09-10; 7b is adjustment]** Offers + Today additions *(SPLIT 2026-09-10 at 7a's merge; see the row below and the §13 entry. The row's scope is left unedited in the §3.4 style: 7a took the advancement screen, the offer surfacing rules, the Today journey line, the Today Start here row and the `journey_advance_*` events; 7b takes the C2 adjust screen and the `journey_adjust_*` events. The prior **[Next]** note is kept below because its ungating record still covers both halves.* *Marked 2026-09-10 at slice 6's merge. Ungated: §9 items 2, 3, 5 and 6 were all discharged in the 2026-09-10 resolutions block and B2/C2 arrived early in Content Pack v1. Build the `§decisions-4` conditional C2 body, never the pack's own section 5 version.* **Inherits three things from slice 6 rather than discovering them:** *the read is present-tense about the live week; `deriveAdjustDue` gets its first production caller here and `getWeeklyCyclesSince` its first ever; and `phaseKeyAtRead` exists so a read can be attributed to the phase it was given about. Slice 7 also owns the first real walk of `StartHereRow`'s first-open transition and of a mounted video.)* | B2 advancement screen (two copy variants: threshold-met, ceiling-met); C2 adjust screen with per-phase alternatives; offer surfacing rules (Today card day-of, then map; 3-day persistence per open item 3); Today journey line (D1); Today Start here collapsed row; `journey_advance_offered / _accepted / _declined / _skipped`, `journey_adjust_*` events. | **[Content-gated]** B2 ×2, C2 alternatives ×4 phases | Yes |
+| 7b | **[Next]** Adjustment: C2, the re-arm and the cap *(row added 2026-09-10 at 7a's merge)* | C2 adjust screen on the `§decisions-4` conditional body, NEVER the pack's own section 5 version; per-phase alternatives ×4 mapped through `PHASE_ORDER` (the pack names them by ordinal, not by key); `deriveAdjustDue` gets its first production caller and `getWeeklyCyclesSince` its first ever; **§9 R5's re-arm**, which is a BEHAVIOUR CHANGE to `deriveAdjustDue` and not just a caller — today `adjustDeclinedAt` suppresses for the rest of the phase, and re-arm needs the decline instant used as a floor on which reads count; the **two-offer cap** as a named constant carrying its beta-tunable status in its comment, never a literal inside the derivation; the journey-page door for a capped user; `journey_adjust_*` events. **7a built the `adjust` branch of `journeyActionFor` and left it unreachable behind a literal `'hidden'`** — 7b changes one expression, not a signature, and the capture > adjust > advance ordering is already pinned by test. | No content gate: `§C2` and `§decisions-4` are delivered and §9 R5 is resolved. **Two strings the pack does not supply** and Step 0 must settle: the C2 DECLINE label (§3.1 and §8 both gloss it "keep going as is"; the pack has nothing) and whether R5's "still" names a SECOND-OFFER copy variant Jen has not written. Also unsettled: whether the adjust card uses R3's exposure model at all, which R3 scopes to advancement only | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. | rules; **[Content-gated]** copy | Yes |
 | 9 | **Behavioral protocol screen + remind-later** | The Daily Action Launcher behavioral screen (protocol, why, mark done, remind me later) for `remove` protocols; one-off later-today notification (`scheduleLocalNotification` DATE trigger), `scheduledAt` on `DailyLog`, third card state, cancellation bookkeeping; OS-settings redirect after denial. | Completion semantics decision (mockup v1 E1 open item) | Yes |
 
@@ -1933,5 +1934,165 @@ read.** Branch commits `ef26118` (the slice) and `f0bac71` (the close-language r
   against it rather than discovering it, and so a later reader does not read a flat 1102 as
   evidence the tree is lint-clean.
 
+
+**Sept 10, 2026 — slice 7a merged (`b1f5919`). The advancement offer, end to end.** Branch
+commits `c18ba4e` (the slice) and `d532ba3` (the copy rider). **Slice 7 is SPLIT: 7a is
+advancement, the Today journey-action slot, the journey line and the Start here Today mount;
+7b is adjustment.**
+- Figures at close: jest **3318 / 218** · tsc **149** · sentinel **150** (151 at the slice,
+  -1 on the rider) · lint errors **1102**, unchanged. Rules **191 pass / 2 skip** and
+  functions **53 / 4** carried forward UNRUN: neither `firestore.rules` nor `functions/`
+  appears in either diff. **Gate keys attested by Kyle on 2026-09-10.**
+- **SHIPPED:** eligibility split from placement; exposure state on `journeyStates` behind a
+  day gate; ONE journey-action slot on Today; B2 as preview-before-commit; the Today journey
+  line; `StartHereRow` mounted on Today. The Today path ships **null**, so the row renders
+  nothing for any user until a video exists — unchanged from 5c, and `START_HERE_PATHS.today`
+  was reverted to null before the merge after the walk ran against a test clip.
+- **THE SPLIT, AND THE SEAM IT CLOSED.** `deriveAdvanceDue` answers eligibility and nothing
+  else. Placement moved to `journey/offerPlacement.ts`, which takes eligibility plus exposure
+  state and returns `'today' | 'journey' | 'hidden'`. **The decline short-circuit MOVED OUT of
+  `deriveAdvanceDue`**, where a decline made eligibility false — and a false there would have
+  hidden the offer from the MAP as well as from Today, contradicting §9 R3's "then map only".
+  The function's own comment had labelled that suppression **a placeholder whose final policy
+  was slice 7**; this is that policy, and the placeholder turned out to be wrong rather than
+  merely incomplete.
+- **EXPOSURE STATE ON `journeyStates`:** `advanceExposures`, `advanceFirstOfferedOn`,
+  `advanceLastExposedOn`. All three added to `CLEARED_OFFERS`, which is spread at **all four**
+  phase transitions from one const, so the reset is the whole of the work rather than the
+  first quarter of it. `ALL_OFFER_FIELDS` in the service suite grew **four to seven**, so an
+  eighth field added without a reset is a red build.
+  - **`advanceFirstOfferedOn` EXISTS BECAUSE `advanceOfferedAt` SLIDES.** The latter records
+    the LAST offer shown and is rewritten on every exposure, so a seven-day cap anchored to it
+    could never fire. Pinned by a test asserting the anchor **does NOT move** on a later
+    exposure.
+- **DAY-GATE ORDERING, PROVEN RATHER THAN ASSERTED.** `shouldRecordExposure` is a pure
+  predicate over data the render already held, and `recordAdvanceExposure` is unreachable
+  except behind it. The re-resolve that follows every write carries the freshly written date,
+  so the next pass returns false. **Three tests pin what a single-render write count would
+  miss**, because a write-then-gate implementation also writes once on the first render: a
+  second same-day render records nothing more; four focuses in one day spend exactly one
+  exposure; the next calendar day spends the next and **carries** the anchor rather than
+  re-stamping it.
+- **THE `advanceExposures` / NO-COUNTER TENSION, RESOLVED DELIBERATELY AND RECORDED AT THE
+  FIELD.** §8 bans counters a user READS, and this is never rendered, never in copy, never an
+  analytics dimension. This model's ban is on counters that DUPLICATE something derivable, its
+  stated risk being drift — and this one is irreducible: the only other thing that would record
+  a card being on screen is the analytics event log, which is `allow read: if false` **even for
+  the owning account**. Both rules are cited at the declaration in `types/models.ts` so the
+  distinction reads as one that was made rather than one that was missed. The service header's
+  "it never writes a tally" was corrected in the same slice rather than left false.
+- **`journeyActionFor`: ONE PURE FUNCTION, `capture` > `adjust` > `advance` > null**, tested at
+  every boundary, never a nested ternary in `DashboardScreen`. **`RemoveCaptureCard` COUNTS
+  against the ceiling** — if it looks like a card it occupies attention like one. Resulting
+  primary stack: hero, journey-action card, `CloseWeekEntry`.
+  - **C2 BEATS B2**, and this is the decision that costs something: a user can satisfy the
+    behavioural advancement threshold while having twice said "not really yet", and offering to
+    move forward then contradicts what they explicitly told us. **What the user TELLS us beats
+    what we INFER from taps.** Advancement stays eligible internally; it is simply not the right
+    proactive offer. **7a builds the adjust branch and leaves it unreachable**, pinned by an
+    ordering test; 7b makes it reachable.
+  - **CAPTURE BEATS BOTH:** a user who has not named what they are working on should not be
+    offered advancement away from it.
+  - Returns null when `phaseKey` is null, **which is also the flag-off, no-uid, unresolved and
+    floor-gated encoding**. The `JOURNEY_IA &&` term did NOT move into the function; it was
+    redundant, and that is named in the commit so it does not read as a dropped guard.
+- **PREVIEW IS DERIVED, NOT PASSED — A REFINEMENT OF DECISION 4, AND THE MOST CONSEQUENTIAL
+  CALL IN THE SLICE.** Decision 4's wording said "opens the next phase's detail page in preview
+  mode"; its substance was preview-before-commit with no mutation until "Start this". Deriving
+  the condition — this page's phase is `PHASE_ORDER[idx + 1]` **and** `advanceOfferedAt` is
+  non-null — preserves the substance entirely and buys the thing a route param could not:
+  **R3's demoted surface exists with NO change to `JourneyMapScreen`.** The map already opens
+  every row including the AHEAD ones (§8, "AHEAD opens"), so the door was already there.
+  Today and the map now reach the same page under the same condition: **one behaviour to test,
+  not two.**
+  - **REJECTED: shipping a placement value that resolves to silence.** Step 0 found that
+    `'journey'` had no renderer inside the fence and named three ways out; deferring the
+    demoted surface to 7b was the one turned down, because an offer that demotes to nowhere is
+    the shape of bug this project keeps catching late.
+  - **`advanceOfferedAt` non-null IS the proof eligibility already fired**, which is exact
+    rather than convenient. Recomputing eligibility on that screen would need `consistentDays`
+    and therefore a `dailyLogs` read it has never done.
+  - **PREVIEW EYEBROW SUPPRESSED** (Kyle): the state word answers "where am I" and the preview
+    answers "shall I go here". "Ahead" above an invitation to start that phase **makes the page
+    argue with itself**. Suppressed rather than replaced, and the reasoning is recorded at the
+    suppression rather than only the fact.
+- **THE JOURNEY LINE SITS ABOVE THE HERO** — the order is "where am I / what should I do
+  today" — with a **REQUIRED** label. Several of Jen's approved `short` strings are
+  imperative-shaped, and "Clear what's keeping you on" standing alone above the hero reads as
+  TODAY'S INSTRUCTION rather than as journey context. **Confirmed on device.** The label is a
+  required prop rather than an optional one because there is no correct rendering without it.
+  - **`JOURNEY_LINE_LABEL` AND `PHASE_STATE_LABELS.current` ARE DELIBERATELY NOT COLLAPSED**
+    despite both holding "Where you are" (Kyle, rider). They answer different questions on
+    different surfaces: one labels a ROW among four on a map, where its job is to distinguish
+    that row from Complete, Ahead and Skipped; the other labels a SINGLE LINE on Today, where
+    there is nothing to distinguish it from. The map's four labels have to work as a **set**,
+    so it is the likelier of the two to be revised, and collapsing would let that revision
+    silently change the Today line. **Two constants sharing a value is cheaper than one
+    constant serving two meanings.** Recorded at **BOTH** declarations so whoever notices the
+    duplication finds the reason rather than "fixing" it.
+- **`StartHereRow` COLLAPSE LEGIBILITY — 5c's INHERITED DESIGN ITEM, DISCHARGED.** **No
+  "watched" affordance** (Kyle): the marker records that the row was OPENED, not watched, and
+  `VideoPlayerModal` exposes no completion callback, so a checkmark or a "watched" pill would
+  claim more than the data supports. Instead the collapsed row is a visibly different
+  **WEIGHT** rather than merely a line shorter — tighter padding, a smaller label off semibold,
+  a dimmed play affordance — while keeping its 48pt target and staying a row on both surfaces.
+  **Walked and confirmed perceptible.**
+- **COPY: SENTINEL 148 -> 151 -> 150.** Two new drafts on the slice (`JOURNEY_LINE_LABEL`,
+  `TODAY_START_HERE_GLOSS`) plus **a third CC declared as a deviation rather than absorbing**:
+  `ADVANCE_PREVIEW_COPY.failed`, because the commit control needs an error state for §18 and
+  the alternatives were importing a dashboard card's private, Jen-owned `saveFailed` into a
+  journey screen or duplicating it under the wrong owner. **The third was approved on the rider
+  after being read in the failure state it occupies** (walk section I: airplane mode, "Start
+  this", the line under the two controls) — an approval, not a clearance, and not the 5b-i
+  replacement case, because Kyle did not rewrite the words.
+  - Kyle's **"Keep going here"**, **"Start this"** and **"Not yet"** land FLAT on the
+    `PHASE_PAGE_BODIES` precedent. Jen's B2 titles, bodies and primary land flat under the
+    pack rule.
+  - **"Keep going here" RETIRES THREE WORDINGS AND MOVES THE PIN BY ZERO:** the pack's "Keep
+    working here" (B2 variant one) and "Stay here" (B2 variant two), plus §8's "stay a while
+    longer". None carried a marker — two were pack strings and one is in a document, not in
+    `src` — so there is no arithmetic. **Named in the commit so nobody re-derives the retired
+    pair from the pack later and reads the divergence as a transcription error.**
+  - **STILL DRAFTED, BOTH KYLE'S:** `JOURNEY_LINE_LABEL`, which reads correctly on device but
+    was never read against alternatives, and `TODAY_START_HERE_GLOSS`, which sat under a test
+    clip rather than under Jen's video. Neither was walked in a state that would settle it.
+- **OUT OF SCOPE, REPORTED RATHER THAN ABSORBED.** `jest.setup.js` gains mocks for `expo`,
+  `expo-video` and AsyncStorage: mounting `StartHereRow` on Home put `VideoPlayerModal`'s
+  imports on a screen for the first time and broke four `DashboardScreen` suites with exactly
+  the expo-modules-core EventEmitter failure that file already documents for `expo-image`.
+  Mocked globally rather than per suite, so Home's Today mount stays visible to screen-level
+  tests. Separately, **`recordAdvanceOffered` is DELETED** — uncalled its whole life and a
+  strict subset of `recordAdvanceExposure`; shipping both leaves a coin flip for whoever picks
+  next.
+- **TEST-RESIDUE CATCH, AND IT IS THE VACUOUS-GREEN SHAPE AGAIN.** The four new
+  `DashboardScreen` describes inherited mock state from the preceding block instead of priming
+  it, and **TWO OF THEM PASSED ON THE RESIDUE** — they would have passed with the code wrong.
+  One crashed, which is the only reason it was noticed. Priming extracted to `primeHome()` and
+  called by every describe. Caught while writing tests rather than by the suite, which is the
+  recurring lesson rather than a new one.
+- **WALK (Kyle's, 2026-09-10). Gate keys attested.** `StartHereRow`'s first-open transition
+  against a test clip — **THE THIRD-WALK DELIVERABLE, NOW DISCHARGED**: marker absent, gloss
+  present, tap, gloss vanishes, the weight perceptibly different, the marker persisting across
+  a relaunch, and a second account on the same device getting its own expanded row. Then the
+  journey line above the hero with its label on an imperative-shaped `short`; the
+  ceiling-variant advancement card naming nothing about what was done; the preview with its
+  eyebrow suppressed and nothing mutated until "Start this"; dismiss; "Not yet"; the one-slot
+  precedence against the capture card; and an offline commit failure with its retry.
+- **NOT WALKED, NAMED SO IT IS NOT ASSUMED: the CONSISTENCY-door variant of the B2 copy.**
+  Seeding it needs one field plus **eight** `dailyLogs` rows, where the ceiling door needs one
+  field; the ceiling run proves the card mechanism and the variant selection is pinned by
+  tests. **A trap for whoever does seed it:** if the `dailyLogs` composite index
+  (`userId ASC, date ASC`) is not deployed, the consistency read throws, `useTodayCard` catches
+  it and sets `consistentDays` to **0**, and the door never opens no matter how many rows
+  exist. The index is declared in `firestore.indexes.json`; whether it is deployed is Kyle's
+  checklist. The tell is `[useTodayCard] consistency read failed:` on device, which is
+  `logger.error` and therefore not `__DEV__`-gated.
+- **POST-MERGE OBLIGATION — walk section E, the exposure budget.** It needs **three real
+  calendar days** and cannot be honestly walked by changing the device clock. Observe over
+  **2026-09-11 to 09-13** on a seeded account: day 1 the card appears and repeated Home visits
+  spend exactly ONE exposure; days 2 and 3 reach three; day 4 the card is gone from Today and
+  the map route still offers it. **Record the result in this entry when observed. Until then
+  the budget is test-pinned and device-unobserved**, and that is the honest description rather
+  than a gap.
 
 *Living document. Owner: Kyle. Update as slices close; do not edit §1–§4 during the freeze.*
