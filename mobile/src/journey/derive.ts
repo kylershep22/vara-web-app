@@ -64,8 +64,31 @@ export function deriveCalendarDays(enteredAtIso: string, todayIso: string): numb
 export interface AdvanceDueInput {
   consistentDays: number;
   calendarDays: number;
-  /** Null when the user has not declined an advance in this phase. */
-  advanceDeclinedAt: unknown | null;
+}
+
+/**
+ * Which door opened, or null when neither has.
+ *
+ * TWO DOORS, AND WHICH ONE OPENED IS COPY-BEARING, which is why this returns a
+ * discriminant rather than a boolean and why `deriveAdvanceDue` below is
+ * defined in terms of it. B2 ships two variants (Content Pack v1 section B2):
+ * the consistency variant can say the user has been coming back, and the
+ * ceiling variant deliberately cannot, because there is nothing there to name.
+ * Two independent comparisons - one for "is it due", one for "which card" -
+ * would be two places to keep in step, and the day they disagreed the ceiling
+ * user would be told they had been consistent.
+ *
+ * CONSISTENCY WINS WHEN BOTH ARE OPEN. Someone at 8 consistent days AND 14
+ * calendar days has done the work, and the honest card is the one that says so.
+ * The ceiling is what catches the user who has NOT, so serving it to someone
+ * who has would understate what happened.
+ */
+export type AdvanceDoor = 'consistency' | 'ceiling' | null;
+
+export function deriveAdvanceDoor(input: AdvanceDueInput): AdvanceDoor {
+  if (input.consistentDays >= ADVANCE_MIN_CONSISTENT_DAYS) return 'consistency';
+  if (input.calendarDays >= ADVANCE_CALENDAR_CEILING_DAYS) return 'ceiling';
+  return null;
 }
 
 /**
@@ -75,20 +98,21 @@ export interface AdvanceDueInput {
  * opens for someone doing the work; the calendar ceiling opens for someone who
  * is not, so a phase can never become a place to be stuck.
  *
- * A DECLINE SUPPRESSES THE OFFER FOR THE REST OF THE PHASE. That is a
- * placeholder, not the final policy: re-offer timing is slice 7. Until then
- * declined means not due, which is the conservative reading - it asks once and
- * then leaves the user alone, rather than asking again on a rule nobody has
- * agreed yet.
+ * ELIGIBILITY ONLY. THIS FUNCTION KNOWS NOTHING ABOUT EXPOSURES, TODAY OR THE
+ * MAP, and that separation is the whole of slice 7a decision 1. It used to take
+ * `advanceDeclinedAt` and short-circuit false on it, under a comment calling
+ * that a placeholder whose final policy was slice 7. This is that policy, and
+ * the placeholder was wrong in a specific way worth recording: a decline made
+ * this return false, and a false here would have hidden the offer from the MAP
+ * as well as from Today, which contradicts section 9 R3's "then map only". A
+ * declined offer is still DUE; it is merely no longer surfaced on Today.
+ *
+ * Where an offer is surfaced is `placeAdvanceOffer` in journey/offerPlacement.ts,
+ * which takes this answer plus the exposure state. Do not reintroduce a
+ * suppression term here.
  */
 export function deriveAdvanceDue(input: AdvanceDueInput): boolean {
-  if (input.advanceDeclinedAt !== null && input.advanceDeclinedAt !== undefined) {
-    return false;
-  }
-  return (
-    input.consistentDays >= ADVANCE_MIN_CONSISTENT_DAYS ||
-    input.calendarDays >= ADVANCE_CALENDAR_CEILING_DAYS
-  );
+  return deriveAdvanceDoor(input) !== null;
 }
 
 /**
@@ -161,7 +185,18 @@ export function deriveAdvanceDue(input: AdvanceDueInput): boolean {
  * a user said and needed no migration. Slice 6's weekly reset is the first
  * writer of the field.
  *
- * Declined suppresses, on the same placeholder policy as deriveAdvanceDue.
+ * DECLINED STILL SUPPRESSES HERE, AND THIS IS NOW THE ONLY PLACE THAT DOES.
+ * This clause used to read "on the same placeholder policy as
+ * deriveAdvanceDue"; that policy is gone from the advance side (slice 7a
+ * decision 1 moved it to journey/offerPlacement.ts), so the cross-reference
+ * would now point at a rule that no longer exists.
+ *
+ * IT IS LEFT IN PLACE DELIBERATELY RATHER THAN MOVED TO MATCH. Section 9 R5
+ * re-arms the adjust counter after a decline and caps proactive offers at two,
+ * and that is slice 7b's scope. Moving the suppression out now would leave the
+ * adjust offer with no suppression at all until 7b lands, which is a live
+ * behaviour change in a slice that does not own this function. The conservative
+ * reading stands one more slice: declined means not due.
  */
 export function deriveAdjustDue(
   resetsSinceEntry: WeeklyCycle[],

@@ -42,22 +42,33 @@
 // rationale, and the slice 9 behavioral screen is the surface designed for them.
 
 import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 
-import { Colors, Spacing, TextStyles, Typography } from '../../constants';
-import { PHASE_DISPLAY } from '../../constants/journey';
-import { PHASE_PAGE_BODIES, PHASE_PAGE_COPY, PHASE_STATE_LABELS } from '../../constants/journeyCopy';
+import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
+import { PHASE_DISPLAY, PHASE_ORDER } from '../../constants/journey';
+import {
+  ADVANCE_PREVIEW_COPY,
+  PHASE_PAGE_BODIES,
+  PHASE_PAGE_COPY,
+  PHASE_STATE_LABELS,
+} from '../../constants/journeyCopy';
 import { useAuth } from '../../context/AuthContext';
 import { derivePhaseStates } from '../../journey/phaseStates';
-import { getJourneyState } from '../../services/firebase/journeyState.service';
+import {
+  advancePhase,
+  getJourneyState,
+  recordAdvanceDeclined,
+} from '../../services/firebase/journeyState.service';
+import { logEvent } from '../../services/firebase/analyticsEvents.service';
 import type { JourneyState } from '../../types/models';
 import { logger } from '../../utils/logger';
 import { labelForReplacement } from './removeCapture/routing';
 
 const MAX_FONT_SCALE = 1.3;
+const MIN_TOUCH_TARGET = 48;
 
 export interface JourneyPhaseParams {
   phase: import('../../types/models').PhaseKey;
@@ -68,6 +79,7 @@ type PhaseRoute = RouteProp<{ JourneyPhase: JourneyPhaseParams }, 'JourneyPhase'
 
 export function JourneyPhaseScreen() {
   const { params } = useRoute<PhaseRoute>();
+  const navigation = useNavigation();
   const { phase, destination } = params;
   const { user } = useAuth();
   // Keyed on the UID, not the user OBJECT, for the reason the map's own read
@@ -75,6 +87,10 @@ export function JourneyPhaseScreen() {
   const uid = user?.uid;
 
   const [journey, setJourney] = useState<JourneyState | null>(null);
+  // In flight, and failed. Two booleans rather than a status union because the
+  // page has exactly two controls and neither has a third state.
+  const [committing, setCommitting] = useState(false);
+  const [commitFailed, setCommitFailed] = useState(false);
 
   const read = useCallback(async (): Promise<JourneyState | null> => {
     if (!uid) return null;
@@ -102,9 +118,49 @@ export function JourneyPhaseScreen() {
   );
 
   const cell = PHASE_DISPLAY[phase][destination];
-  const stateLabel = journey
-    ? PHASE_STATE_LABELS[derivePhaseStates(journey)[phase]]
-    : null;
+
+  // ---- Preview mode (slice 7a decisions 4 and the option-2 refinement) ----
+  //
+  // DERIVED, NOT PASSED, AND THAT IS WHAT MAKES THE DEMOTED OFFER EXIST.
+  // Decision 4's wording was "opens the next phase's detail page in preview
+  // mode"; its substance was preview-before-commit with no mutation until
+  // "Start this", and deriving preserves that entirely. What deriving ALSO buys
+  // is section 9 R3's "then map only": once the offer demotes off Today it has
+  // to live somewhere, and 7a's fence contains no map surface. It does not need
+  // one. Every journey map row already opens onto this page, including the ones
+  // ahead (JourneyMapScreen.tsx onPressPhase; roadmap section 8, "AHEAD opens"),
+  // so map -> next-phase row -> this page IS the demoted surface, with no change
+  // to the map at all. A route param would have given Today's path a control the
+  // map's path lacked, and R3's demotion would have demoted to silence.
+  //
+  // `advanceOfferedAt` IS THE CONDITION, AND IT IS EXACT RATHER THAN CONVENIENT.
+  // It is non-null if and only if the offer has occupied Today at least once,
+  // which is the definition of "this user has been offered advancement". The
+  // alternative was recomputing eligibility here, which needs `consistentDays`
+  // and therefore a dailyLogs read this screen has never done. The stored
+  // timestamp answers the same question off a document already in hand.
+  //
+  // A USER WHO HAS NEVER BEEN OFFERED SEES NOTHING. Browsing ahead on the map is
+  // browsing, not an invitation, and section 8 is explicit that AHEAD opens
+  // without implying permission was granted or withheld.
+  const currentIdx = journey ? PHASE_ORDER.indexOf(journey.phaseKey) : -1;
+  const nextPhase =
+    currentIdx >= 0 && currentIdx < PHASE_ORDER.length - 1
+      ? PHASE_ORDER[currentIdx + 1]
+      : null;
+  const isPreview = !!journey && phase === nextPhase && !!journey.advanceOfferedAt;
+
+  // THE STATE EYEBROW IS SUPPRESSED IN PREVIEW (Kyle, slice 7a). The state word
+  // answers "where am I"; the preview answers "shall I go here". Rendering
+  // "Ahead" above an invitation to start this phase makes the page argue with
+  // itself: it labels the thing as not-yours in the same breath as offering it.
+  // Suppressed rather than replaced, because the honest answer to "where am I"
+  // on this page in this moment is that the user is deciding, and a word for
+  // that would be a word about the UI rather than about them.
+  const stateLabel =
+    journey && !isPreview
+      ? PHASE_STATE_LABELS[derivePhaseStates(journey)[phase]]
+      : null;
 
   // THE REMOVE PAGE'S ONE PIECE OF REAL USER STATE (slice 3c-ii). Gated on
   // `removeReplacementAt` and nothing else, per the model's own contract: the id
@@ -119,6 +175,55 @@ export function JourneyPhaseScreen() {
     phase === 'remove' && journey?.removeReplacementAt
       ? labelForReplacement(journey.removeReplacementSlot, journey.removeReplacementId)
       : null;
+
+  // THE ONLY CONTROL IN THE WHOLE ADVANCEMENT FLOW THAT MUTATES A PHASE.
+  // Everything upstream of this - the card's primary, the navigation, this
+  // page's render - moves nothing (decision 4).
+  //
+  // `advancePhase` READS FRESH STATE AND COMPUTES ITS OWN TARGET, so it cannot
+  // disagree with the phase this page previewed even if the document changed
+  // while the page was open. It is also already a no-op at the last phase and
+  // when no state exists, so neither needs guarding here.
+  //
+  // NAVIGATION ONLY ON SUCCESS. Going back on a failed write would return the
+  // user to a Today that still showed the offer, which reads as the tap having
+  // done nothing when in fact it had failed. Staying put with a line to read is
+  // the honest version, and the button remains tappable.
+  const onStartThis = useCallback(async () => {
+    if (!uid || committing) return;
+    setCommitting(true);
+    setCommitFailed(false);
+    try {
+      await advancePhase(uid);
+      logEvent(uid, 'journey_advance_accepted', {});
+      navigation.goBack();
+    } catch (e) {
+      logger.error('[JourneyPhase] advance failed:', e);
+      setCommitFailed(true);
+    } finally {
+      setCommitting(false);
+    }
+  }, [uid, committing, navigation]);
+
+  // "Not yet" DECLINES, and decision 4 is what permits it: "Start this" is
+  // named there as the only thing that mutates PHASE, and a decline mutates the
+  // offer bookkeeping instead. A "Not yet" that left the offer live would show
+  // the card again tomorrow to someone who had opened it and said no, which is
+  // the follow-up nag section 8 rules out of a decline.
+  //
+  // NAVIGATION IS NOT GATED ON THE WRITE HERE, unlike the commit above. The
+  // user asked to leave; a failed decline costs them one more sighting of a
+  // card they can dismiss again, which is a smaller harm than trapping them on
+  // a page because a write failed.
+  const onNotYet = useCallback(() => {
+    if (uid) {
+      logEvent(uid, 'journey_advance_declined', { from: 'preview' });
+      void recordAdvanceDeclined(uid).catch((e) => {
+        logger.error('[JourneyPhase] decline failed:', e);
+      });
+    }
+    navigation.goBack();
+  }, [uid, navigation]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -152,6 +257,56 @@ export function JourneyPhaseScreen() {
             <Text style={styles.intentionValue} maxFontSizeMultiplier={MAX_FONT_SCALE}>
               {replacement}
             </Text>
+          </View>
+        ) : null}
+
+        {/* ---- The commit, in preview only ----
+
+            AT THE BOTTOM, AFTER THE EXPLANATION, and the position is the whole
+            argument of decision 4. The user reads what this stretch is before
+            they are asked to start it. Controls above the body would make the
+            page an offer with an explanation attached rather than an
+            explanation with an offer at the end of it. */}
+        {isPreview ? (
+          <View style={styles.commit} testID="journey-phase-commit">
+            <TouchableOpacity
+              style={[styles.cta, committing && styles.ctaBusy]}
+              onPress={onStartThis}
+              activeOpacity={0.8}
+              disabled={committing}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: committing, busy: committing }}
+              accessibilityLabel={ADVANCE_PREVIEW_COPY.startThis}
+              testID="journey-phase-start"
+            >
+              <Text style={styles.ctaLabel} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+                {ADVANCE_PREVIEW_COPY.startThis}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Quiet, unbordered, and given the same reach as the primary.
+                Staying put is a real answer and never a failure state. */}
+            <TouchableOpacity
+              style={styles.secondary}
+              onPress={onNotYet}
+              accessibilityRole="button"
+              accessibilityLabel={ADVANCE_PREVIEW_COPY.notYet}
+              testID="journey-phase-not-yet"
+            >
+              <Text style={styles.secondaryLabel} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+                {ADVANCE_PREVIEW_COPY.notYet}
+              </Text>
+            </TouchableOpacity>
+
+            {commitFailed ? (
+              <Text
+                style={styles.error}
+                maxFontSizeMultiplier={MAX_FONT_SCALE}
+                testID="journey-phase-commit-error"
+              >
+                {ADVANCE_PREVIEW_COPY.failed}
+              </Text>
+            ) : null}
           </View>
         ) : null}
       </ScrollView>
@@ -209,6 +364,47 @@ const styles = StyleSheet.create({
     lineHeight: Typography.fontSize.lg * Typography.lineHeight.normal,
     color: Colors.softCharcoal,
     marginTop: Spacing.xs,
+  },
+  commit: {
+    marginTop: Spacing.xl,
+  },
+  cta: {
+    minHeight: MIN_TOUCH_TARGET,
+    borderRadius: Layout.borderRadius.lg,
+    backgroundColor: Colors.evergreenTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+  },
+  // Opacity, not a colour swap. A disabled teal in a different token would be a
+  // second brand colour nobody chose; dimming the same one reads as "working"
+  // rather than as "broken".
+  ctaBusy: {
+    opacity: 0.6,
+  },
+  ctaLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+  },
+  secondary: {
+    minHeight: MIN_TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.xs,
+  },
+  secondaryLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+  },
+  // Soft Coral, and this is the case it is reserved for: a write that genuinely
+  // failed (UI Standards 4.4, roadmap section 8). Nothing else on this page may
+  // acquire it.
+  error: {
+    ...TextStyles.bodySmall,
+    color: Colors.error,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
   },
 });
 

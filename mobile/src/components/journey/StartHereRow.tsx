@@ -6,8 +6,9 @@
  * A ROW, NOT A CARD (decision 7). Section 8 gives Today a three-card ceiling of
  * hero, Start here and the advancement card, which leaves no room for a fourth
  * card and settles the shape for both surfaces. The expanded state is this row's
- * own expansion, one line taller, rather than a card that later has to be
- * demoted into a row when slice 7 mounts Today.
+ * own expansion, taller and heavier, rather than a card that later has to be
+ * demoted into a row when slice 7 mounts Today. Slice 7a mounted Today on this
+ * component unchanged, which is what building it surface-keyed bought.
  *
  * NO VIDEO MEANS NO ROW (decision 1, and it is the decisive call in this slice).
  * The path resolves on mount, and until it has resolved to something real this
@@ -41,13 +42,15 @@
  * container is the open it performs itself. Completion tracking, if it is ever
  * wanted, is a deliberate fence change with its own slice.
  *
- * ONE TAP, ONE ACTION. Pressing the row opens the video. Collapsed and expanded
- * differ only in whether the gloss line renders, so collapse is a de-emphasis
- * rather than a state the user has to drive: there is no expand control, no
- * chevron to turn, and no second tap between a user and the thing the row
- * offers. Section 18 wants one primary action visible, and a row whose first tap
- * only revealed a second tap would fail that on a surface that already has four
- * destination cards competing for the same intent.
+ * ONE TAP, ONE ACTION. Pressing the row opens the video. Collapse is a
+ * de-emphasis rather than a state the user has to drive: there is no expand
+ * control, no chevron to turn, and no second tap between a user and the thing
+ * the row offers. Section 18 wants one primary action visible, and a row whose
+ * first tap only revealed a second tap would fail that on a surface that already
+ * has four destination cards competing for the same intent.
+ *
+ * The two states differed ONLY in the gloss line until slice 7a; see the weight
+ * note below for why that was not enough and what changed.
  *
  * SURFACE-KEYED, NOT PRACTICES-ONLY (decision 6). The path and the collapse
  * marker are both keyed by `surface`, so slice 7 mounts Today by passing a
@@ -61,11 +64,31 @@
  * video explains a different thing (section 6 item 9), so the one line under it
  * belongs to the mount.
  *
+ * COLLAPSE IS A CHANGE OF WEIGHT, NOT ONLY A DROPPED LINE (slice 7a, from the
+ * 5c walk). Kyle's report was that the row "did not read as a state change to
+ * me", and the instrumented run showed why: the mechanism was working perfectly
+ * and the two states differed ONLY in whether the gloss rendered, which on a
+ * device reads as nothing at all. De-emphasis by subtraction was too quiet to
+ * register as de-emphasis. The collapsed row now also loses vertical room, drops
+ * its label to the smaller size, and dims its play affordance, so the change is
+ * legible in the row itself rather than only in what is missing beneath it.
+ *
+ * IT IS STILL A ROW, ON BOTH SURFACES. Section 8 has no space for a fourth card,
+ * so everything that distinguishes the two states fits inside a row's height.
+ *
+ * THERE IS NO "WATCHED" MARK, AND THAT IS A DECISION RATHER THAN AN OMISSION
+ * (Kyle, slice 7a). A checkmark, a "watched" pill or a completion tint would all
+ * claim the user WATCHED the video. The marker records that the row was OPENED
+ * (decision 2 above, and `VideoPlayerModal` exposes no completion callback for
+ * anything better), and a mark claiming more than the data supports is the same
+ * error as a control claiming an outcome it did not produce. Weight says "you
+ * have been here" without asserting what happened next.
+ *
  * NO MOTION, SO NOTHING TO REDUCE. The row does not animate between its two
- * states: it renders one line or two. `useReducedMotion` is not wired here
- * because there is no animation for it to gate, and a hook whose value nothing
- * reads only looks like coverage. `VideoPlayerModal` gates its own transition.
- * If a future revision animates the expansion, it gates it.
+ * states: it renders one weight or the other. `useReducedMotion` is not wired
+ * here because there is no animation for it to gate, and a hook whose value
+ * nothing reads only looks like coverage. `VideoPlayerModal` gates its own
+ * transition. If a future revision animates the change, it gates it.
  *
  * NO COUNTERS AND NO DURATION. Section 8 bans the count, and a runtime on the
  * row would be a number on a behavioral surface arguing for a moment of the
@@ -175,22 +198,27 @@ export const StartHereRow: React.FC<StartHereRowProps> = ({
   return (
     <View testID={`${testID}-container`}>
       <TouchableOpacity
-        style={styles.row}
+        style={[styles.row, collapsed && styles.rowCollapsed]}
         onPress={handlePress}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         accessibilityHint="Opens a short video"
         testID={testID}
       >
+        {/* The affordance dims and shrinks once opened. It never becomes a
+            check or a "watched" glyph: see the note in this file's header. */}
         <View style={styles.icon}>
           <Icon
             name="play-circle-outline"
-            size={24}
-            color={Colors.evergreenTeal}
+            size={collapsed ? 20 : 24}
+            color={collapsed ? Colors.mutedSageGray : Colors.evergreenTeal}
           />
         </View>
         <View style={styles.text}>
-          <Text style={styles.label} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+          <Text
+            style={[styles.label, collapsed && styles.labelCollapsed]}
+            maxFontSizeMultiplier={MAX_FONT_SCALE}
+          >
             {START_HERE_LABEL}
           </Text>
           {collapsed ? null : (
@@ -226,6 +254,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.sm,
   },
+  // TIGHTER, BUT NEVER BELOW THE TOUCH TARGET. `minHeight` stays 48 from the
+  // base style, so the collapsed row loses visual room without losing a
+  // tappable one (UI Standards 16). Padding is what changes; the hit area is
+  // not negotiable and is not part of the de-emphasis.
+  rowCollapsed: {
+    paddingVertical: Spacing['2xs'],
+  },
   icon: {
     marginRight: Spacing.md,
   },
@@ -236,6 +271,13 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.softCharcoal,
+  },
+  // Down one step on the type scale and off semibold. Still Charcoal rather
+  // than Sage: the row is quieter, not disabled, and a greyed label on a live
+  // control reads as unavailable.
+  labelCollapsed: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
   },
   gloss: {
     ...TextStyles.bodySmall,

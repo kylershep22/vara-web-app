@@ -11,12 +11,23 @@
 // string does not appear even when the document carries it.
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 const mockGetJourneyState = jest.fn();
+const mockAdvancePhase = jest.fn(async () => {});
+const mockRecordAdvanceDeclined = jest.fn(async () => {});
 jest.mock('../../../services/firebase/journeyState.service', () => ({
   getJourneyState: (...a: any[]) => mockGetJourneyState(...a),
+  advancePhase: (...a: any[]) => mockAdvancePhase(...(a as [])),
+  recordAdvanceDeclined: (...a: any[]) => mockRecordAdvanceDeclined(...(a as [])),
 }));
+
+const mockLogEvent = jest.fn();
+jest.mock('../../../services/firebase/analyticsEvents.service', () => ({
+  logEvent: (...a: any[]) => mockLogEvent(...(a as [])),
+}));
+
+const mockGoBack = jest.fn();
 
 jest.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'u1' } }),
@@ -28,6 +39,7 @@ const mockParams: { phase: string; destination: string } = {
 };
 jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({ params: mockParams }),
+  useNavigation: () => ({ goBack: mockGoBack }),
   useFocusEffect: (cb: () => undefined | (() => void)) => {
     const React = require('react');
     React.useEffect(cb, [cb]);
@@ -37,6 +49,7 @@ jest.mock('@react-navigation/native', () => ({
 import { JourneyPhaseScreen } from '../JourneyPhaseScreen';
 import { DESTINATION_KEYS, PHASE_DISPLAY, PHASE_ORDER } from '../../../constants/journey';
 import {
+  ADVANCE_PREVIEW_COPY,
   PHASE_PAGE_BODIES,
   PHASE_PAGE_COPY,
   PHASE_STATE_LABELS,
@@ -67,6 +80,10 @@ function setParams(phase: string, destination: string) {
 }
 
 beforeEach(() => {
+  mockAdvancePhase.mockClear();
+  mockRecordAdvanceDeclined.mockClear();
+  mockLogEvent.mockClear();
+  mockGoBack.mockClear();
   mockGetJourneyState.mockReset();
   mockGetJourneyState.mockResolvedValue(journeyFixture());
   setParams('remove', 'calm');
@@ -249,5 +266,149 @@ describe('JourneyPhaseScreen — the stored replacement intention', () => {
     await waitFor(() => expect(getByTestId('journey-phase-replacement')).toBeTruthy());
     expect(queryByText(ownWords)).toBeNull();
     expect(queryByText(new RegExp('doomscrolling', 'i'))).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Preview mode (slice 7a decision 4, refined to derived-not-passed)
+//
+// THE CONDITION IS DERIVED FROM STORED STATE, so these tests set journey
+// documents rather than route params. That is the point of the refinement:
+// Today and the map reach this page the same way and get the same page, and the
+// demoted offer therefore exists on the map with no change to JourneyMapScreen.
+//
+// PHASE_ORDER is remove -> recover -> rewire -> refocus, so a user standing in
+// 'remove' who has been offered advancement previews 'recover'.
+// ---------------------------------------------------------------------------
+describe('JourneyPhaseScreen - preview mode', () => {
+  const offered = (over = {}) =>
+    journeyFixture({
+      phaseKey: 'remove',
+      advanceOfferedAt: { seconds: 1 } as any,
+      ...over,
+    });
+
+  test('shows the commit controls on the NEXT phase once offered', async () => {
+    setParams('recover', 'calm');
+    mockGetJourneyState.mockResolvedValue(offered());
+    const { getByTestId } = render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(getByTestId('journey-phase-commit')).toBeTruthy());
+    expect(getByTestId('journey-phase-start')).toBeTruthy();
+    expect(getByTestId('journey-phase-not-yet')).toBeTruthy();
+  });
+
+  test('shows NOTHING when the user has never been offered advancement', async () => {
+    // Browsing ahead on the map is browsing, not an invitation. Section 8 says
+    // AHEAD opens; it does not say AHEAD asks.
+    setParams('recover', 'calm');
+    mockGetJourneyState.mockResolvedValue(journeyFixture({ phaseKey: 'remove' }));
+    const { queryByTestId, getByText } = render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(getByText(PHASE_PAGE_BODIES.recover)).toBeTruthy());
+    expect(queryByTestId('journey-phase-commit')).toBeNull();
+  });
+
+  test('shows nothing on the CURRENT phase, even while an offer is live', async () => {
+    setParams('remove', 'calm');
+    mockGetJourneyState.mockResolvedValue(offered());
+    const { queryByTestId, getByText } = render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(getByText(PHASE_PAGE_BODIES.remove)).toBeTruthy());
+    expect(queryByTestId('journey-phase-commit')).toBeNull();
+  });
+
+  test('shows nothing two phases ahead', async () => {
+    // The offer is to take the NEXT step, never to jump. skipToPhase exists and
+    // is not what this flow calls.
+    setParams('rewire', 'calm');
+    mockGetJourneyState.mockResolvedValue(offered());
+    const { queryByTestId, getByText } = render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(getByText(PHASE_PAGE_BODIES.rewire)).toBeTruthy());
+    expect(queryByTestId('journey-phase-commit')).toBeNull();
+  });
+
+  test('SUPPRESSES the state eyebrow in preview', async () => {
+    // Kyle, slice 7a: the state word answers "where am I" and the preview
+    // answers "shall I go here". "Ahead" above an invitation to start this
+    // phase makes the page argue with itself.
+    setParams('recover', 'calm');
+    mockGetJourneyState.mockResolvedValue(offered());
+    const { queryByTestId, getByTestId } = render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(getByTestId('journey-phase-commit')).toBeTruthy());
+    expect(queryByTestId('journey-phase-state')).toBeNull();
+  });
+
+  test('KEEPS the state eyebrow on the same page when not previewing', async () => {
+    // Guards the suppression above against passing because the eyebrow never
+    // renders on this phase at all.
+    setParams('recover', 'calm');
+    mockGetJourneyState.mockResolvedValue(journeyFixture({ phaseKey: 'remove' }));
+    const { getByTestId } = render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(getByTestId('journey-phase-state')).toHaveTextContent(
+        PHASE_STATE_LABELS.ahead
+      )
+    );
+  });
+});
+
+describe('JourneyPhaseScreen - preview mutates nothing until Start this', () => {
+  const offered = () =>
+    journeyFixture({ phaseKey: 'remove', advanceOfferedAt: { seconds: 1 } as any });
+
+  test('rendering the preview writes nothing and fires nothing', async () => {
+    // Decision 4's core claim: the primary promises a look, not a commitment.
+    setParams('recover', 'calm');
+    mockGetJourneyState.mockResolvedValue(offered());
+    const { getByTestId } = render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(getByTestId('journey-phase-commit')).toBeTruthy());
+    expect(mockAdvancePhase).not.toHaveBeenCalled();
+    expect(mockRecordAdvanceDeclined).not.toHaveBeenCalled();
+    expect(mockLogEvent).not.toHaveBeenCalled();
+  });
+
+  test('Start this advances the phase, records it, and returns', async () => {
+    setParams('recover', 'calm');
+    mockGetJourneyState.mockResolvedValue(offered());
+    const { getByTestId } = render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(getByTestId('journey-phase-start')).toBeTruthy());
+
+    fireEvent.press(getByTestId('journey-phase-start'));
+    await waitFor(() => expect(mockAdvancePhase).toHaveBeenCalledWith('u1'));
+    expect(mockLogEvent).toHaveBeenCalledWith('u1', 'journey_advance_accepted', {});
+    expect(mockGoBack).toHaveBeenCalled();
+  });
+
+  test('a failed commit does NOT navigate, and says so', async () => {
+    // Going back on a failure would return the user to a Today still showing
+    // the offer, which reads as the tap having done nothing.
+    setParams('recover', 'calm');
+    mockGetJourneyState.mockResolvedValue(offered());
+    mockAdvancePhase.mockRejectedValueOnce(new Error('offline'));
+    const { getByTestId } = render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(getByTestId('journey-phase-start')).toBeTruthy());
+
+    fireEvent.press(getByTestId('journey-phase-start'));
+    await waitFor(() =>
+      expect(getByTestId('journey-phase-commit-error')).toHaveTextContent(
+        ADVANCE_PREVIEW_COPY.failed
+      )
+    );
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
+
+  test('Not yet declines and returns WITHOUT advancing', async () => {
+    // Permitted by decision 4's own wording: Start this is named there as the
+    // only thing that mutates PHASE. A decline moves the offer bookkeeping.
+    setParams('recover', 'calm');
+    mockGetJourneyState.mockResolvedValue(offered());
+    const { getByTestId } = render(<JourneyPhaseScreen />);
+    await waitFor(() => expect(getByTestId('journey-phase-not-yet')).toBeTruthy());
+
+    fireEvent.press(getByTestId('journey-phase-not-yet'));
+    await waitFor(() => expect(mockRecordAdvanceDeclined).toHaveBeenCalledWith('u1'));
+    expect(mockAdvancePhase).not.toHaveBeenCalled();
+    expect(mockLogEvent).toHaveBeenCalledWith('u1', 'journey_advance_declined', {
+      from: 'preview',
+    });
+    expect(mockGoBack).toHaveBeenCalled();
   });
 });

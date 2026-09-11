@@ -296,3 +296,91 @@ describe('StartHereRow — collapse', () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Collapse WEIGHT (slice 7a, from the 5c device walk)
+//
+// KYLE'S REPORT WAS "it did not read as a state change to me", and the
+// instrumented run showed the mechanism was working perfectly: the two states
+// differed only in whether the gloss rendered. De-emphasis by subtraction was
+// too quiet to register as de-emphasis at all.
+//
+// THESE TESTS ASSERT THE ROW ITSELF CHANGES, not just what sits under it. A
+// suite that only checked the gloss would pass for the exact build the walk
+// rejected, which is why the gloss assertions above are not enough on their own.
+// ---------------------------------------------------------------------------
+describe('StartHereRow — the collapsed row is a different weight', () => {
+  const flatten = (style: any): Record<string, any> =>
+    Array.isArray(style)
+      ? style.filter(Boolean).reduce((acc, s) => ({ ...acc, ...flatten(s) }), {})
+      : (style ?? {});
+
+  it('loses vertical padding when collapsed, but never its touch target', async () => {
+    // UI Standards 16: the hit area is not part of the de-emphasis. Padding is
+    // what changes; minHeight stays 48 so a quieter row is still a tappable one.
+    const { getByTestId } = renderRow();
+    await waitFor(() => expect(getByTestId('start-here-row-gloss')).toBeTruthy());
+
+    const expanded = flatten(getByTestId('start-here-row').props.style);
+    fireEvent.press(getByTestId('start-here-row'));
+    const collapsed = flatten(getByTestId('start-here-row').props.style);
+
+    expect(collapsed.paddingVertical).toBeLessThan(expanded.paddingVertical);
+    expect(collapsed.minHeight).toBe(expanded.minHeight);
+    expect(collapsed.minHeight).toBeGreaterThanOrEqual(48);
+  });
+
+  it('drops the label a step down the type scale when collapsed', async () => {
+    const { getByText } = renderRow();
+    await waitFor(() => expect(getByText('Start here')).toBeTruthy());
+
+    const expanded = flatten(getByText('Start here').props.style);
+    fireEvent.press(getByText('Start here'));
+    const collapsed = flatten(getByText('Start here').props.style);
+
+    expect(collapsed.fontSize).toBeLessThan(expanded.fontSize);
+    expect(collapsed.fontWeight).not.toBe(expanded.fontWeight);
+  });
+
+  it('keeps the collapsed label in Charcoal, not a disabled grey', async () => {
+    // Quieter, not unavailable. A greyed label on a live control reads as
+    // something the user cannot tap, and this row is always tappable.
+    const { getByText } = renderRow();
+    await waitFor(() => expect(getByText('Start here')).toBeTruthy());
+
+    const expanded = flatten(getByText('Start here').props.style);
+    fireEvent.press(getByText('Start here'));
+    const collapsed = flatten(getByText('Start here').props.style);
+
+    expect(collapsed.color).toBe(expanded.color);
+  });
+
+  it('carries NO watched or completion mark in either state', async () => {
+    // Decision, not omission (Kyle, slice 7a). The marker records that the row
+    // was OPENED; VideoPlayerModal exposes no completion callback, so a check
+    // or a "watched" pill would claim more than the data supports.
+    const { getByTestId, queryByText, toJSON } = renderRow();
+    await waitFor(() => expect(getByTestId('start-here-row-gloss')).toBeTruthy());
+
+    fireEvent.press(getByTestId('start-here-row'));
+
+    expect(queryByText(/watched/i)).toBeNull();
+    expect(queryByText(/complete/i)).toBeNull();
+    expect(JSON.stringify(toJSON())).not.toMatch(/check|"done"/i);
+  });
+
+  it('is still a row and not a card once collapsed', async () => {
+    // Section 8 has no space for a fourth card on Today, so the whole
+    // distinction has to fit inside a row's height. A surface, a border or a
+    // radius appearing here is the regression.
+    const { getByTestId } = renderRow();
+    await waitFor(() => expect(getByTestId('start-here-row-gloss')).toBeTruthy());
+
+    fireEvent.press(getByTestId('start-here-row'));
+    const collapsed = flatten(getByTestId('start-here-row').props.style);
+
+    expect(collapsed.backgroundColor).toBeUndefined();
+    expect(collapsed.borderRadius).toBeUndefined();
+    expect(collapsed.borderWidth).toBeUndefined();
+  });
+});

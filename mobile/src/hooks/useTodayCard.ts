@@ -105,6 +105,20 @@ export interface TodayCard {
    * 0 on the legacy cycle path, which has no phase to count within.
    */
   consistentDays: number;
+  /**
+   * Today, ISO YYYY-MM-DD, as this hook understands it.
+   *
+   * EXPOSED SO HOME HAS ONE DEFINITION OF TODAY (slice 7a). The advancement
+   * offer's day gate needs the same date this hook keys completion to, and the
+   * machinery that keeps it current across a midnight rollover - the AppState
+   * listener and the render sync below - is documented here as load bearing.
+   * A second consumer computing `toIsoDate(new Date())` inside its own effect
+   * is precisely the bug this hook's `todayIso` state was introduced to fix,
+   * one screen over.
+   *
+   * READ-ONLY. Nothing outside this hook may set it.
+   */
+  todayIso: string;
 }
 
 const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
@@ -119,6 +133,10 @@ const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
   prefillCapacity: 'normal',
   prefillTime: DEFAULT_TIME_CLASS,
   consistentDays: 0,
+  // Overwritten by the live value at both return sites below. Present here
+  // because EMPTY is typed as the full card minus its two callbacks, and an
+  // empty string would be a date nothing can parse rather than a date.
+  todayIso: '',
   pickSaving: false,
   pickFailed: false,
 };
@@ -523,7 +541,10 @@ export function useTodayCard(
     [uid, todayIso, pickSaving]
   );
 
-  if (!source) return { ...EMPTY, markDone, confirmPick };
+  // `todayIso` overrides EMPTY's placeholder on the no-source path too: the
+  // date is a property of the clock, not of whether there is a day to render,
+  // and a consumer gating on it should never see the empty string.
+  if (!source) return { ...EMPTY, todayIso, markDone, confirmPick };
 
   return {
     protocol,
@@ -538,6 +559,7 @@ export function useTodayCard(
     prefillCapacity,
     prefillTime,
     consistentDays,
+    todayIso,
     confirmPick,
     pickSaving,
     pickFailed,

@@ -861,6 +861,58 @@ export interface JourneyState {
   adjustDeclinedAt: Timestamp | null;
 
   /**
+   * How many times the advancement offer has occupied Today in this phase
+   * (slice 7a, roadmap section 9 R3).
+   *
+   * THIS IS A STORED COUNT, AND THE MODEL HEADER ABOVE SAYS "NO COUNTERS LIVE
+   * HERE". The distinction was made deliberately and is written here so it is
+   * not re-litigated by whoever reads the two in the same breath. There are two
+   * separate rules and this field is outside both:
+   *
+   *   - SECTION 8's BAN IS ON USER-VISIBLE COUNTERS. "No counter, ever,
+   *     anywhere" sits in a list of brand tripwires about what a person reads.
+   *     This is never rendered, never interpolated into copy, and never an
+   *     analytics dimension. No screen can tell a user they have two exposures
+   *     left, and none may be built that does.
+   *   - THIS MODEL'S BAN IS ON DERIVABLE TALLIES, and its stated risk is DRIFT:
+   *     "A stored `consistentDays` would be a second copy of an answer that can
+   *     already be recomputed, and the two would disagree the first time a log
+   *     was corrected." That argument does not reach this field, because there
+   *     is nothing to drift from. Nothing else in the system records that a
+   *     card was on screen. The one store that would - the analytics event log
+   *     - is `allow read: if false` even for the owning account
+   *     (firestore.rules:1066), so it cannot be read back by any client. This
+   *     count is irreducible state, not a second copy.
+   *
+   * RESET TO 0 ON EVERY PHASE CHANGE, through CLEARED_OFFERS. A count surviving
+   * a phase transition would spend the next phase's budget before its offer had
+   * ever been shown.
+   */
+  advanceExposures: number;
+  /**
+   * ISO YYYY-MM-DD of the FIRST advancement exposure in this phase, anchoring
+   * R3's seven-day hard cap.
+   *
+   * NOT `advanceOfferedAt`, AND THE DIFFERENCE IS WHY THIS FIELD EXISTS.
+   * `advanceOfferedAt` records the LAST offer shown and is rewritten on every
+   * exposure, so a cap anchored to it would slide forward each time and could
+   * never fire. This one is written once and then left alone.
+   *
+   * A DATE STRING, NOT A TIMESTAMP, so the placement derivation stays pure over
+   * ISO strings with no clock in it. Same reasoning as `PhaseContext.enteredAtIso`.
+   */
+  advanceFirstOfferedOn: string | null;
+  /**
+   * ISO YYYY-MM-DD of the most recent advancement exposure. THE DAY GATE.
+   *
+   * R3 allows at most one exposure per calendar day, and this field is what
+   * enforces it. It is read before the exposure write and never after: see
+   * `shouldRecordExposure` in journey/offerPlacement.ts for why the ordering is
+   * load bearing rather than stylistic.
+   */
+  advanceLastExposedOn: string | null;
+
+  /**
    * The Remove capture (slice 3c-i). ALL FIVE ARE OPTIONAL and absent on every
    * document written before this slice, which is every document that exists.
    * Readers must treat absence as "has not captured yet" rather than as any

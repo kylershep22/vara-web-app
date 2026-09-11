@@ -51,6 +51,36 @@ export const ADVANCE_MIN_CONSISTENT_DAYS = 8;
 export const ADVANCE_CALENDAR_CEILING_DAYS = 14;
 
 /**
+ * How many times the advancement offer may occupy Today (section 9 R3).
+ *
+ * EXPOSURES, NOT DAYS, AND THE UNIT IS THE DECISION. R3 rejected the elapsed-
+ * day lean outright: a user who does not open the app for two days has not been
+ * shown anything, and a time-only rule spends the offer on days they were
+ * absent. This counts occasions the user could actually have seen it.
+ *
+ * IGNORING THE CARD SPENDS ONE. That is what an exposure is for. Dismiss
+ * removes it immediately and accept resolves it; neither runs the budget down.
+ *
+ * NEVER RENDERED, and there is no state in which a user learns they have two
+ * left. Section 8 bans the counter, and this is engine bookkeeping.
+ */
+export const ADVANCE_MAX_TODAY_EXPOSURES = 3;
+
+/**
+ * The hard calendar cap on how long the offer may sit on Today (section 9 R3).
+ *
+ * THE BACKSTOP TO THE EXPOSURE BUDGET, not a second budget. It exists so a rare
+ * opener cannot carry a stale offer for a month: after this many days the offer
+ * demotes to the journey whether or not the three exposures were spent.
+ *
+ * Counted from the FIRST exposure, which is why `advanceFirstOfferedOn` exists
+ * as its own field. `advanceOfferedAt` records the LAST offer shown and slides
+ * forward with every exposure, so anchoring the cap to it would mean the cap
+ * could never fire.
+ */
+export const ADVANCE_TODAY_CAP_DAYS = 7;
+
+/**
  * How many consecutive weekly 'not_moving' reads offer an adjustment
  * (Section 1).
  *

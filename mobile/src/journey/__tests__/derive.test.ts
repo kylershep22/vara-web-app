@@ -11,6 +11,7 @@
  */
 import {
   deriveAdjustDue,
+  deriveAdvanceDoor,
   deriveAdvanceDue,
   deriveCalendarDays,
   deriveConsistentDays,
@@ -129,13 +130,13 @@ describe('deriveCalendarDays', () => {
 describe('deriveAdvanceDue - the consistency door', () => {
   test('is NOT due at 7 consistent days', () => {
     expect(
-      deriveAdvanceDue({ consistentDays: 7, calendarDays: 7, advanceDeclinedAt: null })
+      deriveAdvanceDue({ consistentDays: 7, calendarDays: 7 })
     ).toBe(false);
   });
 
   test('IS due at 8 consistent days', () => {
     expect(
-      deriveAdvanceDue({ consistentDays: 8, calendarDays: 8, advanceDeclinedAt: null })
+      deriveAdvanceDue({ consistentDays: 8, calendarDays: 8 })
     ).toBe(true);
   });
 });
@@ -143,7 +144,7 @@ describe('deriveAdvanceDue - the consistency door', () => {
 describe('deriveAdvanceDue - the calendar ceiling', () => {
   test('is NOT due at 13 calendar days with too few consistent days', () => {
     expect(
-      deriveAdvanceDue({ consistentDays: 0, calendarDays: 13, advanceDeclinedAt: null })
+      deriveAdvanceDue({ consistentDays: 0, calendarDays: 13 })
     ).toBe(false);
   });
 
@@ -151,35 +152,77 @@ describe('deriveAdvanceDue - the calendar ceiling', () => {
     // The ceiling exists precisely for the user who is NOT doing the work, so
     // a phase can never become a place to be stuck.
     expect(
-      deriveAdvanceDue({ consistentDays: 0, calendarDays: 14, advanceDeclinedAt: null })
+      deriveAdvanceDue({ consistentDays: 0, calendarDays: 14 })
     ).toBe(true);
   });
 
   test('either door alone is enough; neither requires the other', () => {
     expect(
-      deriveAdvanceDue({ consistentDays: 8, calendarDays: 0, advanceDeclinedAt: null })
+      deriveAdvanceDue({ consistentDays: 8, calendarDays: 0 })
     ).toBe(true);
     expect(
-      deriveAdvanceDue({ consistentDays: 0, calendarDays: 14, advanceDeclinedAt: null })
+      deriveAdvanceDue({ consistentDays: 0, calendarDays: 14 })
     ).toBe(true);
   });
 });
 
-describe('deriveAdvanceDue - decline suppression', () => {
-  test('a decline suppresses an otherwise-due offer', () => {
-    expect(
-      deriveAdvanceDue({
-        consistentDays: 30,
-        calendarDays: 60,
-        advanceDeclinedAt: { seconds: 1 },
-      })
-    ).toBe(false);
+// THE DECLINE-SUPPRESSION BLOCK THAT STOOD HERE HAS MOVED, NOT BEEN DELETED.
+// It asserted that `advanceDeclinedAt` made this return false, which slice 7a
+// established was wrong: a false here hid the offer from the MAP as well as
+// from Today, and section 9 R3 demotes a dismissed offer to the map rather than
+// withdrawing it. Decline is a PLACEMENT question now and its boundaries are
+// asserted in journey/__tests__/offerPlacement.test.ts. Recorded here so a
+// reader diffing the two slices sees a move rather than lost coverage.
+
+describe('deriveAdvanceDue - eligibility knows nothing about placement', () => {
+  test('a user who is due stays due no matter how long ago they declined', () => {
+    // The guard on the split. `AdvanceDueInput` has no field that could carry a
+    // decline, so this is really a type-level assertion given a runtime voice:
+    // if someone reintroduces suppression here, they have to add the field
+    // back first, and this test names why they should not.
+    expect(deriveAdvanceDue({ consistentDays: 30, calendarDays: 60 })).toBe(true);
+  });
+});
+
+describe('deriveAdvanceDoor - which door, and which copy', () => {
+  test('neither door is open below both thresholds', () => {
+    expect(deriveAdvanceDoor({ consistentDays: 7, calendarDays: 13 })).toBeNull();
   });
 
-  test('undefined is treated as declined-not-recorded, same as null', () => {
-    expect(
-      deriveAdvanceDue({ consistentDays: 8, calendarDays: 0, advanceDeclinedAt: undefined })
-    ).toBe(true);
+  test('the consistency door opens at 8 completed days', () => {
+    expect(deriveAdvanceDoor({ consistentDays: 8, calendarDays: 0 })).toBe(
+      'consistency'
+    );
+  });
+
+  test('the ceiling opens at 14 calendar days with no completed days', () => {
+    expect(deriveAdvanceDoor({ consistentDays: 0, calendarDays: 14 })).toBe(
+      'ceiling'
+    );
+  });
+
+  test('consistency WINS when both are open', () => {
+    // The copy-bearing case, and the reason this returns a discriminant. A user
+    // at both thresholds HAS been coming back, and Jen's ceiling body is
+    // written for someone who has not: serving it here would tell a consistent
+    // user there was nothing to name about what they did.
+    expect(deriveAdvanceDoor({ consistentDays: 8, calendarDays: 14 })).toBe(
+      'consistency'
+    );
+  });
+
+  test('due is exactly "some door opened", with no second comparison', () => {
+    // Pins the definition rather than the value: deriveAdvanceDue is defined in
+    // terms of deriveAdvanceDoor so the two can never disagree about whether an
+    // offer exists. A reimplementation with its own comparisons would pass the
+    // cases above and fail here the first time a threshold changed.
+    for (const consistentDays of [0, 7, 8, 30]) {
+      for (const calendarDays of [0, 13, 14, 60]) {
+        expect(deriveAdvanceDue({ consistentDays, calendarDays })).toBe(
+          deriveAdvanceDoor({ consistentDays, calendarDays }) !== null
+        );
+      }
+    }
   });
 });
 

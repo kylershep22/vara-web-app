@@ -125,6 +125,37 @@ export interface PhaseContext {
    * on any of them would re-offer the flow to someone who had already finished.
    */
   hasRemoveCapture: boolean;
+
+  /**
+   * Has the user dismissed the advancement offer in this phase (slice 7a)?
+   *
+   * A BOOLEAN, NOT THE TIMESTAMP, on exactly the precedent `hasRemoveCapture`
+   * set one field above: placement needs the fact, not the instant, and
+   * narrowing here keeps `placeAdvanceOffer` pure over primitives with no
+   * Timestamp in it.
+   *
+   * DISMISSED DOES NOT MEAN GONE. Section 9 R3 demotes a dismissed offer to the
+   * journey rather than withdrawing it, so this routes placement and never
+   * suppresses eligibility. See the note at `deriveAdvanceDue`.
+   */
+  advanceDeclined: boolean;
+  /**
+   * Advancement exposure bookkeeping, carried so Home resolves it once.
+   *
+   * ALL THREE COME OFF THE DOCUMENT THE RESOLVER ALREADY READ. The alternative
+   * was a second getJourneyState call on a surface that has just resolved the
+   * journey, which is the read this interface exists to avoid: the same
+   * reasoning that put `removeFamily` and `enteredAtIso` here in slices 3c-i
+   * and 4a.
+   *
+   * The day gate reads `advanceLastExposedOn` BEFORE the exposure write. That
+   * ordering is what bounds the write to one per calendar day despite Home
+   * re-resolving on every focus; the argument is at
+   * `shouldRecordExposure` in journey/offerPlacement.ts.
+   */
+  advanceExposures: number;
+  advanceFirstOfferedOn: string | null;
+  advanceLastExposedOn: string | null;
 }
 
 export type JourneyResolution =
@@ -262,6 +293,14 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
           removeFamily: existing.removeFamily ?? undefined,
           enteredAtIso: enteredAtIsoOf(existing),
           hasRemoveCapture: !!existing.removeCapturedAt,
+          advanceDeclined: !!existing.advanceDeclinedAt,
+          // `?? 0` and `?? null` are absent-safe reads, not defaults with an
+          // opinion. Every journeyStates document written before slice 7a lacks
+          // all three fields, and absence means "no exposure has happened",
+          // which is exactly what these values say.
+          advanceExposures: existing.advanceExposures ?? 0,
+          advanceFirstOfferedOn: existing.advanceFirstOfferedOn ?? null,
+          advanceLastExposedOn: existing.advanceLastExposedOn ?? null,
         },
       };
     }
@@ -331,6 +370,13 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
         enteredAtIso: enteredAtIsoOf(created),
         // A journey created a moment ago has no capture, by construction.
         hasRemoveCapture: false,
+        // And no offer has been made in it, by the same construction. These are
+        // the values CLEARED_OFFERS writes, restated rather than read back so
+        // the migrating user's first render does not depend on a round trip.
+        advanceDeclined: false,
+        advanceExposures: 0,
+        advanceFirstOfferedOn: null,
+        advanceLastExposedOn: null,
       },
     };
   } catch (error) {
