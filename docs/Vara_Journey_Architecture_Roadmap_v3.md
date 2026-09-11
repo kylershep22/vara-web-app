@@ -2306,15 +2306,32 @@ CHECK.**
 | 6 | `adjustOfferedAt` stamps only when C2 draws | PASS |
 
 **THE OFFLINE CHECK PASSED (Kyle's observation).** Airplane mode, cold open on
-an ADVANCE-DUE account: the weekly read rejects, `settled` flips true on the
-rejection rather than hanging, and **the advancement card still draws**. That is
-the branch that keeps one dropped request from withholding Today's
-journey-action card for the rest of the session, and it is the half of the
-settled contract that is easy to get wrong in the safe-looking direction. **A
-read that HANGS rather than rejecting is a different case and is not covered:**
-it leaves the slot empty until it settles, which is the same class as the phase
-read that already gates the whole Today block above it. Logged to the
-offline-resilience row in `docs/Vara_Today_IA_Restructure_Roadmap_v2.md`.
+an ADVANCE-DUE account: **the advancement card drew within a few seconds.**
+
+**WHETHER THE READ REJECTED OR RESOLVED FROM CACHE WAS NOT OBSERVED, so the
+catch branch is not evidenced by this walk.** What the walk establishes is the
+user-visible outcome - the slot was not withheld, and an account offline at
+launch still got its card. It does not establish WHICH path produced that, and
+the two are different states of the settled contract: a rejection exercises the
+`.catch` and the second `.then` in `useAdjustOffer`, while a cache hit
+exercises the ordinary resolve path with an empty or stale row set. **The
+rejection path is pinned by unit test only** - `'SETTLES ON A FAILED READ, so
+one dropped request does not blank the slot'` in `useAdjustOffer.test.ts`, and
+`'a FAILED weekly read still releases the slot'` at the screen. That is a real
+assertion and it is not a device observation; do not let a later reader promote
+it into one on the strength of this line.
+
+*(Written this way deliberately at Kyle's correction, 2026-09-11. The first
+draft of this paragraph asserted the rejection mechanism, which nobody watched
+happen. It is the same error the `captureDismissed` block below corrects in
+7b's entry, made once more in the entry that corrects it - a plausible
+mechanism narrated as an observation. Record what was seen.)*
+
+**A read that HANGS rather than rejecting is a third case and is covered by
+neither the walk nor a test:** it leaves the slot empty until it settles, which
+is the same class as the phase read that already gates the whole Today block
+above it. Logged to the offline-resilience row in
+`docs/Vara_Today_IA_Restructure_Roadmap_v2.md`.
 
 ---
 
@@ -2382,8 +2399,8 @@ on purpose.
 
 **ATTESTATIONS (Kyle, 2026-09-11):**
 
-- **Suites green at the figures above:** tsc 149 / jest 3422 of 221 / sentinel 150.
-- **Device walk passed, six checks plus the offline check:**
+- **Suites green at the figures above:** tsc 149 / jest 3422 of 221 / sentinel 150. ATTESTED.
+- **Device walk passed, six checks plus the offline check:** ATTESTED, 2026-09-11.
 
 ---
 
@@ -2472,6 +2489,24 @@ later and separately, at `DashboardScreen.tsx:200-211`.
 **OBSERVED TWICE ON DEVICE, not inferred:** once with `advanceOfferedAt` stamped at 13:30:39
 while the capture card held the slot at 13:41, and once behind C2. The budget drains behind a
 card the user cannot see.
+
+> **AMENDED 2026-09-11 (slice 7d walk, Kyle). "NOT INFERRED" OVERSTATES WHAT THE 13:30:39
+> SIGHTING PROVED.** The paragraph above is left unedited in the §3.4 style. **The defect is
+> real and is unaffected by this** - 7d pins it deterministically with tests at the hook and
+> at the screen, in a harness where nothing is ever dismissed. What changes is the status of
+> the EVIDENCE, not the conclusion.
+>
+> `captureDismissed` is component state in `DashboardScreen` and is **never persisted**
+> (3c-i's design; `journeyAction.ts:63` says so at the input). So a stamp at 13:30:39 with
+> the capture card on screen at 13:41 is consistent with **two** mechanisms: the eligibility
+> gate firing behind the capture card, **or** the card having been dismissed before 13:30,
+> advance legitimately taking the slot and drawing, and a relaunch resetting
+> `captureDismissed` and bringing the capture card back by 13:41. Under the second reading
+> the stamp was correct when it happened.
+>
+> **The device sighting is what prompted looking; the tests are what establish the defect.**
+> Full argument in the §13 slice-7d entry. It also constrains the walk: check 1 of 7d's
+> script is only valid if the capture card is never dismissed during it.
 
 This contradicts R3 as `constants/journey.ts` states it at `ADVANCE_MAX_TODAY_EXPOSURES`:
 *"This counts occasions the user could actually have seen it."* A user with an outstanding
