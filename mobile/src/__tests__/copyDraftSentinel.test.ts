@@ -521,6 +521,81 @@ import * as path from 'path';
 // a prose-to-copy promotion: roadmap section 9 R5 writes those words as prose
 // about what stays available, and PHASE_STATE_LABELS took exactly that reading
 // of section 1's prose.
+//
+// ============================================================================
+//
+// 150 THROUGH JOURNEY SLICE 7h: NO CHANGE, AND THE ZERO IS AGAIN THE ENTRY.
+// Dated 2026-09-12. The 2026-09-11 block above is LEFT UNEDITED: it is the true
+// record of what was warranted on the day it was written, and this file's whole
+// contract is knowing which warrant applied when. Rewriting it in place would
+// launder exactly the history the ledger exists to hold - the doc-symbol-swap
+// failure the slice-7b amendment warns about. This block is the correction and
+// it is the current state.
+//
+// JEN REVISED BOTH C2 BODIES AS A PAIR ON 2026-09-12, AND HER SIGN-OFF
+// SUPERSEDES KYLE'S ON BOTH. Recorded in the canonical pack as a dated
+// amendment block appended to `Content Pack v1 §decisions-4`, not as a local
+// override, at her instruction. Two strings move:
+//
+//   - ADJUST_COPY.bodyFirst: "If this isn't feeling like it's moving yet, we
+//     can change the approach without starting over." becomes "If this isn't
+//     helping yet, we can change the approach without starting over."
+//   - ADJUST_COPY.bodySecond: "If this still isn't feeling like it's moving, we
+//     can change the approach without starting over." becomes "If this still
+//     isn't helping, we can change the approach without starting over."
+//
+// ADJUST_COPY.decline, 'Keep going for now', IS APPROVED UNCHANGED AND WAS NOT
+// TOUCHED. Nor were `title` or `confirmation`.
+//
+// **THE "PENDING JEN REVIEW" OPEN ITEM ON ADJUST_COPY.bodySecond IS DISCHARGED,
+// AND IT IS NAMED HERE BECAUSE IT STANDS UNQUALIFIED ABOVE.** The 2026-09-11
+// block calls it "an open item, not a formality" and closes with "If she
+// revises §decisions-4's body, this string moves with it." She has, and it has.
+// Left unedited there by the rule at the top of this block, so a reader who
+// stops at that paragraph would otherwise carry an open item that closed.
+//
+// THE COUNT IS FLAT AT 150 AND THE FLATNESS IS THE POINT: two APPROVED strings
+// replaced by two APPROVED strings, nothing drafted in either direction, in
+// neither direction a marker. A slice that rewrites the two most scrutinised
+// strings on an efficacy-adjacent surface and moves this number by nothing is
+// precisely the shape that reads as an oversight to whoever audits next. It is
+// not one, and the commit message says so in as many words.
+//
+// WHAT ACTUALLY CHANGED IS THE ROUTE TO FLAT FOR ONE STRING, NOT THE COUNT, and
+// the five-way partition of slice 7b's thirty-two strings has to be restated.
+// TWO BUCKETS MOVE and the other three do not; it still sums to THIRTY-TWO:
+//
+//   - TWENTY-SIX ARE JEN'S, FROM `Content Pack v1 §5`, LANDING FLAT: the C2
+//     title, the C2 confirmation, and the twelve alternative labels with their
+//     twelve bodies. UNCHANGED.
+//   - **ONE BECOMES TWO. JEN'S, FROM `§decisions-4`, FLAT:** ADJUST_COPY
+//     .bodyFirst AND NOW ADJUST_COPY.bodySecond, both verbatim from the dated
+//     2026-09-12 amendment block. **This bucket moves 1 -> 2.**
+//   - THREE ARE KYLE'S, AUTHORED AND FLAT on the PHASE_PAGE_BODIES precedent:
+//     ADJUST_COPY.primary, ADJUST_COPY.alternativesIntro and
+//     ADJUST_COPY.failed. UNCHANGED.
+//   - ONE IS KYLE'S BY REPLACEMENT: ADJUST_COPY.decline. UNCHANGED, and
+//     approved unchanged by Jen in the same review.
+//   - **ONE BECOMES ZERO. KYLE'S AS A NEW DRAFT CLEARED BY OWNER SIGN-OFF:**
+//     the bucket held ADJUST_COPY.bodySecond alone and is now **EMPTY**.
+//     **This bucket moves 1 -> 0.**
+//
+// 26 + 2 + 3 + 1 + 0 = 32. Drafted strings in the partition: zero, before and
+// after, which is why the sentinel does not move in either direction.
+//
+// THE +1/-1 ROUTE RECORDED ABOVE FOR bodySecond IS NOW HISTORY, NOT THE LIVE
+// WARRANT, and the distinction matters to anyone auditing this file later. On
+// 2026-09-11 that string counted +1 as a new drafted string on a C2 surface and
+// -1 on Kyle's owner sign-off in the same commit - a net zero reached by the
+// WEAKER of the two warrants this contract recognises, because C2 body copy is
+// Jen's and the sign-off was not hers. It is now pack content and reaches flat
+// by the ordinary pack route, the same one bodyFirst has always taken. The net
+// is zero both times; the strength behind it is not the same, and a ledger that
+// only recorded the arithmetic would have lost the only fact worth keeping.
+//
+// STILL DRAFTED FROM SLICE 7a, UNAFFECTED BY ANY OF THIS: JOURNEY_LINE_LABEL
+// and TODAY_START_HERE_GLOSS, both in constants/journeyCopy.ts, both Kyle's to
+// clear. Neither is a C2 string and neither was in 7h's fence.
 const EXPECTED_SENTINELS = 150;
 
 const mobileRoot = path.resolve(__dirname, '../..');

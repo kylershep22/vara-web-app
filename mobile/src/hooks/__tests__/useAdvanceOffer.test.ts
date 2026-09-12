@@ -375,11 +375,17 @@ describe('useAdvanceOffer - dismiss', () => {
 });
 
 describe('useAdvanceExposure - analytics', () => {
-  test('the offered event carries the door that opened it', async () => {
+  test('the offered event carries the door that opened it, and the definition version', async () => {
+    // `definition_version: 2` says this row counts a RENDERED offer, not an
+    // eligible one (slice 7h; the gate moved in 7d). toHaveBeenCalledWith is an
+    // exact payload match, so this pins the field's presence AND its value -
+    // dropping it at the call site fails here rather than quietly emitting rows
+    // that a dashboard cannot tell apart from the pre-7d ones.
     renderSlot({ enteredAtIso: TODAY }, 8);
     await waitFor(() =>
       expect(mockLogEvent).toHaveBeenCalledWith('u1', 'journey_advance_offered', {
         door: 'consistency',
+        definition_version: 2,
       })
     );
   });

@@ -476,6 +476,38 @@ export const TODAY_START_HERE_GLOSS =
  * path does not read `adjustChoice` until slice 7c. "We'll work it this way for
  * now" is a promise about what comes next, which is exactly what a recorded
  * choice is; it does not claim anything has already changed.
+ *
+ * ---
+ *
+ * AMENDED 2026-09-12 (slice 7h). JEN REVISED BOTH BODIES AS A PAIR AND HER
+ * SIGN-OFF SUPERSEDES KYLE'S ON BOTH. Everything above is left unedited: it is
+ * the true record of what was warranted on 2026-09-10 and 2026-09-11, and
+ * rewriting it would launder the history this comment exists to hold. This
+ * block is the correction and it is the current state.
+ *
+ * "feeling like it's moving" BECAME "helping" IN BOTH BODIES, and the reason is
+ * not cosmetic. The replaced phrasing borrowed the weekly check-in's OWN
+ * vocabulary - `moving` / `not_moving` is the C1 answer set - so the card was
+ * quietly echoing the user's logged answer back at them. That is the narration
+ * `decisions section 4` rejected in the first place, arriving by a route that
+ * comment did not anticipate. "helping" makes the same conditional offer
+ * without referencing what they told us, and it is what a person actually says
+ * about whether something is working.
+ *
+ * THE OWNERSHIP BULLET FOR `bodySecond` ABOVE IS SUPERSEDED. It is no longer
+ * "KYLE'S ... a NEW in-house draft ... PENDING JEN REVIEW". Both bodies are now
+ * JEN'S, from the dated 2026-09-12 amendment block appended to
+ * `decisions section 4` in the canonical pack, verbatim. Two pack strings, both
+ * flat, both landing under the pack's own rule.
+ *
+ * THE SENTINEL DOES NOT MOVE AND THE ZERO IS THE ENTRY: two approved strings
+ * replaced by two approved strings, nothing drafted in either direction. What
+ * changed is the ROUTE TO FLAT for `bodySecond` and the strength of its
+ * warrant, not the count. The five-way partition in copyDraftSentinel.test.ts
+ * is restated there and still sums to thirty-two.
+ *
+ * `decline`, "Keep going for now", IS APPROVED UNCHANGED and was not touched.
+ * `title` and `confirmation` are likewise unchanged.
  */
 export const ADJUST_COPY = {
   title: "Let's try a different angle.",
@@ -486,9 +518,20 @@ export const ADJUST_COPY = {
    * "stays conditional rather than declaring an internal state, explains why
    * the card exists", and does not say you failed, the practices did not work,
    * we detected a pattern, or you answered negatively twice.
+   *
+   * AMENDED 2026-09-12 (slice 7h). The wording is Jen's revision, from the
+   * dated amendment block on `decisions section 4`, verbatim. The paragraph
+   * above still describes this string exactly - the offer is still conditional
+   * and still narrates nothing - so it is kept rather than rewritten. What
+   * moved is the phrase: "feeling like it's moving" was the check-in's own
+   * answer vocabulary and read as the user being quoted back to themselves.
+   *
+   * SHE REVISED AN ALREADY-APPROVED STRING, DELIBERATELY, rather than preserve
+   * it for provenance. That choice is hers to make and is recorded here so a
+   * later reader does not treat the change as drift.
    */
   bodyFirst:
-    "If this isn't feeling like it's moving yet, we can change the approach without starting over.",
+    "If this isn't helping yet, we can change the approach without starting over.",
   /**
    * The second proactive offer. KYLE'S, 2026-09-10.
    *
@@ -512,9 +555,35 @@ export const ADJUST_COPY = {
    *
    * "yet" DROPS WHEN "still" ARRIVES. Keeping both would read as a correction
    * of the user's own account of their week.
+   *
+   * ---
+   *
+   * AMENDED 2026-09-12 (slice 7h). THE FORWARD CLAUSE FOUR PARAGRAPHS UP -
+   * "if she revises `bodyFirst` in `decisions section 4`, this string moves
+   * with it rather than drifting" - IS NOW DISCHARGED. She did, and it did.
+   * The paragraphs above are left unedited as the record of what was true on
+   * 2026-09-10; this block is the current state.
+   *
+   * **"PENDING JEN REVIEW" IS CLOSED.** She reviewed on 2026-09-12 and revised
+   * both bodies as a pair. This string is no longer a new in-house draft
+   * cleared by an owner sign-off: it is JEN'S, from the dated amendment block
+   * on `decisions section 4`, verbatim, exactly like `bodyFirst`.
+   *
+   * HER SIGN-OFF SUPERSEDES KYLE'S, AND THAT IS A STRENGTHENING RATHER THAN A
+   * SWAP. The 2026-09-11 entry recorded his warrant as the WEAKER of the two
+   * the sentinel contract recognises, because C2 body copy is Jen's. That
+   * weaker warrant no longer applies to this string at all. The +1/-1 route it
+   * took to flat is HISTORY, not the live accounting; the live accounting is
+   * "pack content, flat, like every other pack string".
+   *
+   * THE ONE-WORD CONTINUITY SURVIVED THE REVISION INTACT. "still" is still the
+   * whole of it, "yet" still drops when "still" arrives, and the two bodies are
+   * still exactly one word apart - which is what R5 permits and what
+   * `journeyCopy.adjust.test.ts` holds as arithmetic. Jen revising the shared
+   * phrasing did not touch the clause that makes them a pair.
    */
   bodySecond:
-    "If this still isn't feeling like it's moving, we can change the approach without starting over.",
+    "If this still isn't helping, we can change the approach without starting over.",
   /**
    * The primary, on the card and on the phase page's door alike. ONE STRING FOR
    * ONE ACTION: both open the same three alternatives, and two wordings for one

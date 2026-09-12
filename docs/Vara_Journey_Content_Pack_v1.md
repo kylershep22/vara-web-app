@@ -31,13 +31,24 @@ that the strings came from this pack, and the sentinel figure stays flat.
 | [`safety-precheck`](#safety-precheck) | Safety pre-check position | pre-launch |
 | [`decisions`](#decisions) | Sept 5 decisions addendum, four flags | multiple, see each |
 
-**Two sections carry supersessions. Read them before building:**
+**Three sections carry supersessions. Read them before building:**
 
-- [`C2`](#c2) — the original body is **SUPERSEDED**. Build the final body in
-  [`decisions` section 4](#decisions-4), never the one in the original delivery.
+- [`C2`](#c2) — the original body is **SUPERSEDED**. Build the C2 body from
+  [`decisions` section 4](#decisions-4), never from the original delivery.
+- [`decisions` section 4](#decisions-4) — **SUPERSEDED IN TURN, 2026-09-12, and this
+  is a second layer on the same anchor.** Its "Final C2 copy" heading is no longer
+  final: Jen revised the body on 2026-09-12 and there are now **two** bodies, a first
+  offer and a second, where that heading writes one. Build only from the **dated
+  amendment block at the end of that section**. A reader who stops at the first
+  heading that says "Final" builds a retired string.
 - [`replacement-menus`](#replacement-menus) — the reminder step is **DEFERRED to slice 9**.
   3c-ii ships the menus with the neutral confirmations in
   [`decisions` section 3](#decisions-3), never the reminder prompt in the original delivery.
+
+**This guide names anchors and does not quote strings**, deliberately, as of 2026-09-12.
+It quoted the C2 body once and that quotation went stale the moment Jen revised it,
+leaving a reading guide instructing a builder to ship a retired line. An anchor
+survives a revision; a quotation does not.
 
 Everything below the next rule is Jen's delivery verbatim. Editorial insertions are
 blockquoted and labelled; nothing else has been altered.
@@ -583,11 +594,21 @@ Use when the time condition fires without enough evidence to describe the behavi
 
 > **SUPERSEDED. DO NOT BUILD THE BODY BELOW.**
 > The body in this original delivery was revised by Jen in the same-day decisions
-> addendum. Build the final version in [`decisions` section 4](#decisions-4):
-> **"If this isn't feeling like it's moving yet, we can change the approach without
-> starting over."**
-> The title is unchanged between the two versions. The prohibition on naming the
-> two-response trigger holds in both and is not superseded.
+> addendum, and revised again by her on 2026-09-12. Build from
+> [`decisions` section 4](#decisions-4) — specifically from the **dated amendment
+> block at the end of that section**, which carries **two** bodies, a first offer
+> and a second. The "Final C2 copy" heading partway through that section is the
+> 2026-09-05 version and is itself superseded.
+> The title is unchanged across all three versions. The prohibition on naming the
+> two-response trigger holds in every one of them and is not superseded.
+>
+> **CORRECTED 2026-09-12 (slice 7h). This note used to QUOTE the body it was
+> pointing at.** The quotation was accurate when written and became wrong the
+> moment Jen revised the string, at which point an editorial note headed
+> "DO NOT BUILD THE BODY BELOW" was itself naming a retired line as the one to
+> build. It now names the anchor and nothing else. **A reading guide that quotes
+> the thing it indexes acquires a second copy to keep in step, and the copy it
+> keeps is the one nobody remembers to update.**
 
 **Title:** Let's try a different angle.
 

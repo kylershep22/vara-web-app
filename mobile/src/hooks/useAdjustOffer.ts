@@ -285,7 +285,7 @@ export function useAdjustDoorStamp(input: UseAdjustDoorStampInput): void {
     if (!uid || action !== 'adjust' || alreadyOffered) return;
     void recordAdjustOffered(uid)
       .then(() => {
-        logEvent(uid, 'journey_adjust_offered', {});
+        logEvent(uid, 'journey_adjust_offered', { definition_version: 2 });
       })
       .catch((error) => {
         // A failed write costs the door, not the card: the offer is on screen

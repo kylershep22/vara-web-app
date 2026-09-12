@@ -202,7 +202,7 @@ export function useAdvanceExposure(input: UseAdvanceExposureInput): void {
 
     void recordAdvanceExposure(uid, todayIso, firstOfferedOn)
       .then(() => {
-        logEvent(uid, 'journey_advance_offered', { door });
+        logEvent(uid, 'journey_advance_offered', { door, definition_version: 2 });
       })
       .catch((error) => {
         // A failed exposure write costs the budget one day of accounting, never
