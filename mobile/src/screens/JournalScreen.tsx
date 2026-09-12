@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback, memo, useRef } from 'react';
-import { View, StyleSheet, SectionList, TouchableOpacity, Alert, TextInput as RNTextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView, Modal } from 'react-native';
+import { View, StyleSheet, SectionList, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView, Modal } from 'react-native';
+import TextInput from '../components/shared/TextInput';
 import Text from '../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -268,7 +269,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
               What's on your mind? *
             </Text>
             <View style={styles.textInputWithVoice}>
-              <RNTextInput
+              <TextInput
                 value={content}
                 onChangeText={setContent}
                 placeholder="Write your thoughts or use voice input..."
@@ -289,7 +290,7 @@ const JournalEntryModal = memo(({ visible, editingEntry, onDismiss, onSubmit }: 
             Tags (optional)
           </Text>
           <View style={styles.tagInputContainer}>
-            <RNTextInput
+            <TextInput
               value={tagInput}
               onChangeText={setTagInput}
               placeholder="Add a tag"

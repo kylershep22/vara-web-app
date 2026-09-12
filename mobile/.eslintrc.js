@@ -45,5 +45,43 @@ module.exports = {
     'react/react-in-jsx-scope': 'off',
     'react/prop-types': 'off',
   },
+  overrides: [
+    {
+      // UI STANDARDS 5.1. React Native does not synthesise a weight from a
+      // named custom family, so `fontWeight` on a bare RN `Text` selects
+      // nothing from Inter and silently renders the system font at that
+      // weight. It looks close enough to pass review, which is exactly why it
+      // needs a machine.
+      //
+      // EXCLUSIONS, both deliberate. The primitive's own module is the one
+      // place that must import RNText. Tests are exempt because a test
+      // asserting on React Native's Text is asserting on the platform, not on
+      // the design system; five of them do, and PaywallScreen.test.tsx reaches
+      // it through require() where this rule cannot see it anyway.
+      files: ['src/**/*.ts', 'src/**/*.tsx'],
+      excludedFiles: [
+        'src/components/shared/Text.tsx',
+        'src/components/shared/TextInput.tsx',
+        'src/**/__tests__/**',
+        'src/**/*.test.ts',
+        'src/**/*.test.tsx',
+      ],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              {
+                name: 'react-native',
+                importNames: ['Text', 'TextInput'],
+                message:
+                  'Import Text/TextInput from components/shared so fontWeight resolves to a registered Inter face (UI Standards 5.1).',
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
   ignorePatterns: ['node_modules/', 'babel.config.js', '.eslintrc.js', 'metro.config.js'],
 };

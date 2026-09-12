@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, TextInput as RNTextInput, Modal as RNModal } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Modal as RNModal } from 'react-native';
+import TextInput from '../../components/shared/TextInput';
 import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -241,7 +242,7 @@ const MessagesScreen: React.FC = () => {
             <View style={styles.modalSearchContainer}>
               <View style={[styles.modalSearchbar, {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12}]}>
                 <Icon name="magnify" size={20} color={Colors.evergreenTeal} style={{marginRight: 8}} />
-                <RNTextInput
+                <TextInput
                   placeholder="Search your connections..."
                   placeholderTextColor={Colors.textSecondary}
                   onChangeText={setSearchQuery}

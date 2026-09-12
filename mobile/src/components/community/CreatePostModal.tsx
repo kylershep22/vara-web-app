@@ -8,7 +8,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  TextInput as RNTextInput,
   Alert,
   Image,
   Keyboard,
@@ -20,6 +19,7 @@ import {
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
 } from 'react-native';
+import TextInput from '../shared/TextInput';
 import Text from '../shared/Text';
 import * as ImagePicker from 'expo-image-picker';
 import { safePickFromLibrary, safePickFromCamera } from '../../utils/safeImagePicker';
@@ -189,7 +189,7 @@ const CreatePostModal = memo(({ visible, onDismiss, onSubmit, groupName, title, 
         {title || (groupName ? `Post to ${groupName}` : 'Share with the community')}
       </Text>
 
-      <RNTextInput
+      <TextInput
         value={postContent}
         onChangeText={setPostContent}
         placeholder={placeholder || 'Share something with the group...'}
