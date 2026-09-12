@@ -1,4 +1,9 @@
-import { orderForFamily, representativeProtocol, selectProtocol } from '../selectProtocol';
+import {
+  orderForDestination,
+  orderForFamily,
+  representativeProtocol,
+  selectProtocol,
+} from '../selectProtocol';
 import { PHASE_ORDER } from '../../constants/journey';
 import {
   PROTOCOL_MATRIX,
@@ -18,7 +23,9 @@ const CAPACITIES: CapacityTier[] = ['normal', 'limited', 'slammed'];
  * ARBITRARY AND SAFE TODAY: no variant carries a destinationWeight, so
  * `orderForDestination` is the identity and the choice cannot affect a single
  * assertion in this file. It stops being arbitrary the moment Jen defines
- * weights, and `retagParity.test.ts` is the test that will go red to say so.
+ * weights, and 'destination ordering is still the identity on every shipped
+ * cell' at the bottom of this file is the test that will go red to say so.
+ * (That test used to live in `retagParity.test.ts`, deleted in slice 7i.)
  */
 const ANY_DESTINATION: DestinationKey = 'focus';
 
@@ -259,6 +266,57 @@ describe('authored coverage after the slice 3a re-tag', () => {
     }
   });
 
+  it('THE SLICE 7i COMPLETION GATE: no placeholder outside rewire', () => {
+    // WHY THIS EXISTS, and why row 7i named the wrong test. That row said the
+    // merge gate in protocolMatrix.removeCellsAuthored.test.ts was "the check
+    // that this row is complete". It is not, and it never could have been: that
+    // gate reads the `placeholder` FLAG and scans the `remove` CELLS ONLY. The
+    // twelve strings 7i replaced carried a `PLACEHOLDER [Jen]` source
+    // ANNOTATION and no flag, in `recover` and `refocus`. So the gate was green
+    // before 7i and is green after it, and it says nothing about this row.
+    //
+    // THIS is the check. Every phase a user can reach must be free of
+    // placeholder variants; rewire is the one exception and has its own
+    // assertion below. Re-introducing a stand-in anywhere else fails here.
+    for (const phase of ['remove', 'recover', 'refocus'] as const) {
+      for (const capacity of CAPACITIES) {
+        for (const variant of PROTOCOL_MATRIX[phase][capacity]) {
+          expect(variant.placeholder).toBeUndefined();
+          expect(variant.name).not.toContain('PLACEHOLDER');
+          // Vacuity guard: a cell emptied by a bad edit would satisfy every
+          // assertion above by having nothing to check.
+          expect(variant.dailyAction.length).toBeGreaterThan(0);
+          expect(variant.whyItWorks.length).toBeGreaterThan(0);
+        }
+        expect(PROTOCOL_MATRIX[phase][capacity].length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('holds 21 authored variants, and 3 placeholders, across the whole matrix', () => {
+    // REHOMED FROM retagParity.test.ts (deleted in slice 7i), and re-expressed.
+    // It used to read `RETAGGED.length + removeAuthored.length`, arithmetic over
+    // a fixture of twelve strings that Jen's copy replaced. The total is stated
+    // directly now: 9 remove + 9 recover + 3 refocus authored, 3 rewire not.
+    const authored = PHASES.flatMap((phase) =>
+      CAPACITIES.flatMap((capacity) =>
+        PROTOCOL_MATRIX[phase][capacity].filter((v) => !v.placeholder)
+      )
+    );
+    const placeholders = PHASES.flatMap((phase) =>
+      CAPACITIES.flatMap((capacity) =>
+        PROTOCOL_MATRIX[phase][capacity].filter((v) => v.placeholder)
+      )
+    );
+
+    expect(authored).toHaveLength(21);
+    expect(placeholders).toHaveLength(3);
+    expect(allProtocols()).toHaveLength(24);
+    // Every placeholder is a rewire one. Stated as its own assertion so a
+    // placeholder appearing elsewhere fails on WHERE and not only on the count.
+    expect(placeholders.every((v) => v.phase === 'rewire')).toBe(true);
+  });
+
   it('holds exactly one PLACEHOLDER per rewire cell', () => {
     // Rewire is still net-new and unreachable until slice 5, so its stand-ins
     // outlive the slice 3a gate by design. When slice 5 makes it reachable this
@@ -363,6 +421,58 @@ describe('family-aware selection in the Remove phase (slice 3c-i)', () => {
     for (const family of FAMILIES) {
       const ordered = orderForFamily(PROTOCOL_MATRIX.remove.normal, family);
       expect(ordered).toHaveLength(PROTOCOL_MATRIX.remove.normal.length);
+    }
+  });
+});
+
+
+describe('invariants rehomed from retagParity.test.ts (deleted in slice 7i)', () => {
+  // retagParity pinned the twelve pre-Jen strings character-for-character, as
+  // proof that slice 3a MOVED rows rather than editing them. Slice 7i replaced
+  // all twelve with Jen's authored copy, so that fixture now asserts the absence
+  // of the wrong thing and the file was deleted on the lifetime its own header
+  // declared. These are the invariants it held that were NOT about the fixture,
+  // moved here BEFORE the deletion so none of them died with it.
+  //
+  // ONLY TWO OF ITS THREE ARE BELOW, AND THE THIRD WAS DELIBERATELY NOT COPIED.
+  // Its "week-level callers get the cell canonical variant" test is already
+  // asserted, identically, by 'returns the cell FIRST variant, for every cell'
+  // in the representativeProtocol describe above. Copying it would have added a
+  // second copy of a live assertion rather than rescuing a dying one, and two
+  // tests of one fact drift.
+  const DESTINATIONS: readonly DestinationKey[] = ['focus', 'calm', 'routines', 'energy'];
+
+  it.each(PHASES)(
+    'phase %s serves a non-empty protocol for every capacity, time AND destination',
+    (phase) => {
+      // THE DELTA OVER THE EXISTING TOTALITY TEST, which is why this one is not
+      // a duplicate: the test at the top of this file resolves every
+      // phase x capacity x timeClass against ONE destination. This crosses all
+      // four. They are equivalent only while orderForDestination is the
+      // identity, and the moment Jen defines destinationWeight they stop being.
+      for (const capacity of CAPACITIES) {
+        for (const time of TIME_CLASSES) {
+          for (const destination of DESTINATIONS) {
+            const served = selectProtocol(phase, capacity, time, destination);
+            expect(served).toBeDefined();
+            expect(served.dailyAction.length).toBeGreaterThan(0);
+          }
+        }
+      }
+    }
+  );
+
+  it('destination ordering is still the identity on every shipped cell', () => {
+    // No variant carries a destinationWeight yet, so orderForDestination must
+    // return authored order untouched. When Jen defines weights this goes red,
+    // and that is the signal that ordering has become real rather than a bug.
+    for (const phase of PHASES) {
+      for (const capacity of CAPACITIES) {
+        const cell = PROTOCOL_MATRIX[phase][capacity];
+        for (const destination of DESTINATIONS) {
+          expect(orderForDestination(cell, destination)).toEqual(cell);
+        }
+      }
     }
   });
 });

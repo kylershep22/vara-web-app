@@ -83,8 +83,10 @@ export type TimeClass = 'short' | 'medium' | 'long';
 /**
  * One variant within a cell of the 4 x 3 protocol matrix (spec 6.2).
  *
- * Every user-facing string is PLACEHOLDER [Jen] and lives in `protocolMatrix.ts`.
- * Content is data, not logic: swapping copy never touches a code path.
+ * Every user-facing string lives in `protocolMatrix.ts` and is AUTHORED CONTENT
+ * owned by Jen, except `rewire`'s three build-walk stand-ins, which carry
+ * `placeholder: true`. Content is data, not logic: swapping copy never touches
+ * a code path.
  */
 export interface ProtocolVariant {
   /**
@@ -119,13 +121,26 @@ export interface ProtocolVariant {
   capacity: CapacityTier;
   /** Which of the picker's three windows this variant fits. */
   timeClass: TimeClass;
-  /** PLACEHOLDER [Jen] — protocol name shown on Today. */
+  /** Protocol name shown on Today. Jen's, except on a `placeholder` variant. */
   name: string;
-  /** PLACEHOLDER [Jen] — the one line the user acts on each day. */
+  /** The one line the user acts on each day. Jen's, except on a `placeholder` variant. */
   dailyAction: string;
-  /** Rough per-day time cost, for the weekly open. PLACEHOLDER [Jen]. */
+  /**
+   * Rough per-day time cost. Drives `timeClass`, which is derived from it and
+   * never typed, so this number decides which variants a time answer can reach.
+   *
+   * NOT STATED IN THE COPY. Jen's actions name no durations, so this is the only
+   * place a protocol's length lives and nothing in the string will contradict it
+   * if it drifts.
+   */
   estMinutes: number;
-  /** PLACEHOLDER [Jen] — rationale, must stay defensible to a clinical audience. */
+  /**
+   * Rationale, and it must stay defensible to a clinical audience.
+   *
+   * Authored and clinically reviewed on all 21 non-placeholder variants, and
+   * rendered on none of them yet: the slice 9 behavioral screen is the surface
+   * these are held for. Unrendered is not unowned; do not sweep them as dead.
+   */
   whyItWorks: string;
   /**
    * Reference to the same-session physical practice appended in week 1
