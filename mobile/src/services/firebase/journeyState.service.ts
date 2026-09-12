@@ -41,6 +41,8 @@ import {
 } from 'firebase/firestore';
 import { requireDb } from './ensureDb';
 import { PHASE_ORDER } from '../../constants/journey';
+import { hasRenderableKeys, uidDigest } from '../../journey/journeyDocGuard';
+import { logger } from '../../utils/logger';
 import type {
   AdjustChoiceId,
   DestinationKey,
@@ -109,6 +111,52 @@ export async function getJourneyState(userId: string): Promise<JourneyState | nu
   // `id` comes from the argument: the document ID is the authority on
   // ownership, so a stored field that ever disagreed still reads back correctly.
   return { ...(snap.data() as Omit<JourneyState, 'id'>), id: userId };
+}
+
+/**
+ * One user's journey state, or null if it is absent OR unrenderable (slice 7f).
+ *
+ * THE READ BOUNDARY FOR EVERY SURFACE THAT IS NOT TODAY. `resolveJourney` has
+ * carried this check since slice 7e, which covered Home; the journey map calls
+ * `getJourneyState` directly and never passes through the resolver, so a
+ * document with a `destination` outside its union reached `PhasePath`, was used
+ * to index `PHASE_DISPLAY` during a render, and threw. The app has ONE
+ * ErrorBoundary and it sits above the navigator (App.tsx:114), so that throw
+ * costs the whole app and not the tab.
+ *
+ * NULL FOR BOTH CASES, AND THAT IS WHY IT NEEDS NO NEW UI. Absent and
+ * unrenderable are different facts, but every caller already has a correct,
+ * designed answer for null: the map draws its Start here row and its
+ * destination cards and simply omits the path (JourneyMapScreen's own comment
+ * says the explainer is a sibling of the path for exactly this reason). A
+ * second return shape would have made every caller learn a state it has no
+ * different response to.
+ *
+ * IT WARNS ONCE AND DOES NOT REPAIR. A read path that wrote would erase the
+ * evidence of a data problem something upstream produced, and would do it from
+ * a screen the user can open at any time. The digest names which user without
+ * naming the user.
+ *
+ * SEPARATE FUNCTION RATHER THAN A GUARD INSIDE `getJourneyState`. The writers
+ * in this file read the document to mutate it - `advancePhase` reads it to
+ * compute the next phase, `stepBackToPhase` to close a history entry - and a
+ * read that returned null for an unrenderable row would turn those into silent
+ * no-ops on exactly the documents that need fixing. Rendering is the only
+ * concern that wants this check, so only the rendering callers get it.
+ */
+export async function getRenderableJourneyState(
+  userId: string
+): Promise<JourneyState | null> {
+  const state = await getJourneyState(userId);
+  if (!state) return null;
+  if (!hasRenderableKeys(state)) {
+    logger.warn(
+      '[journeyState] document has an unrecognised phaseKey or destination, treating it as absent:',
+      uidDigest(userId)
+    );
+    return null;
+  }
+  return state;
 }
 
 /**

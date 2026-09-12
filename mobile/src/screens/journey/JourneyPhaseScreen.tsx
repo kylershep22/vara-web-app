@@ -126,7 +126,18 @@ export function JourneyPhaseScreen() {
     }, [read])
   );
 
-  const cell = PHASE_DISPLAY[phase][destination];
+  // BOTH KEYS ARRIVE AS ROUTE PARAMS, and both are optional-chained (slice 7f).
+  // The map is the only navigation that can supply a document-sourced
+  // `destination`, and its read is now validated, so this is the second line of
+  // defence rather than the first - but it is the line that survives a future
+  // caller navigating here with a key nobody checked.
+  //
+  // THE PAGE STILL RENDERS WITHOUT THE CELL. Its title and gloss go quiet; the
+  // body, the state word and the door do not depend on it. That is the same
+  // partial-render the file header already describes for a failed document
+  // read, and it is preferable to an ErrorBoundary that takes every tab
+  // (App.tsx:114).
+  const cell = PHASE_DISPLAY[phase]?.[destination];
 
   // ---- Preview mode (slice 7a decisions 4 and the option-2 refinement) ----
   //
@@ -319,12 +330,16 @@ export function JourneyPhaseScreen() {
           </Text>
         ) : null}
 
-        <Text style={styles.title} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-          {cell.title}
-        </Text>
-        <Text style={styles.gloss} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-          {cell.gloss}
-        </Text>
+        {cell ? (
+          <>
+            <Text style={styles.title} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+              {cell.title}
+            </Text>
+            <Text style={styles.gloss} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+              {cell.gloss}
+            </Text>
+          </>
+        ) : null}
 
         <Text style={styles.body} maxFontSizeMultiplier={MAX_FONT_SCALE}>
           {PHASE_PAGE_BODIES[phase]}
@@ -368,7 +383,14 @@ export function JourneyPhaseScreen() {
                 </Text>
 
                 {/* KEYED BY PHASE, NEVER BY ORDINAL. See ADJUST_ALTERNATIVES. */}
-                {ADJUST_ALTERNATIVES[phase].map((option) => (
+                {/* OPTIONAL-CHAINED ON AN INVARIANT NO TYPE ENFORCES (slice
+                    7f). `phase` is a route param; every navigation that reaches
+                    this screen supplies a real PhaseKey today, and this `.map`
+                    on an undefined cell would throw instantly if one ever did
+                    not. Found by tracing rather than by a crash, and guarded
+                    while the file was open: the cost is a `?.` and the
+                    alternative is the whole app. */}
+                {(ADJUST_ALTERNATIVES[phase] ?? []).map((option) => (
                   <TouchableOpacity
                     key={option.id}
                     style={styles.option}

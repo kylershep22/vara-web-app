@@ -18,7 +18,7 @@
 
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
-import { render, fireEvent, waitFor, within } from '@testing-library/react-native';
+import { render, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
@@ -33,8 +33,14 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 const mockGetJourneyState = jest.fn();
+const mockGetRenderableJourneyState = jest.fn();
 jest.mock('../../../services/firebase/journeyState.service', () => ({
   getJourneyState: (...a: any[]) => mockGetJourneyState(...a),
+  // SLICE 7f. The screen reads through the VALIDATING accessor now. Both are
+  // mocked, and a test below asserts which one the screen actually calls: a
+  // suite that mocked only the accessor would pass just as happily against a
+  // screen that had quietly gone back to the raw read.
+  getRenderableJourneyState: (...a: any[]) => mockGetRenderableJourneyState(...a),
 }));
 
 jest.mock('../../../context/AuthContext', () => ({
@@ -106,8 +112,8 @@ function journeyFixture(over: Partial<JourneyState> = {}): JourneyState {
 
 beforeEach(() => {
   mockNavigate.mockClear();
-  mockGetJourneyState.mockReset();
-  mockGetJourneyState.mockResolvedValue(journeyFixture());
+  mockGetRenderableJourneyState.mockReset();
+  mockGetRenderableJourneyState.mockResolvedValue(journeyFixture());
   mockUseVideoSource.mockReset();
   // No video resolved: the shipped state, and the state in which the row does
   // not exist. Every assertion in this file except the two below runs against a
@@ -155,7 +161,7 @@ describe('JourneyMapScreen — the map', () => {
   });
 
   it('marks where the user is, what is done, and what is ahead', async () => {
-    mockGetJourneyState.mockResolvedValue(
+    mockGetRenderableJourneyState.mockResolvedValue(
       journeyFixture({
         phaseKey: 'recover',
         history: [
@@ -190,7 +196,7 @@ describe('JourneyMapScreen — the map', () => {
   it('shows a skipped phase as skipped', async () => {
     // Unreachable by using the app until slice 7 ships the offers, which is
     // exactly why it is pinned here rather than left to a device walk.
-    mockGetJourneyState.mockResolvedValue(
+    mockGetRenderableJourneyState.mockResolvedValue(
       journeyFixture({
         phaseKey: 'rewire',
         skipped: ['recover'],
@@ -328,7 +334,7 @@ describe('JourneyMapScreen — every destination stays reachable', () => {
     // The absent-state render. A user the map cannot draw still gets a working
     // screen: this is what stops a failed read taking the only entry point to
     // FocusHubScreen and StressRecoveryScreen down with it.
-    mockGetJourneyState.mockResolvedValue(null);
+    mockGetRenderableJourneyState.mockResolvedValue(null);
 
     const { getByTestId, queryByTestId } = render(<JourneyMapScreen />);
 
@@ -343,7 +349,7 @@ describe('JourneyMapScreen — every destination stays reachable', () => {
   });
 
   it('keeps every card working when the read fails outright', async () => {
-    mockGetJourneyState.mockRejectedValue(new Error('offline'));
+    mockGetRenderableJourneyState.mockRejectedValue(new Error('offline'));
 
     const { getByTestId, queryByTestId } = render(<JourneyMapScreen />);
 
@@ -360,7 +366,7 @@ describe('JourneyMapScreen — every destination stays reachable', () => {
   it('substitutes nothing when there is no destination to speak', async () => {
     // No "Unknown", no default destination, no borrowed column. Substituting a
     // destination would put another user's language on this user's screen.
-    mockGetJourneyState.mockResolvedValue(null);
+    mockGetRenderableJourneyState.mockResolvedValue(null);
 
     const { queryByText, queryByTestId } = render(<JourneyMapScreen />);
 
@@ -395,7 +401,7 @@ describe('JourneyMapScreen — Start here', () => {
       error: null,
       retry: jest.fn(),
     });
-    mockGetJourneyState.mockReturnValue(new Promise(() => undefined));
+    mockGetRenderableJourneyState.mockReturnValue(new Promise(() => undefined));
 
     const { getByTestId } = render(<JourneyMapScreen />);
 
@@ -414,7 +420,7 @@ describe('JourneyMapScreen — Start here', () => {
       error: null,
       retry: jest.fn(),
     });
-    mockGetJourneyState.mockResolvedValue(null);
+    mockGetRenderableJourneyState.mockResolvedValue(null);
 
     const { getByTestId, queryByTestId } = render(<JourneyMapScreen />);
 
@@ -440,5 +446,74 @@ describe('JourneyMapScreen — Start here', () => {
       TouchableOpacity
     );
     expect(cards).toHaveLength(CARD_IDS.length);
+  });
+});
+
+// THE READ BOUNDARY ON THIS SCREEN (slice 7f).
+//
+// The map is the surface 7e's resolver guard could not reach: it calls the
+// service directly. A `destination` outside its union used to index
+// PHASE_DISPLAY inside PhasePath during a render, and the app has ONE
+// ErrorBoundary and it sits above the navigator (App.tsx:114), so the cost was
+// every tab rather than this screen.
+describe('JourneyMapScreen - the read boundary', () => {
+  // THE ASSERTION THAT PINS THE FIX ITSELF. Everything else here would pass
+  // against a screen that had gone back to the raw read, because the mocks
+  // would simply return undefined and the path would not draw.
+  it('reads through the VALIDATING accessor, never the raw read', async () => {
+    mockGetRenderableJourneyState.mockResolvedValue(journeyFixture());
+
+    render(<JourneyMapScreen />);
+
+    await waitFor(() => expect(mockGetRenderableJourneyState).toHaveBeenCalledWith('u1'));
+    expect(mockGetJourneyState).not.toHaveBeenCalled();
+  });
+
+  // The accessor answers null for an unrenderable document, which is the state
+  // this screen was already written for.
+  it('draws no path when the accessor rejects the document, and does not throw', async () => {
+    mockGetRenderableJourneyState.mockResolvedValue(null);
+
+    expect(() => render(<JourneyMapScreen />)).not.toThrow();
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('journey-map-loading')).toBeNull()
+    );
+    expect(screen.queryByTestId('journey-map-path')).toBeNull();
+  });
+
+  // AND THE REST OF THE SCREEN SURVIVES. This is the whole argument for null
+  // over a thrown screen: the destination cards are a SIBLING of the path, not
+  // a child of it, and they never depended on the journey read.
+  //
+  // The destination block rather than Start here, because this file's default
+  // fixture resolves no video and the shipped screen therefore has no Start
+  // here row on it (see the beforeEach). Asserting the row here would be
+  // asserting the video mock, not the read boundary.
+  it('keeps the destination cards when the path is withheld', async () => {
+    mockGetRenderableJourneyState.mockResolvedValue(null);
+
+    render(<JourneyMapScreen />);
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('journey-map-loading')).toBeNull()
+    );
+    expect(screen.getByTestId('journey-map-destinations')).toBeTruthy();
+    for (const card of ['focus-time', 'energy', 'routines', 'stress-recovery']) {
+      expect(screen.getByTestId(`journey-map-card-${card}`)).toBeTruthy();
+    }
+  });
+
+  // THE ANTI-VACUITY DIRECTION: a screen that never drew a path would satisfy
+  // the two tests above.
+  it('still draws all four rows for a good document', async () => {
+    mockGetRenderableJourneyState.mockResolvedValue(journeyFixture());
+
+    render(<JourneyMapScreen />);
+
+    await waitFor(() => expect(screen.getByTestId('journey-map-path')).toBeTruthy());
+    for (const phase of PHASE_ORDER) {
+      expect(screen.getByTestId(`journey-map-path-${phase}`)).toBeTruthy();
+    }
   });
 });

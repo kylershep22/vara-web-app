@@ -76,7 +76,21 @@ export function derivePhaseStates(state: PhaseStateInput): PhaseStates {
     // Behind the user. LAST entry, not first: a phase can be closed more than
     // once (skipped, stepped back into, closed again) and the most recent
     // closure is the one that describes it now.
-    const closures = state.history.filter((entry) => entry.phaseKey === phase);
+    //
+    // TWO GUARDS, AND NEITHER IS SUFFICIENT ALONE (slice 7f). `history` is
+    // declared as a list and the compiler believes it, but the document can be
+    // written outside the app: a non-array throws on `.filter`, and an array
+    // holding a null element throws on `entry.phaseKey` INSIDE the predicate,
+    // which an array check does not catch. Both shapes are pinned by test.
+    //
+    // THIS RUNS DURING A RENDER on the journey map and the phase page, so a
+    // throw here is answered by the app's single ErrorBoundary (App.tsx:114)
+    // by replacing every tab. A missing history reads as 'done' below, which is
+    // the same honest reading the next comment already gives for a phase the
+    // user is demonstrably past.
+    const closures = Array.isArray(state.history)
+      ? state.history.filter((entry) => entry?.phaseKey === phase)
+      : [];
     const last = closures[closures.length - 1];
     // No entry at all cannot happen through the service, which writes one on
     // every exit. If it ever does, the user is demonstrably past this phase,

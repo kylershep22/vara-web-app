@@ -145,7 +145,23 @@ export const PhasePath: React.FC<PhasePathProps> = ({
 }) => (
   <View style={styles.path} testID={testID}>
     {PHASE_ORDER.map((phase, index) => {
-      const cell = PHASE_DISPLAY[phase][destination];
+      // DEFENCE IN DEPTH, AND IT IS NOT THE FIX (slice 7f). The fix is the
+      // validating accessor on the journey map's read: a component that defends
+      // itself moves the blast radius rather than closing it, and it says
+      // nothing to the log, so the bad document stays invisible.
+      //
+      // What this closes is the double index. `PHASE_DISPLAY[phase]` is total
+      // over PHASE_ORDER, which this row iterates, so the OUTER lookup is
+      // always safe here; `[destination]` is the one that comes off a document.
+      // An undefined cell then throws on `.short` DURING RENDER, and the app
+      // has a single ErrorBoundary above the navigator (App.tsx:114), so that
+      // throw costs every tab rather than this row.
+      //
+      // THE ROW IS DROPPED, NOT STUBBED. A placeholder row would draw a step of
+      // the journey the app cannot name, which is worse than a path with a gap:
+      // the gap is visibly wrong, the placeholder is quietly wrong.
+      const cell = PHASE_DISPLAY[phase]?.[destination];
+      if (!cell) return null;
       const state = states[phase];
       const primary = copy === 'short' ? cell.short : cell.title;
       const gloss = copy === 'full' ? cell.gloss : undefined;

@@ -75,7 +75,21 @@ class ErrorBoundary extends Component<Props, State> {
             <Text style={styles.message}>
               We'll look into this soon.
             </Text>
-            {this.state.error && (
+            {/* THE DIAGNOSTICS ARE DEV-ONLY (slice 7f). This block rendered
+                `error.toString()` and eight lines of component stack to
+                EVERY USER on every caught error, in production, above the
+                Try Again button. That is a stack trace as user-facing copy:
+                it names internal components and module paths, it is
+                meaningless to the person reading it, and it makes a caught
+                error look like a crash report the user is expected to act
+                on. `logError` in componentDidCatch already sends the same
+                information where it belongs.
+
+                The MESSAGE AND THE BUTTON ARE UNCHANGED. The user-facing
+                half of this screen is the same text in the same place in
+                both builds; only the debug panel is gated, so a developer
+                still sees on device exactly what they saw before. */}
+            {__DEV__ && this.state.error && (
               <View style={styles.errorDetails}>
                 <Text style={styles.errorText}>{this.state.error.toString()}</Text>
                 {this.state.componentStack && (

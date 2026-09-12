@@ -169,3 +169,70 @@ describe('phaseStatesForRoute', () => {
     expect(Object.values(states)).not.toContain('done');
   });
 });
+
+// A MALFORMED `history`, WHICH THE TYPES SAY CANNOT HAPPEN (slice 7f).
+//
+// `history` is declared a list on JourneyState, so every case here is
+// unreachable to the compiler and reachable from the Firebase console. This
+// derivation runs DURING A RENDER on both the journey map and the phase page,
+// and the app has one ErrorBoundary sitting above the navigator (App.tsx:114),
+// so an unguarded throw here costs every tab rather than one screen.
+//
+// THE PHASE MATTERS AND IT IS NOT INCIDENTAL. The filter is only reached for a
+// phase BEHIND the user, so a document at 'remove' (index 0) never touches
+// `history` at all. Every fixture below is at a later phase for that reason -
+// a test written at 'remove' would pass against the unguarded code.
+describe('derivePhaseStates - a history nothing can read', () => {
+  const unreadable: Array<[string, unknown]> = [
+    ['absent', undefined],
+    ['null', null],
+    ['an object rather than an array', { 0: 'remove' }],
+    ['a string', 'remove'],
+    ['a number', 3],
+  ];
+
+  test.each(unreadable)('history %s does not throw', (_name, history) => {
+    expect(() =>
+      derivePhaseStates({ phaseKey: 'rewire', history } as never)
+    ).not.toThrow();
+  });
+
+  test.each(unreadable)('history %s still answers every phase', (_name, history) => {
+    const states = derivePhaseStates({ phaseKey: 'rewire', history } as never);
+
+    // Total: the map draws four rows and each needs a state. A phase behind the
+    // user with no readable closure is 'done', which is the same honest reading
+    // the derivation already gives a phase whose entry is missing.
+    expect(Object.keys(states).sort()).toEqual([...PHASE_ORDER].sort());
+    expect(states.rewire).toBe('current');
+    expect(states.refocus).toBe('ahead');
+    expect(states.remove).toBe('done');
+    expect(states.recover).toBe('done');
+  });
+
+  // AN ARRAY CHECK ALONE DOES NOT CATCH THIS, which is why the predicate is
+  // optional-chained as well. A null element throws INSIDE the filter callback,
+  // where Array.isArray has already passed.
+  test('an array holding a null element does not throw', () => {
+    expect(() =>
+      derivePhaseStates({
+        phaseKey: 'rewire',
+        history: [null, undefined, closed('remove', 'skipped')],
+      } as never)
+    ).not.toThrow();
+  });
+
+  // AND THE READABLE ENTRIES IN THAT ARRAY ARE STILL HONOURED. A guard that
+  // dropped the whole array on one bad element would lose the user's real
+  // history, which is a worse answer than the crash for everything except the
+  // crash.
+  test('readable entries beside a null element are still read', () => {
+    const states = derivePhaseStates({
+      phaseKey: 'rewire',
+      history: [null, closed('remove', 'skipped'), { notAnEntry: true }],
+    } as never);
+
+    expect(states.remove).toBe('skipped');
+    expect(states.recover).toBe('done');
+  });
+});
