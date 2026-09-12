@@ -1730,6 +1730,10 @@ else. The band does all the work and everything under it is generic, which is
 exactly the "technically compliant and forgettable" outcome Section 2 opens by
 naming.
 
+**SUPERSEDED 2026-09-12 by standards v2.1 §2.8 and §8.2: Today carries no hero
+band (immersive surface); hero bands are permitted on pushed hubs only. The
+Focus hub finding stands.**
+
 Measured on both screens: no warm point anywhere in the rendered tree
 (Section 2.2); headline one or two steps below display size (Section 2.3); a
 single radius repeated across primary and secondary cards (Section 2.6); two
