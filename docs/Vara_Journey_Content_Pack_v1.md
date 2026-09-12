@@ -3,7 +3,7 @@
 **Authored by:** Jen
 **Approved by:** owner on delivery
 **Date:** 2026-09-05
-**Covers:** Recover internal structure · slice 5 display strings (16 title + 16 gloss) · A1 + A2 · C1 · B2 + C2 · Remove replacement menus · Recover and Refocus protocol copy (12 x title, action, why) · phase descriptors · Recover destination weighting
+**Covers:** Recover internal structure · slice 5 display strings (16 title + 16 gloss) · A1 + A2 · C1 · B2 + C2 · Remove replacement menus · Recover and Refocus protocol copy (12 x title, action, why) · phase descriptors · Recover destination weighting · supporting-practice mapping (2 mapped, 19 none)
 
 ---
 
@@ -33,8 +33,9 @@ that the strings came from this pack, and the sentinel figure stays flat.
 | [`protocol-copy`](#protocol-copy) | 9 Recover + 3 Refocus protocol copy (title, daily action, why-it-works) | roadmap row 7i |
 | [`phase-descriptors`](#phase-descriptors) | 4 phase descriptors + the usage rule that dissolves the `PHASE_DISPLAY` collision | roadmap row 7j (RESOLVED, no build); explanatory surfaces later |
 | [`destination-weighting`](#destination-weighting) | Recover destination weighting, 4 destinations x 3 capacities | roadmap row 7l |
+| [`supporting-practices`](#supporting-practices) | Which runnable practice satisfies which daily protocol: 2 mapped, 19 none | roadmap row 7k (LANDED, values only); slice 9 (auto-complete) is the first and only READER |
 
-**Five sections need a note before you build:**
+**Six sections need a note before you build:**
 
 - [`C2`](#c2) — the original body is **SUPERSEDED**. Build the C2 body from
   [`decisions` section 4](#decisions-4), never from the original delivery.
@@ -57,6 +58,13 @@ that the strings came from this pack, and the sentinel figure stays flat.
   that section changes R1's daily action (one phrase) and R7's `estMinutes` (5 -> 2).
   Build both from the amendment, not from the R1 and R7 entries. Everything else in
   the section stands as delivered.
+- [`supporting-practices`](#supporting-practices) — **no supersession, and the note is
+  the opposite hazard: this table is MOSTLY EMPTY ON PURPOSE.** Nineteen of the
+  twenty-one authored protocols map to nothing, because Jen's rule is that a practice
+  belongs there only when completing it *reasonably satisfies the protocol itself*.
+  The emptiness is her delivered answer. Do not read it as an unfinished table, do not
+  bulk-fill it by title match, and do not add a third crossing without her. The count
+  in the heading above moved from five to six for this entry.
 
 **This guide names anchors and does not quote strings**, deliberately, as of 2026-09-12.
 It quoted the C2 body once and that quotation went stale the moment Jen revised it,
@@ -1572,3 +1580,74 @@ servable, not filtered out.
 > fail." So the table above is delivered as WEIGHTS on variants that all stay in
 > the cell, and rotation remains open by construction. **No architecture change
 > is needed to honour this**, only values.
+
+---
+
+<a id="supporting-practices"></a>
+
+# 12. Supporting practices: which runnable practice satisfies which protocol
+
+**Authored by:** Jen
+**Approved by:** owner on delivery
+**Date:** 2026-09-12
+
+**THE RULE FIRST, BECAUSE THE RULE IS THE DECISION AND THE TABLE IS ONLY ITS
+OUTPUT.** Jen was asked to fill an existing mapping and redefined it instead:
+
+> a practice belongs here only when completing that practice **reasonably
+> satisfies the protocol itself**. Not "helps with", not "supports".
+
+**UNDER THAT RULE THE MAPPING IS 19 NONE AND 2 MAPPED.** The emptiness is the
+delivered answer, not an unfinished table.
+
+| Protocol | `supportingPracticeIds` |
+|---|---|
+| **R7**, Lengthen the exhale *(recover / slammed)* | `extended-exhale-2` |
+| **R9**, Get some morning light *(recover / slammed)* | `bright-light-10`, `bright-light-20` |
+| **Every other row** — all 9 Remove, R1-R6, R8, all 3 Refocus | **none** |
+
+**THE NINETEEN ARE A DECISION, AND A READER WHO FINDS THEM EMPTY HAS FOUND THE
+ANSWER RATHER THAN A GAP.** Most daily protocols have no runnable counterpart
+that would *complete* them. A breathing practice does not satisfy "decide one
+boundary"; a light practice does not satisfy "give the thought a time". Under a
+weaker rule ("helps with") almost every row could be filled, and the bridge
+would stop meaning anything.
+
+**R9 CARRIES BOTH DOSES BECAUSE EITHER ONE SATISFIES IT.** `bright-light-10` and
+`bright-light-20` are the same practice family at two lengths. They are not a
+first choice and a fallback, and nothing in this table ranks them.
+
+> **EDITORIAL NOTE (not Jen's text). THREE THINGS THE BUILDER NEEDS AND THIS
+> TABLE DOES NOT SAY.**
+>
+> **1. All three ids were verified to resolve**, in the runnable catalog at
+> `mobile/src/constants/brainStateProtocols.ts` (`extended-exhale-2` 120s,
+> `bright-light-10` 600s, `bright-light-20` 1200s), rather than taken on trust.
+> Slice 7k added a test that re-checks this on every run, so a renamed or
+> deleted practice fails the build instead of dangling until slice 9 follows the
+> reference.
+>
+> **2. These are the first two authored crossings of the two-systems rule**
+> recorded at `decisions` section 2 and at the `protocolMatrix.ts` factory: the
+> runnable practice catalog and the daily protocol grid are separate systems
+> that share no id space. **The rule is SATISFIED here, not repealed.** It always
+> said "no crossings until the mapping is explicitly authored"; this is that
+> authoring. Titles that look alike still do not mean the systems are connected,
+> and the bar for a third crossing is still Jen.
+>
+> **3. The durations interact with the completion rule locked the same day**
+> (Protocol Engine Contract §11.2: a completion practice may be LONGER than the
+> protocol's estimated minimum, never SHORTER). R7 moved 5 -> 2 to satisfy it,
+> which is recorded in the dated amendment at the end of
+> [`protocol-copy`](#protocol-copy). R9 stays at 5 against practices of 10 and 20
+> because exceeding the minimum is the permitted direction and is intentional.
+
+> **EDITORIAL NOTE (not Jen's text). LANDED IN SLICE 7k, AND THE BRIDGE IS
+> DELIBERATELY NEARLY EMPTY AT LAUNCH.** Nothing in the app reads
+> `supportingPracticeIds` today; slice 9's behavioral screen is the first reader,
+> and its auto-complete path therefore fires for **two protocols out of
+> twenty-one** — in practice **one**, until row 7l makes R9 reachable at all.
+> **"Mark done" remains the primary completion path, exactly as designed.** This
+> is a settled decision and not a finding for a later Step 0 to make: a slice
+> that "discovers" the bridge is nearly empty and treats it as a gap is
+> re-deciding something Jen already decided here.
