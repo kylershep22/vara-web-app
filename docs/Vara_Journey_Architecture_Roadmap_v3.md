@@ -1018,6 +1018,62 @@ deploy. Deploy state lives on Kyle's checklist.
 >
 > **R1a AND R1b ARE INDEPENDENT AND EITHER MAY GO FIRST.** R1c is the one that may not exist.
 >
+> **AMENDED 2026-09-12 (R1a built, branch `design/slice-r1a-text-primitive`, unmerged). SIX
+> THINGS THE BUILD ESTABLISHED OR CHANGED.** The R1a row's text is unedited; this block
+> supersedes it wherever the two differ.
+>
+> **1. THE COUNT IS 297, NOT 197, AND THE TRAP IS WORTH NAMING BECAUSE IT CAUGHT THREE STEP
+> 0s IN A ROW.** R1a's scope cell says 197 in three places. The real figure is **297**, and the
+> codemod's dry run confirmed it exactly. **100 files write their `react-native` import across
+> MULTIPLE LINES**, including four of the five `_dev` screens and the whole `checkin/flow`
+> directory, and a single-line regex cannot see them. That regex produced the 197 in R0's Step
+> 0, in R1's Step 0 and in this row. **The codemod uses the TypeScript compiler API for exactly
+> this reason.** Total files changed is **300**: 297 importing `Text` plus three that import
+> only `TextInput`.
+>
+> **AND THE DRY RUN CORRECTED STEP 0 AGAIN.** Step 0 found ONE import declaration that empties
+> (`SwipeableGoalCard`, whose second `react-native` import is `Text` alone). There are **two**:
+> `PeopleScreen`'s second declaration is `{ Text, TextInput }`, both of which the codemod
+> removes. Unhandled, that file would have been left `import {} from 'react-native';`.
+>
+> **2. THE FROZEN LIST IS CLARIFIED, DATED HERE (Kyle, ruling 4). "Route names" MEANS
+> PRODUCTION ROUTES.** The `__DEV__` block in `AppNavigator.tsx` is outside the freeze: it is
+> gated so those routes do not exist in a release build, and `DevVideoPlayer` set the precedent.
+> R1a adds `DevTypography` under it. **Renaming or removing an existing route, production or
+> dev, is still frozen**; this clarifies what the freeze covers, it does not relax it.
+>
+> **3. THE DYNAMIC TYPE CAP IS NOW AN APP-WIDE BEHAVIOUR CHANGE, AND IT IS NAMED AS ONE RATHER
+> THAN LEFT AS A TOKEN EDIT.** Before R1a, `maxFontSizeMultiplier` was set at 17 sites, all of
+> them journey or weekly surfaces. The primitive applies `Typography.maxFontScale` to **every
+> `Text` in the app**, so **every screen now caps at 1.3x where most previously scaled without
+> limit**. That is what §5.3 asks for and it is a real change in what a large-text user sees
+> app-wide, not a refactor. **Walk step 14 is the one that can fail it**, and a screen that
+> clipped only above 1.3x will now clip at 1.3x instead of further up.
+>
+> **4. THE ANDROID SYNTHETIC-BOLD GUARD SHIPS UNWALKED, AND THERE IS NO ANDROID ROW TO LOG IT
+> AGAINST.** The primitive strips `fontWeight` on Android once a family resolves, because
+> Android applies synthetic emboldening on top of an already-bold face. Both branches are held
+> by unit tests with `Platform.OS` mocked. **Neither is walked on a device**: §18's matrix is
+> two iPhones, and no row in the R-series walks Android at all. **The build prompt asked for
+> this to be logged against "the Android row"; no such row exists**, so it is recorded here.
+> **This is a real gap, not a formality:** the guard is the one piece of R1a whose correctness
+> is asserted only by a mocked test, and if it is wrong every bold face on Android is smeared.
+>
+> **5. SIX FILES USED AN ALIASED `TextInput as RNTextInput`, WHICH STEP 0 MISSED AND THE NEW
+> LINT CAUGHT ON ITS FIRST RUN.** Step 0 checked for `Text as X` and found none; it never
+> checked the `TextInput` spelling. The codemod skips aliased specifiers by design, so those six
+> inputs would have rendered in the system font while every other input moved to Inter.
+> **Fixed in the slice rather than logged**, which cost an alias rename at 11 JSX identifiers -
+> the only JSX the slice touches, against a fence that said JSX untouched. Recorded because a
+> reader counting diffs will see JSX in one.
+>
+> **6. TWO THINGS HANDED FORWARD.** **`App.tsx` lint goes to R1b-ii at 7 errors** (from 13):
+> the six fixed are all on lines R1a touched. The remainder are the `Colors` import, four
+> `expo-font` `require()` calls and two unused catch params, plus the standing question of
+> whether `npm run lint`, which is scoped to `src/`, should cover `App.tsx` at all. **And the
+> snapshot gate had nothing to act on: the repo contains ZERO snapshot tests**, so no
+> `jest -u` ran and no snapshot commit exists.
+
 > **(c) THE CORRECTED BASELINES IN THIS ROW'S GATE CELL ARE THE FIGURES R1 MEASURES AGAINST**,
 > not the originals beside them: **tsc 148** (not 149; a gate at 149 admits one new type error
 > and reports green) and **501 raw-hex errors, 385 of them outside `src/constants/`** (not
@@ -2742,6 +2798,95 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-09-12 - R1a built: the text primitive, and Inter renders for the first time (branch `design/slice-r1a-text-primitive`, six commits, UNMERGED and unwalked)
+
+**WHAT SHIPPED.** A shared `Text` primitive and a `TextInput` sibling, 300 files pointed at
+them, the Paper theme given a family, the Dynamic Type ceiling collapsed onto one token, a lint
+barring the old import, a splash gate that did not previously exist, and a `__DEV__` diagnostic
+that replaces the walk's font check. **The app has loaded four Inter faces at boot since
+`b843421` and rendered none of them. After this branch it renders all four.**
+
+**COMMITS:** `f912016` the primitives · `0115d90` token and Paper · `481cce7` the codemod ·
+`544af1c` the lint · `b80ecd9` the splash gate and the diagnostic · this entry.
+
+**FIGURES:** tsc **147** (the gate: 148 minus the `fontWeight.normal` fix) · jest **3535 of
+224** (+30, the primitive's own suite) · sentinel **149** unchanged · lint **1100 / 1358**, the
+baseline exactly. **Snapshots: 0. The repo has no snapshot tests**, so the snapshot STOP gate
+had nothing to act on and no `jest -u` ran.
+
+**THE COUNT WAS 297, NOT 197, AND THIS IS THE THIRD STEP 0 THE SAME TRAP CAUGHT.** 100 files
+write their `react-native` import across multiple lines. The single-line regex that produced
+"197" ran in R0's Step 0, in R1's Step 0 and into R1a's scope cell. **The dry run confirmed 297
+before a byte was written**, which is what a dry run is for, and it also found a SECOND import
+declaration that empties (`PeopleScreen`, not just `SwipeableGoalCard`) which would otherwise
+have been left as `import {} from 'react-native';`.
+
+**THREE FINDINGS THAT CHANGED THE BUILD.**
+
+**(1) SIX FILES USED AN ALIASED `TextInput as RNTextInput`.** Step 0 checked for `Text as X` and
+found none; it never checked the `TextInput` spelling, and the codemod skips aliases by design.
+**The new lint caught all six on its first run** - the rule earning its place before it had
+guarded anything. Left alone, six inputs would have rendered in the system font while every
+other input moved to Inter.
+
+**(2) THE SPLASH GATE DID NOT EXIST TO BE REPAIRED.** `preventAutoHideAsync()` was never called
+anywhere, so the native splash auto-hid on mount and the `hideAsync` in the effect was hiding
+something already gone. It is built here: `ready = fontsLoaded || fontError || timedOut`, a
+3000ms timeout, `logger.warn` on either failure, and `hideAsync` on the **ready** transition
+rather than on `fontsLoaded`, which would have left the splash up forever on a font error.
+
+**(3) `TextInput` IS BOTH A VALUE AND A TYPE IN REACT NATIVE.** Six files hold
+`useRef<TextInput>(null)`, which stopped compiling the moment the value came from a const. The
+shared module exports `TextInputInstance` for them. Surfaced by tsc as six TS2749s, fixed, and
+tsc returned to 147.
+
+**THE DYNAMIC TYPE CAP IS AN APP-WIDE BEHAVIOUR CHANGE AND IS NAMED AS ONE.** The ceiling was
+set at 17 sites, all journey or weekly. The primitive applies it to **every `Text` in the app**,
+so every screen now caps at 1.3x where most previously scaled without limit. That is §5.3 as
+written, and it is a real change for a large-text user rather than a refactor.
+
+**WHAT IS ASSERTED ONLY BY A MOCKED TEST, SAID PLAINLY.** The Android synthetic-bold strip is
+held by unit tests with `Platform.OS` mocked and **is walked on no device**: §18's matrix is two
+iPhones and no R-series row walks Android. If the guard is wrong, every bold face on Android is
+smeared. Recorded in the R1a amendment block; there is no Android row to log it against.
+
+**MUTATION-CHECKED, AND THE FAILURE SET IS THE POINT.** Removing the primitive's nesting context
+provider fails exactly four tests: both shape B cases, the dynamic-nesting case and the Android
+inherit case. **Shapes A, C and D stay green, correctly** - they set explicit weights and do not
+depend on the provider, so a test suite that went all-red would have been testing the wrong
+thing. Reverting one file's import to the `react-native` form takes lint 1100 to 1101 with
+exactly one `no-restricted-imports` hit. Both restored from scratchpad backups and verified
+byte-identical, never `git checkout --`.
+
+**ONE FENCE DEVIATION, NAMED.** Fixing the six aliased inputs renamed **11 JSX identifiers**
+(`RNTextInput` to `TextInput`). The fence said JSX untouched; that was about the 1,906 `Text`
+render sites and the shape of the transform, and this is an alias rename in six files. Flagged
+because a reader counting diffs will see JSX in one.
+
+**HANDED TO R1b-ii:** `App.tsx` sits at **7 lint errors**, down from 13, all six fixed being on
+lines R1a touched. The remainder are the `Colors` import, four `expo-font` `require()` calls and
+two unused catch params - plus the standing question of whether `npm run lint`, scoped to
+`src/`, should cover `App.tsx` at all.
+
+**THE WALK HAS NOT RUN AND ONE STEP CANNOT YET.** Step 10 compares the two hub screens' vertical
+rhythm against a pre-change build, and **the pre-change screenshots were not captured**: CC has
+no device or simulator. `docs/walks/r1a/README.md` records exactly what is needed and from which
+commit. **The before state is still reachable** - `git checkout 0115d90` is the last commit
+before the codemod - so nothing is lost, but step 10 cannot be reported as passed until they
+exist.
+
+**STANDARDS UPDATED, BOTH AS NAMED DELIVERABLES OF THIS ROW:** §3.3 gains the
+`Typography.maxFontScale` row, and §17's `fontWeight`-without-family row closes at **0** with
+its two holding machines named, while the `lineHeight` row is corrected **149 -> 114** with the
+35 `fontSize` x multiplier sites recorded as the correct pattern rather than as debt. **No rule
+in the standards changed.**
+
+**MANIFEST: NO CHANGE, VERIFIED BY READING** `functions/src/lib/accountDeletion.js:60-160`, not
+carried. R1a touches no Firestore read or write and introduces no collection: it is a text
+primitive, an import swap, two token files, a lint rule and a `__DEV__` screen.
+
+**NO MERGE, AND THE `[Next]` MARKER HAS NOT MOVED.** R1a still carries it. Kyle walks first.
 
 ### 2026-09-12 - R1 Step 0, and the row splits four ways (read-only; no code moved. Split recorded in `caa4bb9`'s successor commit on `main`, docs only)
 
