@@ -3,7 +3,7 @@
 **Authored by:** Jen
 **Approved by:** owner on delivery
 **Date:** 2026-09-05
-**Covers:** Recover internal structure · slice 5 display strings (16 title + 16 gloss) · A1 + A2 · C1 · B2 + C2 · Remove replacement menus · Recover and Refocus protocol copy (12 x title, action, why)
+**Covers:** Recover internal structure · slice 5 display strings (16 title + 16 gloss) · A1 + A2 · C1 · B2 + C2 · Remove replacement menus · Recover and Refocus protocol copy (12 x title, action, why) · phase descriptors · Recover destination weighting
 
 ---
 
@@ -31,8 +31,10 @@ that the strings came from this pack, and the sentinel figure stays flat.
 | [`safety-precheck`](#safety-precheck) | Safety pre-check position | pre-launch |
 | [`decisions`](#decisions) | Sept 5 decisions addendum, four flags | multiple, see each |
 | [`protocol-copy`](#protocol-copy) | 9 Recover + 3 Refocus protocol copy (title, daily action, why-it-works) | roadmap row 7i |
+| [`phase-descriptors`](#phase-descriptors) | 4 phase descriptors + the usage rule that dissolves the `PHASE_DISPLAY` collision | roadmap row 7j (RESOLVED, no build); explanatory surfaces later |
+| [`destination-weighting`](#destination-weighting) | Recover destination weighting, 4 destinations x 3 capacities | roadmap row 7l |
 
-**Four sections need a note before you build:**
+**Five sections need a note before you build:**
 
 - [`C2`](#c2) — the original body is **SUPERSEDED**. Build the C2 body from
   [`decisions` section 4](#decisions-4), never from the original delivery.
@@ -50,6 +52,11 @@ that the strings came from this pack, and the sentinel figure stays flat.
   need a note, rather than a hazard list that silently omits one. Build straight from
   it. The count in the heading above moved from three to four for this entry, and the
   heading was reworded because "carry supersessions" would have been false of it.
+- [`protocol-copy`](#protocol-copy) — **AMENDED 2026-09-12, same day as delivery,
+  and the entry above is now out of date on two values.** A dated block at the END of
+  that section changes R1's daily action (one phrase) and R7's `estMinutes` (5 -> 2).
+  Build both from the amendment, not from the R1 and R7 entries. Everything else in
+  the section stands as delivered.
 
 **This guide names anchors and does not quote strings**, deliberately, as of 2026-09-12.
 It quoted the C2 body once and that quotation went stale the moment Jen revised it,
@@ -1422,3 +1429,146 @@ either direction.
 > | F1 | `refocus.normal[0]` | Deep work block | 30 | long | `refocus-normal-long` |
 > | F2 | `refocus.limited[0]` | Short focus block | 15 | medium | `refocus-limited-medium` |
 > | F3 | `refocus.slammed[0]` | One thing, five minutes | 5 | short | `refocus-slammed-short` |
+
+> **AMENDED 2026-09-12 (Jen), SAME DAY AS DELIVERY. TWO CHANGES, AND THE
+> ORIGINAL ENTRIES ABOVE ARE LEFT UNEDITED.** Build R1's daily action and R7's
+> `estMinutes` from this block, not from the entries above it.
+>
+> **1. R1's daily action, one phrase.** *"take one part of the afternoon fully
+> off-screen"* becomes **"take one short break later today fully off-screen"**.
+> Jen's reason: her original wording implied far longer than the 15-minute
+> routing value the cell carries. The full amended action reads:
+>
+> > Use a slower, longer exhale to bring the pace down, then take one short break later today fully off-screen. Put the phone out of reach and let the break be a break.
+>
+> The title, the why-it-works line and `estMinutes: 15` are unchanged.
+>
+> **2. R7's `estMinutes` moves 5 -> 2.** The only duration change in the whole
+> delivery; every other number in the table above stands. **It does NOT change
+> R7's time class**, which stays `short` (bound is <= 5), so nothing re-slots and
+> the destination matrix is unaffected.
+>
+> It follows from Jen's completion rule, locked the same day: **a completion
+> practice may be LONGER than the protocol's estimated minimum, never SHORTER.**
+> R7's supporting practice is `extended-exhale-2`, which is 2 minutes; against a
+> 5-minute protocol that practice was shorter than the thing it was meant to
+> satisfy. At 2 they are equal, which the rule permits.
+>
+> **R5 STAYS AT 6, AND THAT IS A DECISION RATHER THAN AN OMISSION.** Jen was
+> reading the numbers as descriptive and proposed moving it; it was held back
+> because **5 is a routing boundary**, and 6 -> 5 would re-slot R5 from `medium`
+> to `short`, out of `recover.limited`'s medium set, breaking the destination
+> matrix in section 11 below. **R9 stays at 5** likewise: a 10- or 20-minute
+> light practice exceeding the protocol's stated minimum is intentional and is
+> exactly what the completion rule allows.
+
+---
+
+# Part five, Sept 12 final answers
+
+Jen's closing batch on the journey content questions. **Nothing from Jen is
+outstanding after this part.**
+
+<a id="phase-descriptors"></a>
+
+# 10. Phase descriptors, and the collision that was not one
+
+**Authored by:** Jen
+**Approved by:** owner on delivery
+**Date:** 2026-09-12
+
+**THE COLLISION WAS A FALSE PREMISE, AND THIS SECTION EXISTS SO IT IS NOT
+REDISCOVERED.** The roadmap recorded a head-on conflict between Jen's four phase
+labels and `PHASE_DISPLAY`'s sixteen per-(phase, destination) titles and shorts,
+and set out three possible readings: the labels REPLACE the cell copy on the map
+rows, phase page titles and Today eyebrow; they SIT ABOVE it; or they FILL GAPS
+only.
+
+**None of the three applies.** The two sets were never competing for the same
+surfaces.
+
+| | The sixteen | The four |
+|---|---|---|
+| What they are | per-(phase, destination) `title`, `short`, `gloss` | phase DESCRIPTORS |
+| Where they render | **map rows, phase page titles, the Today eyebrow** | onboarding education, transition content, explanatory surfaces |
+| The question they answer | "what is this person working on right now" | "what is this stretch of the journey FOR" |
+
+**THE SIXTEEN REMAIN AUTHORITATIVE** on the map rows, the phase page titles and
+the Today journey eyebrow. Nothing is retired, nothing is demoted.
+
+**THE FOUR ARE USED ONLY WHEN VARA EXPLAINS THE JOURNEY MODEL ITSELF:**
+
+| Phase | Descriptor |
+|---|---|
+| Remove | Create space |
+| Recover | Restore capacity |
+| Rewire | Build new patterns |
+| Refocus | Focus on what matters |
+
+**THREE THINGS THEY ARE NOT**, stated because each was proposed and rejected:
+
+1. **Not fallback labels.** They do not stand in when a cell string is missing.
+2. **Not a line above the cell copy.** No map row, phase page or eyebrow gains a
+   second line, and the Today journey line stays two lines, which is what §9 R6
+   and §8's three-card ceiling assume.
+3. **Not a layout change of any kind.** No surface changes shape for this.
+
+**SO THERE IS NO BUILD IN THE LABELS THEMSELVES.** The four descriptors are
+content held for explanatory surfaces, and the surfaces that would use them are
+onboarding education and transition content, which are their own work.
+
+> **EDITORIAL NOTE (not Jen's text).** The four SHORT variants delivered
+> alongside these on 2026-09-12 (Create space / Restore / New patterns / Focus)
+> belong to the same descriptor set and inherit this usage rule. **Remove's short
+> form is intentionally identical to its full form** and that is recorded
+> separately; it is not an oversight. The rename of the tab and map screen is a
+> SEPARATE matter from these four labels and is still a real build - see the
+> roadmap board.
+
+<a id="destination-weighting"></a>
+
+# 11. Destination weighting for Recover
+
+**Authored by:** Jen
+**Approved by:** owner on delivery
+**Date:** 2026-09-12
+
+**THE INSTRUCTION FIRST, BECAUSE IT RULES OUT THE OBVIOUS SHORTCUT: do not
+re-spread durations to manufacture reachability.** The two axes answer different
+questions and must not be used to do each other's work:
+
+- **Time** answers *"what can this person do with the time they have."*
+- **Destination** answers *"which version of this fits why they are here."*
+
+Moving an `estMinutes` value to make a variant reachable corrupts the first
+answer to fix the second.
+
+**THREE RECOVER FAMILIES, ACROSS ALL THREE CAPACITIES:** downshift/break,
+anchor/routine, light/day-rhythm.
+
+| Destination | Normal | Limited | Slammed |
+|---|---|---|---|
+| **Calm** | R1 | R4 | R7 |
+| **Focus** | R1 | R4 | R7 |
+| **Routines** | R2 | R5 | R8 |
+| **Energy** | R3 | R6 | R9 |
+
+**CALM AND FOCUS SHARE A PATHWAY DELIBERATELY. This is intentional and is not an
+oversight.** There are three mechanisms and four destinations. Inventing a fourth
+mechanism so every destination could have its own would be worse product design
+than letting two destinations that both want the nervous system to come down
+share the one that does it.
+
+**WEIGHTING, NOT A PERMANENT HARD LOCK.** Deterministic selection is fine for the
+slice that builds this, but the architecture must not foreclose later rotation or
+adaptation. A variant that is not the weighted lead for a destination must remain
+servable, not filtered out.
+
+> **EDITORIAL NOTE (not Jen's text). THE ENGINE ALREADY WORKS THIS WAY, so her
+> constraint costs nothing.** `orderForDestination` (`selectProtocol.ts:55`)
+> sorts by `destinationWeight` and **orders, never filters**; the type comment at
+> `types.ts:162-169` already states the reason: "Filtering a cell by destination
+> could empty it, and an empty cell has no protocol to serve. Ordering cannot
+> fail." So the table above is delivered as WEIGHTS on variants that all stay in
+> the cell, and rotation remains open by construction. **No architecture change
+> is needed to honour this**, only values.

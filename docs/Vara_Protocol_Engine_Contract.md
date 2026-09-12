@@ -198,3 +198,58 @@ Listed explicitly so the next slice does not assume otherwise:
 - Does not step capacity tiers, or emit `downshift_event` / `upshift_event`.
 - Does not resolve `quickWinPracticeId` or `supportingPracticeIds` to real catalog practices. They are references, and the referenced practices need not exist yet.
 - Does not enforce the softened focus guards (spec 10.2).
+
+---
+
+## 11. LOCKED 2026-09-12 — two standing rules about duration
+
+*Appended, originals above untouched. Both were locked with Jen on 2026-09-12 at
+the close of the slice 7i / 7k content batch, and both exist because a plausible
+tidy-up would have broken something.*
+
+### 11.1 `estMinutes` IS A ROUTING INPUT, NOT DESCRIPTIVE METADATA
+
+`timeClass` is DERIVED from `estMinutes` and never typed
+(`protocolMatrix.ts timeClassForMinutes`; bounds short <= 5, medium <= 15,
+long > 15). **Crossing 5 or 15 re-slots a protocol's time class**, which changes
+which variants a time answer can reach, and can silently break the destination
+matrix by moving a variant out of the set its destination weight assumes.
+
+**NEVER ADJUST `estMinutes` FOR TIDINESS.** Not to round a number, not to make a
+column look consistent, not to make a duration match a phrase in the copy. Treat
+every change as a routing change and check the class either side of it.
+
+**THE WORKED EXAMPLE, AND IT IS A NEAR-MISS RATHER THAN A HYPOTHETICAL.** In the
+same batch that locked this rule, Jen proposed moving **R5** from 6 to 5, reading
+the number as descriptive. **6 -> 5 crosses the short boundary**: R5 would have
+left `recover.limited`'s medium set, and since the Recover destination matrix
+routes Routines/Limited to R5, the weighting delivered that same day would have
+been broken by a one-minute edit made for tidiness. **R5 stays at 6**, and the
+reason is recorded at the value rather than left to be rediscovered.
+
+This also cuts the other way: the copy no longer states durations at all (slice
+7i), so **nothing in the user-facing string will contradict a bad number.** The
+routing is the only thing that will notice, and it notices silently.
+
+### 11.2 A COMPLETION PRACTICE MAY BE LONGER THAN THE PROTOCOL'S ESTIMATED MINIMUM, NEVER SHORTER
+
+`estMinutes` is a **minimum**, not a target. A supporting or completion practice
+that takes longer than the protocol's stated figure is fine and expected; one
+that takes LESS cannot satisfy the protocol it is attached to.
+
+**THE CASE THAT PRODUCED IT: R7.** Its supporting practice is
+`extended-exhale-2`, a 2-minute practice, and R7 was typed at 5 minutes - so the
+practice that was supposed to satisfy the protocol was shorter than the protocol.
+**R7 moved 5 -> 2** (staying `short`, so nothing re-slots). At 2 and 2 they are
+equal, which the rule permits.
+
+**THE RULE'S OTHER DIRECTION IS ALSO DELIBERATE.** R9 is typed at 5 with
+supporting practices of 10 and 20 minutes (`bright-light-10`, `bright-light-20`),
+and **stays at 5**. A light practice that exceeds the protocol's minimum is
+intentional, not a mismatch to be corrected.
+
+**Applying 11.2 must not violate 11.1.** Lowering an `estMinutes` to match a
+short practice is exactly the edit 11.1 forbids if it crosses a boundary. R7 was
+safe because 5 and 2 are both `short`. Check the class before applying this rule,
+not after.
+
