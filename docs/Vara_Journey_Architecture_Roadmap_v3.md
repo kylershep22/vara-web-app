@@ -2200,7 +2200,7 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
 
-### 2026-09-12 - slice 7f, the read boundary on every surface that is not Today (`<pending>`; branch `journey/slice-7f-read-boundary-screens`, NOT pushed, NOT merged, NOT yet walked)
+### 2026-09-12 - slice 7f, the read boundary on every surface that is not Today (`151d405`; branch `journey/slice-7f-read-boundary-screens`, NOT pushed, NOT merged, NOT yet walked)
 
 **WHAT SHIPPED.** Six guards, one severity correction, and a predicate that now
 has one home instead of two.
