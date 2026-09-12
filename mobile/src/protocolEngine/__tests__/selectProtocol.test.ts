@@ -5,6 +5,7 @@ import {
   selectProtocol,
 } from '../selectProtocol';
 import { PHASE_ORDER } from '../../constants/journey';
+import { BRAIN_STATE_PROTOCOLS } from '../../constants/brainStateProtocols';
 import {
   PROTOCOL_MATRIX,
   TIME_CLASSES,
@@ -474,5 +475,154 @@ describe('invariants rehomed from retagParity.test.ts (deleted in slice 7i)', ()
         }
       }
     }
+  });
+});
+
+describe("Jen's supportingPracticeIds mapping (slice 7k)", () => {
+  // THE SHAPE TEST, AND IT EXISTS BECAUSE THE NINETEEN EMPTIES ARE A DECISION.
+  //
+  // Jen's rule, verbatim (2026-09-12): a practice belongs in
+  // `supportingPracticeIds` only when completing that practice REASONABLY
+  // SATISFIES THE PROTOCOL ITSELF. Not "helps with", not "supports". Under that
+  // rule her delivered mapping is 19 none and 2 mapped, and the emptiness of
+  // the nineteen is her ANSWER rather than an unfinished task.
+  //
+  // WHY A TEST RATHER THAN NINETEEN EXPLICIT `[]`. The matrix factory defaults
+  // this field to `[]` before the spread, so nineteen literals would restate a
+  // default and bury the two rows that carry an actual decision. A comment
+  // enforces nothing. This does: a twentieth mapping, a changed id, or either
+  // crossing quietly disappearing all fail here. Canonical table lives at
+  // Content Pack v1 section supporting-practices; do not add a third without
+  // Jen.
+  const MAPPED: ReadonlyArray<[string, readonly string[]]> = [
+    ['Lengthen the exhale', ['extended-exhale-2']],
+    ['Get some morning light', ['bright-light-10', 'bright-light-20']],
+  ];
+
+  const withMapping = () =>
+    allProtocols().filter((v) => v.supportingPracticeIds.length > 0);
+
+  it('maps EXACTLY two variants out of the twenty-one authored', () => {
+    expect(withMapping()).toHaveLength(2);
+  });
+
+  it('maps R7 and R9 BY IDENTITY, and both sit in recover/slammed', () => {
+    // Asserted on name AND cell, not on array position: a re-order inside the
+    // cell must not be able to silently move a mapping onto a different
+    // protocol. Row 7l is going to re-order Recover by destinationWeight, so
+    // this is a live concern rather than a hypothetical one.
+    const mapped = withMapping();
+    expect(mapped.map((v) => v.name).sort()).toEqual(
+      MAPPED.map(([name]) => name).sort()
+    );
+    for (const variant of mapped) {
+      expect(variant.phase).toBe('recover');
+      expect(variant.capacity).toBe('slammed');
+      expect(PROTOCOL_MATRIX.recover.slammed).toContain(variant);
+    }
+  });
+
+  it.each(MAPPED)('maps %s to exactly the ids Jen named', (name, ids) => {
+    const variant = allProtocols().find((v) => v.name === name);
+    expect(variant).toBeDefined();
+    expect(variant!.supportingPracticeIds).toEqual(ids);
+  });
+
+  it('leaves NINETEEN AUTHORED rows empty, which is the delivered answer', () => {
+    // NINETEEN AND TWENTY-TWO ARE BOTH RIGHT, AND CONFLATING THEM IS THE TRAP
+    // THIS TEST EXISTS TO CLOSE. The matrix holds 24 variants: 21 AUTHORED
+    // (9 Remove, 9 Recover, 3 Refocus) plus rewire's 3 build-walk stand-ins,
+    // which are not content and which Jen was never shown. Her answer covers
+    // the authored 21 only, so it reads 19 none + 2 mapped. Counted over the
+    // whole file the empties are 22, because rewire's three are empty for a
+    // completely different reason: nobody has authored them yet. One number is
+    // a decision and the other includes an absence, and a future reader
+    // checking "19" against a raw count of the file will not find it.
+    const empty = allProtocols().filter(
+      (v) => v.supportingPracticeIds.length === 0
+    );
+    const authoredEmpty = empty.filter((v) => !v.placeholder);
+
+    expect(authoredEmpty).toHaveLength(19);
+    expect(empty).toHaveLength(22);
+    expect(empty.filter((v) => v.placeholder)).toHaveLength(3);
+
+    // Named rather than counted only, so the assertion says WHICH rows Jen
+    // cleared rather than merely how many: all 9 Remove, R1-R6 and R8 (that is
+    // 7 of Recover's 9, the other two being the mapped pair), all 3 Refocus.
+    expect(authoredEmpty.filter((v) => v.phase === 'remove')).toHaveLength(9);
+    expect(authoredEmpty.filter((v) => v.phase === 'recover')).toHaveLength(7);
+    expect(authoredEmpty.filter((v) => v.phase === 'refocus')).toHaveLength(3);
+    expect(authoredEmpty.filter((v) => v.phase === 'rewire')).toHaveLength(0);
+  });
+
+  it('references only ids that RESOLVE in the runnable catalog', () => {
+    // THE TEST IMPORTS BOTH SYSTEMS AND THE ENGINE STILL DOES NOT. The
+    // two-systems rule bars protocolMatrix.ts from importing the catalog, and
+    // it still has no such import; a test is the only place the two can be put
+    // side by side to prove a crossing actually resolves. Without this the
+    // mapping could name a practice that has been renamed or deleted and
+    // nothing would notice until slice 9 followed the reference.
+    for (const variant of withMapping()) {
+      for (const id of variant.supportingPracticeIds) {
+        expect(BRAIN_STATE_PROTOCOLS).toHaveProperty(id);
+      }
+    }
+  });
+
+  it('keeps every mapped practice AT OR ABOVE its protocol estMinutes (contract 11.2)', () => {
+    // Protocol Engine Contract 11.2: a completion practice may be LONGER than
+    // the protocol's estimated minimum, never SHORTER. This is the rule that
+    // moved R7 from 5 to 2, and pinning it here is what stops a later
+    // "tidy-up" of either number from silently re-breaking the relationship.
+    // R9 at 5 against practices of 10 and 20 is the permitted direction.
+    for (const variant of withMapping()) {
+      for (const id of variant.supportingPracticeIds) {
+        const practice =
+          BRAIN_STATE_PROTOCOLS[id as keyof typeof BRAIN_STATE_PROTOCOLS];
+        expect(practice.durationSeconds / 60).toBeGreaterThanOrEqual(
+          variant.estMinutes
+        );
+      }
+    }
+  });
+
+  it('holds R7 at 2 minutes and in the SHORT class (contract 11.1)', () => {
+    // 11.1: estMinutes is a routing input and timeClass is derived from it.
+    // R7's move was safe only because 5 and 2 are both short; the day someone
+    // reads this number as descriptive and rounds it, this says what breaks.
+    const r7 = allProtocols().find((v) => v.name === 'Lengthen the exhale')!;
+    expect(r7.estMinutes).toBe(2);
+    expect(r7.timeClass).toBe('short');
+    expect(r7.variantKey).toBe('recover-slammed-short');
+  });
+
+  it('holds R9 at 5, ABOVE its 10 and 20 minute practices, deliberately', () => {
+    const r9 = allProtocols().find((v) => v.name === 'Get some morning light')!;
+    expect(r9.estMinutes).toBe(5);
+    expect(r9.timeClass).toBe('short');
+  });
+
+  it('keeps R5 at 6, which is the near-miss contract 11.1 was written for', () => {
+    // Jen proposed 6 -> 5 reading the number as descriptive. It was held:
+    // 6 -> 5 crosses the short boundary, taking R5 out of recover.limited's
+    // MEDIUM set, which is the set row 7l routes Routines/Limited into. A
+    // one-minute tidy-up would have broken the weighting delivered the same
+    // day. This test is the record of that decision at the value.
+    const r5 = allProtocols().find((v) => v.name === 'Use a two-part reset')!;
+    expect(r5.estMinutes).toBe(6);
+    expect(r5.timeClass).toBe('medium');
+  });
+
+  it('leaves R1 at 15 with the AMENDED phrase, not the original', () => {
+    // Jen's same-day pack amendment: "take one part of the afternoon fully
+    // off-screen" implied far longer than the 15-minute routing value, and
+    // became "take one short break later today fully off-screen". The duration
+    // did NOT move, which is the point: the copy was corrected to the number
+    // rather than the number to the copy.
+    const r1 = allProtocols().find((v) => v.name === 'Downshift, then unplug')!;
+    expect(r1.estMinutes).toBe(15);
+    expect(r1.dailyAction).toContain('one short break later today fully off-screen');
+    expect(r1.dailyAction).not.toContain('one part of the afternoon');
   });
 });

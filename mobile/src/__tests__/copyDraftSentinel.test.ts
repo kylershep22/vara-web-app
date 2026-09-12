@@ -600,6 +600,45 @@ import * as path from 'path';
 // STILL DRAFTED FROM SLICE 7a, UNAFFECTED BY ANY OF THIS: JOURNEY_LINE_LABEL
 // and TODAY_START_HERE_GLOSS, both in constants/journeyCopy.ts, both Kyle's to
 // clear. Neither is a C2 string and neither was in 7h's fence.
+//
+// 150 STILL, AFTER SLICE 7k (2026-09-12). FLAT, AND THE FLATNESS IS THE
+// EXCLUSION WORKING RATHER THAN AN OVERSIGHT.
+//
+// OWNER: JEN. 7k landed one copy change and one number. The copy change is
+// R1's daily action in `protocolEngine/protocolMatrix.ts`: "take one part of
+// the afternoon fully off-screen" became "take one short break later today
+// fully off-screen", her own same-day amendment to content she had delivered
+// hours earlier, because the original implied far longer than the 15-minute
+// routing value the cell carries. The number is R7's `estMinutes`, 5 -> 2,
+// which is not copy at all and is recorded here only so this entry accounts
+// for everything the slice touched.
+//
+// WHY IT DOES NOT MOVE THE COUNT, and it is NOT the 7h reason. 7h was flat
+// because approved strings replaced approved strings INSIDE the sentinel's
+// scope, so the arithmetic genuinely cancelled. This is flat because
+// `protocolMatrix.ts` is in OUT_OF_SCOPE below and its strings are not counted
+// at all, in either state. Nothing cancelled; nothing was ever counted. An
+// approved-replaces-approved edit in a counted file and an edit in an excluded
+// file both read as "150 -> 150" from the number alone, and they are different
+// facts. Do not let a later reader collapse them.
+//
+// THE EXCLUSION'S THREE INVALIDATING CONDITIONS WERE CHECKED AGAINST THIS
+// SLICE, not assumed. They are stated in the test at the bottom of this file
+// and 7i mutation-checked all three to fail:
+//   1. The content moving out of protocolMatrix.ts, or the export being
+//      renamed. NO: PROTOCOL_MATRIX, dailyAction and whyItWorks all stand.
+//   2. The file's own content gate disappearing. NO: PLACEHOLDER_TITLE_PREFIX
+//      and protocolMatrix.removeCellsAuthored.test.ts are untouched by 7k.
+//   3. Drafted strings appearing in it. NO: 7k added none, and the assertion
+//      that it carries zero sentinels still passes.
+// Since all three hold, the exclusion still covers the file and R1's string is
+// governed by Jen's review path rather than by this count.
+//
+// NOT TO BE CONFUSED WITH ROW 7m, WHICH IS THE NEXT REAL MOVE. That row
+// replaces COMPLETION_COPY.done ("Done today") with "Done for today." in
+// `components/dashboard/TodayHeroCard.tsx`, a DIFFERENT file, IN scope, and it
+// takes this number 150 -> 149 on Jen's sign-off. If you are reading this
+// because 149 is expected and 150 is what you found, 7m has not landed yet.
 const EXPECTED_SENTINELS = 150;
 
 const mobileRoot = path.resolve(__dirname, '../..');
