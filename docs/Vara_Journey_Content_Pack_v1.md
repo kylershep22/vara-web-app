@@ -982,6 +982,45 @@ It stays conditional rather than declaring an internal state, explains why the c
 
 Then show the constrained in-phase alternatives.
 
+> **AMENDED 2026-09-12 (Jen). THE BODY ABOVE IS SUPERSEDED, AND THERE ARE NOW
+> TWO BODIES RATHER THAN ONE.** The delivery above is left unedited; this block
+> is the canonical wording.
+>
+> **Jen revised both bodies as a pair**, at Kyle's request that the amendment
+> land in this pack rather than as a local override in the codebase:
+>
+> **Title:** Let's try a different angle. *(unchanged)*
+>
+> **Body, FIRST offer:** If this isn't helping yet, we can change the approach
+> without starting over.
+>
+> **Body, SECOND offer:** If this still isn't helping, we can change the
+> approach without starting over.
+>
+> **Decline:** Keep going for now. *(approved unchanged)*
+>
+> **WHY THERE ARE TWO.** Roadmap §9 R5 permits exactly one word of continuity
+> between a first and a second offer, and slice 7b shipped that as "still". This
+> pack wrote no second body, so the second string was authored in-house and
+> signed off by Kyle as owner, explicitly PENDING JEN REVIEW and explicitly
+> marked to move if she revised the first. **This is that review. Her sign-off
+> SUPERSEDES Kyle's on BOTH bodies** and is the warrant the copy ledger records
+> from here.
+>
+> **WHAT CHANGED AND WHY IT IS NOT COSMETIC.** "feeling like it's moving" became
+> "helping" in both. The replaced phrasing borrowed the weekly check-in's own
+> vocabulary - `moving` / `not_moving` is the C1 answer set - so the card was
+> quietly echoing the user's logged answer back at them, which is the narration
+> §decisions-4 rejected in the first place. "helping" makes the same conditional
+> offer without referencing what they told us.
+>
+> **SENTINEL: NO MOVEMENT.** Two approved strings replaced by two approved
+> strings; nothing is drafted in either direction.
+>
+> **Consumed by §5 row 7h.** Until that row lands, the codebase carries the
+> superseded wording; the pack is ahead of the code on purpose, and the roadmap
+> says so.
+
 ---
 
 # Final decisions

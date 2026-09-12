@@ -259,7 +259,11 @@ deploy. Deploy state lives on Kyle's checklist.
 | 7e | **[DONE `20d0441`, merged `c6d03ee`, 2026-09-12; walked steps 1-6 and attested before the merge. Shipped as written, with ONE premise in this row corrected at Step 0: the coverage claim below is wrong, and the residual it hid is row 7f.]** Journey read-boundary guard: a malformed `journeyStates` row must not take Home down *(row added 2026-09-11 from the 7b walk)* | `resolveJourney` reads `phaseKey` and `destination` unvalidated (`:378-379`) and `JourneyLine` double-indexes `PHASE_DISPLAY[phaseKey][destination]` (`:63`, `:74`), so a key outside the union throws and an ErrorBoundary takes Home before any journey surface renders. **Reproduced on `main`** with a console-typed `"remove "` (trailing space), so it is pre-existing and not a 7b regression. A client cannot write such a row — `validJourney` gates `phaseKey` on create and update — so the producers are Admin-SDK writes: the console, the cohort reset script, or rows predating the rule. **Scope:** validate both fields in rung (a) against `PHASE_ORDER` and `DESTINATION_KEYS`, fall through to `'legacy'` on failure per the resolver's existing any-failure policy, and `logger.warn` with `uidDigest` and never the raw uid. One branch covers `JourneyLine`, `JourneyMapScreen` and `PhasePath`, which all read the same document. **Sequenced after 7d** because 7d corrupts a live metric every day it stands while this needs a malformed row to bite. | None | Yes: a seeded malformed row |
 | 7f | **[DONE `151d405`, merged `8ed349d`, 2026-09-12; walked both fixtures and attested before the merge. Severity in this row's title is WRONG and the §13 entry corrects it: there is one ErrorBoundary and it is above the navigator, so this class takes the APP, not the tab. Row 7g carries that.]** Read-boundary guard for the two journey SCREENS: a malformed `destination` must not take Practices down *(row added 2026-09-11 from slice 7e's Step 0)* | **7e guarded the resolver and therefore Today, and nothing else.** `JourneyMapScreen.tsx:194` and `JourneyPhaseScreen.tsx:107` call `getJourneyState` directly and never pass through `resolveJourney`, so 7e's branch cannot reach them — the §13 7b entry's claim that one branch covered all three surfaces is corrected in a dated block there. **The residual is one field, not two:** a bad `phaseKey` is already harmless on these screens, because `derivePhaseStates` returns all-`'ahead'` for an unrecognised key (`phaseStates.ts:60-62`) and `PhasePath` indexes `PHASE_DISPLAY` from `PHASE_ORDER` rather than from the document. A bad `destination` still throws at `PhasePath.tsx:148,150` and at `JourneyPhaseScreen.tsx:129`. **Step 0 DECIDES THE SHAPE and it is a real fork, not a formality:** (1) route both screens' reads through a shared validating accessor, which puts one policy in one place and makes the resolver's guard a caller of it rather than a copy — but touches two screens' read callbacks and the service boundary; or (2) guard `PhasePath` and the phase page at the render, which is smaller and is the third and fourth copy of the same check. **Note for whoever takes it:** these screens fail SOFTER than Today did — the map's read already has its own try/catch (`:193-200`) and the page's does too (`:106-113`), so what is unguarded is the render, not the read. **CARRIED INTO THIS ROW FROM 7e SO THEY ARE NOT LOST (Kyle, 2026-09-11):** (i) **`toIsoDate` returns the STRING `"NaN-NaN-NaN"` on an Invalid Date.** `{ seconds: NaN }` passes the `typeof === 'number'` check in both timestamp readers, `toIsoDate` uses `getFullYear`/`getMonth`/`getDate` rather than `toISOString` (`weekStart.ts:45-49`), and the result is truthy, so it does NOT take the empty-string path that suppresses the consistency read. As the adjust re-arm floor it sorts above every real ISO date (`'N'` is 0x4E, `'2'` is 0x32), so `weekStart > armedFromIso` is false for every week and **the adjustment offer becomes permanently unfireable for that document, with no log line.** **Fix: return `''` on an invalid date, plus a test.** (ii) **`history` has no array check at `phaseStates.ts:79`** — `state.history.filter` throws for any phase past the first when the field is not a list. (iii) **WALK-FIXTURE NOTE, and it is a limit rather than a finding:** no code path writes `destination: 'stress'` and `firestore.rules:987` refuses it, but **whether a live row carries one was never checked against production data.** The 7e answer was established from the write paths only. Anyone seeding this walk should not read that as "the collection is clean". | None | Yes: the same seeded malformed row as 7e, with `destination` broken instead of `phaseKey` |
 | 7g | **[Next]** Scope the ErrorBoundary, so a render throw costs a surface instead of the app *(row added 2026-09-12 from slice 7f's Step 0)* | **THE APP HAS EXACTLY ONE ErrorBoundary AND IT IS ABOVE THE NAVIGATOR** (`App.tsx:114`, over `AppNavigator` at `:122`). No screen, tab or navigator has its own, so ANY render throw anywhere replaces Today, Practices, Learn, Community and the tab bar at once, and the only way back is the fallback's Try Again. That is the real severity of the defects 7e and 7f guarded, and it is a standing property of the app rather than a journey problem: the next unguarded index on any screen has the same blast radius. **Scope:** a boundary per tab stack, or per screen, so a throw degrades one surface; decide which, and decide what a scoped fallback says, since the app-level copy ("Something didn't work as expected. We've been notified.") is written for a whole-app failure and would be wrong inside one tab. **Step 0 REQUIRED and it is not a formality:** a boundary that resets its own subtree needs a reset key or the user is stuck on a broken tab with no Try Again, and React Navigation remounts screens on focus in ways that interact with that. **Also settle:** whether the scoped boundaries report to Sentry separately, and whether the app-level one stays as the backstop (it should). **Carried in from 7f:** `ErrorBoundary.tsx(34,5)` TS2741 - `getDerivedStateFromError` returns a state object missing `componentStack` - is one of the standing 149 and lives in this file; fix it here rather than leaving it for a reader to trip over. **NOT a prerequisite for anything queued:** 7e and 7f close the two known throws, so this row reduces the cost of the NEXT one rather than fixing a live crash. | None | Yes: force a throw behind a flag on one tab and confirm the others survive |
+| 7h | **[Next after 7g]** C2 copy amendment: Jen's revised bodies replace both shipped strings *(row added 2026-09-12 from Jen's feedback)* | **TWO STRINGS, AND IT IS FIRST BECAUSE OF WHAT IT STOPS RATHER THAN WHAT IT COSTS.** `journey_adjust_offered` and `journey_adjust_declined` accumulate against whichever wording is on screen, so every day the superseded bodies stand is a day of accept-rate data measured against copy that is no longer the product's. **Scope:** `ADJUST_COPY.bodyFirst` and `ADJUST_COPY.bodySecond` in `constants/journeyCopy.ts`, and the CANONICAL PACK amended at `§decisions-4` - not a local override, per Jen. First becomes *"If this isn't helping yet, we can change the approach without starting over."*; second becomes *"If this still isn't helping, we can change the approach without starting over."* `decline` ("Keep going for now") is approved unchanged and is not touched. **The ledger entry is the substance, not a formality:** `bodySecond` currently carries Kyle's owner sign-off and a note saying it is PENDING JEN REVIEW and will move if she revises `bodyFirst`. She has, and her sign-off SUPERSEDES his on BOTH bodies; the `copyDraftSentinel.test.ts` entry that records his warrant must say so. **Sentinel does not move** - two approved strings replaced by two approved strings, no draft in either direction - and the commit must say that explicitly so a flat count is not read as an oversight. **May carry the analytics `definition_version` change** (§5 row note below). | None | No: a string swap on a surface already walked in 7b |
+| 7i | 12 protocol copies land: Recover R1-R9 and Refocus F1-F3 *(row added 2026-09-12 from Jen's feedback)* | Title, daily action and why-it-works for each of the twelve, delivered and approved by Jen. They replace the `PLACEHOLDER` cells in `protocolMatrix.ts`; `PLACEHOLDER_TITLE_PREFIX` and the `placeholder: true` flags come off the rows they cover, and **the merge gate that greps for that prefix is the check that this row is complete**. **Step 0 must settle two things:** how many of the twelve are `placeholder: true` today versus merely carrying `PLACEHOLDER` in the title (the flag and the prefix are set from one field but only three rewire cells carry the flag), and whether Rewire's three remain the only placeholders after this lands - if so, say so in the entry, because a matrix with exactly three placeholder cells left is a different statement from one with twelve. **supportingPracticeIds is NOT in this row's scope** and must not be filled while it is open; the mapping is its own decision and is recorded in §13. | **[Content-gated]** - GATE NOW OPEN, Jen delivered 2026-09-12 | Yes: the daily serve on a Recover and a Refocus account |
+| 7j | Naming set: Practices becomes Journey, and four phases get customer-facing labels *(row added 2026-09-12 from Jen's feedback)* | **COUPLED, WHICH IS WHY IT IS ONE ROW:** the tab label, the map screen title, four FULL phase labels and four SHORT variants all ship together or the app speaks two vocabularies at once. Bottom nav becomes **Journey**; the map screen reads **Your journey**. Labels: Remove -> *Create space* / *Create space*; Recover -> *Restore capacity* / *Restore*; Rewire -> *Build new patterns* / *New patterns*; Refocus -> *Focus on what matters* / *Focus*. **Usage rule:** full labels on map rows and phase page titles, short variants on the Today journey eyebrow and other compact surfaces. **REMOVE'S SHORT FORM IS DELIBERATELY IDENTICAL TO ITS FULL FORM** - record it at the constant, because it reads as an oversight and is not one. **"Practices" SURVIVES** as the name of the runnable content library wherever that library itself appears; the hierarchy is Journey -> destination -> today's protocol -> supporting practice. Remove/Recover/Rewire/Refocus stay INTERNAL architecture terms and do not become customer-facing taxonomy. **Rewire ships "Build new patterns" now despite unauthored content**, per Jen's principle recorded in §13: a destination label describes the phase's PURPOSE, not the state of its content. **STEP 0 IS REQUIRED AND IT IS A REAL FORK, NOT A FORMALITY:** these four per-phase labels collide head-on with `PHASE_DISPLAY`, which is 16 per-(phase, destination) titles and 16 shorts of Jen's own approved pack content, and which is what the map rows, the phase page titles and the Today eyebrow render TODAY. Settle whether the new labels REPLACE that table on those surfaces, sit ABOVE it as a phase name with the cell copy beneath, or apply only where no cell copy exists - and settle it with Jen, because both sets are hers. See the contradiction list in the 2026-09-12 §13 entry. **Also in scope:** an audit of every "Practices" string (`AppNavigator.tsx:592`, `:856`, `:943`, `:1024`, `:1141`, `routes.ts:113`, `JourneyMapScreen.tsx`'s title) deciding which are the tab and which are the library. **Route and constant names are NOT copy** and should not be renamed for a label change; 7b's own note on why 7c was not renumbered applies. | **[Content-gated]** - GATE NOW OPEN, Jen delivered 2026-09-12 | Yes: nav, map, phase pages and Today together |
 | 7c | Honour the recorded adjustment *(row added 2026-09-10 at 7b's close)* | Consume `journeyStates.adjustChoice` in the protocol serving path. 7b RECORDS the user's choice among the twelve in-phase alternatives and does not act on it: nothing outside `journeyState.service.ts` reads the field, and the C2 confirmation ("We'll work it this way for now") is worded for exactly that state. This row closes the gap. **Step 0 REQUIRED** and it is not a formality: the twelve alternatives mean four different things to the engine (shrink the protocol, swap the approach at the same target, re-target, re-slot, re-cue, re-narrow), and what `selectProtocol` can currently express of that is unestablished. Settle what the engine already supports before anything writes a second selection input. **Also settle:** whether a recorded choice persists across a phase change (today `CLEARED_OFFERS` nulls it, which is right while nothing consumes it and may not be once something does), and whether choosing re-arms the weekly read the way a decline does. **Carried from 7b:** the door's write has NO in-flight guard (`onChoose` in `JourneyPhaseScreen.tsx` sets no pending state), which is harmless while the write settles and leaves the page silent when it does not; 7c is already in this code and is where that pending state belongs. | Engine capability, per Step 0 | Yes |
+| SAFETY | **[PRE-LAUNCH BLOCKER, scope TBD]** Safety pre-check: semantic classification before free text enters normal routing *(row added 2026-09-12 at Jen's instruction)* | **RE-CLASSIFIED FROM A REVISIT ITEM TO A BLOCKER BY JEN, 2026-09-12**, and it is rowed here rather than left in the content pack's §safety-precheck so the board carries it. Her position, unchanged since the Sept 5 pack: literal keyword matching will always have gaps - *"I don't feel safe at home right now"* is her example - so the phrase list may remain a guardrail but must not be the primary safety model. Before launch she would use (1) a small set of obvious local patterns as the immediate fast path, (2) a **semantic safety classification** before free text can enter normal routing, and (3) the existing safety screen when that classification fires. **SCOPE IS GENUINELY TBD** and is pending a mechanism question Kyle is asking separately; the row exists now so the blocker is visible on the board while its scope is open, which is the opposite of the usual rule that a row waits for its scope. **It does not sit in the numbered sequence** because it does not queue behind 7c or 8: it gates LAUNCH, not the next slice. | Mechanism decision, then scope | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. | rules; **[Content-gated]** copy | Yes |
 | 9 | **Behavioral protocol screen + remind-later** | The Daily Action Launcher behavioral screen (protocol, why, mark done, remind me later) for `remove` protocols; one-off later-today notification (`scheduleLocalNotification` DATE trigger), `scheduledAt` on `DailyLog`, third card state, cancellation bookkeeping; OS-settings redirect after denial. | Completion semantics decision (mockup v1 E1 open item) | Yes |
 
@@ -336,6 +340,45 @@ deploy. Deploy state lives on Kyle's checklist.
 > >
 > > **7c's position is unchanged for the second time.** Inserting 7g renumbers
 > > and re-argues nothing below it.
+> >
+> > **AMENDED 2026-09-12 (Jen's feedback landed; every open content question
+> > answered). THREE CONTENT ROWS AND ONE BLOCKER ADDED. THE ORDER IS NOW
+> > 7g -> 7h -> 7i -> 7j -> 7c -> 8 -> 9, with SAFETY outside it.**
+> >
+> > **7h (C2 copy) IS FIRST OF THE THREE FOR A DATA REASON, NOT A SIZE ONE.**
+> > It is also the smallest, which is a convenience rather than the argument:
+> > `journey_adjust_offered` and `journey_adjust_declined` accumulate against
+> > whatever wording is on screen, so every day the superseded bodies stand
+> > produces accept-rate rows measured against copy that is no longer the
+> > product's. Landing it first bounds that to days rather than to slices.
+> >
+> > **7i BEFORE 7j** because the protocol copy is twelve independent cells with
+> > no cross-surface coupling, while the naming set touches the tab, the map,
+> > four phase pages and Today at once and carries an unresolved collision with
+> > `PHASE_DISPLAY` that Step 0 has to take back to Jen. A coupled row with an
+> > open question should not block twelve strings that have none.
+> >
+> > **THE `definition_version` ANALYTICS CHANGE MAY RIDE WITH ANY OF THEM, AND
+> > THE RECOMMENDATION IS 7h.** It is two lines - `definition_version: 2` on
+> > `journey_advance_offered` and `journey_adjust_offered`, plus the type
+> > comments documenting v1 = offer became ELIGIBLE, v2 = offer RENDERED, v2
+> > begins 2026-09-11, no backfill. It belongs with 7h because **7h is already
+> > the row about not measuring the wrong thing**: the same commit that stops
+> > accept-rate data accruing against superseded wording is the natural place to
+> > stamp the version that says the denominator changed at 7d. Landing it with
+> > 7i or 7j would work and would separate a data-integrity change from the data
+> > -integrity row for no gain.
+> >
+> > **SAFETY IS NOT IN THE SEQUENCE AND THAT IS DELIBERATE.** It gates launch,
+> > not the next slice, so it neither blocks 7h nor waits behind 9. Jen
+> > re-classified it from a revisit item to a **pre-launch blocker** on
+> > 2026-09-12; its scope is open pending a mechanism question, and the row
+> > exists ahead of its scope so the blocker is visible on the board rather than
+> > living only in the content pack.
+> >
+> > **7c's position is unchanged for the third time.** Three rows and a blocker
+> > were inserted above it and none of them renumbers or re-argues anything
+> > below.
 
 > **AMENDED 2026-09-05 (table reconciled with §13). SLICE 3 SHIPPED AS FOUR SLICES, NOT ONE.**
 > Row 3 above is the ORIGINAL scope and is left unedited; it never shipped under that number.
@@ -2199,6 +2242,243 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-09-12 - Jen's feedback: every open content question answered, and four decisions locked
+
+**NOT A SLICE. A CONTENT-DECISION ENTRY**, recorded here because §13 is where
+locked content decisions live and because three of the four decisions below
+change what future slices are allowed to build. No code moved in this commit;
+the board rows it creates are 7h, 7i, 7j and SAFETY.
+
+---
+
+**1. THE `supportingPracticeIds` RULE, IN JEN'S WORDS, AND THE MAPPING IS
+MOSTLY EMPTY BY DESIGN.**
+
+She redefined the rule rather than filling in the old one, and the definition is
+the decision:
+
+> a practice belongs here only when completing that practice **reasonably
+> satisfies the protocol itself**. Not "helps with", not "supports".
+
+**Under that rule the mapping is 19 none and 2 mapped:**
+
+| Protocol | supportingPracticeIds |
+|---|---|
+| R7, Lengthen the exhale | `extended-exhale-2` |
+| R9, Get some morning light | `bright-light-10`, `bright-light-20` |
+| **Every other row** - all 9 Remove, R1-R6, R8, all 3 Refocus | **none** |
+
+**All three practice IDs were verified to exist in the runnable catalog**
+(`constants/brainStateProtocols.ts:253`, `:670`, `:715`) rather than taken on
+trust. The two-systems rule at `protocolMatrix.ts` stands unchanged: these are
+the first two authored crossings of it, not a repeal of it.
+
+**THE CONSEQUENCE, STATED HERE SO SLICE 9 DOES NOT DISCOVER IT: slice 9's
+auto-complete path is effectively INERT at launch.** The bridge fires for two
+protocols out of twenty-one. **"Mark done" remains the primary completion path,
+exactly as designed.** This is a deliberate decision and NOT a finding for 9's
+Step 0 to make; a Step 0 that "discovers" the bridge is nearly empty and treats
+it as a gap will be re-deciding something already settled.
+
+---
+
+**2. THE NAMING SET, AND THE PRINCIPLE UNDERNEATH IT.**
+
+Practices becomes **Journey**. Both variants ship together; neither is a
+fallback for the other.
+
+| Phase | Full label | Short variant |
+|---|---|---|
+| Remove | Create space | Create space |
+| Recover | Restore capacity | Restore |
+| Rewire | Build new patterns | New patterns |
+| Refocus | Focus on what matters | Focus |
+
+Bottom nav: **Journey**. Map screen: **Your journey**. **Usage rule:** full
+labels on map rows and phase page titles; short variants on the Today journey
+eyebrow and other compact surfaces.
+
+**REMOVE'S SHORT FORM IS INTENTIONALLY IDENTICAL TO ITS FULL FORM.** Recorded
+because it reads as an oversight and is not one; the same note belongs at the
+constant when 7j lands, on the precedent of the five `PHASE_DISPLAY` cells whose
+`short` already equals their `title`.
+
+**"Practices" SURVIVES** as the name of the runnable content library wherever
+that library itself appears. The hierarchy is **Journey -> destination -> today's
+protocol -> supporting practice**. **Remove / Recover / Rewire / Refocus stay
+INTERNAL architecture terms** and do not become customer-facing taxonomy - which
+is the same separation `PHASE_DISPLAY`'s header already enforces and
+`brandCopyGuard` already tests.
+
+**REWIRE SHIPS ITS LABEL NOW DESPITE UNAUTHORED CONTENT, and the principle is
+the durable part:**
+
+> a destination label describes the phase's PURPOSE, not the state of its
+> content; hold a label only if the purpose might change.
+
+That decides future label questions in advance instead of requiring the argument
+each time, which is the same shape as the §9 "believe the tap" principle.
+
+---
+
+**3. GOOD MOMENTS - SLICE 8 IS FULLY SPECCED AND ITS NAME CHANGES.**
+
+- **User-facing name: "Good moments"**, not "Moments of joy". Her reason: joy
+  sets the emotional bar too high.
+- **Visible prompt above the input:** *"What was one good moment from today?"*
+- **No placeholder text in the field.**
+- **Success:** save, close the sheet, brief auto-dismissing **"Saved."** toast,
+  no manual dismiss.
+- **Failure:** **do not close the sheet, do not clear the user's text**, show
+  *"Couldn't save that. Try again."* inline near the Save action.
+- **Copy ownership: the prompt, "Saved." and the failure line are all JEN'S
+  strings.** Not drafted-then-approved and not owner-authored; they enter with
+  no marker and the sentinel does not move for them.
+
+**THE TOAST VERIFICATION KYLE ASKED FOR, ANSWERED FROM THE CODE.** The
+notification path **cannot stack and cannot count**:
+`ToastContext.showNotificationToast` holds a single `notificationToast` object
+(`ToastContext.tsx:127-133`), not a queue, so a repeat entry replaces the
+content of the one on screen; `NotificationToast` auto-dismisses on its own
+timer (`NotificationToast.tsx:97`). The queue that DOES stack is the separate
+feature-unlock path, a different API, and it dedupes by feature id. **So this is
+not a slice-8 scope item.**
+
+**TWO CAVEATS FOUND WHILE VERIFYING, WHICH ARE:**
+
+1. **`showNotificationToast` SILENTLY RETURNS when an unlock toast is visible**
+   (`ToastContext.tsx:130`). A "Saved." confirmation would then be dropped with
+   no fallback - the save succeeded and the user is told nothing. Slice 8 must
+   decide whether that is acceptable for this surface.
+2. **The API takes a title AND a body.** "Saved." is one word with no body, so
+   8 has to settle what a title-only notification toast renders as rather than
+   passing an empty string and finding out on device.
+
+---
+
+**4. C2 COPY: JEN REVISED BOTH BODIES AS A PAIR, AND HER SIGN-OFF SUPERSEDES
+KYLE'S.**
+
+| | Shipped today | Jen, 2026-09-12 |
+|---|---|---|
+| First | "If this isn't feeling like it's moving yet, we can change the approach without starting over." | **"If this isn't helping yet, we can change the approach without starting over."** |
+| Second | "If this still isn't feeling like it's moving, we can change the approach without starting over." | **"If this still isn't helping, we can change the approach without starting over."** |
+
+`decline` - "Keep going for now" - is **approved unchanged**.
+
+**THE LEDGER POINT IS THE SUBSTANCE.** `ADJUST_COPY.bodySecond` currently
+carries Kyle's owner sign-off plus a note saying it is PENDING JEN REVIEW and
+that "if she revises `bodyFirst`, this string moves with it rather than
+drifting". She has, and it does. **Her sign-off SUPERSEDES his on BOTH bodies**,
+and the `copyDraftSentinel.test.ts` entry recording his warrant must say so when
+7h lands. The sentinel does not move: two approved strings replaced by two
+approved strings, no draft in either direction.
+
+**THE AMENDMENT GOES IN THE CANONICAL PACK, NOT A LOCAL OVERRIDE**, at Jen's
+instruction. Done in this commit, as a dated block appended to
+`§decisions-4` with the original delivery untouched. **The pack carries no
+revision counter to increment** - it has a title version (`v1`), an authored
+date and a `Covers:` line, and no per-section revision - so the amendment is
+dated in place rather than bumping a number that does not exist. If a counter is
+wanted, adding one is its own small decision.
+
+---
+
+**5. "Done" -> "Complete" IS REFINED, AND IT IS TWO WORDS, NOT ONE.** The action
+reads **"Mark complete"**; the resulting state reads **"Completed"**. Do not use
+one word for both. See the contradiction list: this lands against a brand
+guidelines string and a shipped map label, and it is NOT rowed yet.
+
+---
+
+**6. ANALYTICS: `definition_version: 2`** on `journey_advance_offered` and
+`journey_adjust_offered`, with the type comments documenting **v1 = the offer
+became ELIGIBLE, v2 = the offer was RENDERED to the user, v2 begins
+2026-09-11**. **No backfill.** Two lines; recommended to ride with 7h, for the
+reason in the §5 sequencing block. This makes machine-readable the caveat the
+7d entry already wrote in prose: rows written before and after that merge are
+not comparable.
+
+---
+
+**7. SAFETY PRE-CHECK IS A PRE-LAUNCH BLOCKER**, re-classified by Jen from a
+revisit item. Rowed on the board as `SAFETY`, outside the numbered sequence
+because it gates launch rather than the next slice. Scope is open pending a
+mechanism question Kyle is asking separately - **the row deliberately precedes
+its own scope**, which is the opposite of this board's usual rule and is the
+right way round for a blocker.
+
+---
+
+**WHAT THESE ANSWERS CONTRADICT. Nothing below is fixed in this commit;
+every item is listed so the rows that fix them are built against the real
+state rather than against the roadmap's description of it.**
+
+**A. THE NAMING SET versus `PHASE_DISPLAY`. This is the significant one.**
+The new labels are **four per-phase** strings. `PHASE_DISPLAY` is **sixteen
+per-(phase, destination)** titles and sixteen shorts - and it is Jen's own
+approved pack content (`§display-strings`, `§short-labels`). The collision is
+head-on because the new usage rule names exactly the surfaces that table already
+owns:
+
+- **Map rows** render `cell.title` + `cell.gloss` (`PhasePath.tsx:150-151`, `copy="full"`).
+- **Phase page titles** render `cell.title` (`JourneyPhaseScreen.tsx:140`).
+- **The Today journey eyebrow** renders `PHASE_DISPLAY[phase][destination].short` (`JourneyLine.tsx:71`).
+
+Every one of those is named in the new usage rule, and all sixteen destination
+-specific strings are Jen's. **Both sets cannot own the same three surfaces.**
+Three readings are possible - the labels REPLACE the cell copy there, or they
+sit ABOVE it as a phase name with the cell copy beneath, or they apply only
+where no cell copy exists - and this entry does not choose between them. 7j's
+Step 0 takes it back to Jen. **Pinned by tests either way:**
+`JourneyLine.test.tsx` asserts all sixteen pairs render distinct shorts, and
+`PhasePath.test.tsx` asserts every valid destination draws four rows of cell
+copy; a replacement changes both suites.
+
+**B. "Moments of joy" versus "Good moments".** Row 8's own title and scope cell
+still read "Moments of joy", and so do three other places in this roadmap
+(`§6 item 10`, the §8 brand tripwire "Moments of joy is one tap, optional, never
+counted", and the Sept 5 pack note at `§423`). The COLLECTION is `moments/` and
+is unaffected - a collection name is not copy - but **row 8's title is the
+user-facing name and is now wrong**. Not renamed here: renaming a row that four
+other passages cite is the doc-symbol swap the 7b amendment warns about, and it
+should happen once, in 8's own slice, with those citations updated together.
+
+**C. "Mark complete" versus two shipped strings AND the guidelines.**
+- `TodayHeroCard.tsx:59` ships `markDone: 'Mark it done'`, and its comment
+  states it is **APPROVED COPY from guidelines §1.5**. So this change is not a
+  local string edit: `docs/brand/Vara_Brand_Voice_Copy_Guidelines.md:128`
+  ("**Button:** Mark it done") is #4 on the precedence ladder and would have to
+  be amended with it.
+- `PHASE_STATE_LABELS.done` currently reads **'Complete'**
+  (`journeyCopy.ts:146`), which under Jen's refinement is the ACTION word sitting
+  in a STATE slot. It should read "Completed". Its own comment records Kyle
+  changing it from "Done" to "Complete" on 2026-09-09 - so this is the second
+  revision of the same label, and the entry there needs to say so.
+- **NOT ROWED.** Kyle's instruction list did not sequence this one, and it is
+  not folded into 7j silently: a change that amends the brand guidelines
+  deserves its own row rather than riding inside a naming slice.
+
+**D. The content pack's `§C2` "Final C2 copy" is now superseded for the second
+time.** The pack already carries one supersession on that section (the original
+delivery superseded by `§decisions-4`); this is a second layer on the same
+anchor. Amended in place with a dated block in this commit, but the pack's
+own "Two sections carry supersessions" header at the top still describes only
+the first, and that header is NOT updated here - the header is a reading guide,
+and rewriting it as the list grows is how a reading guide starts disagreeing
+with the sections it indexes. Worth one decision when 7h lands.
+
+**E. Slice 8 is still marked `[Content-gated]` in three places** (row 8's Gates
+cell, `§6 item 10`, and the Sept 5 pack note). **That gate is now OPEN** - Jen
+delivered the prompt, the success line and the failure line. Left standing here
+because 8's own row is where it should be cleared, alongside the rename in (B).
+
+**F. `AppNavigator.tsx:588` already anticipates this.** The comment reads
+"whether the tab keeps the word 'Practices' is Jen's call" - it does not. The
+comment is correct and its question is now answered; 7j closes it.
+
+---
 
 ### 2026-09-12 - slice 7f, the read boundary on every surface that is not Today (`151d405`, docs `bc8b161` + `2b87f38`, merged `8ed349d`; branch `journey/slice-7f-read-boundary-screens`, pushed; walked both fixtures and attested before the merge)
 

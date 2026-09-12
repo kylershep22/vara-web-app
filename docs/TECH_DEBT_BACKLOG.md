@@ -1886,3 +1886,60 @@ the same shape as the four above, and each one is a candidate rendering bug.
 Until the baseline is zero, a slice that changes the count should diff the
 before and after error lists rather than compare totals. This slice did, which
 is the only reason the four were noticed.
+
+---
+
+## `completionPracticeIds` vs `recommendedPracticeIds` as two separate fields
+
+**Raised by:** Jen, 2026-09-12, alongside the `supportingPracticeIds` mapping.
+**Status:** long-term content model. **NOT a slice, and not a prerequisite for
+anything queued.**
+
+`supportingPracticeIds` currently carries one meaning and Jen's redefinition
+narrowed it to the stricter of two that the name could cover:
+
+- **"this practice COMPLETES the protocol"** - the user does it, the protocol is
+  satisfied. This is what the field means now, and it is why the mapping is 19
+  none and 2 mapped (roadmap §13, 2026-09-12).
+- **"this practice HELPS YOU DO the protocol"** - supportive, adjacent, worth
+  offering, and explicitly NOT sufficient on its own.
+
+The second meaning has no home today, so it is either absent from the product or
+it leaks into the first field and quietly re-broadens the rule the mapping was
+narrowed to enforce. Her long-term model is two fields:
+`completionPracticeIds` and `recommendedPracticeIds`.
+
+**Why it is backlog and not a slice.** Nothing reads `supportingPracticeIds`
+yet; slice 9 is its first consumer, and with 19 of 21 rows empty the split has
+no behaviour to change. Splitting the field before anything reads either half
+would be designing a data model against zero call sites. Revisit when a surface
+actually wants the "helps you do it" set.
+
+**When it is taken up:** the rename is the cheap half; deciding which of the two
+the existing two mappings belong to is the content question, and it is Jen's.
+
+---
+
+## Protocol completion from native Vara actions
+
+**Raised by:** Jen, 2026-09-12. **Status:** recommendation, confirmed by her as
+NOT a slice-9 requirement.
+
+The idea: a protocol could be marked complete by the user finishing the
+equivalent native action rather than by tapping the completion control - the
+Focus timer completing F1-F3, and the same shape wherever a Vara feature already
+does the thing a protocol asks for.
+
+**Explicitly out of slice 9's scope, and this row exists so it is not read back
+into it.** Slice 9 builds the behavioural protocol screen and "Mark done"; the
+`supportingPracticeIds` bridge it can use is inert for 19 of 21 protocols by
+design (roadmap §13, 2026-09-12), and that is the settled launch state rather
+than a gap for 9 to close.
+
+**The interesting part when it is taken up** is that it is a different mechanism
+from the practice bridge: the bridge is "launch this practice from this
+protocol", while this is "notice that the user did the thing elsewhere and count
+it". The second needs a completion signal from a feature that does not currently
+emit one, and it runs straight into §9 R7 - completion is DECLARED, never
+verified - so it needs that principle revisited rather than routed around.
+
