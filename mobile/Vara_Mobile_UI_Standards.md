@@ -12,13 +12,13 @@ Supersedes v2.0 (August 2026). v2.0 superseded `Vara_Mobile_UI_Standards.md` v1.
 
 **What this document governs.** Everything visible and everything the user touches: tokens, color, type, spacing, elevation, illustration, motion, components, screen templates, navigation, platform conventions, states, and accessibility. If a screen looks or moves a certain way, this document is why.
 
-**What it defers to.** Positioning and pillars: `docs/1_Vara_Canonical_Positioning_Brief.md`. Information architecture, the Today surface, the capacity model: `docs/Vara_Today_IA_Restructure_Roadmap_v2.md`. Copy, including every string inside a component spec below: `docs/brand/Vara_Brand_Voice_Copy_Guidelines.md`, with `3_Vara_Voice_and_Tone_Rules_v2_2.md` for the register. Where a copy example in this document disagrees with those, they win. Product behavior: `docs/Vara_Reconciled_Product_Spec.md`. The full precedence ladder lives in `mobile/CLAUDE.md`.
+**What it defers to.** Positioning and pillars: `docs/1_Vara_Canonical_Positioning_Brief.md`. The journey build, its IA, the Today surface and the build sequence: `docs/Vara_Journey_Architecture_Roadmap_v3.md`, which supersedes the next document on every topic it covers and is what drove v2.1. Information architecture, the Today surface and the capacity model **where the journey roadmap is silent**: `docs/Vara_Today_IA_Restructure_Roadmap_v2.md`. Copy, including every string inside a component spec below: `docs/brand/Vara_Brand_Voice_Copy_Guidelines.md`, with `3_Vara_Voice_and_Tone_Rules_v2_2.md` for the register. Where a copy example in this document disagrees with those, they win. Product behavior: `docs/Vara_Reconciled_Product_Spec.md`. The full precedence ladder lives in `mobile/CLAUDE.md`.
 
 **What is enforced by machine and what is not.** Section 17 lists exactly which rules fail a test or a lint. Everything else in this document is a prose standard that a reviewer checks. Treat the two categories the same way in practice; the difference is only in who catches the miss.
 
 **If a decision is not covered here or in a spec, stop and ask Kyle.** Do not guess on visual or interaction decisions at the brand level. Ask with a concrete proposal attached.
 
-**Naming used throughout.** "Hub" means a pillar landing screen (Focus, Energy, Practices, Learn). "Arrival" means a screen the user lands on rather than drills into (Today, hubs, onboarding welcome, completion). "Session" means a running practice, timer, or player. "The Guide" means the docked AI pill.
+**Naming used throughout.** "Hub" means a pillar landing screen (Focus, Energy, Practices, Learn). "Arrival" means a screen the user lands on rather than drills into (Today, hubs, onboarding welcome, completion). "Session" means a running practice, timer, or player. "The Guide" means the docked AI pill. Band placement is no longer keyed to arrival; see 2.8.
 
 ---
 
@@ -78,11 +78,11 @@ A screen that is entirely one tier reads as flat and unfinished. Sections altern
 
 The palette has two warm tones (Sunrise Amber `#F4C542`, Golden Apricot `#F5B971`) and v1.0 taught everyone to be afraid of them. The rule is not "avoid warmth." The rule is **one warm point per screen**: a single place, chosen deliberately, where the warm tone lives. A small illustration detail, the fill of a selected chip, the sun in a watercolor header, an icon on the suggested action. One. Never two competing. Never on text. Never on a button fill.
 
-A screen with no warm point at all is permitted only when the content itself supplies warmth (a photograph-free watercolor band already does). A screen of teal, sage, and charcoal with nothing warm on it is the "boring" failure mode and should be caught in review.
+A screen with no warm point at all is permitted only when the content itself supplies warmth (a watercolor band does, and an environmental background always does, 2.8). A screen of teal, sage, and charcoal with nothing warm on it is the "boring" failure mode and should be caught in review.
 
 ### 2.3 Type is a design element, not a delivery vehicle
 
-Inter is the only typeface, and that is a feature: one family, used with real contrast. Display and H1 sizes exist to be used on arrival screens. The type scale has large jumps on purpose (26 to 32 to 34), and a hub or Today headline set at display size with tightened tracking (`letterSpacing.tighter`) reads as designed. A screen where every heading is 18 or 22 and every body line is 16 has thrown away its most reliable tool for hierarchy.
+Inter is the only typeface, and that is a feature: one family, used with real contrast (normative target; as of v2.1 the app renders the system font, see 5.1). Display and H1 sizes exist to be used on arrival screens. The type scale has large jumps on purpose (26 to 32 to 34), and a hub or Today headline set at display size with tightened tracking (`letterSpacing.tighter`) reads as designed. A screen where every heading is 18 or 22 and every body line is 16 has thrown away its most reliable tool for hierarchy.
 
 Concrete requirements:
 - Arrival screens (Today, hubs, onboarding welcome, completion) set their headline at `display` (32) or `displayLg` (34), tracking `tighter`.
@@ -92,12 +92,12 @@ Concrete requirements:
 
 ### 2.4 Illustration is part of the system
 
-Vara has a watercolor and spot-illustration language (hero bands, `SpotIllustration`, `focusHeader.webp` and siblings). It is not decoration. It is how a screen says which room you are in.
+Vara has a watercolor and spot-illustration language (hero bands, `SpotIllustration`, `focusHeader.webp` and siblings), and, from v2.1, environmental backgrounds and atmospheric accents (8). It is not decoration. It is how a screen says which room you are in.
 
 - **Hero bands** (a watercolor header behind the screen title with a scrim, `BAND_STRONG_SCRIM`) are one of four kinds of art, not the only one. Placement is set by 2.8 and 8.2: **pushed hubs only**, never on a tab root, never on a decision screen, an input screen, a list, a sheet, or a session. v2.0 read "hub and arrival screens only" and named Today among them; 2.8 supersedes that, because Today is an immersive surface and an environmental background and a hero band never share a viewport.
 - **Spot illustrations** belong in empty states, completion moments, and onboarding. Soft, nature-derived, 80 to 120px, never a literal brain.
 - **Photography**: none. Vara does not use photographs in the app.
-- One illustration per screen. A hero band and a spot illustration never share a viewport.
+- One kind of art per viewport, per 8: environmental background, hero band, atmospheric accent and spot illustration never pair.
 
 ### 2.5 Motion has presence
 
@@ -122,7 +122,7 @@ Requirements:
 
 > Could this screen appear, unchanged, in any calm wellness app? If yes, it is not done.
 
-Run it alongside the calm test, never instead of it. The way to pass both is to spend the screen's boldness in exactly one place (the headline treatment, the hero band, the warm point, the one orchestrated moment) and keep everything else disciplined. Then, before shipping, remove one thing.
+Run it alongside the calm test, never instead of it. The way to pass both is to spend the screen's boldness in exactly one place (the headline treatment, the surface's art (8), the warm point, the one orchestrated moment) and keep everything else disciplined. Then, before shipping, remove one thing.
 
 ### 2.8 Surface treatments (new in v2.1)
 
@@ -250,7 +250,7 @@ Pure black (`#000000`) is never used for text or fills. It appears only inside s
 ### 4.2 Usage rules
 
 - **The default triad** is Mist White ground, Soft Charcoal text, Evergreen Teal for the one primary action. It covers most of any screen.
-- **Washes are not accents.** Dew Sage and `dewSageLight` may cover large areas (a section background, a highlight card, a full hub band under the hero) and do not count toward the accent ceiling. Use them to create the layering in 2.1.
+- **Washes are not accents.** Dew Sage and `dewSageLight` may cover large areas (a section background, a highlight card, a full band under a hero band on a pushed hub) and do not count toward the accent ceiling. Use them to create the layering in 2.1.
 - **Warm accents (Amber, Apricot) stay at or under 10 to 15% of the visual field** and follow the one-warm-point rule in 2.2. They never fill a button, never color text, never sit adjacent to each other.
 - **4.2 defines "accent" for every document that uses the term.** `docs/Vara_Dashboard_Spec.md` and `docs/Vara_FourPillar_IA_Spec.md` both state the 10 to 15% figure without the wash exemption above; they inherit the definition from here rather than setting a second one, and neither is amended. A full-viewport environmental background in the mist and sage families is a wash under this rule, not an accent. Warm pigment inside artwork is an accent and counts (8.1).
 - **Teal is the anchor, not wallpaper.** Teal fills: the primary button, the active tab, selected chips, the Guide pill, progress fills. Teal does not fill cards or large areas; a full-teal card reads as an alert.
@@ -276,7 +276,7 @@ Pure black (`#000000`) is never used for text or fills. It appears only inside s
 
 ### 4.5 Hero band scrim
 
-Hero bands place a title over a watercolor image. Legibility comes from `BAND_STRONG_SCRIM`, a vertical gradient of Mist White with stop positions `[0, 0.05, 0.82, 1]` (transparent at the top, opaque at the bottom, with the steep section near the base where the title sits). Title text over a band is always Soft Charcoal or Evergreen Teal on the opaque part of the scrim and must pass 4.5:1 against the scrim, not against the image.
+Hero bands place a title over a watercolor image. Legibility comes from `BAND_STRONG_SCRIM`, a vertical gradient of Mist White with stop positions `[0, 0.05, 0.82, 1]` (transparent at the top, opaque at the bottom, with the steep section near the base where the title sits). Title text over a band is always Soft Charcoal or Evergreen Teal on the opaque part of the scrim and must pass 4.5:1 against the scrim, not against the image. **Applies to hero bands. Text over an environmental background is measured per 10.2 and 18(g)**, which is the opposite instruction on purpose: a band has a scrim to measure against and an environmental background does not.
 
 ---
 
@@ -301,7 +301,7 @@ Hero bands place a title over a watercolor image. Legibility comes from `BAND_ST
 
 | Role | Code key | Size | Weight | Tracking (`letterSpacing` key) | Color | Use |
 |---|---|---|---|---|---|---|
-| Display large | `displayLg` | 34 | 600 | `tighter` (-0.5) | Teal or Charcoal | Today greeting, hub titles over a band |
+| Display large | `displayLg` | 34 | 600 | `tighter` (-0.5) | Teal or Charcoal | Today greeting (over the environmental background, 18(g)); hub titles over a band |
 | Display | `display` / `3xl` | 32 | 600 | `tighter` (-0.5) | Teal | Arrival headlines, onboarding welcome |
 | Heading 1 | `h1` / `2xl` | 26 | 600 | `tight` (-0.25) | Teal | Screen titles |
 | Heading 2 | `h2` / `xl` | 22 | 600 | `tight` (-0.25) | Teal | Section titles |
@@ -376,7 +376,7 @@ Every spacing value is a multiple of 4. No arbitrary values.
 | `cardMargin` | 16 |
 | `inputHeight` | 48 |
 | `headerHeight` | 56 |
-| `tabBarHeight` | 56 (excluding safe area; native tab bars manage their own) |
+| `tabBarHeight` | 56; not read by the navigator today, which sets 62 inline. The floating bar's height is [PENDING R2]; see 12.2 |
 
 Screen rules: 16 horizontal padding on both sides, always. Vertical scroll only; horizontal scrolling is reserved for a deliberate carousel with visible affordance. 32 between major sections, 16 within. Respect safe-area insets everywhere. A scrollable region that ends above a tab bar or sticky CTA carries 48 bottom padding so the last item is never trapped. **Retired for routes where the tab bar is visible: those take their inset from `useBottomTabBarHeight()`; see 12.2. The 48 rule stands for any other fixed bottom control.**
 
@@ -472,7 +472,7 @@ The hero band is a soft watercolor image (`focusHeader.webp`, `energyHeader.webp
 - **Placement: pushed hubs only** (2.8). The tab bar is hidden on those routes. **Never on a tab root**, never on a decision screen, an input or form, a list or browse screen, a sheet, a settings screen, or a running session.
 - **Never in the same viewport as an environmental background.** This is the failure mode an immersive Today creates by construction if `ScreenHeader` is not removed from it, and walk assertion 18(b) exists to catch it.
 - The band occupies the top of the viewport and never more than 30% of it. Content begins on the opaque part of the scrim.
-- One band per screen. Bands do not repeat as section headers.
+- One band per screen. Bands do not repeat as section headers. **A pushed hub carries a hero band or atmospheric accents (8.3), never both**, because one kind of art per viewport applies to a hub exactly as it applies to Today.
 - Each pillar has its own band. The band is how the room announces itself; it does not change within a pillar.
 - Reduce Transparency: bands are images, not glass, and render identically. Reduce Motion: bands never parallax or animate.
 - Scrim rule unchanged: 4.5.
@@ -693,7 +693,7 @@ The Guide is Vara's AI entry point and its **single persistent help affordance**
 | Property | Spec |
 |---|---|
 | Form | Pill, `pill` radius, 36 to 40 tall, Teal fill, White icon (sparkle-free: a soft leaf or wave mark) and optional short label |
-| Position | Docked top-right on hub screens and Today, inside the safe area, 16 from the right edge |
+| Position | Docked top-right on the routes listed below, inside the safe area, 16 from the right edge |
 | Elevation | `shadow-md` (float tier) |
 | Visibility | By route, see below. **Hidden during any session, on sheets, in onboarding, on auth, and on settings sub-screens.** |
 | Behavior | Opens the Guide as a bottom sheet. Never a full-screen takeover. |
@@ -706,12 +706,13 @@ The pill replaced the floating action button in July 2026. No FAB pattern remain
 | Route | Guide pill |
 |---|---|
 | `Home` | Present |
-| `PillarPractices` | Present |
-| `PillarLearn` | Present |
+| `PillarPractices`, `PillarLearn` | **Absent by decision** (5a, 5b-i): the Guide's stance on a journey surface is an open section 7 deliverable, and no `context.screen` value is wired ahead of it |
 | `PillarFocus`, `PillarEnergy`, `PillarTime` (pushed hubs) | Present |
 | Any session (template G), any sheet, onboarding, auth, settings sub-screens | Hidden |
 
-**The Step-0 gap, recorded as baseline debt and not as a rule.** The pill is **absent on `PillarPractices` and `PillarLearn`**, which the table above requires, and **present on `CommunityMain`**, which the table does not list. Both predate v2.1. The absences are debt under 17 and close when those surfaces are redesigned.
+**CORRECTED IN THE v2.1 SUPERSESSION SWEEP: the two absences are a DECISION, not debt.** This paragraph first recorded them as baseline debt, which was wrong and would have licensed a later slice to close them. The journey roadmap records the decision twice, with its reason: *"a pill on a surface that displays a user's journey creates expectations the product cannot yet honour"*, and, load-bearing, **"no `context.screen` value is wired anywhere 'ready for later'"**, because an unused vocabulary entry is how the decision gets made by whoever types the next one. It is revisited when the Guide's stance, data-access position and crisis path are settled, and not before.
+
+**The one real gap is the other direction:** the pill is **present on `CommunityMain`**, which the table does not list.
 
 **Community's pill is an open question, not a rule either way.** It was added deliberately and it is not obviously wrong; whether a social surface wants an AI affordance is a product decision that belongs to the R6+ community pass. **It is neither blessed nor removed here**, and this paragraph exists so that a later reader finds a recorded question rather than an inconsistency to tidy away.
 
@@ -739,7 +740,7 @@ Retired and not to be rebuilt: milestone modals keyed to day counts (`StreakMile
 
 ### 10.11 Toasts
 
-`NotificationToast`: rises from the bottom above the tab bar, White with `shadow-md`, radius 12, one line, auto-dismisses in 3s, swipe to dismiss. Used for confirmations that do not deserve a screen change ("Saved.") and for a recoverable error with a retry link. Never stacks more than one.
+`NotificationToast`: rises from the bottom above the tab bar, taking its offset from `useBottomTabBarHeight()` on routes where the bar is visible (12.2), White with `shadow-md`, radius 12, one line, auto-dismisses in 3s, swipe to dismiss. Used for confirmations that do not deserve a screen change ("Saved.") and for a recoverable error with a retry link. Never stacks more than one.
 
 ---
 
@@ -750,22 +751,22 @@ Every new screen starts from one of these eight skeletons. Templates define stru
 ### A. Single-focus action
 For: setting a focus, a check-in step, any one-task screen.
 Top: close or back, left. Header: title (H1) centered, optional 14pt subtitle. Content: one block (an input, a chip group, a prompt). Bottom: sticky primary button, full width, 16 above the safe area.
-Signature: generous vertical whitespace around the one block. Prohibited: hero bands, secondary cards, anything competing.
+Signature: generous vertical whitespace around the one block. Prohibited: any environmental art (FOCUS surface, 2.8), secondary cards, anything competing.
 
 ### B. List / browse
 For: browsing practices, routines, history, educational content.
 Top: title (H1, left) with at most one filter or sort control right. Content: quiet cards or list items, 16 gaps, optional section headings. Empty state per 14.2.
-Signature: the section rhythm (washes alternating with ground). Prohibited: hero bands, a sticky CTA (the list items are the actions).
+Signature: the section rhythm (washes alternating with ground). Prohibited: any environmental art (FOCUS surface, 2.8), a sticky CTA (the list items are the actions).
 
 ### C. Detail / content
 For: a practice or protocol detail, an article, an insight expanded.
 Top: back plus small title (H3) inline. Optional lead: a Dew Sage wash block (not a hero band) with the H2 and a one-line "why." Content: vertical prose, H2 sections, highlight cards for the backbone note. Optional single sticky CTA.
-Signature: the type. Body at 16 with real line height and one H2 that earns its size. Prohibited: hero bands, more than one CTA, a card kit.
+Signature: the type. Body at 16 with real line height and one H2 that earns its size. Prohibited: any environmental art (FOCUS surface, 2.8), more than one CTA, a card kit.
 
 ### D. Reflection / input
 For: the post-practice reflection, the after-check, a journal entry.
 Top: close plus title. Prompt: H2 in Teal, centered, generous top spacing. Input: an expanding field or a single row of chips. Bottom: primary ("Save") plus a tertiary skip.
-Signature: the whitespace around the prompt. It should feel like a pause, not a form. Prohibited: hero bands, helper text longer than one line, any count or history.
+Signature: the whitespace around the prompt. It should feel like a pause, not a form. Prohibited: any environmental art (FOCUS surface, 2.8), helper text longer than one line, any count or history.
 
 ### E. Today (rewritten in v2.1)
 For: the daily arrival surface. The highest-risk screen for overload.
@@ -785,7 +786,7 @@ Signature: the band where there is one; otherwise the headline treatment and the
 ### G. Session / player (new)
 For: a running breath practice, timer, NSDR, movement demo, routine player.
 Full screen. Mist White or a deep Dew Sage wash. Top: a single quiet exit (close, left, Muted Sage Gray) and nothing else. Center: the one thing (the pacer, the timer at `timer` size, the video). Bottom: at most one control (pause) as a large secondary button, plus a tertiary "End early" in Charcoal. **The Guide pill is hidden. The tab bar is hidden.** Notifications from the app are suppressed for the duration.
-Signature: the emptiness. This is the one screen where "nothing else" is the design. Prohibited: hero bands, cards, any text beyond a phase word, any count, any haptic during the practice.
+Signature: the emptiness. This is the one screen where "nothing else" is the design. Prohibited: any environmental art (FOCUS surface, 2.8), cards, any text beyond a phase word, any count, any haptic during the practice.
 
 ### H. Journey / wayfinding (new in v2.1)
 For: `JourneyMapScreen` and `JourneyPhaseScreen`. **These had no template**, which is why `PhasePath` was specified in a component header rather than against a screen skeleton, and why its rules have been carried in code comments.
@@ -833,9 +834,9 @@ v2.0 specified `NativeTabs` via expo-router and a Liquid Glass posture. **The ap
 
 ### 12.3 Top navigation
 
-Mist White, seamless with the page (no fill), 44 tall excluding the status bar. Back: Teal chevron, 24, left, with the previous screen's short title where iOS convention supplies it. Title: H3 centered, or omitted when the screen has its own H1 or a hero band. Right: at most one action, Teal, icon or text. On hubs and Today, the right slot is the Guide pill. A hairline `divider` appears under the bar only once content has scrolled beneath it.
+Mist White, seamless with the page (no fill), 44 tall excluding the status bar. Back: Teal chevron, 24, left, with the previous screen's short title where iOS convention supplies it. Title: H3 centered, or omitted when the screen has its own H1 or its own art (8). Right: at most one action, Teal, icon or text. On hubs and Today, the right slot is the Guide pill. A hairline `divider` appears under the bar only once content has scrolled beneath it.
 
-Large-title behavior (iOS): hubs and Today do not use the system large title; the hero band plays that role. Browse and detail screens may use the system inline title.
+Large-title behavior (iOS): No surface uses the system large title; the display headline plays that role, over the surface's own art or without it (2.8). Browse and detail screens may use the system inline title.
 
 ### 12.4 Spatial model
 
@@ -851,14 +852,14 @@ Returning to the app after time away lands on Today, never on a modal, never on 
 
 Vara should read as a current, native, well-maintained iOS app at the chrome level while the content stays unmistakably its own.
 
-- **Safe areas** are respected everywhere: Dynamic Island, home indicator, status bar. Content and controls never collide with system UI. Use `react-native-safe-area-context` edges deliberately; a hero band may extend under the status bar, its title may not.
+- **Safe areas** are respected everywhere: Dynamic Island, home indicator, status bar. Content and controls never collide with system UI. Use `react-native-safe-area-context` edges deliberately; a hero band may extend under the status bar, its title may not; an environmental background extends under the status bar, and nothing set over it does.
 - **Dynamic Type** per 5.3. This is a platform expectation, not an accessibility extra.
 - **System controls** (switch, date and time pickers, action sheets, alerts) are used where they fit. They bring familiarity and accessibility for free. A custom control needs a reason.
 - **Sheets over modals**, inline over sheets. Sheets support the standard detents and swipe-to-dismiss.
 - **Keyboard**: the focused input and the primary button are always reachable; `KEYBOARD_HANDLING_GUIDE.md` is the implementation reference.
 - **Interruptions**: a phone call, a lock, or a background during a session pauses the session and resumes it on return without losing state. Onboarding survives a force-quit at any step.
 - **Offline**: reads show cached content with a quiet "Showing what's saved" line; writes queue and confirm when back; nothing blocks on a spinner. The paywall, in particular, must render a real failure state when offerings cannot load (14.4), never a healthy-looking screen with dead buttons.
-- **Accessibility settings are primary paths, not edge cases** for this audience: Reduce Motion (9.4), Reduce Transparency (12.2), Increase Contrast (verify text on washes and scrims), Bold Text, and Dynamic Type are all verified before ship.
+- **Accessibility settings are primary paths, not edge cases** for this audience: Reduce Motion (9.4), Reduce Transparency (12.2), Increase Contrast (verify text on washes, scrims and artwork), Bold Text, and Dynamic Type are all verified before ship.
 - **Android** follows the same tokens and templates. Its tab bar is the same styled `BottomTabBar` with the opaque fallback in 12.2, since `expo-blur` is iOS-only here. No separate Android design system.
 
 ---
@@ -1064,7 +1065,7 @@ Removed by decision, not oversight. If one reappears in a design or a diff, that
 - The floating action button for the coach (replaced by the Guide pill, July 2026).
 - Five-tab navigation. A "Plan" or "Habits" tab.
 - Red anywhere. Coral on destructive controls.
-- Hero bands on decision, input, list, sheet, or session screens.
+- Hero bands on decision, input, list, sheet or session screens, on any tab root, or on Today.
 - Blur-gating or obstructing Today until the user engages.
 - Brain-health framing as a headline; "optimize," "brain optimization windows," "attention is your most valuable asset."
 - A photograph. A literal brain illustration. A person's face.
@@ -1098,6 +1099,17 @@ The design-authority reconciliation for the visual redesign, journey roadmap row
 - **16** corrected twice. **Muted Sage Gray `#6F7F77` measures 4.22:1 on White and fails AA** for the 14pt helper text it is used for in 336 places; v2.0's "borderline" licensed the usage it should have stopped. Fix deferred to R1, candidate `#56655D` recorded. And the touch-target sentence is corrected: **all three constants already read 48**, and `MIN_TOUCH_TARGET_SIZE` lives in `src/utils/`, not `src/constants/`.
 - **17** gains the **migration clause and the baseline-debt table**, nine rows with measured counts, plus the rule: introduce none, comply in full in new or materially rewritten components, and state the per-slice delta in every REPORT. The raw-hex figure is the eslint run's own (501 errors, 385 outside `src/constants/`); an earlier working figure of 331 is wrong.
 - **18** gains **18.1, the standing redesign walk**: eight numbered assertions with pass conditions, binding R2 through R6+, with the device matrix written down so assertion (d) is checkable for the first time, and the iPad gap recorded beside it unresolved. The v2.0 checklist is kept in full as 18.2, with four items corrected to match 7, 8, 10.8 and 5.1 and two added.
+
+- **Supersession sweep (post-build, same version).** A read-only sweep after the v2.1 rewrites looked for sentences elsewhere in this document that still stated a rule those rewrites had superseded. **It found twenty: eight superseded, twelve ambiguous. All twenty are residue of v2.1's own edits, not pre-existing drift**, and all twenty are corrected here. The lesson is the one 2.4 and 6.2 had already taught twice: **a rewritten section is not finished until the sentences elsewhere that contradict it have been found.**
+  - **10.8, and this is the one that mattered.** The coverage table required the Guide pill on `PillarPractices` and `PillarLearn` and recorded both absences as baseline debt. **They are a decision, not debt**, taken in journey slices 5a and 5b-i and restated as a constraint in roadmap row R4, with the rule **"no `context.screen` value is wired anywhere 'ready for later'"**. Recording a product hold as a defect would have licensed the next slice to close it. The table now reads **Absent by decision**, and the only real gap left is Community's pill, which the table does not list.
+  - **6.2**: the `tabBarHeight` row said "native tab bars manage their own", which is the withdrawn `NativeTabs` premise, and asserted 56 while the navigator sets 62 inline and reads neither token. Both corrected, height now [PENDING R2].
+  - **12.3**: "hubs and Today do not use the system large title; the hero band plays that role" named a mechanism neither surface has any more. Now: no surface uses the system large title, and the display headline plays that role.
+  - **2.4**: "One illustration per screen. A hero band and a spot illustration never share a viewport" enumerated two of four kinds and so permitted a background plus a spot illustration. Now **one kind of art per viewport**, and 8.2 states the consequence for hubs explicitly: a pushed hub carries a band **or** atmospheric accents, never both. The art-language sentence gains the two new kinds.
+  - **Appendix A**: the retired-patterns line now bars a hero band on any tab root and on Today, not only on decision, input, list, sheet and session screens.
+  - **10.11**: the toast takes its offset from `useBottomTabBarHeight()` where the bar is visible, since 12.2 makes the bar float.
+  - **2.2**: an environmental background is named as a content source of the warm point.
+  - **Twelve ambiguities scoped rather than rewritten**: 0 (the precedence list gains `Vara_Journey_Architecture_Roadmap_v3.md` above the Today IA roadmap, matching `mobile/CLAUDE.md`; and "arrival" no longer keys band placement), 2.3 (Inter marked normative against 5.1's finding), 2.7, 4.2, **4.5** (scoped to hero bands, with text over an environmental background sent to 10.2 and 18(g), which is the opposite instruction on purpose), 5.2, 10.8's position row, the five FOCUS templates 11A/B/C/D/G (prohibiting **any** environmental art, not only hero bands), 12.3's title rule, and 13's safe-area and Increase Contrast lines.
+  - **3.3 is deliberately unchanged.** It has no row for `MAX_FONT_SCALE` (5.1) or the immersive-card opacity token (10.2). 3.3's own rule is that a token is added to the file **and** to this document in the same commit, and that an entry here with no token in code is a promise the build cannot keep. Both tokens land in R1 and R3; their rows land with them.
 
 ### What changed from v1.0 to v2.0 (August 2026)
 
