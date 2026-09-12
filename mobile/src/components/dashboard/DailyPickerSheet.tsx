@@ -191,7 +191,7 @@ export const DailyPickerSheet: React.FC<DailyPickerSheetProps> = ({
                 // where Dynamic Type bites first. Two lines and a capped
                 // multiplier let the label grow inside the row instead of
                 // clipping; the row grows with it.
-                maxFontSizeMultiplier={1.3}
+                maxFontSizeMultiplier={Typography.maxFontScale}
               >
                 {TIME_CHIP_LABELS[cls]}
               </Text>

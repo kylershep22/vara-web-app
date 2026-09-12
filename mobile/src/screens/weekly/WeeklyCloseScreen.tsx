@@ -358,7 +358,7 @@ export function WeeklyCloseScreen() {
             style={styles.confirmation}
             accessibilityLiveRegion="polite"
             accessibilityRole="text"
-            maxFontSizeMultiplier={1.3}
+            maxFontSizeMultiplier={Typography.maxFontScale}
             testID="weekly-close-confirmation"
           >
             {RESET_CONFIRMATION}
@@ -379,7 +379,7 @@ export function WeeklyCloseScreen() {
           keyboardShouldPersistTaps="handled"
           testID="weekly-close"
         >
-          <Text style={styles.heading} maxFontSizeMultiplier={1.3}>
+          <Text style={styles.heading} maxFontSizeMultiplier={Typography.maxFontScale}>
             {CLOSE_COPY.heading}
           </Text>
 
@@ -391,7 +391,7 @@ export function WeeklyCloseScreen() {
               silence is a better record than a question nobody was asked. */}
           {hasPhase && destination && (
             <View style={styles.card} testID="weekly-close-read">
-              <Text style={styles.question} maxFontSizeMultiplier={1.3}>
+              <Text style={styles.question} maxFontSizeMultiplier={Typography.maxFontScale}>
                 {RESET_QUESTIONS[destination]}
               </Text>
               {RESET_ANSWERS.map(({ value, label }) => (
@@ -404,7 +404,7 @@ export function WeeklyCloseScreen() {
                   accessibilityLabel={label}
                   testID={`weekly-close-read-${value}`}
                 >
-                  <Text style={styles.optionLabel} maxFontSizeMultiplier={1.3}>
+                  <Text style={styles.optionLabel} maxFontSizeMultiplier={Typography.maxFontScale}>
                     {label}
                   </Text>
                 </TouchableOpacity>
@@ -413,7 +413,7 @@ export function WeeklyCloseScreen() {
           )}
 
           {/* One free-text question (spec 8.3), skippable. */}
-          <Text style={styles.sectionLabel} maxFontSizeMultiplier={1.3}>
+          <Text style={styles.sectionLabel} maxFontSizeMultiplier={Typography.maxFontScale}>
             {CLOSE_COPY.noteQuestion}
           </Text>
           <TextInput
@@ -423,11 +423,11 @@ export function WeeklyCloseScreen() {
             placeholder={CLOSE_COPY.notePlaceholder}
             placeholderTextColor={Colors.mutedSageGray}
             multiline
-            maxFontSizeMultiplier={1.3}
+            maxFontSizeMultiplier={Typography.maxFontScale}
             accessibilityLabel={CLOSE_COPY.noteQuestion}
             testID="weekly-close-note"
           />
-          <Text style={styles.hint} maxFontSizeMultiplier={1.3}>
+          <Text style={styles.hint} maxFontSizeMultiplier={Typography.maxFontScale}>
             {CLOSE_COPY.noteSkip}
           </Text>
 
@@ -452,7 +452,7 @@ export function WeeklyCloseScreen() {
             {saving ? (
               <ActivityIndicator color={Colors.surface} />
             ) : (
-              <Text style={styles.saveLabel} maxFontSizeMultiplier={1.3}>
+              <Text style={styles.saveLabel} maxFontSizeMultiplier={Typography.maxFontScale}>
                 {CLOSE_COPY.save}
               </Text>
             )}
@@ -461,7 +461,7 @@ export function WeeklyCloseScreen() {
           {!answered && !saving && (
             <Text
               style={styles.required}
-              maxFontSizeMultiplier={1.3}
+              maxFontSizeMultiplier={Typography.maxFontScale}
               testID="weekly-close-required"
             >
               {CLOSE_COPY.required}

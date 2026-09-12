@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   period: {
     fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.normal,
+    fontWeight: Typography.fontWeight.regular,
   },
   equivalent: {
     fontSize: Typography.fontSize.xs,

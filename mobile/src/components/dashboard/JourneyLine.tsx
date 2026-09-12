@@ -36,7 +36,6 @@ import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { PHASE_DISPLAY } from '../../constants/journey';
 import type { DestinationKey, PhaseKey } from '../../types/models';
 
-const MAX_FONT_SCALE = 1.3;
 
 export interface JourneyLineProps {
   /** The eyebrow above the short. Required; see the note in this file's header. */
@@ -85,12 +84,12 @@ export const JourneyLine: React.FC<JourneyLineProps> = ({
       accessibilityLabel={`${label}. ${cell.short}`}
       testID={testID}
     >
-      <Text style={styles.label} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+      <Text style={styles.label} maxFontSizeMultiplier={Typography.maxFontScale}>
         {label}
       </Text>
       <Text
         style={styles.short}
-        maxFontSizeMultiplier={MAX_FONT_SCALE}
+        maxFontSizeMultiplier={Typography.maxFontScale}
         testID={`${testID}-short`}
       >
         {cell.short}

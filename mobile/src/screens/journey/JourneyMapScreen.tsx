@@ -82,7 +82,6 @@ import type { JourneyPhaseParams } from './JourneyPhaseScreen';
 import { logger } from '../../utils/logger';
 
 const MIN_TOUCH_TARGET = 48;
-const MAX_FONT_SCALE = 1.3;
 
 // EVERY CARD STRING BELOW IS DRAFT and carries the `COPY: draft` sentinel, as
 // it did on the launcher. The strings MOVED with their surface; none was
@@ -231,7 +230,7 @@ export function JourneyMapScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} testID="journey-map">
         <View style={styles.titleRow}>
-          <Text style={styles.title} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+          <Text style={styles.title} maxFontSizeMultiplier={Typography.maxFontScale}>
             Practices
           </Text>
         </View>
@@ -291,7 +290,7 @@ export function JourneyMapScreen() {
 
         <View style={styles.destinations} testID="journey-map-destinations">
           {/* COPY: draft, not from guidelines doc - pending Jen */}
-          <Text style={styles.intro} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+          <Text style={styles.intro} maxFontSizeMultiplier={Typography.maxFontScale}>
             {'Pick a place to start.'}
           </Text>
 
@@ -309,12 +308,12 @@ export function JourneyMapScreen() {
                   <Icon name={p.icon as any} size={24} color={Colors.evergreenTeal} />
                 </View>
                 <View style={styles.cardText}>
-                  <Text style={styles.cardLabel} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+                  <Text style={styles.cardLabel} maxFontSizeMultiplier={Typography.maxFontScale}>
                     {p.label}
                   </Text>
                   <Text
                     style={styles.cardDescriptor}
-                    maxFontSizeMultiplier={MAX_FONT_SCALE}
+                    maxFontSizeMultiplier={Typography.maxFontScale}
                   >
                     {p.descriptor}
                   </Text>

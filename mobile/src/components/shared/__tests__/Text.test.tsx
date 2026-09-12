@@ -25,14 +25,14 @@
 // destroyed in reverse. The mutation check at the bottom of this file pins it.
 
 import React from 'react';
-import { StyleSheet, Platform, Text as RNText } from 'react-native';
+import { StyleSheet, Platform, Text as RNText, type TextStyle } from 'react-native';
 import { render } from '@testing-library/react-native';
 
 import { Typography } from '../../../constants';
 import Text, { AnimatedText, resolveFontFamily } from '../Text';
 
-const styleOf = (el: { props: { style?: unknown } }) =>
-  StyleSheet.flatten(el.props.style) ?? {};
+const styleOf = (el: { props: { style?: unknown } }): TextStyle =>
+  (StyleSheet.flatten(el.props.style) ?? {}) as TextStyle;
 
 describe('Text — weight to family mapping', () => {
   // Every value in the R1a Step 0 distribution table: the four

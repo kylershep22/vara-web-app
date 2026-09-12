@@ -40,7 +40,6 @@ import type { AdvanceDoor } from '../../journey/derive';
 import { CardHeading } from './CardHeading';
 
 const MIN_TOUCH_TARGET = 48;
-const MAX_FONT_SCALE = 1.3;
 
 export interface AdvancementCardProps {
   /**
@@ -72,7 +71,7 @@ export const AdvancementCard: React.FC<AdvancementCardProps> = ({
           says a way exists and does not walk you down it. */}
       <CardHeading icon="sign-direction" title={copy.title} />
 
-      <Text style={styles.body} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+      <Text style={styles.body} maxFontSizeMultiplier={Typography.maxFontScale}>
         {copy.body}
       </Text>
 
@@ -85,7 +84,7 @@ export const AdvancementCard: React.FC<AdvancementCardProps> = ({
         accessibilityHint="Opens the next part of your journey to look at"
         testID="home-advancement-see-next"
       >
-        <Text style={styles.ctaLabel} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+        <Text style={styles.ctaLabel} maxFontSizeMultiplier={Typography.maxFontScale}>
           {ADVANCEMENT_COPY.primary}
         </Text>
       </TouchableOpacity>
@@ -100,7 +99,7 @@ export const AdvancementCard: React.FC<AdvancementCardProps> = ({
         accessibilityLabel={ADVANCEMENT_COPY.secondary}
         testID="home-advancement-keep-going"
       >
-        <Text style={styles.dismissLabel} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+        <Text style={styles.dismissLabel} maxFontSizeMultiplier={Typography.maxFontScale}>
           {ADVANCEMENT_COPY.secondary}
         </Text>
       </TouchableOpacity>
