@@ -821,6 +821,99 @@ deploy. Deploy state lives on Kyle's checklist.
 > > gate on a row that can close with an open report is not a gate, which is why the item
 > > stopped being a report.
 
+> **AMENDED 2026-09-12 (R0 built and committed). FOUR THINGS THE BUILD CHANGED OR FOUND,
+> AND ONE OPEN CONFLICT IT WILL NOT RESOLVE QUIETLY.** The R0 row above is left unedited,
+> per §3.4. This block supersedes it wherever the two differ.
+>
+> **1. THE ACCENT-CAP PREMISE CORRECTION, AND IT CUTS THE OTHER WAY FROM THE ONE IN THE ROW.**
+> The row states, twice and in bold, that the 10 to 15% cap "lives in exactly one place,
+> `Vara_Mobile_UI_Standards.md` §4.2" and "exists in §4.2 of this standards document and
+> nowhere else". **Step 0 searched every `.md` in the repo and that is false.** The cap is in
+> **three live documents**:
+>
+> | File | Line | Form it takes |
+> |---|---|---|
+> | `mobile/Vara_Mobile_UI_Standards.md` | 187 (v2.0 numbering) | "Warm accents (Amber, Apricot) stay at or under 10 to 15% of the visual field" |
+> | `docs/Vara_Dashboard_Spec.md` | 22 | "accents at 10-15% maximum" |
+> | `docs/Vara_FourPillar_IA_Spec.md` | 164 | "accents <=10-15%" |
+>
+> (`docs/archive/Vara_Build_Guide_SUPERSEDED.md:166` carries it too and does not count; the
+> archive is history, never a build source.)
+>
+> **THE ROW IS RIGHT ABOUT THE TWO FILES IT ACTUALLY CHECKED.** `docs/Vara_Refactor_Plan.md`
+> and `docs/brand/Vara_Brand_Voice_Copy_Guidelines.md` do not contain the cap and never have.
+> The error is the leap from "not in those two" to "in one place only": Step 0 searched two
+> candidate files rather than the tree.
+>
+> **WHY IT MATTERS, AND IT IS NOT PEDANTRY.** The two files above state the figure **without
+> the wash exemption**, in the coverage-generic form the row's whole argument exists to
+> reject. A reader who finds the cap in `Vara_Dashboard_Spec.md` is not looking at a false
+> premise resurfacing; they are looking at a real sentence in a live document.
+>
+> **SO THE ROW'S INSTRUCTION IS WITHDRAWN FOR THOSE TWO FILES.** The row says: *"IF A LATER
+> READER FINDS A 10 TO 15% CLAIM CITED TO THE REFACTOR PLAN OR THE BRAND GUIDELINES, THAT IS
+> THE FALSE PREMISE RESURFACING."* **That sentence stands for the refactor plan and the brand
+> guidelines and for nothing else.** It must not be applied to `Vara_Dashboard_Spec.md` or
+> `Vara_FourPillar_IA_Spec.md`.
+>
+> **§4.2 REMAINS THE AUTHORITY AND NEITHER FILE IS AMENDED.** v2.1 §4.2 now says in terms that
+> it defines "accent" for every document that uses the word, and names both files as
+> inheriting the definition rather than setting a second one. **That is a one-sentence fix in
+> one document instead of two dated amendments in two others**, and it holds even if a third
+> document states the figure tomorrow. The substance of the row's conclusion is unchanged:
+> there is no Immersive exception, washes were never capped, warm pigment inside artwork is.
+>
+> **2. THE FENCE WAS WIDENED, WITH APPROVAL, AND IT IS NAMED AS A WIDENING.** The row's
+> SECTIONS TOUCHED list is §2, §5, §7, §8, §10.2, §11E, §11F, §11H, §12.2, §17, §18 and
+> Appendix B. Kyle approved seven additions at Step 0, each a **factual correction of a
+> sentence Step 0 showed to be wrong or ambiguous**, none of them new design: **§4.2** (one
+> sentence, item 1 above); **§5.4** (the eyebrow exception itself, which the row requires but
+> did not list); **§6.3** (two corrections); **§9.4** (one cross-reference); **§10.7** (the
+> accessibility exemption); **§10.8** (pill coverage restated by route); **§16** (two
+> corrections). **§13 also lost one clause**, the iOS 18 glass-chrome fallback, which existed
+> only to support the `NativeTabs` posture §12.2 withdraws; leaving it would have left the
+> document promising a fallback for chrome it no longer specifies. **Nothing else moved.**
+>
+> **3. INTER IS LOADED AND RENDERED NOWHERE, AND THE REDESIGN INHERITS IT.** `useFonts` in
+> `App.tsx` registers all four Inter faces at boot; **no style in `mobile/src/` sets
+> `fontFamily` to any of them.** `Typography.fontFamily` has zero consumers, the eight
+> `fontFamily` assignments in the tree are all `'monospace'` in developer surfaces, and the
+> React Native Paper theme overrides size and weight without a family too. **The app ships in
+> the system font and has since the tokens were written**, which means every type decision in
+> §5.2 was evaluated against the wrong faces. §5.1 now carries the shared-primitive rule and
+> states the fact plainly. **The consequence for R1: Inter's metrics are not the system
+> font's, so the 149 literal `lineHeight` values must be re-verified for clipping the first
+> time Inter actually renders.** This was not in the row and is not a small finding.
+>
+> **4. THE §5.4 EYEBROW EXCEPTION, AS WRITTEN.** Scoped exactly as Kyle settled it: **state or
+> context only** (where the user is, where the content below came from), **sentence case, no
+> `textTransform`, no letter-spacing, at or under 12pt**, and **never a category, section or
+> phase name**. `JOURNEY_LINE_LABEL` and `PHASE_STATE_LABELS` are cited as the pattern. The
+> rejected branch (the phase descriptors in the slot) is recorded with its price, so it reads
+> as a decision and not an omission. **No amendment to row 7j, to Content Pack v1
+> `§phase-descriptors`, or anywhere else; nothing outside the standards document moved.**
+> Step 0 also found **24 uppercase or tracked-out labels above headings across 20 files**,
+> three of them at 14pt. **None is a phase descriptor.** They are the shape §5.4 actually
+> bans, they are recorded as baseline debt in §17, and the exception is written narrowly
+> enough that it does not legalise a single one of them.
+>
+> **AND ONE OPEN CONFLICT, FLAGGED RATHER THAN SETTLED, BECAUSE IT IS R1's TO TAKE.**
+> **The background asset has two specifications on this board and they disagree.** The
+> 2026-09-12 R-series block above promotes the regeneration to a blocking R1 deliverable at
+> **"roughly 1574 x 2796"**, which is aspect **0.563**: the current composition at full
+> height, exact-fit on the SE, cropping **18% of the WIDTH** on the 16 Pro Max. v2.1 §8.1, as
+> this build was instructed to write it, specifies **1290 x 2796 at aspect 0.461**: exact-fit
+> on the 16 Pro Max, cropping **18% of the HEIGHT** on the SE, with the safe corridor written
+> as "nothing load-bearing in the top or bottom 9%".
+>
+> **Both are coherent; they differ in which device gets the exact fit and therefore in which
+> axis the artist must protect.** They cannot both be handed to whoever draws the asset.
+> **R0 does not choose**, because choosing would be taking an art-direction decision inside a
+> documentation slice and burying it in a section number. **§8.1 currently states 1290 x 2796
+> because that is what this build was told to write, and R1 must either confirm it or amend
+> §8.1 in the same slice that commissions the artwork.** Recorded here so the disagreement is
+> found before the asset is drawn rather than after.
+
 **Ordering rationale.** 0 makes everything after it smaller and reversible. 1–2 land the model
 behind a flag without touching content. 3 is the content-dependent core and the point of no return
 for the outcome axis. 4 follows 3 because onboarding writes the rekeyed shape. 5–7 are the user-
@@ -2475,6 +2568,111 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-09-12 - R0, the design authority goes to v2.1 (`f412157` the standards doc, this entry and the R0 amendment block following; branch `docs/slice-r0-standards-v2.1`; NO WALK, per the row: docs only, no runtime surface. The standing walk this row DEFINES is first run by R2)
+
+**DOCS ONLY. NO CODE.** Two files changed, both `.md`:
+`mobile/Vara_Mobile_UI_Standards.md` (342 insertions, 43 deletions) and this roadmap. **No
+file under `src/`, no `package.json`, no assets, no lint config**, verified with
+`git diff --stat` rather than asserted.
+
+**SECTIONS CHANGED, and the widening is named as a widening rather than folded into the
+list.** The R0 row's SECTIONS TOUCHED list was: **2 (new 2.8), 5, 7, 8 (restructured), 10.2,
+11E, 11F, 11H (new), 12.2, 17, 18, Appendix B (extended).** All were written.
+
+**SEVEN SECTIONS WERE ADDED TO THAT FENCE WITH KYLE'S APPROVAL AT STEP 0**, each a factual
+correction of a sentence Step 0 showed to be wrong or ambiguous, none of them new design:
+
+| Section | What the correction is |
+|---|---|
+| **4.2** | One sentence: 4.2 defines "accent" for every document that uses the term |
+| **5.4** | The eyebrow exception itself, which the row requires and did not list |
+| **6.3** | `Layout.community.buttonRadius` is on-scale; the block is live, not dead |
+| **9.4** | One cross-reference to walk assertion (e) |
+| **10.7** | The accessibility exemption for position in a finite flow |
+| **10.8** | Guide-pill coverage restated by route |
+| **16** | Two corrections: the touch-target constants, and mutedSageGray's real ratio |
+
+**AND ONE DELETION OUTSIDE BOTH LISTS, INSTRUCTED IN THE BUILD PROMPT AND RECORDED HERE
+BECAUSE IT IS NOT IN THE ROW.** §13 of the standards lost its **iOS 18 glass-chrome fallback
+clause**. It existed only to support the `NativeTabs` posture that §12.2 withdraws, so
+leaving it would have left the document promising a fallback for chrome it no longer
+specifies. The Android bullet in the same section now points at §12.2's opaque fallback
+instead of "the native tab component". **Nothing else moved.**
+
+**THE ROW'S THREE SETTLED INPUTS ARE ALL WRITTEN IN, AS SETTLED.** The eyebrow is scoped to
+state and context only, with **no amendment to row 7j, to Content Pack v1
+`§phase-descriptors`, or anywhere else**. The accent cap gets **no Immersive exception**. The
+device matrix is in §18.1 verbatim, with the iPad gap recorded beside it and explicitly not
+resolved, since flipping `supportsTablet` is a product decision.
+
+**TWO STEP-0 FINDINGS CHANGED WHAT GOT WRITTEN, and both are corrections to numbers or claims
+the row carried.**
+
+**(1) THE ACCENT CAP IS IN THREE LIVE DOCUMENTS, NOT ONE.** The row asserts twice that §4.2
+is the only place it appears. `docs/Vara_Dashboard_Spec.md:22` and
+`docs/Vara_FourPillar_IA_Spec.md:164` both carry it, **without the wash exemption**. The row
+is right about the two files it checked (`Vara_Refactor_Plan.md` and the brand guidelines are
+clean); the error was searching two candidates instead of the tree. **The row's
+"false premise resurfacing" instruction is withdrawn for those two files** and stands for the
+two it names. Rather than amend two documents, §4.2 now states that it defines the term for
+every document that uses it. Full working in the R0 amendment block in §5.
+
+**(2) THE RAW-HEX BASELINE IS 501, NOT 331.** The build prompt carried 331. The eslint run's
+own output is **501 `no-restricted-syntax` errors across 97 files**, of which **385 sit
+outside `src/constants/`** in 85 files and 16 are in tests. **The 100 inside `src/constants/`
+are the palette definitions themselves**: the rule has no override for that directory, so the
+token file is permanently among the errors. That is a **lint-configuration gap, not debt to
+pay down**, and §17 books it as an R1 item. The figure was taken from `npx eslint` and
+reconciles exactly against the recorded lint baseline of 1100 errors / 1358 warnings.
+
+**THE BASELINE-DEBT TABLE IS THE PART OF THIS SLICE WITH THE LONGEST HALF-LIFE.** §17 now
+records nine measured counts at `c30671c`: 501 raw hex, 975 `fontWeight`-without-family sites,
+149 literal line heights, 164 off-scale radii, 26 animated files without `useReducedMotion`,
+24 banned eyebrows, 13 numeric-progress sites, 4 coral misuses, 28 legacy icon files. The rule
+attached to it is three clauses: **introduce none; comply in full in new or materially
+rewritten components; every R-slice REPORT states the delta for the files it touched.** The
+third clause is the one that does the work, because the global figure is a number no single
+slice can move and quoting it is how a thin slice hides.
+
+**INTER IS LOADED AND RENDERED NOWHERE.** Recorded in §5.1 and in the amendment block. The
+consequence R1 inherits: **the 149 literal line heights must be re-verified for clipping the
+first time Inter renders**, because Inter's metrics are not the system font's and
+`typography.ts:75` documents exactly that failure mode.
+
+**ONE OPEN CONFLICT IS FLAGGED AND DELIBERATELY NOT RESOLVED.** The background asset has two
+specifications on this board: the R-series block says **roughly 1574 x 2796** (aspect 0.563,
+exact-fit on the SE, 18% width crop on the Pro Max) and §8.1 as this build was instructed to
+write it says **1290 x 2796** (aspect 0.461, exact-fit on the Pro Max, 18% height crop on the
+SE). **Both are coherent and they protect different axes**, so they cannot both go to whoever
+draws the artwork. **R0 does not choose**: that is art direction, and taking it inside a
+documentation slice would bury it in a section number. **R1 confirms §8.1 or amends it in the
+same slice that commissions the asset.**
+
+**ONE RESIDUAL LEFT STANDING ON PURPOSE.** §12.2 retires §6.2's fixed 48 bottom padding for
+the 16 tab-bar-visible routes and says so; **§6.2 itself is unedited**, because it is outside
+the fence and outside the approved widening. The forward reference is correct and the
+document is not self-contradicting, but **R2 should close it in §6.2 when the floating bar
+lands and the real inset is known.**
+
+**SENTINEL UNCHANGED AT 149.** Docs only: `EXPECTED_SENTINELS` counts drafted strings in
+`src/`, and no file under `src/` was touched. Verified by `git diff --stat` showing two `.md`
+files and nothing else, not by re-running the suite.
+
+**MANIFEST: NO CHANGE, VERIFIED BY READING** `functions/src/lib/accountDeletion.js:60-110`,
+not carried from the 7m entry. This slice reads and writes no Firestore collection and
+introduces none. `USERID_FIELD_COLLECTIONS` is unchanged.
+
+**BASELINES CARRIED, NOT RE-RUN**, as the row allows for a docs-only slice: tsc **148** ·
+jest **3505 of 223** · sentinel **149** · lint **1100 errors / 1358 warnings**. The lint
+figure was in fact re-run, to source the raw-hex count above, and came back at the recorded
+baseline exactly.
+
+**NO WALK**, per the row's own walk column: no runtime surface. **The standing redesign walk
+this row defines is first run by R2.**
+
+**THE `[Next]` MARKER IS NOT MOVED.** R0 still carries it. Kyle moves it at the merge, per the
+one-live-marker rule recorded at 7k's close.
 
 ### 2026-09-12 - slice 7m, the completion fallback becomes approved copy (`d80b957`, tests + row correction `21ad672`, docs `541107b` + attestation `9dd59f9`; merged `6b4aefc`; branch `journey/slice-7m-completion-copy`, pushed; NO WALK, per the row: one string constant, no engine, storage or navigation path touched)
 
