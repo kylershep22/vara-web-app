@@ -84,8 +84,9 @@ export function derivePhaseStates(state: PhaseStateInput): PhaseStates {
     // which an array check does not catch. Both shapes are pinned by test.
     //
     // THIS RUNS DURING A RENDER on the journey map and the phase page, so a
-    // throw here is answered by the app's single ErrorBoundary (App.tsx:114)
-    // by replacing every tab. A missing history reads as 'done' below, which is
+    // throw here is answered by an ErrorBoundary. That meant every tab when this
+    // was written; since slice 7g each tab and screen has its own boundary, so
+    // it means the Practices tab. A missing history reads as 'done' below, which is
     // the same honest reading the next comment already gives for a phase the
     // user is demonstrably past.
     const closures = Array.isArray(state.history)

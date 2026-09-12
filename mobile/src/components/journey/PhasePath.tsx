@@ -153,9 +153,11 @@ export const PhasePath: React.FC<PhasePathProps> = ({
       // What this closes is the double index. `PHASE_DISPLAY[phase]` is total
       // over PHASE_ORDER, which this row iterates, so the OUTER lookup is
       // always safe here; `[destination]` is the one that comes off a document.
-      // An undefined cell then throws on `.short` DURING RENDER, and the app
-      // has a single ErrorBoundary above the navigator (App.tsx:114), so that
-      // throw costs every tab rather than this row.
+      // An undefined cell then throws on `.short` DURING RENDER. Until slice
+      // 7g the app had a single ErrorBoundary above the navigator
+      // (App.tsx:114) and that throw cost every tab; it now costs the Practices
+      // tab alone, because that tab carries its own boundary. Still far more
+      // than this row, which is why the guard stays.
       //
       // THE ROW IS DROPPED, NOT STUBBED. A placeholder row would draw a step of
       // the journey the app cannot name, which is worse than a path with a gap:

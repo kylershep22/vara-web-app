@@ -12,6 +12,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { Colors } from '../constants';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { stackOpts, tabOpts } from './types';
+import { screenBoundaryLayout } from './screenBoundary';
 import { OfflineIndicator } from '../components/shared/OfflineIndicator';
 import { useSubscription } from '../hooks/useSubscription';
 import { ONBOARDING_V2, ONBOARDING_V3, FOUR_PILLAR_IA } from '../constants/dashboardConfig';
@@ -510,7 +511,13 @@ const BottomTabsNavigator = () => {
           re-homed (Journal/Masterclass -> Energy, Connected Apps/Help ->
           Settings, Insights -> the dashboard look-back card). This legacy
           navigator is itself replaced by FivePillarTabs when FOUR_PILLAR_IA
-          flips (B-3d.8); until then it runs as a 3-tab transient. */}
+          flips (B-3d.8); until then it runs as a 3-tab transient.
+
+          NO screenLayout BOUNDARY HERE (slice 7g), DELIBERATELY. FOUR_PILLAR_IA
+          has been ON since 2026-07-02, so this navigator does not mount, and
+          the retired IA is legacy pending removal rather than something to
+          extend. Its screens still sit under the App.tsx:114 backstop. If the
+          flag is ever flipped back, wire screenBoundaryLayout here too. */}
     </BottomTabs.Navigator>
   );
 };
@@ -551,6 +558,16 @@ const BottomTabsNavigator = () => {
 const FivePillarTabs = () => {
   return (
     <BottomTabs.Navigator
+      // PER-TAB ERROR BOUNDARY (slice 7g). Wraps all four tab scenes; the tab
+      // bar is rendered by BottomTabView outside them, so it survives a throw
+      // and the user can leave a broken tab. See navigation/screenBoundary.tsx.
+      //
+      // TABS ARE LAZY (BottomTabView defaults `lazy` to true), so a tab's
+      // boundary does not exist until that tab is first focused, and once
+      // mounted a tab STAYS mounted - which is why a tab left in its error
+      // state stays in it across a tab switch away and back. That is pinned in
+      // __tests__/screenBoundary.test.tsx rather than left as an artefact.
+      screenLayout={screenBoundaryLayout}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Colors.evergreenTeal,
@@ -628,6 +645,15 @@ const MainNavigator = () => {
     <>
       <OfflineIndicator />
       <AppStack.Navigator
+        // PER-SCREEN ERROR BOUNDARY (slice 7g). Wraps all 40 screens registered
+        // below, including `Main`, and any screen added later. The native-stack
+        // header and its back button render outside the boundary, so a screen
+        // that throws keeps its way back. See navigation/screenBoundary.tsx.
+        //
+        // OfflineIndicator above is OUTSIDE the navigator and so is not covered
+        // here; it, the providers and NavigationContainer itself fall through to
+        // the App.tsx:114 backstop, which is why that boundary stays.
+        screenLayout={screenBoundaryLayout}
         screenOptions={{
           headerShown: false,
         }}

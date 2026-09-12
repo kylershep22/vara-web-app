@@ -193,8 +193,10 @@ export function JourneyMapScreen() {
     try {
       // THE VALIDATING ACCESSOR, NOT THE RAW READ (slice 7f). A document whose
       // `destination` is outside its union reaches `PhasePath` below, indexes
-      // PHASE_DISPLAY during a render and throws, and the app's single
-      // ErrorBoundary (App.tsx:114) answers that by replacing the whole app.
+      // PHASE_DISPLAY during a render and throws. When 7f wrote this, the
+      // app's single ErrorBoundary (App.tsx:114) answered that by replacing the
+      // WHOLE APP; since slice 7g this tab has its own boundary, so it would
+      // cost Practices alone. Still a fallback where a page should be.
       // The accessor answers null instead, which is the state the path is
       // already written for: the branch below renders nothing, and Start here
       // and the destination cards are siblings that never depended on it.

@@ -175,8 +175,10 @@ describe('phaseStatesForRoute', () => {
 // `history` is declared a list on JourneyState, so every case here is
 // unreachable to the compiler and reachable from the Firebase console. This
 // derivation runs DURING A RENDER on both the journey map and the phase page,
-// and the app has one ErrorBoundary sitting above the navigator (App.tsx:114),
-// so an unguarded throw here costs every tab rather than one screen.
+// so an unguarded throw here reaches an ErrorBoundary. That cost every tab when
+// this was written - one boundary, above the navigator at App.tsx:114 - and
+// costs one tab since slice 7g scoped them. Either way, more than the missing
+// row this guard trades it for.
 //
 // THE PHASE MATTERS AND IT IS NOT INCIDENTAL. The filter is only reached for a
 // phase BEHIND the user, so a document at 'remove' (index 0) never touches

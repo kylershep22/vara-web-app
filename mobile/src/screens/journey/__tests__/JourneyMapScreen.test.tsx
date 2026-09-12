@@ -453,9 +453,10 @@ describe('JourneyMapScreen — Start here', () => {
 //
 // The map is the surface 7e's resolver guard could not reach: it calls the
 // service directly. A `destination` outside its union used to index
-// PHASE_DISPLAY inside PhasePath during a render, and the app has ONE
-// ErrorBoundary and it sits above the navigator (App.tsx:114), so the cost was
-// every tab rather than this screen.
+// PHASE_DISPLAY inside PhasePath during a render. THE COST WAS EVERY TAB when
+// 7f wrote this, because the app had ONE ErrorBoundary and it sat above the
+// navigator (App.tsx:114); slice 7g scoped the boundaries, so the same throw
+// now costs this tab. The guard is what keeps it costing neither.
 describe('JourneyMapScreen - the read boundary', () => {
   // THE ASSERTION THAT PINS THE FIX ITSELF. Everything else here would pass
   // against a screen that had gone back to the raw read, because the mocks

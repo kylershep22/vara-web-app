@@ -292,9 +292,11 @@ describe('PhasePath', () => {
 
 // DEFENCE IN DEPTH, NOT THE FIX (slice 7f). The fix is the validating accessor
 // on the journey map's read, pinned in the service suite; these cases pin that
-// the component cannot take the APP down - there is one ErrorBoundary and it is
-// above the navigator (App.tsx:114) - if an unrenderable destination ever
-// reaches it by a route nobody has thought of.
+// the component cannot take a whole SURFACE down if an unrenderable destination
+// ever reaches it by a route nobody has thought of. (When 7f wrote this it said
+// the APP, because there was one ErrorBoundary and it sat above the navigator at
+// App.tsx:114. Slice 7g gave every tab and screen its own, so the cost of a miss
+// is now the Practices tab. These cases are unchanged and still earn their keep.)
 //
 // EVERY CASE IS UNREACHABLE TO THE COMPILER, which is why the prop is cast: a
 // key outside the union arrives from an Admin SDK write, and the types stop

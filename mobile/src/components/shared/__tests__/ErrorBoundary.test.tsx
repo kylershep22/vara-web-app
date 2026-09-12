@@ -1,19 +1,29 @@
-// The app's one and only ErrorBoundary (slice 7f).
+// The app's ErrorBoundary (slice 7f; SCOPES ADDED IN 7g).
 //
-// IT WRAPS EVERYTHING. There is a single instance, mounted at App.tsx:114 ABOVE
-// the navigator, so any render throw anywhere in the app replaces every tab
-// with this fallback rather than degrading one screen. That fact is what made
-// slices 7e and 7f worth building, and it is asserted nowhere else, so this
-// file is where it is written down.
+// THIS HEADER SAID THE OPPOSITE UNTIL SLICE 7g, and the correction is the point
+// rather than housekeeping. It read "IT WRAPS EVERYTHING. There is a single
+// instance, mounted at App.tsx:114 ABOVE the navigator, so any render throw
+// anywhere in the app replaces every tab with this fallback rather than
+// degrading one screen." That was true, it was what made slices 7e and 7f worth
+// building, and 7g is the slice that stopped it being true.
 //
-// WHAT THIS SUITE PINS is the fallback's contract, not the boundary mechanism:
-// React's own error handling needs no test. The user-facing half must be the
-// same in both builds, and the DEBUG half must not exist in production.
+// WHERE THE BOUNDARIES ARE NOW. The App.tsx:114 instance remains as the
+// BACKSTOP, at scope 'app': it still covers the providers, NavigationContainer,
+// OfflineIndicator and AudioPlayerOverlay, and when it catches, the whole app
+// really is gone. Every screen and every tab additionally carries its own
+// instance at scope 'surface', installed by `screenLayout` on the two
+// navigators - see navigation/screenBoundary.tsx and its suite, which is where
+// the CONTAINMENT is proved (a throw in one tab leaving the others alive). This
+// file pins the fallback's own contract.
+//
+// WHAT THIS SUITE PINS: the two scopes render different copy, the debug half
+// does not exist in production, and the reset clears everything it should.
+// React's own error handling still needs no test.
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { render, screen, fireEvent } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
-import ErrorBoundary from '../ErrorBoundary';
+import ErrorBoundary, { ERROR_BOUNDARY_COPY } from '../ErrorBoundary';
 
 // A component that throws on its first render, which is the shape the journey
 // read-boundary defects had: an index into a total record with a key that was
@@ -32,7 +42,9 @@ afterEach(() => {
   consoleError.mockRestore();
 });
 
-const MESSAGE = "Something didn't work as expected. We've been notified.";
+// Read from the component rather than retyped, so a copy edit cannot leave this
+// suite asserting a string the app no longer renders.
+const MESSAGE = ERROR_BOUNDARY_COPY.appTitle;
 
 describe('ErrorBoundary - the user-facing half, identical in both builds', () => {
   test('catches a render throw and shows the message and the way out', () => {
@@ -98,5 +110,157 @@ describe('ErrorBoundary - the diagnostics are DEV-ONLY', () => {
     );
 
     expect(screen.getByText(/PHASE_DISPLAY/)).toBeTruthy();
+  });
+});
+
+/**
+ * THE TWO SCOPES (slice 7g).
+ *
+ * The copy differs because what failed differs, and getting this backwards is
+ * the specific mistake the slice exists to avoid: telling someone the app is
+ * gone while three of their four tabs are still working underneath the panel.
+ */
+describe('ErrorBoundary - app scope versus surface scope', () => {
+  test('the default scope is app, and it says the app-level thing', () => {
+    render(
+      <ErrorBoundary>
+        <Boom />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText(ERROR_BOUNDARY_COPY.appTitle)).toBeTruthy();
+    expect(screen.getByText(ERROR_BOUNDARY_COPY.appMessage)).toBeTruthy();
+    expect(screen.queryByText(ERROR_BOUNDARY_COPY.surfaceTitle)).toBeNull();
+  });
+
+  test('an explicit app scope is the same as the default', () => {
+    render(
+      <ErrorBoundary scope="app">
+        <Boom />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText(ERROR_BOUNDARY_COPY.appTitle)).toBeTruthy();
+    expect(screen.getByText(ERROR_BOUNDARY_COPY.appMessage)).toBeTruthy();
+  });
+
+  test('surface scope shows the surface title and DROPS the second line', () => {
+    render(
+      <ErrorBoundary scope="surface">
+        <Boom />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText(ERROR_BOUNDARY_COPY.surfaceTitle)).toBeTruthy();
+    expect(screen.queryByText(ERROR_BOUNDARY_COPY.appTitle)).toBeNull();
+    // "We'll look into this soon." is an app-scope line. At surface scope the
+    // navigator chrome is the way out and the title carries the whole message.
+    expect(screen.queryByText(ERROR_BOUNDARY_COPY.appMessage)).toBeNull();
+  });
+
+  test('both scopes keep Try Again', () => {
+    const { unmount } = render(
+      <ErrorBoundary scope="surface">
+        <Boom />
+      </ErrorBoundary>
+    );
+    expect(screen.getByText(ERROR_BOUNDARY_COPY.tryAgain)).toBeTruthy();
+    unmount();
+
+    render(
+      <ErrorBoundary scope="app">
+        <Boom />
+      </ErrorBoundary>
+    );
+    expect(screen.getByText(ERROR_BOUNDARY_COPY.tryAgain)).toBeTruthy();
+  });
+});
+
+/**
+ * THE CLAIM THAT WAS FALSE, REMOVED IN SLICE 7g.
+ *
+ * The app-level title used to end "We've been notified." Nothing reports:
+ * crashReporting.service.ts has every Sentry call commented out and an
+ * `isInitialized` flag that is never set true, and this boundary is its only
+ * caller in the app. The sentence promised a report that is not sent, on the
+ * one screen someone only ever reads at their worst moment.
+ *
+ * PINNED AS A NEGATIVE so it cannot quietly come back with the wiring still
+ * absent. When @sentry/react-native is actually wired (the PRE-LAUNCH Section 5
+ * row), this test is the thing to revisit deliberately.
+ */
+describe('ErrorBoundary - no unearned notification claim', () => {
+  test('no scope claims the user has been notified', () => {
+    render(
+      <ErrorBoundary>
+        <Boom />
+      </ErrorBoundary>
+    );
+    expect(screen.queryByText(/notified/i)).toBeNull();
+    expect(ERROR_BOUNDARY_COPY.appTitle).not.toMatch(/notified/i);
+    expect(ERROR_BOUNDARY_COPY.appMessage).not.toMatch(/notified/i);
+    expect(ERROR_BOUNDARY_COPY.surfaceTitle).not.toMatch(/notified/i);
+  });
+});
+
+/**
+ * THE RESET CLEARS ALL THREE FIELDS (slice 7g).
+ *
+ * `handleReset` used to clear `hasError` and `error` and leave `componentStack`
+ * behind, so a second, different error rendered the FIRST one's stack under it
+ * in a dev build. Same family as the TS2741 fixed in this slice: a state shape
+ * with three fields being handled as though it had two.
+ */
+describe('ErrorBoundary - Try Again clears the whole error state', () => {
+  // ASSERTED ON THE INSTANCE, DELIBERATELY, and the reason is worth stating
+  // because reaching into a component's state is normally the wrong move.
+  //
+  // A STALE `componentStack` IS NOT OBSERVABLE IN A SETTLED RENDER. It shows
+  // for exactly one frame: getDerivedStateFromError sets hasError and error,
+  // the fallback renders with whatever stack was left over, and then
+  // componentDidCatch immediately sets the real one and re-renders. RNTL
+  // flushes both, so any rendered-output assertion here would find the CORRECT
+  // stack whether the bug was fixed or not - it would be green against the
+  // broken code, which is the vacuity this repo keeps catching after the fact.
+  //
+  // So this pins the state transition itself, which is the thing the slice
+  // actually changed, rather than dressing up an assertion that proves nothing.
+  test('handleReset clears error, hasError AND componentStack', () => {
+    const ref = React.createRef<ErrorBoundary>();
+
+    // The child has to be able to STOP throwing, or the reset immediately
+    // re-arms the boundary on the remount and the assertions below read the
+    // second error rather than the cleared state. Controlled from outside the
+    // component because React 19 retries a failed concurrent render, so a child
+    // that heals itself can recover on React's own retry and never reach the
+    // boundary at all.
+    const child = { broken: true };
+    const Toggleable: React.FC = () => {
+      if (child.broken) throw new Error('PHASE_DISPLAY[reboot] is undefined');
+      return <Text>recovered</Text>;
+    };
+
+    render(
+      <ErrorBoundary ref={ref}>
+        <Toggleable />
+      </ErrorBoundary>
+    );
+
+    // All three are populated after the catch. The third is the one that used
+    // to survive the reset.
+    expect(ref.current?.state.hasError).toBe(true);
+    expect(ref.current?.state.error).toBeTruthy();
+    expect(ref.current?.state.componentStack).toBeTruthy();
+
+    child.broken = false;
+    fireEvent.press(screen.getByText(ERROR_BOUNDARY_COPY.tryAgain));
+
+    // The subtree really came back, so the reset is a reset and not just a
+    // cleared flag over a still-broken child.
+    expect(screen.getByText('recovered')).toBeTruthy();
+
+    expect(ref.current?.state.hasError).toBe(false);
+    expect(ref.current?.state.error).toBeNull();
+    expect(ref.current?.state.componentStack).toBeNull();
   });
 });
