@@ -35,7 +35,10 @@ jest.mock('../../utils/logger', () => ({
   logger: { log: jest.fn(), warn: (...a: any[]) => mockWarn(...a), error: (...a: any[]) => mockError(...a) },
 }));
 
-import { destinationForOutcome, resolveJourney, uidDigest } from '../resolveJourney';
+import { destinationForOutcome, resolveJourney } from '../resolveJourney';
+// uidDigest MOVED to journeyDocGuard in slice 7f, so the service's read
+// accessor could share it without importing this module and closing a cycle.
+import { uidDigest } from '../journeyDocGuard';
 import { legacyPhaseFor } from '../../protocolEngine';
 import { DESTINATION_KEYS, PHASE_ORDER } from '../../constants/journey';
 
@@ -210,6 +213,61 @@ describe('resolveJourney', () => {
       const result = await resolveJourney(UID);
 
       expect(result.target === 'today' && result.phase.revisionToken).toBe(0);
+    });
+  });
+
+  // ---- rung (a): unreadable TIMESTAMPS (slice 7f) ----
+  //
+  // NOT A CRASH CLASS AND THAT IS WHY IT NEEDED FINDING BY TRACING. An
+  // unreadable timestamp used to become the string "NaN-NaN-NaN", which is
+  // truthy and sorts above every real ISO date, so the adjustment offer's
+  // re-arm floor sat permanently in the future and the offer could never fire
+  // for that document. Nothing threw, nothing logged, and the user simply never
+  // saw a card they had qualified for.
+  describe('rung (a): a timestamp nothing can read', () => {
+    const unreadable: Array<[string, unknown]> = [
+      ['{ seconds: NaN }', { seconds: Number.NaN }],
+      ['a toDate() returning an Invalid Date', { toDate: () => new Date(Number.NaN) }],
+    ];
+
+    test.each(unreadable)(
+      'enteredAt %s yields an EMPTY enteredAtIso, never "NaN-NaN-NaN"',
+      async (_name, stamp) => {
+        mockGetJourneyState.mockResolvedValue(state({ enteredAt: stamp }));
+        const result = await resolveJourney(UID);
+
+        expect(result.target === 'today' && result.phase.enteredAtIso).toBe('');
+      }
+    );
+
+    test.each(unreadable)(
+      'adjustDeclinedAt %s yields a NULL floor, not a floor in the future',
+      async (_name, stamp) => {
+        // `enteredAt` is unreadable too, so the decline is the only candidate
+        // that could contribute: the floor is null or it is this stamp.
+        mockGetJourneyState.mockResolvedValue(
+          state({ enteredAt: null, adjustDeclinedAt: stamp })
+        );
+        const result = await resolveJourney(UID);
+
+        // NULL, NOT ''. `timestampToIso` maps a falsy answer to null because
+        // null is this field's vocabulary for "no floor"; '' would pass
+        // adjustArmedFromIsoOf's `iso !== null` filter and claim a floor at the
+        // beginning of time, which is a different statement.
+        expect(result.target === 'today' && result.phase.adjustArmedFromIso).toBeNull();
+      }
+    );
+
+    // THE ANTI-VACUITY DIRECTION: a readable stamp still produces a real floor.
+    test('a readable adjustDeclinedAt still sets the floor', async () => {
+      mockGetJourneyState.mockResolvedValue(
+        state({ enteredAt: null, adjustDeclinedAt: { seconds: 1_767_225_600 } })
+      );
+      const result = await resolveJourney(UID);
+
+      const floor = result.target === 'today' ? result.phase.adjustArmedFromIso : null;
+      expect(floor).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(floor).not.toContain('NaN');
     });
   });
 

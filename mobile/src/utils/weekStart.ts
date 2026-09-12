@@ -43,6 +43,21 @@ export const WEEK_LENGTH_DAYS = 7;
  * and yesterday's for the Americas. The user's week starts on the user's day.
  */
 export function toIsoDate(date: Date): string {
+  // AN INVALID DATE ANSWERS '' RATHER THAN "NaN-NaN-NaN" (slice 7f). The three
+  // getters below do not throw on one - they return NaN - so this function used
+  // to hand back a TRUTHY string of the right shape and the wrong meaning. Its
+  // readers test the result for truthiness to mean "the timestamp was
+  // readable", so the garbage string passed every one of those gates and then
+  // sorted ABOVE every real ISO date ('N' is 0x4E, '2' is 0x32). As the
+  // adjustment offer's re-arm floor that made `weekStart > armedFromIso` false
+  // for every week the user would ever have, silently and permanently, with no
+  // log line to find it by.
+  //
+  // '' IS THE VOCABULARY THE CALLERS ALREADY HAVE. `enteredAtIsoOf` returns it
+  // for a timestamp the server has not resolved, and its readers already
+  // suppress on it. Only the three resolveJourney call sites can pass an
+  // invalid Date at all; the other four pass `new Date()`.
+  if (Number.isNaN(date.getTime())) return '';
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
   const day = `${date.getDate()}`.padStart(2, '0');
   return `${date.getFullYear()}-${month}-${day}`;

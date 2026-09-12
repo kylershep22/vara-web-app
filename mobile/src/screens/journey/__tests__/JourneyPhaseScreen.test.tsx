@@ -633,3 +633,78 @@ describe('the adjustment door', () => {
     expect(screen.getByText(PHASE_STATE_LABELS.current)).toBeTruthy();
   });
 });
+
+// ROUTE PARAMS THE TYPES SAY CANNOT ARRIVE (slice 7f).
+//
+// Both params are declared as closed unions, and every navigation that reaches
+// this screen supplies real keys today - the map iterates PHASE_ORDER, and
+// Today's two entry points are guarded by slice 7e's resolver branch. These
+// cases pin the page against the day a fourth caller is written, because the
+// failure mode is not a broken page: the app has ONE ErrorBoundary and it sits
+// above the navigator (App.tsx:114), so a throw here costs every tab.
+describe('JourneyPhaseScreen - params it cannot render', () => {
+  it('a destination outside the union does not throw, and the page still renders', async () => {
+    setParams('remove', 'stress');
+    mockGetJourneyState.mockResolvedValue(journeyFixture());
+
+    expect(() => render(<JourneyPhaseScreen />)).not.toThrow();
+
+    // The title and gloss go quiet; the BODY is keyed on phase alone and is
+    // still there, which is the partial render the file header describes for a
+    // failed document read.
+    await waitFor(() => {
+      expect(screen.getByText(PHASE_PAGE_BODIES.remove)).toBeTruthy();
+    });
+  });
+
+  // THE SHARPEST SHAPE ON THE PAGE, and it was found by tracing rather than by
+  // a crash: `.map` on an undefined cell throws instantly. It is reached only
+  // when the door is open, which needs the document's phaseKey to equal the
+  // route param.
+  it('a phase outside the union does not throw with the adjust door open', async () => {
+    setParams('reboot', 'calm');
+    mockGetJourneyState.mockResolvedValue(
+      journeyFixture({
+        phaseKey: 'reboot' as never,
+        adjustOfferedAt: { seconds: 1 } as never,
+      })
+    );
+
+    expect(() => render(<JourneyPhaseScreen />)).not.toThrow();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('journey-phase-adjust')).toBeTruthy();
+    });
+
+    // The door opens and offers nothing, rather than taking the app down.
+    //
+    // ASSERTED AGAINST EVERY REAL OPTION ID IN THE TABLE, not against one
+    // invented name: a testID that does not exist in any phase would be absent
+    // whether the guard worked or not, which is a test that cannot fail.
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
+    for (const phaseKey of PHASE_ORDER) {
+      for (const option of ADJUST_ALTERNATIVES[phaseKey]) {
+        expect(screen.queryByTestId(`journey-phase-adjust-${option.id}`)).toBeNull();
+      }
+    }
+  });
+
+  // THE ANTI-VACUITY DIRECTION. A guard that rendered nothing for every phase
+  // would satisfy both tests above.
+  it('a valid phase still offers all of its alternatives', async () => {
+    setParams('remove', 'calm');
+    mockGetJourneyState.mockResolvedValue(
+      journeyFixture({ adjustOfferedAt: { seconds: 1 } as never })
+    );
+
+    render(<JourneyPhaseScreen />);
+    await waitFor(() => {
+      expect(screen.getByTestId('journey-phase-adjust')).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
+
+    for (const option of ADJUST_ALTERNATIVES.remove) {
+      expect(screen.getByTestId(`journey-phase-adjust-${option.id}`)).toBeTruthy();
+    }
+  });
+});

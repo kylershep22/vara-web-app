@@ -54,7 +54,7 @@ import type {
   RemoveFamily,
 } from '../types/models';
 import { destinationForOutcome } from './destinationBridge';
-import { DESTINATION_KEYS, PHASE_ORDER } from '../constants/journey';
+import { hasRenderableKeys, uidDigest } from './journeyDocGuard';
 import type { JourneyMigrationSource } from '../types/analyticsEvents';
 
 // Re-exported because it is now part of this module's RESULT and not just
@@ -269,8 +269,14 @@ function enteredAtIsoOf(state: JourneyState): string {
  */
 function timestampToIso(stamp: unknown): string | null {
   const t = stamp as { toDate?: () => Date; seconds?: number } | null;
-  if (t && typeof t.toDate === 'function') return toIsoDate(t.toDate());
-  if (t && typeof t.seconds === 'number') return toIsoDate(new Date(t.seconds * 1000));
+  // `|| null` on both branches (slice 7f): toIsoDate answers '' for an invalid
+  // Date now, and '' is not this function's vocabulary for absence. Without it
+  // an unreadable stamp would enter adjustArmedFromIsoOf's candidate list as a
+  // string, where `iso !== null` would keep it and a floor of '' would arm the
+  // offer for every week. Null means no floor; '' would mean a floor at the
+  // beginning of time, which is a different claim.
+  if (t && typeof t.toDate === 'function') return toIsoDate(t.toDate()) || null;
+  if (t && typeof t.seconds === 'number') return toIsoDate(new Date(t.seconds * 1000)) || null;
   return null;
 }
 
@@ -314,58 +320,16 @@ function revisionOf(state: JourneyState): number {
 }
 
 /**
- * A non-reversible short digest of a uid, for logs.
+ * `hasRenderableKeys` and `uidDigest` MOVED to journey/journeyDocGuard.ts in
+ * slice 7f, and are imported above.
  *
- * THE UID ITSELF MUST NEVER REACH A LOG LINE. A warning about a user who could
- * not be migrated is an operational signal; a warning that names the user is
- * personal data sitting in a crash reporter. This is a djb2 hash rendered hex,
- * which is enough to tell two users apart in a log and not enough to identify
- * either.
+ * WHY THEY MOVED. The journey map reads `journeyStates` directly and never
+ * passes through this resolver, so 7e's guard did not cover it; the service's
+ * read accessor needs the same predicate and the same digest. The service
+ * cannot import this module - this module imports the service - so a shared
+ * home with no imports of its own was the only shape that did not end in a
+ * second copy of each.
  */
-export function uidDigest(uid: string): string {
-  let h = 5381;
-  for (let i = 0; i < uid.length; i += 1) {
-    h = ((h << 5) + h + uid.charCodeAt(i)) >>> 0;
-  }
-  return h.toString(16).padStart(8, '0');
-}
-
-/**
- * Are the two keys this document is INDEXED BY both inside their unions?
- *
- * THE TYPES SAY YES AND THE TYPES ARE NOT LOAD BEARING HERE. `phaseKey` and
- * `destination` are declared `PhaseKey` and `DestinationKey` on JourneyState,
- * so the compiler treats both as closed unions from the moment the document is
- * read. Nothing checked that at the boundary: `getJourneyState` hands back
- * whatever Firestore holds under those names, and a document written outside
- * the app carries whatever was typed into it.
- *
- * WHY IT MATTERS MORE THAN A WRONG STRING USUALLY DOES. Both keys are used to
- * INDEX rather than to compare. `JourneyLine.tsx:63` and `:74` evaluate
- * `PHASE_DISPLAY[phaseKey][destination].short` during render, so a phaseKey
- * outside the four makes the outer lookup `undefined` and the inner access
- * throws inside a render, which an ErrorBoundary answers by taking Home down
- * before any journey surface draws. Reproduced on `main` with a console-typed
- * "remove " - a trailing space - during slice 7b's walk.
- *
- * A CLIENT CANNOT PRODUCE SUCH A DOCUMENT. `validJourney` in firestore.rules
- * gates `phaseKey` on create AND update, and both in-app writers go through
- * `createJourneyState`. Admin SDK writes bypass rules, so the producers are the
- * console, the cohort reset script, or a row predating the rule. That is why
- * this is a boundary guard and not a hunt for a bad writer.
- *
- * READS FROM PHASE_ORDER AND DESTINATION_KEYS, never from a local list. Those
- * two arrays are already the one definition of both vocabularies
- * (constants/journey.ts), and a second copy here is exactly the divergence that
- * file exists to prevent: a fifth phase would be admitted by the resolver and
- * rejected by the display table, which is this defect again wearing a new coat.
- */
-function hasRenderableKeys(state: JourneyState): boolean {
-  return (
-    PHASE_ORDER.includes(state.phaseKey) &&
-    DESTINATION_KEYS.includes(state.destination)
-  );
-}
 
 /**
  * The capacity seed for a user, from its home with a legacy fallback.

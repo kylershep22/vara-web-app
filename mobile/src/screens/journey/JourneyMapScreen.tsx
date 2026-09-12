@@ -76,7 +76,7 @@ import { useAuth } from '../../context/AuthContext';
 import { derivePhaseStates } from '../../journey/phaseStates';
 import { NAV_TARGETS } from '../../navigation/navTargets';
 import { ROUTES } from '../../navigation/routes';
-import { getJourneyState } from '../../services/firebase/journeyState.service';
+import { getRenderableJourneyState } from '../../services/firebase/journeyState.service';
 import type { JourneyState } from '../../types/models';
 import type { JourneyPhaseParams } from './JourneyPhaseScreen';
 import { logger } from '../../utils/logger';
@@ -191,7 +191,14 @@ export function JourneyMapScreen() {
   const read = useCallback(async (): Promise<JourneyState | null> => {
     if (!uid) return null;
     try {
-      return await getJourneyState(uid);
+      // THE VALIDATING ACCESSOR, NOT THE RAW READ (slice 7f). A document whose
+      // `destination` is outside its union reaches `PhasePath` below, indexes
+      // PHASE_DISPLAY during a render and throws, and the app's single
+      // ErrorBoundary (App.tsx:114) answers that by replacing the whole app.
+      // The accessor answers null instead, which is the state the path is
+      // already written for: the branch below renders nothing, and Start here
+      // and the destination cards are siblings that never depended on it.
+      return await getRenderableJourneyState(uid);
     } catch (e) {
       // The cards below do not depend on this read. A failure costs the path
       // and nothing else, which is why it logs rather than throwing a screen.

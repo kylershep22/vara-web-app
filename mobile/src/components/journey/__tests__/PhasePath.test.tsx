@@ -11,7 +11,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { PhasePath } from '../PhasePath';
-import { PHASE_DISPLAY, PHASE_ORDER } from '../../../constants/journey';
+import { DESTINATION_KEYS, PHASE_DISPLAY, PHASE_ORDER } from '../../../constants/journey';
 import type { PhaseState } from '../../../constants/journey';
 import { PHASE_STATE_LABELS } from '../../../constants/journeyCopy';
 import type { PhaseStates } from '../../../journey/phaseStates';
@@ -285,6 +285,76 @@ describe('PhasePath', () => {
       expect(screen.getAllByText(PHASE_STATE_LABELS[state]).length).toBe(
         PHASE_ORDER.length
       );
+      unmount();
+    }
+  });
+});
+
+// DEFENCE IN DEPTH, NOT THE FIX (slice 7f). The fix is the validating accessor
+// on the journey map's read, pinned in the service suite; these cases pin that
+// the component cannot take the APP down - there is one ErrorBoundary and it is
+// above the navigator (App.tsx:114) - if an unrenderable destination ever
+// reaches it by a route nobody has thought of.
+//
+// EVERY CASE IS UNREACHABLE TO THE COMPILER, which is why the prop is cast: a
+// key outside the union arrives from an Admin SDK write, and the types stop
+// describing the data at that boundary.
+describe('PhasePath - a destination it cannot render', () => {
+  const unrenderable: Array<[string, string]> = [
+    ['absent', undefined as unknown as string],
+    // A real key in the WEEKLY vocabulary, which reads 'calm' in this one.
+    ['"stress", an OutcomeKey', 'stress'],
+    ['a trailing space on a real key', 'focus '],
+    ['outside the union', 'wellbeing'],
+  ];
+
+  test.each(unrenderable)('%s does not throw', (_name, destination) => {
+    expect(() =>
+      render(
+        <PhasePath
+          destination={destination as never}
+          states={ALL_AHEAD}
+          copy="full"
+        />
+      )
+    ).not.toThrow();
+  });
+
+  // THE ROWS ARE DROPPED, NOT STUBBED. A placeholder row would draw a step of
+  // the journey the app cannot name.
+  test.each(unrenderable)('%s renders no rows at all', (_name, destination) => {
+    render(
+      <PhasePath
+        destination={destination as never}
+        states={ALL_AHEAD}
+        copy="full"
+        testID="guard-path"
+      />
+    );
+
+    for (const phase of PHASE_ORDER) {
+      expect(screen.queryByTestId(`guard-path-${phase}`)).toBeNull();
+    }
+  });
+
+  // THE ANTI-VACUITY DIRECTION, and it is the one that matters here: a guard
+  // that dropped every row would satisfy both tests above.
+  test('every valid destination still renders all four rows', () => {
+    for (const destination of DESTINATION_KEYS) {
+      const { unmount } = render(
+        <PhasePath
+          destination={destination}
+          states={ALL_AHEAD}
+          copy="full"
+          testID="valid-path"
+        />
+      );
+      for (const phase of PHASE_ORDER) {
+        expect(screen.getByTestId(`valid-path-${phase}`)).toBeTruthy();
+        expect(
+          screen.getByText(PHASE_DISPLAY[phase][destination].title)
+        ).toBeTruthy();
+      }
       unmount();
     }
   });

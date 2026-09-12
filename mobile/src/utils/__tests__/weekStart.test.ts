@@ -22,6 +22,43 @@ const SUN = '2026-08-16';
 const SUNDAY = 0;
 const MONDAY = 1;
 
+describe('toIsoDate - an Invalid Date (slice 7f)', () => {
+  // THE GETTERS DO NOT THROW ON AN INVALID DATE, they return NaN, so this used
+  // to answer the TRUTHY string "NaN-NaN-NaN": the right shape and the wrong
+  // meaning. Every reader tests the result for truthiness to mean "the
+  // timestamp was readable", so it passed all of them and then sorted ABOVE
+  // every real ISO date ('N' is 0x4E, '2' is 0x32). As the adjustment offer's
+  // re-arm floor that silently made the offer unfireable for the life of the
+  // document, with no log line to find it by.
+  test('{ seconds: NaN } through a Date answers empty, not "NaN-NaN-NaN"', () => {
+    // The exact shape the resolver's timestamp readers build:
+    // `new Date(t.seconds * 1000)` where seconds is NaN.
+    const fromNaNSeconds = new Date(Number.NaN * 1000);
+
+    expect(toIsoDate(fromNaNSeconds)).toBe('');
+    expect(toIsoDate(fromNaNSeconds)).not.toContain('NaN');
+  });
+
+  test('an Invalid Date from any source answers empty', () => {
+    expect(toIsoDate(new Date('not a date'))).toBe('');
+    expect(toIsoDate(new Date(Number.NaN))).toBe('');
+  });
+
+  // THE RESULT IS FALSY, and that is the property the callers depend on:
+  // `enteredAtIsoOf` returns '' for an unresolved server timestamp and its
+  // readers already suppress on it, so an unreadable stamp now joins a state
+  // the system has always handled.
+  test('the answer is FALSY, so truthiness gates still suppress', () => {
+    expect(Boolean(toIsoDate(new Date(Number.NaN)))).toBe(false);
+  });
+
+  // AND A VALID DATE IS UNTOUCHED. Without this the guard could return '' for
+  // everything and every test above would still pass.
+  test('a valid date is unaffected by the guard', () => {
+    expect(toIsoDate(new Date(2026, 8, 12, 9, 30))).toBe('2026-09-12');
+  });
+});
+
 describe('toIsoDate', () => {
   test('formats a date as YYYY-MM-DD', () => {
     expect(toIsoDate(new Date(2026, 7, 3, 9, 30))).toBe('2026-08-03');
