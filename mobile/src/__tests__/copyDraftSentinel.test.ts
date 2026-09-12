@@ -639,7 +639,40 @@ import * as path from 'path';
 // `components/dashboard/TodayHeroCard.tsx`, a DIFFERENT file, IN scope, and it
 // takes this number 150 -> 149 on Jen's sign-off. If you are reading this
 // because 149 is expected and 150 is what you found, 7m has not landed yet.
-const EXPECTED_SENTINELS = 150;
+//
+// 149 AFTER SLICE 7m (2026-09-12). -1, AND IT IS AN APPROVAL.
+//
+// OWNER: JEN. Efficacy-adjacent copy, her review path, not a Kyle UI clear.
+//
+// THE STRING: `COMPLETION_COPY.done` in
+// `src/components/dashboard/TodayHeroCard.tsx`, "Done today" -> "Done for
+// today." ONE string, ONE marker removed. `COMPLETION_COPY.saveFailed` in the
+// same object is UNCHANGED and still carries its sentinel, so this file goes
+// from 2 markers to 1 rather than to 0.
+//
+// WHAT THE SIGN-OFF IS AND WHAT IT IS NOT. The string is not printed in
+// guidelines §1.5. Jen approved this exact wording on 2026-09-12 and she owns
+// that document, so the warrant is the owner's sign-off, which is what the
+// contract at the top of this file asks for. It is NOT a citation to a line in
+// §1.5 the way `markDone` is, and the comment at the string's own site says so.
+// Do not let a later reader upgrade "the owner approved it" into "it is in the
+// doc".
+//
+// WHY THE OLD COMMENT'S "COMPONENT CHANGE" CAVEAT DID NOT BLOCK THIS. The
+// string used to be marked deliberately-unwritten on the grounds that §1.5
+// supplies two effort tiers plus five extensions while this card holds one
+// static string. That reasoning applied to the WRONG branch. The tiered lines
+// belong to `protocol.acknowledgment` (Remove's nine, untouched); this slot is
+// the tierless fallback, serving the twelve Recover and Refocus variants that
+// have no acknowledgment at any effort size and the post-quieting state for all
+// twenty-one. Jen resolved it as a string, not a component change.
+//
+// JEN DECLINED THE OTHER ROUTE, twelve per-protocol acknowledgments matching
+// Remove's shape: too much surface for too little value, and protocol-specific
+// praise risks over-celebrating routine completion. Recording it here because
+// "the count went down by one" does not by itself say that the twelve-string
+// alternative was considered and rejected by the owner.
+const EXPECTED_SENTINELS = 149;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');
