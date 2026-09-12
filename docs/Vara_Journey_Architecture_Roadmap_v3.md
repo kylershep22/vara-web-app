@@ -2612,6 +2612,11 @@ slice deliberately did not meet, and the row is what a later reader scans.**
 What replaced the walk is the four assertions above, which fail when the words
 change - which a walk nobody re-runs does not.
 
+**ATTESTATIONS (Kyle, 2026-09-12):**
+
+- **Suites green at the figures above:** tsc 148 / jest 3505 of 223 / sentinel 149. ATTESTED.
+- **No device walk required:** row 7m, rescoped to one string, with text assertions replacing what the walk was for. ATTESTED.
+
 ### 2026-09-12 - slice 7k, Jen's supportingPracticeIds mapping, R7's duration and R1's phrase (`b6da0b9`, docs `4924de6` + `807f967` + attestation `8cb0b6e`; merged `90354be`; branch `journey/slice-7k-supporting-practices`, pushed; NO WALK, per the row: nothing reads the field until slice 9)
 
 **ATTESTATIONS (Kyle, 2026-09-12), recorded before the merge:**
