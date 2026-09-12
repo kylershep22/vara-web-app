@@ -345,8 +345,30 @@ export interface AnalyticsEventMap {
    * a per-user tally reconstructable from the log is the thing it bans wearing
    * a warehouse. The ordinal is recoverable by counting rows if it is ever
    * genuinely needed.
+   *
+   * `definition_version` MAKES THE PARAGRAPH ABOVE MACHINE-READABLE, and that
+   * is its whole job (slice 7h, Jen's 2026-09-12 decision item 6). The caveat
+   * about 7d was written in prose here and in the roadmap, where a person
+   * cutting this data will not meet it:
+   *
+   *   - **v1 = the offer became ELIGIBLE.** Rows with NO `definition_version`
+   *     field at all. Written before 2026-09-11.
+   *   - **v2 = the offer was RENDERED to the user.** `definition_version: 2`.
+   *     Begins 2026-09-11, slice 7d's merge (`2807511`), which moved the gate
+   *     onto the occupied slot.
+   *
+   * **NO BACKFILL.** Pre-7d rows keep no version field and that absence IS the
+   * v1 marker; inventing one for them would assert a review nobody did. An
+   * accept-rate cut must therefore filter on the version or state that it is
+   * mixing two denominators - which is the thing this field exists to stop
+   * happening silently.
+   *
+   * TYPED AS THE LITERAL `2`, NOT `number`. The firewall's rule is closed
+   * unions with no open primitives, the same reason `door` is one, and it makes
+   * a future v3 a deliberate type edit that breaks the call site rather than a
+   * value that drifts in at runtime.
    */
-  journey_advance_offered: { door: AdvanceDoorName };
+  journey_advance_offered: { door: AdvanceDoorName; definition_version: 2 };
   /**
    * The user opened the preview and committed. The phase changed.
    *
@@ -394,8 +416,26 @@ export interface AnalyticsEventMap {
    * appearing. Same caveat as `journey_advance_offered`: rows do not compare
    * across the 7d merge. It shares its gate with the `adjustOfferedAt` stamp,
    * so the event count and the phase page's door are the same fact.
+   *
+   * `definition_version` CARRIES THAT CAVEAT IN THE DATA (slice 7h). Identical
+   * meaning to the twin above, and deliberately the same field name and the
+   * same values on both, because the two events share the defect, the fix and
+   * the merge that drew the line:
+   *
+   *   - **v1 = the offer became ELIGIBLE.** No `definition_version` field.
+   *   - **v2 = the offer was RENDERED to the user.** Begins 2026-09-11, 7d's
+   *     merge. **No backfill.**
+   *
+   * THE EVENT IS NO LONGER BARE, AND THE "BARE, AND THE ABSENCES ARE EACH A
+   * DECISION" PARAGRAPH ABOVE STILL HOLDS. Every absence it defends is an
+   * absence of something about the USER - no door, no offer ordinal, no phase.
+   * `definition_version` describes the EVENT'S OWN DEFINITION and says nothing
+   * about the person it was written for, so it is not the counter that
+   * paragraph bans and not a dimension that paragraph refused. It is metadata
+   * about the schema, sitting in the only place a reader of the data will find
+   * it.
    */
-  journey_adjust_offered: Record<string, never>;
+  journey_adjust_offered: { definition_version: 2 };
   /**
    * The user declined the adjustment offer with "Keep going for now".
    *

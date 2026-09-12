@@ -6,7 +6,7 @@
  * responses triggered this." Two not_moving reads tell us the user does not
  * currently feel movement. They do NOT tell us the practices were useless, and
  * nothing on this card may say or imply either. That is why the body is
- * conditional ("if this isn't feeling like it's moving yet") rather than
+ * conditional ("if this isn't helping yet") rather than
  * declarative: a declarative version would be Vara asserting an internal state
  * it inferred from two taps.
  *

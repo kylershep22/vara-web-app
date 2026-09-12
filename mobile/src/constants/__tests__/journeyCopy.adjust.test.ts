@@ -19,6 +19,13 @@ import { ADJUST_ALTERNATIVES, ADJUST_COPY } from '../journeyCopy';
 import { PHASE_ORDER } from '../journey';
 import type { PhaseKey } from '../../types/models';
 
+/**
+ * The phrase Jen retired on 2026-09-12 (slice 7h), declared once so the
+ * exclusion and its anti-vacuity proof cannot drift apart. Two copies of a
+ * needle is how one of them stops matching and nobody notices.
+ */
+const RETIRED_PHRASE = "feeling like it's moving";
+
 describe('the pack ordinal to phase key mapping', () => {
   // The pack's four sets, identified by their first option's label, in the
   // order the pack lists them. Written out rather than read from the constant
@@ -78,17 +85,56 @@ describe('the pack ordinal to phase key mapping', () => {
 });
 
 describe('the C2 card copy', () => {
-  test('builds the body from decisions section 4, never from the pack section C2 body', () => {
+  test('builds BOTH bodies from the decisions section 4 amendment, never from an earlier delivery', () => {
     // The superseded body is struck through in the pack itself. Asserting its
     // ABSENCE is what makes reaching for the wrong delivery fail loudly rather
     // than ship a line Jen revised out for overstating what Vara knows.
+    //
+    // THERE ARE NOW TWO RETIRED WORDINGS, NOT ONE (slice 7h). The pack's own
+    // section C2 body was the first; Jen's 2026-09-12 amendment retired the
+    // second - the "feeling like it's moving" pair that shipped in 7b - and
+    // wrote both bodies rather than one. So both strings are pinned exactly,
+    // where 7b pinned only the first: an exact pin on one body and nothing on
+    // the other is how half a revision walks back in against a green suite.
     expect(ADJUST_COPY.bodyFirst).toBe(
-      "If this isn't feeling like it's moving yet, we can change the approach without starting over."
+      "If this isn't helping yet, we can change the approach without starting over."
+    );
+    expect(ADJUST_COPY.bodySecond).toBe(
+      "If this still isn't helping, we can change the approach without starting over."
     );
     for (const body of [ADJUST_COPY.bodyFirst, ADJUST_COPY.bodySecond]) {
       expect(body).not.toContain("hasn't felt very useful");
       expect(body).not.toContain('start over.');
+      // The 7b wording, retired 2026-09-12. It borrowed the weekly check-in's
+      // own answer vocabulary (`moving` / `not_moving` is the C1 answer set),
+      // so the card echoed the user's logged answer back at them - the exact
+      // narration decisions section 4 exists to prevent.
+      expect(body).not.toContain(RETIRED_PHRASE);
     }
+  });
+
+  test('ANTI-VACUITY: the retired phrase still matches the strings it was written to exclude', () => {
+    // The three `not.toContain` assertions above are each satisfied by a needle
+    // that matches NOTHING - a typo in any of them buys silent green forever,
+    // and a negative assertion nobody can see failing is not an assertion.
+    // These are the actual strings this slice and slice 7b removed, quoted here
+    // so the exclusions are proven to have teeth against real copy rather than
+    // against a needle that drifted. Same guard as the notification-claim block
+    // in ErrorBoundary.test.tsx (slice 7g).
+    const retiredIn7h = [
+      "If this isn't feeling like it's moving yet, we can change the approach without starting over.",
+      "If this still isn't feeling like it's moving, we can change the approach without starting over.",
+    ];
+    for (const retired of retiredIn7h) {
+      expect(retired).toContain(RETIRED_PHRASE);
+      expect(retired).not.toBe(ADJUST_COPY.bodyFirst);
+      expect(retired).not.toBe(ADJUST_COPY.bodySecond);
+    }
+    // The pack's own section C2 body, superseded since 2026-09-05.
+    const retiredInPack =
+      "This hasn't felt very useful lately. You don't need to start over. We can change how you work on the same part.";
+    expect(retiredInPack).toContain("hasn't felt very useful");
+    expect(retiredInPack).toContain('start over.');
   });
 
   test('the two bodies differ by exactly one word, and that word is "still"', () => {

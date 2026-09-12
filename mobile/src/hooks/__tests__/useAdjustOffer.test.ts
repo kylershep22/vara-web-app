@@ -267,8 +267,13 @@ describe('useAdjustDoorStamp - the door-opening write', () => {
     mockGetCycles.mockResolvedValue(DUE);
     renderSlot();
     await waitFor(() => expect(mockRecordOffered).toHaveBeenCalledWith('u1'));
+    // `definition_version: 2` says this row counts a RENDERED offer, not an
+    // eligible one (slice 7h; the gate moved in 7d). The payload used to be
+    // bare, so this assertion is also the proof the field is emitted at all.
     await waitFor(() =>
-      expect(mockLogEvent).toHaveBeenCalledWith('u1', 'journey_adjust_offered', {})
+      expect(mockLogEvent).toHaveBeenCalledWith('u1', 'journey_adjust_offered', {
+        definition_version: 2,
+      })
     );
   });
 
