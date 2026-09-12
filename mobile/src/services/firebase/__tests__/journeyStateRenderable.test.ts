@@ -8,9 +8,9 @@
 //
 // TWO FAILURES IT EXISTS TO MAKE LOUD:
 //   1. An unrenderable document reaching a caller. The map indexes
-//      PHASE_DISPLAY with `destination` during a render, and the app's single
-//      ErrorBoundary sits above the navigator, so the cost of a miss is every
-//      tab and not one screen.
+//      PHASE_DISPLAY with `destination` during a render, so a miss lands in an
+//      ErrorBoundary. That cost every tab when this was written (a single
+//      boundary above the navigator); since slice 7g it costs one tab.
 //   2. A UID IN A LOG LINE. The warning names a digest, never the uid.
 const mockGetDoc = jest.fn();
 jest.mock('firebase/firestore', () => ({

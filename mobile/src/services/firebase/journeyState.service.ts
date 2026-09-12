@@ -120,9 +120,10 @@ export async function getJourneyState(userId: string): Promise<JourneyState | nu
  * carried this check since slice 7e, which covered Home; the journey map calls
  * `getJourneyState` directly and never passes through the resolver, so a
  * document with a `destination` outside its union reached `PhasePath`, was used
- * to index `PHASE_DISPLAY` during a render, and threw. The app has ONE
- * ErrorBoundary and it sits above the navigator (App.tsx:114), so that throw
- * costs the whole app and not the tab.
+ * to index `PHASE_DISPLAY` during a render, and threw. AT THE TIME the app had
+ * ONE ErrorBoundary, above the navigator (App.tsx:114), so that throw cost the
+ * whole app and not the tab; slice 7g scoped the boundaries, so today it costs
+ * the tab.
  *
  * NULL FOR BOTH CASES, AND THAT IS WHY IT NEEDS NO NEW UI. Absent and
  * unrenderable are different facts, but every caller already has a correct,

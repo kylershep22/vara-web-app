@@ -258,11 +258,12 @@ deploy. Deploy state lives on Kyle's checklist.
 | 7d | **[DONE `051b673`, merged `2807511`, 2026-09-11; walked and attested before the merge, six checks plus the offline check; branch `journey/slice-7d-exposure-gate`, pushed]** Advancement exposure gate: spend on the RENDERED slot *(row added 2026-09-11 from the 7b walk)* | `recordAdvanceExposure` fires on `placement === 'today'`, which is eligibility, not on the slot actually being occupied. Observed twice on device during the 7b walk: `advanceOfferedAt` stamped while the CAPTURE card held the slot, and again behind C2. R3's budget counts "occasions the user could actually have seen it" (`constants/journey.ts`), so a budget that drains behind another card is counting the wrong event. **Scope:** get `journeyActionFor`'s answer to `useAdvanceOffer` so the gate reads the rendered slot, and keep the gate-before-write ordering 7a made load bearing. **Step 0 REQUIRED:** this inverts the data flow between `DashboardScreen` and the hook, and the obvious fix (compute the slot inside the hook) would put the precedence rule in two places. **Also settle:** whether exposures already spent behind another card should be forgiven on existing accounts, or left as a one-time undercount. | None | Yes |
 | 7e | **[DONE `20d0441`, merged `c6d03ee`, 2026-09-12; walked steps 1-6 and attested before the merge. Shipped as written, with ONE premise in this row corrected at Step 0: the coverage claim below is wrong, and the residual it hid is row 7f.]** Journey read-boundary guard: a malformed `journeyStates` row must not take Home down *(row added 2026-09-11 from the 7b walk)* | `resolveJourney` reads `phaseKey` and `destination` unvalidated (`:378-379`) and `JourneyLine` double-indexes `PHASE_DISPLAY[phaseKey][destination]` (`:63`, `:74`), so a key outside the union throws and an ErrorBoundary takes Home before any journey surface renders. **Reproduced on `main`** with a console-typed `"remove "` (trailing space), so it is pre-existing and not a 7b regression. A client cannot write such a row — `validJourney` gates `phaseKey` on create and update — so the producers are Admin-SDK writes: the console, the cohort reset script, or rows predating the rule. **Scope:** validate both fields in rung (a) against `PHASE_ORDER` and `DESTINATION_KEYS`, fall through to `'legacy'` on failure per the resolver's existing any-failure policy, and `logger.warn` with `uidDigest` and never the raw uid. One branch covers `JourneyLine`, `JourneyMapScreen` and `PhasePath`, which all read the same document. **Sequenced after 7d** because 7d corrupts a live metric every day it stands while this needs a malformed row to bite. | None | Yes: a seeded malformed row |
 | 7f | **[DONE `151d405`, merged `8ed349d`, 2026-09-12; walked both fixtures and attested before the merge. Severity in this row's title is WRONG and the §13 entry corrects it: there is one ErrorBoundary and it is above the navigator, so this class takes the APP, not the tab. Row 7g carries that.]** Read-boundary guard for the two journey SCREENS: a malformed `destination` must not take Practices down *(row added 2026-09-11 from slice 7e's Step 0)* | **7e guarded the resolver and therefore Today, and nothing else.** `JourneyMapScreen.tsx:194` and `JourneyPhaseScreen.tsx:107` call `getJourneyState` directly and never pass through `resolveJourney`, so 7e's branch cannot reach them — the §13 7b entry's claim that one branch covered all three surfaces is corrected in a dated block there. **The residual is one field, not two:** a bad `phaseKey` is already harmless on these screens, because `derivePhaseStates` returns all-`'ahead'` for an unrecognised key (`phaseStates.ts:60-62`) and `PhasePath` indexes `PHASE_DISPLAY` from `PHASE_ORDER` rather than from the document. A bad `destination` still throws at `PhasePath.tsx:148,150` and at `JourneyPhaseScreen.tsx:129`. **Step 0 DECIDES THE SHAPE and it is a real fork, not a formality:** (1) route both screens' reads through a shared validating accessor, which puts one policy in one place and makes the resolver's guard a caller of it rather than a copy — but touches two screens' read callbacks and the service boundary; or (2) guard `PhasePath` and the phase page at the render, which is smaller and is the third and fourth copy of the same check. **Note for whoever takes it:** these screens fail SOFTER than Today did — the map's read already has its own try/catch (`:193-200`) and the page's does too (`:106-113`), so what is unguarded is the render, not the read. **CARRIED INTO THIS ROW FROM 7e SO THEY ARE NOT LOST (Kyle, 2026-09-11):** (i) **`toIsoDate` returns the STRING `"NaN-NaN-NaN"` on an Invalid Date.** `{ seconds: NaN }` passes the `typeof === 'number'` check in both timestamp readers, `toIsoDate` uses `getFullYear`/`getMonth`/`getDate` rather than `toISOString` (`weekStart.ts:45-49`), and the result is truthy, so it does NOT take the empty-string path that suppresses the consistency read. As the adjust re-arm floor it sorts above every real ISO date (`'N'` is 0x4E, `'2'` is 0x32), so `weekStart > armedFromIso` is false for every week and **the adjustment offer becomes permanently unfireable for that document, with no log line.** **Fix: return `''` on an invalid date, plus a test.** (ii) **`history` has no array check at `phaseStates.ts:79`** — `state.history.filter` throws for any phase past the first when the field is not a list. (iii) **WALK-FIXTURE NOTE, and it is a limit rather than a finding:** no code path writes `destination: 'stress'` and `firestore.rules:987` refuses it, but **whether a live row carries one was never checked against production data.** The 7e answer was established from the write paths only. Anyone seeding this walk should not read that as "the collection is clean". | None | Yes: the same seeded malformed row as 7e, with `destination` broken instead of `phaseKey` |
-| 7g | **[Next]** Scope the ErrorBoundary, so a render throw costs a surface instead of the app *(row added 2026-09-12 from slice 7f's Step 0)* | **THE APP HAS EXACTLY ONE ErrorBoundary AND IT IS ABOVE THE NAVIGATOR** (`App.tsx:114`, over `AppNavigator` at `:122`). No screen, tab or navigator has its own, so ANY render throw anywhere replaces Today, Practices, Learn, Community and the tab bar at once, and the only way back is the fallback's Try Again. That is the real severity of the defects 7e and 7f guarded, and it is a standing property of the app rather than a journey problem: the next unguarded index on any screen has the same blast radius. **Scope:** a boundary per tab stack, or per screen, so a throw degrades one surface; decide which, and decide what a scoped fallback says, since the app-level copy ("Something didn't work as expected. We've been notified.") is written for a whole-app failure and would be wrong inside one tab. **Step 0 REQUIRED and it is not a formality:** a boundary that resets its own subtree needs a reset key or the user is stuck on a broken tab with no Try Again, and React Navigation remounts screens on focus in ways that interact with that. **Also settle:** whether the scoped boundaries report to Sentry separately, and whether the app-level one stays as the backstop (it should). **Carried in from 7f:** `ErrorBoundary.tsx(34,5)` TS2741 - `getDerivedStateFromError` returns a state object missing `componentStack` - is one of the standing 149 and lives in this file; fix it here rather than leaving it for a reader to trip over. **NOT a prerequisite for anything queued:** 7e and 7f close the two known throws, so this row reduces the cost of the NEXT one rather than fixing a live crash. | None | Yes: force a throw behind a flag on one tab and confirm the others survive |
-| 7h | **[Next after 7g]** C2 copy amendment: Jen's revised bodies replace both shipped strings *(row added 2026-09-12 from Jen's feedback)* | **TWO STRINGS, AND IT IS FIRST BECAUSE OF WHAT IT STOPS RATHER THAN WHAT IT COSTS.** `journey_adjust_offered` and `journey_adjust_declined` accumulate against whichever wording is on screen, so every day the superseded bodies stand is a day of accept-rate data measured against copy that is no longer the product's. **Scope:** `ADJUST_COPY.bodyFirst` and `ADJUST_COPY.bodySecond` in `constants/journeyCopy.ts`, and the CANONICAL PACK amended at `§decisions-4` - not a local override, per Jen. First becomes *"If this isn't helping yet, we can change the approach without starting over."*; second becomes *"If this still isn't helping, we can change the approach without starting over."* `decline` ("Keep going for now") is approved unchanged and is not touched. **The ledger entry is the substance, not a formality:** `bodySecond` currently carries Kyle's owner sign-off and a note saying it is PENDING JEN REVIEW and will move if she revises `bodyFirst`. She has, and her sign-off SUPERSEDES his on BOTH bodies; the `copyDraftSentinel.test.ts` entry that records his warrant must say so. **Sentinel does not move** - two approved strings replaced by two approved strings, no draft in either direction - and the commit must say that explicitly so a flat count is not read as an oversight. **May carry the analytics `definition_version` change** (§5 row note below). | None | No: a string swap on a surface already walked in 7b |
+| 7g | **[DONE `8570544` + copy amendment `48a24ef`, 2026-09-12; walked all seven steps and attested; UNMERGED, held at Kyle's instruction]** Scope the ErrorBoundary, so a render throw costs a surface instead of the app *(row added 2026-09-12 from slice 7f's Step 0)* **Built as `screenLayout` on the two live navigators, which is per-SCREEN and not per-tab: the row offered "a boundary per tab stack, or per screen" and Step 0 found that per-tab-only would have covered 4 surfaces and missed the 39 other AppStack screens. The App.tsx boundary stays as the backstop. THE SLICE'S OWN ARGUMENT CHANGED AT STEP 0: nothing reports, so this trades a loud failure for a silent one - see the SENTRY row below, which it added.** | **THE APP HAS EXACTLY ONE ErrorBoundary AND IT IS ABOVE THE NAVIGATOR** (`App.tsx:114`, over `AppNavigator` at `:122`). No screen, tab or navigator has its own, so ANY render throw anywhere replaces Today, Practices, Learn, Community and the tab bar at once, and the only way back is the fallback's Try Again. That is the real severity of the defects 7e and 7f guarded, and it is a standing property of the app rather than a journey problem: the next unguarded index on any screen has the same blast radius. **Scope:** a boundary per tab stack, or per screen, so a throw degrades one surface; decide which, and decide what a scoped fallback says, since the app-level copy ("Something didn't work as expected. We've been notified.") is written for a whole-app failure and would be wrong inside one tab. **Step 0 REQUIRED and it is not a formality:** a boundary that resets its own subtree needs a reset key or the user is stuck on a broken tab with no Try Again, and React Navigation remounts screens on focus in ways that interact with that. **Also settle:** whether the scoped boundaries report to Sentry separately, and whether the app-level one stays as the backstop (it should). **Carried in from 7f:** `ErrorBoundary.tsx(34,5)` TS2741 - `getDerivedStateFromError` returns a state object missing `componentStack` - is one of the standing 149 and lives in this file; fix it here rather than leaving it for a reader to trip over. **NOT a prerequisite for anything queued:** 7e and 7f close the two known throws, so this row reduces the cost of the NEXT one rather than fixing a live crash. | None | Yes: force a throw behind a flag on one tab and confirm the others survive |
+| 7h | **[Next]** C2 copy amendment: Jen's revised bodies replace both shipped strings *(row added 2026-09-12 from Jen's feedback)* | **TWO STRINGS, AND IT IS FIRST BECAUSE OF WHAT IT STOPS RATHER THAN WHAT IT COSTS.** `journey_adjust_offered` and `journey_adjust_declined` accumulate against whichever wording is on screen, so every day the superseded bodies stand is a day of accept-rate data measured against copy that is no longer the product's. **Scope:** `ADJUST_COPY.bodyFirst` and `ADJUST_COPY.bodySecond` in `constants/journeyCopy.ts`, and the CANONICAL PACK amended at `§decisions-4` - not a local override, per Jen. First becomes *"If this isn't helping yet, we can change the approach without starting over."*; second becomes *"If this still isn't helping, we can change the approach without starting over."* `decline` ("Keep going for now") is approved unchanged and is not touched. **The ledger entry is the substance, not a formality:** `bodySecond` currently carries Kyle's owner sign-off and a note saying it is PENDING JEN REVIEW and will move if she revises `bodyFirst`. She has, and her sign-off SUPERSEDES his on BOTH bodies; the `copyDraftSentinel.test.ts` entry that records his warrant must say so. **Sentinel does not move** - two approved strings replaced by two approved strings, no draft in either direction - and the commit must say that explicitly so a flat count is not read as an oversight. **May carry the analytics `definition_version` change** (§5 row note below). | None | No: a string swap on a surface already walked in 7b |
 | 7i | 12 protocol copies land: Recover R1-R9 and Refocus F1-F3 *(row added 2026-09-12 from Jen's feedback)* | Title, daily action and why-it-works for each of the twelve, delivered and approved by Jen. They replace the `PLACEHOLDER` cells in `protocolMatrix.ts`; `PLACEHOLDER_TITLE_PREFIX` and the `placeholder: true` flags come off the rows they cover, and **the merge gate that greps for that prefix is the check that this row is complete**. **Step 0 must settle two things:** how many of the twelve are `placeholder: true` today versus merely carrying `PLACEHOLDER` in the title (the flag and the prefix are set from one field but only three rewire cells carry the flag), and whether Rewire's three remain the only placeholders after this lands - if so, say so in the entry, because a matrix with exactly three placeholder cells left is a different statement from one with twelve. **supportingPracticeIds is NOT in this row's scope** and must not be filled while it is open; the mapping is its own decision and is recorded in §13. | **[Content-gated]** - GATE NOW OPEN, Jen delivered 2026-09-12 | Yes: the daily serve on a Recover and a Refocus account |
 | 7j | **[BLOCKED pending Jen, 2026-09-12]** Naming set: Practices becomes Journey, and four phases get customer-facing labels *(row added 2026-09-12 from Jen's feedback)* **THE BLOCKING QUESTION, and it is back with Jen rather than being resolved here: do the four destination labels REPLACE `PHASE_DISPLAY`'s sixteen per-(phase, destination) titles and shorts, or SIT ABOVE them?** Both sets are her approved content, and the new usage rule names the three surfaces that table already owns. **THE THREE READINGS, recorded so her answer resolves against a stated set rather than a fresh analysis:** **(i) REPLACE.** The four full labels become the map-row and phase-page titles and the four short variants become the Today eyebrow; the sixteen titles and sixteen shorts stop being rendered, and the sixteen glosses are all that survives of `§display-strings` on those surfaces. Cheapest to build, and it retires 32 approved strings. **(ii) SIT ABOVE.** The phase label is a new line above the destination-specific cell copy: a map row reads *Create space* with *Clear what's pulling at your attention* beneath it, and Today's eyebrow carries the short phase label above the cell `short`. Nothing is retired; every row gains a line, and Today's journey line becomes three lines rather than two, which collides with §9 R6's two-line shape and with §8's three-card ceiling reasoning. **(iii) FILL GAPS ONLY.** The phase labels apply where no cell copy exists - the tab, the map screen title, and any compact surface without a (phase, destination) pair - and the sixteen cells keep every surface they already own. Smallest change, and it leaves the four labels invisible on the three surfaces the usage rule explicitly names, which is the reading most likely to be wrong. **Nothing in this row is built until she answers**; the rest of the scope below is unaffected by which reading wins and is left as written. | **COUPLED, WHICH IS WHY IT IS ONE ROW:** the tab label, the map screen title, four FULL phase labels and four SHORT variants all ship together or the app speaks two vocabularies at once. Bottom nav becomes **Journey**; the map screen reads **Your journey**. Labels: Remove -> *Create space* / *Create space*; Recover -> *Restore capacity* / *Restore*; Rewire -> *Build new patterns* / *New patterns*; Refocus -> *Focus on what matters* / *Focus*. **Usage rule:** full labels on map rows and phase page titles, short variants on the Today journey eyebrow and other compact surfaces. **REMOVE'S SHORT FORM IS DELIBERATELY IDENTICAL TO ITS FULL FORM** - record it at the constant, because it reads as an oversight and is not one. **"Practices" SURVIVES** as the name of the runnable content library wherever that library itself appears; the hierarchy is Journey -> destination -> today's protocol -> supporting practice. Remove/Recover/Rewire/Refocus stay INTERNAL architecture terms and do not become customer-facing taxonomy. **Rewire ships "Build new patterns" now despite unauthored content**, per Jen's principle recorded in §13: a destination label describes the phase's PURPOSE, not the state of its content. **STEP 0 IS REQUIRED AND IT IS A REAL FORK, NOT A FORMALITY:** these four per-phase labels collide head-on with `PHASE_DISPLAY`, which is 16 per-(phase, destination) titles and 16 shorts of Jen's own approved pack content, and which is what the map rows, the phase page titles and the Today eyebrow render TODAY. Settle whether the new labels REPLACE that table on those surfaces, sit ABOVE it as a phase name with the cell copy beneath, or apply only where no cell copy exists - and settle it with Jen, because both sets are hers. See the contradiction list in the 2026-09-12 §13 entry. **Also in scope:** an audit of every "Practices" string (`AppNavigator.tsx:592`, `:856`, `:943`, `:1024`, `:1141`, `routes.ts:113`, `JourneyMapScreen.tsx`'s title) deciding which are the tab and which are the library. **Route and constant names are NOT copy** and should not be renamed for a label change; 7b's own note on why 7c was not renumbered applies. | **[Content-gated]** - GATE NOW OPEN, Jen delivered 2026-09-12 | Yes: nav, map, phase pages and Today together |
 | 7c | Honour the recorded adjustment *(row added 2026-09-10 at 7b's close)* | Consume `journeyStates.adjustChoice` in the protocol serving path. 7b RECORDS the user's choice among the twelve in-phase alternatives and does not act on it: nothing outside `journeyState.service.ts` reads the field, and the C2 confirmation ("We'll work it this way for now") is worded for exactly that state. This row closes the gap. **Step 0 REQUIRED** and it is not a formality: the twelve alternatives mean four different things to the engine (shrink the protocol, swap the approach at the same target, re-target, re-slot, re-cue, re-narrow), and what `selectProtocol` can currently express of that is unestablished. Settle what the engine already supports before anything writes a second selection input. **Also settle:** whether a recorded choice persists across a phase change (today `CLEARED_OFFERS` nulls it, which is right while nothing consumes it and may not be once something does), and whether choosing re-arms the weekly read the way a decline does. **Carried from 7b:** the door's write has NO in-flight guard (`onChoose` in `JourneyPhaseScreen.tsx` sets no pending state), which is harmless while the write settles and leaves the page silent when it does not; 7c is already in this code and is where that pending state belongs. | Engine capability, per Step 0 | Yes |
+| SENTRY | **[PRE-LAUNCH, not built. Row added 2026-09-12 at slice 7g's close, from its Step 0 finding.]** Wire `@sentry/react-native` so a caught render throw is reported to something | **NOTHING IN THE APP REPORTS ANYTHING TODAY, AND THIS WAS ESTABLISHED BY READING THE CODE RATHER THAN INFERRED.** `crashReporting.service.ts` is a stub: every `Sentry.*` call is commented out (`:28-59`, `:70`, `:79`, `:87`, `:98`, `:106`, `:114`, `:122`, `:133`) and `isInitialized` (`:20`) is only ever set true INSIDE that commented block, so it is permanently false. `logError` (`:93-99`) therefore reduces to a `__DEV__`-only console line and an early return. `initializeCrashReporting()` IS called (`App.tsx:66-67`) and only logs "awaiting @sentry/react-native setup". **`@sentry/react-native` is not in `package.json` at all**, nor is `sentry-expo`. The ErrorBoundary is that service's ONLY caller in the app. The other path, `setupGlobalErrorHandler.ts` (wired first at `index.ts:5`), only `console.error`s. **WHY IT IS ROWED NOW RATHER THAN LEFT ON THE BACKLOG:** slice 7g scoped the boundaries, so a render throw stopped being loud. Before 7g a throw killed the app and the user noticed; after it, a throw is a small panel inside an otherwise working app that a user can simply navigate away from, and no one is listening. That is a deliberate, accepted trade (Kyle, 2026-09-12) and this row is the other half of it. **Scope:** install `@sentry/react-native` at current stable, add the `@sentry/react-native/expo` config plugin to `app.json`, uncomment and update `Sentry.init`, set the DSN via `EXPO_PUBLIC_SENTRY_DSN`, **and rebuild with EAS - it is a native module, so this cannot land as a JS-only change.** The `beforeSend` PII strip in the commented block is already written and should be reviewed rather than re-derived. **Decide at Step 0:** whether scoped boundaries report separately from the app-level one (they should be distinguishable - a dead tab and a dead app are different incidents), and whether `ErrorBoundary`'s app-level copy regains a notification sentence once the claim is true again; `ErrorBoundary.test.tsx` pins its absence as a negative for exactly that reason. **Cross-references:** `docs/TECH_DEBT_BACKLOG.md:308-340` records the same state retrospectively from Phase 2, and the forward-looking "Observability - `logger` is `console.*` in production" entry above it; both close when this lands. | None in the repo. **Kyle runs EAS builds**, so the rebuild is a hand-off, not a step this slice can take. | Yes: force a throw with `DEV_CRASH_ROUTE` and confirm the event ARRIVES in the Sentry project, which is the only proof that matters here |
 | SAFETY | **[PRE-LAUNCH BLOCKER, scope TBD]** Safety pre-check: semantic classification before free text enters normal routing *(row added 2026-09-12 at Jen's instruction)* | **RE-CLASSIFIED FROM A REVISIT ITEM TO A BLOCKER BY JEN, 2026-09-12**, and it is rowed here rather than left in the content pack's §safety-precheck so the board carries it. Her position, unchanged since the Sept 5 pack: literal keyword matching will always have gaps - *"I don't feel safe at home right now"* is her example - so the phrase list may remain a guardrail but must not be the primary safety model. Before launch she would use (1) a small set of obvious local patterns as the immediate fast path, (2) a **semantic safety classification** before free text can enter normal routing, and (3) the existing safety screen when that classification fires. **SCOPE IS GENUINELY TBD** and is pending a mechanism question Kyle is asking separately; the row exists now so the blocker is visible on the board while its scope is open, which is the opposite of the usual rule that a row waits for its scope. **It does not sit in the numbered sequence** because it does not queue behind 7c or 8: it gates LAUNCH, not the next slice. | Mechanism decision, then scope | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. **IN SCOPE, ADDED 2026-09-12 (Kyle's correction to the Step-0 toast finding): `showNotificationToast` RETURNS SILENTLY when an unlock toast is visible** (`ToastContext.tsx:130`), so a successful save would confirm nothing. **That is not a caveat, it is the case Jen's copy exists to prevent** - her whole reason for wanting "Saved." is removing uncertainty about whether the save landed, and a success that shows nothing is precisely the uncertainty she was designing against. A silent success is also WORSE than no toast at all, because the user has been told elsewhere to expect one. Slice 8 owns the fix: a fallback path, a queue for this toast class, or a different confirmation surface. **Also settle:** the API takes a title AND a body, and "Saved." is title-only, so decide what a title-only notification toast renders as rather than passing an empty string and finding out on device. **The toast CANNOT stack and CANNOT count** - verified at Step 0, `showNotificationToast` holds one object rather than a queue, and the queue that does stack is the separate feature-unlock path - so that half needs nothing. | rules; **[Content-gated]** copy | Yes |
 | 9 | **Behavioral protocol screen + remind-later** | The Daily Action Launcher behavioral screen (protocol, why, mark done, remind me later) for `remove` protocols; one-off later-today notification (`scheduleLocalNotification` DATE trigger), `scheduledAt` on `DailyLog`, third card state, cancellation bookkeeping; OS-settings redirect after denial. | Completion semantics decision (mockup v1 E1 open item) | Yes |
@@ -368,6 +369,25 @@ deploy. Deploy state lives on Kyle's checklist.
 > > stamp the version that says the denominator changed at 7d. Landing it with
 > > 7i or 7j would work and would separate a data-integrity change from the data
 > > -integrity row for no gain.
+> >
+> > **AMENDED 2026-09-12 (slice 7g built and committed, `8570544`, unmerged).
+> > 7g LEAVES THE SEQUENCE AND THE ORDER IS NOW 7h -> 7i -> 7j -> 7c -> 8 -> 9,
+> > with SAFETY and the new SENTRY row outside it.** Nothing below 7g moves, and
+> > nothing is re-argued: 7g was never a prerequisite for any of them.
+> >
+> > **ONE ROW WAS ADDED BY 7g AND IT IS NOT IN THE SEQUENCE EITHER. `SENTRY` IS
+> > PRE-LAUNCH, NOT NEXT.** 7g's Step 0 established that nothing in the app
+> > reports anything: `crashReporting.service.ts` has every Sentry call commented
+> > out and an `isInitialized` flag that is never set true, and
+> > `@sentry/react-native` is not a dependency at all. **Scoping the boundaries
+> > therefore traded a loud failure for a silent one**, which Kyle accepted
+> > deliberately rather than blocking 7g on the wiring. The row is the other half
+> > of that trade and it is sequenced OUTSIDE the slice order for the same reason
+> > SAFETY is: **it gates launch, not the next slice**, and it cannot land as a
+> > JS-only change - a native module, an Expo config plugin, a DSN and an EAS
+> > rebuild that only Kyle runs. Do not let it drift to post-launch on the
+> > grounds that nothing is crashing today; what it buys is knowing when
+> > something does.
 > >
 > > **SAFETY IS NOT IN THE SEQUENCE AND THAT IS DELIBERATE.** It gates launch,
 > > not the next slice, so it neither blocks 7h nor waits behind 9. Jen
@@ -2281,6 +2301,308 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-09-12 - slice 7g, the ErrorBoundary scoped per screen and per tab (`8570544`; branch `journey/slice-7g-error-boundary`, UNMERGED - built and verified, device walk pending)
+
+**THE ROW OFFERED "a boundary per tab stack, or per screen". STEP 0 FOUND THAT PER-TAB-ONLY WOULD HAVE COVERED FOUR SURFACES AND MISSED THIRTY-NINE.**
+`AppNavigator` registers **40 screens on AppStack**. One of them is `Main`, which
+is the four-tab navigator; the other **39 are pushed on top of it** - Insights,
+FocusTimer, the discover screens, the whole community stack. Those are ordinary
+screens with exactly the same exposure as the journey ones, and a per-tab design
+leaves every one of them able to take the app down. That number is what decided
+the shape, and it was not in the row.
+
+**WHAT SHIPPED: `screenLayout` on the two live navigators.** React Navigation 7's
+`screenLayout` prop wraps EVERY screen in a navigator, so two props cover all 44
+surfaces and **any screen added later inherits the boundary**. The alternative was
+44 hand-written wrappers and a list that rots the first time someone registers a
+screen without reading this entry.
+
+**WHERE IT SITS RELATIVE TO THE CHROME, AND THIS WAS VERIFIED IN THE INSTALLED
+PACKAGE RATHER THAN ASSUMED** (`@react-navigation/core`, `useDescriptors.js:102-126`):
+`layout` wraps the `SceneView` **only**. The native-stack header and its back
+button are rendered outside it; `BottomTabView` renders the tab bar outside the
+scenes. **So the way out of a broken surface is structural on every surface, and
+the fallback needs no copy offering one.** That single fact is what let the
+surface fallback be one line instead of three.
+
+**THE BOUNDARIES NEST INNERMOST-FIRST, AND THE App.tsx ONE STAYS.** A throw in a
+tab is caught by that tab's; a throw in a pushed screen by that screen's; a throw
+in the seven providers, in `NavigationContainer` itself, in `OfflineIndicator` or
+in `AudioPlayerOverlay` is outside every screen and still falls through to
+`App.tsx:114`, which keeps `scope="app"`. When THAT one catches, the app really
+is gone and its copy is the truthful one.
+
+**THE LEGACY `BottomTabsNavigator` IS DELIBERATELY NOT WIRED.** `FOUR_PILLAR_IA`
+has been on since 2026-07-02, so it does not mount, and the retired IA is legacy
+pending removal rather than something to extend. A comment at that navigator says
+so, and says what to do if the flag is ever flipped back.
+
+---
+
+**THE SLICE'S OWN ARGUMENT CHANGED AT STEP 0, AND THIS IS THE PART TO READ.**
+
+**NOTHING IN THIS APP REPORTS ANYTHING.** Established by reading, not inferred:
+`crashReporting.service.ts` is a stub whose every `Sentry.*` call is commented out
+and whose `isInitialized` flag is only ever set true INSIDE that commented block,
+so it is permanently false; `logError` reduces to a `__DEV__`-only console line
+and an early return. `initializeCrashReporting()` is called (`App.tsx:66-67`) and
+only logs that it is awaiting setup. **`@sentry/react-native` is not a dependency
+at all.** The ErrorBoundary is that service's only caller in the entire app. The
+other path, `setupGlobalErrorHandler.ts` (wired first at `index.ts:5`), only
+`console.error`s.
+
+**SO THIS SLICE MAKES FAILURES QUIETER WITH NOBODY LISTENING, AND THAT IS THE
+TRADE.** Before 7g a render throw was at least LOUD: the app died, the user
+noticed, Kyle heard. After 7g a throw is a small panel in one corner of an
+otherwise working app, and a user can navigate away from it and never mention it.
+**That is a real loss of signal and it is being accepted deliberately** (Kyle,
+2026-09-12, Step 0 decision: option 2 of three - ship the boundary work, fix the
+false copy, log the gap) rather than discovered later. The other two options on
+the table were shipping it silently and blocking 7g on the Sentry wiring
+entirely; the row itself notes 7g is not a prerequisite for anything, so blocking
+was defensible and was not chosen.
+
+**THE OTHER HALF OF THE TRADE IS A NEW SECTION 5 ROW, `SENTRY`, MARKED PRE-LAUNCH
+AND NOT BUILT.** It cannot be a JS-only change: `@sentry/react-native` is a native
+module, so it needs a dependency, the Expo config plugin, a DSN and **an EAS
+rebuild, which is Kyle's to run.** `docs/TECH_DEBT_BACKLOG.md:308-340` has recorded
+the same state retrospectively since Phase 2; both close when that row lands.
+
+---
+
+**COPY. THREE STRINGS, ALL UI STRINGS, OWNER KYLE, ALL APPROVED AS WRITTEN
+2026-09-12. THE SENTINEL DOES NOT MOVE AND STAYS AT 150**, which is the correct
+outcome rather than an oversight: approved copy carries no sentinel, so three
+approved strings landing is a flat count. The owner is named in both commits
+that carry them.
+
+1. **`appTitle` lost the sentence "We've been notified."** It was false - nothing
+   reports - and it sat on the one screen a person only ever reads at their worst
+   moment. It now reads **"Something didn't work as expected."**
+2. **NEW `surfaceTitle`: "This part didn't load."** for `scope="surface"`. The
+   app-scope second line is DROPPED at that scope, because the app has not gone
+   anywhere and the chrome already offers the exit.
+3. **`appMessage` replaced: "We'll look into this soon." becomes "Try again, and
+   restart the app if it keeps happening."** Landed in the copy-amendment commit
+   on this branch, after the build.
+
+**THE THIRD ONE IS THE INTERESTING ONE, AND IT WAS VERY NEARLY LEFT BEHIND.** The
+build reported it as flagged-but-unchanged, on the reasoning that Kyle's decision
+had named one app-level string and sweeping a second uninvited was scope creep.
+**He corrected that, and the correction is the durable lesson: "We'll look into
+this soon." is the SAME false claim as "We've been notified", one step softer.**
+Nothing reports, so nobody will look into it. It reads as sympathy rather than as
+a promise, which is exactly why it survived a pass that was specifically hunting
+for the promise. **When auditing copy for a claim the system cannot back, the
+softened restatement is the one that gets missed.**
+
+The replacement is also a shape change, not just a truthfulness fix: both
+surviving app-scope strings now say only things that are true and useful - what
+happened, and the two things the person can actually do about it.
+
+**THE ABSENCE OF BOTH CLAIMS IS PINNED AS A NEGATIVE TEST** covering the whole
+family (notified / looking into / our team / reported), with an ANTI-VACUITY
+assertion that the pattern still matches the two strings this slice removed - a
+regex that matched nothing would otherwise satisfy every assertion in that block,
+including against the old copy. When the SENTRY row lands, that block is the
+thing to revisit deliberately: a notification sentence becomes TRUE at that
+point, and is then a copy decision rather than a correctness one.
+
+---
+
+**A TAB LEFT IN ITS ERROR STATE STAYS IN IT ACROSS A TAB SWITCH AWAY AND BACK.**
+Added to scope by Kyle at the Step 0 review, on the grounds that it is the
+sharpest user-visible consequence of the slice and should be deliberate rather
+than an artefact. Bottom tabs are **lazy on first focus** (`BottomTabView.js:174`)
+but **stay mounted afterwards**, so the boundary instance survives the blur and is
+still holding `hasError` on return. **The tab is broken until Try Again or an app
+restart, and a user will reasonably expect switching away and back to fix it.**
+
+**IT IS KEPT, NOT FIXED, AND THE REASON IS SPECIFIC.** A reset-on-blur would
+re-throw instantly for the malformed-document shape these boundaries mostly exist
+for (7e's and 7f's defects), turning a stable fallback into a surface that
+flickers back to broken every time it is looked at. **A reset key does not solve
+that either**, which is what the row's Step 0 question was really asking: Try
+Again remounts the subtree and the remount re-reads the same bad document. **Try
+Again is an honest affordance for a transient failure and useless for bad data**,
+which is exactly why the structural escape matters more than the button.
+
+---
+
+**THE STALE-`componentStack` FIX HAS NO BEHAVIOURAL TEST, AND THAT IS A FINDING
+RATHER THAN A GAP.** `handleReset` cleared `hasError` and `error` and left
+`componentStack`, so a second, different error rendered the FIRST one's stack
+beneath it in a dev build. **It is not observable in a settled render:** it shows
+for one frame between `getDerivedStateFromError` and `componentDidCatch`, and RNTL
+flushes both, so any rendered-output assertion would find the CORRECT stack
+**whether the bug was fixed or not** - green against the broken code. Same family
+as the vacuous-green failures logged in 7b, 7d, 7f and the rules harness note. The
+test therefore asserts the state transition on the instance via a ref, with that
+reasoning written above it, rather than dressing up an assertion that proves
+nothing.
+
+**A SECOND VACUITY WAS CAUGHT IN THIS SLICE'S OWN TESTS BEFORE THEY WERE CLAIMED
+GREEN, AND IT CAME FROM REACT 19 RATHER THAN FROM CARELESSNESS.** The containment
+tests were first written against a screen that throws on its FIRST render only.
+**React 19 retries a failed concurrent render synchronously before falling back to
+the boundary**, so the self-healing screen succeeded on React's own retry and the
+boundary never appeared; two tests failed for that reason and not for anything
+about the boundary. Rewritten so the test drives the throwing from outside the
+component - which also made the anti-vacuity proofs sharper, because the screen
+can now be made renderable WHILE the boundary holds its error, so "did this
+subtree remount" has an unambiguous answer.
+
+**EVERY CONTAINMENT TEST ASSERTS BOTH HALVES.** A test that mounts a boundary and
+finds a fallback proves nothing about scoping - **the OLD single boundary would
+pass it too.** So each one also asserts that a sibling surface is still rendering
+its own content. That second half is what fails if the boundary is ever hoisted
+back above the navigator.
+
+**THE WIRING GUARD IS A SOURCE READ, WITH THE LIMIT STATED.** The behavioural
+tests use the real layout function on a navigator the suite builds, so they would
+all stay green if `AppNavigator` stopped passing it. A source-regex block asserts
+the import and that **exactly two** navigators receive it, following the precedent
+and the acknowledged limit of `pillarRoutes.test.ts`: it proves the prop is
+written, not that it is reached at runtime. **The runtime proof is the device
+walk.**
+
+---
+
+**THE FENCE WAS WIDENED ONCE, BY KYLE, AND IT WAS A REAL BLOCKER RATHER THAN A
+FORMALITY.** **Thirteen comments and test headers across the codebase asserted, in
+prose, that the app has exactly ONE ErrorBoundary and that a throw therefore takes
+the whole app.** This slice makes every one of them false, and several sit in the
+7e/7f guard files the original fence explicitly barred - including
+`ErrorBoundary.test.tsx`'s own header, which said that fact is "asserted nowhere
+else, so this file is where it is written down". **Shipping thirteen false
+comments, four of them in the guards whose entire justification is that sentence,
+was the alternative.** Fence widened to **comment-and-test-header edits only** - no
+logic, no assertion changed. All thirteen are corrected to past tense and named in
+the build commit.
+
+**THE WALK NEEDS A THROW IT CAN AIM, BECAUSE 7e AND 7f REMOVED THE ONES THAT
+EXISTED.** No seeded document crashes anything any more, which is the point of
+those slices and an obstacle for this one. `DEV_CRASH_ROUTE` in
+`navigation/screenBoundary.tsx` takes a route name and makes that surface throw on
+render. **Two guards so it cannot ship:** null on every committed line, and every
+read behind `__DEV__`; both pinned by test. **What it proves and what it does
+not:** the throw originates inside the boundary wrapper rather than inside a
+screen's own code, so it demonstrates the boundary's PLACEMENT and CONTAINMENT and
+not that any particular screen is guarded. Keeping it out of screen bodies is also
+what held this slice to its fence.
+
+---
+
+**SECTION 18. NO VISIBLE CHANGE ON ANY HEALTHY SURFACE, BY CONSTRUCTION.** A
+screen that does not throw renders byte-identically; `screenLayout` adds a wrapper
+component and no view. **The surface fallback ADDS NO STYLES AT ALL** - it reuses
+the existing container, content, title and button - so the slice introduces **no
+token, radius, elevation, colour, icon, animation or component decision**, and no
+new pressable, so no new target, role or label. `useReducedMotion` is not in
+scope. The only visible differences are on the fallback screen itself: one
+sentence removed at app scope, and a different single line at surface scope. The
+raw hex literals in `ErrorBoundary.tsx` predate this slice and were deliberately
+left; sweeping them is a visual change and was not in the fence.
+
+**MUTATION-CHECKED BEFORE ANY CLAIM OF GREEN.** Six guards reverted at once - both
+`componentStack` writes, the scope conditional, the restored notification claim,
+the boundary removed from the layout, and `screenLayout` removed from both
+navigators: **10 tests fail across both suites and tsc rises 148 -> 150.** None of
+the new green is accidental.
+
+**MANIFEST: NO CHANGE. Verified by reading `functions/src/lib/accountDeletion.js`
+at build time, not carried forward from the 7f entry.** `journeyStates` is on the
+list. This slice adds **no collection, no document and no write at all** - every
+change is on a render path.
+
+**BASELINES: tsc 148** (from 149 - the carried `ErrorBoundary.tsx(34,5)` TS2741 is
+fixed, and a diff of the two error sets confirms exactly one error removed and
+none added), **jest 3520 / 224 suites** (from 3503 / 223; +17 tests, +1 suite file,
+`navigation/__tests__/screenBoundary.test.tsx`), **sentinel 150 (unchanged)**,
+**lint 1100 errors / 1357 warnings** (from 1101 / 1355). **The error count FELL by
+one and the arithmetic is worth stating** so a later reader does not treat it as
+noise: three `react/no-unescaped-entities` errors left `ErrorBoundary.tsx` when its
+strings moved into constants, and the new navigator suite adds two
+`no-require-imports` errors that the existing safe-area mock convention already
+carries in `practicesToFocus.nav.test.tsx`. The two new warnings are `any` in that
+same mock shim. **Rules 191/2 and functions 53/4 carried unrun:** `firestore.rules`
+and `functions/` are untouched.
+
+**tsc MOVED 149 -> 148, AND 148 IS THE BASELINE FOR EVERY SLICE AFTER THIS ONE.**
+The cause is the single expected fix: `ErrorBoundary.tsx(34,5)` TS2741, carried
+into this row from 7f and fixed in it. Confirmed by diffing the two error sets
+rather than by comparing counts - exactly one error removed, none added. **A
+later Step 0 quoting 149 is reading a dated pin**, the same way the per-slice pins
+quoting 158 went stale after the legacy-removal sweep.
+
+---
+
+**THE WALK (Kyle, device, 2026-09-12). PASSED, ALL SEVEN STEPS.** A forced throw
+on Practices, on Insights and on Home each cost that one surface; the other tabs,
+the tab bar, and the pushed screen's header and back button all survived. The tab
+left in its error state was still in it after a switch away and back. Try Again
+remounted and re-threw on a surface rigged to throw every time. With the switch
+null, every surface rendered normally.
+
+**STEP 7 IS THE ONE WORTH READING, AND IT IS A NEGATIVE RESULT RECORDED ON
+PURPOSE. FIVE FORCED CRASHES ACROSS FIVE SURFACES PRODUCED NO REPORT ANYWHERE.**
+There was no Sentry project to check because there is no Sentry; the only thing
+the device had to say about crash reporting was the line it prints at launch:
+
+> `Crash reporting: infrastructure ready, awaiting @sentry/react-native setup`
+
+**That line is the record of what this slice cost in observability.** Five
+surfaces failed in front of a person who was watching for it, and the app's
+entire crash-reporting apparatus announced that it was ready and did nothing.
+Before 7g those five failures would have been five dead apps, which is a terrible
+user experience and an unmissable signal. They are now five small panels and no
+signal at all. **The trade was made deliberately (Kyle, Step 0, option 2 of
+three) and this is what it looks like from the device.** The PRE-LAUNCH `SENTRY`
+row in section 5 is the other half, and this paragraph is the argument for not
+letting it drift.
+
+---
+
+**`appMessage` IS PINNED BY TEST BUT WAS NOT WALKED, AND IT IS NOT WALKABLE WITH
+THIS FIXTURE. Recorded as test-only, on the same principle as 7d's offline catch
+branch: what a walk did not observe does not become observed because the code
+looks right.**
+
+`DEV_CRASH_ROUTE` throws **inside** `screenBoundaryLayout`, which renders
+`<ErrorBoundary scope="surface">` around the forced throw. **The surface boundary
+therefore always catches it and app scope never fires**, on any route including
+Home. Every fallback seen on this walk was the surface one: `surfaceTitle`, "This
+part didn't load.", with no second line - which is itself the correct observation
+that the app-scope line is dropped at surface scope.
+
+**So the app-scope pair - `appTitle` and the amended `appMessage`, "Try again, and
+restart the app if it keeps happening." - is asserted by
+`ErrorBoundary.test.tsx` and by nothing on a device.** Reaching it needs a throw
+OUTSIDE every screen: in one of the seven providers, in `NavigationContainer`
+itself, in `OfflineIndicator` or in `AudioPlayerOverlay`. That is a different
+fixture, it is not what `DEV_CRASH_ROUTE` builds, and **it was not attempted.**
+
+*(This corrects the walk script the build report handed over, whose step 5 said
+the new `appMessage` would be visible on Home. It was wrong for the reason above,
+and Kyle caught it on the device rather than in review. The step still does what
+it was for - proving Today is not a special case - but it shows the surface
+fallback, not the app one.)*
+
+---
+
+**THE SWITCH IS DISARMED AND THE TREE IS CLEAN.** `DEV_CRASH_ROUTE` is `null` in
+the committed file (`navigation/screenBoundary.tsx:70`), verified against
+`HEAD` rather than against the working copy, and `git status` is clean at the
+attested commit. The two guards that pin it - null in source, and every read
+behind `__DEV__` - are both green.
+
+**ATTESTATIONS (Kyle, 2026-09-12):**
+
+- **Suites green at the figures above:** tsc 148 / jest 3520 of 224 / sentinel 150. ATTESTED.
+- **Device walk passed, steps 1 through 7:** ATTESTED, 2026-09-12.
+
+**NOT MERGED.** Held at Kyle's instruction.
 
 ### 2026-09-12 - Jen's feedback: every open content question answered, and four decisions locked
 

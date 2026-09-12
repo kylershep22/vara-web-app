@@ -35,10 +35,11 @@ import type { JourneyState } from '../types/models';
  * `PHASE_DISPLAY[phaseKey][destination].short` in `JourneyLine` and
  * `PHASE_DISPLAY[phase][destination]` in `PhasePath`. A key outside its union
  * makes the outer lookup `undefined` and the inner access throws mid-render,
- * which the app's single ErrorBoundary (App.tsx:114, above the navigator)
- * answers by replacing the WHOLE APP with its fallback - not the screen, and
- * not the tab. Reproduced on `main` with a console-typed "remove " (a trailing
- * space) during slice 7b's walk.
+ * which an ErrorBoundary answers by replacing a surface with its fallback.
+ * WHEN THIS GUARD WAS WRITTEN that surface was the WHOLE APP: there was one
+ * boundary, at App.tsx:114, above the navigator. Slice 7g scoped them per
+ * screen and per tab, so the same throw now costs one tab. Reproduced on `main`
+ * with a console-typed "remove " (a trailing space) during slice 7b's walk.
  *
  * A CLIENT CANNOT PRODUCE SUCH A DOCUMENT. `validJourney` in firestore.rules
  * gates both keys on create AND update, and every in-app writer goes through

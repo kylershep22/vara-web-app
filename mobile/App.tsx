@@ -111,6 +111,13 @@ export default function App() {
   }, []);
 
   return (
+    // THE BACKSTOP, NOT THE ONLY BOUNDARY ANY MORE (slice 7g). Every screen and
+    // every tab now carries its own surface-scoped boundary, installed by
+    // `screenLayout` on the two navigators in navigation/AppNavigator.tsx. This
+    // one keeps `scope="app"` and stays because it covers what no screen
+    // boundary can: the seven providers below, NavigationContainer itself,
+    // OfflineIndicator and AudioPlayerOverlay. A throw in any of those is still
+    // the whole app, and the app-scoped copy is the truthful one for it.
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.container}>
         <SafeAreaProvider>

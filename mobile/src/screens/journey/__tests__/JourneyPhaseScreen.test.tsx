@@ -640,8 +640,9 @@ describe('the adjustment door', () => {
 // this screen supplies real keys today - the map iterates PHASE_ORDER, and
 // Today's two entry points are guarded by slice 7e's resolver branch. These
 // cases pin the page against the day a fourth caller is written, because the
-// failure mode is not a broken page: the app has ONE ErrorBoundary and it sits
-// above the navigator (App.tsx:114), so a throw here costs every tab.
+// failure mode is not a broken page but a fallback where the page should be.
+// That was EVERY TAB when this was written (one ErrorBoundary, above the
+// navigator at App.tsx:114); since slice 7g it is this screen.
 describe('JourneyPhaseScreen - params it cannot render', () => {
   it('a destination outside the union does not throw, and the page still renders', async () => {
     setParams('remove', 'stress');

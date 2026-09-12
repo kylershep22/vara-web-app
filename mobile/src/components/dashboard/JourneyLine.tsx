@@ -61,8 +61,10 @@ export const JourneyLine: React.FC<JourneyLineProps> = ({
   // What this closes is the SECOND double index. `PHASE_DISPLAY[phaseKey]` is
   // undefined for a key outside the four, and `[destination]` on undefined
   // throws DURING RENDER, which is the one failure shape an ErrorBoundary
-  // answers by taking the whole screen. Rendering nothing costs the user a
-  // context line; throwing costs them Home.
+  // answers. Rendering nothing costs the user a context line; throwing costs
+  // them Home. (Since slice 7g that is Home and not the whole app: every tab
+  // and every screen carries its own boundary. The guard below still earns its
+  // place - a boundary makes the blast radius one surface, not zero.)
   //
   // NOTHING RENDERS, NOT A PLACEHOLDER AND NOT AN ERROR. The line answers
   // "where am I", and there is no honest answer to that from a document nobody

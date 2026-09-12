@@ -135,8 +135,10 @@ export function JourneyPhaseScreen() {
   // THE PAGE STILL RENDERS WITHOUT THE CELL. Its title and gloss go quiet; the
   // body, the state word and the door do not depend on it. That is the same
   // partial-render the file header already describes for a failed document
-  // read, and it is preferable to an ErrorBoundary that takes every tab
-  // (App.tsx:114).
+  // read, and it is preferable to falling into an ErrorBoundary at all. That
+  // meant every tab when this was written (App.tsx:114 was the only boundary);
+  // since slice 7g it would mean this screen, which is still worse than a page
+  // that renders with one line missing.
   const cell = PHASE_DISPLAY[phase]?.[destination];
 
   // ---- Preview mode (slice 7a decisions 4 and the option-2 refinement) ----
