@@ -2503,6 +2503,46 @@ numbering in the file. **It needs cutting.**
 
 ---
 
+**7. FIVE OF JEN'S TWELVE CANNOT BE SERVED TO ANYONE, AND THE WALK CANNOT COVER
+THEM.** Found while designing the walk, by enumerating `selectProtocol` over
+every (phase, capacity, timeClass, destination) rather than by reading the
+matrix.
+
+`pickVariant` takes the FIRST variant of the asked time class, and
+`orderForDestination` is still the identity because no variant carries a
+`destinationWeight`. So a cell whose variants share a time class can only ever
+serve its first:
+
+| Cell | Variants | Servable |
+|---|---|---|
+| `recover.normal` | R1 med, R2 med, R3 long | R1, R3. **R2 never** |
+| `recover.limited` | R4, R5, R6, all medium | R4 only. **R5, R6 never** |
+| `recover.slammed` | R7, R8, R9, all short | R7 only. **R8, R9 never** |
+| `refocus.*` | one each | F1, F2, F3 |
+
+**Reachable: 7 of 12.** Dark: R2 "Build a recovery anchor", R5 "Use a two-part
+reset", R6 "Start with light", R8 "Use one recovery cue", R9 "Get some morning
+light".
+
+**THIS IS NOT A REGRESSION AND 7i DID NOT CAUSE IT.** The stand-ins had the same
+shape: `recover.limited` held three medium rows before this row too. What is new
+is that the dark strings are now Jen's authored content rather than stand-ins
+nobody intended to ship, so the cost of the gap changed even though the gap did
+not. The matrix doc-comment has always said `orderForDestination` "is what
+decides which of them leads"; nothing defines the weights it would read.
+
+**AND IT SHARPENS A CLAIM IN THE 2026-09-12 JEN-FEEDBACK ENTRY.** That entry
+says slice 9's auto-complete bridge "fires for two protocols out of twenty-one",
+R7 and R9. **R9 cannot be served**, so on today's selection logic the bridge can
+fire for ONE. The entry's conclusion holds and is strengthened: "Mark done"
+remains the primary completion path. The arithmetic is what changes.
+
+**Not fixed here.** Making these reachable means authoring `destinationWeight`,
+which is Jen's content and is nobody's to invent, and it is outside a copy row's
+fence. It belongs with the `supportingPracticeIds` row or its own.
+
+---
+
 **BASELINES AT THIS COMMIT.** tsc **148**, unchanged. jest **3490 / 223**, from
 3521 / 224, and the delta reconciles exactly: retagParity's 39 tests out, 7 added
 to `selectProtocol.test.ts`, 1 added to the sentinel suite. Sentinel **150**,
