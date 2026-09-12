@@ -34,11 +34,21 @@
  * none of the 21 is rendered on any surface a user reaches today: the slice 9
  * behavioral screen is what they are held for.
  *
+ * Slice 7k then applied Jen's same-day amendment to two of those twelve: one
+ * phrase in R1's daily action, and R7's `estMinutes`. Build either from the
+ * DATED AMENDMENT AT THE END of `§protocol-copy`, never from the original
+ * entries above it, which the pack deliberately leaves unedited. 7k also
+ * landed her `supportingPracticeIds` mapping; see the factory default below.
+ *
  * ESTIMATED MINUTES ARE NOT CORROBORATED BY THE COPY, and that is new. The old
  * stand-ins stated their duration in the text ("10-min extended exhale"); none
  * of Jen's does. `estMinutes` is now the only place a duration lives, so a
  * number that stops matching the action it sits beside will not be visible in
- * the string. Change one and read the other.
+ * the string. Change one and read the other. Protocol Engine Contract section
+ * 11 is the standing rule set on this and both halves bind: 11.1 says a
+ * duration is a ROUTING INPUT and must never be adjusted for tidiness, 11.2
+ * says a completion practice may exceed a protocol's minimum but never fall
+ * short of it, and applying 11.2 must not violate 11.1.
  *
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
@@ -138,7 +148,17 @@ const protocol = (
     capacity,
     timeClass,
     quickWinPracticeId: DEFAULT_QUICK_WIN_PRACTICE_ID,
-    // EMPTY ON EVERY VARIANT, AND THAT IS THE CURRENT STATE OF THE BRIDGE.
+    // THE DEFAULT, AND FOR NINETEEN OF THE TWENTY-ONE AUTHORED VARIANTS IT IS
+    // ALSO JEN'S DELIVERED ANSWER (slice 7k, 2026-09-12).
+    //
+    // Set BEFORE the `...fields` spread below, so a variant carries `[]` unless
+    // it names its own. Nineteen do not, and that is a decision rather than an
+    // absence: see the rule three paragraphs down. The nineteen are NOT written
+    // out as explicit empties, because nineteen literals restating a default
+    // would bury the two rows that actually carry a mapping. What makes the
+    // emptiness legible instead is this note plus the shape test in
+    // __tests__/selectProtocol.test.ts, which pins exactly two mapped variants
+    // by identity and fails if a twentieth appears.
     //
     // TWO SEPARATE CONTENT SYSTEMS (Content Pack v1, decisions section 2,
     // approved 2026-09-05). They are not interchangeable and they share no id
@@ -149,33 +169,43 @@ const protocol = (
     //   2. The DAILY PROTOCOL GRID, this file. Behavioural actions the user
     //      reads and marks done. Never runnable, no player, no audio.
     //
-    // THE RULE: Recover must NOT reference runnable-practice IDs until the
-    // mapping is explicitly authored. Titles that look alike do NOT mean the
-    // systems are connected. "One anchor cue", "Morning light", "Exhale and
-    // unplug" and the rest of the recover rows are GRID content with no catalog
-    // counterpart, and reading them as catalog practices is the specific
-    // mistake this note exists to prevent.
+    // THE RULE WAS "NO CROSSINGS UNTIL THE MAPPING IS AUTHORED", AND THE
+    // MAPPING IS NOW AUTHORED. That clause is SATISFIED, not repealed. The
+    // two-systems separation it protected still stands in full: titles that
+    // look alike still do NOT mean the systems are connected, and reading a
+    // grid row as a catalog practice is still the specific mistake this note
+    // exists to prevent. What changed is that two crossings now exist because
+    // Jen authored them, one at a time, against a stated rule.
     //
-    // The intended shape is `daily protocol -> optional supporting runnable
-    // practice`: a Recover protocol can ask the user to take two minutes to
-    // bring things down and then launch `extended-exhale-2` as its support.
-    // Populate this array deliberately, per variant, as part of authoring that
-    // integration. Do not bulk-fill it by title match.
+    // JEN'S RULE, VERBATIM (2026-09-12), and it is why nineteen are empty:
     //
-    // NOT SLICE 5, AND NOT ENGINEERING'S TO AUTHOR AT ALL (Kyle, 2026-09-09;
-    // journey roadmap section 5, the 2026-09-09 amendment). Which runnable
-    // practice supports which daily protocol is a CLINICAL JUDGMENT. It belongs
-    // to Jen, arrives as a delivered table, and is built as its own small slice
-    // against that table. Slice 5 was named as the owner here and no longer is;
-    // an engineer choosing the pairings is unauthored content entering the app
-    // through an engineering decision, which is the thing the content gates
-    // exist to stop.
+    //   a practice belongs here only when completing that practice
+    //   REASONABLY SATISFIES THE PROTOCOL ITSELF. Not "helps with",
+    //   not "supports".
     //
-    // SO THIS STAYS EMPTY, AND THE EMPTINESS IS THE DOCUMENTED STATE RATHER
-    // THAN AN OUTSTANDING TASK. The bridge is empty, the daily serve launches
-    // nothing, and no surface reads this field. Anyone finding it empty has
-    // found the recorded state, not a gap to close. The two-systems rule above
-    // is what makes that safe rather than merely empty.
+    // Under that rule the mapping is 19 none and 2 mapped. The two are
+    // recover/slammed "Lengthen the exhale" -> extended-exhale-2, and
+    // recover/slammed "Get some morning light" -> bright-light-10 +
+    // bright-light-20. Canonical table: Content Pack v1 section
+    // supporting-practices. Do NOT bulk-fill this by title match; do not add a
+    // third without Jen.
+    //
+    // NOT ENGINEERING'S TO AUTHOR (Kyle, 2026-09-09; journey roadmap section 5,
+    // the 2026-09-09 amendment). Which runnable practice supports which daily
+    // protocol is a CLINICAL JUDGMENT. It belongs to Jen, it arrived as a
+    // delivered table, and slice 7k built this against that table rather than
+    // deriving it. An engineer choosing the pairings is unauthored content
+    // entering the app through an engineering decision, which is the thing the
+    // content gates exist to stop.
+    //
+    // NO SURFACE READS THIS FIELD, which is still true after 7k and is the
+    // reason that slice needed no device walk. The daily serve launches
+    // nothing; the Today card reads `quickWinActive` and never this list
+    // (TodayHeroCard.tsx). Slice 9's behavioral screen is the first reader,
+    // and per the roadmap its auto-complete path is INERT at launch BY
+    // DECISION: the bridge fires for two protocols out of twenty-one, "Mark
+    // done" stays the primary completion path, and a later Step 0 that finds
+    // this near-empty has found a settled decision rather than a gap.
     supportingPracticeIds: [],
     ...fields,
     name,
@@ -398,7 +428,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
       protocol('recover', 'normal', {
         name: 'Downshift, then unplug',
         dailyAction:
-          'Use a slower, longer exhale to bring the pace down, then take one part of the afternoon fully off-screen. Put the phone out of reach and let the break be a break.',
+          'Use a slower, longer exhale to bring the pace down, then take one short break later today fully off-screen. Put the phone out of reach and let the break be a break.',
         estMinutes: 15,
         whyItWorks:
           'Slowing the breath can help you settle, and a real break gives your attention fewer demands to keep processing.',
@@ -451,9 +481,40 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         name: 'Lengthen the exhale',
         dailyAction:
           "For a few minutes, let each exhale run a little longer than the inhale. Don't force a deep breath; just slow the pace.",
-        estMinutes: 5,
+        // 2, NOT 5, AND THE NUMBER IS LOAD-BEARING IN BOTH DIRECTIONS.
+        //
+        // Moved 5 -> 2 by Jen in slice 7k under Protocol Engine Contract
+        // section 11.2: a completion practice may be LONGER than the protocol's
+        // estimated minimum, never SHORTER. `extended-exhale-2` below is a
+        // 2-minute practice, so against a 5-minute protocol it was shorter than
+        // the thing it was meant to satisfy. At 2 and 2 they are equal, which
+        // the rule permits.
+        //
+        // STAYS `short` (bound is <= 5), so nothing re-slots and the
+        // destination matrix is unaffected. Contract section 11.1 is the other
+        // half of this and it is not optional reading: `estMinutes` is a
+        // ROUTING INPUT, `timeClass` is derived from it, and crossing 5 or 15
+        // changes which variants a time answer can reach. Never adjust this for
+        // tidiness. The near-miss is recorded at R5 above, which stays at 6 for
+        // exactly this reason.
+        estMinutes: 2,
         whyItWorks:
           'A longer exhale can help shift the body out of a keyed-up state without asking much from you.',
+        // FIRST OF JEN'S TWO AUTHORED CROSSINGS of the two-systems rule
+        // (slice 7k, 2026-09-12; the rule and her wording are at the factory
+        // default above). Completing a 2-minute extended exhale reasonably
+        // satisfies "let each exhale run a little longer than the inhale",
+        // which is the whole test for belonging here.
+        //
+        // THE SAME ID ALSO SITS IN `quickWinPracticeId` ON THIS VARIANT, and
+        // that is not duplication to be tidied away. `DEFAULT_QUICK_WIN_PRACTICE_ID`
+        // is `extended-exhale-2` for every variant in the matrix; the two
+        // fields mean different things (a MANDATORY week-1 same-session step
+        // versus an OPTIONAL supporting practice, per types.ts), they are read
+        // by different code when anything reads them at all, and today the card
+        // reads neither this list nor that field directly. Collapsing them
+        // would merge two decisions that happen to coincide on one row.
+        supportingPracticeIds: ['extended-exhale-2'],
       }),
       protocol('recover', 'slammed', {
         name: 'Use one recovery cue',
@@ -467,9 +528,30 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         name: 'Get some morning light',
         dailyAction:
           "Step outside after you wake and spend a few minutes in daylight. That's the whole practice today.",
+        // STAYS AT 5 AGAINST SUPPORTING PRACTICES OF 10 AND 20 MINUTES, and
+        // that asymmetry is intentional rather than a mismatch to correct.
+        // Protocol Engine Contract section 11.2 makes `estMinutes` a MINIMUM:
+        // a light practice that exceeds it is exactly what the rule allows.
+        // Jen was asked and held the number in slice 7k.
         estMinutes: 5,
         whyItWorks:
           'Morning daylight gives your body a clear daytime signal with almost no decision-making required.',
+        // SECOND OF JEN'S TWO AUTHORED CROSSINGS (slice 7k, 2026-09-12; the
+        // rule and her wording are at the factory default above). Both doses
+        // are listed because either one reasonably satisfies "spend a few
+        // minutes in daylight"; they are the same practice family at two
+        // lengths, not a first choice and a fallback, and nothing here ranks
+        // them.
+        //
+        // THIS VARIANT IS UNREACHABLE TODAY AND THE MAPPING LANDS ANYWAY.
+        // `pickVariant` serves the first variant of the asked time class and
+        // all three of this cell are `short`, so R9 cannot be served to anyone
+        // until row 7l gives the Recover variants their `destinationWeight`
+        // (Energy routes to it there). Landing the value now costs nothing,
+        // because no code reads this field at all, and it means 7l makes a
+        // protocol reachable whose bridge is already populated rather than
+        // reopening this row to finish an answer Jen had already given.
+        supportingPracticeIds: ['bright-light-10', 'bright-light-20'],
       }),
     ],
   },
