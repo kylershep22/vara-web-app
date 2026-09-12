@@ -701,6 +701,14 @@ Reordered from her Part 12 to match the slice sequence. Items marked ★ are not
 11. **Rewire prompts** — post slice 9, gated on the crisis pre-check (§7).
 12. **Learn deep dives per blocker** — independent of the build; publish as ready.
 13. ★ **Confirmed retired:** the 24-cell off-diagonal outcome grid. Do not author.
+14. **Recover and Refocus protocol copy** (row 7i): title, daily action and why-it-works for
+   the nine Recover and three Refocus variants that have carried `PLACEHOLDER [Jen]` stand-ins
+   since the slice 3a re-tag. *(DELIVERED 2026-09-12 — Content Pack v1 `§protocol-copy`,
+   twelve rows keyed by ordinal + cell slot + current title. **This item was missing from this
+   list until the delivery landed:** item 2 above covers Remove protocols only, so the largest
+   outstanding content dependency in the build was never recorded here. Added at delivery
+   rather than at close, so the omission stays visible instead of being tidied away. No
+   `estMinutes` changes: Jen was asked and supplied none.)*
 
 ---
 

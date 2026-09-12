@@ -3,7 +3,7 @@
 **Authored by:** Jen
 **Approved by:** owner on delivery
 **Date:** 2026-09-05
-**Covers:** Recover internal structure · slice 5 display strings (16 title + 16 gloss) · A1 + A2 · C1 · B2 + C2 · Remove replacement menus
+**Covers:** Recover internal structure · slice 5 display strings (16 title + 16 gloss) · A1 + A2 · C1 · B2 + C2 · Remove replacement menus · Recover and Refocus protocol copy (12 x title, action, why)
 
 ---
 
@@ -30,8 +30,9 @@ that the strings came from this pack, and the sentinel figure stays flat.
 | [`short-labels`](#short-labels) | 16 `short` labels | slice 4 (A2 route strip), slice 5 (journey map), slice 7 (Today journey line, per §9 item 6) |
 | [`safety-precheck`](#safety-precheck) | Safety pre-check position | pre-launch |
 | [`decisions`](#decisions) | Sept 5 decisions addendum, four flags | multiple, see each |
+| [`protocol-copy`](#protocol-copy) | 9 Recover + 3 Refocus protocol copy (title, daily action, why-it-works) | roadmap row 7i |
 
-**Three sections carry supersessions. Read them before building:**
+**Four sections need a note before you build:**
 
 - [`C2`](#c2) — the original body is **SUPERSEDED**. Build the C2 body from
   [`decisions` section 4](#decisions-4), never from the original delivery.
@@ -44,6 +45,11 @@ that the strings came from this pack, and the sentinel figure stays flat.
 - [`replacement-menus`](#replacement-menus) — the reminder step is **DEFERRED to slice 9**.
   3c-ii ships the menus with the neutral confirmations in
   [`decisions` section 3](#decisions-3), never the reminder prompt in the original delivery.
+- [`protocol-copy`](#protocol-copy) — **no supersession. First and only delivery,
+  2026-09-12.** Listed here so this block stays a complete map of the sections that
+  need a note, rather than a hazard list that silently omits one. Build straight from
+  it. The count in the heading above moved from three to four for this entry, and the
+  heading was reworded because "carry supersessions" would have been false of it.
 
 **This guide names anchors and does not quote strings**, deliberately, as of 2026-09-12.
 It quoted the C2 body once and that quotation went stale the moment Jen revised it,
@@ -1219,3 +1225,200 @@ three and cannot be tuned for any one of them.
 > anything about this data, pin the five as expected duplicates rather than pinning
 > distinctness.
 
+---
+
+# Part four, Sept 12 addition
+
+<a id="protocol-copy"></a>
+
+# 9. Recover and Refocus protocol copy
+
+**Authored by:** Jen
+**Approved by:** owner on delivery
+**Date:** 2026-09-12
+
+The twelve daily protocols that have carried build-and-test stand-ins since the
+slice 3a re-tag: nine Recover and three Refocus, each a title, a daily action and a
+why-it-works line. They replace the strings annotated `PLACEHOLDER [Jen]` in
+`mobile/src/protocolEngine/protocolMatrix.ts`. Roadmap row 7i is the slice that
+lands them.
+
+**What they replace reads as spec, not as copy.** The stand-ins were draft actions
+lifted from spec 6.2 and they name their own mechanics ("10-min extended exhale,
+plus an afternoon device-free break"). The Remove phase's nine, approved in slices
+3a and 3c-i, are the register benchmark these were written against.
+
+**Same rule as the rest of this pack, reached by a different mechanism.** These are
+APPROVED CONTENT. They enter the codebase without `COPY: draft` markers and the
+copy-draft sentinel figure stays flat. For these twelve the sentinel does not
+merely decline to increment: `protocolMatrix.ts` and `protocolEngine/types.ts` are
+on that test's `OUT_OF_SCOPE` list
+(`mobile/src/__tests__/copyDraftSentinel.test.ts:614`), because protocol content,
+efficacy claims and why-it-works education are a separate review pipeline, Jen's
+rather than the brand guidelines'. A slice landing these says in its commit message
+that the strings came from this pack, and `EXPECTED_SENTINELS` does not move in
+either direction.
+
+> **EDITORIAL NOTE (not Jen's text). HOW THESE ROWS ARE KEYED, AND WHY NOT BY
+> `variantKey`.** Jen delivered against the ordinals R1-R9 and F1-F3. Those follow
+> source order in `PROTOCOL_MATRIX`: `recover` normal x3, then limited x3, then
+> slammed x3, and `refocus` normal, limited, slammed. Confirmed by owner
+> 2026-09-12, and corroborated by the two titles already quoted in the roadmap's
+> supportingPracticeIds table (R7 "Lengthen the exhale", R9 "Get some morning
+> light"), both of which land in `recover.slammed` under this ordering.
+>
+> **`variantKey` cannot key these rows, and is recorded as derived rather than as
+> the key.** It is `${phase}-${capacity}-${timeClass}`, and a cell may hold several
+> variants in one time class: R4, R5 and R6 all carry `recover-limited-medium`, and
+> R7, R8 and R9 all carry `recover-slammed-short`. `types.ts:101` calls it "unique
+> per variant"; that comment has been wrong since the 3b-ii-a reshape and is
+> backlogged separately. **The key is ordinal + cell slot + current title.** Keying
+> on `variantKey` alone would let R5's copy land on R4 silently.
+
+> **EDITORIAL NOTE (not Jen's text). NO DURATION CHANGES.** Jen was asked whether
+> any protocol needed a different `estMinutes` and supplied none. **Every existing
+> duration stands**, and this section changes no number. The durations appear in
+> the resolution table below for reference only; `estMinutes` is authored in
+> `protocolMatrix.ts` and `timeClass` is derived from it
+> (`protocolMatrix.ts:116`), never typed.
+>
+> **Her copy names no durations, and that is a change in kind.** Every stand-in
+> carried its number in the text ("10-min", "One 25-min single-task block", "5 min
+> on one thing"); none of hers does. The register is better for it, and the
+> consequence is that `estMinutes` is no longer corroborated by the string the user
+> reads. A future mismatch between the number the engine serves on and the action
+> the copy describes will not be visible in the copy. Noted, not actioned.
+
+> **EDITORIAL NOTE (not Jen's text). THREE TITLES SIT ONE LETTER FROM A BUILD
+> FAILURE.** `brandCopyGuard.test.ts` scopes its journey-framework-word rule to the
+> copy modules **plus `protocolMatrix.ts` explicitly** (`:301`), barring
+> remove/recover/rewire/refocus from any user-facing string of 60 characters or
+> fewer. R2 "Build a recovery anchor" and R8 "Use one recovery cue" pass only
+> because the pattern is `\brecover\b`, which does not match "recovery"; F1
+> "Protect one focus block" passes only because the barred word is "refocus", not
+> "focus". **Do not edit these three titles toward the bare framework word.**
+
+---
+
+## Recover
+
+### R1 - `recover.normal[0]`, replacing "Exhale and unplug"
+
+**Title:** Downshift, then unplug
+
+**Action:** Use a slower, longer exhale to bring the pace down, then take one part of the afternoon fully off-screen. Put the phone out of reach and let the break be a break.
+
+**Why it works:** Slowing the breath can help you settle, and a real break gives your attention fewer demands to keep processing.
+
+### R2 - `recover.normal[1]`, replacing "Three-step anchor"
+
+**Title:** Build a recovery anchor
+
+**Action:** Choose three small actions and do them in the same order when you need to reset. Water, a few slow breaths, a short walk. Keep the sequence simple enough to repeat.
+
+**Why it works:** Repeating the same sequence reduces the decisions required to start recovering and makes the routine easier to return to.
+
+### R3 - `recover.normal[2]`, replacing "Light, movement, steady wake"
+
+**Title:** Set the morning signal
+
+**Action:** Get outside soon after waking, move your body a little, and keep your wake time steady. The goal is a repeatable start, not a perfect morning.
+
+**Why it works:** Daylight, movement, and a consistent wake time reinforce the cues that help your body know when to be alert and when to wind down.
+
+### R4 - `recover.limited[0]`, replacing "Exhale and a break"
+
+**Title:** Exhale, then step away
+
+**Action:** Spend a few minutes slowing the exhale, then step away from screens or demands for a real break. Nothing to catch up on while you're there.
+
+**Why it works:** Pairing a physical downshift with fewer incoming demands gives both body and attention a chance to reset.
+
+### R5 - `recover.limited[1]`, replacing "Two-step anchor"
+
+**Title:** Use a two-part reset
+
+**Action:** Choose two small actions and repeat them in the same order when you need a reset. Water then a stretch. A few slow breaths then a walk. Keep it easy to start.
+
+**Why it works:** A short, repeatable sequence gives you a reliable way to shift state without deciding what to do each time.
+
+### R6 - `recover.limited[2]`, replacing "Light and steady wake"
+
+**Title:** Start with light
+
+**Action:** Get outside after you wake and spend a little time in daylight. Before bed, set tomorrow's wake time close to today's. That's enough for today.
+
+**Why it works:** Morning light and a steadier wake time strengthen the daily timing cues that support energy and sleep.
+
+### R7 - `recover.slammed[0]`, replacing "Five-minute exhale"
+
+**Title:** Lengthen the exhale
+
+**Action:** For a few minutes, let each exhale run a little longer than the inhale. Don't force a deep breath; just slow the pace.
+
+**Why it works:** A longer exhale can help shift the body out of a keyed-up state without asking much from you.
+
+### R8 - `recover.slammed[1]`, replacing "One anchor cue"
+
+**Title:** Use one recovery cue
+
+**Action:** Pick one small action and tie it to something that already happens every day. Step outside after coffee. Take a slow breath when you close the laptop. One cue is enough.
+
+**Why it works:** Attaching a reset to an existing cue makes it easier to remember and easier to repeat when your capacity is low.
+
+### R9 - `recover.slammed[2]`, replacing "Morning light"
+
+**Title:** Get some morning light
+
+**Action:** Step outside after you wake and spend a few minutes in daylight. That's the whole practice today.
+
+**Why it works:** Morning daylight gives your body a clear daytime signal with almost no decision-making required.
+
+---
+
+## Refocus
+
+### F1 - `refocus.normal[0]`, replacing "Deep work block"
+
+**Title:** Protect one focus block
+
+**Action:** Choose one thing that matters, close everything that doesn't serve it, and work on only that until the block ends. Then get away from the screen before you decide what's next.
+
+**Why it works:** Removing task-switching gives your attention a better chance to stay with one problem long enough to make meaningful progress.
+
+### F2 - `refocus.limited[0]`, replacing "Short focus block"
+
+**Title:** Clear the lane
+
+**Action:** Pick one task and give it your full attention for one short block. Close the extra tabs, silence the pings, and leave the rest alone until you're done.
+
+**Why it works:** Reducing competing cues makes it easier to hold the task in mind and lowers the cost of switching.
+
+### F3 - `refocus.slammed[0]`, replacing "One thing, five minutes"
+
+**Title:** Give one thing a start
+
+**Action:** Choose one task and work only on the first piece of it. Close the extra tabs and stop when the block ends, even if there's more to do.
+
+**Why it works:** A small, defined start lowers the effort required to begin and gives scattered attention one place to land.
+
+---
+
+> **EDITORIAL NOTE (not Jen's text). THE RESOLUTION TABLE.** Ordinal to cell, with
+> the stand-in each one replaces and the duration that stands unchanged.
+> `variantKey` is derived and is **not unique**; see the keying note above.
+>
+> | # | Cell slot | Replaces | est | class | `variantKey` (derived, non-unique) |
+> |---|---|---|---|---|---|
+> | R1 | `recover.normal[0]` | Exhale and unplug | 15 | medium | `recover-normal-medium` |
+> | R2 | `recover.normal[1]` | Three-step anchor | 10 | medium | `recover-normal-medium` |
+> | R3 | `recover.normal[2]` | Light, movement, steady wake | 20 | long | `recover-normal-long` |
+> | R4 | `recover.limited[0]` | Exhale and a break | 10 | medium | `recover-limited-medium` |
+> | R5 | `recover.limited[1]` | Two-step anchor | 6 | medium | `recover-limited-medium` |
+> | R6 | `recover.limited[2]` | Light and steady wake | 10 | medium | `recover-limited-medium` |
+> | R7 | `recover.slammed[0]` | Five-minute exhale | 5 | short | `recover-slammed-short` |
+> | R8 | `recover.slammed[1]` | One anchor cue | 2 | short | `recover-slammed-short` |
+> | R9 | `recover.slammed[2]` | Morning light | 5 | short | `recover-slammed-short` |
+> | F1 | `refocus.normal[0]` | Deep work block | 30 | long | `refocus-normal-long` |
+> | F2 | `refocus.limited[0]` | Short focus block | 15 | medium | `refocus-limited-medium` |
+> | F3 | `refocus.slammed[0]` | One thing, five minutes | 5 | short | `refocus-slammed-short` |
