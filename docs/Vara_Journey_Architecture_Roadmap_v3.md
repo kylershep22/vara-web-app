@@ -2317,7 +2317,7 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
 
-### 2026-09-12 - slice 7k, Jen's supportingPracticeIds mapping, R7's duration and R1's phrase (`b6da0b9`, docs recorded by the closer commit below; branch `journey/slice-7k-supporting-practices`; NO WALK, per the row: nothing reads the field until slice 9)
+### 2026-09-12 - slice 7k, Jen's supportingPracticeIds mapping, R7's duration and R1's phrase (`b6da0b9`, docs `4924de6` + this closer; branch `journey/slice-7k-supporting-practices`; NO WALK, per the row: nothing reads the field until slice 9)
 
 **Three values, all Jen's, all delivered the same day, no open content
 questions.** The mapping (19 none, 2 mapped), R7's `estMinutes` 5 -> 2, and one
