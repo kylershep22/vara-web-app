@@ -141,6 +141,104 @@ describe('TodayHeroCard', () => {
       expect(screen.queryByTestId('home-today-complete')).toBeNull();
     });
 
+    // THE DONE-LINE'S WORDS, and the four tests below are deliberately about
+    // the WORDS rather than about a reference. `COMPLETION_COPY` is module-
+    // local and not exported, so the literal is spelled out here on purpose:
+    // an assertion that imported the constant would pass against any string it
+    // was changed to, which is exactly the thing worth catching on a line the
+    // user reads on every single completion. Before slice 7m this surface was
+    // held by the sentinel count alone - that count proves a marker is absent,
+    // never that the right text renders.
+    //
+    // "Done for today." is APPROVED COPY: Jen signed off on this exact wording
+    // on 2026-09-12 (roadmap row 7m). It is not printed in guidelines §1.5, so
+    // the warrant is the owner's sign-off rather than a citation; see the
+    // comment above COMPLETION_COPY.
+    const APPROVED_DONE_LINE = 'Done for today.';
+
+    test('the done-state renders the approved line for a variant with no acknowledgment', () => {
+      // Recover carries no `acknowledgment` on any variant, so this is the
+      // `protocol.acknowledgment ?? COMPLETION_COPY.done` fallback at :154.
+      // Twelve of the twenty-one authored protocols reach the card this way.
+      const screen = renderCard(
+        {},
+        {
+          completed: true,
+          protocol: { ...PROTOCOL_MATRIX.recover.normal[0], quickWinActive: false },
+        }
+      );
+
+      expect(screen.getByText(APPROVED_DONE_LINE)).toBeTruthy();
+    });
+
+    test('a variant WITH an acknowledgment shows its own line below the threshold', () => {
+      // THIS TEST EXISTS TO STOP THE NEXT ONE PASSING VACUOUSLY. Without it,
+      // "the quiet branch renders the approved line" would still be green if
+      // the acknowledgment never rendered anywhere, which would be a defect
+      // wearing the shape of a pass.
+      const remove = PROTOCOL_MATRIX.remove.normal[0];
+      const screen = renderCard(
+        {},
+        {
+          completed: true,
+          consistentDays: 0,
+          protocol: { ...remove, quickWinActive: false },
+        }
+      );
+
+      expect(remove.acknowledgment).toBeTruthy();
+      expect(screen.getByText(remove.acknowledgment as string)).toBeTruthy();
+      expect(screen.queryByText(APPROVED_DONE_LINE)).toBeNull();
+    });
+
+    test('the quieting branch drops that acknowledgment to the approved line', () => {
+      // Five consistent days: the volume control at :182. Praise that keeps
+      // arriving at the same volume stops reading as acknowledgment and starts
+      // reading as a scoreboard, so past the threshold the per-variant line is
+      // replaced by the plain one. No number is rendered in either state and
+      // the crossing is never announced.
+      const remove = PROTOCOL_MATRIX.remove.normal[0];
+      const screen = renderCard(
+        {},
+        {
+          completed: true,
+          consistentDays: 5,
+          protocol: { ...remove, quickWinActive: false },
+        }
+      );
+
+      expect(screen.getByText(APPROVED_DONE_LINE)).toBeTruthy();
+      expect(screen.queryByText(remove.acknowledgment as string)).toBeNull();
+    });
+
+    test('the quieting rule is a deliberate no-op where there is no acknowledgment', () => {
+      // PINNED AS INTENDED, NOT LEFT TO SURVIVE BY ACCIDENT. For the twelve
+      // Recover and Refocus variants there is nothing to quiet, so both arms of
+      // the conditional resolve to the same string and the rule never engages.
+      // Jen declined twelve per-protocol acknowledgments on 2026-09-12, which
+      // makes this the intended state rather than a gap - but "intended" is
+      // only worth writing down if something fails when it stops being true.
+      // This is that something: it goes red if a future change makes the two
+      // sides of the threshold differ here, in either direction.
+      //
+      // ITS LIMIT, STATED RATHER THAN LEFT TO BE DISCOVERED. This test pins
+      // SAMENESS, and sameness cannot see which way the comparison at :182
+      // points: mutating `>=` to `<` leaves it green, by construction, because
+      // on a variant with no acknowledgment there is nothing on either side
+      // that differs. The two tests above are what hold the threshold's
+      // direction; this one holds only that the no-op is still a no-op.
+      const recover = { ...PROTOCOL_MATRIX.recover.normal[0], quickWinActive: false };
+      const before = renderCard({}, { completed: true, consistentDays: 0, protocol: recover });
+      const after = renderCard({}, { completed: true, consistentDays: 5, protocol: recover });
+
+      expect(recover).not.toHaveProperty('acknowledgment');
+      expect(textOf(before.getByTestId('home-today-done'))).toBe(
+        textOf(after.getByTestId('home-today-done'))
+      );
+      expect(before.getByText(APPROVED_DONE_LINE)).toBeTruthy();
+      expect(after.getByText(APPROVED_DONE_LINE)).toBeTruthy();
+    });
+
     test('renders the day action from the protocol', () => {
       const screen = renderCard();
 
