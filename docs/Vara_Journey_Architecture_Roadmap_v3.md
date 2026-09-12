@@ -2674,6 +2674,12 @@ this row defines is first run by R2.**
 **THE `[Next]` MARKER IS NOT MOVED.** R0 still carries it. Kyle moves it at the merge, per the
 one-live-marker rule recorded at 7k's close.
 
+ATTESTATIONS (Kyle, 2026-09-12):
+- Docs-only diff: `git diff --name-only main` contains only .md files,
+  verified. Suites unaffected; baselines carried at tsc 148 /
+  jest 3505 of 223 / sentinel 149. ATTESTED.
+- No device walk required: row R0, docs only, no runtime surface. ATTESTED.
+
 ### 2026-09-12 - slice 7m, the completion fallback becomes approved copy (`d80b957`, tests + row correction `21ad672`, docs `541107b` + attestation `9dd59f9`; merged `6b4aefc`; branch `journey/slice-7m-completion-copy`, pushed; NO WALK, per the row: one string constant, no engine, storage or navigation path touched)
 
 **ONE STRING AND ONE MARKER.** `COMPLETION_COPY.done` in
