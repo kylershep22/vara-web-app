@@ -1,9 +1,14 @@
 /**
- * THE MERGE GATE FOR JOURNEY SLICE 3a.
+ * THE MERGE GATE FOR JOURNEY SLICE 3a. CLOSED: Jen's Remove protocols landed in
+ * 3a and 3c-i, and this has been green since.
  *
- * THIS TEST IS EXPECTED TO FAIL until Jen's Remove protocols land. That is not
- * a broken suite; it is the gate doing its job, and it is the ONLY thing
- * standing between placeholder text and every beta user's daily card.
+ * IT IS NOT THE GATE FOR ANY OTHER PHASE, and slice 7i's board row wrongly said
+ * it was. This file reads the `placeholder` FLAG and scans the `remove` CELLS
+ * only. The twelve Recover and Refocus strings 7i replaced carried a
+ * `PLACEHOLDER [Jen]` source ANNOTATION and no flag, in two phases this gate
+ * never looks at, so it was green before 7i and after it. The check that those
+ * twelve are authored is 'THE SLICE 7i COMPLETION GATE' in
+ * `selectProtocol.test.ts`. Keep both: they hold different halves.
  *
  * WHY IT MATTERS MORE THAN THE USUAL CONTENT GAP. Under JOURNEY_IA every user
  * is in phase 'remove'. There is no other cell they can be served from and no
@@ -96,9 +101,16 @@ describe('MERGE GATE: remove cells are authored', () => {
     // Not a gate. Slice 5 is where these become reachable and therefore where
     // they become a gate of their own. Asserted so the count is visible in the
     // suite output rather than discovered by a user.
+    //
+    // TIGHTENED IN SLICE 7i, from `toBeLessThanOrEqual(3)` to an exact 3. The
+    // old bound also passed at zero, so it could not tell "rewire still holds
+    // its three stand-ins" apart from "someone deleted them", and after 7i
+    // these are the only placeholders left in the matrix. Exactly three, one
+    // per capacity tier, is the fact worth holding.
     const rewirePlaceholders = CAPACITY_TIERS.flatMap((capacity) =>
       PROTOCOL_MATRIX.rewire[capacity].filter((v) => v.placeholder)
     );
-    expect(rewirePlaceholders.length).toBeLessThanOrEqual(CAPACITY_TIERS.length);
+    expect(rewirePlaceholders).toHaveLength(CAPACITY_TIERS.length);
+    expect(CAPACITY_TIERS).toHaveLength(3);
   });
 });

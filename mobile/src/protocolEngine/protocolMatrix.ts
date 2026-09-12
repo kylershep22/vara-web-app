@@ -21,11 +21,24 @@
  * of the type, and a test holds it there. That is a weaker guarantee and it is
  * stated plainly rather than assumed.
  *
- * This file is DATA, not logic. Every user-facing string below is a
- * PLACEHOLDER [Jen]: draft daily actions come from spec 6.2, and names,
- * estimated minutes, and rationale are build-and-test stand-ins. Jen owns the
- * final content, which drops in here without any code change. Do not ship
- * placeholder copy.
+ * This file is DATA, not logic. Every user-facing string below is AUTHORED
+ * CONTENT owned and approved by Jen, and it drops in here without any code
+ * change. The one exception is `rewire`, whose three build-walk stand-ins carry
+ * `placeholder: true` and a "[PLACEHOLDER] " title prefix; no user reaches that
+ * phase until slice 5. Do not ship placeholder copy.
+ *
+ * PROVENANCE. Remove's nine came from slices 3a and 3c-i. Recover's nine and
+ * Refocus's three landed in slice 7i from Content Pack v1 `§protocol-copy`,
+ * replacing the `PLACEHOLDER [Jen]` stand-ins that had stood since the re-tag.
+ * Every `whyItWorks` string is therefore authored and clinically reviewed, and
+ * none of the 21 is rendered on any surface a user reaches today: the slice 9
+ * behavioral screen is what they are held for.
+ *
+ * ESTIMATED MINUTES ARE NOT CORROBORATED BY THE COPY, and that is new. The old
+ * stand-ins stated their duration in the text ("10-min extended exhale"); none
+ * of Jen's does. `estMinutes` is now the only place a duration lives, so a
+ * number that stops matching the action it sits beside will not be visible in
+ * the string. Change one and read the other.
  *
  * Copy rule (product principle 8): no em dashes in user-facing strings.
  */
@@ -178,33 +191,40 @@ export type ProtocolVariantMatrix = Record<
 >;
 
 /**
- * RE-TAGGED, NOT REWRITTEN (journey roadmap 3.2). The twelve authored rows are
- * character-for-character the ones that shipped; only the cell they sit in
- * changed:
+ * WHICH CELL EACH ROW SITS IN (journey roadmap 3.2). Slice 3a re-tagged twelve
+ * rows without editing them; slice 7i then REPLACED all twelve with Jen's
+ * authored copy. The cells are unchanged since the re-tag:
  *
  *   focus              -> refocus   (3 rows, one per capacity)
  *   stress + energy    -> recover   (6 rows)
  *   routines           -> recover   (3 rows; routines are recovery
  *                                    infrastructure, per Jen section 5)
  *
+ * `retagParity.test.ts` used to pin those twelve strings character-for-
+ * character as proof the 3a move was a move. 7i deleted it, on the lifetime its
+ * own header declared: once the strings are legitimately gone, a fixture
+ * restating them asserts the absence of the wrong thing. Its three live
+ * invariants moved to `selectProtocol.test.ts` first.
+ *
  * `recover` therefore holds THREE variants per capacity tier, which is the
  * first time a cell has held more than one. Some of them share a time class,
  * so `pickVariant` can no longer assume the class it finds is the only
  * candidate; `orderForDestination` is what decides which of them leads.
  *
- * `remove` and `rewire` ARE NET-NEW AND HOLD PLACEHOLDERS. This reverses the
- * rule the previous version of this comment stated, and the reversal is
- * deliberate rather than an oversight: every user is in `remove` under
- * JOURNEY_IA, so an empty remove cell is not a gap that falls back, it is a
- * blank card. The placeholders exist so the surface can be walked end to end
- * before Jen's content lands.
+ * `rewire` IS THE ONLY PHASE STILL HOLDING PLACEHOLDERS, and after slice 7i it
+ * holds all three that remain in the matrix. Its stand-ins carry
+ * `placeholder: true` and a title prefixed "[PLACEHOLDER] ", they exist so the
+ * surface can be walked end to end, and no user reaches the phase until slice
+ * 5. `remove` held placeholders too until slice 3a authored it.
  *
- * THEY MUST NOT SHIP. Every one carries `placeholder: true` and a title
- * prefixed "[PLACEHOLDER] ", and
- * `__tests__/protocolMatrix.removeCellsAuthored.test.ts` FAILS while any of
- * them is still in a remove cell. That failing test is this slice's merge gate.
- * Rewire placeholders may outlive the gate: no user reaches rewire until
- * slice 5.
+ * THEY MUST NOT SHIP. Two tests hold that, and they hold different halves of
+ * it. `__tests__/protocolMatrix.removeCellsAuthored.test.ts` fails while any
+ * placeholder sits in a `remove` cell, which was slice 3a's merge gate. Since
+ * 7i, `__tests__/selectProtocol.test.ts` additionally asserts that no variant
+ * in `recover` or `refocus` carries the flag either. The remove gate says
+ * NOTHING about those two phases and never did: the twelve strings 7i replaced
+ * carried a source annotation, not the flag, so that gate was green before and
+ * after them.
  *
  * The off-diagonal time slots remain genuinely unauthored, and are still NOT
  * filled with copies of a neighbour: smearing the same actions across the grid
@@ -376,72 +396,80 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
   recover: {
     normal: [
       protocol('recover', 'normal', {
-        name: 'Exhale and unplug', // PLACEHOLDER [Jen]
-        dailyAction: '10-min extended exhale, plus an afternoon device-free break', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 15, // PLACEHOLDER [Jen]
-        whyItWorks:
-          'Breathing out for longer than you breathe in engages the parasympathetic branch and lowers arousal, and an afternoon break stops stress stacking through the day.', // PLACEHOLDER [Jen]
-      }),
-      protocol('recover', 'normal', {
-        name: 'Three-step anchor', // PLACEHOLDER [Jen]
-        dailyAction: 'One 3-step anchor routine, same order daily', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 10, // PLACEHOLDER [Jen]
-        whyItWorks:
-          'Running the same steps in the same order lets each step cue the next, so the sequence needs less deliberate effort over time.', // PLACEHOLDER [Jen]
-      }),
-      protocol('recover', 'normal', {
-        name: 'Light, movement, steady wake', // PLACEHOLDER [Jen]
+        name: 'Downshift, then unplug',
         dailyAction:
-          'Morning light within 30 min of waking, plus movement and a consistent wake time', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 20, // PLACEHOLDER [Jen]
+          'Use a slower, longer exhale to bring the pace down, then take one part of the afternoon fully off-screen. Put the phone out of reach and let the break be a break.',
+        estMinutes: 15,
         whyItWorks:
-          'Early daylight and a steady wake time are the strongest signals for the body clock, and morning movement reinforces the same timing.', // PLACEHOLDER [Jen]
+          'Slowing the breath can help you settle, and a real break gives your attention fewer demands to keep processing.',
+      }),
+      protocol('recover', 'normal', {
+        name: 'Build a recovery anchor',
+        dailyAction:
+          'Choose three small actions and do them in the same order when you need to reset. Water, a few slow breaths, a short walk. Keep the sequence simple enough to repeat.',
+        estMinutes: 10,
+        whyItWorks:
+          'Repeating the same sequence reduces the decisions required to start recovering and makes the routine easier to return to.',
+      }),
+      protocol('recover', 'normal', {
+        name: 'Set the morning signal',
+        dailyAction:
+          'Get outside soon after waking, move your body a little, and keep your wake time steady. The goal is a repeatable start, not a perfect morning.',
+        estMinutes: 20,
+        whyItWorks:
+          'Daylight, movement, and a consistent wake time reinforce the cues that help your body know when to be alert and when to wind down.',
       }),
     ],
     limited: [
       protocol('recover', 'limited', {
-        name: 'Exhale and a break', // PLACEHOLDER [Jen]
-        dailyAction: '5-min extended exhale, plus a break', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 10, // PLACEHOLDER [Jen]
+        name: 'Exhale, then step away',
+        dailyAction:
+          "Spend a few minutes slowing the exhale, then step away from screens or demands for a real break. Nothing to catch up on while you're there.",
+        estMinutes: 10,
         whyItWorks:
-          'A shorter exhale practice still shifts arousal down, and pairing it with a break gives the effect somewhere to land.', // PLACEHOLDER [Jen]
+          'Pairing a physical downshift with fewer incoming demands gives both body and attention a chance to reset.',
       }),
       protocol('recover', 'limited', {
-        name: 'Two-step anchor', // PLACEHOLDER [Jen]
-        dailyAction: 'A 2-step anchor routine', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 6, // PLACEHOLDER [Jen]
+        name: 'Use a two-part reset',
+        dailyAction:
+          'Choose two small actions and repeat them in the same order when you need a reset. Water then a stretch. A few slow breaths then a walk. Keep it easy to start.',
+        estMinutes: 6,
         whyItWorks:
-          'Two steps is short enough to survive a busy week and still long enough to form a sequence.', // PLACEHOLDER [Jen]
+          'A short, repeatable sequence gives you a reliable way to shift state without deciding what to do each time.',
       }),
       protocol('recover', 'limited', {
-        name: 'Light and steady wake', // PLACEHOLDER [Jen]
-        dailyAction: 'Morning light, plus a consistent wake time', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 10, // PLACEHOLDER [Jen]
+        name: 'Start with light',
+        dailyAction:
+          "Get outside after you wake and spend a little time in daylight. Before bed, set tomorrow's wake time close to today's. That's enough for today.",
+        estMinutes: 10,
         whyItWorks:
-          'Light exposure and wake timing carry most of the effect, so they are what stays when movement drops off.', // PLACEHOLDER [Jen]
+          'Morning light and a steadier wake time strengthen the daily timing cues that support energy and sleep.',
       }),
     ],
     slammed: [
       protocol('recover', 'slammed', {
-        name: 'Five-minute exhale', // PLACEHOLDER [Jen]
-        dailyAction: '5-min extended exhale', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 5, // PLACEHOLDER [Jen]
+        name: 'Lengthen the exhale',
+        dailyAction:
+          "For a few minutes, let each exhale run a little longer than the inhale. Don't force a deep breath; just slow the pace.",
+        estMinutes: 5,
         whyItWorks:
-          'Extending the exhale works within minutes, which is why it holds up on the weeks nothing else does.', // PLACEHOLDER [Jen]
+          'A longer exhale can help shift the body out of a keyed-up state without asking much from you.',
       }),
       protocol('recover', 'slammed', {
-        name: 'One anchor cue', // PLACEHOLDER [Jen]
-        dailyAction: 'One anchor cue at the same time daily', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 2, // PLACEHOLDER [Jen]
+        name: 'Use one recovery cue',
+        dailyAction:
+          'Pick one small action and tie it to something that already happens every day. Step outside after coffee. Take a slow breath when you close the laptop. One cue is enough.',
+        estMinutes: 2,
         whyItWorks:
-          'Holding the timing steady keeps the cue in place, which is the part a routine is rebuilt from later.', // PLACEHOLDER [Jen]
+          'Attaching a reset to an existing cue makes it easier to remember and easier to repeat when your capacity is low.',
       }),
       protocol('recover', 'slammed', {
-        name: 'Morning light', // PLACEHOLDER [Jen]
-        dailyAction: 'Morning light only', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 5, // PLACEHOLDER [Jen]
+        name: 'Get some morning light',
+        dailyAction:
+          "Step outside after you wake and spend a few minutes in daylight. That's the whole practice today.",
+        estMinutes: 5,
         whyItWorks:
-          'Getting outside shortly after waking is a few minutes of effort for the single largest timing signal available.', // PLACEHOLDER [Jen]
+          'Morning daylight gives your body a clear daytime signal with almost no decision-making required.',
       }),
     ],
   },
@@ -486,29 +514,32 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
   refocus: {
     normal: [
       protocol('refocus', 'normal', {
-        name: 'Deep work block', // PLACEHOLDER [Jen]
-        dailyAction: 'One 25-min single-task block, then a device-free break', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 30, // PLACEHOLDER [Jen]
+        name: 'Protect one focus block',
+        dailyAction:
+          "Choose one thing that matters, close everything that doesn't serve it, and work on only that until the block ends. Then get away from the screen before you decide what's next.",
+        estMinutes: 30,
         whyItWorks:
-          'Sustained attention on one task avoids the switching cost of juggling several, and a break without a screen lets attention recover before the next block.', // PLACEHOLDER [Jen]
+          'Removing task-switching gives your attention a better chance to stay with one problem long enough to make meaningful progress.',
       }),
     ],
     limited: [
       protocol('refocus', 'limited', {
-        name: 'Short focus block', // PLACEHOLDER [Jen]
-        dailyAction: 'One 15-min single-task block', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 15, // PLACEHOLDER [Jen]
+        name: 'Clear the lane',
+        dailyAction:
+          "Pick one task and give it your full attention for one short block. Close the extra tabs, silence the pings, and leave the rest alone until you're done.",
+        estMinutes: 15,
         whyItWorks:
-          'A shorter block keeps the same single-task structure at a length that still fits a full day.', // PLACEHOLDER [Jen]
+          'Reducing competing cues makes it easier to hold the task in mind and lowers the cost of switching.',
       }),
     ],
     slammed: [
       protocol('refocus', 'slammed', {
-        name: 'One thing, five minutes', // PLACEHOLDER [Jen]
-        dailyAction: '5 min on one thing, every other tab closed', // PLACEHOLDER [Jen], draft per spec 6.2
-        estMinutes: 5, // PLACEHOLDER [Jen]
+        name: 'Give one thing a start',
+        dailyAction:
+          "Choose one task and work only on the first piece of it. Close the extra tabs and stop when the block ends, even if there's more to do.",
+        estMinutes: 5,
         whyItWorks:
-          'Closing the other tabs removes the cues that pull attention away, so five minutes is enough to get one thing moving.', // PLACEHOLDER [Jen]
+          'A small, defined start lowers the effort required to begin and gives scattered attention one place to land.',
       }),
     ],
   },

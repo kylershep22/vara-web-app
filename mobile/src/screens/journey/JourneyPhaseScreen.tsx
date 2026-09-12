@@ -34,12 +34,12 @@
 // here "ready for later" either: an unused vocabulary entry is how the decision
 // gets made by whoever types the next one.
 //
-// PLACEHOLDER CONTENT DOES NOT SURFACE HERE. Recover's nine protocol variants
-// and refocus's three carry `PLACEHOLDER [Jen]` on name, dailyAction, estMinutes
-// and whyItWorks; rewire's three are the only cells flagged `placeholder: true`.
-// None of it is read on this page. Remove's nine `whyItWorks` strings ARE
-// approved, and they are still not read here: they are per-capacity protocol
-// rationale, and the slice 9 behavioral screen is the surface designed for them.
+// PLACEHOLDER CONTENT DOES NOT SURFACE HERE. Since slice 7i, rewire's three
+// stand-ins are the ONLY cells flagged `placeholder: true`; recover's nine and
+// refocus's three are Jen's authored copy. None of it is read on this page.
+// All 21 authored `whyItWorks` strings are likewise not read here: they are
+// per-capacity protocol rationale, and the slice 9 behavioral screen is the
+// surface designed for them.
 
 import React, { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';

@@ -29,11 +29,15 @@
  * A red build here is not a bug in the test. It means the set of unapproved
  * strings changed and the change has not been accounted for.
  *
- * OUT OF SCOPE: protocolEngine's `PLACEHOLDER [Jen]` annotations. That is a
- * different convention on a different pipeline (protocol content, "why this
- * works" education and efficacy claims, all authored and reviewed by Jen rather
- * than written against the brand guidelines), and it is excluded here so the two
- * never get conflated or traded off against each other.
+ * OUT OF SCOPE: protocolEngine's content files. That is a different pipeline
+ * (protocol content, "why this works" education and efficacy claims, all
+ * authored and reviewed by Jen rather than written against the brand
+ * guidelines), governed by its own gate, and it is excluded here so the two
+ * never get conflated or traded off against each other. Until slice 7i those
+ * files were recognisable by a `PLACEHOLDER [Jen]` annotation; Jen's authored
+ * copy replaced the annotated strings, so the exclusion is now justified by
+ * what the file IS rather than by a marker in it. See the test at the bottom
+ * of this file, which names the three changes that would make it wrong.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -709,16 +713,64 @@ describe('Copy draft sentinel - release gate', () => {
     expect(offenders).toEqual([]);
   });
 
-  test('the protocol content pipeline is excluded, not accidentally clean', () => {
-    // If protocolMatrix ever stops using its own annotation convention, this
-    // fails and the exclusion above should be revisited rather than left
-    // pointing at a file that no longer needs it.
+  test('every excluded path still exists', () => {
+    // An OUT_OF_SCOPE entry naming a file that has been moved or deleted is an
+    // exclusion nobody is enforcing, and it would silently widen as the tree
+    // changes around it. Same contract as the ALLOWLIST in the brand guards.
+    for (const rel of OUT_OF_SCOPE) {
+      expect(fs.existsSync(path.join(mobileRoot, rel))).toBe(true);
+    }
+  });
+
+  test('the protocol content pipeline is excluded on its merits, not by accident', () => {
+    // WHY THIS TEST CHANGED IN SLICE 7i. It used to assert that
+    // protocolMatrix.ts CONTAINED the literal "PLACEHOLDER [Jen]", on the
+    // reasoning that the annotation was what marked the file as belonging to
+    // Jen's pipeline. 7i landed her twelve authored protocols and removed all
+    // 48 of those annotations, so that assertion could only have been kept
+    // green by leaving a false sentence in the file's header. The old test's
+    // own comment called for exactly this: revisit the exclusion rather than
+    // leave it pointing at a file that no longer needs it.
+    //
+    // THE EXCLUSION IS JUSTIFIED BY A PIPELINE FACT, NOT BY A MARKER.
+    // protocolMatrix.ts is excluded because it holds Jen-authored protocol
+    // content - daily actions, efficacy rationale, why-it-works education -
+    // reviewed on her clinical path and gated by its own test, NOT written
+    // against the brand guidelines this sentinel counts drafts for. The
+    // assertions below check that this is still what the file is.
+    //
+    // WHAT MAKES THIS FAIL, stated so a future reader does not have to infer it:
+    //   1. The protocol content moves out of protocolMatrix.ts, or the module
+    //      stops exporting the matrix. The exclusion would then be pointing at
+    //      a file that no longer carries the content it was granted for, and
+    //      whatever file DOES carry it would be silently in scope.
+    //   2. The file's own content gate disappears. Exclusion from this sentinel
+    //      is only safe because a different test governs the same strings;
+    //      remove that and the content is governed by nothing.
+    //   3. Drafted strings appear in it. That is brand-pipeline copy in a
+    //      clinical-pipeline file, and the two must not be traded off.
+    // Any of the three means the exclusion needs re-deciding, not repairing.
     const matrix = fs.readFileSync(
       path.join(mobileRoot, 'src/protocolEngine/protocolMatrix.ts'),
       'utf8'
     );
 
-    expect(matrix).toContain('PLACEHOLDER ' + '[Jen]');
+    // 1. It is still the file that holds the protocol content.
+    expect(matrix).toContain('export const PROTOCOL_MATRIX');
+    expect(matrix).toContain('dailyAction:');
+    expect(matrix).toContain('whyItWorks:');
+
+    // 2. A separate gate still governs those strings. The placeholder flag and
+    //    the prefix are that gate's mechanism, and they outlive the twelve
+    //    because rewire still holds three stand-ins.
+    expect(matrix).toContain('PLACEHOLDER_TITLE_PREFIX');
+    expect(
+      fs.existsSync(
+        path.join(mobileRoot, 'src/protocolEngine/__tests__/protocolMatrix.removeCellsAuthored.test.ts')
+      )
+    ).toBe(true);
+
+    // 3. And it carries no drafted strings of its own.
     expect(occurrences(matrix, SENTINEL)).toBe(0);
   });
 });
