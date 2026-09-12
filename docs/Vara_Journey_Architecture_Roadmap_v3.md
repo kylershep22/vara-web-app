@@ -2214,6 +2214,19 @@ has one home instead of two.
   a failed read cannot take them with it, and the phase page's header says the
   destination is a route param precisely so its title and body survive a failed
   read. The guard needed no new UI because the UI already existed.
+- **A-ii. `getJourneyState` STAYS UNGUARDED, and that is a decision rather than
+  an oversight.** The obvious shape is to put the check inside the existing read
+  so nobody can forget it. That would be wrong, and the reason is recorded HERE
+  and not only in the function's header because it is exactly the kind of thing
+  a later reader tidies up: **the writers in that file read the document in
+  order to mutate it.** `advancePhase` reads it to compute the next phase from
+  `PHASE_ORDER`; `skipToPhase` and `stepBackToPhase` read it to close a history
+  entry. A read that answered null for an unrenderable row would turn every one
+  of them into a **silent no-op on exactly the malformed documents that need
+  repairing**: the user taps "Start this", nothing happens, nothing throws, and
+  nothing is logged. Rendering is the only concern that wants this check, so
+  only the rendering caller gets it. Pinned by a test asserting the raw read
+  still returns the bad document and still does not warn.
 - **B. `PhasePath` drops an unrenderable row**, explicitly labelled defence in
   depth and not the fix, on the precedent 7e set with `JourneyLine`.
 - **C. `ADJUST_ALTERNATIVES[phase]` at the phase page's door**, found by Step 0's
@@ -2249,11 +2262,26 @@ in no test anywhere.
 
 ---
 
-**THE FENCE WAS EXTENDED, AND WHAT IT BOUGHT.** Kyle extended the fence by two
-lines in `resolveJourney.ts` (2026-09-12): import the shared union predicate,
-and map `timestampToIso`'s falsy answer to null. The reason for the first is
-that 7f needs the SAME check 7e already wrote, at a second call site, and the
-vocabulary already has two legitimate homes it must agree with - `PHASE_ORDER` /
+**THE FENCE WAS EXTENDED BY THREE ITEMS, NOT TWO (Kyle, 2026-09-12), and the
+third is recorded here at his instruction rather than left as a footnote.**
+
+1. **Import the shared union predicate** into `resolveJourney.ts`.
+2. **`timestampToIso` maps its falsy answer to null.**
+3. **`uidDigest` MOVES to the leaf guard module**, out of `resolveJourney.ts`.
+
+**THE THIRD IS FORCED BY AN IMPORT CYCLE AND NOT BY TIDINESS.** The accessor
+lives in `journeyState.service.ts` and needs the digest to warn. That module
+**cannot** import `resolveJourney` - `resolveJourney` imports the service - and a
+circular import is what Metro 0.83 does not forgive (see the SDK 54 notes). So
+the digest had to live somewhere both could reach, or be written twice. **The
+alternative was a second djb2 implementation, which is precisely the duplication
+decision 1 exists to prevent, one identifier over.** `resolveJourney` no longer
+exports `uidDigest`; its own suite imports it from the guard module. Nothing
+else imported it, which was checked rather than assumed.
+
+The reason for the first item is that 7f needs the SAME check 7e already wrote,
+at a second call site, and the vocabulary already has two legitimate homes it
+must agree with - `PHASE_ORDER` /
 `DESTINATION_KEYS` and `validJourney` in `firestore.rules:987-988`. A third and
 fourth copy in TypeScript is how they drift, and 7e's own comment says so.
 
@@ -2262,19 +2290,6 @@ imports the two vocabulary arrays and a type and nothing else - no Firestore, no
 logger, no React - so the resolver, the service and their tests all reach it
 without dragging each other's dependencies along. Same argument that moved
 `destinationBridge` out of `resolveJourney` in slice 4.
-
-**ONE THING EXCEEDED THE LETTER OF THAT EXTENSION AND IT IS FLAGGED RATHER THAN
-BURIED: `uidDigest` MOVED TOO.** The accessor lives in `journeyState.service.ts`
-and needs the digest to warn. The service **cannot** import `resolveJourney` -
-`resolveJourney` imports the service, and that is a circular import Metro 0.83
-does not forgive (`reference: project_sdk54_metro_fix`). The only alternatives
-were a **second djb2 implementation**, which is the same duplication decision 1
-exists to prevent one identifier over, or moving the function to the leaf
-module. It moved. In `resolveJourney` that is one more deletion and no new line -
-the import that brings in the predicate brings in the digest too - and rung (a)'s
-logic is untouched. **`resolveJourney` no longer exports `uidDigest`**; its own
-suite imports it from the guard module now. Nothing else imported it, which was
-checked rather than assumed.
 
 ---
 
@@ -2392,15 +2407,59 @@ the standing 149 and reproduces at `HEAD` with this branch stashed. Not fixed
 here because the fence is the fallback's render, not its state shape; worth a
 line on the tech-debt backlog.
 
-**NOT WALKED YET. THE WALK NEEDS TWO FIXTURES AND ONE DOCUMENT CANNOT CARRY
-BOTH**, which is a fact about the derivation rather than about convenience:
-`derivePhaseStates` returns early for an unrecognised `phaseKey`, and the
-`history` filter is only reached for a phase BEHIND the user. So the history
-crash requires a **valid** `phaseKey` that is **not** `'remove'`, and the
-destination crash is best seen at `'remove'` where the rest of the document is
-ordinary. Script handed to Kyle with the branch.
+**THE WALK (Kyle, device, 2026-09-12). PASSED, BOTH FIXTURES.** The app did not
+go down on either, the surfaces rendered as specified, and there was **one warn
+line per read**, carrying an 8-character digest and no raw uid.
+
+**TWO FIXTURES, BECAUSE ONE DOCUMENT CANNOT CARRY BOTH**, which is a fact about
+the derivation rather than about convenience: `derivePhaseStates` returns early
+for an unrecognised `phaseKey`, and the `history` filter is only reached for a
+phase BEHIND the user. So the history crash requires a **valid** `phaseKey` that
+is **not** `'remove'`, and the destination crash is best seen at `'remove'`
+where the rest of the document is ordinary. Fixture 1 was `destination: 'stress'`
+at phase `remove` - the realistic console typo, since it is a real key in the
+WEEKLY vocabulary and looks correct to a human. Fixture 2 was a string in
+`history` at phase `rewire`.
+
+**ATTESTATIONS (Kyle, 2026-09-12):**
+
+- **Suites green at the figures above: tsc 149 / jest 3503 of 223 / sentinel 150. ATTESTED.**
+- **Device walk passed, fixtures 1 and 2, warn line observed with an 8-character digest and no raw uid: ATTESTED, 2026-09-12.**
 
 ---
+
+**A PROCESS FAILURE IN THIS SLICE, RECORDED BECAUSE IT IS THE SECOND IN THREE
+SLICES AND THE FIRST ONE'S NOTE DID NOT PREVENT IT.** Both 7f commits were made
+on **`main`**, not on the slice branch, and that was not noticed until the merge
+step. `mobile/CLAUDE.md` is explicit - one slice per branch, `--no-ff`, Kyle
+merges, not the assistant - and this put a slice's worth of code directly on the
+trunk.
+
+**WHAT ACTUALLY HAPPENED, from the reflog rather than from memory.** The branch
+was created and checked out correctly. The working tree was later moved back to
+`main` by a checkout this session did not make (Kyle was committing
+`158fcac` from his own terminal in the same repo at 08:47), and every commit
+after that point landed on `main`.
+
+**THE FAULT IS NOT THE CHECKOUT, IT IS THE MISSING RE-CHECK.** `git branch
+--show-current` was run once, immediately after creating the branch, and never
+again before committing. A branch is not a fact you establish at the start of a
+slice; it is state that can change underneath a long session, and it costs one
+command to confirm.
+
+**RECOVERY, approved by Kyle and verified at each step rather than after:**
+`git branch -f` pointed the slice branch at the work, `git branch --contains`
+confirmed BOTH commits reachable from it BEFORE anything destructive ran, and
+only then did `git reset --hard 158fcac` take them off `main`. Kyle's own commit
+stayed. Nothing was pushed at any point, so `origin/main` never saw it.
+
+**THE STANDING RULE THIS ADDS (Kyle, 2026-09-12):** run `git branch
+--show-current` **before every commit** and state the answer in the report for
+that commit. A habit with an artifact, not a resolution.
+
+**BASELINES RE-MEASURED ON THE CORRECTED BRANCH**, because the figures Kyle
+attests to must be the ones from the branch being merged rather than from a
+tree that briefly was `main`: see the baselines above, re-run at this commit.
 
 ### 2026-09-11 - slice 7e, the journey read boundary (`20d0441`, docs `bcd48f7` + `9331767`, merged `c6d03ee` on 2026-09-12; branch `journey/slice-7e-read-boundary`, pushed; walked steps 1-6 and attested before the merge)
 
