@@ -2319,6 +2319,14 @@ advancement, the Today journey-action slot, the journey line and the Start here 
 
 ### 2026-09-12 - slice 7k, Jen's supportingPracticeIds mapping, R7's duration and R1's phrase (`b6da0b9`, docs `4924de6` + this closer; branch `journey/slice-7k-supporting-practices`; NO WALK, per the row: nothing reads the field until slice 9)
 
+**ATTESTATIONS (Kyle, 2026-09-12), recorded before the merge:**
+
+- **Suites green at the figures in item 10:** tsc **148** · jest **3501 of 223**
+  · sentinel **150**. **ATTESTED.**
+- **No device walk required**, per row 7k: nothing reads
+  `supportingPracticeIds` until slice 9, so there is no runtime surface to see.
+  **ATTESTED.**
+
 **Three values, all Jen's, all delivered the same day, no open content
 questions.** The mapping (19 none, 2 mapped), R7's `estMinutes` 5 -> 2, and one
 phrase in R1's daily action. Step 0 was read-only and reported before any edit.
