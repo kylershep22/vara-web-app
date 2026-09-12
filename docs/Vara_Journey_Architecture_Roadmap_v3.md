@@ -2829,6 +2829,9 @@ one-live-marker rule recorded at 7k's close.
 - No device walk required: row R0, docs only, no runtime surface. ATTESTED.
 - Re-verified at `ce3fb8b` after the §6.2 widening and the two citation
   notes: `git diff --name-only main` still contains only .md files. ATTESTED.
+- Re-verified at `10112a4` after the supersession sweep:
+  `git diff --name-only main` still contains only .md files.
+  ATTESTED.
 
 ### 2026-09-12 - slice 7m, the completion fallback becomes approved copy (`d80b957`, tests + row correction `21ad672`, docs `541107b` + attestation `9dd59f9`; merged `6b4aefc`; branch `journey/slice-7m-completion-copy`, pushed; NO WALK, per the row: one string constant, no engine, storage or navigation path touched)
 
