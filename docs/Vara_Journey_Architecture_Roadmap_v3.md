@@ -2545,8 +2545,24 @@ suite file), **sentinel 150 (unchanged), lint 1100 errors / 1357 warnings
 (unchanged in both columns).** Rules 191/2 and functions 53/4 carried unrun:
 neither is touched.
 
-**NOT ATTESTED YET.** The figures above are this session's runs; Kyle's
-attestation and the merge hash belong in this entry when they happen.
+**ATTESTATIONS (Kyle, 2026-09-12):**
+
+- **Suites green at the figures above:** tsc 148 / jest 3521 of 224 / sentinel 150. ATTESTED.
+- **No device walk required:** row 7h, a string swap on a surface already walked in 7b.
+
+**THE SECOND ATTESTATION IS AN ABSENCE RATHER THAN A PASS, AND IT IS RECORDED
+THAT WAY ON PURPOSE.** Every slice from 7b onward carries a device-walk line
+that says what was observed; this one says why nothing was. The row decided it
+in advance - no runtime, layout or interaction change on a surface 7b already
+walked - so this is a judgement made before the build rather than a walk that
+was skipped after it. **What that costs is stated plainly: nobody has read the
+two new bodies on a device.** They are pinned by exact-string tests and by the
+one-word-apart arithmetic, which is what the suite can prove; it cannot prove
+how the sentence sits in the card at the width a person reads it. Both new
+strings are SHORTER than the ones they replace, so no wrap can appear that was
+not already there, and that is the whole of the argument. **The next journey
+walk should read the C2 card once and that is a free rider on any fixture that
+reaches it**, not a walk owed by this row.
 
 ### 2026-09-12 - slice 7g, the ErrorBoundary scoped per screen and per tab (`8570544`, copy amendment `48a24ef`, docs `0dc7eaf` + `b4d5e9b`, merged `3449948`; branch `journey/slice-7g-error-boundary`, pushed; walked all seven steps and attested before the merge)
 
