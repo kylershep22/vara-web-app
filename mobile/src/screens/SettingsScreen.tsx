@@ -747,6 +747,21 @@ const SettingsScreen = () => {
           <View style={styles.card}>
             <TouchableOpacity
               style={styles.settingRow}
+              onPress={() => navigation.navigate('DevTypography' as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Dev: Typography diagnostic"
+              testID="settings-dev-typography"
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>Dev: Typography</Text>
+                <Text style={styles.settingDescription}>
+                  Primitive against the system font, for the R1a walk
+                </Text>
+              </View>
+              <Ionicons name="open-outline" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.settingRow}
               onPress={() => navigation.navigate('DevVideoPlayer' as never)}
               accessibilityRole="button"
               accessibilityLabel="Dev: Video Player harness"

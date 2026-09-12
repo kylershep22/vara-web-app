@@ -157,6 +157,7 @@ import { ProtocolAudioLoaderTestScreen } from '../screens/_dev/ProtocolAudioLoad
 import { GuidedSessionPlayerTestScreen } from '../screens/_dev/GuidedSessionPlayerTestScreen';
 import { CheckInFlowTestScreen } from '../screens/_dev/CheckInFlowTestScreen';
 import { VideoPlayerTestScreen } from '../screens/_dev/VideoPlayerTestScreen';
+import TypographyDiagnosticScreen from '../screens/_dev/TypographyDiagnosticScreen';
 
 // Phase 2 sub-step 2.2 — Practices index + single-protocol runner.
 import { PracticesIndexScreen } from '../screens/practices/PracticesIndexScreen';
@@ -1240,6 +1241,17 @@ const MainNavigator = () => {
                 animation: 'slide_from_right',
                 headerShown: true,
                 title: 'Dev: Check-In Flow',
+                headerShadowVisible: false,
+              }}
+            />
+            <AppStack.Screen
+              name="DevTypography"
+              component={TypographyDiagnosticScreen}
+              options={{
+                ...standardHeaderOptions,
+                animation: 'slide_from_right',
+                headerShown: true,
+                title: 'Dev: Typography',
                 headerShadowVisible: false,
               }}
             />
