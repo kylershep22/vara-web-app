@@ -257,6 +257,7 @@ deploy. Deploy state lives on Kyle's checklist.
 | 7b | **[DONE `82e398e`, merged `810dfa8`, 2026-09-11; walked steps A-G and attested before the merge]** Adjustment: C2, the re-arm and the cap *(row added 2026-09-10 at 7a's merge; scope left unedited below, and it shipped as written with three Step-0 amendments recorded in the §13 entry)* | C2 adjust screen on the `§decisions-4` conditional body, NEVER the pack's own section 5 version; per-phase alternatives ×4 mapped through `PHASE_ORDER` (the pack names them by ordinal, not by key); `deriveAdjustDue` gets its first production caller and `getWeeklyCyclesSince` its first ever; **§9 R5's re-arm**, which is a BEHAVIOUR CHANGE to `deriveAdjustDue` and not just a caller — today `adjustDeclinedAt` suppresses for the rest of the phase, and re-arm needs the decline instant used as a floor on which reads count; the **two-offer cap** as a named constant carrying its beta-tunable status in its comment, never a literal inside the derivation; the journey-page door for a capped user; `journey_adjust_*` events. **7a built the `adjust` branch of `journeyActionFor` and left it unreachable behind a literal `'hidden'`** — 7b changes one expression, not a signature, and the capture > adjust > advance ordering is already pinned by test. | No content gate: `§C2` and `§decisions-4` are delivered and §9 R5 is resolved. **Two strings the pack does not supply** and Step 0 must settle: the C2 DECLINE label (§3.1 and §8 both gloss it "keep going as is"; the pack has nothing) and whether R5's "still" names a SECOND-OFFER copy variant Jen has not written. Also unsettled: whether the adjust card uses R3's exposure model at all, which R3 scopes to advancement only | Yes |
 | 7d | **[DONE `051b673`, merged `2807511`, 2026-09-11; walked and attested before the merge, six checks plus the offline check; branch `journey/slice-7d-exposure-gate`, pushed]** Advancement exposure gate: spend on the RENDERED slot *(row added 2026-09-11 from the 7b walk)* | `recordAdvanceExposure` fires on `placement === 'today'`, which is eligibility, not on the slot actually being occupied. Observed twice on device during the 7b walk: `advanceOfferedAt` stamped while the CAPTURE card held the slot, and again behind C2. R3's budget counts "occasions the user could actually have seen it" (`constants/journey.ts`), so a budget that drains behind another card is counting the wrong event. **Scope:** get `journeyActionFor`'s answer to `useAdvanceOffer` so the gate reads the rendered slot, and keep the gate-before-write ordering 7a made load bearing. **Step 0 REQUIRED:** this inverts the data flow between `DashboardScreen` and the hook, and the obvious fix (compute the slot inside the hook) would put the precedence rule in two places. **Also settle:** whether exposures already spent behind another card should be forgiven on existing accounts, or left as a one-time undercount. | None | Yes |
 | 7e | Journey read-boundary guard: a malformed `journeyStates` row must not take Home down *(row added 2026-09-11 from the 7b walk)* | `resolveJourney` reads `phaseKey` and `destination` unvalidated (`:378-379`) and `JourneyLine` double-indexes `PHASE_DISPLAY[phaseKey][destination]` (`:63`, `:74`), so a key outside the union throws and an ErrorBoundary takes Home before any journey surface renders. **Reproduced on `main`** with a console-typed `"remove "` (trailing space), so it is pre-existing and not a 7b regression. A client cannot write such a row — `validJourney` gates `phaseKey` on create and update — so the producers are Admin-SDK writes: the console, the cohort reset script, or rows predating the rule. **Scope:** validate both fields in rung (a) against `PHASE_ORDER` and `DESTINATION_KEYS`, fall through to `'legacy'` on failure per the resolver's existing any-failure policy, and `logger.warn` with `uidDigest` and never the raw uid. One branch covers `JourneyLine`, `JourneyMapScreen` and `PhasePath`, which all read the same document. **Sequenced after 7d** because 7d corrupts a live metric every day it stands while this needs a malformed row to bite. | None | Yes: a seeded malformed row |
+| 7f | Read-boundary guard for the two journey SCREENS: a malformed `destination` must not take Practices down *(row added 2026-09-11 from slice 7e's Step 0)* | **7e guarded the resolver and therefore Today, and nothing else.** `JourneyMapScreen.tsx:194` and `JourneyPhaseScreen.tsx:107` call `getJourneyState` directly and never pass through `resolveJourney`, so 7e's branch cannot reach them — the §13 7b entry's claim that one branch covered all three surfaces is corrected in a dated block there. **The residual is one field, not two:** a bad `phaseKey` is already harmless on these screens, because `derivePhaseStates` returns all-`'ahead'` for an unrecognised key (`phaseStates.ts:60-62`) and `PhasePath` indexes `PHASE_DISPLAY` from `PHASE_ORDER` rather than from the document. A bad `destination` still throws at `PhasePath.tsx:148,150` and at `JourneyPhaseScreen.tsx:129`. **Step 0 DECIDES THE SHAPE and it is a real fork, not a formality:** (1) route both screens' reads through a shared validating accessor, which puts one policy in one place and makes the resolver's guard a caller of it rather than a copy — but touches two screens' read callbacks and the service boundary; or (2) guard `PhasePath` and the phase page at the render, which is smaller and is the third and fourth copy of the same check. **Note for whoever takes it:** these screens fail SOFTER than Today did — the map's read already has its own try/catch (`:193-200`) and the page's does too (`:106-113`), so what is unguarded is the render, not the read. **CARRIED INTO THIS ROW FROM 7e SO THEY ARE NOT LOST (Kyle, 2026-09-11):** (i) **`toIsoDate` returns the STRING `"NaN-NaN-NaN"` on an Invalid Date.** `{ seconds: NaN }` passes the `typeof === 'number'` check in both timestamp readers, `toIsoDate` uses `getFullYear`/`getMonth`/`getDate` rather than `toISOString` (`weekStart.ts:45-49`), and the result is truthy, so it does NOT take the empty-string path that suppresses the consistency read. As the adjust re-arm floor it sorts above every real ISO date (`'N'` is 0x4E, `'2'` is 0x32), so `weekStart > armedFromIso` is false for every week and **the adjustment offer becomes permanently unfireable for that document, with no log line.** **Fix: return `''` on an invalid date, plus a test.** (ii) **`history` has no array check at `phaseStates.ts:79`** — `state.history.filter` throws for any phase past the first when the field is not a list. (iii) **WALK-FIXTURE NOTE, and it is a limit rather than a finding:** no code path writes `destination: 'stress'` and `firestore.rules:987` refuses it, but **whether a live row carries one was never checked against production data.** The 7e answer was established from the write paths only. Anyone seeding this walk should not read that as "the collection is clean". | None | Yes: the same seeded malformed row as 7e, with `destination` broken instead of `phaseKey` |
 | 7c | Honour the recorded adjustment *(row added 2026-09-10 at 7b's close)* | Consume `journeyStates.adjustChoice` in the protocol serving path. 7b RECORDS the user's choice among the twelve in-phase alternatives and does not act on it: nothing outside `journeyState.service.ts` reads the field, and the C2 confirmation ("We'll work it this way for now") is worded for exactly that state. This row closes the gap. **Step 0 REQUIRED** and it is not a formality: the twelve alternatives mean four different things to the engine (shrink the protocol, swap the approach at the same target, re-target, re-slot, re-cue, re-narrow), and what `selectProtocol` can currently express of that is unestablished. Settle what the engine already supports before anything writes a second selection input. **Also settle:** whether a recorded choice persists across a phase change (today `CLEARED_OFFERS` nulls it, which is right while nothing consumes it and may not be once something does), and whether choosing re-arms the weekly read the way a decline does. **Carried from 7b:** the door's write has NO in-flight guard (`onChoose` in `JourneyPhaseScreen.tsx` sets no pending state), which is harmless while the write settles and leaves the page silent when it does not; 7c is already in this code and is where that pending state belongs. | Engine capability, per Step 0 | Yes |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. | rules; **[Content-gated]** copy | Yes |
 | 9 | **Behavioral protocol screen + remind-later** | The Daily Action Launcher behavioral screen (protocol, why, mark done, remind me later) for `remove` protocols; one-off later-today notification (`scheduleLocalNotification` DATE trigger), `scheduledAt` on `DailyLog`, third card state, cancellation bookkeeping; OS-settings redirect after denial. | Completion semantics decision (mockup v1 E1 open item) | Yes |
@@ -300,6 +301,24 @@ deploy. Deploy state lives on Kyle's checklist.
 > >
 > > **Nothing may be recorded against the 7a entry's 09-11 to 09-13 window.** It expired
 > > unrun, on purpose.
+> >
+> > **AMENDED 2026-09-11 (slice 7e's Step 0). A THIRD DEFECT ROW, 7f, AND THE ORDER IS
+> > NOW 7e -> 7f -> 7c -> 8.** The blocks above are left unedited.
+> >
+> > 7f exists because **7e's own scope fence was narrower than row 7e claimed its fix
+> > would be.** The row said one branch in the resolver would cover `JourneyLine`,
+> > `JourneyMapScreen` and `PhasePath`; the two screens read `journeyStates` directly
+> > and never pass through `resolveJourney`, so it covers the first only. 7e is built
+> > and committed as written, and 7f is the rest of the same defect rather than a new
+> > one.
+> >
+> > **7f SITS DIRECTLY AFTER 7e AND BEFORE 7c**, on the same reasoning that put 7e after
+> > 7d: it needs a malformed document to bite, and it is already reproducible with the
+> > seed the 7e walk uses. Do not let it drift behind 7c, which is a feature row — the
+> > two halves of one crash should not be separated by a slice that changes behaviour.
+> >
+> > **7c's position is unchanged from Kyle's 2026-09-11 confirmation.** Inserting 7f
+> > does not renumber or re-argue anything below it.
 
 > **AMENDED 2026-09-05 (table reconciled with §13). SLICE 3 SHIPPED AS FOUR SLICES, NOT ONE.**
 > Row 3 above is the ORIGINAL scope and is left unedited; it never shipped under that number.
@@ -2164,6 +2183,219 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
 
+### 2026-09-11 - slice 7e, the journey read boundary (`20d0441`; branch `journey/slice-7e-read-boundary`, NOT pushed, NOT merged, NOT yet walked)
+
+**WHAT SHIPPED.** `resolveJourney` validates the two keys the surfaces INDEX BY
+before it builds a `PhaseContext` from them, and falls through to `'legacy'`
+when either is outside its union.
+
+- **A. The boundary, at rung (a) and ahead of every other read off the
+  document.** `hasRenderableKeys` checks `phaseKey` against `PHASE_ORDER` and
+  `destination` against `DESTINATION_KEYS`, never against a local list: a second
+  copy of either vocabulary here would admit a fifth phase the display table
+  would then refuse, which is this defect again wearing a new coat. A document
+  that fails resolves to `'legacy'`, which is this resolver's standing answer to
+  any failure, and warns ONCE on `uidDigest(uid)`.
+- **B. It does not repair the document.** A read path that wrote would erase the
+  evidence of a data problem something upstream produced, and would do it from
+  the one code path that runs on every launch. The warning is the point.
+- **C. `JourneyLine` renders nothing rather than throwing** when the cell is
+  missing. Defence in depth and labelled as such in the file: the resolver is
+  what stops an unrecognised key reaching a surface at all.
+
+**MUTATION-CHECKED BEFORE ANY CLAIM OF GREEN.** Reverting either guard - the
+resolver branch to a constant `true`, the component's `?.` to the bare double
+index - fails **20 tests** across the two suites.
+
+---
+
+**PROCESS NOTE, AND IT IS A DEVIATION FROM THE WORKFLOW RATHER THAN A NOTE ON
+ONE.** `mobile/CLAUDE.md` says *"Read-only Step-0 diagnostic before any build
+pass. Report findings before changing anything."* The brief said the same thing
+twice: *"Then a read-only Step 0. Report before building."*
+
+**Step 0 was not reported as a separate gate.** The diagnostic was genuinely
+read-only and genuinely ran first - no file was edited until it finished - but
+the report and the finished build landed in the SAME TURN, so Kyle read the
+findings with the commit already made. A gate that reports after the work is not
+a gate; it is a preamble.
+
+**WHAT IT COST HERE, STATED PLAINLY RATHER THAN MINIMISED.** Step 0 found that
+the row's coverage claim was wrong (the dated block on the 7b entry below), and
+that finding is exactly the kind that should have reached Kyle BEFORE a line was
+written, because the honest response to it might have been to rescope the slice
+rather than to build the fenced half and log the rest. It did not change what
+was built, and that is luck rather than process.
+
+**ONE SUBSTANTIVE QUESTION WAS SKIPPED ENTIRELY**, and it is answered in the
+block below: the brief's Step 0 (a) asked which OTHER fields read at rung (a)
+can crash a downstream consumer, naming `enteredAt` and `history`. The report
+covered `phaseKey` and `destination` and gave the rest a table row each without
+tracing their consumers. Answered now, and the answer turns out to be
+reassuring, which is not the same as the answer having been known.
+
+---
+
+**THE SKIPPED QUESTION, ANSWERED: WHICH OTHER RUNG-(a) FIELDS CAN CRASH A
+CONSUMER.** Traced to a consumer for each, not inferred from the field's type.
+
+**THE GENERAL SHAPE FIRST, because it is what makes the rest short.** The whole
+ladder runs inside one `try` (`resolveJourney.ts:409`, catch at `:539`), so a
+field that throws WHILE BEING READ is already safe: the catch logs and returns
+`'legacy'`. The dangerous class is narrower and was never written down before
+this slice - **a value that reads cleanly, passes through `PhaseContext`, and is
+then used as an INDEX during a render.** Render-time throws are what an
+ErrorBoundary answers by taking the screen. That is exactly `phaseKey` and
+`destination`, and exactly nothing else at this rung.
+
+| Field read at rung (a) | Consumer traced to | Can it crash? |
+|---|---|---|
+| `phaseKey` | `JourneyLine.tsx` `PHASE_DISPLAY[phaseKey][destination].short`, in render (`:63` and `:74` as the defect stood on `main`; `:71` after this slice) | **YES.** The defect. Guarded by this slice. |
+| `destination` | same two lines, inner index | **YES.** The defect. Guarded by this slice. |
+| `enteredAt`, via `enteredAtIsoOf` | `useTodayCard.ts:409` `getDailyLogsSince(uid, enteredAtIso)`; `adjustArmedFromIsoOf` | **No, and see the silent-failure note below.** |
+| `history` | **NOT READ AT THIS RUNG AT ALL.** Zero occurrences of the word in `resolveJourney.ts`; it is not a `PhaseContext` field. | Not applicable here. Its crash path is on the two screens, and is row 7f. |
+| `removeCapturedAt` | coerced `!!` into `hasRemoveCapture`; read by `journeyAction.ts` as a boolean | No. |
+| `removeFamily` | `selectProtocol.ts:169` -> `orderForFamily`, which COMPARES (`v.family === family`, `:134`) and never indexes | No. |
+| `advanceDeclinedAt`, `adjustOfferedAt` | coerced `!!` | No. |
+| `advanceExposures`, `advanceFirstOfferedOn`, `advanceLastExposedOn`, `adjustDeclines` | `offerPlacement.ts` comparisons and arithmetic | No. Absent-safe with `?? 0` / `?? null`. |
+| `updatedAt`, via `revisionOf` | a dependency-array primitive in `useTodayCard` | No. Tolerant of three shapes, falls to `0`. |
+| `capacitySeed` | `selectProtocol.ts:159` `PROTOCOL_MATRIX[phase][capacity]` - an INDEX | No, **and not because it is safe**: it is read off `userPrivate`/`weeklyCycles`, NOT off this document, so no malformed `journeyStates` row can reach it. A malformed `capacitySeed` is a real and unguarded index, on a different document, and is NOT in this slice's fence. Named here so it is not mistaken for covered. |
+
+**NOTHING NEEDS THE SAME TREATMENT, SO THE SLICE DOES NOT WIDEN.** No STOP.
+
+**ONE THING FOUND THAT IS NOT A CRASH AND IS WORTH KNOWING.** `{ seconds: NaN }`
+in `enteredAt` passes `typeof === 'number'`, makes an Invalid Date, and
+`toIsoDate` (`weekStart.ts:45-49`) uses `getFullYear`/`getMonth`/`getDate`
+rather than `toISOString`, so it returns the STRING `"NaN-NaN-NaN"` instead of
+throwing. That string is truthy, so it does not take the empty-string path that
+suppresses the consistency read. It then sorts ABOVE every real ISO date (`'N'`
+is 0x4E, `'2'` is 0x32), so as the adjust re-arm floor it makes
+`weekStart > armedFromIso` false for every week and the adjustment offer can
+never fire. **Silent, permanent for that document, and invisible to the user and
+to Sentry.** Not a crash, not in this fence, and logged here rather than fixed
+because it wants a decision about whether the timestamp readers should reject an
+invalid date rather than render one.
+
+---
+
+**A SECOND PREMISE IN ROW 7e IS WRONG, AND IT NARROWS THE PRODUCER LIST.** The
+row names three producers of a malformed row: *"the console, the beta cohort
+reset script, or a row predating the rule."*
+
+**The cohort reset script cannot be one.** `scripts/migrations/beta-cohort-reset/migrate.js`
+contains **zero occurrences of the string `journey`**: `journeyStates` is not in
+`PURGE_COLLECTIONS` (`:119`), not in `RESET_USER_DOC`, and not written anywhere
+in the file. It neither produces nor repairs a journey document.
+
+**That is itself a finding, in the other direction.** The script flips
+`hasCompletedOnboarding` to false and purges the behavioural collections, but
+**leaves `journeyStates/{uid}` standing**, so a reset account re-onboards and
+`createJourneyState` overwrites it with `setDoc` and no merge - which is the
+correct outcome, and it is correct by accident rather than by design. **Recorded
+here and NOT yet carried into `scripts/migrations/beta-cohort-reset/README.md`**,
+so nobody reads this line as meaning the reset's own open delete-list decisions
+have been updated. The question belongs there; it is not this slice's to settle.
+
+**The producer list that survives is: the Firebase console, and rows predating
+the rule.** Both are Admin-SDK-shaped, which is what makes this a boundary guard
+rather than a hunt for a bad writer.
+
+**AND THE RULE IS STRONGER THAN THE ROW SAYS.** Row 7e says `validJourney`
+*"gates `phaseKey` on create and update"*. It gates **both** keys:
+`firestore.rules:987-988` requires `data.destination in ['focus', 'calm',
+'routines', 'energy']` AND `data.phaseKey in ['remove', 'recover', 'rewire',
+'refocus']`. So the client-side impossibility argument covers `destination` too,
+and neither key can reach the document from the app.
+
+---
+
+**IS ANY LIVE DOCUMENT CARRYING `destination: 'stress'`? NO - established from
+the write paths, not from the console.** `'stress'` is the one near-miss worth
+chasing: it is a real key in the WEEKLY vocabulary and reads `'calm'` in this
+one, so a document carrying it looks correct to a human reading a console.
+
+- **`destination` is written exactly ONCE per document and never updated.**
+  `createJourneyState` (`journeyState.service.ts:127`) is the only line in the
+  service that writes the field; no advance, skip, step-back or adjust touches
+  it. Grep for `destination` in that file returns the type, that one write, and
+  a comment.
+- **There are exactly two callers, and both can only produce a DestinationKey.**
+  `resolveJourney.ts` passes the output of `destinationForOutcome`, whose whole
+  body is `outcome === 'stress' ? 'calm' : outcome`
+  (`destinationBridge.ts:28`), so the migration rungs CONVERT rather than
+  copy. `OnboardingV3DoneScreen.tsx:152` passes the onboarding context's
+  `destination`, which the picker renders from `DESTINATION_KEYS` itself
+  (`OnboardingV3DestinationScreen.tsx:57`).
+- **It has been that way since the field existed.** Slice 4a's commit `ea58022`
+  shows the terminal already writing a `DestinationKey` to `journeyStates` and
+  using `outcomeForDestination` only for the weekly cycle's own `outcome` field,
+  which is the OPPOSITE direction. 4b then deleted `outcomeForDestination`
+  entirely. **No version of this code has ever written an OutcomeKey into
+  `journeyStates.destination`.**
+- **And the rules would have refused it anyway**, on create and on update, per
+  `firestore.rules:987` above.
+
+**SO THE RESOLVER MUST REFUSE `'stress'` RATHER THAN BRIDGE IT**, and a test now
+pins that (`'an OutcomeKey in the destination field is not bridged, it is
+refused'`). Bridging at rung (a) would silently rewrite a stored journey's
+destination on every read, for a value no writer produces.
+
+**THE HONEST LIMIT OF THIS ANSWER.** It establishes that no CODE PATH produces
+such a row. It cannot establish what is in the production collection, because
+that needs a read against live data and this slice reads and writes nothing
+there. A console-typed row is exactly the case the guard exists for, and the
+guard does not care which key is wrong.
+
+---
+
+**SECTION 18: NOTHING VISIBLE CHANGES.** On a well-formed document every surface
+is byte-identical - the sixteen-cell test pins that the valid pairs still
+resolve and still render. On a malformed one the user gets the legacy weekly
+landing (`useJourneyLanding.ts:193-202` -> `DashboardScreen.tsx:146-148`: the
+hero served off the week, with no journey line and no journey-action slot),
+which is a surface Today already has on every legacy-path launch, instead of an
+ErrorBoundary. No token, type, radius, elevation, icon, component, copy,
+pressable, target, role, label or animation change; `useReducedMotion` is not in
+scope.
+
+**COPY.** None. No string added, removed or reworded. Sentinel unchanged at
+**150**. The one new string is a `logger.warn` message, which is a log line and
+not user-facing copy.
+
+**MANIFEST: NO CHANGE.** No new collection and no new document. **This slice
+adds no write at all** - it is a read path that got a guard. `journeyStates` is
+already on the manifest at `functions/src/lib/accountDeletion.js:86`. Verified by
+reading the manifest, not assumed from the previous entry.
+
+**BASELINES AT `20d0441`: tsc 149 (unchanged, and zero `error TS` lines in
+either touched file), jest 3444 / 221 suites (from 3422; +22 tests, no new suite
+file), sentinel 150 (unchanged), lint 1101 errors / 1350 warnings (both
+unchanged).** Rules 191/2 and functions 53/4 carried unrun: `firestore.rules`
+and `functions/` are untouched by this slice.
+
+**THE WALK (Kyle, device). PASSED, STEPS 1 THROUGH 6.** The seeded malformed
+row: `phaseKey` set to `"remove "` with a trailing space in the console, cold
+open, Today on the weekly landing with no crash; then restored, cold open, the
+journey surfaces back. **The warn lines were present and correct**, carrying an
+8-character digest and no raw uid, which is the half of this slice a test can
+assert but only a device can show reaching a real log.
+
+**A trap for whoever walks it again:** if you break `destination` rather than
+`phaseKey`, the Practices tab still crashes while the row is broken. That is row
+7f, not a regression of this slice.
+
+**ATTESTATIONS (Kyle, 2026-09-11):**
+
+- **Suites green at the figures above: tsc 149 / jest 3444 of 221 / sentinel 150. ATTESTED.**
+- **Device walk passed, steps 1 through 6, warn line observed with an 8-character digest and no raw uid: ATTESTED, 2026-09-11.**
+
+*(Recorded verbatim as Kyle wrote them. The attestations are dated 2026-09-11;
+the merge below landed on 2026-09-12. The two dates are both correct and are
+left as they are rather than reconciled, because an attestation is dated when it
+is given.)*
+
+---
+
 ### 2026-09-11 - slice 7d, the exposure gate (`051b673`, docs `ed750bc` + `99670be`, merged `2807511`; branch `journey/slice-7d-exposure-gate`, pushed; walked and attested before the merge)
 
 **WHAT SHIPPED.** Both offer writes are gated on the RENDERED slot instead of on
@@ -2556,6 +2788,46 @@ the blast radius, and the resolver already has the policy — *any failure resol
 directly and `PhasePath` derives from it, so one branch in the resolver covers all three
 surfaces. Sequenced AFTER 7d because 7d is a live metric corrupting itself every day it stands,
 while this needs a malformed document to bite.
+
+> **AMENDED 2026-09-11 (slice 7e Step 0). THE COVERAGE CLAIM ABOVE IS WRONG, AND THE
+> SENTENCE THAT CARRIES IT IS THE ONE THAT SEQUENCED THE WORK.** The paragraph above is
+> left unedited in the §3.4 style; this block is the correction.
+>
+> **THE CLAIM.** *"`JourneyMapScreen` reads `journeyStates` directly and `PhasePath`
+> derives from it, so one branch in the resolver covers all three surfaces."* The first
+> half is true and is exactly why the second half does not follow. **A screen that reads
+> the document directly does not pass through the resolver at all**, so a branch in the
+> resolver cannot cover it.
+>
+> **THE TWO SCREENS BYPASS `resolveJourney` ENTIRELY**, verified by reading the call
+> sites rather than by inheriting the claim:
+>
+> - `JourneyMapScreen.tsx:194` — `return await getJourneyState(uid);` inside its own
+>   `read` callback, run from a `useFocusEffect`.
+> - `JourneyPhaseScreen.tsx:107` — the same call, in the same shape.
+>
+> Neither file IMPORTS `resolveJourney` or `useJourneyLanding`. `JourneyMapScreen`
+> names `resolveJourney` once, in a comment at `:54`, which is a citation and not an
+> edge. The resolver's guard reaches `JourneyLine` and the rest of Today, and nothing
+> else.
+>
+> **WHAT IS ACTUALLY COVERED AFTER 7e, PER FIELD AND PER SURFACE:**
+>
+> | | bad `phaseKey` | bad `destination` |
+> |---|---|---|
+> | Today / `JourneyLine` | SAFE (7e resolver guard, plus the component's own) | SAFE (same branch) |
+> | Practices / `JourneyMapScreen` + `PhasePath` | **already safe before 7e** — `derivePhaseStates` returns all-`'ahead'` for an unrecognised key (`phaseStates.ts:60-62`), and `PhasePath` indexes `PHASE_DISPLAY` from `PHASE_ORDER` and never from the document (`PhasePath.tsx:147-148`) | **STILL CRASHES.** `PHASE_DISPLAY[phase][destination]` then `cell.short` (`PhasePath.tsx:148,150`) |
+> | `JourneyPhaseScreen` | safe for the same reason | **STILL CRASHES** at `:129`, on the route param the map hands it |
+>
+> **SO THE RESIDUAL IS NARROWER THAN THE ORIGINAL DEFECT AND IS REAL: a malformed
+> `destination` still takes the Practices tab down.** It was not folded into 7e, which
+> was fenced to `resolveJourney` and `JourneyLine`. It is **row 7f** in §5.
+>
+> **THE UNDERLYING LESSON, WHICH IS NOT ABOUT THESE THREE FILES.** The claim was written
+> from the true observation that all three surfaces read the SAME DOCUMENT, and it
+> silently substituted "same document" for "same code path". A guard lives on a path,
+> not on a collection. Two more files in this repo read `journeyStates` directly, and
+> nothing about a fix in the resolver reaches either of them.
 
 ---
 

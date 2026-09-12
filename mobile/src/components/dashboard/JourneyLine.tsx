@@ -51,30 +51,51 @@ export const JourneyLine: React.FC<JourneyLineProps> = ({
   phaseKey,
   destination,
   testID = 'home-journey-line',
-}) => (
-  // ONE ACCESSIBILITY NODE, NOT TWO. Read separately, a screen reader announces
-  // a bare label and then an imperative, which reproduces the exact confusion
-  // the label exists to prevent. Read together they are one statement about
-  // where the user is.
-  <View
-    style={styles.row}
-    accessible
-    accessibilityRole="text"
-    accessibilityLabel={`${label}. ${PHASE_DISPLAY[phaseKey][destination].short}`}
-    testID={testID}
-  >
-    <Text style={styles.label} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-      {label}
-    </Text>
-    <Text
-      style={styles.short}
-      maxFontSizeMultiplier={MAX_FONT_SCALE}
-      testID={`${testID}-short`}
+}) => {
+  // DEFENCE IN DEPTH, AND IT IS NOT THE FIX (slice 7e). The fix is the read
+  // boundary in resolveJourney, which stops an unrecognised key reaching any
+  // surface: a component that defends itself moves the blast radius rather
+  // than closing it, and this one would go on rendering a line for a phase the
+  // rest of Today could not serve.
+  //
+  // What this closes is the SECOND double index. `PHASE_DISPLAY[phaseKey]` is
+  // undefined for a key outside the four, and `[destination]` on undefined
+  // throws DURING RENDER, which is the one failure shape an ErrorBoundary
+  // answers by taking the whole screen. Rendering nothing costs the user a
+  // context line; throwing costs them Home.
+  //
+  // NOTHING RENDERS, NOT A PLACEHOLDER AND NOT AN ERROR. The line answers
+  // "where am I", and there is no honest answer to that from a document nobody
+  // can read. Its absence is a state Today already has - every legacy-path user
+  // sees exactly this - so the layout below it is unchanged.
+  const cell = PHASE_DISPLAY[phaseKey]?.[destination];
+  if (!cell) return null;
+
+  return (
+    // ONE ACCESSIBILITY NODE, NOT TWO. Read separately, a screen reader
+    // announces a bare label and then an imperative, which reproduces the exact
+    // confusion the label exists to prevent. Read together they are one
+    // statement about where the user is.
+    <View
+      style={styles.row}
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={`${label}. ${cell.short}`}
+      testID={testID}
     >
-      {PHASE_DISPLAY[phaseKey][destination].short}
-    </Text>
-  </View>
-);
+      <Text style={styles.label} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+        {label}
+      </Text>
+      <Text
+        style={styles.short}
+        maxFontSizeMultiplier={MAX_FONT_SCALE}
+        testID={`${testID}-short`}
+      >
+        {cell.short}
+      </Text>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   row: {

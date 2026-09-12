@@ -9,6 +9,7 @@
  * THE LADDER, in order, and the order is the design:
  *
  *   a. A journeyStates document exists            -> 'today'
+ *      ...and its two keys are renderable         -> else 'legacy' (7e)
  *   b. The latest weekly cycle has an outcome     -> create, 'today'
  *   c. userPrivate.activeOutcome is set           -> create, 'today'
  *   d. Nothing                                    -> 'legacy'
@@ -53,6 +54,7 @@ import type {
   RemoveFamily,
 } from '../types/models';
 import { destinationForOutcome } from './destinationBridge';
+import { DESTINATION_KEYS, PHASE_ORDER } from '../constants/journey';
 import type { JourneyMigrationSource } from '../types/analyticsEvents';
 
 // Re-exported because it is now part of this module's RESULT and not just
@@ -329,6 +331,43 @@ export function uidDigest(uid: string): string {
 }
 
 /**
+ * Are the two keys this document is INDEXED BY both inside their unions?
+ *
+ * THE TYPES SAY YES AND THE TYPES ARE NOT LOAD BEARING HERE. `phaseKey` and
+ * `destination` are declared `PhaseKey` and `DestinationKey` on JourneyState,
+ * so the compiler treats both as closed unions from the moment the document is
+ * read. Nothing checked that at the boundary: `getJourneyState` hands back
+ * whatever Firestore holds under those names, and a document written outside
+ * the app carries whatever was typed into it.
+ *
+ * WHY IT MATTERS MORE THAN A WRONG STRING USUALLY DOES. Both keys are used to
+ * INDEX rather than to compare. `JourneyLine.tsx:63` and `:74` evaluate
+ * `PHASE_DISPLAY[phaseKey][destination].short` during render, so a phaseKey
+ * outside the four makes the outer lookup `undefined` and the inner access
+ * throws inside a render, which an ErrorBoundary answers by taking Home down
+ * before any journey surface draws. Reproduced on `main` with a console-typed
+ * "remove " - a trailing space - during slice 7b's walk.
+ *
+ * A CLIENT CANNOT PRODUCE SUCH A DOCUMENT. `validJourney` in firestore.rules
+ * gates `phaseKey` on create AND update, and both in-app writers go through
+ * `createJourneyState`. Admin SDK writes bypass rules, so the producers are the
+ * console, the cohort reset script, or a row predating the rule. That is why
+ * this is a boundary guard and not a hunt for a bad writer.
+ *
+ * READS FROM PHASE_ORDER AND DESTINATION_KEYS, never from a local list. Those
+ * two arrays are already the one definition of both vocabularies
+ * (constants/journey.ts), and a second copy here is exactly the divergence that
+ * file exists to prevent: a fifth phase would be admitted by the resolver and
+ * rejected by the display table, which is this defect again wearing a new coat.
+ */
+function hasRenderableKeys(state: JourneyState): boolean {
+  return (
+    PHASE_ORDER.includes(state.phaseKey) &&
+    DESTINATION_KEYS.includes(state.destination)
+  );
+}
+
+/**
  * The capacity seed for a user, from its home with a legacy fallback.
  *
  * ORDER IS THE WHOLE POINT. userPrivate.capacitySeed is the answer whenever it
@@ -372,6 +411,24 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
     const existing = await getJourneyState(uid);
 
     if (existing) {
+      // THE READ BOUNDARY (slice 7e). Ahead of every other read off this
+      // document, because the two fields it checks are the two the surfaces
+      // index by; see hasRenderableKeys.
+      //
+      // IT RESOLVES TO 'legacy' AND DOES NOT REPAIR THE DOCUMENT. Falling
+      // through is this resolver's standing answer to any failure (see the
+      // header), and it costs the user nothing but the surface they already
+      // had. Writing a corrected phaseKey here would be a read path that
+      // mutates, and it would erase the evidence of a data problem that
+      // something upstream produced - the warning is the point.
+      if (!hasRenderableKeys(existing)) {
+        logger.warn(
+          '[resolveJourney] journey document has an unrecognised phaseKey or destination, falling back to the weekly landing:',
+          uidDigest(uid)
+        );
+        return { target: 'legacy' };
+      }
+
       return {
         target: 'today',
         phase: {
