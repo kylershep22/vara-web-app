@@ -2371,32 +2371,43 @@ the same state retrospectively since Phase 2; both close when that row lands.
 
 ---
 
-**COPY. TWO STRINGS, BOTH UI STRINGS, OWNER KYLE, 2026-09-12. THE SENTINEL DOES
-NOT MOVE AND STAYS AT 150**, which is the correct outcome rather than an
-oversight: approved copy carries no sentinel, and both strings landed approved in
-the build commit with the owner named there.
+**COPY. THREE STRINGS, ALL UI STRINGS, OWNER KYLE, ALL APPROVED AS WRITTEN
+2026-09-12. THE SENTINEL DOES NOT MOVE AND STAYS AT 150**, which is the correct
+outcome rather than an oversight: approved copy carries no sentinel, so three
+approved strings landing is a flat count. The owner is named in both commits
+that carry them.
 
 1. **`appTitle` lost the sentence "We've been notified."** It was false - nothing
    reports - and it sat on the one screen a person only ever reads at their worst
    moment. It now reads **"Something didn't work as expected."**
 2. **NEW `surfaceTitle`: "This part didn't load."** for `scope="surface"`. The
-   app-level second line ("We'll look into this soon.") is DROPPED at that scope,
-   because the app has not gone anywhere and the chrome already offers the exit.
+   app-scope second line is DROPPED at that scope, because the app has not gone
+   anywhere and the chrome already offers the exit.
+3. **`appMessage` replaced: "We'll look into this soon." becomes "Try again, and
+   restart the app if it keeps happening."** Landed in the copy-amendment commit
+   on this branch, after the build.
 
-**THE ABSENCE OF THE NOTIFICATION CLAIM IS PINNED AS A NEGATIVE TEST**, so it
-cannot quietly return while the wiring is still absent. When the SENTRY row
-lands, that test is the thing to revisit deliberately.
+**THE THIRD ONE IS THE INTERESTING ONE, AND IT WAS VERY NEARLY LEFT BEHIND.** The
+build reported it as flagged-but-unchanged, on the reasoning that Kyle's decision
+had named one app-level string and sweeping a second uninvited was scope creep.
+**He corrected that, and the correction is the durable lesson: "We'll look into
+this soon." is the SAME false claim as "We've been notified", one step softer.**
+Nothing reports, so nobody will look into it. It reads as sympathy rather than as
+a promise, which is exactly why it survived a pass that was specifically hunting
+for the promise. **When auditing copy for a claim the system cannot back, the
+softened restatement is the one that gets missed.**
 
-**WORDING IS PROPOSED, NOT PRE-APPROVED.** Kyle's Step 0 decision covered the
-ownership and the arithmetic explicitly and **withheld sign-off on words he had
-not seen**; a copy amendment on this branch is expected if he revises either
-string.
+The replacement is also a shape change, not just a truthfulness fix: both
+surviving app-scope strings now say only things that are true and useful - what
+happened, and the two things the person can actually do about it.
 
-**A THIRD STRING WAS FLAGGED AND DELIBERATELY NOT CHANGED.** `appMessage`, "We'll
-look into this soon.", carries a weaker version of the same false claim: if
-nothing reports, nobody knows to look. Kyle's decision named one app-level string,
-so the second is reported rather than swept. **It is his call, and it is still
-standing.**
+**THE ABSENCE OF BOTH CLAIMS IS PINNED AS A NEGATIVE TEST** covering the whole
+family (notified / looking into / our team / reported), with an ANTI-VACUITY
+assertion that the pattern still matches the two strings this slice removed - a
+regex that matched nothing would otherwise satisfy every assertion in that block,
+including against the old copy. When the SENTRY row lands, that block is the
+thing to revisit deliberately: a notification sentence becomes TRUE at that
+point, and is then a copy decision rather than a correctness one.
 
 ---
 

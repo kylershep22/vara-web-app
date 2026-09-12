@@ -16,10 +16,10 @@
  * `isInitialized` flag is never set true, so in production it returns without
  * sending anything; this boundary is that service's only caller in the app.
  * Before slice 7g a render throw was at least LOUD, because it killed the app
- * and the user noticed. Scoped boundaries trade that for a quiet panel, so the
- * app-level copy no longer claims the user has been notified. See the 7g
- * Section 13 entry and the Section 5 row carrying the @sentry/react-native
- * wiring as PRE-LAUNCH.
+ * and the user noticed. Scoped boundaries trade that for a quiet panel, so
+ * NEITHER app-level string claims a report any more: not a notification sent,
+ * and not a person who will look into it. See the 7g Section 13 entry and the
+ * Section 5 row carrying the @sentry/react-native wiring as PRE-LAUNCH.
  */
 
 import React, { Component, ReactNode } from 'react';
@@ -34,13 +34,18 @@ import { Colors } from '../../constants';
  * preference: JSX text children trip react/no-unescaped-entities on every
  * apostrophe, and three of this file's standing lint errors were exactly that.
  *
- * `appTitle` LOST THE SENTENCE "We've been notified." in this slice because it
- * was false. No sentinel on any of these - they are approved, so the pinned
- * count does not move.
+ * BOTH APP-SCOPE STRINGS LOST A CLAIM NOTHING BACKS, and the second went in the
+ * same slice as the first rather than a slice later. `appTitle` dropped "We've
+ * been notified."; `appMessage` was "We'll look into this soon.", which is the
+ * same false claim one step softer - nothing reports, so nobody will look into
+ * it. It now tells the user the only two things that actually help them.
+ *
+ * No sentinel on any of these - they are approved, so the pinned count does not
+ * move.
  */
 const COPY = {
   appTitle: "Something didn't work as expected.",
-  appMessage: "We'll look into this soon.",
+  appMessage: 'Try again, and restart the app if it keeps happening.',
   surfaceTitle: "This part didn't load.",
   tryAgain: 'Try Again',
 } as const;

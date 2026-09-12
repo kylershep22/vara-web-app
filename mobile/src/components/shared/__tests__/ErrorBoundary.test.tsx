@@ -153,8 +153,9 @@ describe('ErrorBoundary - app scope versus surface scope', () => {
 
     expect(screen.getByText(ERROR_BOUNDARY_COPY.surfaceTitle)).toBeTruthy();
     expect(screen.queryByText(ERROR_BOUNDARY_COPY.appTitle)).toBeNull();
-    // "We'll look into this soon." is an app-scope line. At surface scope the
-    // navigator chrome is the way out and the title carries the whole message.
+    // The recovery advice is an app-scope line: at app scope the app is gone
+    // and restarting is a real instruction. At surface scope the navigator
+    // chrome is the way out and the title carries the whole message.
     expect(screen.queryByText(ERROR_BOUNDARY_COPY.appMessage)).toBeNull();
   });
 
@@ -177,29 +178,47 @@ describe('ErrorBoundary - app scope versus surface scope', () => {
 });
 
 /**
- * THE CLAIM THAT WAS FALSE, REMOVED IN SLICE 7g.
+ * TWO CLAIMS THAT WERE FALSE, BOTH REMOVED IN SLICE 7g.
  *
- * The app-level title used to end "We've been notified." Nothing reports:
- * crashReporting.service.ts has every Sentry call commented out and an
- * `isInitialized` flag that is never set true, and this boundary is its only
- * caller in the app. The sentence promised a report that is not sent, on the
+ * Nothing reports: crashReporting.service.ts has every Sentry call commented
+ * out and an `isInitialized` flag that is never set true, and this boundary is
+ * its only caller in the app. Two app-scope strings promised otherwise, on the
  * one screen someone only ever reads at their worst moment.
  *
- * PINNED AS A NEGATIVE so it cannot quietly come back with the wiring still
- * absent. When @sentry/react-native is actually wired (the PRE-LAUNCH Section 5
- * row), this test is the thing to revisit deliberately.
+ *   - the title ended "We've been notified." - a report that is not sent;
+ *   - the message read "We'll look into this soon." - THE SAME CLAIM ONE STEP
+ *     SOFTER, and the one that is easy to leave behind because it sounds like
+ *     sympathy rather than a promise. Nobody will look into it, because nobody
+ *     is told.
+ *
+ * BOTH PINNED AS NEGATIVES so neither can quietly come back while the wiring is
+ * still absent. When @sentry/react-native is actually wired (the PRE-LAUNCH
+ * Section 5 row), this block is the thing to revisit deliberately - at that
+ * point a notification sentence would be TRUE and is a copy decision, not a
+ * correctness one.
  */
-describe('ErrorBoundary - no unearned notification claim', () => {
-  test('no scope claims the user has been notified', () => {
+describe('ErrorBoundary - no unearned reporting claim', () => {
+  // Every way the app has claimed, or might re-claim, that someone is on it.
+  const REPORTING_CLAIM = /notified|look(ing)? into|we('| ha)?ve been|our team|reported/i;
+
+  test('no string claims a report was sent or that anyone will look', () => {
     render(
       <ErrorBoundary>
         <Boom />
       </ErrorBoundary>
     );
-    expect(screen.queryByText(/notified/i)).toBeNull();
-    expect(ERROR_BOUNDARY_COPY.appTitle).not.toMatch(/notified/i);
-    expect(ERROR_BOUNDARY_COPY.appMessage).not.toMatch(/notified/i);
-    expect(ERROR_BOUNDARY_COPY.surfaceTitle).not.toMatch(/notified/i);
+    expect(screen.queryByText(REPORTING_CLAIM)).toBeNull();
+    expect(ERROR_BOUNDARY_COPY.appTitle).not.toMatch(REPORTING_CLAIM);
+    expect(ERROR_BOUNDARY_COPY.appMessage).not.toMatch(REPORTING_CLAIM);
+    expect(ERROR_BOUNDARY_COPY.surfaceTitle).not.toMatch(REPORTING_CLAIM);
+
+    // ANTI-VACUITY. A regex that matched nothing would satisfy every assertion
+    // above, including against the old copy. These are the two strings this
+    // slice removed; the pattern must still catch them.
+    expect("Something didn't work as expected. We've been notified.").toMatch(
+      REPORTING_CLAIM
+    );
+    expect("We'll look into this soon.").toMatch(REPORTING_CLAIM);
   });
 });
 
