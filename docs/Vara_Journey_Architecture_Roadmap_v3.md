@@ -260,7 +260,7 @@ deploy. Deploy state lives on Kyle's checklist.
 | 7f | **[DONE `151d405`, merged `8ed349d`, 2026-09-12; walked both fixtures and attested before the merge. Severity in this row's title is WRONG and the §13 entry corrects it: there is one ErrorBoundary and it is above the navigator, so this class takes the APP, not the tab. Row 7g carries that.]** Read-boundary guard for the two journey SCREENS: a malformed `destination` must not take Practices down *(row added 2026-09-11 from slice 7e's Step 0)* | **7e guarded the resolver and therefore Today, and nothing else.** `JourneyMapScreen.tsx:194` and `JourneyPhaseScreen.tsx:107` call `getJourneyState` directly and never pass through `resolveJourney`, so 7e's branch cannot reach them — the §13 7b entry's claim that one branch covered all three surfaces is corrected in a dated block there. **The residual is one field, not two:** a bad `phaseKey` is already harmless on these screens, because `derivePhaseStates` returns all-`'ahead'` for an unrecognised key (`phaseStates.ts:60-62`) and `PhasePath` indexes `PHASE_DISPLAY` from `PHASE_ORDER` rather than from the document. A bad `destination` still throws at `PhasePath.tsx:148,150` and at `JourneyPhaseScreen.tsx:129`. **Step 0 DECIDES THE SHAPE and it is a real fork, not a formality:** (1) route both screens' reads through a shared validating accessor, which puts one policy in one place and makes the resolver's guard a caller of it rather than a copy — but touches two screens' read callbacks and the service boundary; or (2) guard `PhasePath` and the phase page at the render, which is smaller and is the third and fourth copy of the same check. **Note for whoever takes it:** these screens fail SOFTER than Today did — the map's read already has its own try/catch (`:193-200`) and the page's does too (`:106-113`), so what is unguarded is the render, not the read. **CARRIED INTO THIS ROW FROM 7e SO THEY ARE NOT LOST (Kyle, 2026-09-11):** (i) **`toIsoDate` returns the STRING `"NaN-NaN-NaN"` on an Invalid Date.** `{ seconds: NaN }` passes the `typeof === 'number'` check in both timestamp readers, `toIsoDate` uses `getFullYear`/`getMonth`/`getDate` rather than `toISOString` (`weekStart.ts:45-49`), and the result is truthy, so it does NOT take the empty-string path that suppresses the consistency read. As the adjust re-arm floor it sorts above every real ISO date (`'N'` is 0x4E, `'2'` is 0x32), so `weekStart > armedFromIso` is false for every week and **the adjustment offer becomes permanently unfireable for that document, with no log line.** **Fix: return `''` on an invalid date, plus a test.** (ii) **`history` has no array check at `phaseStates.ts:79`** — `state.history.filter` throws for any phase past the first when the field is not a list. (iii) **WALK-FIXTURE NOTE, and it is a limit rather than a finding:** no code path writes `destination: 'stress'` and `firestore.rules:987` refuses it, but **whether a live row carries one was never checked against production data.** The 7e answer was established from the write paths only. Anyone seeding this walk should not read that as "the collection is clean". | None | Yes: the same seeded malformed row as 7e, with `destination` broken instead of `phaseKey` |
 | 7g | **[DONE `8570544` + copy amendment `48a24ef`, merged `3449948`, 2026-09-12; walked all seven steps and attested before the merge]** Scope the ErrorBoundary, so a render throw costs a surface instead of the app *(row added 2026-09-12 from slice 7f's Step 0)* **Built as `screenLayout` on the two live navigators, which is per-SCREEN and not per-tab: the row offered "a boundary per tab stack, or per screen" and Step 0 found that per-tab-only would have covered 4 surfaces and missed the 39 other AppStack screens. The App.tsx boundary stays as the backstop. THE SLICE'S OWN ARGUMENT CHANGED AT STEP 0: nothing reports, so this trades a loud failure for a silent one - see the SENTRY row below, which it added.** | **THE APP HAS EXACTLY ONE ErrorBoundary AND IT IS ABOVE THE NAVIGATOR** (`App.tsx:114`, over `AppNavigator` at `:122`). No screen, tab or navigator has its own, so ANY render throw anywhere replaces Today, Practices, Learn, Community and the tab bar at once, and the only way back is the fallback's Try Again. That is the real severity of the defects 7e and 7f guarded, and it is a standing property of the app rather than a journey problem: the next unguarded index on any screen has the same blast radius. **Scope:** a boundary per tab stack, or per screen, so a throw degrades one surface; decide which, and decide what a scoped fallback says, since the app-level copy ("Something didn't work as expected. We've been notified.") is written for a whole-app failure and would be wrong inside one tab. **Step 0 REQUIRED and it is not a formality:** a boundary that resets its own subtree needs a reset key or the user is stuck on a broken tab with no Try Again, and React Navigation remounts screens on focus in ways that interact with that. **Also settle:** whether the scoped boundaries report to Sentry separately, and whether the app-level one stays as the backstop (it should). **Carried in from 7f:** `ErrorBoundary.tsx(34,5)` TS2741 - `getDerivedStateFromError` returns a state object missing `componentStack` - is one of the standing 149 and lives in this file; fix it here rather than leaving it for a reader to trip over. **NOT a prerequisite for anything queued:** 7e and 7f close the two known throws, so this row reduces the cost of the NEXT one rather than fixing a live crash. | None | Yes: force a throw behind a flag on one tab and confirm the others survive |
 | 7h | **[DONE `773be37`, merged `e86850a`, 2026-09-12; no walk, per this row: a string swap on a surface already walked in 7b. Shipped as written, with the pack amendment found ALREADY LANDED at Step 0 and two additions Kyle approved: the fence widened to one comment line, and the pack reading guide fixed in both places.]** C2 copy amendment: Jen's revised bodies replace both shipped strings *(row added 2026-09-12 from Jen's feedback)* | **TWO STRINGS, AND IT IS FIRST BECAUSE OF WHAT IT STOPS RATHER THAN WHAT IT COSTS.** `journey_adjust_offered` and `journey_adjust_declined` accumulate against whichever wording is on screen, so every day the superseded bodies stand is a day of accept-rate data measured against copy that is no longer the product's. **Scope:** `ADJUST_COPY.bodyFirst` and `ADJUST_COPY.bodySecond` in `constants/journeyCopy.ts`, and the CANONICAL PACK amended at `§decisions-4` - not a local override, per Jen. First becomes *"If this isn't helping yet, we can change the approach without starting over."*; second becomes *"If this still isn't helping, we can change the approach without starting over."* `decline` ("Keep going for now") is approved unchanged and is not touched. **The ledger entry is the substance, not a formality:** `bodySecond` currently carries Kyle's owner sign-off and a note saying it is PENDING JEN REVIEW and will move if she revises `bodyFirst`. She has, and her sign-off SUPERSEDES his on BOTH bodies; the `copyDraftSentinel.test.ts` entry that records his warrant must say so. **Sentinel does not move** - two approved strings replaced by two approved strings, no draft in either direction - and the commit must say that explicitly so a flat count is not read as an oversight. **May carry the analytics `definition_version` change** (§5 row note below). | None | No: a string swap on a surface already walked in 7b |
-| 7i | **[Next]** 12 protocol copies land: Recover R1-R9 and Refocus F1-F3 *(row added 2026-09-12 from Jen's feedback)* | Title, daily action and why-it-works for each of the twelve, delivered and approved by Jen. They replace the `PLACEHOLDER` cells in `protocolMatrix.ts`; `PLACEHOLDER_TITLE_PREFIX` and the `placeholder: true` flags come off the rows they cover, and **the merge gate that greps for that prefix is the check that this row is complete**. **Step 0 must settle two things:** how many of the twelve are `placeholder: true` today versus merely carrying `PLACEHOLDER` in the title (the flag and the prefix are set from one field but only three rewire cells carry the flag), and whether Rewire's three remain the only placeholders after this lands - if so, say so in the entry, because a matrix with exactly three placeholder cells left is a different statement from one with twelve. **supportingPracticeIds is NOT in this row's scope** and must not be filled while it is open; the mapping is its own decision and is recorded in §13. | **[Content-gated]** - GATE NOW OPEN, Jen delivered 2026-09-12 | Yes: the daily serve on a Recover and a Refocus account |
+| 7i | **[BUILT `82a19e4`, branch `journey/slice-7i-protocol-copy`; WALK PENDING, then Kyle merges]** 12 protocol copies land: Recover R1-R9 and Refocus F1-F3 *(row added 2026-09-12 from Jen's feedback)* | Title, daily action and why-it-works for each of the twelve, delivered and approved by Jen. **Content Pack v1 `§protocol-copy`** (Part four, landed on main as `bb5553e`), twelve rows keyed by ordinal + cell slot + current title. **No `estMinutes` changed: Jen was asked and supplied none.** They replace the `PLACEHOLDER` cells in `protocolMatrix.ts`; ~~`PLACEHOLDER_TITLE_PREFIX` and the `placeholder: true` flags come off the rows they cover, and **the merge gate that greps for that prefix is the check that this row is complete**.~~ **BOTH HALVES OF THAT SENTENCE WERE WRONG, corrected at Step 0 and proven by mutation.** Nothing came off: none of the twelve ever carried `placeholder: true`, so none carried the prefix either; they carried a `// PLACEHOLDER [Jen]` SOURCE ANNOTATION, and 48 of those came off instead. And the merge gate is not the check: `protocolMatrix.removeCellsAuthored.test.ts` reads the FLAG and scans the `remove` CELLS only, so it was green before this row and is green after it. Flagging a recover variant `placeholder: true` leaves it PASSING. The real check is **`THE SLICE 7i COMPLETION GATE`** in `selectProtocol.test.ts`, added by this row. `PLACEHOLDER_TITLE_PREFIX` itself is untouched and stays for Rewire, which now holds the only three placeholders in the matrix. **Step 0 must settle two things:** how many of the twelve are `placeholder: true` today versus merely carrying `PLACEHOLDER` in the title (the flag and the prefix are set from one field but only three rewire cells carry the flag), and whether Rewire's three remain the only placeholders after this lands - if so, say so in the entry, because a matrix with exactly three placeholder cells left is a different statement from one with twelve. **supportingPracticeIds is NOT in this row's scope** and must not be filled while it is open; the mapping is its own decision and is recorded in §13. | **[Content-gated]** - GATE NOW OPEN, Jen delivered 2026-09-12 | Yes: the daily serve on a Recover and a Refocus account |
 | 7j | **[BLOCKED pending Jen, 2026-09-12]** Naming set: Practices becomes Journey, and four phases get customer-facing labels *(row added 2026-09-12 from Jen's feedback)* **THE BLOCKING QUESTION, and it is back with Jen rather than being resolved here: do the four destination labels REPLACE `PHASE_DISPLAY`'s sixteen per-(phase, destination) titles and shorts, or SIT ABOVE them?** Both sets are her approved content, and the new usage rule names the three surfaces that table already owns. **THE THREE READINGS, recorded so her answer resolves against a stated set rather than a fresh analysis:** **(i) REPLACE.** The four full labels become the map-row and phase-page titles and the four short variants become the Today eyebrow; the sixteen titles and sixteen shorts stop being rendered, and the sixteen glosses are all that survives of `§display-strings` on those surfaces. Cheapest to build, and it retires 32 approved strings. **(ii) SIT ABOVE.** The phase label is a new line above the destination-specific cell copy: a map row reads *Create space* with *Clear what's pulling at your attention* beneath it, and Today's eyebrow carries the short phase label above the cell `short`. Nothing is retired; every row gains a line, and Today's journey line becomes three lines rather than two, which collides with §9 R6's two-line shape and with §8's three-card ceiling reasoning. **(iii) FILL GAPS ONLY.** The phase labels apply where no cell copy exists - the tab, the map screen title, and any compact surface without a (phase, destination) pair - and the sixteen cells keep every surface they already own. Smallest change, and it leaves the four labels invisible on the three surfaces the usage rule explicitly names, which is the reading most likely to be wrong. **Nothing in this row is built until she answers**; the rest of the scope below is unaffected by which reading wins and is left as written. | **COUPLED, WHICH IS WHY IT IS ONE ROW:** the tab label, the map screen title, four FULL phase labels and four SHORT variants all ship together or the app speaks two vocabularies at once. Bottom nav becomes **Journey**; the map screen reads **Your journey**. Labels: Remove -> *Create space* / *Create space*; Recover -> *Restore capacity* / *Restore*; Rewire -> *Build new patterns* / *New patterns*; Refocus -> *Focus on what matters* / *Focus*. **Usage rule:** full labels on map rows and phase page titles, short variants on the Today journey eyebrow and other compact surfaces. **REMOVE'S SHORT FORM IS DELIBERATELY IDENTICAL TO ITS FULL FORM** - record it at the constant, because it reads as an oversight and is not one. **"Practices" SURVIVES** as the name of the runnable content library wherever that library itself appears; the hierarchy is Journey -> destination -> today's protocol -> supporting practice. Remove/Recover/Rewire/Refocus stay INTERNAL architecture terms and do not become customer-facing taxonomy. **Rewire ships "Build new patterns" now despite unauthored content**, per Jen's principle recorded in §13: a destination label describes the phase's PURPOSE, not the state of its content. **STEP 0 IS REQUIRED AND IT IS A REAL FORK, NOT A FORMALITY:** these four per-phase labels collide head-on with `PHASE_DISPLAY`, which is 16 per-(phase, destination) titles and 16 shorts of Jen's own approved pack content, and which is what the map rows, the phase page titles and the Today eyebrow render TODAY. Settle whether the new labels REPLACE that table on those surfaces, sit ABOVE it as a phase name with the cell copy beneath, or apply only where no cell copy exists - and settle it with Jen, because both sets are hers. See the contradiction list in the 2026-09-12 §13 entry. **Also in scope:** an audit of every "Practices" string (`AppNavigator.tsx:592`, `:856`, `:943`, `:1024`, `:1141`, `routes.ts:113`, `JourneyMapScreen.tsx`'s title) deciding which are the tab and which are the library. **Route and constant names are NOT copy** and should not be renamed for a label change; 7b's own note on why 7c was not renumbered applies. | **[Content-gated]** - GATE NOW OPEN, Jen delivered 2026-09-12 | Yes: nav, map, phase pages and Today together |
 | 7c | Honour the recorded adjustment *(row added 2026-09-10 at 7b's close)* | Consume `journeyStates.adjustChoice` in the protocol serving path. 7b RECORDS the user's choice among the twelve in-phase alternatives and does not act on it: nothing outside `journeyState.service.ts` reads the field, and the C2 confirmation ("We'll work it this way for now") is worded for exactly that state. This row closes the gap. **Step 0 REQUIRED** and it is not a formality: the twelve alternatives mean four different things to the engine (shrink the protocol, swap the approach at the same target, re-target, re-slot, re-cue, re-narrow), and what `selectProtocol` can currently express of that is unestablished. Settle what the engine already supports before anything writes a second selection input. **Also settle:** whether a recorded choice persists across a phase change (today `CLEARED_OFFERS` nulls it, which is right while nothing consumes it and may not be once something does), and whether choosing re-arms the weekly read the way a decline does. **Carried from 7b:** the door's write has NO in-flight guard (`onChoose` in `JourneyPhaseScreen.tsx` sets no pending state), which is harmless while the write settles and leaves the page silent when it does not; 7c is already in this code and is where that pending state belongs. | Engine capability, per Step 0 | Yes |
 | SENTRY | **[PRE-LAUNCH, not built. Row added 2026-09-12 at slice 7g's close, from its Step 0 finding.]** Wire `@sentry/react-native` so a caught render throw is reported to something | **NOTHING IN THE APP REPORTS ANYTHING TODAY, AND THIS WAS ESTABLISHED BY READING THE CODE RATHER THAN INFERRED.** `crashReporting.service.ts` is a stub: every `Sentry.*` call is commented out (`:28-59`, `:70`, `:79`, `:87`, `:98`, `:106`, `:114`, `:122`, `:133`) and `isInitialized` (`:20`) is only ever set true INSIDE that commented block, so it is permanently false. `logError` (`:93-99`) therefore reduces to a `__DEV__`-only console line and an early return. `initializeCrashReporting()` IS called (`App.tsx:66-67`) and only logs "awaiting @sentry/react-native setup". **`@sentry/react-native` is not in `package.json` at all**, nor is `sentry-expo`. The ErrorBoundary is that service's ONLY caller in the app. The other path, `setupGlobalErrorHandler.ts` (wired first at `index.ts:5`), only `console.error`s. **WHY IT IS ROWED NOW RATHER THAN LEFT ON THE BACKLOG:** slice 7g scoped the boundaries, so a render throw stopped being loud. Before 7g a throw killed the app and the user noticed; after it, a throw is a small panel inside an otherwise working app that a user can simply navigate away from, and no one is listening. That is a deliberate, accepted trade (Kyle, 2026-09-12) and this row is the other half of it. **Scope:** install `@sentry/react-native` at current stable, add the `@sentry/react-native/expo` config plugin to `app.json`, uncomment and update `Sentry.init`, set the DSN via `EXPO_PUBLIC_SENTRY_DSN`, **and rebuild with EAS - it is a native module, so this cannot land as a JS-only change.** The `beforeSend` PII strip in the commented block is already written and should be reviewed rather than re-derived. **Decide at Step 0:** whether scoped boundaries report separately from the app-level one (they should be distinguishable - a dead tab and a dead app are different incidents), and whether `ErrorBoundary`'s app-level copy regains a notification sentence once the claim is true again; `ErrorBoundary.test.tsx` pins its absence as a negative for exactly that reason. **Cross-references:** `docs/TECH_DEBT_BACKLOG.md:308-340` records the same state retrospectively from Phase 2, and the forward-looking "Observability - `logger` is `console.*` in production" entry above it; both close when this lands. | None in the repo. **Kyle runs EAS builds**, so the rebuild is a hand-off, not a step this slice can take. | Yes: force a throw with `DEV_CRASH_ROUTE` and confirm the event ARRIVES in the Sentry project, which is the only proof that matters here |
@@ -2309,6 +2309,209 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-09-12 - slice 7i, Jen's twelve protocol copies replace the stand-ins (`82a19e4`, content landed on main first as `bb5553e`; branch `journey/slice-7i-protocol-copy`; WALK PENDING at the time of writing)
+
+**WHAT LANDED.** Nine Recover and three Refocus variants take their `name`,
+`dailyAction` and `whyItWorks` from Content Pack v1 `§protocol-copy`, Jen's
+2026-09-12 delivery. Thirty-six strings. All 48 `// PLACEHOLDER [Jen]` source
+annotations come off `protocolMatrix.ts`. **No `estMinutes` changed**: she was
+asked and supplied none, so every duration and every derived `timeClass` is
+byte-identical across this commit.
+
+The content landed on `main` as a docs-only commit **before** the branch was
+cut, at Jen's standing instruction that her copy goes in the canonical pack
+rather than a local override (the 7h precedent). `bb5553e` added Part four at a
+new `protocol-copy` anchor, updated the `Covers:` line, added the anchor-index
+row, retitled the reading-guide block, and added §6 item 14.
+
+---
+
+**1. THE ROW NAMED THE WRONG MERGE GATE, AND THE CORRECTION IS THE SUBSTANCE.**
+
+Row 7i said `PLACEHOLDER_TITLE_PREFIX` and the `placeholder: true` flags would
+"come off the rows they cover", and that **"the merge gate that greps for that
+prefix is the check that this row is complete"**. Both halves were false, and
+Step 0 caught it before any code moved.
+
+**Nothing came off.** None of the twelve ever carried `placeholder: true`, so
+none ever carried the title prefix. They carried a source ANNOTATION. The flag
+and the annotation are two different conventions that happen to share a word:
+
+| | Carried by | Mechanism | Renders |
+|---|---|---|---|
+| `placeholder: true` | Rewire's 3 | field on the variant, prefixes the title at `protocolMatrix.ts:133` | yes, as `[PLACEHOLDER] ...` |
+| `// PLACEHOLDER [Jen]` | Recover's 9, Refocus's 3 | comment beside the string | no |
+
+**And the gate could not have checked this row.**
+`protocolMatrix.removeCellsAuthored.test.ts` reads the FLAG and scans the
+`remove` CELLS. The twelve are in `recover` and `refocus` and carry no flag. It
+was green before this row and it is green after it.
+
+**PROVEN BY MUTATION RATHER THAN ARGUED.** Setting `placeholder: true` on R1
+leaves `removeCellsAuthored` **PASSING** and fails the new gate. A row that had
+been merged on the strength of the gate it named would have shipped on a check
+that cannot see the thing it was checking.
+
+**THE REAL CHECK** is `THE SLICE 7i COMPLETION GATE` in
+`selectProtocol.test.ts`: no `placeholder` and no `PLACEHOLDER` in a title
+across `remove`, `recover` and `refocus`, with vacuity guards so an emptied cell
+cannot pass by having nothing to check. `removeCellsAuthored`'s rewire count was
+also tightened from `toBeLessThanOrEqual(3)`, which passed at zero too, to
+exactly 3.
+
+**THE DURABLE LESSON:** a gate is scoped by what it READS, not by what it is
+named after. "The merge gate" read as a proper noun for "the thing that stops
+bad content", and it is not: it is one assertion over one flag in one phase.
+
+---
+
+**2. THE SENTINEL EXCLUSION TEST WAS REWRITTEN, NOT REPAIRED, AND THAT WAS A
+RULING RATHER THAN AN EDIT.**
+
+`copyDraftSentinel.test.ts` asserted that `protocolMatrix.ts` **contained** the
+literal `PLACEHOLDER [Jen]`, as an anti-rot guard: if the file stopped using its
+own annotation convention, the exclusion should be revisited rather than left
+pointing at a file that no longer needed it.
+
+**7i creates exactly that state**, and it created a fork with no honest third
+option: correct the file header (which this row must, since it now describes the
+file falsely) and the test fails; leave the header to keep it green and ship a
+lie in the opening comment of the content file.
+
+**Resolved (Kyle, 2026-09-12): fix the header, rewrite the test. Keep the
+anti-rot intent, drop the stale mechanism.** The exclusion is now justified by
+the pipeline fact rather than by a marker: `protocolMatrix.ts` holds
+Jen-authored protocol content, governed by its own gate and its own review path,
+and NOT written against the brand guidelines the sentinel counts drafts for.
+
+The test now asserts that the file still holds the protocol content, that a
+separate gate still governs it, and that it carries no drafted strings; it names
+the three changes that would make the exclusion wrong, in the test body, so a
+future reader does not have to infer them. **All three were mutation-checked to
+fail**: renaming the export, removing the gate file, and planting a drafted
+string. A fourth test was added so an `OUT_OF_SCOPE` path that stops existing
+fails rather than silently widening the exclusion; that too was checked by
+moving the file.
+
+**EXPECTED_SENTINELS = 150, UNEDITED.** Thirty-six annotated strings became
+thirty-six authored strings and the ledger did not move in either direction,
+because `protocolMatrix.ts` is out of the sentinel's scope entirely. This is the
+first slice where the sentinel staying flat needed a paragraph rather than a
+line, which is why it has one.
+
+---
+
+**3. `retagParity.test.ts` DELETED, AND ONE OF ITS THREE "LIVE" INVARIANTS TURNED
+OUT NOT TO NEED RESCUING.**
+
+The file pinned the twelve pre-Jen strings character-for-character as proof that
+slice 3a MOVED rows rather than editing them. Its header declared its own
+lifetime: delete when Jen's content replaces the twelve, at which point it
+asserts the absence of the wrong thing. That point is this row.
+
+Step 0 flagged that roughly half the file was not about the fixture, and that
+deleting 148 lines to close a copy row would quietly retire three live
+invariants. **Checked before copying, and only two needed to move:**
+
+| Invariant | Disposition |
+|---|---|
+| Selection totality | Rehomed. `selectProtocol.test.ts` already had a totality test, but against ONE destination; retagParity's crossed all four. The delta is real and is what moved. |
+| `orderForDestination` is the identity | Rehomed in full. Nothing else asserted it. |
+| `representativeProtocol` returns the cell canonical | **NOT copied.** Already asserted identically by `returns the cell FIRST variant, for every cell`. Copying it would have added a second copy of a live assertion rather than rescuing a dying one, and two tests of one fact drift. |
+
+The authored total was re-expressed directly as **21 authored + 3 placeholders**
+rather than as `RETAGGED.length + removeAuthored.length`, arithmetic over a
+fixture that no longer exists.
+
+**The general form, worth keeping:** "rescue the invariants before deleting the
+file" is right, and it is not the same instruction as "copy them". Check each
+one against what already exists first.
+
+---
+
+**4. STALE COMMENTS CORRECTED, BECAUSE THIS ROW IS WHAT MADE THEM FALSE.**
+
+`protocolMatrix.ts` header and matrix doc-comment, five doc-comments in
+`types.ts`, one comment block at `JourneyPhaseScreen.tsx:37` (fence widened by
+one comment line, on 7h's precedent), and `removeCellsAuthored`'s header, which
+had said "THIS TEST IS EXPECTED TO FAIL" since 3a closed it.
+
+Also corrected: `jen-brief-2026-09-12.md:176` cited the prefix mechanism at
+`protocolMatrix.ts:121`, which was off by one when written (`:121` is the
+`return {`; the expression was at `:120`) and is now `:133` after the header
+rewrite. **A line number is a pointer with a short shelf life.** The citation now
+says to grep `PLACEHOLDER_TITLE_PREFIX` instead.
+
+---
+
+**5. REWIRE'S THREE ARE NOW THE ONLY PLACEHOLDERS IN THE MATRIX**, and the row
+asked for this to be said plainly, because a matrix with three placeholder cells
+left is a different statement from one with twelve. They are unreachable until
+slice 5. `PLACEHOLDER_TITLE_PREFIX` is untouched and stays for them; it has no
+application-code consumers at all, only tests.
+
+**Elsewhere in the codebase, two placeholder markers survive and neither is
+protocol content:** `screens/learn/LearnHubScreen.tsx:22` renders a literal
+placeholder string on a live tab, and `engine/practicePreference.ts:4` carries a
+"PROVISIONAL PLACEHOLDER, pending clinical review" ordering. Named here so
+"rewire's three are all that's left" is not read more broadly than it is true.
+Neither is rowed.
+
+---
+
+**6. CARRIED TO THE `supportingPracticeIds` ROW'S STEP 0. DO NOT SOLVE IT HERE,
+AND DO NOT REDISCOVER IT THERE.**
+
+Four observations, and they are **one question**: does the number match what she
+described?
+
+**The systematic finding is the important half.** Every stand-in stated its
+duration in the text ("10-min extended exhale", "One 25-min single-task block",
+"5 min on one thing"). **None of Jen's twelve names a duration at all.** The
+register is better for it, and the consequence is that `estMinutes` is no longer
+corroborated by the string the user reads: it is now the only place a protocol's
+length lives, and a number that drifts from its action will not be visible in
+the copy. Recorded at the field's doc-comment in `types.ts` as well as here.
+
+**The four boundary cases** (classes are short <= 5, medium <= 15, long > 15):
+
+| | est | Why it is on the list |
+|---|---|---|
+| **R1** | 15 | "one part of the afternoon fully off-screen" is open-ended and reads as well over 15. On the boundary; would become `long`. The clearest of the four. |
+| **R4** | 10 | "step away ... for a real break", length unspecified, could exceed 15. |
+| **F2** | 15 | "one short block" replaces an explicit "15-min". On the boundary; read as 20 it becomes `long`. |
+| **R5** | 6 | The mirror case: "water then a stretch" could read as 5 or less and drop to `short`. |
+
+**And the two mapping tensions**, which is why this belongs to that row and not
+another: §13's own table maps **R9** "Get some morning light" to `bright-light-10`
+and `bright-light-20`, practices of 10 and 20 minutes, against an `estMinutes` of
+**5** and copy that now says "a few minutes". **R7** has the mirror shape:
+`extended-exhale-2` is a 2-minute practice against a 5-minute protocol. Under
+Jen's own rule a supporting practice is listed only when completing it
+**reasonably satisfies the protocol itself**, so a 10- or 20-minute practice
+satisfying a 5-minute protocol is a question about one number or the other.
+
+**Nothing was changed for any of this.** No duration moved in `82a19e4`.
+
+**THE ROW ITSELF IS NOT ON THE BOARD YET.** The mapping is recorded in the
+2026-09-12 Jen-feedback entry and 7i's scope cell explicitly bars filling
+`supportingPracticeIds` while 7i is open, but no numbered row owns it. Step 0
+recommended sequencing it immediately after 7i, for four reasons recorded there,
+the load-bearing one being that it keys off R7/R9 and 7i is what fixes that
+numbering in the file. **It needs cutting.**
+
+---
+
+**BASELINES AT THIS COMMIT.** tsc **148**, unchanged. jest **3490 / 223**, from
+3521 / 224, and the delta reconciles exactly: retagParity's 39 tests out, 7 added
+to `selectProtocol.test.ts`, 1 added to the sentinel suite. Sentinel **150**,
+unedited. lint **1100 errors unchanged**; **warnings 1357 -> 1358**, and the one
+new warning is `max-lines` on `selectProtocol.test.ts`, which the rehome pushed
+to 323 lines against a 300 limit. Rules **191/2** and functions **53/4** carried
+unrun; this slice touches neither. `protocolMatrix.ts` was already failing
+`prettier --check` before this commit and still is, which is pre-existing and
+not introduced here.
 
 ### 2026-09-12 - slice 7h, Jen's revised C2 bodies and the offer events' definition_version (`773be37`, docs `0134479` + `bac39ad`, merged `e86850a`; branch `journey/slice-7h-c2-copy`, pushed immediately after this commit; NO WALK, per the row, and attested before the merge)
 

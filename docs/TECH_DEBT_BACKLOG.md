@@ -1920,6 +1920,49 @@ the existing two mappings belong to is the content question, and it is Jen's.
 
 ---
 
+---
+
+## `ProtocolVariant.variantKey` is documented as unique per variant and is not
+
+`mobile/src/protocolEngine/types.ts:101` reads:
+
+> Unique per variant, by convention `${phase}-${capacity}-${timeClass}`.
+
+**The convention is right and the uniqueness claim is wrong**, and has been since
+the 3b-ii-a reshape made a cell an ARRAY. A cell holding several variants in one
+time class gives them all the same key. Today that is 15 of the 21 authored
+variants:
+
+| Key | Shared by |
+|---|---|
+| `remove-normal-long` | all 3 remove/normal (one per family) |
+| `remove-limited-medium` | all 3 remove/limited |
+| `remove-slammed-short` | all 3 remove/slammed |
+| `recover-normal-medium` | R1, R2 |
+| `recover-limited-medium` | R4, R5, R6 |
+| `recover-slammed-short` | R7, R8, R9 |
+
+**Why it is debt rather than a bug.** Nothing in the app keys off `variantKey`
+expecting uniqueness, and `selectProtocol.test.ts` already documents the real
+invariant honestly: a key names a (phase, capacity, timeClass) SLOT, so it may
+repeat WITHIN a cell but must never collide ACROSS two cells. That test is
+correct. The type comment beside the field is what disagrees with it.
+
+**Why it is worth fixing.** It misleads exactly when it matters most. Slice 7i's
+prompt asked for Jen's twelve to be keyed by `variantKey`; taken at its word that
+would have let R5's copy land on R4 silently, since the three
+`recover-limited-medium` rows are indistinguishable by key. The pack section was
+keyed by ordinal + cell slot + current title instead, and records why.
+
+**Direction:** correct the comment to say what the test says. Do NOT widen the key
+to make the claim true: `id` is already deliberately cell-level and persisted
+(`WeeklyCycle.protocolId`, a closed union in `types/analyticsEvents`), and a
+second identity axis is not obviously wanted. If a genuinely per-variant
+identifier is ever needed, that is its own decision with a migration attached.
+
+**Found:** slice 7i Step 0, 2026-09-12. Deliberately not fixed in that row, which
+was a copy row.
+
 ## Protocol completion from native Vara actions
 
 **Raised by:** Jen, 2026-09-12. **Status:** recommendation, confirmed by her as
