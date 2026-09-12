@@ -21,7 +21,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import Text from './Text';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { ReminderTime } from '../../types';

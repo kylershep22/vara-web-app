@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Keyboard } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Keyboard } from 'react-native';
+import TextInput, { type TextInputInstance } from '../shared/TextInput';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -35,7 +36,7 @@ export const CollapsibleSearchBar: React.FC<CollapsibleSearchBarProps> = ({
   placeholder = 'Search entries...',
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const reduceMotion = useReducedMotion();
 
   const expandProgress = useSharedValue(0);

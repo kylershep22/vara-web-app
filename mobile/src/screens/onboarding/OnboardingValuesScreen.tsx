@@ -11,9 +11,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Text,
   Dimensions,
 } from 'react-native';
+import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';

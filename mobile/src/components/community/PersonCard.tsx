@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import Text from '../shared/Text';
 import CommunityAvatar from '../shared/CommunityAvatar';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Card from '../Card';

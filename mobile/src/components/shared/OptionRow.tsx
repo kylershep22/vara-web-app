@@ -18,7 +18,8 @@
  * the alternative to this move.
  */
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import Text from './Text';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { withAlpha } from '../dashboard/brainStateCheckin/colorUtils';
 

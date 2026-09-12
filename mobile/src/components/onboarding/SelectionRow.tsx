@@ -9,7 +9,8 @@
  * reads at a glance. Descriptors are not used here (label-only options).
  */
 import React, { type ComponentType } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import Text from '../shared/Text';
 import { Check } from 'lucide-react-native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { withAlpha } from '../dashboard/brainStateCheckin/colorUtils';

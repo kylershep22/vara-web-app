@@ -23,7 +23,8 @@
  * typing at all, which is part of what keeps the chips path complete on its own.
  */
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import TextInput from '../../../components/shared/TextInput';
 import { useNavigation } from '@react-navigation/native';
 
 import { OptionRow } from '../../../components/shared/OptionRow';

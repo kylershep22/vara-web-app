@@ -6,7 +6,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -17,6 +16,7 @@ import {
   InputAccessoryView,
   Platform,
 } from 'react-native';
+import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingSpinner, PostCard } from '../../components';
 import { PostOverflowSheet } from '../../components/community/PostOverflowSheet';

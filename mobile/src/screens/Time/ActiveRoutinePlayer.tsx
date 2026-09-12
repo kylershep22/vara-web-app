@@ -18,10 +18,10 @@ import {
   Modal,
   Alert,
   Dimensions,
-  Text,
   AppState,
   AppStateStatus,
 } from 'react-native';
+import Text from '../../components/shared/Text';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';

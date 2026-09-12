@@ -13,11 +13,11 @@ import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
-  Text,
 } from 'react-native';
+import Text from '../../shared/Text';
+import TextInput, { type TextInputInstance } from '../../shared/TextInput';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import Button from '../../Button';
@@ -37,7 +37,7 @@ const OnboardingIntentionActivity: React.FC<OnboardingIntentionActivityProps> = 
 }) => {
   const [text, setText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const isValid = text.trim().length >= 1;
 

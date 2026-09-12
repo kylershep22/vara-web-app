@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import Text from '../../shared/Text';
 import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { DaySlot } from '../../../hooks/useBrainStateWeekTrend';
 import { BrainStateOption } from './brainStateOptions';

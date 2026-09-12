@@ -9,7 +9,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import Text from '../shared/Text';
+import TextInput from '../shared/TextInput';
 // Direct path, not the components barrel: the barrel pulls in the community
 // and media trees (expo-video among them) for one modal.
 import { EnhancedModal } from '../shared/EnhancedModal';

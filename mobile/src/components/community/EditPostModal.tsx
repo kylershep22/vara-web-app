@@ -6,8 +6,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   Modal,
   Pressable,
@@ -16,6 +14,8 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import Text from '../shared/Text';
+import TextInput from '../shared/TextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { updatePostContent } from '../../services/firebase/moderation.service';

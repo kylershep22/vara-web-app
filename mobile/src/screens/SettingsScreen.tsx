@@ -10,8 +10,8 @@ import {
   Platform,
   ActivityIndicator,
   Linking,
-  Text,
 } from 'react-native';
+import Text from '../components/shared/Text';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';

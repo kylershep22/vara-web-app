@@ -15,7 +15,8 @@
  * next occurrence). Denied → anchor saved, no schedule, no penalty copy.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
+import Text from '../../components/shared/Text';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRoute } from '@react-navigation/native';
 import { doc, getDoc } from 'firebase/firestore';

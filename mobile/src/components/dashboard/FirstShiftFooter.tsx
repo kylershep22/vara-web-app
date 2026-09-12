@@ -38,7 +38,8 @@
 // effect.
 
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from '../shared/Text';
 
 import type { Timestamp } from 'firebase/firestore';
 

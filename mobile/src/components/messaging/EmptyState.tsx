@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import Text from '../shared/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 

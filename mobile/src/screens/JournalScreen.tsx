@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback, memo, useRef } from 'react';
-import { View, Text, StyleSheet, SectionList, TouchableOpacity, Alert, TextInput as RNTextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView, Modal } from 'react-native';
+import { View, StyleSheet, SectionList, TouchableOpacity, Alert, TextInput as RNTextInput, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView, Modal } from 'react-native';
+import Text from '../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Button,

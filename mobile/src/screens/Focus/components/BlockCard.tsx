@@ -20,7 +20,8 @@
  * `completed` field to render even if we wanted one.
  */
 import React, { useCallback } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../../../components/shared/Text';
 
 import { Colors, Layout, Spacing, Typography } from '../../../constants';
 import { Tag } from '../../../components/shared/Tag';

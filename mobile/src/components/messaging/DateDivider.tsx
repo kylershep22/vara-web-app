@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../shared/Text';
 import { Colors, Spacing, Typography } from '../../constants';
 
 interface DateDividerProps {

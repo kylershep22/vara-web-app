@@ -4,7 +4,8 @@
  * Transparency, not urgency: no countdown, no "unlock," no pressure. Tokens only.
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../shared/Text';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
 interface Milestone {

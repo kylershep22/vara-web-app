@@ -31,7 +31,8 @@
  * line and make two states share one set of assertions.
  */
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import { PICKER_COPY } from './dailyPicker.copy';

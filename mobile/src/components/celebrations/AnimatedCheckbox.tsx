@@ -4,7 +4,8 @@
  */
 
 import React, { useCallback, useState, useRef } from 'react';
-import { TouchableOpacity, StyleSheet, ViewStyle, Text, View } from 'react-native';
+import { TouchableOpacity, StyleSheet, ViewStyle, View } from 'react-native';
+import Text, { AnimatedText } from '../shared/Text';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -125,9 +126,9 @@ const AnimatedCheckbox: React.FC<AnimatedCheckboxProps> = ({
       >
         <Animated.View style={[styles.container, containerStyle]}>
           <Animated.View style={[styles.checkbox, backgroundStyle]}>
-            <Animated.Text style={[styles.checkmark, checkmarkStyle]}>
+            <AnimatedText style={[styles.checkmark, checkmarkStyle]}>
               ✓
-            </Animated.Text>
+            </AnimatedText>
           </Animated.View>
         </Animated.View>
       </TouchableOpacity>

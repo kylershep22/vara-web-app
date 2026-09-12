@@ -9,9 +9,9 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Text,
   Switch,
 } from 'react-native';
+import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Input from '../Input';

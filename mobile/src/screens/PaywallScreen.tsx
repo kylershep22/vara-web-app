@@ -10,13 +10,13 @@
 import React, { useEffect, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
   Linking,
 } from 'react-native';
+import Text from '../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Purchases, { INTRO_ELIGIBILITY_STATUS } from 'react-native-purchases';

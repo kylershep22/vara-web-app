@@ -16,7 +16,8 @@
  * visual idiom.
  */
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../../../components/shared/Text';
 
 import { OnboardingScaffold } from '../../../components/onboarding/OnboardingScaffold';
 import { Colors, Spacing, Typography } from '../../../constants';

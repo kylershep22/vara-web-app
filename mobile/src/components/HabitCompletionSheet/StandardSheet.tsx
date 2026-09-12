@@ -7,11 +7,11 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
 } from 'react-native';
+import Text, { AnimatedText } from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { isCognitiveReserveCategory } from '../../constants/habitCategories';
 import { HabitCompletionSheetProps, STANDARD_AFFIRMING_COPY } from './types';
@@ -80,9 +80,9 @@ export const StandardSheet: React.FC<HabitCompletionSheetProps> = ({
       {/* Header */}
       <View style={styles.headerRow}>
         <Animated.View style={[styles.iconCircle, { backgroundColor: iconBgColor }]}>
-          <Animated.Text>
+          <AnimatedText>
             <Icon name="check" size={22} color={confirmed ? '#FFFFFF' : '#1B5E57'} />
-          </Animated.Text>
+          </AnimatedText>
         </Animated.View>
         <View style={styles.headerText}>
           <Text style={styles.habitName}>

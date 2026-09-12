@@ -13,9 +13,9 @@ import React from 'react';
 import {
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
+import Text from '../../shared/Text';
 
 import { Colors, Spacing, Typography } from '../../../constants';
 import type { BrainState, Protocol } from '../../../types/models';

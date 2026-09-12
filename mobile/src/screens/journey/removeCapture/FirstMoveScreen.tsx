@@ -34,7 +34,8 @@
  * the user pressing a button that does nothing.
  */
 import React, { useCallback, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from '../../../components/shared/Text';
 import { useNavigation } from '@react-navigation/native';
 
 import { Colors, Spacing, Typography } from '../../../constants';

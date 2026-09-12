@@ -5,7 +5,8 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StyleSheet, RefreshControl, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import Text from '../components/shared/Text';
 import { useFocusEffect } from '@react-navigation/native';
 import Animated from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';

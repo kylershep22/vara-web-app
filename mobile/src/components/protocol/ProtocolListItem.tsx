@@ -17,7 +17,8 @@
 // own filtering, which is the difference between the two surfaces.
 
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Spacing, Typography } from '../../constants';
 import { formatProtocolDuration } from '../../utils/protocolDisplay';

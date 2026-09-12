@@ -7,12 +7,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
-  Text,
   StyleSheet,
   Dimensions,
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
+import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,

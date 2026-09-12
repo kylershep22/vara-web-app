@@ -4,7 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Animated } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Modal, ScrollView, Animated } from 'react-native';
+import Text from '../../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Input } from '../../';
 import { Colors, Spacing, Typography, Layout, HABIT_CATEGORIES } from '../../../constants';

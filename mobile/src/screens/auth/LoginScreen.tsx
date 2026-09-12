@@ -11,12 +11,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Text,
   Image,
   Alert,
   Animated,
   Keyboard,
 } from 'react-native';
+import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { TextInput as PaperTextInput } from 'react-native-paper';

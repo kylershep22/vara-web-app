@@ -29,6 +29,16 @@ import { resolveFontFamily } from './Text';
 
 export type TextInputProps = RNTextInputProps;
 
+/**
+ * The INSTANCE type, for `useRef<TextInputInstance>(null)`.
+ *
+ * React Native's `TextInput` is both a value and a type; the shared primitive
+ * is a const, so it cannot be used in type position. Six files hold a ref to an
+ * input and needed this rather than reaching back to react-native for a type
+ * the lint is about to make awkward.
+ */
+export type TextInputInstance = RNTextInput;
+
 const TextInput = forwardRef<RNTextInput, TextInputProps>(function TextInput(
   { style, maxFontSizeMultiplier, ...rest },
   ref

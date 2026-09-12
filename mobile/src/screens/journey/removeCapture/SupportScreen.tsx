@@ -24,7 +24,8 @@
  * must not be skipped and which styling as an alert is exactly how it would be.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { LayoutAnimation, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { LayoutAnimation, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../../../components/shared/Text';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { Colors, Layout, Spacing, Typography } from '../../../constants';

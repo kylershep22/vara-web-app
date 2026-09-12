@@ -5,7 +5,8 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import Text from '../../shared/Text';
 import { EnhancedModal } from '../../';
 import { Colors, Spacing, Typography, Layout } from '../../../constants';
 import { Habit } from '../../../types';

@@ -15,10 +15,10 @@ import React from 'react';
 import {
   TouchableOpacity,
   StyleSheet,
-  Text,
   View,
   Platform,
 } from 'react-native';
+import Text from './Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 

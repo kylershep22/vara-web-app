@@ -5,7 +5,8 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import Text from '../components/shared/Text';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingSpinner, InlineCreateButton, Button } from '../components';
 import { QuietFinish } from '../components/celebrations';

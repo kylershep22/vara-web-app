@@ -6,7 +6,6 @@
 import React, { useState, useCallback, memo, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   TextInput as RNTextInput,
@@ -21,6 +20,7 @@ import {
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
 } from 'react-native';
+import Text from '../shared/Text';
 import * as ImagePicker from 'expo-image-picker';
 import { safePickFromLibrary, safePickFromCamera } from '../../utils/safeImagePicker';
 import { Colors, Spacing, Typography, Layout } from '../../constants';

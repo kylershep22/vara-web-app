@@ -15,10 +15,10 @@ import React from 'react';
 import {
   Modal,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Text from '../shared/Text';
 import * as Haptics from 'expo-haptics';
 
 import { Colors, Spacing, Typography } from '../../constants';

@@ -7,11 +7,11 @@
 import React from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   AccessibilityInfo,
 } from 'react-native';
+import Text from '../shared/Text';
 import { Colors, Spacing, Typography } from '../../constants';
 
 interface PricingSelectorProps {

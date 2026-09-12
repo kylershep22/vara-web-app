@@ -43,7 +43,9 @@
  * (read on focus, no tap needed), and answer the tap with the hint.
  */
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../../components/shared/Text';
+import TextInput from '../../components/shared/TextInput';
 
 import { EnhancedModal } from '../../components/shared/EnhancedModal';
 import { SelectChip } from '../../components/shared/SelectChip';

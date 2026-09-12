@@ -11,7 +11,8 @@
  * arguing about who renders the headline.
  */
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Spacing, Typography } from '../../constants';
 import { A2_BODIES } from '../../constants/journeyCopy';

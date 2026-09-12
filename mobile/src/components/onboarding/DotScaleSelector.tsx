@@ -16,8 +16,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   AccessibilityInfo,
-  Text,
 } from 'react-native';
+import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography, Layout } from '../../constants';

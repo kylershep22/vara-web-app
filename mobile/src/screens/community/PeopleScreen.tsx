@@ -13,7 +13,8 @@ import {
   Animated,
   ScrollView,
 } from 'react-native';
-import { Text, TextInput } from 'react-native';
+import Text from '../../components/shared/Text';
+import TextInput from '../../components/shared/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, LoadingSpinner, PersonCard } from '../../components';

@@ -9,7 +9,8 @@
  */
 
 import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Animated, Text } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
+import Text, { AnimatedText } from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -103,14 +104,14 @@ const RequirementItem: React.FC<{
           <Icon name="check" size={10} color={Colors.white} />
         )}
       </Animated.View>
-      <Animated.Text
+      <AnimatedText
         style={[
           styles.requirementText,
           { color: textColor },
         ]}
       >
         {label}
-      </Animated.Text>
+      </AnimatedText>
     </View>
   );
 };

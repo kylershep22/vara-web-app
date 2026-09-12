@@ -6,8 +6,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -15,6 +13,8 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import Text from '../../components/shared/Text';
+import TextInput from '../../components/shared/TextInput';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { REPORT_REASONS, PostReportReason } from '../../types/moderation';

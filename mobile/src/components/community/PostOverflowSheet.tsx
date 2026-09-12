@@ -6,13 +6,13 @@
 import React from 'react';
 import {
   View,
-  Text,
   Modal,
   Pressable,
   TouchableOpacity,
   StyleSheet,
   Alert,
 } from 'react-native';
+import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, Layout } from '../../constants';

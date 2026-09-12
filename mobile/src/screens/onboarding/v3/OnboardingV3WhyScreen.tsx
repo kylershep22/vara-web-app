@@ -11,7 +11,8 @@
  * break a layout.
  */
 import React, { useCallback, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import TextInput from '../../../components/shared/TextInput';
 import { useNavigation } from '@react-navigation/native';
 
 import { OnboardingScaffold } from '../../../components/onboarding/OnboardingScaffold';

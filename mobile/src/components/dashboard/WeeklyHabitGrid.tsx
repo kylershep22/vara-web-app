@@ -20,7 +20,8 @@
 // Mon/Wed/Fri week as 3-of-7. See habitWeekState.ts for the state rules.
 
 import React, { useMemo } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import { CardHeading } from './CardHeading';

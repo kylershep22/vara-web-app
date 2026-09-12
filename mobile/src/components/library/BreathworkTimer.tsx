@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, Switch } from 'react-native';
+import { View, StyleSheet, Animated, TouchableOpacity, Switch } from 'react-native';
+import Text from '../shared/Text';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';

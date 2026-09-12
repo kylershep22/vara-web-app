@@ -18,10 +18,10 @@
 import React, { useEffect, useRef } from 'react';
 import {
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Text from '../../shared/Text';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Colors, Spacing, Typography } from '../../../constants';

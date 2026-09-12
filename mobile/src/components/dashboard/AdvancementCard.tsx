@@ -32,7 +32,8 @@
  * this component never asks whether it should be here.
  */
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import { ADVANCEMENT_COPY } from '../../constants/journeyCopy';

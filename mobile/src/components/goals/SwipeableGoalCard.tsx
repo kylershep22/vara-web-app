@@ -5,7 +5,7 @@
 
 import React, { useCallback } from 'react';
 import { StyleSheet, View, TouchableOpacity, Dimensions } from 'react-native';
-import { Text } from 'react-native';
+import Text from '../shared/Text';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,

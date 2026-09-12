@@ -5,7 +5,8 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import Text from './shared/Text';
 import { Colors, Spacing } from '../constants';
 
 interface LoadingSpinnerProps {

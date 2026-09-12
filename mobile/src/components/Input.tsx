@@ -12,7 +12,8 @@
 
 import React from 'react';
 import { TextInput, TextInputProps } from 'react-native-paper';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from './shared/Text';
 import { Colors, Layout, Typography, TextStyles } from '../constants';
 
 interface InputProps extends Omit<TextInputProps, 'theme'> {

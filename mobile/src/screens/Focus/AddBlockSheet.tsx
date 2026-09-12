@@ -32,7 +32,9 @@
  * walk plan for exactly that reason.
  */
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, Switch } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Switch } from 'react-native';
+import Text from '../../components/shared/Text';
+import TextInput from '../../components/shared/TextInput';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import { EnhancedModal } from '../../components/shared/EnhancedModal';

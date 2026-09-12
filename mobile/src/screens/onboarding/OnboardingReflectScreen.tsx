@@ -5,7 +5,8 @@
  * reads persisted inputs from Firestore so personalization isn't lost.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../../components/shared/Text';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { doc, getDoc } from 'firebase/firestore';
 import { getMergedUserData } from '../../services/firebase/userMigrationRead';

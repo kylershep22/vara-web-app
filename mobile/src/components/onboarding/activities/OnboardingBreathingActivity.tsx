@@ -10,7 +10,8 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, Animated, Text } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
+import Text from '../../shared/Text';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Typography } from '../../../constants';
 

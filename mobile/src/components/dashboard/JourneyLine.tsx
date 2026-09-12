@@ -30,7 +30,8 @@
  * used to look up copy; what renders is always Jen's destination language.
  */
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { PHASE_DISPLAY } from '../../constants/journey';

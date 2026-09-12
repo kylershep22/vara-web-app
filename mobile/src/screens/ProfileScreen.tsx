@@ -2,11 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   Image,
-  TextInput,
   RefreshControl,
   Alert,
   ActivityIndicator,
@@ -15,6 +13,8 @@ import {
   Keyboard,
   InputAccessoryView,
 } from 'react-native';
+import Text from '../components/shared/Text';
+import TextInput from '../components/shared/TextInput';
 import { Ionicons } from '@expo/vector-icons';
 import { safePickFromLibrary, safeUriToBlob } from '../utils/safeImagePicker';
 import { useNavigation } from '@react-navigation/native';

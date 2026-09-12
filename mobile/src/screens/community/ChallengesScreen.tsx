@@ -14,8 +14,6 @@ import {
   Platform,
   TouchableOpacity,
   RefreshControl,
-  TextInput,
-  Text,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -49,6 +47,8 @@ import { getGroupInfo } from '../../services/firebase/community.service';
 import { Challenge, ChallengeParticipant, GroupCategory, ChallengeFrequency } from '../../types/models';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Switch } from 'react-native';
+import Text from '../../components/shared/Text';
+import TextInput from '../../components/shared/TextInput';
 
 type FilterType = 'all' | 'my' | 'active';
 
