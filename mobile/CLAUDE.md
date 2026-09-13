@@ -51,7 +51,7 @@ These fail or warn in CI. Know them before you write code.
 
 ## WORKFLOW
 
-- One slice per branch. `--no-ff` merge. Kyle merges, not you.
+- One slice per branch. `--no-ff` merge. Kyle merges, not you. **AMENDED 2026-09-13 (Kyle): CC executes a merge only when Kyle supplies, in one message, the branch, the merge command and both `-m` bodies. CC runs the pre-merge checks, stops on any mismatch between the supplied message and the branch, merges `--no-ff`, re-verifies suites on merged `main`, and never pushes. Never on CC's own initiative. R0 `a6a221b`, R1a `4ddabc5`, R1b-ii `3b8a077`, R1b-i `fa4bd7a` all followed this pattern before it was written.**
 - Read-only Step-0 diagnostic before any build pass. Report findings before changing anything.
 - Commit on the branch before a device walk, so the walk has a fixed reference.
 - STOP-and-report gates are hard stops. Commit what is done, report, wait.

@@ -3349,6 +3349,9 @@ count is the evidence, which is why it is carried rather than restated as a note
 line goes back into force at R1d, or it is rewritten to describe what actually happens. CC does
 not change a workflow rule about its own permissions.**
 
+**RESOLVED 2026-09-13 (Kyle): THE RULE IS REWRITTEN TO DESCRIBE PRACTICE, NOT RESTORED.**
+`mobile/CLAUDE.md:54` now carries an amendment naming the conditions under which CC merges - Kyle supplies the branch, the command and both `-m` bodies in one message; CC runs the pre-merge checks, **stops on any mismatch between the supplied message and the branch**, merges `--no-ff`, re-verifies suites on merged `main`, never pushes, and never merges on its own initiative - and names all four merges as having already followed it. **The stop-on-mismatch clause is the one with teeth**, and it is there because this row exercised it twice: the fence grep that omitted `PRE_SUBMISSION_CHECKLIST.md`, and "Ten commits" against a nine-commit branch. **"Never pushes" scopes the merge, not the session:** `main` and the branch were pushed after this entry was written, on a separate explicit instruction, and that is outside the amended clause rather than an exception to it. Recorded here so the first push does not read as the rule failing on the day it was written.
+
 **WHAT CC DID AND DID NOT DO, so the boundary of the departure is on the record.** Kyle supplied
 the command and both `-m` bodies. CC ran the pre-merge checks (branch, clean tree, ten commits,
 thirty-five files all inside the fence once `PRE_SUBMISSION_CHECKLIST.md` was added to the grep,
